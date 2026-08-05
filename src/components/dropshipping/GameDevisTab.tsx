@@ -14,6 +14,8 @@ import { useSirenSearch } from "@/hooks/useSirenSearch";
 import { useGames, useGameDevisHistory, resolveGameDevisPdfUrl } from "@/hooks/useDropshipping";
 import { useAuth } from "@/hooks/useAuth";
 import { useGenerateGameDevis, type GameDevisItem } from "@/hooks/useGameDevis";
+import { useGamePriceOptions, priceOptionLabel } from "@/hooks/useGamePriceOptions";
+
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 
@@ -23,6 +25,7 @@ const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
 interface LineItem {
   id: string;
   gameId: string;
+  priceOptionId: string;
   title: string;
   quantity: number;
   unitPrice: number;
@@ -31,7 +34,9 @@ interface LineItem {
 export default function GameDevisTab() {
   const { toast } = useToast();
   const { data: games = [] } = useGames();
+  const { data: priceOptions = [] } = useGamePriceOptions();
   const generateDevis = useGenerateGameDevis();
+
   const sirenSearch = useSirenSearch();
   const { refetch: refetchHistory } = useGameDevisHistory();
 
@@ -91,7 +96,7 @@ export default function GameDevisTab() {
   const addLine = () => {
     setLines((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), gameId: "", title: "", quantity: 1, unitPrice: 0 },
+      { id: crypto.randomUUID(), gameId: "", priceOptionId: "", title: "", quantity: 1, unitPrice: 0 },
     ]);
   };
 
@@ -101,11 +106,34 @@ export default function GameDevisTab() {
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   };
 
+  const optionsForGame = (gameId: string) => priceOptions.filter((o) => o.game_id === gameId);
+
   const selectGame = (lineId: string, gameId: string) => {
     const game = games.find((g) => g.id === gameId);
     if (!game) return;
-    updateLine(lineId, { gameId, title: game.title });
+    const opts = optionsForGame(gameId);
+    // Un seul tarif : on le préselectionne pour éviter une saisie inutile.
+    const only = opts.length === 1 ? opts[0] : null;
+    updateLine(lineId, {
+      gameId,
+      priceOptionId: only?.id ?? "",
+      title: only ? `${game.title} — ${priceOptionLabel(only)}` : game.title,
+      ...(only ? { unitPrice: Number(only.prix) || 0 } : {}),
+    });
   };
+
+  const selectPriceOption = (lineId: string, optionId: string) => {
+    const line = lines.find((l) => l.id === lineId);
+    const game = games.find((g) => g.id === line?.gameId);
+    const opt = priceOptions.find((o) => o.id === optionId);
+    if (!game || !opt) return;
+    updateLine(lineId, {
+      priceOptionId: optionId,
+      title: `${game.title} — ${priceOptionLabel(opt)}`,
+      unitPrice: Number(opt.prix) || 0,
+    });
+  };
+
 
   const subtotal = lines.reduce((sum, l) => sum + l.quantity * l.unitPrice, 0);
   const totalHT =
@@ -213,7 +241,9 @@ export default function GameDevisTab() {
           </p>
         )}
 
-        {lines.map((line) => (
+        {lines.map((line) => {
+          const lineOptions = optionsForGame(line.gameId);
+          return (
           <div key={line.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-end p-3 border rounded-lg bg-muted/30">
             <div className="space-y-1">
               <Label className="text-xs">Jeu</Label>
@@ -227,7 +257,25 @@ export default function GameDevisTab() {
                   ))}
                 </SelectContent>
               </Select>
+              {lineOptions.length > 0 && (
+                <div className="space-y-1 pt-2">
+                  <Label className="text-xs">Tarif (location / vente)</Label>
+                  <Select value={line.priceOptionId} onValueChange={(v) => selectPriceOption(line.id, v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choisir un tarif..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lineOptions.map((o) => (
+                        <SelectItem key={o.id} value={o.id}>
+                          {priceOptionLabel(o)} · {EUR(Number(o.prix) || 0)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
+
             <div className="space-y-1 w-20">
               <Label className="text-xs">Qté</Label>
               <Input
@@ -259,7 +307,9 @@ export default function GameDevisTab() {
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
-        ))}
+          );
+        })}
+
 
         {lines.length > 0 && (
           <div className="text-sm text-right text-muted-foreground">
