@@ -47,15 +47,23 @@ Deno.serve(async (req: Request) => {
   }
 
   // Build user message from history
-  let userContent: string;
+  //
+  // L'historique est renvoyé en entier à chaque prise de parole. Il est
+  // append-only : les experts d'un même tour reçoivent les mêmes octets, et le
+  // tour suivant les reprend en préfixe. On le sépare de l'instruction du tour
+  // pour pouvoir poser un point de cache entre les deux côté Claude.
+  let historyPrefix = "";
+  let turnText: string;
   if (history && history.length > 0) {
     const historyText = history
       .map((m) => `[${m.isUser ? "Utilisateur" : m.agentName}]: ${m.content}`)
       .join("\n\n");
-    userContent = `Voici l'historique de la discussion jusqu'ici :\n\n${historyText}\n\n---\n\nInstruction pour ce tour : ${turnInstruction}`;
+    historyPrefix = `Voici l'historique de la discussion jusqu'ici :\n\n${historyText}`;
+    turnText = `\n\n---\n\nInstruction pour ce tour : ${turnInstruction}`;
   } else {
-    userContent = `Sujet de discussion : ${topic}\n\nInstruction : ${turnInstruction}`;
+    turnText = `Sujet de discussion : ${topic}\n\nInstruction : ${turnInstruction}`;
   }
+  const userContent = historyPrefix + turnText;
 
   try {
     if (provider === "openai") {
@@ -63,7 +71,7 @@ Deno.serve(async (req: Request) => {
     } else if (provider === "gemini") {
       return await streamGemini(apiKey, model, systemPrompt, userContent, maxTokens);
     } else {
-      return await streamClaude(apiKey, model, systemPrompt, userContent, maxTokens);
+      return await streamClaude(apiKey, model, systemPrompt, historyPrefix, turnText, maxTokens);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -89,14 +97,25 @@ function sseEncode(encoder: TextEncoder, data: string): Uint8Array {
 
 // ─── Claude (Anthropic) ───
 async function streamClaude(
-  apiKey: string, model: string, systemPrompt: string, userContent: string, maxTokens: number
+  apiKey: string, model: string, systemPrompt: string, historyPrefix: string, turnText: string, maxTokens: number
 ) {
+  // Point de cache à la fin de l'historique : l'instruction du tour, qui
+  // change à chaque expert, reste après le breakpoint. Sans historique
+  // (premier tour) il n'y a rien de réutilisable, donc pas de breakpoint :
+  // une écriture de cache jamais relue est facturée 1,25x pour rien.
+  const content = historyPrefix
+    ? [
+      { type: "text" as const, text: historyPrefix, cache_control: { type: "ephemeral" as const } },
+      { type: "text" as const, text: turnText },
+    ]
+    : [{ type: "text" as const, text: turnText }];
+
   const client = new Anthropic({ apiKey });
   const stream = await client.messages.stream({
     model,
     max_tokens: maxTokens || 1200,
     system: systemPrompt,
-    messages: [{ role: "user", content: userContent }],
+    messages: [{ role: "user", content }],
   });
 
   const encoder = new TextEncoder();
