@@ -42,6 +42,8 @@ const VERSION = "ted-sync@1.0.0";
 const OVERLAP_DAYS = 2;
 /** Garde-fou : au-delà, c'est que le filtre est trop large, on préfère le savoir. */
 const MAX_RECORDS = 1000;
+/** Second garde-fou : une pagination qui ne se termine pas ne doit pas boucler. */
+const MAX_PAGES = 20;
 /** Réglage des pays surveillés. La France est exclue : elle arrive par le BOAMP. */
 const COUNTRIES_SETTING = "tender_ted_countries";
 
@@ -104,47 +106,80 @@ serve(async (req) => {
     }
 
     const since = await resolveSince(supabase, body.since);
-    const searchBody = buildTedSearchBody({
-      countries,
-      cpvCodes: config.cpvCodes,
-      keywords: config.keywords,
-      since,
-    });
 
-    const res = await fetch(`${TED_BASE}/notices/search`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(searchBody),
-    });
-    const payload = await res.json().catch(() => null);
+    /** Une page de résultats. La forme de l'enveloppe reste à confirmer. */
+    // deno-lint-ignore no-explicit-any
+    const fetchPage = async (token: string | null): Promise<any> => {
+      const searchBody = buildTedSearchBody({
+        countries,
+        cpvCodes: config.cpvCodes,
+        keywords: config.keywords,
+        since,
+        iterationNextToken: token,
+      });
+      const res = await fetch(`${TED_BASE}/notices/search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(searchBody),
+      });
+      return { searchBody, status: res.status, payload: await res.json().catch(() => null) };
+    };
+
+    // deno-lint-ignore no-explicit-any
+    const noticesOf = (payload: any): unknown[] => {
+      const found = payload?.notices ?? payload?.results ?? payload?.content ?? payload;
+      return Array.isArray(found) ? found : [];
+    };
+
+    const firstPage = await fetchPage(null);
 
     // ── Sonde : le contrat de l'API sans rien écrire ─────────
     if (body.probe) {
       // deno-lint-ignore no-explicit-any
-      const first = (payload?.notices ?? payload?.results ?? payload?.content ?? [])[0] as any;
+      const first = noticesOf(firstPage.payload)[0] as any;
       return createJsonResponse({
         _version: VERSION,
         countries,
         since,
-        request: searchBody,
-        http_status: res.status,
-        response_keys: payload && typeof payload === "object" ? Object.keys(payload).sort() : null,
+        request: firstPage.searchBody,
+        http_status: firstPage.status,
+        response_keys:
+          firstPage.payload && typeof firstPage.payload === "object"
+            ? Object.keys(firstPage.payload).sort()
+            : null,
         notice_keys: first && typeof first === "object" ? Object.keys(first).sort() : null,
         mapped_sample: first ? { ...mapTedNotice(first), raw: undefined } : null,
+        // Une requête refusée renvoie une erreur structurée qui nomme le champ
+        // fautif : c'est le chemin le plus court pour corriger la requête.
+        error_body: firstPage.status >= 400 ? firstPage.payload : null,
       });
     }
 
-    if (!res.ok) {
-      return createErrorResponse(`TED a répondu ${res.status}`, 502, { fn: "ted-sync" });
+    if (firstPage.status < 200 || firstPage.status >= 300) {
+      return createErrorResponse(
+        `TED a répondu ${firstPage.status} : ${JSON.stringify(firstPage.payload).slice(0, 300)}`,
+        502,
+        { fn: "ted-sync" },
+      );
     }
 
-    // La forme de l'enveloppe n'est pas certaine : on accepte les trois noms
-    // plausibles plutôt que d'échouer sur un renommage.
-    const notices: unknown[] =
-      payload?.notices ?? payload?.results ?? payload?.content ??
-      (Array.isArray(payload) ? payload : []);
+    // Mode itération : on suit le jeton jusqu'à épuisement, sans dépasser le
+    // garde-fou. Sans cette boucle, une seule page serait lue et le reste
+    // manquerait sans que rien ne le signale.
+    const notices: unknown[] = [...noticesOf(firstPage.payload)];
+    let token: string | null = firstPage.payload?.iterationNextToken ?? null;
+    let pages = 1;
+    while (token && notices.length < MAX_RECORDS && pages < MAX_PAGES) {
+      const next = await fetchPage(token);
+      if (next.status < 200 || next.status >= 300) break;
+      const batch = noticesOf(next.payload);
+      if (!batch.length) break;
+      notices.push(...batch);
+      token = next.payload?.iterationNextToken ?? null;
+      pages++;
+    }
 
-    if (!Array.isArray(notices) || notices.length === 0) {
+    if (notices.length === 0) {
       console.log(`[${VERSION}] aucune notice`, JSON.stringify({ since, countries }));
     }
 
@@ -225,6 +260,7 @@ serve(async (req) => {
       since,
       countries,
       notices_received: notices.length,
+      pages_read: pages,
       kept,
       excluded,
       unmatched,

@@ -44,8 +44,27 @@ export type { NormalizedTender };
 
 export const TED_BASE = "https://api.ted.europa.eu/v3";
 
-/** Page maximale demandée à l'API. Au-delà, c'est que le filtre est trop large. */
-export const TED_PAGE_SIZE = 100;
+/**
+ * Taille de page. Le maximum documenté est 250 avis par page, avec un second
+ * plafond : avis × champs demandés ne doit pas dépasser 10 000 par page. Avec
+ * les 9 champs ci-dessous, 250 × 9 = 2 250, on est loin du plafond.
+ */
+export const TED_PAGE_SIZE = 250;
+/** Plafond documenté : nombre d'avis × nombre de champs, par page. */
+export const TED_MAX_FIELDS_PER_PAGE = 10_000;
+
+/** Champs demandés pour chaque avis. */
+export const TED_FIELDS = [
+  "publication-number",
+  "notice-title",
+  "buyer-name",
+  "buyer-country",
+  "classification-cpv",
+  "publication-date",
+  "deadline-receipt-request",
+  "notice-type",
+  "links",
+];
 
 /**
  * Première valeur textuelle trouvée sous l'un des noms donnés, à n'importe
@@ -152,7 +171,8 @@ export function buildTedSearchBody(opts: {
   cpvCodes: string[];
   keywords: string[];
   since: string;
-  page?: number;
+  /** Jeton rendu par l'appel précédent. Absent pour la première page. */
+  iterationNextToken?: string | null;
 }): Record<string, unknown> {
   const clauses: string[] = [];
 
@@ -170,23 +190,19 @@ export function buildTedSearchBody(opts: {
   const day = opts.since.slice(0, 10).replace(/-/g, "");
   if (/^\d{8}$/.test(day)) clauses.push(`publication-date>=${day}`);
 
-  return {
+  // Mode itération plutôt que pagination : la documentation le donne comme le
+  // mode des réutilisateurs de données. Il gèle l'index le temps du parcours,
+  // donc aucun avis manqué ni compté deux fois si le TED publie pendant la
+  // synchronisation, et il n'a pas le plafond de 15 000 avis du mode paginé.
+  const body: Record<string, unknown> = {
     query: clauses.join(" AND "),
-    page: opts.page ?? 1,
-    limit: TED_PAGE_SIZE,
-    scope: "ACTIVE",
-    fields: [
-      "publication-number",
-      "notice-title",
-      "buyer-name",
-      "buyer-country",
-      "classification-cpv",
-      "publication-date",
-      "deadline-receipt-request",
-      "notice-type",
-      "links",
-    ],
+    limit: Math.min(TED_PAGE_SIZE, Math.floor(TED_MAX_FIELDS_PER_PAGE / TED_FIELDS.length)),
+    fields: TED_FIELDS,
+    paginationMode: "ITERATION",
   };
+  // Absent au premier appel : c'est ce qui distingue la première page.
+  if (opts.iterationNextToken) body.iterationNextToken = opts.iterationNextToken;
+  return body;
 }
 
 /** URL publique d'un avis TED à partir de son numéro de publication. */

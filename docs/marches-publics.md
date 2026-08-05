@@ -730,11 +730,30 @@ lisent un avis européen avec le même code, déjà éprouvé sur des données
 réelles. `boamp.ts` garde ce qui lui est propre — l'ancien schéma XML BOAMP,
 la construction des requêtes ODSQL.
 
+### Ce qui est confirmé par la documentation
+
+`POST /v3/notices/search`, sans authentification : l'API est ouverte aux
+réutilisateurs de données. Deux modes de parcours, et le connecteur prend le
+second : le mode **itération** gèle l'index le temps du parcours, donc aucun
+avis manqué ni compté deux fois si le TED publie pendant la synchronisation, et
+il n'a pas le plafond de 15 000 avis du mode paginé. On suit `iterationNextToken`
+jusqu'à épuisement, avec deux garde-fous : 1 000 avis et 20 pages.
+
+Deux plafonds documentés sont respectés et figés par un test : 250 avis par
+page, et avis × champs demandés au plus 10 000 par page.
+
 ### Ce qui n'a pas pu être vérifié
 
-Le **contrat de transport** de l'API TED — chemin, forme de la requête, noms
-des champs de réponse — n'a pas pu être vérifié à l'écriture : la sortie réseau
-de l'environnement de développement ne porte pas jusqu'à `api.ted.europa.eu`.
+Les **noms des champs** de la requête experte (`buyer-country`,
+`classification-cpv`, `publication-date`, `FT~`) et la **forme de l'enveloppe**
+de réponse. La documentation renvoie à la page Expert Search pour la liste des
+champs, et la sortie réseau de l'environnement de développement ne porte pas
+jusqu'à `api.ted.europa.eu`.
+
+Une requête refusée renvoie une erreur structurée qui nomme le champ fautif
+(`QueryUnknownFieldError`, `QueryUnsupportedFieldValueError`). Le mode sonde
+renvoie ce corps d'erreur tel quel : c'est le chemin le plus court pour
+corriger.
 
 Deux partis pris en conséquence. La requête est construite en un seul endroit
 (`buildTedSearchBody`), pour qu'une correction tienne en trois lignes. Et la

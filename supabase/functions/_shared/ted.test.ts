@@ -43,6 +43,36 @@ describe("buildTedSearchBody", () => {
     expect(body.query).toContain('FT~"coconstruction"');
   });
 
+  // Deux plafonds documentés : 250 avis par page, et avis × champs <= 10 000.
+  it("respecte les plafonds de pagination documentés", () => {
+    const body = buildTedSearchBody({
+      countries: ["BE"],
+      cpvCodes: [],
+      keywords: ["facilitation"],
+      since: "2026-06-01",
+    });
+    const limit = body.limit as number;
+    const fields = body.fields as string[];
+    expect(limit).toBeLessThanOrEqual(250);
+    expect(limit * fields.length).toBeLessThanOrEqual(10_000);
+    // Mode itération : pas de plafond de 15 000 avis, et pas de doublon si le
+    // TED publie pendant le parcours.
+    expect(body.paginationMode).toBe("ITERATION");
+    // Le jeton est absent au premier appel : c'est ce qui demande la 1re page.
+    expect(body.iterationNextToken).toBeUndefined();
+  });
+
+  it("joint le jeton d'itération à partir de la deuxième page", () => {
+    const body = buildTedSearchBody({
+      countries: ["BE"],
+      cpvCodes: [],
+      keywords: ["facilitation"],
+      since: "2026-06-01",
+      iterationNextToken: "jeton-123",
+    });
+    expect(body.iterationNextToken).toBe("jeton-123");
+  });
+
   it("omet la date quand elle est illisible plutôt que d'envoyer une requête fausse", () => {
     const body = buildTedSearchBody({
       countries: ["BE"],
