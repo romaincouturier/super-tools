@@ -241,7 +241,9 @@ export default function GameDevisTab() {
           </p>
         )}
 
-        {lines.map((line) => (
+        {lines.map((line) => {
+          const lineOptions = optionsForGame(line.gameId);
+          return (
           <div key={line.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-3 items-end p-3 border rounded-lg bg-muted/30">
             <div className="space-y-1">
               <Label className="text-xs">Jeu</Label>
@@ -255,7 +257,25 @@ export default function GameDevisTab() {
                   ))}
                 </SelectContent>
               </Select>
+              {lineOptions.length > 0 && (
+                <div className="space-y-1 pt-2">
+                  <Label className="text-xs">Tarif (location / vente)</Label>
+                  <Select value={line.priceOptionId} onValueChange={(v) => selectPriceOption(line.id, v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choisir un tarif..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lineOptions.map((o) => (
+                        <SelectItem key={o.id} value={o.id}>
+                          {priceOptionLabel(o)} · {EUR(Number(o.prix) || 0)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
+
             <div className="space-y-1 w-20">
               <Label className="text-xs">Qté</Label>
               <Input
