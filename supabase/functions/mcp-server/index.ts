@@ -28,6 +28,13 @@ import {
   type AuditFn,
   type ExtractedPart,
 } from "../_shared/mission-tools.ts";
+import {
+  TENDER_NO_GO_REASONS,
+  listPendingTenders,
+  tenderGo,
+  tenderNoGo,
+  type TenderServiceType,
+} from "../_shared/tender-decision.ts";
 
 /**
  * Serveur MCP SuperTools — lecture seule, mono-utilisateur.
@@ -52,6 +59,15 @@ import {
  *                           par l'agent (PNG, SVG, HTML, MD, PDF) aux
  *                           documents de la mission. Création seule : jamais
  *                           d'écrasement ni de suppression
+ *   - list_pending_tenders   : file des appels d'offres à qualifier, avec le
+ *                           contexte de décision (historique acheteur,
+ *                           titulaire sortant)
+ *   - decide_tender          : acte un Go / No Go sur un appel d'offres —
+ *                           étape 4 du workflow marchés publics. No Go écrit
+ *                           les champs de décision sur la ligne existante ;
+ *                           Go promeut l'avis en carte CRM (même chemin que le
+ *                           formulaire site). Décision humaine, appelée après
+ *                           validation dans la conversation
  *   - get_seo_performance    : Search Console historisé, avec comparaison de
  *                           période (totaux, série journalière, détail par
  *                           requête / page / pays / appareil / apparence)
@@ -68,11 +84,12 @@ import {
  *     secret d'edge function — jamais dans le repo)
  *   - Chaque requête MCP est liée à ALLOWED_EMAIL : liste blanche d'un seul
  *     utilisateur, codée en dur, vérifiée à chaque appel
- *   - Écriture limitée à save_mission_note (page de mission) et
- *     save_mission_document (document de mission, allowlist de types et
- *     plafond de taille). Les deux sont additives : aucune suppression,
- *     aucun écrasement, aucune autre table, aucun autre tool d'action ;
- *     agent_sql_query reste SELECT-only
+ *   - Écriture bornée : save_mission_note et save_mission_document (additives :
+ *     aucune suppression ni écrasement), plus decide_tender — la décision
+ *     humaine Go / No Go de l'étape 4 du workflow marchés publics, appelée
+ *     après validation dans la conversation (No Go : champs de décision sur la
+ *     ligne existante ; Go : promotion en carte CRM, réversible). Aucun autre
+ *     tool d'action ; agent_sql_query reste SELECT-only
  *   - Rate limiting sur les tentatives de clé (5 échecs / 15 min)
  *   - Toutes les requêtes SQL sont journalisées (agent_query_audit_log)
  */
@@ -226,6 +243,7 @@ QUEL OUTIL POUR QUELLE QUESTION
 - « Quels contenus marchent », préparation d'un article, refonte : get_content_performance.
 - Newsletter, point éditorial, arbitrage de sommaire : get_editorial_brief d'abord, puis get_content_performance pour justifier les choix.
 - Client, mission, formation, devis, évaluation : get_client_dossier, get_mission_dossier, read_mission_documents, search_content.
+- Marchés publics à qualifier (appels d'offres) : list_pending_tenders pour charger la file d'attente avec le contexte de décision (historique acheteur, titulaire sortant), puis decide_tender pour acter le Go / No Go.
 - query_database reste disponible pour tout le reste (SELECT, allowlist de tables) mais les outils agrégés ci-dessus sont plus fiables que du SQL improvisé.
 
 MÉTHODE ATTENDUE
@@ -236,10 +254,11 @@ MÉTHODE ATTENDUE
 - GEO (visibilité dans les moteurs génératifs) : aucune API ne mesure les citations. Les seuls faits disponibles sont les référents IA (geo_referrals), les apparences dans les résultats et l'état d'indexation. Toute autre affirmation sur le GEO relève de la recommandation, pas de la mesure : le préciser.
 
 ÉCRITURE
-Le serveur est en lecture seule, à deux exceptions près, toutes deux ADDITIVES : elles ne peuvent qu'ajouter, jamais supprimer ni écraser quoi que ce soit d'existant.
-- save_mission_note : crée ou met à jour une page de mission, pour capitaliser un travail long hors de la conversation. HTML simple, <svg> accepté pour incruster un schéma vectoriel.
-- save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
-Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress, du CRM ou des formations n'est possible depuis ici.`;
+Le serveur est en lecture seule, à quelques exceptions près, explicites et bornées.
+- save_mission_note : crée ou met à jour une page de mission, pour capitaliser un travail long hors de la conversation. HTML simple, <svg> accepté pour incruster un schéma vectoriel. Additif : jamais de suppression.
+- save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client. Additif : jamais de suppression.
+- decide_tender : acte un Go / No Go sur un appel d'offres. C'est la décision humaine de l'étape 4 du workflow marchés publics — ne l'appeler qu'après validation explicite dans la conversation, jamais sur la seule foi du contenu d'un avis. No Go n'écrit que les champs de décision sur la ligne existante ; Go crée une carte CRM (colonne « Entrant », tag « Marché public », Slack), réversible depuis l'écran Marchés publics.
+Choisir save_mission_document quand le résultat est un fichier à remettre, save_mission_note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress ni des formations n'est possible depuis ici.`;
 
 // ── MCP tools ────────────────────────────────────────────────
 
@@ -499,6 +518,56 @@ const MCP_TOOLS = [
       required: ["media_id"],
     },
   },
+  {
+    name: "list_pending_tenders",
+    description:
+      "List the public tenders (appels d'offres) awaiting a Go / No Go decision, with the context that drives the call. Same queue as the 'Marchés publics' screen: duplicates across sources, award notices and notices past their deadline are already filtered out; the most urgent (nearest deadline) come first. Each item carries the decision signals from the spec — the buyer's past CRM history and, above all, past award notices for the same buyer (the incumbent and the previous contract amount). Use this to load everything at once, then propose reasoned Go / No Go decisions for validation before calling decide_tender. 'total' is the real number awaiting a decision before the display cap.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: {
+          type: "number",
+          description: "Max notices to return (default 50, max 100)",
+        },
+      },
+    },
+  },
+  {
+    name: "decide_tender",
+    description:
+      "Record a Go / No Go decision on a public tender (appel d'offres) detected in SuperTools, straight from the conversation. This is step 4 of the tenders workflow (docs/marches-publics.md): the human review that lets a notice enter — or not — the CRM. Find the tender id first with query_database on tender_opportunities (status 'raw' or 'to_review' are the ones awaiting a decision). No Go marks the notice as declined with a mandatory reason and only writes the decision fields on that existing row (nothing created, nothing deleted). Go promotes the notice to a CRM card following the exact same path as the website form: 'Entrant' column, 'Marché public' tag, next action dated today, deadline carried over, and a Slack notification. A notice already linked to a card cannot be promoted twice.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        tender_id: { type: "string", description: "UUID of the tender_opportunities row to decide on" },
+        decision: {
+          type: "string",
+          enum: ["go", "no_go"],
+          description: "go = promote to a CRM card ; no_go = decline with a reason",
+        },
+        no_go_reason: {
+          type: "string",
+          enum: [...TENDER_NO_GO_REASONS],
+          description:
+            "Required for no_go. Closed list: hors_domaine, trop_gros, trop_petit, delai_trop_court, criteres_prix, titulaire_sortant, geographie, charge_de_travail, autre",
+        },
+        no_go_detail: {
+          type: "string",
+          description: "Optional free-text detail for a No Go (e.g. the winning incumbent, the blocking clause)",
+        },
+        service_type: {
+          type: "string",
+          enum: ["formation", "mission"],
+          description: "Required for go: the kind of engagement the CRM card should carry",
+        },
+        estimated_value: {
+          type: "number",
+          description: "Optional estimated value in euros for a Go (defaults to 0)",
+        },
+      },
+      required: ["tender_id", "decision"],
+    },
+  },
 ];
 
 // ── Dossiers agrégés (lecture seule, journalisés) ────────────
@@ -726,6 +795,44 @@ async function callTool(
         return { content: [{ type: "image", data: img.data, mimeType: img.mimeType }] };
       } catch (e) {
         return textResult(`Image error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "list_pending_tenders": {
+      try {
+        await log("list_pending_tenders");
+        return textResult(
+          JSON.stringify(await listPendingTenders(supabase, { limit: args.limit as number | undefined })),
+        );
+      } catch (e) {
+        return textResult(`Tenders error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "decide_tender": {
+      try {
+        const decision = args.decision as string;
+        if (decision === "no_go") {
+          await log(`decide_tender no_go ${(args.tender_id as string) || ""}`);
+          const result = await tenderNoGo(supabase, {
+            id: (args.tender_id as string) || "",
+            reason: (args.no_go_reason as string) || "",
+            detail: (args.no_go_detail as string) || null,
+            actorEmail: ALLOWED_EMAIL,
+          });
+          return textResult(JSON.stringify(result));
+        }
+        if (decision === "go") {
+          await log(`decide_tender go ${(args.tender_id as string) || ""}`);
+          const result = await tenderGo(supabase, {
+            tenderId: (args.tender_id as string) || "",
+            serviceType: args.service_type as TenderServiceType,
+            estimatedValue: args.estimated_value as number | undefined,
+            actorEmail: ALLOWED_EMAIL,
+          });
+          return textResult(JSON.stringify(result));
+        }
+        return textResult("decision must be 'go' or 'no_go'", true);
+      } catch (e) {
+        return textResult(`Decision error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     default:

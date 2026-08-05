@@ -5,16 +5,16 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
 
 ## Modèle de sécurité
 
-- **Tools exposés (15)** : `query_database` (via `agent_sql_query` : SELECT
+- **Tools exposés (17)** : `query_database` (via `agent_sql_query` : SELECT
   uniquement, tables allowlistées du registry, 100 lignes max),
   `search_content` (recherche hybride, filtrable par mission via
   `mission_id`), `list_schema`, `get_mission_dossier` (mission + pages +
   activités + documents + galerie), `get_client_dossier`, `read_media_image`
   (photo de galerie en image, redimensionnée côté serveur, 3 Mo max),
   `read_document`, `read_mission_page`, `read_mission_documents`,
-  `save_mission_note`, `save_mission_document`, et les quatre outils
-  d'audience décrits ci-dessous. Tous sont journalisés dans
-  `agent_query_audit_log`.
+  `save_mission_note`, `save_mission_document`, `list_pending_tenders` et
+  `decide_tender` (marchés publics, décrits ci-dessous), et les quatre outils
+  d'audience. Tous sont journalisés dans `agent_query_audit_log`.
 - **Instructions du serveur** : le champ `instructions` du protocole MCP,
   renvoyé à l'initialisation, décrit à Claude le métier, les données
   disponibles, l'outil à choisir selon la question et la méthode attendue
@@ -22,9 +22,11 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
   client ignore ce qui existe : c'est ce qui produisait des réponses évasives
   du type « Search Console n'est pas accessible d'ici » alors que les données
   sont en base.
-- **Lecture seule, à deux exceptions près, toutes deux additives** : elles ne
-  peuvent qu'**ajouter**. Aucun écrasement, aucune suppression, aucune autre
-  table touchée.
+- **Écriture bornée.** Deux tools additifs (`save_mission_note`,
+  `save_mission_document` : ils ne peuvent qu'**ajouter**, aucun écrasement ni
+  suppression) et une action de décision (`decide_tender`, décrite dans la
+  section « Marchés publics » : le Go / No Go humain de l'étape 4 du workflow
+  marchés publics). Le reste est en lecture seule.
   - `save_mission_note` crée ou met à jour **une page de mission**, titre
     préfixé « Note agent — », 200 000 caractères max (en mode `append`, le
     plafond porte sur la note résultante). Elle existe pour capitaliser un
@@ -104,6 +106,44 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
   backups car regénérable).
 - **Audit** : toutes les requêtes SQL passent par `agent_query_audit_log`
   avec l'identité et l'explication de la requête.
+
+## Marchés publics : qualifier depuis Cowork
+
+Deux tools portent l'étape 4 du workflow de `docs/marches-publics.md`
+(décision Go / No Go) directement dans une conversation Claude Cowork, sans
+passer par l'écran CRM.
+
+- **`list_pending_tenders`** — la file des avis en attente de décision, miroir
+  serveur de `useTenderOpportunities("open")` : mêmes filtres (doublons
+  inter-sources écartés, avis d'attribution exclus, échéances dépassées
+  retirées), même tri (date limite croissante), et surtout le même contexte de
+  décision par acheteur — historique CRM et attributions passées (titulaire
+  sortant + montant du marché précédent, le signal numéro un de la spec). Le
+  champ `total` porte le nombre réel d'avis à décider avant le plafond
+  d'affichage. La logique vit dans `_shared/tender-decision.ts`, testée à part.
+- **`decide_tender`** — acte la décision. Deux branches :
+  - **No Go** : motif obligatoire, liste fermée (`hors_domaine`, `trop_gros`,
+    `trop_petit`, `delai_trop_court`, `criteres_prix`, `titulaire_sortant`,
+    `geographie`, `charge_de_travail`, `autre`), détail libre optionnel.
+    N'écrit que les champs de décision (`status`, `no_go_reason`,
+    `no_go_detail`, `reviewed_at`, `reviewed_by`) sur la ligne
+    `tender_opportunities` existante : rien n'est créé ni supprimé.
+  - **Go** : promeut l'avis en carte CRM par le même chemin que le formulaire
+    site et le webhook — colonne « Entrant » (ou la première non archivée),
+    tag « Marché public », prochaine action « Retirer le DCE et décider de
+    candidater » datée du jour, date limite portée en `expected_close_date`,
+    notification Slack et journal d'activité. Un avis déjà relié à une carte ne
+    peut pas être promu deux fois.
+
+**La barrière reste la décision humaine.** `docs/marches-publics.md` pose que
+rien n'entre dans `crm_cards` sans validation explicite, parce que le contenu
+d'un avis est une donnée externe non contrôlée. `decide_tender` ne contourne
+pas cette barrière : il l'outille. Le flux attendu est *lister → proposer des
+Go / No Go motivés dans la conversation → l'utilisateur valide → appeler
+`decide_tender`*. L'action ne doit jamais être déclenchée sur la seule foi du
+contenu d'un avis. Comme tout le reste, chaque appel est journalisé dans
+`agent_query_audit_log` et lié à `romain@supertilt.fr`. Une décision se défait
+depuis l'écran Marchés publics (réouverture), le Go comme le No Go.
 
 ## Outils d'audience (SEO, GEO, éditorial)
 

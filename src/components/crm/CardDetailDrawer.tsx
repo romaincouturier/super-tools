@@ -729,7 +729,7 @@ const CardDetailDrawer = ({
                 });
                 toast({ title: "Modèle auto-amélioré", description: `Le modèle "${tpl?.template_name || "email"}" a été mis à jour d'après votre style.` });
               }
-            } catch { /* JSON parse error — skip */ }
+            } catch (e) { console.warn("auto-amélioration modèle : réponse IA non parsable, ignorée", e); }
           }
         } else if (crmEmailTemplates && crmEmailTemplates.length > 0) {
           // No template used — learn from free-form email and improve closest template
@@ -757,7 +757,7 @@ const CardDetailDrawer = ({
                   toast({ title: "Apprentissage du style", description: `Le modèle "${tpl.template_name}" a été amélioré d'après vos derniers emails.` });
                 }
               }
-            } catch { /* JSON parse error — skip */ }
+            } catch (e) { console.warn("apprentissage style email : réponse IA non parsable, ignorée", e); }
           }
         }
       } catch { /* best-effort, non-blocking */ }
