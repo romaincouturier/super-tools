@@ -435,7 +435,7 @@ if [ "$STAGED_MODE" = "false" ]; then
   # [046] Prompt caching de l'agent — le cache ne tient que si le prefixe rendu est
   # append-only pendant un tour (cutoff de compaction fige) ET si des points de cache
   # sont poses sur l'historique, pas seulement sur le system.
-  check "046" "Agent : historique cache et cutoff de compaction fige" \
+  check "048" "Agent : historique cache et cutoff de compaction fige" \
     "grep -q 'withCacheBreakpoints(compactForApi(conversationMessages, compactionCutoff))' supabase/functions/agent-chat/index.ts \
        || echo 'VIOLATION [046]: agent-chat doit envoyer withCacheBreakpoints(compactForApi(..., compactionCutoff))'; \
      test -f supabase/functions/_shared/agent-history.test.ts \
