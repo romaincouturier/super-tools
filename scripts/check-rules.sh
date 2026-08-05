@@ -441,6 +441,28 @@ if [ "$STAGED_MODE" = "false" ]; then
      test -f supabase/functions/_shared/agent-history.test.ts \
        || echo 'VIOLATION [046]: test invariant de prefixe supprime (_shared/agent-history.test.ts)'"
 
+  # [049] Evenement de cout — idempotent par unite facturee. AssemblyAI facture le
+  # job de transcription, pas ses relectures : sans identifiant externe, chaque
+  # poll d'un job termine reecrivait un cout complet.
+  check "049" "Couts : logAssemblyAiUsage porte l identifiant de transcript" \
+    "grep -rl 'logAssemblyAiUsage(' supabase/functions/ --include='*.ts' 2>/dev/null \
+       | grep -v '_shared/api-usage.ts' \
+       | while read -r f; do \
+           calls=\$(grep -c 'logAssemblyAiUsage(' \"\$f\"); \
+           ids=\$(grep -c 'transcriptId' \"\$f\"); \
+           [ \"\$ids\" -ge \"\$calls\" ] || echo \"VIOLATION [049]: \$f log AssemblyAI sans transcriptId (dedup impossible)\"; \
+         done; \
+     grep -rq 'api_usage_events_external_id_uniq' supabase/migrations/ \
+       || echo 'VIOLATION [049]: index unique (provider, external_id) absent des migrations'"
+
+  # Garde-fou de numerotation : deux regles partageant un numero rendent toute
+  # reference ambigue. Arrive quand deux branches ajoutent une regle en
+  # parallele — c'est exactement ce qui s'est produit le 04/08/2026, resolu a la
+  # main. Un meme numero peut en revanche porter deux checks (cas [006] :
+  # un check pattern + un check fichier fixe).
+  check "034b" "Numeros de regles uniques dans IMPROVEMENTS.md" \
+    "grep -oE '^### \\[[0-9]+\\]' IMPROVEMENTS.md | sort | uniq -d | sed 's/^/VIOLATION: numero de regle en double /'"
+
   # Ratchet [017] / [020] — migrations progressives : la dette ne peut que descendre.
   # Baselines dans scripts/rules-ratchet.txt. Compte > baseline = violation.
   # Compte < baseline = abaisser la baseline dans le même commit.
