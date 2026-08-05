@@ -936,7 +936,7 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
   // Pre-fetch all pending checklist items for the upcoming entities in one
   // round-trip; group by entity for cheap lookup.
   async function fetchPendingChecklists(
-    entityType: "mission" | "training",
+    entityType: "mission" | "training" | "event",
     entityIds: string[],
   ): Promise<Map<string, string[]>> {
     const map = new Map<string, string[]>();
@@ -1063,7 +1063,7 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
     }
   }
 
-  // Events (still legacy boolean fields — no checklist support)
+  // Events
   const { data: events } = await supabase
     .from("events")
     .select("id, title, event_date, location, location_type, event_type, train_booked, hotel_booked, room_rental_booked, restaurant_booked, assigned_to")
@@ -1074,14 +1074,26 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
     .gte("event_date", today)
     .lte("event_date", sixtyDaysStr);
 
+  const eventChecklists = await fetchPendingChecklists(
+    "event",
+    (events || []).map((e: any) => e.id),
+  );
+
   if (events) {
     for (const ev of events) {
       if (!ev.location?.trim()) continue;
-      const pendingItems: string[] = [];
-      if (!ev.train_booked) pendingItems.push("🚄 Train");
-      if (!ev.hotel_booked) pendingItems.push("🏨 Hôtel");
-      if (!ev.room_rental_booked) pendingItems.push("🚪 Salle");
-      if (!ev.restaurant_booked) pendingItems.push("🍽️ Restaurant");
+      const fromChecklist = eventChecklists.get(ev.id);
+      let pendingItems: string[];
+      if (fromChecklist !== undefined) {
+        pendingItems = fromChecklist;
+      } else {
+        // Legacy fallback (event has no checklist yet)
+        pendingItems = [];
+        if (!ev.train_booked) pendingItems.push("🚄 Train");
+        if (!ev.hotel_booked) pendingItems.push("🏨 Hôtel");
+        if (!ev.room_rental_booked) pendingItems.push("🚪 Salle");
+        if (!ev.restaurant_booked) pendingItems.push("🍽️ Restaurant");
+      }
       if (pendingItems.length === 0) continue;
       results.push({
         entityType: "event",
