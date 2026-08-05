@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { Separator } from "@/components/ui/separator";
 import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
@@ -334,7 +334,7 @@ export default function InboundEmails() {
 
             <Separator />
 
-            <ScrollArea className="flex-1 -mx-6 px-6">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto overscroll-contain -mx-6 px-6">
               <div className="space-y-4 py-4">
                 {/* Metadata */}
                 <div className="grid grid-cols-2 gap-2 text-sm">
@@ -361,7 +361,7 @@ export default function InboundEmails() {
                 {/* Content */}
                 {selectedEmail?.html_body ? (
                   <div
-                    className="prose prose-sm max-w-none dark:prose-invert"
+                    className="prose prose-sm max-w-none dark:prose-invert break-words [&_img]:max-w-full [&_table]:max-w-full"
                     dangerouslySetInnerHTML={{ 
                       __html: DOMPurify.sanitize(selectedEmail.html_body, {
                         ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code', 'span', 'div', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'img', 'hr', 'sub', 'sup'],
@@ -371,12 +371,13 @@ export default function InboundEmails() {
                     }}
                   />
                 ) : (
-                  <pre className="whitespace-pre-wrap text-sm font-sans">
+                  <pre className="whitespace-pre-wrap break-words text-sm font-sans">
                     {selectedEmail?.text_body || "(Pas de contenu)"}
                   </pre>
                 )}
               </div>
-            </ScrollArea>
+            </div>
+
 
             <Separator />
 
