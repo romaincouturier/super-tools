@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { daysLeft, isTenderUrgent } from "./tenders";
+import { daysLeft, isTenderUrgent, resolveDceLink } from "./tenders";
 
 const NOW = new Date("2026-08-03T12:00:00Z");
 
