@@ -713,12 +713,27 @@ Fichiers : `supabase/functions/tender-analyze/`,
 
 ## Source TED : les marchés européens
 
-Tout marché français au-dessus du seuil européen est publié à la fois au BOAMP
-et au TED. Sur la France, le TED ne fait donc que doublonner, avec un parseur
-moins éprouvé. Ce qu'il apporte réellement, ce sont les autres pays et les
-institutions européennes — d'où l'unique réglage propre à ce connecteur,
-`tender_ted_countries`, qui vaut `BE,LU` par défaut et dont la France est
-volontairement absente. Le vider désactive la source.
+Le TED couvre toute l'Europe, là où le BOAMP s'arrête à la France. Un marché
+français au-dessus du seuil européen est publié aux deux endroits, mais c'est
+le rapprochement inter-sources qui s'en occupe, pas une exclusion de pays.
+
+**Le critère est la langue, pas la géographie.** Un marché est prospectable dès
+lors qu'il se lit et se répond en français ou en anglais, où qu'il soit publié.
+D'où deux réglages :
+
+- `tender_ted_countries` : **vide par défaut**, c'est-à-dire tous les pays. Ne
+  sert qu'à resserrer si le volume devient ingérable.
+- `tender_ted_languages` : `fra,eng` par défaut. Un avis qui n'existe dans
+  aucune de ces langues est écarté et compté à part (`unreadable`) — il n'est
+  ni lisible ni répondable, l'afficher n'encombrerait la revue que pour finir
+  en No Go. Un avis sans langue déclarée passe : mieux vaut une ligne de trop à
+  écarter à la main qu'un marché manqué parce que le TED n'a pas étiqueté son
+  titre.
+
+Les mots-clés métier existent désormais en français **et en anglais** dans la
+liste partagée (`graphic facilitation`, `graphic recording`, `collective
+intelligence`, `change management`, `ai literacy`…). Ils ne créent pas de faux
+positifs sur le BOAMP : aucun avis français ne parle de « change management ».
 
 Le reste du filtrage est **partagé** avec le BOAMP : mêmes codes CPV, mêmes
 mots-clés, mêmes exclusions. Un filtre par source aurait doublé la surface à
@@ -771,10 +786,16 @@ Il renvoie la requête envoyée, le code HTTP, les clés de la réponse, celles 
 premier avis et le résultat du mapping, côte à côte. Une exécution suffit à
 confirmer ou corriger le contrat.
 
-### Limite connue : la langue
+### Volume : à mesurer avant d'automatiser
 
-Les mots-clés sont français. Un avis flamand ou luxembourgeois rédigé en
-néerlandais ou en allemand ne sera retenu que par son code CPV. Le mapper
-préfère la version française d'un libellé multilingue quand elle existe, ce qui
-est fréquent en Belgique, mais pas systématique. Si la mesure montre que la
-source ne ramène rien, c'est la première piste — avant d'élargir les pays.
+Ouvrir tous les pays est le bon réglage de départ, mais c'est aussi celui qui
+peut inonder. Trois choses le retiennent : le filtre métier partagé avec le
+BOAMP, qui est étroit ; le filtre de langue, qui écarte tout ce qui n'est ni
+français ni anglais ; et les garde-fous du parcours, 1 000 avis et 20 pages.
+
+La séquence est la même que pour le BOAMP, et pour la même raison — la
+première ingestion réelle avait ramené 278 avis pour une vingtaine attendue :
+sonde, puis ingestion manuelle sur une fenêtre large, puis lecture des
+compteurs (`kept`, `excluded`, `unmatched`, `unreadable`) avant de programmer
+quoi que ce soit. Si `kept` est élevé, resserrer les pays est le levier le plus
+direct.

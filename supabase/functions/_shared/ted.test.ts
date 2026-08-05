@@ -3,7 +3,9 @@ import {
   allTexts,
   buildTedSearchBody,
   firstText,
+  isReadableLanguage,
   mapTedNotice,
+  noticeLanguages,
   noticesOf,
   tedNoticeUrl,
   walkTedPages,
@@ -287,5 +289,51 @@ describe("noticesOf", () => {
     expect(noticesOf([4])).toEqual([4]);
     expect(noticesOf(null)).toEqual([]);
     expect(noticesOf({ autre: "chose" })).toEqual([]);
+  });
+});
+
+describe("langue de l'avis", () => {
+  it("repère les langues déclarées d'un avis", () => {
+    const langs = noticeLanguages({
+      "notice-title": { fra: "Ateliers", eng: "Workshops" },
+      "buyer-name": { nld: "Stad Gent" },
+    });
+    expect([...langs].sort()).toEqual(["eng", "fra", "nld"]);
+  });
+
+  it("retient un avis disponible en français ou en anglais", () => {
+    expect(isReadableLanguage({ "notice-title": { fra: "Ateliers" } }, ["fra", "eng"])).toBe(true);
+    expect(isReadableLanguage({ "notice-title": { eng: "Workshops" } }, ["fra", "eng"])).toBe(true);
+  });
+
+  // Un avis uniquement en néerlandais ou en allemand n'est ni lisible ni
+  // répondable : il finirait en No Go après avoir encombré la revue.
+  it("écarte un avis qui n'existe dans aucune langue pratiquée", () => {
+    expect(
+      isReadableLanguage({ "notice-title": { nld: "Workshops", deu: "Werkstätten" } }, ["fra", "eng"]),
+    ).toBe(false);
+  });
+
+  // Mieux vaut une ligne de trop à écarter à la main qu'un marché manqué
+  // parce que le TED n'a pas étiqueté son titre.
+  it("laisse passer un avis sans langue déclarée", () => {
+    expect(isReadableLanguage({ "notice-title": "Ateliers de facilitation" }, ["fra"])).toBe(true);
+    expect(isReadableLanguage({}, ["fra"])).toBe(true);
+  });
+
+  it("accepte tout quand aucune langue n'est configurée", () => {
+    expect(isReadableLanguage({ "notice-title": { nld: "Workshops" } }, [])).toBe(true);
+  });
+
+  // Le pays ne doit plus restreindre par défaut : c'est la langue qui commande.
+  it("n'ajoute aucune clause de pays quand la liste est vide", () => {
+    const body = buildTedSearchBody({
+      countries: [],
+      cpvCodes: ["80511000"],
+      keywords: ["graphic facilitation"],
+      since: "2026-06-01",
+    });
+    expect(body.query).not.toContain("buyer-country");
+    expect(body.query).toContain('FT~"graphic facilitation"');
   });
 });

@@ -7,6 +7,7 @@ import {
 } from "../_shared/mod.ts";
 import {
   buildTedSearchBody,
+  isReadableLanguage,
   mapTedNotice,
   noticesOf,
   TED_BASE,
@@ -46,8 +47,10 @@ const OVERLAP_DAYS = 2;
 const MAX_RECORDS = 1000;
 /** Second garde-fou : une pagination qui ne se termine pas ne doit pas boucler. */
 const MAX_PAGES = 20;
-/** Réglage des pays surveillés. La France est exclue : elle arrive par le BOAMP. */
+/** Pays surveillés. Vide = tous : le critère de prospection est la langue. */
 const COUNTRIES_SETTING = "tender_ted_countries";
+/** Langues dans lesquelles un avis est lisible et répondable. */
+const LANGUAGES_SETTING = "tender_ted_languages";
 
 function isoDay(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -90,22 +93,19 @@ serve(async (req) => {
       );
     }
 
-    const { data: countriesRow } = await supabase
+    const { data: settingRows } = await supabase
       .from("app_settings")
-      .select("setting_value")
-      .eq("setting_key", COUNTRIES_SETTING)
-      .maybeSingle();
-    const countries = parseSettingList(countriesRow?.setting_value).map((c) => c.toUpperCase());
+      .select("setting_key, setting_value")
+      .in("setting_key", [COUNTRIES_SETTING, LANGUAGES_SETTING]);
+    const settingOf = (key: string) =>
+      (settingRows ?? []).find((r: { setting_key: string }) => r.setting_key === key)
+        ?.setting_value;
 
-    if (!countries.length) {
-      // Sans pays, la requête ramènerait toute l'Europe, France comprise, donc
-      // des doublons du BOAMP par milliers. On refuse plutôt que d'inonder.
-      return createErrorResponse(
-        `Aucun pays surveillé (app_settings : ${COUNTRIES_SETTING})`,
-        400,
-        { fn: "ted-sync" },
-      );
-    }
+    // Vide = tous les pays. C'est le réglage par défaut : on prospecte sur la
+    // langue de l'avis, pas sur sa géographie. La liste ne sert qu'à resserrer
+    // si le volume devient ingérable.
+    const countries = parseSettingList(settingOf(COUNTRIES_SETTING)).map((c) => c.toUpperCase());
+    const languages = parseSettingList(settingOf(LANGUAGES_SETTING)).map((l) => l.toLowerCase());
 
     const since = await resolveSince(supabase, body.since);
 
@@ -136,6 +136,7 @@ serve(async (req) => {
       return createJsonResponse({
         _version: VERSION,
         countries,
+        languages,
         since,
         request: firstPage.searchBody,
         http_status: firstPage.status,
@@ -175,6 +176,7 @@ serve(async (req) => {
     let kept = 0;
     let excluded = 0;
     let unmatched = 0;
+    let unreadable = 0;
     let failed = 0;
     const parseErrors: string[] = [];
 
@@ -190,6 +192,14 @@ serve(async (req) => {
       if (!tender.source_ref) {
         failed++;
         parseErrors.push("avis sans numéro de publication");
+        continue;
+      }
+
+      // Un avis qui n'existe que dans une langue qu'on ne pratique pas n'est
+      // ni lisible ni répondable : l'afficher n'encombrerait la revue que pour
+      // finir en No Go. Compté à part pour que le réglage se mesure.
+      if (!isReadableLanguage(notice, languages)) {
+        unreadable++;
         continue;
       }
 
@@ -248,11 +258,13 @@ serve(async (req) => {
       _version: VERSION,
       since,
       countries,
+      languages,
       notices_received: notices.length,
       pages_read: walk.pages,
       kept,
       excluded,
       unmatched,
+      unreadable,
       failed,
       duplicates_linked: linked ?? 0,
       truncated: walk.truncated,

@@ -1,33 +1,62 @@
 -- Source TED : les marchés publics européens.
 --
 -- Tout marché français au-dessus du seuil européen est publié à la fois au
--- BOAMP et au TED. Sur la France, le TED ne fait donc que doublonner, avec un
--- parseur moins éprouvé. Ce que le TED apporte réellement, ce sont les autres
--- pays et les institutions européennes.
+-- BOAMP et au TED. Le rapprochement inter-sources (`link_tender_duplicates`)
+-- s'occupe de ces doublons : ce n'est pas une raison pour exclure un pays.
 --
--- D'où un unique réglage propre à ce connecteur : la liste des pays surveillés.
--- Elle vaut BE,LU par défaut — la Belgique et le Luxembourg, où une prestation
--- de facilitation en français est plausible, et où siègent la plupart des
--- institutions européennes. La France en est volontairement absente.
+-- Deux réglages propres à ce connecteur, et le critère qui commande est la
+-- LANGUE, pas la géographie. Un marché est prospectable dès lors qu'il se lit
+-- et se répond en français ou en anglais, où qu'il soit publié.
+--
+--   tender_ted_countries : VIDE par défaut, c'est-à-dire tous les pays.
+--       Ne sert qu'à resserrer si le volume devient ingérable.
+--   tender_ted_languages : les langues dans lesquelles on sait répondre.
+--       Un avis publié uniquement en allemand ou en néerlandais est écarté :
+--       il n'est ni lisible ni répondable, l'afficher ne ferait qu'encombrer
+--       la revue.
 --
 -- Le reste du filtrage (codes CPV, mots-clés, exclusions) est PARTAGÉ avec le
--- BOAMP : un seul filtre, deux sources. Un filtre par source aurait doublé la
--- surface à calibrer pour un volume attendu d'une poignée d'avis par mois.
+-- BOAMP : un seul filtre, deux sources.
 
 INSERT INTO public.app_settings (setting_key, setting_value, description)
-VALUES (
-  'tender_ted_countries',
-  'BE,LU',
-  'Codes pays ISO surveillés sur le TED, séparés par des virgules. '
-  || 'La France est volontairement absente : ses marchés au-dessus du seuil '
-  || 'européen arrivent déjà par le BOAMP, et les ingérer deux fois ne '
-  || 'produirait que des doublons. Vider ce réglage désactive la source TED.'
-)
+VALUES
+  (
+    'tender_ted_countries',
+    '',
+    'Codes pays ISO surveillés sur le TED, séparés par des virgules. '
+    || 'VIDE = tous les pays, ce qui est le réglage par défaut : le critère de '
+    || 'prospection est la langue de l''avis, pas sa géographie. À ne resserrer '
+    || 'que si le volume devient ingérable.'
+  ),
+  (
+    'tender_ted_languages',
+    'fra,eng',
+    'Langues dans lesquelles un avis est exploitable, séparées par des virgules '
+    || '(codes ISO 639-2 du TED : fra, eng, deu, nld…). Un avis qui n''existe '
+    || 'dans aucune de ces langues est écarté : il n''est ni lisible ni '
+    || 'répondable. Vider ce réglage accepte toutes les langues.'
+  )
 ON CONFLICT (setting_key) DO NOTHING;
 
--- Le libellé de source affiché dans la revue. La colonne `source` est du texte
--- libre : rien à contraindre, mais le registre de schéma sert de documentation
--- vivante pour l'agent, il doit dire que la source existe.
+-- Les mots-clés métier en anglais, pour que la prospection hors de France ne
+-- dépende pas du seul code CPV. Ajoutés à la liste partagée : ils ne créent
+-- pas de faux positifs sur le BOAMP, aucun avis français ne parlant de
+-- « change management » ou de « collective intelligence ».
+-- Conditionné à la valeur en place (règle [046]) : un réglage ajusté à la main
+-- depuis l'écran de paramètres ne doit pas être écrasé.
+UPDATE public.app_settings
+   SET setting_value = setting_value
+      || ',graphic facilitation,graphic recording,visual facilitation,'
+      || 'collective intelligence,change management,workshop facilitation,'
+      || 'co-design,ai literacy,generative artificial intelligence',
+       description = description
+      || ' Les termes anglais servent la prospection européenne : le critère '
+      || 'est la langue de l''avis, pas le pays.'
+ WHERE setting_key = 'tender_keywords'
+   AND setting_value NOT LIKE '%graphic facilitation%';
+
+-- Le registre de schéma sert de documentation vivante pour l'agent : il doit
+-- dire que la source existe.
 UPDATE public.agent_schema_registry
    SET description = replace(
          description,
