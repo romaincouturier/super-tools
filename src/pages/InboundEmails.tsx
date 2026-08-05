@@ -199,10 +199,11 @@ export default function InboundEmails() {
               <SelectItem value="spam">Spam</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualiser
+          <Button variant="outline" onClick={() => syncMutation.mutate()} disabled={syncMutation.isPending}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${syncMutation.isPending ? "animate-spin" : ""}`} />
+            {syncMutation.isPending ? "Actualisation..." : "Actualiser"}
           </Button>
+
         </div>
 
         {/* Email list */}
