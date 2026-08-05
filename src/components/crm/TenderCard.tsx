@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { daysLeft, describeMatch, resolveDceLink, TENDER_URGENT_DAYS } from "@/lib/tenders";
+import { useDceReviewFlag } from "@/hooks/crm/useDceReviewFlag";
 import { tenderNoGoReasonConfig, tenderSourceConfig, type TenderWithContext } from "@/types/tenders";
 
 interface TenderCardProps {
