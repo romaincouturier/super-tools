@@ -470,12 +470,16 @@ const EventDetail = () => {
 
         {/* Liste d'actions / logistique */}
         {event.status !== "cancelled" && (
-          <LogisticsChecklist
-            entityType="event"
-            entityId={event.id}
-            isRemote={event.location_type === "visio"}
-            startDate={event.event_date}
-          />
+          <Card>
+            <CardContent className="pt-6">
+              <LogisticsChecklist
+                entityType="event"
+                entityId={event.id}
+                isRemote={event.location_type === "visio"}
+                startDate={event.event_date}
+              />
+            </CardContent>
+          </Card>
         )}
 
         {/* Images & Videos (unified) */}
