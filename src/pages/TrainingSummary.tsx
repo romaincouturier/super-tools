@@ -414,8 +414,8 @@ END:VCALENDAR`;
                     Période de formation
                   </h2>
                   <p className="text-sm font-medium" style={{ color: c.onSurfaceVariant }}>
-                    Du {formatDateLong(training.start_date)}
-                    {training.end_date && ` au ${formatDateLong(training.end_date)}`}
+                    {training.start_date ? `Du ${formatDateLong(training.start_date)}` : "Dates à confirmer"}
+                    {training.start_date && training.end_date && ` au ${formatDateLong(training.end_date)}`}
                   </p>
                 </div>
               </div>
