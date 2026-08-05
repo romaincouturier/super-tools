@@ -23,6 +23,7 @@ const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
 interface LineItem {
   id: string;
   gameId: string;
+  priceOptionId: string;
   title: string;
   quantity: number;
   unitPrice: number;
@@ -31,7 +32,9 @@ interface LineItem {
 export default function GameDevisTab() {
   const { toast } = useToast();
   const { data: games = [] } = useGames();
+  const { data: priceOptions = [] } = useGamePriceOptions();
   const generateDevis = useGenerateGameDevis();
+
   const sirenSearch = useSirenSearch();
   const { refetch: refetchHistory } = useGameDevisHistory();
 
