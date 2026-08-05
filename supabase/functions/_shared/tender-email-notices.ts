@@ -25,11 +25,26 @@ export interface ParsedNotice {
   text: string;
 }
 
-/** `18/09/2026 à 18h00` → ISO. Heure absente : fin de journée. */
+const MONTHS = [
+  "janvier", "fevrier", "mars", "avril", "mai", "juin",
+  "juillet", "aout", "septembre", "octobre", "novembre", "decembre",
+];
+
+/**
+ * `18/09/2026 à 18h00` ou `3 septembre 2026 à 12h00` → ISO.
+ * Heure absente : fin de journée.
+ */
 export function parseFrenchDeadline(value: string | null | undefined): string | null {
   if (!value) return null;
-  const m = value.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\D+(\d{1,2})\s*[h:]\s*(\d{2}))?/);
-  if (!m) return null;
+  let m = value.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\D+(\d{1,2})\s*[h:]\s*(\d{2}))?/);
+  if (!m) {
+    const t = value
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+      .match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})(?:\D+?(\d{1,2})\s*[h:]\s*(\d{2}))?/);
+    const month = t ? MONTHS.indexOf(t[2]) : -1;
+    if (!t || month < 0) return null;
+    m = [t[0], t[1], String(month + 1), t[3], t[4], t[5]] as unknown as RegExpMatchArray;
+  }
   const [, d, mo, y, h, mi] = m;
   const iso = `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}T${(h ?? "23").padStart(2, "0")}:${mi ?? "59"}:00+02:00`;
   const date = new Date(iso);
@@ -146,7 +161,11 @@ export async function ingestTenderEmailNotices(
         objet,
         acheteur: notice?.acheteur ?? undefined,
         url_avis: url ?? undefined,
-        datelimitereponse: notice?.datelimitereponse ?? undefined,
+        datelimitereponse: notice?.datelimitereponse ??
+          parseFrenchDeadline(
+            email.body.match(/jusqu[’']?\s*[àa]\s*([^\n*]{0,60})/i)?.[1] ??
+              email.body.match(/(?:date limite|remise des offres)[^\n]{0,60}/i)?.[0] ?? null,
+          ) ?? undefined,
         code_departement: notice ? departementFromCp(notice.cp) : undefined,
         matched_on: match.matched,
         dedup_key: dedupKey({ objet, acheteur: notice?.acheteur ?? null }),
@@ -207,7 +226,7 @@ export async function ingestTenderEmailNotices(
     (t: { source_ref: string | null }) => t.source_ref === email.messageId,
   );
   if (
-    result.created > 0 && placeholder &&
+    result.notices >= 2 && placeholder &&
     placeholder.status === "to_review" && !placeholder.crm_card_id &&
     !Object.keys(placeholder.decision ?? {}).length
   ) {
