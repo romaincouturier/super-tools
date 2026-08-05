@@ -52,3 +52,107 @@ export function describeMatch(match: string): string {
   const label = CPV_LABELS[match];
   return label ? `${label} (CPV ${match})` : `CPV ${match}`;
 }
+
+// ── Lien de retrait du DCE ────────────────────────────────────
+
+/**
+ * Le flux BOAMP ne porte pas toujours le lien direct de la consultation : sur
+ * les avis eForms, `url_dce` retombe souvent sur `BuyerProfileURI`, c'est-à-dire
+ * la racine de la plateforme (« marches-publics.gouv.fr/entreprise »). Le
+ * bouton menait donc à l'accueil, à l'utilisateur de chercher lui-même.
+ *
+ * Deux corrections ici :
+ *  - les entités HTML (`&amp;`) présentes dans les liens AWS, qui cassaient les
+ *    paramètres `type=DCE&IDM=…` ;
+ *  - une recherche pré-remplie sur la référence de consultation quand le lien
+ *    n'est qu'une racine de plateforme.
+ */
+
+/** URL réduite à l'accueil d'une plateforme : aucun identifiant de consultation. */
+function isPlatformRoot(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.search || u.hash) return false;
+    const path = u.pathname.replace(/\/+$/, "");
+    return path === "" || /^\/(entreprise|fr\/marches-publics|marches-publics|avis)$/i.test(path);
+  } catch {
+    return false;
+  }
+}
+
+function decodeEntities(url: string): string {
+  return url
+    .replace(/&amp;/g, "&")
+    .replace(/&#38;/g, "&")
+    .replace(/&quot;/g, "")
+    .trim();
+}
+
+/**
+ * Référence de consultation de l'acheteur (`cbc:ID` du ProcurementProject en
+ * eForms, `REFERENCE` dans l'ancien schéma) : c'est le seul terme qui retrouve
+ * la consultation dans le moteur de recherche d'une plateforme.
+ */
+export function extractTenderReference(raw: unknown): string | null {
+  if (!raw) return null;
+  const text = typeof raw === "string" ? raw : JSON.stringify(raw);
+  const patterns = [
+    /"cac:ProcurementProject"\s*:\s*\{\s*"cbc:ID"\s*:\s*"([^"]{3,40})"/,
+    /\\"cac:ProcurementProject\\"\s*:\s*\{\s*\\"cbc:ID\\"\s*:\s*\\"([^\\"]{3,40})\\"/,
+    /"(?:REFERENCE|reference|IDENT_MARCHE)"\s*:\s*"([^"]{3,40})"/,
+    /\\"(?:REFERENCE|reference|IDENT_MARCHE)\\"\s*:\s*\\"([^\\"]{3,40})\\"/,
+  ];
+  for (const re of patterns) {
+    const m = text.match(re);
+    const value = m?.[1]?.trim();
+    // Un UUID est un identifiant technique de l'avis, pas la référence de
+    // l'acheteur : il ne donne aucun résultat dans un moteur de recherche.
+    if (value && !/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(value)) return value;
+  }
+  return null;
+}
+
+export interface TenderDceLink {
+  url: string;
+  /** true = lien direct vers la consultation, false = recherche pré-remplie. */
+  direct: boolean;
+  label: string;
+}
+
+/** Moteurs de recherche des plateformes, par domaine. */
+function searchUrl(host: string, term: string): string | null {
+  const q = encodeURIComponent(term);
+  if (/marches-publics\.gouv\.fr$/i.test(host)) {
+    return `https://www.marches-publics.gouv.fr/?page=Entreprise.EntrepriseAdvancedSearch&AllCons&keyWord=${q}`;
+  }
+  // Les plateformes Atexo/Dematis partagent le même moteur que PLACE.
+  if (/(maximilien\.fr|ternum-bfc\.fr|e-marchespublics\.com|achatpublic\.com)$/i.test(host)) {
+    return null;
+  }
+  return null;
+}
+
+export function resolveDceLink(tender: {
+  decision?: { url_dce?: string | null } | null;
+  raw?: unknown;
+}): TenderDceLink | null {
+  const rawUrl = tender.decision?.url_dce;
+  if (!rawUrl) return null;
+  const url = decodeEntities(rawUrl);
+  if (!/^https?:\/\//i.test(url)) return null;
+
+  if (!isPlatformRoot(url)) return { url, direct: true, label: "Le DCE" };
+
+  const reference = extractTenderReference(tender.raw);
+  if (reference) {
+    try {
+      const search = searchUrl(new URL(url).hostname, reference);
+      if (search) {
+        return { url: search, direct: false, label: `Chercher le DCE (${reference})` };
+      }
+    } catch {
+      // URL non analysable : on retombe sur le lien tel quel.
+    }
+  }
+  return { url, direct: false, label: "Plateforme de retrait" };
+}

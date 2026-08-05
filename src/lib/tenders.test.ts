@@ -28,3 +28,45 @@ describe("isTenderUrgent", () => {
     expect(isTenderUrgent(null, NOW)).toBe(false);
   });
 });
+
+describe("resolveDceLink", () => {
+  it("garde un lien direct et décode les entités HTML", () => {
+    const link = resolveDceLink({
+      decision: {
+        url_dce:
+          "https://www.marches-publics.info/mpiaws/index.cfm?fuseaction=dematEnt.login&amp;type=DCE&amp;IDM=1832040",
+      },
+    });
+    expect(link).toEqual({
+      url: "https://www.marches-publics.info/mpiaws/index.cfm?fuseaction=dematEnt.login&type=DCE&IDM=1832040",
+      direct: true,
+      label: "Le DCE",
+    });
+  });
+
+  it("transforme la racine PLACE en recherche sur la référence de consultation", () => {
+    const link = resolveDceLink({
+      decision: { url_dce: "https://www.marches-publics.gouv.fr/entreprise" },
+      raw: {
+        donnees: JSON.stringify({
+          EFORMS: { ContractNotice: { "cac:ProcurementProject": { "cbc:ID": "DGAL-2025-074" } } },
+        }),
+      },
+    });
+    expect(link?.direct).toBe(false);
+    expect(link?.url).toContain("keyWord=DGAL-2025-074");
+  });
+
+  it("rend la racine telle quelle quand aucune référence n'est publiée", () => {
+    const link = resolveDceLink({ decision: { url_dce: "https://marches.departement13.fr" } });
+    expect(link).toEqual({
+      url: "https://marches.departement13.fr",
+      direct: false,
+      label: "Plateforme de retrait",
+    });
+  });
+
+  it("rend null sans lien DCE", () => {
+    expect(resolveDceLink({ decision: {} })).toBeNull();
+  });
+});
