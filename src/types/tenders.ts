@@ -46,7 +46,14 @@ export interface TenderDecisionInfo {
   url_dce?: string | null;
   contact_email?: string | null;
   ville?: string | null;
+  /** Devise du montant : un avis TED peut être libellé en NOK, DKK, PLN… */
+  devise?: string | null;
+  procedure?: string | null;
+  langue?: string | null;
+  url_soumission?: string | null;
+  site_acheteur?: string | null;
 }
+
 
 export interface TenderOpportunity {
   id: string;

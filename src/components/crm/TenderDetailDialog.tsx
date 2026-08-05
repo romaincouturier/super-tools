@@ -106,8 +106,9 @@ export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, d
                     : null
                 }
               />
-              <Line label="Procédure" value={detail.procedure ?? tender.type_marche} />
+              <Line label="Procédure" value={d.procedure ?? detail.procedure ?? tender.type_marche} />
               <Line label="Nature" value={tender.nature} />
+              <Line label="Langue de l'avis" value={d.langue ?? null} />
               <Line
                 label="Lieu"
                 value={
@@ -124,7 +125,13 @@ export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, d
               />
               <Line
                 label="Montant annoncé"
-                value={d.montant != null ? `${d.montant.toLocaleString("fr-FR")} €` : null}
+                value={
+                  d.montant != null
+                    ? // La devise vient de l'avis : un montant TED en NOK
+                      // affiché en euros serait un contresens de décision.
+                      `${d.montant.toLocaleString("fr-FR")} ${d.devise ?? "EUR"}`
+                    : null
+                }
               />
               <Line
                 label="Durée"
@@ -138,6 +145,7 @@ export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, d
                 label="Codes CPV"
                 value={tender.cpv_codes?.length ? tender.cpv_codes.join(", ") : null}
               />
+
               <Line
                 label="Retenu sur"
                 value={

@@ -66,10 +66,19 @@ function asText(node: Json): string[] {
   if (typeof node === "object") {
     const rec = node as Record<string, Json>;
     if ("#text" in rec) return asText(rec["#text"]);
+    // Le TED rend ses libellés indexés par langue : `{ "fra": ["..."] }`.
+    // Sans ce cas, la description, l'acheteur et les lots d'un avis européen
+    // sont invisibles alors qu'ils sont bien dans l'avis stocké.
+    const langKeys = Object.keys(rec).filter((k) => /^[a-z]{3}$/.test(k));
+    if (langKeys.length) {
+      const pick = ["fra", "fre", "eng", "mul"].find((k) => langKeys.includes(k)) ?? langKeys[0];
+      return asText(rec[pick]);
+    }
     return [];
   }
   return [];
 }
+
 
 function texts(raw: Json, localName: string): string[] {
   const suffix = localName.toLowerCase();
@@ -160,6 +169,9 @@ export function extractTenderDetail(rawInput: unknown): TenderDetail {
   const primary = [
     ...projectNodes.flatMap((n) => firstTexts(n, ["Description", "Name"])),
     ...firstTexts(raw, ["OBJET_COMPLET", "objet", "TITRE_MARCHE"]),
+    // Clés plates de la recherche TED : c'est là que vit la description d'un
+    // avis européen, il n'y a pas de noeud `ProcurementProject`.
+    ...firstTexts(raw, ["description-proc", "description-lot"]),
   ].filter((t) => t.length > 40);
 
   const others = firstTexts(raw, ["Description", "conditions", "renseignements", "infosSup"])
@@ -168,18 +180,27 @@ export function extractTenderDetail(rawInput: unknown): TenderDetail {
 
   const descriptions = [...new Set([...primary, ...others])].slice(0, 5);
 
+  const lots = lotNames(raw);
 
   return {
     descriptions,
-    lots: lotNames(raw),
+    lots: lots.length ? lots : firstTexts(raw, ["title-lot"], 5).slice(0, 12),
     descripteurs: asText(rec.descripteur_libelle),
-    villes: firstTexts(raw, ["CityName", "ville", "VILLE"]).slice(0, 4),
-    emails: firstTexts(raw, ["ElectronicMail", "mel", "MEL"], 5)
+    villes: firstTexts(raw, [
+      "CityName",
+      "ville",
+      "VILLE",
+      "place-of-performance-city-lot",
+      "buyer-city",
+    ]).slice(0, 4),
+    emails: firstTexts(raw, ["ElectronicMail", "mel", "MEL", "buyer-email"], 5)
       .filter((t) => t.includes("@"))
       .slice(0, 3),
     telephones: firstTexts(raw, ["Telephone", "tel", "TEL"], 6).slice(0, 2),
-    procedure: asText(rec.procedure_libelle)[0] ?? null,
+    procedure:
+      asText(rec.procedure_libelle)[0] ?? firstTexts(raw, ["procedure-type"], 3)[0] ?? null,
 
-    typeMarche: asText(rec.type_marche)[0] ?? null,
+    typeMarche: asText(rec.type_marche)[0] ?? asText(rec["contract-nature"])[0] ?? null,
   };
 }
+
