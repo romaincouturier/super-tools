@@ -31,6 +31,8 @@ export const useTenderDocumentAnalyses = (tenderId: string | undefined) => {
         .eq("tender_id", tenderId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
+      // `ai_analysis` est du JSONB côté base : la forme n'est connue que du
+      // prompt qui l'a produite, d'où la réinterprétation typée ici.
       return (data ?? []) as unknown as TenderDocumentAi[];
     },
   });
