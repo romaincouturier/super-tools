@@ -7,7 +7,6 @@ import {
 } from "../_shared/mod.ts";
 import {
   buildTedSearchBody,
-  isReadableLanguage,
   mapTedNotice,
   noticesOf,
   TED_BASE,
@@ -40,7 +39,7 @@ import {
  * docs/marches-publics.md.
  */
 
-const VERSION = "ted-sync@1.0.0";
+const VERSION = "ted-sync@2.0.0";
 /** Recouvrement : un avis peut être indexé avec un jour de retard. */
 const OVERLAP_DAYS = 2;
 /** Garde-fou : au-delà, c'est que le filtre est trop large, on préfère le savoir. */
@@ -49,8 +48,12 @@ const MAX_RECORDS = 1000;
 const MAX_PAGES = 20;
 /** Pays surveillés. Vide = tous : le critère de prospection est la langue. */
 const COUNTRIES_SETTING = "tender_ted_countries";
-/** Langues dans lesquelles un avis est lisible et répondable. */
-const LANGUAGES_SETTING = "tender_ted_languages";
+/**
+ * Codes CPV surveillés sur le TED. Liste propre à la source, vide par défaut :
+ * les CPV de formation ramènent des centaines d'avis à l'échelle de l'Europe.
+ * Le repérage européen se fait sur les mots-clés seuls.
+ */
+const CPV_SETTING = "tender_ted_cpv_codes";
 
 function isoDay(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -96,7 +99,7 @@ serve(async (req) => {
     const { data: settingRows } = await supabase
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", [COUNTRIES_SETTING, LANGUAGES_SETTING]);
+      .in("setting_key", [COUNTRIES_SETTING, CPV_SETTING]);
     const settingOf = (key: string) =>
       (settingRows ?? []).find((r: { setting_key: string }) => r.setting_key === key)
         ?.setting_value;
@@ -105,7 +108,18 @@ serve(async (req) => {
     // langue de l'avis, pas sur sa géographie. La liste ne sert qu'à resserrer
     // si le volume devient ingérable.
     const countries = parseSettingList(settingOf(COUNTRIES_SETTING)).map((c) => c.toUpperCase());
-    const languages = parseSettingList(settingOf(LANGUAGES_SETTING)).map((l) => l.toLowerCase());
+    const tedCpvCodes = parseSettingList(settingOf(CPV_SETTING));
+    // Le filtre appliqué au TED : mots-clés partagés avec le BOAMP, mais sa
+    // propre liste de CPV (vide = aucun).
+    const tedConfig = { ...config, cpvCodes: tedCpvCodes };
+
+    if (!tedCpvCodes.length && !config.keywords.length) {
+      return createErrorResponse(
+        "Aucun mot-clé configuré (app_settings : tender_keywords)",
+        400,
+        { fn: "ted-sync" },
+      );
+    }
 
     const since = await resolveSince(supabase, body.since);
 
@@ -114,7 +128,7 @@ serve(async (req) => {
     const fetchPage = async (token: string | null): Promise<any> => {
       const searchBody = buildTedSearchBody({
         countries,
-        cpvCodes: config.cpvCodes,
+        cpvCodes: tedCpvCodes,
         keywords: config.keywords,
         since,
         iterationNextToken: token,
@@ -136,7 +150,7 @@ serve(async (req) => {
       return createJsonResponse({
         _version: VERSION,
         countries,
-        languages,
+        ted_cpv_codes: tedCpvCodes,
         since,
         request: firstPage.searchBody,
         http_status: firstPage.status,
@@ -179,7 +193,6 @@ serve(async (req) => {
     let kept = 0;
     let excluded = 0;
     let unmatched = 0;
-    let unreadable = 0;
     let failed = 0;
     const parseErrors: string[] = [];
 
@@ -198,17 +211,9 @@ serve(async (req) => {
         continue;
       }
 
-      // Un avis qui n'existe que dans une langue qu'on ne pratique pas n'est
-      // ni lisible ni répondable : l'afficher n'encombrerait la revue que pour
-      // finir en No Go. Compté à part pour que le réglage se mesure.
-      if (!isReadableLanguage(notice, languages)) {
-        unreadable++;
-        continue;
-      }
-
       const match = matchTender(
         { objet: tender.objet, cpvCodes: tender.cpv_codes, extraText: tender.full_text },
-        config,
+        tedConfig,
       );
       if (match.excludedBy) {
         excluded++;
@@ -261,13 +266,12 @@ serve(async (req) => {
       _version: VERSION,
       since,
       countries,
-      languages,
+      ted_cpv_codes: tedCpvCodes,
       notices_received: notices.length,
       pages_read: walk.pages,
       kept,
       excluded,
       unmatched,
-      unreadable,
       failed,
       duplicates_linked: linked ?? 0,
       truncated: walk.truncated,
