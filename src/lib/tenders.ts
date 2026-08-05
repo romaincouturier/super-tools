@@ -75,7 +75,8 @@ function isPlatformRoot(url: string): boolean {
     if (u.search || u.hash) return false;
     const path = u.pathname.replace(/\/+$/, "");
     return path === "" || /^\/(entreprise|fr\/marches-publics|marches-publics|avis)$/i.test(path);
-  } catch {
+  } catch (_invalidUrl) {
+    // Sonde de forme : un lien non analysable n'est pas une racine de plateforme.
     return false;
   }
 }
@@ -150,7 +151,7 @@ export function resolveDceLink(tender: {
       if (search) {
         return { url: search, direct: false, label: `Chercher le DCE (${reference})` };
       }
-    } catch {
+    } catch (_invalidUrl) {
       // URL non analysable : on retombe sur le lien tel quel.
     }
   }
