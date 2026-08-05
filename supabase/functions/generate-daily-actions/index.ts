@@ -396,9 +396,10 @@ serve(async (req) => {
     }
 
     // 16. Logistics checklist reminders (items with due_date + notify_days_before)
-    const pathMapLogistics: Record<"mission" | "training", string> = {
+    const pathMapLogistics: Record<"mission" | "training" | "event", string> = {
       mission: "missions",
       training: "formations",
+      event: "events",
     };
     function fmtLogisticsDate(start: string | null, end: string | null): string {
       if (!start) return "";

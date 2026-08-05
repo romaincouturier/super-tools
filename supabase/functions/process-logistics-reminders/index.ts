@@ -325,7 +325,7 @@ serve(async (req) => {
       );
 
       // 5b. Rappels de checklist logistique (custom items avec due_date + notify_days_before)
-      const pathMapLogistics = { mission: "missions", training: "formations" } as const;
+      const pathMapLogistics = { mission: "missions", training: "formations", event: "events" } as const;
       add("✅", "Logistique à traiter", COLORS.amber,
         data.logisticsReminders
           .filter(a => userCanSee(recipient, a.assignedTo))

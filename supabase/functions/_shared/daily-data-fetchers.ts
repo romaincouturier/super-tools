@@ -241,7 +241,7 @@ export interface MissionEmailDraftItem {
 
 export interface LogisticsReminderItem {
   id: string;
-  entityType: "mission" | "training";
+  entityType: "mission" | "training" | "event";
   entityId: string;
   entityTitle: string;
   label: string;
@@ -936,7 +936,7 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
   // Pre-fetch all pending checklist items for the upcoming entities in one
   // round-trip; group by entity for cheap lookup.
   async function fetchPendingChecklists(
-    entityType: "mission" | "training",
+    entityType: "mission" | "training" | "event",
     entityIds: string[],
   ): Promise<Map<string, string[]>> {
     const map = new Map<string, string[]>();
@@ -1063,7 +1063,7 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
     }
   }
 
-  // Events (still legacy boolean fields — no checklist support)
+  // Events
   const { data: events } = await supabase
     .from("events")
     .select("id, title, event_date, location, location_type, event_type, train_booked, hotel_booked, room_rental_booked, restaurant_booked, assigned_to")
@@ -1074,14 +1074,26 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
     .gte("event_date", today)
     .lte("event_date", sixtyDaysStr);
 
+  const eventChecklists = await fetchPendingChecklists(
+    "event",
+    (events || []).map((e: any) => e.id),
+  );
+
   if (events) {
     for (const ev of events) {
       if (!ev.location?.trim()) continue;
-      const pendingItems: string[] = [];
-      if (!ev.train_booked) pendingItems.push("🚄 Train");
-      if (!ev.hotel_booked) pendingItems.push("🏨 Hôtel");
-      if (!ev.room_rental_booked) pendingItems.push("🚪 Salle");
-      if (!ev.restaurant_booked) pendingItems.push("🍽️ Restaurant");
+      const fromChecklist = eventChecklists.get(ev.id);
+      let pendingItems: string[];
+      if (fromChecklist !== undefined) {
+        pendingItems = fromChecklist;
+      } else {
+        // Legacy fallback (event has no checklist yet)
+        pendingItems = [];
+        if (!ev.train_booked) pendingItems.push("🚄 Train");
+        if (!ev.hotel_booked) pendingItems.push("🏨 Hôtel");
+        if (!ev.room_rental_booked) pendingItems.push("🚪 Salle");
+        if (!ev.restaurant_booked) pendingItems.push("🍽️ Restaurant");
+      }
       if (pendingItems.length === 0) continue;
       results.push({
         entityType: "event",
@@ -1221,6 +1233,7 @@ export async function fetchLogisticsReminders(supabase: SupabaseClient, today: s
   // Resolve entity titles in two batched queries
   const missionIds = Array.from(new Set(due.filter((d) => d.row.entity_type === "mission").map((d) => d.row.entity_id)));
   const trainingIds = Array.from(new Set(due.filter((d) => d.row.entity_type === "training").map((d) => d.row.entity_id)));
+  const eventIds = Array.from(new Set(due.filter((d) => d.row.entity_type === "event").map((d) => d.row.entity_id)));
 
   const titleMap = new Map<string, { title: string; assignedTo: string | null; startDate: string | null; endDate: string | null }>();
 
@@ -1237,6 +1250,13 @@ export async function fetchLogisticsReminders(supabase: SupabaseClient, today: s
       .select("id, training_name, assigned_to, start_date, end_date")
       .in("id", trainingIds);
     (data || []).forEach((t: any) => titleMap.set(`training:${t.id}`, { title: t.training_name, assignedTo: t.assigned_to, startDate: t.start_date ?? null, endDate: t.end_date ?? null }));
+  }
+  if (eventIds.length) {
+    const { data } = await supabase
+      .from("events")
+      .select("id, title, assigned_to, event_date")
+      .in("id", eventIds);
+    (data || []).forEach((e: any) => titleMap.set(`event:${e.id}`, { title: e.title, assignedTo: e.assigned_to, startDate: e.event_date ?? null, endDate: null }));
   }
 
   return due.map(({ row, daysUntil }) => {

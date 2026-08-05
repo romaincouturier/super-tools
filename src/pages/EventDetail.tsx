@@ -56,6 +56,7 @@ import {
 import { useEntityMedia, useAddMedia, useDeleteMedia } from "@/hooks/useMedia";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import SendToContentBoardButton from "@/components/events/SendToContentBoardButton";
+import { LogisticsChecklist } from "@/components/shared/LogisticsChecklist";
 
 const EventDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -463,6 +464,20 @@ const EventDetail = () => {
                   </div>
                 );
               })()}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Liste d'actions / logistique */}
+        {event.status !== "cancelled" && (
+          <Card>
+            <CardContent className="pt-6">
+              <LogisticsChecklist
+                entityType="event"
+                entityId={event.id}
+                isRemote={event.location_type === "visio"}
+                startDate={event.event_date}
+              />
             </CardContent>
           </Card>
         )}

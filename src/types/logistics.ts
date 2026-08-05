@@ -1,4 +1,4 @@
-export type LogisticsEntityType = "mission" | "training";
+export type LogisticsEntityType = "mission" | "training" | "event";
 
 export interface LogisticsChecklistItem {
   id: string;

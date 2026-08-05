@@ -75,6 +75,7 @@ export function LogisticsChecklist({ entityType, entityId, hideWhenEmpty = false
         isRemote,
         format: fmt,
         sessionType,
+        startDate,
       });
       queryClient.invalidateQueries({ queryKey: ["logistics-checklist", entityType, entityId] });
     } catch (err) {
