@@ -1,0 +1,1 @@
+UPDATE public.order_items SET kanban_status = 'dropshipping', updated_at = now() WHERE id IN ('eb39db07-a15d-4dca-b249-5334fa7f6dfc','d01863c8-778c-49b4-a146-e2043ad9cd05');
