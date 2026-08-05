@@ -19,6 +19,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { daysLeft, describeMatch, resolveDceLink } from "@/lib/tenders";
+import { cn } from "@/lib/utils";
+import { useDceReviewFlag } from "@/hooks/crm/useDceReviewFlag";
 import { extractTenderDetail } from "@/lib/tenderDetail";
 import { TenderAiPanel } from "@/components/crm/TenderAiPanel";
 import { tenderSourceConfig, type TenderWithContext } from "@/types/tenders";
