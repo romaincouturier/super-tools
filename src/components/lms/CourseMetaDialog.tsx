@@ -8,6 +8,7 @@ import { useUpdateCourse, type LmsCourse } from "@/hooks/useLms";
 import { ACCESS_OPTIONS, EXPERTISE_OPTIONS, STATUS_OPTIONS } from "@/lib/lmsCourseMeta";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import CourseIntegrationStatus from "@/components/lms/CourseIntegrationStatus";
 
 const NO_EXPERTISE = "none";
 
@@ -105,6 +106,7 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
               </SelectContent>
             </Select>
           </div>
+          {course && <CourseIntegrationStatus courseId={course.id} />}
           <Button onClick={handleSave} disabled={updateCourse.isPending} className="w-full">
             {updateCourse.isPending ? "Enregistrement..." : "Enregistrer"}
           </Button>

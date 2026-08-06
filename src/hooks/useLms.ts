@@ -11,7 +11,6 @@ export type {
   LmsForumPost,
   LmsAssignmentSubmission,
   LmsBadge,
-  LmsCourseFolder,
 } from "./useLmsQueries";
 
 export {
@@ -35,7 +34,6 @@ export {
   useAllCourseComments,
   useCourseLiveMeetings,
   useCourseTrainingSessionsAdmin,
-  useCourseFolders,
   useCourseEnrollmentCounts,
 } from "./useLmsQueries";
 
@@ -63,10 +61,6 @@ export {
   useCreateForumPost,
   useTrackPageView,
   usePostLessonComment,
-  useCreateCourseFolder,
-  useRenameCourseFolder,
-  useDeleteCourseFolder,
-  useMoveCourseToFolder,
 } from "./useLmsMutations";
 
 export {

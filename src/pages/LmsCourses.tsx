@@ -15,7 +15,7 @@ import {
   useCourseEnrollmentCounts,
   type LmsCourse,
 } from "@/hooks/useLms";
-import { Plus, Clock, Trash2, GraduationCap, Search, Users, HelpCircle, MessageSquare, ClipboardList, Link2, MoreVertical, Copy, Pencil, Settings2, Archive, ArchiveRestore, X } from "lucide-react";
+import { Plus, Clock, Trash2, GraduationCap, Search, Users, HelpCircle, MessageSquare, ClipboardList, Link2, MoreVertical, Copy, Pencil, Settings2, Archive, ArchiveRestore, X, Plug } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
@@ -243,6 +243,9 @@ export default function LmsCourses() {
           </Button>
           <Button variant="outline" onClick={() => navigate("/lms/binomes")}>
             <Link2 className="w-4 h-4 mr-2" /> Binômes
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/lms/integrations")}>
+            <Plug className="w-4 h-4 mr-2" /> Intégrations
           </Button>
         </div>
 
