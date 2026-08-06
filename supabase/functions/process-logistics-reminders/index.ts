@@ -232,10 +232,13 @@ serve(async (req) => {
     const { data: codingTicketsData } = await supabase
       .from("support_tickets")
       .select("id, ticket_number, title, status, coding_status, branch_url, coding_error, discussion_requested_at, updated_at")
-      .or("coding_status.in.(pending,running,ready_for_review,done,error),status.eq.vibe_coding")
+      .or("coding_status.in.(pending,running,ready_for_review,error),status.eq.vibe_coding")
       .order("updated_at", { ascending: false })
       .limit(50);
-    const codingTickets = codingTicketsData ?? [];
+    // Les tickets terminés (dev fini ou ticket résolu) n'attendent plus d'action : on les exclut du digest.
+    const codingTickets = (codingTicketsData ?? []).filter(
+      (t: any) => t.coding_status !== "done" && t.status !== "resolu"
+    );
 
     // ── Send per-user digest ──
     const [senderFrom, bccList] = await Promise.all([getSenderFrom(), getBccList()]);
