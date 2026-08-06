@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Users, Send, ChevronRight, UserPlus, UserMinus } from "lucide-react";
+import { Loader2, Users, Send, ChevronRight, UserPlus, UserMinus, Link2 } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -285,27 +285,33 @@ export default function LmsGroupMatching() {
 
   return (
     <ModuleLayout>
-      <PageHeader title="Mise en relation" />
+      <div className="container py-6 space-y-6 max-w-5xl">
+        <PageHeader
+          icon={Link2}
+          title="Mise en relation"
+          backTo="/lms"
+        />
 
-      {isLoading ? (
-        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
-      ) : posts.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center py-14 text-center gap-3">
-            <Users className="h-10 w-10 text-muted-foreground" />
-            <p className="font-medium">Aucun post de mise en relation</p>
-            <p className="text-sm text-muted-foreground">
-              Activez l'option "Binômes" lors de la publication d'un post dans la communauté.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {posts.map((p) => (
-            <MatchingPostCard key={p.post_id} post={p} />
-          ))}
-        </div>
-      )}
+        {isLoading ? (
+          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+        ) : posts.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center py-14 text-center gap-3">
+              <Users className="h-10 w-10 text-muted-foreground" />
+              <p className="font-medium">Aucun post de mise en relation</p>
+              <p className="text-sm text-muted-foreground">
+                Activez l'option "Binômes" lors de la publication d'un post dans la communauté.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {posts.map((p) => (
+              <MatchingPostCard key={p.post_id} post={p} />
+            ))}
+          </div>
+        )}
+      </div>
     </ModuleLayout>
   );
 }
