@@ -15,49 +15,42 @@ const course = (over: Partial<{ status: string; access_type: string | null; expe
 });
 
 describe("courseMatchesMetaFilters", () => {
-  it("default view is catalogue actif: standard courses, no intra, no archived", () => {
+  it("default filters: every non-archived course, intra included", () => {
     expect(courseMatchesMetaFilters(course(), DEFAULT_COURSE_META_FILTERS)).toBe(true);
     expect(courseMatchesMetaFilters(course({ status: "draft" }), DEFAULT_COURSE_META_FILTERS)).toBe(true);
     expect(courseMatchesMetaFilters(course({ status: "to_review" }), DEFAULT_COURSE_META_FILTERS)).toBe(true);
-    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), DEFAULT_COURSE_META_FILTERS)).toBe(false);
+    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), DEFAULT_COURSE_META_FILTERS)).toBe(true);
     expect(courseMatchesMetaFilters(course({ status: "archived" }), DEFAULT_COURSE_META_FILTERS)).toBe(false);
   });
 
-  it("shows archived only via the archives view or the archived status filter", () => {
+  it("shows archived only via the archived status filter", () => {
     const archived = course({ status: "archived" });
-    expect(courseMatchesMetaFilters(archived, { ...DEFAULT_COURSE_META_FILTERS, view: "archives" })).toBe(true);
     expect(courseMatchesMetaFilters(archived, { ...DEFAULT_COURSE_META_FILTERS, status: "archived" })).toBe(true);
-    expect(courseMatchesMetaFilters(archived, { ...DEFAULT_COURSE_META_FILTERS, view: "catalogue_actif" })).toBe(false);
+    expect(courseMatchesMetaFilters(archived, DEFAULT_COURSE_META_FILTERS)).toBe(false);
   });
 
-  it("view 'tous' shows every course including intra and archived", () => {
-    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), { ...DEFAULT_COURSE_META_FILTERS, view: "tous" })).toBe(true);
-    expect(courseMatchesMetaFilters(course({ status: "archived" }), { ...DEFAULT_COURSE_META_FILTERS, view: "tous" })).toBe(true);
+  it("filters by status", () => {
+    expect(courseMatchesMetaFilters(course({ status: "draft" }), { ...DEFAULT_COURSE_META_FILTERS, status: "draft" })).toBe(true);
+    expect(courseMatchesMetaFilters(course({ status: "published" }), { ...DEFAULT_COURSE_META_FILTERS, status: "draft" })).toBe(false);
+    expect(courseMatchesMetaFilters(course({ status: "to_review" }), { ...DEFAULT_COURSE_META_FILTERS, status: "to_review" })).toBe(true);
   });
 
-  it("filters by quick view on status", () => {
-    expect(courseMatchesMetaFilters(course({ status: "draft" }), { ...DEFAULT_COURSE_META_FILTERS, view: "brouillons" })).toBe(true);
-    expect(courseMatchesMetaFilters(course({ status: "published" }), { ...DEFAULT_COURSE_META_FILTERS, view: "brouillons" })).toBe(false);
-    expect(courseMatchesMetaFilters(course({ status: "to_review" }), { ...DEFAULT_COURSE_META_FILTERS, view: "a_verifier" })).toBe(true);
-  });
-
-  it("filters by quick view on access", () => {
-    expect(courseMatchesMetaFilters(course({ access_type: "payant" }), { ...DEFAULT_COURSE_META_FILTERS, view: "payants" })).toBe(true);
-    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), { ...DEFAULT_COURSE_META_FILTERS, view: "payants" })).toBe(false);
-    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), { ...DEFAULT_COURSE_META_FILTERS, view: "intra" })).toBe(true);
+  it("filters by access", () => {
+    expect(courseMatchesMetaFilters(course({ access_type: "payant" }), { ...DEFAULT_COURSE_META_FILTERS, access: "payant" })).toBe(true);
+    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), { ...DEFAULT_COURSE_META_FILTERS, access: "payant" })).toBe(false);
+    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), { ...DEFAULT_COURSE_META_FILTERS, access: "intra" })).toBe(true);
   });
 
   it("treats missing access_type as gratuit (rows pre-migration)", () => {
-    expect(courseMatchesMetaFilters(course({ access_type: null }), { ...DEFAULT_COURSE_META_FILTERS, view: "gratuits" })).toBe(true);
     expect(courseMatchesMetaFilters(course({ access_type: null }), { ...DEFAULT_COURSE_META_FILTERS, access: "gratuit" })).toBe(true);
   });
 
   it("combines expertise, access and status filters", () => {
     const c = course({ expertise: "ia", access_type: "payant", status: "published" });
-    expect(courseMatchesMetaFilters(c, { view: "tous", expertise: "ia", access: "payant", status: "published" })).toBe(true);
-    expect(courseMatchesMetaFilters(c, { view: "tous", expertise: "agilite", access: "payant", status: "published" })).toBe(false);
-    expect(courseMatchesMetaFilters(c, { view: "tous", expertise: "ia", access: "gratuit", status: "published" })).toBe(false);
-    expect(courseMatchesMetaFilters(c, { view: "tous", expertise: "ia", access: "payant", status: "draft" })).toBe(false);
+    expect(courseMatchesMetaFilters(c, { expertise: "ia", access: "payant", status: "published" })).toBe(true);
+    expect(courseMatchesMetaFilters(c, { expertise: "agilite", access: "payant", status: "published" })).toBe(false);
+    expect(courseMatchesMetaFilters(c, { expertise: "ia", access: "gratuit", status: "published" })).toBe(false);
+    expect(courseMatchesMetaFilters(c, { expertise: "ia", access: "payant", status: "draft" })).toBe(false);
   });
 });
 

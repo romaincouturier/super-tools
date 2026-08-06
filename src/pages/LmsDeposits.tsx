@@ -79,11 +79,12 @@ export default function LmsDeposits() {
 
   return (
     <ModuleLayout>
-      <main className="max-w-[1600px] mx-auto p-4 sm:p-6 space-y-4">
+      <div className="container py-6 space-y-6 max-w-7xl">
         <PageHeader
           icon={ClipboardList}
           title="Travaux déposés"
           subtitle="Suivi et modération des dépôts apprenants"
+          backTo="/lms"
         />
 
         <Card>
@@ -189,7 +190,7 @@ export default function LmsDeposits() {
             )}
           </CardContent>
         </Card>
-      </main>
+      </div>
 
       <DepositAdminDetail
         deposit={liveSelected}
