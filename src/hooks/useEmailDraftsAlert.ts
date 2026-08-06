@@ -23,7 +23,7 @@ export function useEmailDraftsAlert(): boolean {
       const { count, error } = await supabase
         .from("mission_email_drafts")
         .select("id", { count: "exact", head: true })
-        .eq("status", "pending");
+        .in("status", ["pending", "scheduled"]);
       if (error) return 0;
       return count ?? 0;
     },

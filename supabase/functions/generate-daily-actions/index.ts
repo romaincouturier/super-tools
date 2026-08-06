@@ -387,7 +387,9 @@ serve(async (req) => {
         actions.push({
           category: "emails_a_valider",
           title: `📧 ${draft.missionTitle} — ${typeLabel}`,
-          description: `Email à valider pour ${draft.contactName || draft.contactEmail}`,
+          description: draft.status === "scheduled" && draft.scheduledFor
+            ? `Email programmé le ${draft.scheduledFor.slice(0, 10)} pour ${draft.contactName || draft.contactEmail}`
+            : `Email à valider pour ${draft.contactName || draft.contactEmail}`,
           link: `${appUrl}/emails-a-valider`,
           entityType: "mission_email_draft", entityId: draft.id,
           assignedTo: commsManagerId, scope: "perUser",

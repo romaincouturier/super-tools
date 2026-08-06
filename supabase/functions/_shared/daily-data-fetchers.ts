@@ -237,6 +237,8 @@ export interface MissionEmailDraftItem {
   contactName: string | null;
   subject: string;
   createdAt: string;
+  status: string;
+  scheduledFor: string | null;
 }
 
 export interface LogisticsReminderItem {
@@ -1166,8 +1168,8 @@ export async function fetchOkrInitiatives(supabase: SupabaseClient): Promise<Okr
 export async function fetchPendingEmailDrafts(supabase: SupabaseClient): Promise<MissionEmailDraftItem[]> {
   const { data: drafts, error } = await supabase
     .from("mission_email_drafts")
-    .select("id, mission_id, email_type, contact_email, contact_name, subject, created_at")
-    .eq("status", "pending")
+    .select("id, mission_id, email_type, contact_email, contact_name, subject, created_at, status, scheduled_for")
+    .in("status", ["pending", "scheduled"])
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -1192,6 +1194,8 @@ export async function fetchPendingEmailDrafts(supabase: SupabaseClient): Promise
     contactName: d.contact_name,
     subject: d.subject,
     createdAt: d.created_at?.slice(0, 10) || "",
+    status: d.status,
+    scheduledFor: d.scheduled_for || null,
   }));
 }
 
