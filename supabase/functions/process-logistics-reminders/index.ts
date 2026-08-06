@@ -578,7 +578,10 @@ serve(async (req) => {
         add("📧", "Emails à valider", COLORS.teal,
           userEmailDrafts.map(d => {
             const typeLabel = typeLabels[d.emailType] || d.emailType;
-            return `<li>${linkHtml(`${appUrl}/emails-a-valider`, `${d.missionTitle} — ${typeLabel}`)} — pour ${d.contactName || d.contactEmail}</li>`;
+            const when = d.status === "scheduled" && d.scheduledFor
+              ? ` — programmé le ${formatDateFr(d.scheduledFor.slice(0, 10))}`
+              : "";
+            return `<li>${linkHtml(`${appUrl}/emails-a-valider`, `${d.missionTitle} — ${typeLabel}`)} — pour ${d.contactName || d.contactEmail}${when}</li>`;
           })
         );
       }
