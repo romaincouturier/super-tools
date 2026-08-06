@@ -74,6 +74,7 @@ const TABLES_TO_BACKUP = [
   "formation_formulas",
   "game_authors",
   "game_expenses",
+  "game_price_options",
   "game_restock_action_files",
   "game_restock_actions",
   "game_restock_items",

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, createLearnerClient } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/invokeEdge";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 import type {
@@ -54,12 +55,9 @@ export function useDuplicateCourse() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ courseId, mode }: { courseId: string; mode: "structure" | "full" }) => {
-      const { data, error } = await supabase.functions.invoke("duplicate-lms-course", {
-        body: { courseId, mode },
-      });
-      if (error) throw error;
+      const data = await invokeEdge<{ newCourseId: string; error?: string }>("duplicate-lms-course", { courseId, mode });
       if (data?.error) throw new Error(data.error);
-      return data as { newCourseId: string };
+      return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lms-courses"] });
@@ -511,14 +509,12 @@ export function usePostLessonComment() {
 
       // Notify admin
       try {
-        await supabase.functions.invoke("notify-lms-comment", {
-          body: {
-            lessonId: input.lessonId,
-            courseId: input.courseId,
-            learnerEmail: input.learnerEmail,
-            learnerName: input.learnerName,
-            comment: input.content,
-          },
+        await invokeEdge("notify-lms-comment", {
+          lessonId: input.lessonId,
+          courseId: input.courseId,
+          learnerEmail: input.learnerEmail,
+          learnerName: input.learnerName,
+          comment: input.content,
         });
       } catch (e) {
         console.warn("Failed to notify admin:", e);
@@ -530,65 +526,3 @@ export function usePostLessonComment() {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Course folders
-// ---------------------------------------------------------------------------
-
-export function useCreateCourseFolder() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ name, parent_id }: { name: string; parent_id?: string | null }) => {
-      const { data, error } = await supabase
-        .from("lms_course_folders")
-        .insert({ name, parent_id: parent_id ?? null })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["lms-course-folders"] }),
-  });
-}
-
-export function useRenameCourseFolder() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase
-        .from("lms_course_folders")
-        .update({ name, updated_at: new Date().toISOString() })
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["lms-course-folders"] }),
-  });
-}
-
-export function useDeleteCourseFolder() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      // Courses in this folder are unlinked (ON DELETE SET NULL in migration)
-      const { error } = await supabase.from("lms_course_folders").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["lms-course-folders"] });
-      qc.invalidateQueries({ queryKey: ["lms-courses"] });
-    },
-  });
-}
-
-export function useMoveCourseToFolder() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ courseId, folderId }: { courseId: string; folderId: string | null }) => {
-      const { error } = await supabase
-        .from("lms_courses")
-        .update({ folder_id: folderId, updated_at: new Date().toISOString() })
-        .eq("id", courseId);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["lms-courses"] }),
-  });
-}
