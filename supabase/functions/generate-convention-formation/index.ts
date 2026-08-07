@@ -255,13 +255,15 @@ serve(async (req: Request): Promise<Response> => {
         );
       }
 
-      // Regroupe les participants de la même entreprise / du même commanditaire :
+      // Regroupe les participants de la même entreprise bénéficiaire :
       // une seule convention pour tout le groupe, montant = somme des inscriptions.
+      // Clé principale = entreprise (le bénéficiaire de la convention), repli sur
+      // l'email du commanditaire si l'entreprise n'est pas renseignée.
+      // Si plusieurs commanditaires coexistent dans la même entreprise, on ne
+      // regroupe que ceux rattachés au même commanditaire (ou sans commanditaire).
       const norm = (v: unknown) => (typeof v === "string" ? v.trim().toLowerCase() : "");
       const refSponsor = norm((participant as any).sponsor_email);
       const refCompany = norm((participant as any).company);
-      const groupKey = (p: any) => norm(p.sponsor_email) || norm(p.company);
-      const refKey = refSponsor || refCompany;
 
       const { data: allParticipants } = await supabase
         .from("training_participants")
@@ -269,10 +271,19 @@ serve(async (req: Request): Promise<Response> => {
         .eq("training_id", trainingId)
         .order("added_at", { ascending: true });
 
-      const group = refKey
-        ? (allParticipants || []).filter((p) => groupKey(p) === refKey)
-        : [];
+      const candidates = refCompany
+        ? (allParticipants || []).filter((p) => norm((p as any).company) === refCompany)
+        : refSponsor
+          ? (allParticipants || []).filter((p) => norm((p as any).sponsor_email) === refSponsor)
+          : [];
+      const group = refSponsor
+        ? candidates.filter((p) => {
+            const s = norm((p as any).sponsor_email);
+            return s === refSponsor || s === "";
+          })
+        : candidates;
       participantList = group.length > 0 ? group : [participant];
+
       groupParticipantIds = participantList
         .map((p) => (p as any).id)
         .filter((id: string | undefined): id is string => !!id);
