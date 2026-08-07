@@ -93,7 +93,7 @@ interface ParticipantSearchData {
 }
 
 
-type SortField = "date" | "title" | "client" | "location";
+type SortField = "date" | "title" | "client" | "location" | "participant_count";
 type SortOrder = "asc" | "desc";
 
 const Formations = () => {
@@ -714,7 +714,11 @@ const Formations = () => {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                          {filter !== "permanent" && (
+                          {filter === "permanent" ? (
+                            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                              {training.participant_count || 0} inscrit{training.participant_count === 1 ? "" : "s"}
+                            </Badge>
+                          ) : (
                             <Badge variant="outline" className="text-xs flex items-center gap-1">
                               <Building className="h-3 w-3" />
                               {isDemoMode ? maskText(asText(training.client_name)) || "Client non renseigné" : asText(training.client_name) || "Client non renseigné"}
@@ -771,7 +775,11 @@ const Formations = () => {
                   <TableHeader>
                     <TableRow>
                       <SortableHeader field="date">Date</SortableHeader>
-                      {filter !== "permanent" && <SortableHeader field="client">Client</SortableHeader>}
+                      {filter === "permanent" ? (
+                        <SortableHeader field="participant_count">Inscrits</SortableHeader>
+                      ) : (
+                        <SortableHeader field="client">Client</SortableHeader>
+                      )}
                       <SortableHeader field="title">Formation</SortableHeader>
                       <SortableHeader field="location">Lieu</SortableHeader>
                     </TableRow>
@@ -800,7 +808,13 @@ const Formations = () => {
                               )}
                             </div>
                           </TableCell>
-                          {filter !== "permanent" && (
+                          {filter === "permanent" ? (
+                            <TableCell>
+                              <Badge variant="secondary">
+                                {training.participant_count || 0} inscrit{training.participant_count === 1 ? "" : "s"}
+                              </Badge>
+                            </TableCell>
+                          ) : (
                             <TableCell>
                               <Badge variant="outline">{isDemoMode ? maskText(asText(training.client_name)) || "Client non renseigné" : asText(training.client_name) || "Client non renseigné"}</Badge>
                             </TableCell>
