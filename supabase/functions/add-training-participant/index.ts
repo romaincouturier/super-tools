@@ -138,6 +138,9 @@ export interface AddParticipantResponse {
   couponGenerated: boolean;
   conventionGenerated: boolean;
   conventionEmailSent: boolean;
+  conventionRecipientEmail: string | null;
+  conventionParticipantsCount: number | null;
+
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
