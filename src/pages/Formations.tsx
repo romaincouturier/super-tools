@@ -769,7 +769,7 @@ const Formations = () => {
                   <TableHeader>
                     <TableRow>
                       <SortableHeader field="date">Date</SortableHeader>
-                      <SortableHeader field="client">Client</SortableHeader>
+                      {filter !== "permanent" && <SortableHeader field="client">Client</SortableHeader>}
                       <SortableHeader field="title">Formation</SortableHeader>
                       <SortableHeader field="location">Lieu</SortableHeader>
                     </TableRow>
