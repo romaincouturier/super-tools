@@ -1,5 +1,7 @@
+import { Link } from "react-router-dom";
 import { CheckCircle2, AlertTriangle, Info } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 import { useElearningIntegrations } from "@/hooks/useElearningIntegrations";
 import { STATUS_LABEL, isHealthy, type IntegrationStatus } from "@/lib/elearningIntegration";
 
