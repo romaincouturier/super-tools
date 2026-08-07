@@ -211,10 +211,14 @@ export function useDocumentActions({
             });
             if (sendError) throw sendError;
             if (sendData?.error) throw new Error(sendData.error);
+            const count = (data?.participantsCount as number | undefined) ?? 1;
             toast({
               title: "Convention générée et envoyée",
-              description: `La convention pour ${participant.first_name || participant.email} a été envoyée à ${participant.sponsor_email}.`,
+              description: count > 1
+                ? `Convention regroupant ${count} participants de ${data?.clientName || participant.company || "la même entreprise"} envoyée à ${participant.sponsor_email}.`
+                : `La convention pour ${participant.first_name || participant.email} a été envoyée à ${participant.sponsor_email}.`,
             });
+
           } catch (sendErr: unknown) {
             console.error("Error sending convention:", sendErr);
             toast({

@@ -191,13 +191,22 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Determine if this is intra (global convention) or inter/e-learning (per participant)
-    const isIntra = training.format_formation === "intra" || training.format_formation === "classe_virtuelle";
-    const isIndividualConvention = training.format_formation === "inter-entreprises" || training.format_formation === "inter" || training.format_formation === "e_learning";
+    // Determine convention scope.
+    // - Sessions inter (session_type = "inter", ou format inter-entreprises / e-learning) :
+    //   la convention est établie par entreprise cliente (commanditaire). Tous les
+    //   participants partageant le même commanditaire / la même entreprise figurent
+    //   sur une seule convention, et le prix est la somme de leurs inscriptions.
+    // - Sessions intra / classe virtuelle intra : convention globale au niveau session.
+    const isInterSession =
+      training.session_type === "inter" ||
+      training.format_formation === "inter-entreprises" ||
+      training.format_formation === "inter" ||
+      training.format_formation === "e_learning";
+    const isIndividualConvention = isInterSession && !!participantId;
 
     // Check max_participants is set (only required for intra conventions)
     const maxParticipants: number = training.max_participants || 0;
-    if (!isIndividualConvention && maxParticipants < 1) {
+    if (!isIndividualConvention && !isInterSession && maxParticipants < 1) {
       return new Response(
         JSON.stringify({
           error: "Le nombre maximum de participants doit être configuré (minimum 1) avant de générer la convention. Modifiez la formation pour définir ce champ.",
@@ -207,7 +216,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // For inter/e-learning, participantId is required
-    if (isIndividualConvention && !participantId) {
+    if (isInterSession && !participantId) {
       return new Response(
         JSON.stringify({
           error: "participantId est requis pour les formations inter-entreprises et e-learning",
@@ -226,12 +235,16 @@ serve(async (req: Request): Promise<Response> => {
     // Fetch participants based on format
     let participantList: Participant[] = [];
     let singleParticipant: Participant | null = null;
+    let groupParticipantIds: string[] = [];
 
     if (isIndividualConvention && participantId) {
-      // Fetch single participant for inter/e-learning
+      const PARTICIPANT_FIELDS =
+        "id, first_name, last_name, email, company, company_address, company_zip, company_city, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht, formula_id";
+
+      // Fetch reference participant
       const { data: participant } = await supabase
         .from("training_participants")
-        .select("first_name, last_name, email, company, company_address, company_zip, company_city, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht, formula_id")
+        .select(PARTICIPANT_FIELDS)
         .eq("id", participantId)
         .single();
 
@@ -241,6 +254,40 @@ serve(async (req: Request): Promise<Response> => {
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      // Regroupe les participants de la même entreprise bénéficiaire :
+      // une seule convention pour tout le groupe, montant = somme des inscriptions.
+      // Clé principale = entreprise (le bénéficiaire de la convention), repli sur
+      // l'email du commanditaire si l'entreprise n'est pas renseignée.
+      // Si plusieurs commanditaires coexistent dans la même entreprise, on ne
+      // regroupe que ceux rattachés au même commanditaire (ou sans commanditaire).
+      const norm = (v: unknown) => (typeof v === "string" ? v.trim().toLowerCase() : "");
+      const refSponsor = norm((participant as any).sponsor_email);
+      const refCompany = norm((participant as any).company);
+
+      const { data: allParticipants } = await supabase
+        .from("training_participants")
+        .select(PARTICIPANT_FIELDS)
+        .eq("training_id", trainingId)
+        .order("added_at", { ascending: true });
+
+      const candidates = refCompany
+        ? (allParticipants || []).filter((p) => norm((p as any).company) === refCompany)
+        : refSponsor
+          ? (allParticipants || []).filter((p) => norm((p as any).sponsor_email) === refSponsor)
+          : [];
+      const group = refSponsor
+        ? candidates.filter((p) => {
+            const s = norm((p as any).sponsor_email);
+            return s === refSponsor || s === "";
+          })
+        : candidates;
+      participantList = group.length > 0 ? group : [participant];
+
+      groupParticipantIds = participantList
+        .map((p) => (p as any).id)
+        .filter((id: string | undefined): id is string => !!id);
+      if (groupParticipantIds.length === 0) groupParticipantIds = [participantId];
 
       // Résolution de la durée e-learning (priorité : formule participant → formules du catalogue → défaut global)
       let formulaDureeHeures: number | null = null;
@@ -268,7 +315,6 @@ serve(async (req: Request): Promise<Response> => {
       (participant as any)._formulaDureeHeures = formulaDureeHeures;
 
       singleParticipant = participant;
-      participantList = [participant];
     } else {
       // Fetch all participants for intra
       const { data: participants } = await supabase
@@ -279,6 +325,7 @@ serve(async (req: Request): Promise<Response> => {
 
       participantList = participants || [];
     }
+
 
     const scheduleList = schedules || [];
 
@@ -313,11 +360,17 @@ serve(async (req: Request): Promise<Response> => {
     const fraisDefault = settings["convention_frais_default"] || "0";
     const afficheFrais = settings["convention_affiche_frais"] || "Non";
 
-    // Calculate price - for inter/e-learning use participant's sold_price_ht first, then training's, then input, then default
-    const participantPrice = isIndividualConvention && singleParticipant
-      ? (singleParticipant as any).sold_price_ht
-      : null;
-    const basePriceHt = Number(participantPrice || inputPrice || training.sold_price_ht || defaultPriceHt);
+    // Calculate price.
+    // Convention par entreprise (inter) : le montant contractuel est la SOMME des
+    // inscriptions des participants figurant sur la convention.
+    const fallbackUnitPrice = Number(inputPrice || training.sold_price_ht || defaultPriceHt);
+    const basePriceHt = isIndividualConvention
+      ? participantList.reduce((sum, p) => {
+          const unit = (p as any).sold_price_ht;
+          return sum + (unit != null && unit !== "" ? Number(unit) : fallbackUnitPrice);
+        }, 0)
+      : fallbackUnitPrice;
+
     // For intra (and global conventions), surface ancillary fees as FRAIS so they
     // appear as a separate line on the convention PDF and are summed into the total.
     const ancillaryFees = !isIndividualConvention && (training as any).ancillary_fees_ht
@@ -375,7 +428,10 @@ serve(async (req: Request): Promise<Response> => {
       ADRESSE: clientAddress,
       TITRE_FORMATION: training.training_name,
       FORMAT: getFormatLabel(training.format_formation, training.location),
-      PARTICIPANTS: maxParticipants > 0 ? maxParticipants.toString() : "1",
+      PARTICIPANTS: isIndividualConvention
+        ? Math.max(participantList.length, 1).toString()
+        : (maxParticipants > 0 ? maxParticipants.toString() : "1"),
+
       URL_PROGRAMME_FORMATION: training.program_file_url || "",
       DATES: training.format_formation === "e_learning"
         ? (training.start_date
@@ -479,8 +535,9 @@ serve(async (req: Request): Promise<Response> => {
           }
         }
 
-        // Save convention URL and document ID on participant (for individual conventions)
-        if (isIndividualConvention && participantId) {
+        // Save convention URL and document ID on every participant covered by the
+        // convention (tous les participants de la même entreprise / commanditaire)
+        if (isIndividualConvention && groupParticipantIds.length > 0) {
           try {
             await supabase
               .from("training_participants")
@@ -488,12 +545,13 @@ serve(async (req: Request): Promise<Response> => {
                 convention_file_url: pdfUrl,
                 convention_document_id: documentId,
               })
-              .eq("id", participantId);
-            console.log("Convention URL and document ID saved to participant");
+              .in("id", groupParticipantIds);
+            console.log(`Convention saved on ${groupParticipantIds.length} participant(s)`);
           } catch (saveError) {
             console.warn("Failed to save convention data on participant:", saveError);
           }
         }
+
 
         // Log activity
         try {
@@ -522,7 +580,8 @@ serve(async (req: Request): Promise<Response> => {
         // Build filename: Convention_CLIENT_FORMATION.pdf
         const clientPart = sanitizeForFilename(clientName || "Client");
         const formationPart = sanitizeForFilename(training.training_name || "Formation");
-        const participantPart = singleParticipant
+        // Le nom du participant n'est ajouté que si la convention ne couvre qu'une personne
+        const participantPart = singleParticipant && participantList.length <= 1
           ? `_${sanitizeForFilename(`${singleParticipant.first_name || ""} ${singleParticipant.last_name || ""}`.trim() || "Participant")}`
           : "";
         const fileName = `Convention_${clientPart}_${formationPart}${participantPart}.pdf`;
@@ -535,9 +594,14 @@ serve(async (req: Request): Promise<Response> => {
             fileName,
             conventionType: isIndividualConvention ? "individual" : "global",
             participantId: participantId || null,
+            participantIds: groupParticipantIds,
+            participantsCount: participantList.length,
+            clientName,
+            totalPriceHt: priceHt,
             message: "Convention de formation generee avec succes",
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+
         );
       } else if (status === "failure") {
         throw new Error(`Generation PDF echouee: ${statusData.document.failure_cause}`);

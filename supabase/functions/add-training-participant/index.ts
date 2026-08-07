@@ -138,6 +138,9 @@ export interface AddParticipantResponse {
   couponGenerated: boolean;
   conventionGenerated: boolean;
   conventionEmailSent: boolean;
+  conventionRecipientEmail: string | null;
+  conventionParticipantsCount: number | null;
+
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -610,6 +613,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // Si un email sponsor est connu, la convention est envoyée pour signature en ligne.
     let conventionGenerated = false;
     let conventionEmailSent = false;
+    let conventionRecipientEmail: string | null = null;
+    let conventionParticipantsCount: number | null = null;
     if (isInterEntreprise && !alreadyExisted) {
       try {
         const { data: convData, error: convErr } = await admin.functions.invoke(
@@ -620,6 +625,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
           console.error("[add-training-participant] generate-convention-formation:", convErr);
         } else if (convData?.success && convData?.pdfUrl) {
           conventionGenerated = true;
+          conventionParticipantsCount = convData.participantsCount ?? null;
+
           // Envoi pour signature si un email sponsor est disponible
           const normalizedSponsorEmail = effectiveSponsorEmail?.trim().toLowerCase() || null;
           if (normalizedSponsorEmail) {
@@ -644,7 +651,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
                 console.error("[add-training-participant] send-convention-email:", sendErr);
               } else {
                 conventionEmailSent = true;
+                conventionRecipientEmail = normalizedSponsorEmail;
               }
+
             } catch (sendErr) {
               console.error("[add-training-participant] send-convention-email:", sendErr);
             }
@@ -697,6 +706,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       couponGenerated,
       conventionGenerated,
       conventionEmailSent,
+      conventionRecipientEmail,
+      conventionParticipantsCount,
+
     };
 
     return new Response(JSON.stringify(response), {
