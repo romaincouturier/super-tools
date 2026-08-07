@@ -4,7 +4,7 @@ import PageHeader from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plug, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Plug, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useElearningIntegrations } from "@/hooks/useElearningIntegrations";
 import { STATUS_LABEL, isHealthy, type IntegrationStatus } from "@/lib/elearningIntegration";
@@ -19,7 +19,7 @@ const BADGE_TONE: Record<IntegrationStatus, string> = {
 };
 
 export default function ElearningIntegrations() {
-  const { data, isLoading, isError } = useElearningIntegrations();
+  const { data, isLoading, isError, refetch, isFetching } = useElearningIntegrations();
   const [hideOk, setHideOk] = useState(false);
   const [hideNa, setHideNa] = useState(true);
 
@@ -36,9 +36,16 @@ export default function ElearningIntegrations() {
         <PageHeader
           icon={Plug}
           title="Intégrations e-learning ↔ supertilt.fr"
-          subtitle="Vérifie, par cours, que la chaîne d'inscription automatique WooCommerce est complète"
+          subtitle="Vérifie, par cours publié, que la chaîne d'inscription automatique WooCommerce est complète"
           backTo="/lms"
         />
+
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+            Actualiser les statuts
+          </Button>
+        </div>
 
         {isLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground py-12 justify-center">

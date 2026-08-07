@@ -24,7 +24,7 @@ export function useElearningIntegrations() {
     queryKey: ["elearning-integrations"],
     queryFn: async () => {
       const [coursesRes, trainingsRes, linksRes, formulasRes] = await Promise.all([
-        supabase.from("lms_courses").select("id, title, access_type"),
+        supabase.from("lms_courses").select("id, title, access_type, status"),
         supabase
           .from("trainings")
           .select("id, training_name, is_cancelled, catalog_id, supports_lms_course_id")
@@ -36,7 +36,10 @@ export function useElearningIntegrations() {
       const firstError = coursesRes.error || trainingsRes.error || linksRes.error || formulasRes.error;
       if (firstError) throw firstError;
 
-      const courses = coursesRes.data ?? [];
+      // Un cours en brouillon n'est pas vendable : aucune intégration à diagnostiquer.
+      const courses = (coursesRes.data ?? []).filter(
+        (c: { status?: string | null }) => c.status !== "draft",
+      );
       const trainings = trainingsRes.data ?? [];
       const links = linksRes.data ?? [];
       const formulas = formulasRes.data ?? [];
