@@ -37,7 +37,11 @@ export default function ShortcodeBlockViewer({
   const code = (content.code ?? "besoins") as ShortcodeKind;
   const meta = META[code];
   const Icon = meta.icon;
-  const courseId = content.course_id ?? fallbackCourseId ?? null;
+  // Le formulaire attend un identifiant de cours numérique (produit WordPress).
+  // Un UUID de cours interne ne resolvait rien : on l'ignore.
+  const rawCourseId = content.course_id ?? fallbackCourseId ?? null;
+  const courseId =
+    rawCourseId && /^\d+$/.test(String(rawCourseId).trim()) ? String(rawCourseId).trim() : null;
   const title = content.title || meta.label;
 
   // No learner context (admin preview) — show a styled placeholder.

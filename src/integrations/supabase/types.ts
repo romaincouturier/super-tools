@@ -12713,6 +12713,10 @@ export type Database = {
         Args: { p_emails: string[] }
         Returns: string[]
       }
+      learner_evaluation_course_id: {
+        Args: { p_email: string; p_lms_course_id: string }
+        Returns: number
+      }
       link_tender_duplicates: { Args: never; Returns: number }
       lms_learner_is_enrolled: {
         Args: { _course_id: string }

@@ -58,6 +58,27 @@ export default function LmsCoursePlayer() {
   const trackView = useTrackPageView();
   const { toast } = useToast();
 
+  // Les blocs "questionnaire" (évaluation / besoins) attendent l'identifiant
+  // numérique du cours côté boutique, pas l'UUID du cours LMS.
+  const [shortcodeCourseId, setShortcodeCourseId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!courseId || !learnerEmail) {
+      setShortcodeCourseId(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase as any).rpc("learner_evaluation_course_id", {
+        p_email: learnerEmail,
+        p_lms_course_id: courseId,
+      });
+      if (!cancelled) setShortcodeCourseId(data != null ? String(data) : null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId, learnerEmail]);
+
   const nextLiveAt = useMemo(() => {
     const now = Date.now();
     const upcoming = (liveData?.meetings ?? [])
@@ -444,6 +465,7 @@ export default function LmsCoursePlayer() {
                 <LessonContent
                   lessonId={selectedLesson.id}
                   courseId={courseId}
+                  shortcodeCourseId={shortcodeCourseId}
                   learnerEmail={learnerEmail}
                   renderQuiz={(quizId) => (
                     <QuizPlayer quizId={quizId} learnerEmail={learnerEmail} onComplete={handleMarkComplete} />
@@ -820,6 +842,7 @@ function LegacyWorkDepositOptIn({
 function LessonContent({
   lessonId,
   courseId,
+  shortcodeCourseId,
   learnerEmail,
   renderQuiz,
   renderAssignment,
@@ -828,6 +851,7 @@ function LessonContent({
 }: {
   lessonId: string;
   courseId?: string | null;
+  shortcodeCourseId?: string | number | null;
   learnerEmail?: string;
   renderQuiz: (quizId: string, lessonId: string) => React.ReactNode;
   renderAssignment: (lessonId: string) => React.ReactNode;
@@ -845,7 +869,7 @@ function LessonContent({
       renderAssignment={renderAssignment}
       renderWorkDeposit={renderWorkDeposit}
       learnerEmail={learnerEmail}
-      shortcodeCourseId={courseId}
+      shortcodeCourseId={shortcodeCourseId != null ? String(shortcodeCourseId) : null}
     />
   );
 }
