@@ -32,6 +32,12 @@ export interface CourseHomeConfig {
   hero_image_url?: string | null;
   hero_text?: string | null;
   tips?: string[];
+  /**
+   * Libellés personnalisés du bouton principal de l'accueil (ST-2026-0259).
+   * Null ou vide = libellé par défaut, à l'identique.
+   */
+  cta_label_start?: string | null;
+  cta_label_resume?: string | null;
   /** Affichage des encadrés du tableau de bord e-learning (défaut: affichés). */
   show_next_live?: boolean;
   show_community?: boolean;

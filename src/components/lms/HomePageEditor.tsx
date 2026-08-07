@@ -13,6 +13,11 @@ import type { CourseHomeConfig, CourseHeroMediaType } from "@/hooks/useLmsQuerie
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { formatFileSize } from "@/lib/file-utils";
+import {
+  CTA_LABEL_MAX_LENGTH,
+  DEFAULT_CTA_LABEL_RESUME,
+  DEFAULT_CTA_LABEL_START,
+} from "@/lib/lmsCourseHome";
 
 type Props = {
   course: {
@@ -79,6 +84,27 @@ export default function HomePageEditor({ course }: Props) {
             value={home.welcome_title_2 ?? ""}
             onChange={(e) => setHome({ ...home, welcome_title_2: e.target.value })}
             placeholder="votre formation"
+          />
+        </div>
+
+        <div className="space-y-3 border-t pt-4">
+          <Label>Bouton principal</Label>
+          <p className="text-xs text-muted-foreground">
+            Laissez vide pour conserver les libellés par défaut.
+          </p>
+          <CtaLabelField
+            id="cta-label-start"
+            label="Premier accès"
+            value={home.cta_label_start ?? ""}
+            placeholder={DEFAULT_CTA_LABEL_START}
+            onChange={(v) => setHome({ ...home, cta_label_start: v || null })}
+          />
+          <CtaLabelField
+            id="cta-label-resume"
+            label="Reprise (progression démarrée)"
+            value={home.cta_label_resume ?? ""}
+            placeholder={DEFAULT_CTA_LABEL_RESUME}
+            onChange={(v) => setHome({ ...home, cta_label_resume: v || null })}
           />
         </div>
 
@@ -226,5 +252,38 @@ export default function HomePageEditor({ course }: Props) {
         </Button>
       </CardContent>
     </Card>
+  );
+}
+
+/** Champ de libellé du bouton d'accueil : placeholder = libellé par défaut, compteur, 40 caractères max. */
+function CtaLabelField({
+  id,
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2">
+        <Label htmlFor={id} className="font-normal">{label}</Label>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {value.length}/{CTA_LABEL_MAX_LENGTH}
+        </span>
+      </div>
+      <Input
+        id={id}
+        value={value}
+        maxLength={CTA_LABEL_MAX_LENGTH}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
   );
 }

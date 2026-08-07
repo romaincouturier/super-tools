@@ -16,6 +16,7 @@ import {
   uploadForumAttachment,
 } from "@/hooks/useLms";
 import type { CourseLiveMeeting, CourseLiveData, CourseHomeConfig, CourseTrainingSession } from "@/hooks/useLmsQueries";
+import { homeCtaLabel } from "@/lib/lmsCourseHome";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import {
   CheckCircle2,
@@ -558,7 +559,7 @@ function HeroSection({
             className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold transition-all hover:-translate-y-0.5 active:translate-y-0"
             style={{ background: "var(--st-yellow)", color: "var(--st-ink)", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(255,209,0,0.35)" }}
           >
-            {completionPct > 0 ? "Continuer la formation" : "Commencer la formation"}
+            {homeCtaLabel(course.home_config, completionPct)}
             <ChevronRight size={16} />
           </button>
           {course.home_config?.plan_url && (
