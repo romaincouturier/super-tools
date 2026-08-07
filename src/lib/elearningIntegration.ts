@@ -58,6 +58,10 @@ export interface CourseIntegration {
   detail: string;
   /** Action corrective à mener, ou null si l'intégration est correcte. */
   action: string | null;
+  /** Route interne où mener l'action corrective, ou null. */
+  actionLink: string | null;
+  /** Libellé du lien d'action. */
+  actionLinkLabel: string | null;
 }
 
 const STATUS_SEVERITY: Record<IntegrationStatus, number> = {
@@ -100,6 +104,8 @@ export function computeCourseIntegration(
       wooProductIds: [],
       detail: "Cours intra / client — non vendu sur supertilt.fr, inscription gérée manuellement.",
       action: null,
+      actionLink: null,
+      actionLinkLabel: null,
     };
   }
 
@@ -117,6 +123,8 @@ export function computeCourseIntegration(
       detail: "Aucune session ne référence ce cours comme support.",
       action:
         "Sur une session e-learning (permanente), choisis ce cours comme support de type LMS (trainings.supports_lms_course_id).",
+      actionLink: "/formations",
+      actionLinkLabel: "Ouvrir les formations",
     };
   }
 
@@ -151,6 +159,8 @@ export function computeCourseIntegration(
       detail: "La ou les sessions liées ne sont reliées à aucune formule d'achat.",
       action:
         "Relie une formule (celle vendue sur supertilt.fr) à la session via training_formulas.",
+      actionLink: `/formations/${linkedTrainings[0].id}/edit`,
+      actionLinkLabel: "Modifier la session",
     };
   }
 
@@ -169,6 +179,8 @@ export function computeCourseIntegration(
       wooProductIds: [...new Set(wooExplicit)],
       detail: "Chaîne complète : un achat sur supertilt.fr inscrit l'apprenant à ce cours.",
       action: null,
+      actionLink: null,
+      actionLinkLabel: null,
     };
   }
 
@@ -181,6 +193,8 @@ export function computeCourseIntegration(
       detail: "Fonctionne uniquement via le fallback catalog_id (aucune liaison explicite déclarée).",
       action:
         "Déclare la liaison explicite formule ↔ session (training_formulas) pour fiabiliser le routage.",
+      actionLink: `/formations/${linkedTrainings[0].id}/edit`,
+      actionLinkLabel: "Modifier la session",
     };
   }
 
@@ -192,6 +206,8 @@ export function computeCourseIntegration(
     detail: "Une formule est reliée mais aucune ne porte d'ID produit WooCommerce.",
     action:
       "Renseigne le woocommerce_product_id de la formule (l'ID du produit vendu sur supertilt.fr).",
+    actionLink: "/catalogue",
+    actionLinkLabel: "Ouvrir le catalogue",
   };
 }
 

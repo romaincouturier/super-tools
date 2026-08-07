@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plug, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
+import { Plug, CheckCircle2, AlertTriangle, RefreshCw, ArrowRight } from "lucide-react";
+
 import { Spinner } from "@/components/ui/spinner";
 import { useElearningIntegrations } from "@/hooks/useElearningIntegrations";
 import { STATUS_LABEL, isHealthy, type IntegrationStatus } from "@/lib/elearningIntegration";
@@ -40,12 +42,6 @@ export default function ElearningIntegrations() {
           backTo="/lms"
         />
 
-        <div className="flex justify-end">
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
-            Actualiser les statuts
-          </Button>
-        </div>
 
         {isLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground py-12 justify-center">
@@ -98,7 +94,12 @@ export default function ElearningIntegrations() {
               <Button variant={hideNa ? "default" : "outline"} size="sm" onClick={() => setHideNa((v) => !v)}>
                 {hideNa ? "Afficher les non concernés" : "Masquer les non concernés"}
               </Button>
+              <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+                Actualiser les statuts
+              </Button>
             </div>
+
 
             {rows.length === 0 ? (
               <Card>
@@ -129,10 +130,21 @@ export default function ElearningIntegrations() {
                         </p>
                       )}
                       {r.action && (
-                        <p className="text-sm">
-                          <span className="font-medium">À faire :</span> {r.action}
-                        </p>
+                        <div className="text-sm space-y-1">
+                          <p>
+                            <span className="font-medium">À faire :</span> {r.action}
+                          </p>
+                          {r.actionLink && (
+                            <Button asChild variant="secondary" size="sm">
+                              <Link to={r.actionLink}>
+                                {r.actionLinkLabel ?? "Mener l'action"}
+                                <ArrowRight className="w-4 h-4 ml-2" />
+                              </Link>
+                            </Button>
+                          )}
+                        </div>
                       )}
+
                     </CardContent>
                   </Card>
                 ))}
