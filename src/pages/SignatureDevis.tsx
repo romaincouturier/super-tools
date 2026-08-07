@@ -284,11 +284,9 @@ const SignatureDevis = () => {
             )}
             {devisData?.pdf_url && (
               <div className="pt-2">
-                <Button variant="outline" asChild className="w-full sm:w-auto" onClick={handlePdfConsulted}>
-                  <a href={devisData.pdf_url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Consulter le devis PDF
-                  </a>
+                <Button variant="outline" className="w-full sm:w-auto" onClick={handleOpenPdf} disabled={openingPdf}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  {openingPdf ? "Ouverture..." : "Consulter le devis PDF"}
                 </Button>
               </div>
             )}
