@@ -1731,3 +1731,103 @@ export function userCanSee(recipient: Recipient, assignedTo: string | null): boo
   if (!assignedTo) return false;
   return assignedTo === recipient.userId;
 }
+
+/**
+ * Cours e-learning dont la chaîne d'intégration supertilt.fr (WooCommerce) est
+ * incomplète : un achat n'inscrirait pas l'apprenant. Même logique que
+ * src/lib/elearningIntegration.ts, restreinte aux états à corriger.
+ * Les cours en brouillon et les cours intra ne sont pas concernés.
+ */
+export interface ElearningIntegrationIssueItem {
+  courseId: string;
+  courseTitle: string;
+  statusLabel: string;
+  action: string;
+}
+
+export async function fetchElearningIntegrationIssues(
+  supabase: SupabaseClient,
+): Promise<ElearningIntegrationIssueItem[]> {
+  const [coursesRes, trainingsRes, linksRes, formulasRes] = await Promise.all([
+    supabase.from("lms_courses").select("id, title, access_type, status"),
+    supabase
+      .from("trainings")
+      .select("id, is_cancelled, catalog_id, supports_lms_course_id")
+      .not("supports_lms_course_id", "is", null),
+    supabase.from("training_formulas").select("training_id, formula_id"),
+    supabase.from("formation_formulas").select("id, formation_config_id, woocommerce_product_id"),
+  ]);
+
+  const err = coursesRes.error || trainingsRes.error || linksRes.error || formulasRes.error;
+  if (err) {
+    console.error("fetchElearningIntegrationIssues error:", err.message);
+    return [];
+  }
+
+  const courses = ((coursesRes.data ?? []) as any[]).filter(
+    (c) => c.status !== "draft" && c.access_type !== "intra",
+  );
+  const trainings = (trainingsRes.data ?? []) as any[];
+  const links = (linksRes.data ?? []) as any[];
+  const formulas = (formulasRes.data ?? []) as any[];
+  const formulaById = new Map<string, any>(formulas.map((f) => [f.id, f]));
+
+  const issues: ElearningIntegrationIssueItem[] = [];
+
+  for (const course of courses) {
+    const linked = trainings.filter(
+      (t) => t.supports_lms_course_id === course.id && t.is_cancelled !== true,
+    );
+
+    if (linked.length === 0) {
+      issues.push({
+        courseId: course.id,
+        courseTitle: course.title || "Cours e-learning",
+        statusLabel: "Aucune session",
+        action:
+          "Créer la formation au catalogue puis une session e-learning avec ce cours comme support LMS",
+      });
+      continue;
+    }
+
+    const explicit = new Set<any>();
+    const fallback = new Set<any>();
+    for (const t of linked) {
+      for (const l of links) {
+        if (l.training_id === t.id) {
+          const f = formulaById.get(l.formula_id);
+          if (f) explicit.add(f);
+        }
+      }
+      if (t.catalog_id) {
+        for (const f of formulas) {
+          if (f.formation_config_id === t.catalog_id) fallback.add(f);
+        }
+      }
+    }
+
+    if (explicit.size === 0 && fallback.size === 0) {
+      issues.push({
+        courseId: course.id,
+        courseTitle: course.title || "Cours e-learning",
+        statusLabel: "Formule non reliée",
+        action: "Relier la formule vendue sur supertilt.fr à la session",
+      });
+      continue;
+    }
+
+    const hasWoo = [...explicit, ...fallback].some(
+      (f) => typeof f.woocommerce_product_id === "number",
+    );
+    if (!hasWoo) {
+      issues.push({
+        courseId: course.id,
+        courseTitle: course.title || "Cours e-learning",
+        statusLabel: "Produit Woo manquant",
+        action: "Renseigner le woocommerce_product_id de la formule",
+      });
+    }
+  }
+
+  return issues;
+}
