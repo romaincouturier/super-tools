@@ -39,6 +39,7 @@ export const CATEGORY_ORDER = [
   "supertilt_dropshipping",
   "supertilt",
   "lms_communaute",
+  "elearning_integration",
 ] as const;
 
 export const CATEGORIES: Record<string, CategoryConfig> = {
@@ -68,6 +69,7 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
   supertilt_recues: { label: "SuperTilt — commandes reçues", emoji: "\ud83d\udce6", color: "text-blue-600" },
   supertilt_formation_a_router: { label: "Formations à router", emoji: "🎓", color: "text-orange-600" },
   lms_communaute: { label: "Communautés LMS — publications à traiter", emoji: "💬", color: "text-indigo-600" },
+  elearning_integration: { label: "E-learning — intégration supertilt.fr à corriger", emoji: "🔌", color: "text-red-600" },
   supertilt_dropshipping: { label: "SuperTilt — Dropshipping en attente", emoji: "\ud83d\ude9a", color: "text-orange-600" },
   supertilt_dropshipping_relance: { label: "SuperTilt — Dropshipping relancé", emoji: "\ud83d\udd34", color: "text-red-700" },
   supertilt: { label: "SuperTilt", emoji: "\u26a1", color: "text-yellow-600" },
