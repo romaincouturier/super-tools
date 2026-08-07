@@ -23,7 +23,7 @@ import { useConfirm } from "@/hooks/useConfirm";
 import { useCommunityPendingPosts } from "@/hooks/useCommunityPendingPosts";
 import CourseMetaDialog from "@/components/lms/CourseMetaDialog";
 import {
-  EXPERTISE_OPTIONS, ACCESS_OPTIONS, STATUS_OPTIONS,
+  EXPERTISE_OPTIONS, ACCESS_OPTIONS, STATUS_OPTIONS, SCOPE_OPTIONS,
   DEFAULT_COURSE_META_FILTERS, courseMatchesMetaFilters,
   statusLabel, accessLabel, expertiseLabel,
   type CourseMetaFilters,
@@ -95,6 +95,7 @@ export default function LmsCourses() {
 
   const hasActiveFilters =
     search.trim() !== "" ||
+    filters.scope !== DEFAULT_COURSE_META_FILTERS.scope ||
     filters.expertise !== "all" ||
     filters.access !== "all" ||
     filters.status !== "all";
@@ -154,10 +155,13 @@ export default function LmsCourses() {
     await deleteCourse.mutateAsync(id);
   };
 
+  // Compté sur les cours affichés : le périmètre par défaut masque les intra
+  // et les archivés, l'en-tête doit décrire ce que l'écran montre.
   const stats = {
-    total: courses.length,
-    published: courses.filter((c) => c.status === "published").length,
-    totalHours: Math.round(courses.reduce((acc, c) => acc + (c.estimated_duration_minutes || 0), 0) / 60),
+    total: filtered.length,
+    published: filtered.filter((c) => c.status === "published").length,
+    totalHours: Math.round(filtered.reduce((acc, c) => acc + (c.estimated_duration_minutes || 0), 0) / 60),
+    hidden: courses.length - filtered.length,
   };
 
   return (
@@ -168,7 +172,7 @@ export default function LmsCourses() {
         <PageHeader
           icon={GraduationCap}
           title="LMS — Cours en ligne"
-          subtitle={`${stats.total} cours · ${stats.published} publiés · ${stats.totalHours}h de contenu`}
+          subtitle={`${stats.total} cours · ${stats.published} publiés · ${stats.totalHours}h de contenu${stats.hidden > 0 ? ` · ${stats.hidden} masqué${stats.hidden > 1 ? "s" : ""}` : ""}`}
           backTo="/dashboard"
         />
 
@@ -260,6 +264,16 @@ export default function LmsCourses() {
               className="pl-9"
             />
           </div>
+          <Select value={filters.scope} onValueChange={(v) => setFilters({ ...filters, scope: v })}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Périmètre" />
+            </SelectTrigger>
+            <SelectContent>
+              {SCOPE_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={filters.expertise} onValueChange={(v) => setFilters({ ...filters, expertise: v })}>
             <SelectTrigger className="w-full sm:w-56">
               <SelectValue placeholder="Expertise" />

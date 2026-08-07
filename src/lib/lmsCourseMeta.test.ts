@@ -14,13 +14,34 @@ const course = (over: Partial<{ status: string; access_type: string | null; expe
   ...over,
 });
 
+const ALL_SCOPE = { ...DEFAULT_COURSE_META_FILTERS, scope: "all" };
+
 describe("courseMatchesMetaFilters", () => {
-  it("default filters: every non-archived course, intra included", () => {
+  it("default filters (catalogue actif): standard courses only", () => {
     expect(courseMatchesMetaFilters(course(), DEFAULT_COURSE_META_FILTERS)).toBe(true);
     expect(courseMatchesMetaFilters(course({ status: "draft" }), DEFAULT_COURSE_META_FILTERS)).toBe(true);
     expect(courseMatchesMetaFilters(course({ status: "to_review" }), DEFAULT_COURSE_META_FILTERS)).toBe(true);
-    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), DEFAULT_COURSE_META_FILTERS)).toBe(true);
+    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), DEFAULT_COURSE_META_FILTERS)).toBe(false);
+    expect(courseMatchesMetaFilters(course({ expertise: "intra_clients" }), DEFAULT_COURSE_META_FILTERS)).toBe(false);
     expect(courseMatchesMetaFilters(course({ status: "archived" }), DEFAULT_COURSE_META_FILTERS)).toBe(false);
+  });
+
+  it("scope all brings the intra courses back", () => {
+    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), ALL_SCOPE)).toBe(true);
+    expect(courseMatchesMetaFilters(course({ expertise: "intra_clients" }), ALL_SCOPE)).toBe(true);
+    expect(courseMatchesMetaFilters(course(), ALL_SCOPE)).toBe(true);
+  });
+
+  it("scope all still hides archived courses outside the archived status filter", () => {
+    expect(courseMatchesMetaFilters(course({ status: "archived" }), ALL_SCOPE)).toBe(false);
+    expect(courseMatchesMetaFilters(course({ status: "archived" }), { ...ALL_SCOPE, status: "archived" })).toBe(true);
+  });
+
+  it("an explicit intra filter overrides the catalogue actif exclusion", () => {
+    const intra = course({ access_type: "intra" });
+    expect(courseMatchesMetaFilters(intra, { ...DEFAULT_COURSE_META_FILTERS, access: "intra" })).toBe(true);
+    const tagged = course({ expertise: "intra_clients" });
+    expect(courseMatchesMetaFilters(tagged, { ...DEFAULT_COURSE_META_FILTERS, expertise: "intra_clients" })).toBe(true);
   });
 
   it("shows archived only via the archived status filter", () => {
@@ -36,9 +57,9 @@ describe("courseMatchesMetaFilters", () => {
   });
 
   it("filters by access", () => {
-    expect(courseMatchesMetaFilters(course({ access_type: "payant" }), { ...DEFAULT_COURSE_META_FILTERS, access: "payant" })).toBe(true);
-    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), { ...DEFAULT_COURSE_META_FILTERS, access: "payant" })).toBe(false);
-    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), { ...DEFAULT_COURSE_META_FILTERS, access: "intra" })).toBe(true);
+    expect(courseMatchesMetaFilters(course({ access_type: "payant" }), { ...ALL_SCOPE, access: "payant" })).toBe(true);
+    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), { ...ALL_SCOPE, access: "payant" })).toBe(false);
+    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), { ...ALL_SCOPE, access: "intra" })).toBe(true);
   });
 
   it("treats missing access_type as gratuit (rows pre-migration)", () => {
@@ -47,10 +68,10 @@ describe("courseMatchesMetaFilters", () => {
 
   it("combines expertise, access and status filters", () => {
     const c = course({ expertise: "ia", access_type: "payant", status: "published" });
-    expect(courseMatchesMetaFilters(c, { expertise: "ia", access: "payant", status: "published" })).toBe(true);
-    expect(courseMatchesMetaFilters(c, { expertise: "agilite", access: "payant", status: "published" })).toBe(false);
-    expect(courseMatchesMetaFilters(c, { expertise: "ia", access: "gratuit", status: "published" })).toBe(false);
-    expect(courseMatchesMetaFilters(c, { expertise: "ia", access: "payant", status: "draft" })).toBe(false);
+    expect(courseMatchesMetaFilters(c, { scope: "active", expertise: "ia", access: "payant", status: "published" })).toBe(true);
+    expect(courseMatchesMetaFilters(c, { scope: "active", expertise: "agilite", access: "payant", status: "published" })).toBe(false);
+    expect(courseMatchesMetaFilters(c, { scope: "active", expertise: "ia", access: "gratuit", status: "published" })).toBe(false);
+    expect(courseMatchesMetaFilters(c, { scope: "active", expertise: "ia", access: "payant", status: "draft" })).toBe(false);
   });
 });
 
