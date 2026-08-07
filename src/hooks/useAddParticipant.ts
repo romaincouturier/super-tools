@@ -147,11 +147,17 @@ export function useAddParticipant({
 
       // Suffix convention status
       if (result.conventionGenerated) {
+        const count = result.conventionParticipantsCount ?? 1;
+        const scope =
+          count > 1
+            ? ` (${count} participants de la même entreprise)`
+            : "";
         const convSuffix = result.conventionEmailSent
-          ? " Convention générée et envoyée pour signature."
-          : " Convention générée (pas d'email sponsor).";
-        statusMessage = statusMessage.replace(/\.$/, "") + convSuffix;
+          ? ` Convention de formation${scope} envoyée au commanditaire${result.conventionRecipientEmail ? ` (${result.conventionRecipientEmail})` : ""} pour signature.`
+          : ` Convention de formation${scope} générée, mais non envoyée : aucun email de commanditaire.`;
+        statusMessage = statusMessage.replace(/\.$/, ".") + convSuffix;
       }
+
 
       const isWarn =
         !result.needsSurveyScheduled && result.status !== "non_envoye" && !result.ongoing
