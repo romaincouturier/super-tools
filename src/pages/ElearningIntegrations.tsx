@@ -36,9 +36,16 @@ export default function ElearningIntegrations() {
         <PageHeader
           icon={Plug}
           title="Intégrations e-learning ↔ supertilt.fr"
-          subtitle="Vérifie, par cours, que la chaîne d'inscription automatique WooCommerce est complète"
+          subtitle="Vérifie, par cours publié, que la chaîne d'inscription automatique WooCommerce est complète"
           backTo="/lms"
         />
+
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+            Actualiser les statuts
+          </Button>
+        </div>
 
         {isLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground py-12 justify-center">
