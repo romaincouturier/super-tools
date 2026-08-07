@@ -125,8 +125,10 @@ export function computeCourseIntegration(
       detail: "Aucune session ne référence ce cours comme support.",
       action:
         "Crée d'abord la formation dans le catalogue, puis crée une session e-learning permanente et choisis ce cours comme support de type LMS (trainings.supports_lms_course_id).",
-      actionLink: "/formations",
-      actionLinkLabel: "Ouvrir les formations",
+      actions: [
+        { label: "Créer la formation dans le catalogue", to: "/catalogue" },
+        { label: "Créer une session e-learning", to: "/formations" },
+      ],
     };
   }
 
