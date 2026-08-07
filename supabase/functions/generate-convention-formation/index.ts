@@ -569,7 +569,8 @@ serve(async (req: Request): Promise<Response> => {
         // Build filename: Convention_CLIENT_FORMATION.pdf
         const clientPart = sanitizeForFilename(clientName || "Client");
         const formationPart = sanitizeForFilename(training.training_name || "Formation");
-        const participantPart = singleParticipant
+        // Le nom du participant n'est ajouté que si la convention ne couvre qu'une personne
+        const participantPart = singleParticipant && participantList.length <= 1
           ? `_${sanitizeForFilename(`${singleParticipant.first_name || ""} ${singleParticipant.last_name || ""}`.trim() || "Participant")}`
           : "";
         const fileName = `Convention_${clientPart}_${formationPart}${participantPart}.pdf`;
@@ -582,9 +583,14 @@ serve(async (req: Request): Promise<Response> => {
             fileName,
             conventionType: isIndividualConvention ? "individual" : "global",
             participantId: participantId || null,
+            participantIds: groupParticipantIds,
+            participantsCount: participantList.length,
+            clientName,
+            totalPriceHt: priceHt,
             message: "Convention de formation generee avec succes",
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+
         );
       } else if (status === "failure") {
         throw new Error(`Generation PDF echouee: ${statusData.document.failure_cause}`);
