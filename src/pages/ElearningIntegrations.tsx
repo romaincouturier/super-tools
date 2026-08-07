@@ -134,13 +134,17 @@ export default function ElearningIntegrations() {
                           <p>
                             <span className="font-medium">À faire :</span> {r.action}
                           </p>
-                          {r.actionLink && (
-                            <Button asChild variant="secondary" size="sm">
-                              <Link to={r.actionLink}>
-                                {r.actionLinkLabel ?? "Mener l'action"}
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                              </Link>
-                            </Button>
+                          {r.actions.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {r.actions.map((a) => (
+                                <Button key={a.to} asChild variant="secondary" size="sm">
+                                  <Link to={a.to}>
+                                    {a.label}
+                                    <ArrowRight className="w-4 h-4 ml-2" />
+                                  </Link>
+                                </Button>
+                              ))}
+                            </div>
                           )}
                         </div>
                       )}
