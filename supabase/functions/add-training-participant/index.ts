@@ -651,7 +651,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
                 console.error("[add-training-participant] send-convention-email:", sendErr);
               } else {
                 conventionEmailSent = true;
+                conventionRecipientEmail = normalizedSponsorEmail;
               }
+
             } catch (sendErr) {
               console.error("[add-training-participant] send-convention-email:", sendErr);
             }
