@@ -524,8 +524,9 @@ serve(async (req: Request): Promise<Response> => {
           }
         }
 
-        // Save convention URL and document ID on participant (for individual conventions)
-        if (isIndividualConvention && participantId) {
+        // Save convention URL and document ID on every participant covered by the
+        // convention (tous les participants de la même entreprise / commanditaire)
+        if (isIndividualConvention && groupParticipantIds.length > 0) {
           try {
             await supabase
               .from("training_participants")
@@ -533,12 +534,13 @@ serve(async (req: Request): Promise<Response> => {
                 convention_file_url: pdfUrl,
                 convention_document_id: documentId,
               })
-              .eq("id", participantId);
-            console.log("Convention URL and document ID saved to participant");
+              .in("id", groupParticipantIds);
+            console.log(`Convention saved on ${groupParticipantIds.length} participant(s)`);
           } catch (saveError) {
             console.warn("Failed to save convention data on participant:", saveError);
           }
         }
+
 
         // Log activity
         try {
