@@ -1819,8 +1819,9 @@ export async function fetchElearningIntegrationIssues(
       continue;
     }
 
+    // Une formule gratuite (prix 0) n'a pas besoin d'ID produit WooCommerce.
     const hasWoo = [...explicit, ...fallback].some(
-      (f) => typeof f.woocommerce_product_id === "number",
+      (f) => typeof f.woocommerce_product_id === "number" || f.prix === 0,
     );
     if (!hasWoo) {
       issues.push({
