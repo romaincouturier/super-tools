@@ -501,6 +501,18 @@ serve(async (req) => {
       });
     }
 
+    // 17ter. E-learning — intégration supertilt.fr incomplète
+    for (const i of data.elearningIntegrationIssues) {
+      actions.push({
+        category: "elearning_integration",
+        title: `🔌 ${i.courseTitle} — ${i.statusLabel}`,
+        description: i.action,
+        link: `${appUrl}/lms/integrations`,
+        entityType: "lms_course_integration", entityId: i.courseId,
+        scope: "global",
+      });
+    }
+
     // 18. SuperTilt — actions personnelles (deadline aujourd'hui ou en retard)
     for (const a of data.supertiltActions) {
       const dateLabel = a.deadline === today

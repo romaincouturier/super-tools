@@ -538,6 +538,13 @@ serve(async (req) => {
         )
       );
 
+      // 15d-bis. E-learning — intégration supertilt.fr incomplète
+      add("🔌", "E-learning — intégration supertilt.fr à corriger", COLORS.red,
+        data.elearningIntegrationIssues.map(i =>
+          `<li>${linkHtml(`${appUrl}/lms/integrations`, i.courseTitle)} — ${i.statusLabel} : ${i.action}</li>`
+        )
+      );
+
       // 15e. Marchés publics — Go / No Go à décider
       add("⚖️", "Marchés publics — Go / No Go", COLORS.amber,
         data.tendersToDecide.map(t => {
