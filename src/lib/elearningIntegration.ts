@@ -44,6 +44,13 @@ export interface FormulaLike {
   name: string;
   formation_config_id: string | null;
   woocommerce_product_id: number | null;
+  /** Prix TTC de la formule. 0 = gratuite, aucun produit Woo nécessaire. */
+  prix?: number | null;
+}
+
+/** Une formule gratuite n'a pas besoin d'ID produit WooCommerce. */
+export function isFreeFormula(f: FormulaLike): boolean {
+  return f.prix === 0;
 }
 
 export interface RecommendedAction {
