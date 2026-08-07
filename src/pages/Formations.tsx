@@ -714,10 +714,12 @@ const Formations = () => {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                          <Badge variant="outline" className="text-xs flex items-center gap-1">
-                            <Building className="h-3 w-3" />
-                            {isDemoMode ? maskText(asText(training.client_name)) || "Client non renseigné" : asText(training.client_name) || "Client non renseigné"}
-                          </Badge>
+                          {filter !== "permanent" && (
+                            <Badge variant="outline" className="text-xs flex items-center gap-1">
+                              <Building className="h-3 w-3" />
+                              {isDemoMode ? maskText(asText(training.client_name)) || "Client non renseigné" : asText(training.client_name) || "Client non renseigné"}
+                            </Badge>
+                          )}
                           {training.location && (
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                               <MapPin className="h-3 w-3" />
