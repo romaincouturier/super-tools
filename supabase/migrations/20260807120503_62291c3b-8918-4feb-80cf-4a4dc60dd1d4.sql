@@ -16,10 +16,16 @@ SET content = jsonb_set(
 )
 WHERE id = '254241fa-09d4-423d-be66-526dfda4679d';
 
+-- La leçon cible n'existe qu'en production : sans le EXISTS, le rejeu de
+-- l'historique sur une base vierge échoue sur la contrainte de clé étrangère
+-- lms_lesson_blocks_lesson_id_fkey (règle [042]).
 INSERT INTO lms_lesson_blocks (lesson_id, type, position, content, hidden)
 SELECT '790c240f-67dc-4277-b1b6-7a4b8e9d2727', 'shortcode', 1,
   '{"code":"evaluation","title":"Questionnaire d''évaluation de la formation"}'::jsonb, false
-WHERE NOT EXISTS (
+WHERE EXISTS (
+  SELECT 1 FROM lms_lessons WHERE id = '790c240f-67dc-4277-b1b6-7a4b8e9d2727'
+)
+AND NOT EXISTS (
   SELECT 1 FROM lms_lesson_blocks
   WHERE lesson_id = '790c240f-67dc-4277-b1b6-7a4b8e9d2727' AND type = 'shortcode'
 );

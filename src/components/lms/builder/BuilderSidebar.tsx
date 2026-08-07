@@ -42,8 +42,8 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle, 
         position: modules.length,
       });
       toast({ title: "Module ajouté" });
-    } catch {
-      toastError(toast, "Erreur lors de la création du module");
+    } catch (err) {
+      toastError(toast, "Erreur lors de la création du module", { cause: err });
     }
   };
 
@@ -59,8 +59,8 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle, 
     });
     try {
       await reorderModules.mutateAsync(updates);
-    } catch {
-      toastError(toast, "Erreur lors de la réorganisation");
+    } catch (err) {
+      toastError(toast, "Erreur lors de la réorganisation", { cause: err });
     }
   };
 
@@ -357,8 +357,8 @@ function ModuleItem({
       });
       toast({ title: "Leçon ajoutée" });
       navigate(`/lms/${courseId}/lesson/${lesson.id}/builder`);
-    } catch {
-      toastError(toast, "Erreur lors de la création de la leçon");
+    } catch (err) {
+      toastError(toast, "Erreur lors de la création de la leçon", { cause: err });
     }
   };
 
@@ -374,8 +374,8 @@ function ModuleItem({
     });
     try {
       await reorderLessons.mutateAsync(updates);
-    } catch {
-      toastError(toast, "Erreur lors de la réorganisation");
+    } catch (err) {
+      toastError(toast, "Erreur lors de la réorganisation", { cause: err });
     }
   };
 
