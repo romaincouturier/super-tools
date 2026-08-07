@@ -22,6 +22,7 @@ import LessonComments from "@/components/lms/LessonComments";
 import LessonBlocksPlayer from "@/components/lms/blocks/LessonBlocksPlayer";
 import CourseHomeSidebar, { CommunityCtaButton, type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
 import LmsCourseLayout from "@/components/lms/LmsCourseLayout";
+import { shouldShowProgress } from "@/lib/lmsCourseHome";
 import { useLessonBlocks } from "@/hooks/useLmsBlocks";
 import { useMyDeposits } from "@/hooks/useLmsWorkDeposit";
 import type { ExerciseBlockContent, WorkDepositBlockContent } from "@/types/lms-blocks";
@@ -272,6 +273,12 @@ export default function LmsCoursePlayer() {
     }
     return out;
   }, [modules, lessonsByModule, completedIds]);
+  // ST-2026-0260 — même règle que sur l'accueil, pour ne pas afficher un
+  // compteur ici quand l'accueil n'en montre pas.
+  const showSidebarProgress = shouldShowProgress(
+    course?.home_config,
+    sidebarModules.reduce((n, m) => n + (lessonCountByModule[m.id] ?? 0), 0),
+  );
   const moduleStatuses = useMemo<Record<string, ModuleStatus>>(() => {
     const out: Record<string, ModuleStatus> = {};
     for (const m of modules) {
@@ -435,6 +442,7 @@ export default function LmsCoursePlayer() {
           meetings={liveData?.meetings ?? []}
           showNextLive={course.home_config?.show_next_live !== false}
           showCommunity={course.home_config?.show_community !== false}
+          showProgress={showSidebarProgress}
           activeView="home"
           onModuleClick={(id) => { handleSidebarModuleClick(id); closeSidebar(); }}
           onViewChange={(v) => { handleSidebarViewChange(v); closeSidebar(); }}

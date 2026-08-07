@@ -17,6 +17,8 @@ import {
   CTA_LABEL_MAX_LENGTH,
   DEFAULT_CTA_LABEL_RESUME,
   DEFAULT_CTA_LABEL_START,
+  PROGRESS_DISPLAY_OPTIONS,
+  type ProgressDisplayMode,
 } from "@/lib/lmsCourseHome";
 
 type Props = {
@@ -227,6 +229,29 @@ export default function HomePageEditor({ course }: Props) {
               <Plus className="w-4 h-4 mr-2" /> Ajouter un conseil
             </Button>
           </div>
+        </div>
+
+        <div className="space-y-3 border-t pt-4">
+          <Label>Indicateurs de progression</Label>
+          <p className="text-xs text-muted-foreground">
+            Anneau « Votre progression » et compteur de la barre latérale. Le suivi de complétion
+            reste enregistré et visible dans les statistiques, quel que soit ce réglage.
+          </p>
+          <RadioGroup
+            value={home.progress_display ?? "auto"}
+            onValueChange={(v) => setHome({ ...home, progress_display: v as ProgressDisplayMode })}
+            className="flex flex-col gap-2"
+          >
+            {PROGRESS_DISPLAY_OPTIONS.map((o) => (
+              <div key={o.value} className="flex items-start gap-2">
+                <RadioGroupItem value={o.value} id={`progress-${o.value}`} className="mt-1" />
+                <Label htmlFor={`progress-${o.value}`} className="font-normal cursor-pointer">
+                  {o.label}
+                  <span className="block text-xs text-muted-foreground">{o.hint}</span>
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
         </div>
 
         <div className="space-y-3 border-t pt-4">
