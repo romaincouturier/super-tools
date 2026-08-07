@@ -706,6 +706,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       couponGenerated,
       conventionGenerated,
       conventionEmailSent,
+      conventionRecipientEmail,
+      conventionParticipantsCount,
+
     };
 
     return new Response(JSON.stringify(response), {
