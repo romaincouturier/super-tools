@@ -264,6 +264,64 @@ export async function moveLessonBlock(params: {
   }
 }
 
+// ── Indent / outdent (ST-2026-0257) ───────────────────────────────────
+
+/**
+ * Container types a block can be indented into from the builder toolbar.
+ * Rows are excluded on purpose: their children carry a column assignment,
+ * handled by the dedicated left/right actions.
+ */
+const INDENT_TARGET_TYPES: readonly LessonBlockType[] = ["section", "container", "reveal"];
+
+export function isIndentTargetType(type: LessonBlockType): boolean {
+  return (INDENT_TARGET_TYPES as readonly string[]).includes(type);
+}
+
+const byPosition = (a: LessonBlock, b: LessonBlock) => a.position - b.position;
+
+/**
+ * Where a block goes when the user asks to move it into the container
+ * sitting just above it — the only way to wrap already written content in
+ * a "Contenu progressif" (or section / container) block. Returns null when
+ * the previous sibling is not a container able to host children.
+ */
+export function indentTargetOf(
+  blocks: LessonBlock[],
+  blockId: string,
+): { parentId: string; position: number } | null {
+  const block = blocks.find((b) => b.id === blockId);
+  if (!block) return null;
+  const parentId = block.parent_block_id ?? null;
+  if (parentId && blocks.find((b) => b.id === parentId)?.type === "row") return null;
+  const siblings = blocks
+    .filter((b) => (b.parent_block_id ?? null) === parentId)
+    .sort(byPosition);
+  const idx = siblings.findIndex((b) => b.id === blockId);
+  if (idx <= 0) return null;
+  const target = siblings[idx - 1];
+  if (!isIndentTargetType(target.type)) return null;
+  return {
+    parentId: target.id,
+    position: blocks.filter((b) => b.parent_block_id === target.id).length,
+  };
+}
+
+/**
+ * Where a block goes when the user pulls it out of its container: right
+ * after that container, in the container's own parent. Returns null for a
+ * block already at the top level.
+ */
+export function outdentTargetOf(
+  blocks: LessonBlock[],
+  blockId: string,
+): { parentId: string | null; position: number } | null {
+  const block = blocks.find((b) => b.id === blockId);
+  if (!block?.parent_block_id) return null;
+  const parent = blocks.find((b) => b.id === block.parent_block_id);
+  if (!parent) return null;
+  return { parentId: parent.parent_block_id ?? null, position: parent.position + 1 };
+}
+
 // ── Duplicate ─────────────────────────────────────────────────────────
 
 /**
