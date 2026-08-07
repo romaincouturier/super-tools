@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Clock, CheckCircle2, AlertCircle, Loader2, Play } from "lucide-react";
+import { Clock, CheckCircle2, AlertCircle, Play } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -36,7 +37,7 @@ export function PollingIndicator({ source, label = "Polling", functionName, forc
   if (isLoading) {
     return (
       <Badge variant="outline" className="gap-1 text-xs">
-        <Loader2 className="h-3 w-3 animate-spin" />
+        <Spinner className="h-3 w-3" />
         Chargement…
       </Badge>
     );
@@ -49,7 +50,7 @@ export function PollingIndicator({ source, label = "Polling", functionName, forc
     cursor?.status === "error" ? (
       <AlertCircle className="h-3 w-3 text-destructive" />
     ) : cursor?.status === "running" ? (
-      <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+      <Spinner className="h-3 w-3 text-blue-500" />
     ) : (
       <CheckCircle2 className="h-3 w-3 text-green-600" />
     );
@@ -129,7 +130,7 @@ export function PollingIndicator({ source, label = "Polling", functionName, forc
           title="Forcer le polling maintenant"
         >
           {isRunning ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Spinner className="h-3 w-3" />
           ) : (
             <Play className="h-3 w-3" />
           )}
