@@ -92,7 +92,12 @@ export default function ElearningIntegrations() {
               <Button variant={hideNa ? "default" : "outline"} size="sm" onClick={() => setHideNa((v) => !v)}>
                 {hideNa ? "Afficher les non concernés" : "Masquer les non concernés"}
               </Button>
+              <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
+                Actualiser les statuts
+              </Button>
             </div>
+
 
             {rows.length === 0 ? (
               <Card>
