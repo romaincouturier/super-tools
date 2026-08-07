@@ -19,7 +19,6 @@ import type { CourseLiveMeeting, CourseLiveData, CourseHomeConfig, CourseTrainin
 import { homeCtaLabel, shouldShowProgress } from "@/lib/lmsCourseHome";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import {
-  CheckCircle2,
   ChevronRight,
   ChevronDown,
   BookOpen,
@@ -39,7 +38,6 @@ import {
   Menu,
   X,
   Send,
-  Sparkles,
   HelpCircle,
   LogOut,
   Video,
@@ -51,6 +49,7 @@ import {
 } from "lucide-react";
 import CourseHomeSidebar, { CommunityCtaButton, communityUrlWithContext, type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
 import LmsCourseLayout from "@/components/lms/LmsCourseLayout";
+import HomeIntroBox from "@/components/lms/HomeIntroBox";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -480,35 +479,6 @@ function CommunityInfoCard({
       <p className="text-xs text-center" style={{ color: "var(--st-ink-muted)" }}>
         Inspirez-vous des partages, posez vos questions et progressez ensemble !
       </p>
-    </div>
-  );
-}
-
-// ── Tips block ────────────────────────────────────────────────────────────────
-
-const DEFAULT_TIPS = [
-  "Ayez toujours une feuille et un feutre à portée de main.",
-  "Progressez petit à petit, l'essentiel est la régularité.",
-  "Testez, osez, pratiquez : il n'y a pas de dessin parfait.",
-  "Participez aux lives et posez vos questions.",
-];
-
-function TipsBlock({ tips }: { tips?: string[] }) {
-  const list = (tips && tips.length > 0 ? tips : DEFAULT_TIPS).filter((t) => t && t.trim().length > 0);
-  return (
-    <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}>
-      <div className="flex items-center gap-2.5">
-        <Sparkles size={16} style={{ color: "#FFD100" }} />
-        <p className="text-sm font-bold" style={{ color: "var(--st-ink)" }}>Conseils pour bien démarrer</p>
-      </div>
-      <ul className="space-y-2.5">
-        {list.map((tip, i) => (
-          <li key={i} className="flex items-start gap-2.5">
-            <CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: "#69C3C4" }} />
-            <p className="text-sm leading-snug" style={{ color: "var(--st-ink-muted)" }}>{tip}</p>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
@@ -1256,7 +1226,7 @@ export default function LmsCourseHomePage() {
                   {course.home_config?.show_community !== false && (
                     <CommunityInfoCard courseId={courseId!} email={email} isPreview={isPreview} />
                   )}
-                  <TipsBlock tips={course.home_config?.tips} />
+                  <HomeIntroBox config={course.home_config} />
                 </div>
                 <InfoCardsGrid config={course.home_config} />
               </>
