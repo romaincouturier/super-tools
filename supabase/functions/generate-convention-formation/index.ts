@@ -349,11 +349,17 @@ serve(async (req: Request): Promise<Response> => {
     const fraisDefault = settings["convention_frais_default"] || "0";
     const afficheFrais = settings["convention_affiche_frais"] || "Non";
 
-    // Calculate price - for inter/e-learning use participant's sold_price_ht first, then training's, then input, then default
-    const participantPrice = isIndividualConvention && singleParticipant
-      ? (singleParticipant as any).sold_price_ht
-      : null;
-    const basePriceHt = Number(participantPrice || inputPrice || training.sold_price_ht || defaultPriceHt);
+    // Calculate price.
+    // Convention par entreprise (inter) : le montant contractuel est la SOMME des
+    // inscriptions des participants figurant sur la convention.
+    const fallbackUnitPrice = Number(inputPrice || training.sold_price_ht || defaultPriceHt);
+    const basePriceHt = isIndividualConvention
+      ? participantList.reduce((sum, p) => {
+          const unit = (p as any).sold_price_ht;
+          return sum + (unit != null && unit !== "" ? Number(unit) : fallbackUnitPrice);
+        }, 0)
+      : fallbackUnitPrice;
+
     // For intra (and global conventions), surface ancillary fees as FRAIS so they
     // appear as a separate line on the convention PDF and are summed into the total.
     const ancillaryFees = !isIndividualConvention && (training as any).ancillary_fees_ht
