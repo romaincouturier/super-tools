@@ -128,10 +128,21 @@ export default function ElearningIntegrations() {
                         </p>
                       )}
                       {r.action && (
-                        <p className="text-sm">
-                          <span className="font-medium">À faire :</span> {r.action}
-                        </p>
+                        <div className="text-sm space-y-1">
+                          <p>
+                            <span className="font-medium">À faire :</span> {r.action}
+                          </p>
+                          {r.actionLink && (
+                            <Button asChild variant="secondary" size="sm">
+                              <Link to={r.actionLink}>
+                                {r.actionLinkLabel ?? "Mener l'action"}
+                                <ArrowRight className="w-4 h-4 ml-2" />
+                              </Link>
+                            </Button>
+                          )}
+                        </div>
                       )}
+
                     </CardContent>
                   </Card>
                 ))}
