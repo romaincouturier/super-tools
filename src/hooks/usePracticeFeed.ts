@@ -39,6 +39,7 @@ export interface PracticePost {
   author_photo_url?: string | null;
   author_is_staff?: boolean;
   lesson_title?: string | null;
+  module_title?: string | null;
   course_title?: string | null;
   reaction_count: number;
   i_reacted: boolean;
