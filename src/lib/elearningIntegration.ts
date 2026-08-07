@@ -107,8 +107,7 @@ export function computeCourseIntegration(
       wooProductIds: [],
       detail: "Cours intra / client — non vendu sur supertilt.fr, inscription gérée manuellement.",
       action: null,
-      actionLink: null,
-      actionLinkLabel: null,
+      actions: [],
     };
   }
 
