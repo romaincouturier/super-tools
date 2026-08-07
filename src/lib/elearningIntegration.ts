@@ -163,8 +163,7 @@ export function computeCourseIntegration(
       detail: "La ou les sessions liées ne sont reliées à aucune formule d'achat.",
       action:
         "Relie une formule (celle vendue sur supertilt.fr) à la session via training_formulas.",
-      actionLink: `/formations/${linkedTrainings[0].id}/edit`,
-      actionLinkLabel: "Modifier la session",
+      actions: [{ label: "Modifier la session", to: `/formations/${linkedTrainings[0].id}/edit` }],
     };
   }
 
