@@ -1,5 +1,7 @@
+import { Link } from "react-router-dom";
 import { CheckCircle2, AlertTriangle, Info } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 import { useElearningIntegrations } from "@/hooks/useElearningIntegrations";
 import { STATUS_LABEL, isHealthy, type IntegrationStatus } from "@/lib/elearningIntegration";
 
@@ -45,9 +47,20 @@ export default function CourseIntegrationStatus({ courseId }: { courseId: string
             </p>
           )}
           {integration.action && (
-            <p className="text-xs">
-              <span className="font-medium">À faire :</span> {integration.action}
-            </p>
+            <div className="space-y-1">
+              <p className="text-xs">
+                <span className="font-medium">À faire :</span> {integration.action}
+              </p>
+              {integration.actions.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {integration.actions.map((a) => (
+                    <Button key={a.to} asChild variant="secondary" size="sm">
+                      <Link to={a.to}>{a.label}</Link>
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

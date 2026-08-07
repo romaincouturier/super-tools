@@ -46,6 +46,10 @@ describe("computeCourseIntegration", () => {
     const r = computeCourseIntegration(course(), [training({ supports_lms_course_id: "other" })], [], [formula()]);
     expect(r.status).toBe("no_session");
     expect(r.trainings).toHaveLength(0);
+    expect(r.actions).toEqual([
+      { label: "Créer la formation dans le catalogue", to: "/catalogue" },
+      { label: "Créer une session e-learning", to: "/formations" },
+    ]);
   });
 
   it("cancelled sessions are ignored", () => {
