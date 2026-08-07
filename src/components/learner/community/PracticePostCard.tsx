@@ -244,14 +244,19 @@ export default function PracticePostCard({
       {post.lesson_id && post.course_id && (
         <a
           href={`/lms/${post.course_id}/player?email=${encodeURIComponent(currentEmail)}&lesson=${post.lesson_id}`}
-          className="mx-4 mb-3 inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full hover:underline w-fit"
+          className="mx-4 mb-3 inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full hover:underline w-fit max-w-[calc(100%-2rem)]"
           style={{ background: "rgba(255,209,0,0.15)", color: "var(--st-ink)" }}
-          title="Voir la leçon d'origine"
+          title={[post.course_title, post.module_title, post.lesson_title].filter(Boolean).join(" › ") || "Voir la leçon d'origine"}
         >
-          <BookOpen size={12} />
-          <span>Depuis la leçon : <strong>{post.lesson_title ?? "voir"}</strong></span>
+          <BookOpen size={12} className="shrink-0" />
+          <span className="truncate">
+            {post.course_title && <span style={{ color: "var(--st-ink-muted)" }}>{post.course_title} › </span>}
+            {post.module_title && <span style={{ color: "var(--st-ink-muted)" }}>{post.module_title} › </span>}
+            <strong>{post.lesson_title ?? "leçon"}</strong>
+          </span>
         </a>
       )}
+
 
       {/* Content */}
       {post.content && !editingPost && (
