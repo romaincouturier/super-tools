@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { rpc } from "@/lib/supabase-rpc";
+import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, FileText, Calendar, Building, User, PenLine, Shield, ExternalLink, Euro } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
