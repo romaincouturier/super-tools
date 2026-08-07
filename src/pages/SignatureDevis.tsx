@@ -120,8 +120,31 @@ const SignatureDevis = () => {
     fetchDevisData();
   }, [token, trackEvent, trackPageLoaded]);
 
-  const handlePdfConsulted = () => {
+  const [openingPdf, setOpeningPdf] = useState(false);
+
+  const handleOpenPdf = async () => {
     trackEvent("pdf_consulted", { pdf_url: devisData?.pdf_url });
+    if (!token) return;
+    const win = window.open("about:blank", "_blank");
+    setOpeningPdf(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("get-devis-pdf-url", {
+        body: { token },
+      });
+      const url = (data as { pdf_url?: string } | null)?.pdf_url;
+      if (error || !url) throw error || new Error("PDF indisponible");
+      if (win) win.location.href = url;
+      else window.open(url, "_blank");
+    } catch (err) {
+      win?.close();
+      toast({
+        title: "Impossible d'ouvrir le devis",
+        description: err instanceof Error ? err.message : "Erreur inconnue",
+        variant: "destructive",
+      });
+    } finally {
+      setOpeningPdf(false);
+    }
   };
 
   const handleNameChange = (value: string) => {
