@@ -182,8 +182,7 @@ export function computeCourseIntegration(
       wooProductIds: [...new Set(wooExplicit)],
       detail: "Chaîne complète : un achat sur supertilt.fr inscrit l'apprenant à ce cours.",
       action: null,
-      actionLink: null,
-      actionLinkLabel: null,
+      actions: [],
     };
   }
 
