@@ -122,7 +122,7 @@ export function computeCourseIntegration(
       wooProductIds: [],
       detail: "Aucune session ne référence ce cours comme support.",
       action:
-        "Sur une session e-learning (permanente), choisis ce cours comme support de type LMS (trainings.supports_lms_course_id).",
+        "Crée d'abord la formation dans le catalogue, puis crée une session e-learning permanente et choisis ce cours comme support de type LMS (trainings.supports_lms_course_id).",
       actionLink: "/formations",
       actionLinkLabel: "Ouvrir les formations",
     };
