@@ -7,6 +7,7 @@ import {
   shouldShowProgress,
   resolveIntroBox,
   DEFAULT_TIPS,
+  homeDashboardGridClass,
 } from "./lmsCourseHome";
 
 describe("homeCtaLabel", () => {
@@ -111,5 +112,37 @@ describe("resolveIntroBox", () => {
 
   it("still falls back to the default tips when the tips box is left empty", () => {
     expect(resolveIntroBox({ intro_box_type: "tips", tips: [] })?.items).toEqual(DEFAULT_TIPS);
+  });
+});
+
+describe("homeDashboardGridClass", () => {
+  it("keeps four columns when the four blocks are shown", () => {
+    expect(homeDashboardGridClass(4)).toContain("lg:grid-cols-4");
+  });
+
+  it("drops to three columns for three blocks", () => {
+    expect(homeDashboardGridClass(3)).toContain("lg:grid-cols-3");
+    expect(homeDashboardGridClass(3)).not.toContain("lg:grid-cols-4");
+  });
+
+  it("uses two balanced columns for two blocks", () => {
+    const cls = homeDashboardGridClass(2);
+    expect(cls).toContain("sm:grid-cols-2");
+    expect(cls).not.toContain("lg:grid-cols-3");
+    expect(cls).not.toContain("lg:grid-cols-4");
+  });
+
+  it("caps the width of a lone block instead of stretching it", () => {
+    const cls = homeDashboardGridClass(1);
+    expect(cls).toContain("grid-cols-1");
+    expect(cls).toContain("sm:max-w-md");
+    expect(cls).not.toContain("grid-cols-2");
+  });
+
+  it("always stacks on mobile and keeps the same gap", () => {
+    for (const n of [1, 2, 3, 4]) {
+      expect(homeDashboardGridClass(n)).toContain("grid-cols-1");
+      expect(homeDashboardGridClass(n)).toContain("gap-5");
+    }
   });
 });
