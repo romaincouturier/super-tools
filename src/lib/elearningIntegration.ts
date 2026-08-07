@@ -195,8 +195,7 @@ export function computeCourseIntegration(
       detail: "Fonctionne uniquement via le fallback catalog_id (aucune liaison explicite déclarée).",
       action:
         "Déclare la liaison explicite formule ↔ session (training_formulas) pour fiabiliser le routage.",
-      actionLink: `/formations/${linkedTrainings[0].id}/edit`,
-      actionLinkLabel: "Modifier la session",
+      actions: [{ label: "Modifier la session", to: `/formations/${linkedTrainings[0].id}/edit` }],
     };
   }
 
