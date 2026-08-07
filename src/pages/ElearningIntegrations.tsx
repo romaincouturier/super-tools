@@ -40,12 +40,6 @@ export default function ElearningIntegrations() {
           backTo="/lms"
         />
 
-        <div className="flex justify-end">
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
-            Actualiser les statuts
-          </Button>
-        </div>
 
         {isLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground py-12 justify-center">
