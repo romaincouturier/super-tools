@@ -24,7 +24,7 @@ export function useElearningIntegrations() {
     queryKey: ["elearning-integrations"],
     queryFn: async () => {
       const [coursesRes, trainingsRes, linksRes, formulasRes] = await Promise.all([
-        supabase.from("lms_courses").select("id, title, access_type"),
+        supabase.from("lms_courses").select("id, title, access_type, status"),
         supabase
           .from("trainings")
           .select("id, training_name, is_cancelled, catalog_id, supports_lms_course_id")
