@@ -613,6 +613,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // Si un email sponsor est connu, la convention est envoyée pour signature en ligne.
     let conventionGenerated = false;
     let conventionEmailSent = false;
+    let conventionRecipientEmail: string | null = null;
+    let conventionParticipantsCount: number | null = null;
     if (isInterEntreprise && !alreadyExisted) {
       try {
         const { data: convData, error: convErr } = await admin.functions.invoke(
@@ -623,6 +625,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
           console.error("[add-training-participant] generate-convention-formation:", convErr);
         } else if (convData?.success && convData?.pdfUrl) {
           conventionGenerated = true;
+          conventionParticipantsCount = convData.participantsCount ?? null;
+
           // Envoi pour signature si un email sponsor est disponible
           const normalizedSponsorEmail = effectiveSponsorEmail?.trim().toLowerCase() || null;
           if (normalizedSponsorEmail) {
