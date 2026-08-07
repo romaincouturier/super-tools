@@ -46,6 +46,11 @@ export interface FormulaLike {
   woocommerce_product_id: number | null;
 }
 
+export interface RecommendedAction {
+  label: string;
+  to: string;
+}
+
 export interface CourseIntegration {
   courseId: string;
   courseTitle: string;
@@ -58,10 +63,8 @@ export interface CourseIntegration {
   detail: string;
   /** Action corrective à mener, ou null si l'intégration est correcte. */
   action: string | null;
-  /** Route interne où mener l'action corrective, ou null. */
-  actionLink: string | null;
-  /** Libellé du lien d'action. */
-  actionLinkLabel: string | null;
+  /** Boutons d'action recommandés. */
+  actions: RecommendedAction[];
 }
 
 const STATUS_SEVERITY: Record<IntegrationStatus, number> = {
