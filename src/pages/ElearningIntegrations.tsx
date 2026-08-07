@@ -19,7 +19,7 @@ const BADGE_TONE: Record<IntegrationStatus, string> = {
 };
 
 export default function ElearningIntegrations() {
-  const { data, isLoading, isError } = useElearningIntegrations();
+  const { data, isLoading, isError, refetch, isFetching } = useElearningIntegrations();
   const [hideOk, setHideOk] = useState(false);
   const [hideNa, setHideNa] = useState(true);
 
