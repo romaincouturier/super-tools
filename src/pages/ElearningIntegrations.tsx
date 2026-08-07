@@ -4,7 +4,7 @@ import PageHeader from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plug, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Plug, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useElearningIntegrations } from "@/hooks/useElearningIntegrations";
 import { STATUS_LABEL, isHealthy, type IntegrationStatus } from "@/lib/elearningIntegration";
