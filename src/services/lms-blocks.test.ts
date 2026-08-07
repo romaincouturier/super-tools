@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { buildBlockTree, rowColumnAssignments, splitRowColumns } from "./lms-blocks";
+import {
+  buildBlockTree,
+  rowColumnAssignments,
+  splitRowColumns,
+  indentTargetOf,
+  outdentTargetOf,
+} from "./lms-blocks";
 import type { LessonBlock, RowBlockContent } from "@/types/lms-blocks";
 
 const mkBlock = (overrides: Partial<LessonBlock> & { id: string }): LessonBlock => ({
@@ -172,5 +178,98 @@ describe("splitRowColumns", () => {
   it("always returns column_count stacks even with no children", () => {
     const content: RowBlockContent = { column_count: 3 };
     expect(splitRowColumns(content, [], (c: { id: string }) => c.id)).toEqual([[], [], []]);
+  });
+});
+
+describe("indentTargetOf", () => {
+  it("returns null when the block has no previous sibling", () => {
+    const blocks = [
+      mkBlock({ id: "text", position: 0 }),
+      mkBlock({ id: "reveal", type: "reveal", kind: "layout", position: 1 }),
+    ];
+    expect(indentTargetOf(blocks, "text")).toBeNull();
+  });
+
+  it("returns null when the previous sibling cannot host children", () => {
+    const blocks = [
+      mkBlock({ id: "text-1", position: 0 }),
+      mkBlock({ id: "text-2", position: 1 }),
+    ];
+    expect(indentTargetOf(blocks, "text-2")).toBeNull();
+  });
+
+  it("targets the reveal container above, at the end of its children", () => {
+    const blocks = [
+      mkBlock({ id: "reveal", type: "reveal", kind: "layout", position: 0 }),
+      mkBlock({ id: "inside", parent_block_id: "reveal", position: 0 }),
+      mkBlock({ id: "text", position: 1 }),
+    ];
+    expect(indentTargetOf(blocks, "text")).toEqual({ parentId: "reveal", position: 1 });
+  });
+
+  it("targets an empty container at position 0", () => {
+    const blocks = [
+      mkBlock({ id: "container", type: "container", kind: "layout", position: 0 }),
+      mkBlock({ id: "text", position: 1 }),
+    ];
+    expect(indentTargetOf(blocks, "text")).toEqual({ parentId: "container", position: 0 });
+  });
+
+  it("works on nested siblings, using positions rather than array order", () => {
+    const blocks = [
+      mkBlock({ id: "section", type: "section", kind: "layout", position: 0 }),
+      mkBlock({ id: "text", parent_block_id: "section", position: 1 }),
+      mkBlock({ id: "reveal", type: "reveal", kind: "layout", parent_block_id: "section", position: 0 }),
+    ];
+    expect(indentTargetOf(blocks, "text")).toEqual({ parentId: "reveal", position: 0 });
+  });
+
+  it("returns null for a row child (columns use the left/right actions)", () => {
+    const blocks = [
+      mkBlock({ id: "row", type: "row", kind: "layout", position: 0 }),
+      mkBlock({ id: "container", type: "container", kind: "layout", parent_block_id: "row", position: 0 }),
+      mkBlock({ id: "text", parent_block_id: "row", position: 1 }),
+    ];
+    expect(indentTargetOf(blocks, "text")).toBeNull();
+  });
+
+  it("returns null when the previous sibling is a row", () => {
+    const blocks = [
+      mkBlock({ id: "row", type: "row", kind: "layout", position: 0 }),
+      mkBlock({ id: "text", position: 1 }),
+    ];
+    expect(indentTargetOf(blocks, "text")).toBeNull();
+  });
+
+  it("returns null for an unknown block id", () => {
+    expect(indentTargetOf([mkBlock({ id: "text" })], "nope")).toBeNull();
+  });
+});
+
+describe("outdentTargetOf", () => {
+  it("returns null for a top-level block", () => {
+    expect(outdentTargetOf([mkBlock({ id: "text" })], "text")).toBeNull();
+  });
+
+  it("moves the block right after its container, at the top level", () => {
+    const blocks = [
+      mkBlock({ id: "reveal", type: "reveal", kind: "layout", position: 2 }),
+      mkBlock({ id: "inside", parent_block_id: "reveal", position: 0 }),
+    ];
+    expect(outdentTargetOf(blocks, "inside")).toEqual({ parentId: null, position: 3 });
+  });
+
+  it("moves the block into its grandparent when the container is nested", () => {
+    const blocks = [
+      mkBlock({ id: "section", type: "section", kind: "layout", position: 0 }),
+      mkBlock({ id: "reveal", type: "reveal", kind: "layout", parent_block_id: "section", position: 1 }),
+      mkBlock({ id: "inside", parent_block_id: "reveal", position: 0 }),
+    ];
+    expect(outdentTargetOf(blocks, "inside")).toEqual({ parentId: "section", position: 2 });
+  });
+
+  it("returns null when the parent block is missing", () => {
+    const blocks = [mkBlock({ id: "orphan", parent_block_id: "gone" })];
+    expect(outdentTargetOf(blocks, "orphan")).toBeNull();
   });
 });

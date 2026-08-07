@@ -1,5 +1,15 @@
 import { useRef, useState } from "react";
-import { Trash2, GripVertical, Copy, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Trash2,
+  GripVertical,
+  Copy,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  IndentIncrease,
+  IndentDecrease,
+} from "lucide-react";
 import { InsertButton } from "./BuilderInsertMenu";
 import BuilderInsertMenu from "./BuilderInsertMenu";
 import type { LessonBlockType } from "@/types/lms-blocks";
@@ -18,6 +28,10 @@ interface Props {
   onMoveLeft?: () => void;
   /** Row columns only — move the block to the next column. Omit to hide the button. */
   onMoveRight?: () => void;
+  /** Move the block inside the container placed just above it. Omit to hide the button. */
+  onIndent?: () => void;
+  /** Pull the block out of its container. Omit to hide the button. */
+  onOutdent?: () => void;
   /** Drag-handle attributes+listeners from useSortable — enables the grip button. */
   dragHandleProps?: Record<string, unknown>;
   children: React.ReactNode;
@@ -39,6 +53,8 @@ export default function BuilderBlockWrapper({
   onMoveDown,
   onMoveLeft,
   onMoveRight,
+  onIndent,
+  onOutdent,
   dragHandleProps,
   children,
 }: Props) {
@@ -176,6 +192,48 @@ export default function BuilderBlockWrapper({
                 aria-label="Déplacer dans la colonne de droite"
               >
                 <ChevronRight size={14} />
+              </button>
+            )}
+
+            {/* Move into the container above (ST-2026-0257) */}
+            {onIndent && (
+              <button
+                onClick={onIndent}
+                className="w-7 h-7 flex items-center justify-center transition-colors"
+                style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                  (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                  (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+                }}
+                aria-label="Déplacer dans le conteneur au-dessus"
+                title="Déplacer dans le conteneur au-dessus"
+              >
+                <IndentIncrease size={14} />
+              </button>
+            )}
+
+            {/* Move out of its container */}
+            {onOutdent && (
+              <button
+                onClick={onOutdent}
+                className="w-7 h-7 flex items-center justify-center transition-colors"
+                style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                  (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                  (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+                }}
+                aria-label="Sortir du conteneur"
+                title="Sortir du conteneur"
+              >
+                <IndentDecrease size={14} />
               </button>
             )}
 

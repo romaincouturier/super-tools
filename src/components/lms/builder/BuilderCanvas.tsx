@@ -8,9 +8,17 @@ import {
   useReorderLessonBlocks,
   useDuplicateLessonBlock,
   useInsertLessonTemplate,
+  useMoveLessonBlock,
 } from "@/hooks/useLmsBlocks";
 import { LESSON_TEMPLATES } from "@/types/lms-templates";
-import { buildBlockTree, rowColumnAssignments, splitRowColumns } from "@/services/lms-blocks";
+import {
+  buildBlockTree,
+  rowColumnAssignments,
+  splitRowColumns,
+  indentTargetOf,
+  outdentTargetOf,
+  isIndentTargetType,
+} from "@/services/lms-blocks";
 import type { BlockTreeNode } from "@/services/lms-blocks";
 import type { LessonBlockType, LessonBlockContent, RowBlockContent } from "@/types/lms-blocks";
 import { useToast } from "@/hooks/use-toast";
@@ -157,6 +165,7 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
   const reorderBlocks = useReorderLessonBlocks(lesson.id);
   const duplicateBlock = useDuplicateLessonBlock(lesson.id);
   const insertTemplate = useInsertLessonTemplate(lesson.id);
+  const moveBlock = useMoveLessonBlock(lesson.id);
   const { toast } = useToast();
 
   const tree = useMemo(() => buildBlockTree(blocks), [blocks]);
@@ -384,6 +393,36 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
     [blocksById, childrenIdsByParent, reorderBlocks, moveWithinRowColumn, toast],
   );
 
+  /**
+   * ST-2026-0257 — move a block into the container placed just above it.
+   * Without this, an existing lesson can never be wrapped in a "Contenu
+   * progressif" block: drag and drop refuses cross-parent drops, so the
+   * container could only ever hold blocks created inside it.
+   */
+  const handleIndent = useCallback(
+    (blockId: string) => {
+      const target = indentTargetOf(blocks, blockId);
+      if (!target) return;
+      moveBlock.mutate(
+        { blockId, newParentId: target.parentId, newPosition: target.position },
+        { onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de déplacement") },
+      );
+    },
+    [blocks, moveBlock, toast],
+  );
+
+  const handleOutdent = useCallback(
+    (blockId: string) => {
+      const target = outdentTargetOf(blocks, blockId);
+      if (!target) return;
+      moveBlock.mutate(
+        { blockId, newParentId: target.parentId, newPosition: target.position },
+        { onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de déplacement") },
+      );
+    },
+    [blocks, moveBlock, toast],
+  );
+
   const handleMoveToColumn = useCallback(
     (blockId: string, column: number) => {
       const ctx = rowContextOf(blockId);
@@ -467,6 +506,7 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
                       node={node}
                       siblingIndex={idx}
                       siblingCount={tree.length}
+                      prevSiblingType={idx > 0 ? tree[idx - 1].block.type : undefined}
                       lessonId={lesson.id}
                       courseId={courseId}
                       blockRadius={blockRadius}
@@ -479,6 +519,8 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
                       onMoveUp={handleMoveUp}
                       onMoveDown={handleMoveDown}
                       onMoveToColumn={handleMoveToColumn}
+                      onIndent={handleIndent}
+                      onOutdent={handleOutdent}
                     />
                   ))}
                 </SortableContext>
@@ -496,6 +538,7 @@ function SortableBuilderBlock({
   node,
   siblingIndex,
   siblingCount,
+  prevSiblingType,
   columnIndex,
   columnCount,
   lessonId,
@@ -510,10 +553,14 @@ function SortableBuilderBlock({
   onMoveUp,
   onMoveDown,
   onMoveToColumn,
+  onIndent,
+  onOutdent,
 }: {
   node: BlockTreeNode;
   siblingIndex: number;
   siblingCount: number;
+  /** Type of the block just above, in the same parent — drives the indent action. */
+  prevSiblingType?: LessonBlockType;
   /** Set when the block is a direct child of a row — its current column. */
   columnIndex?: number;
   /** Set when the block is a direct child of a row — the row's column count. */
@@ -530,6 +577,8 @@ function SortableBuilderBlock({
   onMoveUp: (blockId: string) => void;
   onMoveDown: (blockId: string) => void;
   onMoveToColumn: (blockId: string, column: number) => void;
+  onIndent: (blockId: string) => void;
+  onOutdent: (blockId: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: node.block.id,
@@ -544,6 +593,9 @@ function SortableBuilderBlock({
   const hasChildren = node.children.length > 0;
   const childIds = node.children.map((c) => c.block.id);
   const gapClass = DENSITY_GAP[density] ?? "space-y-3";
+  // Row children move between columns with the left/right actions instead.
+  const canIndent = columnIndex == null && prevSiblingType != null && isIndentTargetType(prevSiblingType);
+  const canOutdent = node.block.parent_block_id != null;
 
   return (
     <div
@@ -573,6 +625,8 @@ function SortableBuilderBlock({
             ? () => onMoveToColumn(node.block.id, columnIndex + 1)
             : undefined
         }
+        onIndent={canIndent ? () => onIndent(node.block.id) : undefined}
+        onOutdent={canOutdent ? () => onOutdent(node.block.id) : undefined}
         dragHandleProps={{ ...attributes, ...listeners }}
       >
         <BlockEditCard
@@ -625,6 +679,8 @@ function SortableBuilderBlock({
                         onMoveUp={onMoveUp}
                         onMoveDown={onMoveDown}
                         onMoveToColumn={onMoveToColumn}
+                        onIndent={onIndent}
+                        onOutdent={onOutdent}
                       />
                     ))}
                   </SortableContext>
@@ -648,6 +704,7 @@ function SortableBuilderBlock({
                   node={child}
                   siblingIndex={idx}
                   siblingCount={node.children.length}
+                  prevSiblingType={idx > 0 ? node.children[idx - 1].block.type : undefined}
                   lessonId={lessonId}
                   courseId={courseId}
                   blockRadius={blockRadius}
@@ -660,9 +717,17 @@ function SortableBuilderBlock({
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                   onMoveToColumn={onMoveToColumn}
+                  onIndent={onIndent}
+                  onOutdent={onOutdent}
                 />
               ))}
             </SortableContext>
+          )}
+          {isContainer && !hasChildren && (
+            <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+              Conteneur vide. Ajoutez un bloc ci-dessous, ou déplacez-y un bloc existant avec le
+              bouton « Déplacer dans le conteneur au-dessus » de sa barre d'outils.
+            </p>
           )}
           {isContainer && <AddAtEndButton onInsert={(type) => onAdd(type, node.block.id)} />}
         </div>
