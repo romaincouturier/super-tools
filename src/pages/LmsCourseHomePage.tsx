@@ -16,7 +16,7 @@ import {
   uploadForumAttachment,
 } from "@/hooks/useLms";
 import type { CourseLiveMeeting, CourseLiveData, CourseHomeConfig, CourseTrainingSession } from "@/hooks/useLmsQueries";
-import { homeCtaLabel } from "@/lib/lmsCourseHome";
+import { homeCtaLabel, shouldShowProgress } from "@/lib/lmsCourseHome";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import {
   CheckCircle2,
@@ -1020,6 +1020,13 @@ export default function LmsCourseHomePage() {
     return (completedRegular / regularLessons.length) * 100;
   }, [completedIds, allLessons, regularModuleIds]);
 
+  // Séquences réellement suivies — déjà en mémoire, aucune requête de plus.
+  const totalRegularLessons = useMemo(
+    () => allLessons.filter((l) => regularModuleIds.has(l.module_id)).length,
+    [allLessons, regularModuleIds],
+  );
+  const showProgress = shouldShowProgress(course?.home_config, totalRegularLessons);
+
   // Last lesson consulted
   const lastProgress = useMemo(() => {
     const sorted = [...progress].filter((p) => p.completed_at).sort(
@@ -1170,6 +1177,7 @@ export default function LmsCourseHomePage() {
           meetings={meetings}
           showNextLive={course.home_config?.show_next_live !== false}
           showCommunity={course.home_config?.show_community !== false}
+          showProgress={showProgress}
           activeView={activeView}
           onModuleClick={(id) => { handleModuleClick(id); closeSidebar(); }}
           onViewChange={(v) => { setActiveView(v); closeSidebar(); }}
@@ -1182,15 +1190,21 @@ export default function LmsCourseHomePage() {
               className="lg:hidden flex items-center gap-3 px-6 py-3 border-b"
               style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}
             >
-              <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{ width: `${completionPct}%`, background: "var(--st-yellow)" }}
-                />
-              </div>
-              <span className="text-xs font-semibold shrink-0" style={{ color: "var(--st-ink)" }}>
-                {Math.round(completionPct)}%
-              </span>
+              {showProgress ? (
+                <>
+                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${completionPct}%`, background: "var(--st-yellow)" }}
+                    />
+                  </div>
+                  <span className="text-xs font-semibold shrink-0" style={{ color: "var(--st-ink)" }}>
+                    {Math.round(completionPct)}%
+                  </span>
+                </>
+              ) : (
+                <div className="flex-1" />
+              )}
               <button
                 onClick={handleContinue}
                 className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full transition-all"
@@ -1224,14 +1238,15 @@ export default function LmsCourseHomePage() {
                   onContinue={handleContinue}
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                  <ProgressCard
-                    completionPct={completionPct}
-                    completedLessons={allLessons.filter((l) => regularModuleIds.has(l.module_id) && completedIds.has(l.id)).length}
-                    totalLessons={allLessons.filter((l) => regularModuleIds.has(l.module_id)).length}
-                    completedModules={completedModulesCount}
-                    totalModules={regularModules.length}
-                    
-                  />
+                  {showProgress && (
+                    <ProgressCard
+                      completionPct={completionPct}
+                      completedLessons={allLessons.filter((l) => regularModuleIds.has(l.module_id) && completedIds.has(l.id)).length}
+                      totalLessons={totalRegularLessons}
+                      completedModules={completedModulesCount}
+                      totalModules={regularModules.length}
+                    />
+                  )}
                   {course.home_config?.show_next_live !== false && (
                     <LiveCard
                       meeting={currentOrNextMeeting}

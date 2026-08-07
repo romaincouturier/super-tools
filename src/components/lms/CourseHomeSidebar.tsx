@@ -191,6 +191,8 @@ export interface CourseHomeSidebarProps {
   meetings: CourseLiveMeeting[];
   showNextLive?: boolean;
   showCommunity?: boolean;
+  /** ST-2026-0260 — masque la barre et le compteur de séquences par module. */
+  showProgress?: boolean;
   activeView: string;
   onModuleClick: (moduleId: string) => void;
   onViewChange: (view: string) => void;
@@ -213,6 +215,7 @@ export default function CourseHomeSidebar({
   meetings,
   showNextLive = true,
   showCommunity = true,
+  showProgress = true,
   activeView,
   onModuleClick,
   onViewChange,
@@ -357,12 +360,14 @@ export default function CourseHomeSidebar({
                       >
                         {m.title}
                       </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
-                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "#FFD100" }} />
+                      {showProgress && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
+                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "#FFD100" }} />
+                          </div>
+                          <p className="text-[10px] shrink-0" style={{ color: "var(--st-ink-muted)" }}>{done}/{total}</p>
                         </div>
-                        <p className="text-[10px] shrink-0" style={{ color: "var(--st-ink-muted)" }}>{done}/{total}</p>
-                      </div>
+                      )}
                     </div>
                   </button>
 

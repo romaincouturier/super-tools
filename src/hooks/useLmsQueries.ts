@@ -38,6 +38,11 @@ export interface CourseHomeConfig {
    */
   cta_label_start?: string | null;
   cta_label_resume?: string | null;
+  /**
+   * Affichage des indicateurs de progression (ST-2026-0260) : "auto"
+   * (défaut), "always" ou "never". N'affecte que l'affichage.
+   */
+  progress_display?: "auto" | "always" | "never";
   /** Affichage des encadrés du tableau de bord e-learning (défaut: affichés). */
   show_next_live?: boolean;
   show_community?: boolean;
