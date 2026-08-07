@@ -266,14 +266,27 @@ export function usePracticePosts(
       const courseIds = Array.from(new Set(posts.map((p) => p.course_id).filter(Boolean))) as string[];
       const [lessonsRes, coursesRes] = await Promise.all([
         lessonIds.length
-          ? db.from("lms_lessons").select("id, title").in("id", lessonIds)
+          ? db.from("lms_lessons").select("id, title, module_id").in("id", lessonIds)
           : Promise.resolve({ data: [] as RawLesson[] }),
         courseIds.length
           ? db.from("lms_courses").select("id, title").in("id", courseIds)
           : Promise.resolve({ data: [] as RawCourse[] }),
       ]);
-      const lessonMap = new Map(((lessonsRes.data || []) as RawLesson[]).map((l) => [l.id, l.title]));
+      const lessonRows = (lessonsRes.data || []) as Array<{ id: string; title: string; module_id?: string | null }>;
+      const lessonMap = new Map(lessonRows.map((l) => [l.id, l.title]));
       const courseMap = new Map(((coursesRes.data || []) as RawCourse[]).map((c) => [c.id, c.title]));
+
+      // Module titles, pour afficher le chemin complet Cours › Module › Leçon
+      const moduleIds = Array.from(new Set(lessonRows.map((l) => l.module_id).filter(Boolean))) as string[];
+      const modulesRes = moduleIds.length
+        ? await db.from("lms_modules").select("id, title").in("id", moduleIds)
+        : { data: [] as Array<{ id: string; title: string }> };
+      const moduleTitleById = new Map(
+        ((modulesRes.data || []) as Array<{ id: string; title: string }>).map((m) => [m.id, m.title]),
+      );
+      const lessonModuleTitle = new Map(
+        lessonRows.map((l) => [l.id, l.module_id ? (moduleTitleById.get(l.module_id) ?? null) : null]),
+      );
 
       const buildPoll = (postId: string): PracticePoll | null => {
         const poll = pollByPost.get(postId);
