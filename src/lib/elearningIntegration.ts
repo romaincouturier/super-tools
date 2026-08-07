@@ -179,21 +179,25 @@ export function computeCourseIntegration(
 
   const wooExplicit = wooFrom(explicit);
   const wooFallback = wooFrom(fallback);
+  const freeExplicit = [...explicit].some(isFreeFormula);
+  const freeFallback = [...fallback].some(isFreeFormula);
 
-  // Maillon A : au moins une formule de la chaîne porte un ID produit WooCommerce.
-  if (wooExplicit.length > 0) {
+  // Maillon A : une formule porte un ID produit WooCommerce, ou est gratuite (prix 0).
+  if (wooExplicit.length > 0 || freeExplicit) {
     return {
       ...base,
       status: "ok",
       trainings: trainingsCtx,
       wooProductIds: [...new Set(wooExplicit)],
-      detail: "Chaîne complète : un achat sur supertilt.fr inscrit l'apprenant à ce cours.",
+      detail: freeExplicit && wooExplicit.length === 0
+        ? "Formule gratuite (prix 0) : aucun produit WooCommerce nécessaire."
+        : "Chaîne complète : un achat sur supertilt.fr inscrit l'apprenant à ce cours.",
       action: null,
       actions: [],
     };
   }
 
-  if (wooFallback.length > 0) {
+  if (wooFallback.length > 0 || freeFallback) {
     return {
       ...base,
       status: "ok_fallback",
