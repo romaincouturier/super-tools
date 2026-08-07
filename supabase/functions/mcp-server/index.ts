@@ -13,6 +13,7 @@ import {
   tenderNoGo,
 } from "../_shared/tender-decision.ts";
 import { postCrmOpportunityToSlack } from "../_shared/crm-slack.ts";
+import { getEventHistory } from "../_shared/event-tools.ts";
 import {
   getSeoPerformance,
   getSeoOpportunities,
@@ -68,6 +69,8 @@ import {
  *                           (vues, clics, impressions, position, requêtes)
  *   - get_editorial_brief    : dossier de préparation d'une newsletter ou d'un
  *                           point éditorial en un seul appel
+ *   - get_event_history      : événements passés avec pitch soumis, notes,
+ *                           bilan, statut CFP et issue déduite (sans médias)
  *
  * Sécurité :
  *   - OAuth 2.1 (PKCE S256, dynamic client registration) requis par claude.ai
@@ -233,6 +236,7 @@ QUEL OUTIL POUR QUELLE QUESTION
 - « Quels contenus marchent », préparation d'un article, refonte : get_content_performance.
 - Newsletter, point éditorial, arbitrage de sommaire : get_editorial_brief d'abord, puis get_content_performance pour justifier les choix.
 - Client, mission, formation, devis, évaluation : get_client_dossier, get_mission_dossier, read_mission_documents, search_content.
+- Conférence, salon, CFP, réécriture d'un pitch déjà soumis : get_event_history. Il rend le pitch (description), les notes de préparation, le bilan (summary_notes) et l'issue déduite. Ne jamais annoncer qu'un événement a été « accepté » : le modèle ne stocke que held / not_selected / cancelled / upcoming, et le refus se lit sur cancellation_reason.
 - query_database reste disponible pour tout le reste (SELECT, allowlist de tables) mais les outils agrégés ci-dessus sont plus fiables que du SQL improvisé.
 
 MÉTHODE ATTENDUE
@@ -512,6 +516,26 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "get_event_history",
+    description:
+      "Past events (conferences, trade shows, talks) with everything that was written about them: the submitted pitch (description), the preparation notes (notes) and the debrief written afterwards (summary_notes), plus location, date, CFP deadline / URL / submission date, and a derived outcome. This is the tool for reusing an already submitted session: 'what did we pitch at X', 'the talks that were accepted', 'the CFP that were refused'. SuperTools has no accepted/refused field: outcome is derived (held, not_selected = CFP refused, cancelled, upcoming) and cfp_status tells whether the submission was actually sent. Past events only by default. Event media are not returned.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        search: {
+          type: "string",
+          description:
+            "Case-insensitive filter on title, description, notes, summary_notes and location. Literal matching, not semantic: try the exact words expected in the pitch.",
+        },
+        from: { type: "string", description: "Earliest event date YYYY-MM-DD" },
+        to: { type: "string", description: "Latest event date YYYY-MM-DD" },
+        event_type: { type: "string", enum: ["internal", "external"], description: "internal = our own event, external = someone else's event we speak at" },
+        include_upcoming: { type: "boolean", description: "Also return events still to come (default false)" },
+        limit: { type: "number", description: "Number of events (default 50, max 200)" },
+      },
+    },
+  },
+  {
     name: "list_pending_tenders",
     description:
       "List the public tender notices (marchés publics) awaiting a Go / No Go decision, soonest deadline first. Same queue as the SuperTools CRM screen: no cross-source duplicates, no award notices, no expired deadline. Each notice carries the decision context for its buyer: past CRM opportunities with that buyer, and previous awards (incumbent supplier and amount), plus award criteria weights, lots, duration, renewals and DCE links. Read-only.",
@@ -748,6 +772,21 @@ async function callTool(
         })));
       } catch (e) {
         return textResult(`Content error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "get_event_history": {
+      try {
+        await log("get_event_history");
+        return textResult(JSON.stringify(await getEventHistory(supabase, {
+          search: args.search as string | undefined,
+          from: args.from as string | undefined,
+          to: args.to as string | undefined,
+          event_type: args.event_type as string | undefined,
+          include_upcoming: args.include_upcoming as boolean | undefined,
+          limit: args.limit as number | undefined,
+        })));
+      } catch (e) {
+        return textResult(`Events error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "get_editorial_brief": {

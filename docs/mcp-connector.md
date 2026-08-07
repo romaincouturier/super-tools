@@ -143,6 +143,30 @@ Les tables sous-jacentes (`gsc_metrics_daily`, `gsc_url_inspections`,
 `gsc_sitemaps`, `wp_traffic_daily`) restent accessibles en SQL via
 `query_database` pour les questions qui sortent de ces quatre cadres.
 
+## Historique des événements et des CFP
+
+- **`get_event_history`** (`supabase/functions/_shared/event-tools.ts`) — les
+  événements passés avec tout le texte qui les accompagne : `description` (le
+  pitch soumis), `notes` (préparation), `summary_notes` (bilan écrit après),
+  lieu, dates, `cfp_deadline`, `cfp_url`, `cfp_submitted_at`. Sert à repartir
+  d'une session déjà soumise pour en écrire une nouvelle. Filtres : `search`
+  (ILIKE sur titre, description, notes, summary_notes, lieu), `from`, `to`,
+  `event_type`, `include_upcoming`, `limit` (50 par défaut, 200 au plus).
+
+  Deux champs sont **déduits**, parce que le modèle ne les stocke pas :
+  - `outcome` : `held` (passé, non annulé), `not_selected` (annulé avec
+    `cancellation_reason = 'non_selectionne'`, c'est-à-dire un refus de CFP),
+    `cancelled` (annulé pour une autre raison), `upcoming`.
+  - `cfp_status` : `submitted` si `cfp_submitted_at` est renseigné,
+    `not_submitted` si un CFP est repéré (deadline ou URL) sans soumission,
+    `no_cfp` sinon.
+
+  Les médias (`event_media`) ne sont pas exposés : la table reste hors
+  allowlist agent, et l'outil ne renvoie aucune image ni URL de fichier.
+
+  La recherche est littérale, pas sémantique : les événements ne sont pas
+  indexés dans `content_index`, donc `search_content` ne les voit pas.
+
 ## Marchés publics : qualification Go / No Go
 
 Étape 4 du workflow de `docs/marches-publics.md`, faite depuis Claude Cowork.
