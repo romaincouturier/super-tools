@@ -207,8 +207,7 @@ export function computeCourseIntegration(
     detail: "Une formule est reliée mais aucune ne porte d'ID produit WooCommerce.",
     action:
       "Renseigne le woocommerce_product_id de la formule (l'ID du produit vendu sur supertilt.fr).",
-    actionLink: "/catalogue",
-    actionLinkLabel: "Ouvrir le catalogue",
+    actions: [{ label: "Ouvrir le catalogue", to: "/catalogue" }],
   };
 }
 
