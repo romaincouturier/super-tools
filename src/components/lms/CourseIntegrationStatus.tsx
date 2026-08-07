@@ -47,9 +47,20 @@ export default function CourseIntegrationStatus({ courseId }: { courseId: string
             </p>
           )}
           {integration.action && (
-            <p className="text-xs">
-              <span className="font-medium">À faire :</span> {integration.action}
-            </p>
+            <div className="space-y-1">
+              <p className="text-xs">
+                <span className="font-medium">À faire :</span> {integration.action}
+              </p>
+              {integration.actions.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {integration.actions.map((a) => (
+                    <Button key={a.to} asChild variant="secondary" size="sm">
+                      <Link to={a.to}>{a.label}</Link>
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
