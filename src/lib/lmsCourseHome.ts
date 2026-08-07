@@ -25,6 +25,20 @@ export function homeCtaLabel(
   return custom?.trim() || (started ? DEFAULT_CTA_LABEL_RESUME : DEFAULT_CTA_LABEL_START);
 }
 
+/**
+ * Classes de grille du tableau de bord de l'accueil (ST-2026-0255). Le
+ * nombre de colonnes suit le nombre d'encadrés réellement affichés, pour ne
+ * jamais réserver d'espace vide. Les classes sont écrites en toutes lettres :
+ * Tailwind ne génère que ce qu'il lit dans les sources.
+ */
+export function homeDashboardGridClass(visibleBlocks: number): string {
+  if (visibleBlocks >= 4) return "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5";
+  if (visibleBlocks === 3) return "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5";
+  if (visibleBlocks === 2) return "grid grid-cols-1 sm:grid-cols-2 gap-5";
+  // Un seul encadré : largeur confortable, sans s'étaler sur toute la page.
+  return "grid grid-cols-1 gap-5 sm:max-w-md";
+}
+
 export type IntroBoxType = "tips" | "thread" | "explore" | "none";
 
 /**

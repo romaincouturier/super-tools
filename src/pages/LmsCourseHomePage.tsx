@@ -16,7 +16,12 @@ import {
   uploadForumAttachment,
 } from "@/hooks/useLms";
 import type { CourseLiveMeeting, CourseLiveData, CourseHomeConfig, CourseTrainingSession } from "@/hooks/useLmsQueries";
-import { homeCtaLabel, shouldShowProgress } from "@/lib/lmsCourseHome";
+import {
+  homeCtaLabel,
+  shouldShowProgress,
+  resolveIntroBox,
+  homeDashboardGridClass,
+} from "@/lib/lmsCourseHome";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import {
   ChevronRight,
@@ -997,6 +1002,14 @@ export default function LmsCourseHomePage() {
   );
   const showProgress = shouldShowProgress(course?.home_config, totalRegularLessons);
 
+  // Encadrés réellement affichés dans le tableau de bord — pilote le nombre
+  // de colonnes de la grille (ST-2026-0255).
+  const showNextLiveCard = course?.home_config?.show_next_live !== false;
+  const showCommunityCard = course?.home_config?.show_community !== false;
+  const showIntroBox = resolveIntroBox(course?.home_config) !== null;
+  const visibleDashboardBlocks =
+    Number(showProgress) + Number(showNextLiveCard) + Number(showCommunityCard) + Number(showIntroBox);
+
   // Last lesson consulted
   const lastProgress = useMemo(() => {
     const sorted = [...progress].filter((p) => p.completed_at).sort(
@@ -1207,7 +1220,8 @@ export default function LmsCourseHomePage() {
                   completionPct={completionPct}
                   onContinue={handleContinue}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {visibleDashboardBlocks > 0 && (
+                <div className={homeDashboardGridClass(visibleDashboardBlocks)}>
                   {showProgress && (
                     <ProgressCard
                       completionPct={completionPct}
@@ -1217,17 +1231,18 @@ export default function LmsCourseHomePage() {
                       totalModules={regularModules.length}
                     />
                   )}
-                  {course.home_config?.show_next_live !== false && (
+                  {showNextLiveCard && (
                     <LiveCard
                       meeting={currentOrNextMeeting}
                       onViewCalendar={() => setActiveView("calendar")}
                     />
                   )}
-                  {course.home_config?.show_community !== false && (
+                  {showCommunityCard && (
                     <CommunityInfoCard courseId={courseId!} email={email} isPreview={isPreview} />
                   )}
                   <HomeIntroBox config={course.home_config} />
                 </div>
+                )}
                 <InfoCardsGrid config={course.home_config} />
               </>
             )}
