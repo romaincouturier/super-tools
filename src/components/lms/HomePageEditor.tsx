@@ -17,9 +17,15 @@ import {
   CTA_LABEL_MAX_LENGTH,
   DEFAULT_CTA_LABEL_RESUME,
   DEFAULT_CTA_LABEL_START,
+  INTRO_BOX_OPTIONS,
   PROGRESS_DISPLAY_OPTIONS,
+  introBoxDefaultTitle,
+  resolveIntroBox,
+  type IntroBoxType,
   type ProgressDisplayMode,
 } from "@/lib/lmsCourseHome";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import HomeIntroBox from "@/components/lms/HomeIntroBox";
 
 type Props = {
   course: {
@@ -46,6 +52,7 @@ export default function HomePageEditor({ course }: Props) {
 
   const tips = home.tips ?? [];
   const heroType: CourseHeroMediaType = home.hero_media_type ?? "video";
+  const introType: IntroBoxType = home.intro_box_type ?? "tips";
 
   const handleImageUpload = async (file: File) => {
     setUploading(true);
@@ -196,39 +203,84 @@ export default function HomePageEditor({ course }: Props) {
           )}
         </div>
 
-        <div>
-          <Label>Conseils</Label>
-          <div className="space-y-2">
-            {tips.map((tip, i) => (
-              <div key={i} className="flex gap-2">
+        <div className="space-y-3 border-t pt-4">
+          <Label>Encadré d'introduction</Label>
+          <Select
+            value={introType}
+            onValueChange={(v) => setHome({ ...home, intro_box_type: v as IntroBoxType })}
+          >
+            <SelectTrigger className="sm:w-80">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {INTRO_BOX_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {introType !== "none" && (
+            <>
+              <div>
+                <Label htmlFor="intro-box-title" className="font-normal">Titre</Label>
                 <Input
-                  value={tip}
-                  onChange={(e) => {
-                    const next = [...tips];
-                    next[i] = e.target.value;
-                    setHome({ ...home, tips: next });
-                  }}
-                  placeholder="Conseil…"
+                  id="intro-box-title"
+                  value={home.intro_box_title ?? ""}
+                  placeholder={introBoxDefaultTitle(introType) ?? ""}
+                  onChange={(e) => setHome({ ...home, intro_box_title: e.target.value || null })}
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setHome({ ...home, tips: tips.filter((_, j) => j !== i) })}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
               </div>
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setHome({ ...home, tips: [...tips, ""] })}
-            >
-              <Plus className="w-4 h-4 mr-2" /> Ajouter un conseil
-            </Button>
-          </div>
+
+              <div>
+                <Label className="font-normal">Contenu</Label>
+                <div className="space-y-2">
+                  {tips.map((tip, i) => (
+                    <div key={i} className="flex gap-2">
+                      <Input
+                        value={tip}
+                        onChange={(e) => {
+                          const next = [...tips];
+                          next[i] = e.target.value;
+                          setHome({ ...home, tips: next });
+                        }}
+                        placeholder="Une ligne de l'encadré…"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setHome({ ...home, tips: tips.filter((_, j) => j !== i) })}
+                        aria-label="Supprimer la ligne"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setHome({ ...home, tips: [...tips, ""] })}
+                  >
+                    <Plus className="w-4 h-4 mr-2" /> Ajouter une ligne
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <Label className="font-normal">Aperçu</Label>
+                <div className="rounded-xl p-4 max-w-sm" style={{ background: "var(--st-surface, #F7F7F5)" }}>
+                  {resolveIntroBox(home) ? (
+                    <HomeIntroBox config={home} />
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Ajoutez au moins une ligne de contenu pour que l'encadré s'affiche.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="space-y-3 border-t pt-4">

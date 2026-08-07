@@ -31,7 +31,14 @@ export interface CourseHomeConfig {
   hero_media_type?: CourseHeroMediaType;
   hero_image_url?: string | null;
   hero_text?: string | null;
+  /** Lignes de l'encadré d'introduction (historiquement les conseils). */
   tips?: string[];
+  /**
+   * Encadré d'introduction de l'accueil (ST-2026-0254) : type, et titre
+   * personnalisé. Absent = « Conseils pour bien démarrer », à l'identique.
+   */
+  intro_box_type?: "tips" | "thread" | "explore" | "none";
+  intro_box_title?: string | null;
   /**
    * Libellés personnalisés du bouton principal de l'accueil (ST-2026-0259).
    * Null ou vide = libellé par défaut, à l'identique.

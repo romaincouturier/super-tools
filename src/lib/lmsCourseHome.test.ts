@@ -5,6 +5,8 @@ import {
   DEFAULT_CTA_LABEL_RESUME,
   CTA_LABEL_MAX_LENGTH,
   shouldShowProgress,
+  resolveIntroBox,
+  DEFAULT_TIPS,
 } from "./lmsCourseHome";
 
 describe("homeCtaLabel", () => {
@@ -70,5 +72,44 @@ describe("shouldShowProgress", () => {
     const config = { progress_display: "auto" as const };
     expect(shouldShowProgress(config, 1)).toBe(false);
     expect(shouldShowProgress(config, 2)).toBe(true);
+  });
+});
+
+describe("resolveIntroBox", () => {
+  it("keeps the historical tips box for an untouched course", () => {
+    expect(resolveIntroBox(null)).toEqual({ title: "Conseils pour bien démarrer", items: DEFAULT_TIPS });
+    expect(resolveIntroBox({})).toEqual({ title: "Conseils pour bien démarrer", items: DEFAULT_TIPS });
+  });
+
+  it("keeps the saved tips of a course that has some", () => {
+    expect(resolveIntroBox({ tips: ["Un", "Deux"] })).toEqual({
+      title: "Conseils pour bien démarrer",
+      items: ["Un", "Deux"],
+    });
+  });
+
+  it("hides the box entirely on « Aucun encadré »", () => {
+    expect(resolveIntroBox({ intro_box_type: "none", tips: ["Un"] })).toBeNull();
+  });
+
+  it("uses the preset title of the chosen type", () => {
+    expect(resolveIntroBox({ intro_box_type: "thread", tips: ["Un"] })?.title).toBe("Votre fil rouge");
+    expect(resolveIntroBox({ intro_box_type: "explore", tips: ["Un"] })?.title).toBe("Ce que vous allez explorer");
+  });
+
+  it("lets a custom title win, and falls back when it is emptied", () => {
+    expect(resolveIntroBox({ intro_box_type: "thread", intro_box_title: "Notre fil", tips: ["Un"] })?.title).toBe("Notre fil");
+    expect(resolveIntroBox({ intro_box_type: "thread", intro_box_title: "   ", tips: ["Un"] })?.title).toBe("Votre fil rouge");
+    expect(resolveIntroBox({ intro_box_type: "thread", intro_box_title: null, tips: ["Un"] })?.title).toBe("Votre fil rouge");
+  });
+
+  it("drops blank lines and hides a non-tips box left empty", () => {
+    expect(resolveIntroBox({ tips: ["Un", "  ", ""] })?.items).toEqual(["Un"]);
+    expect(resolveIntroBox({ intro_box_type: "explore", tips: [] })).toBeNull();
+    expect(resolveIntroBox({ intro_box_type: "explore", tips: ["  "] })).toBeNull();
+  });
+
+  it("still falls back to the default tips when the tips box is left empty", () => {
+    expect(resolveIntroBox({ intro_box_type: "tips", tips: [] })?.items).toEqual(DEFAULT_TIPS);
   });
 });
