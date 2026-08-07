@@ -1642,6 +1642,7 @@ export interface DailyData {
   lmsCommunityPending: LmsCommunityPendingItem[];
   restockDeliveries: RestockDeliveryItem[];
   inProgressRestocks: InProgressRestockItem[];
+  elearningIntegrationIssues: ElearningIntegrationIssueItem[];
 
 }
 
@@ -1678,7 +1679,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     lmsCommunityPending,
     restockDeliveries,
     inProgressRestocks,
-
+    elearningIntegrationIssues,
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),
@@ -1708,6 +1709,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchLmsCommunityPending(supabase),
     fetchRestockDeliveries(supabase),
     fetchInProgressRestocks(supabase),
+    fetchElearningIntegrationIssues(supabase),
   ]);
 
 
@@ -1720,6 +1722,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     logisticsReminders, supertiltAlerts, supertiltActions, lmsCommunityPending,
     restockDeliveries,
     inProgressRestocks,
+    elearningIntegrationIssues,
   };
 
 }
