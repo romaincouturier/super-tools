@@ -798,9 +798,11 @@ const Formations = () => {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{isDemoMode ? maskText(asText(training.client_name)) || "Client non renseigné" : asText(training.client_name) || "Client non renseigné"}</Badge>
-                          </TableCell>
+                          {filter !== "permanent" && (
+                            <TableCell>
+                              <Badge variant="outline">{isDemoMode ? maskText(asText(training.client_name)) || "Client non renseigné" : asText(training.client_name) || "Client non renseigné"}</Badge>
+                            </TableCell>
+                          )}
                           <TableCell>
                             <div className="flex items-center gap-2">
                               {isDemoMode && training.is_intra ? maskText(asText(training.training_name)) || "Sans titre" : asText(training.training_name) || "Sans titre"}
