@@ -191,13 +191,22 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Determine if this is intra (global convention) or inter/e-learning (per participant)
-    const isIntra = training.format_formation === "intra" || training.format_formation === "classe_virtuelle";
-    const isIndividualConvention = training.format_formation === "inter-entreprises" || training.format_formation === "inter" || training.format_formation === "e_learning";
+    // Determine convention scope.
+    // - Sessions inter (session_type = "inter", ou format inter-entreprises / e-learning) :
+    //   la convention est établie par entreprise cliente (commanditaire). Tous les
+    //   participants partageant le même commanditaire / la même entreprise figurent
+    //   sur une seule convention, et le prix est la somme de leurs inscriptions.
+    // - Sessions intra / classe virtuelle intra : convention globale au niveau session.
+    const isInterSession =
+      training.session_type === "inter" ||
+      training.format_formation === "inter-entreprises" ||
+      training.format_formation === "inter" ||
+      training.format_formation === "e_learning";
+    const isIndividualConvention = isInterSession && !!participantId;
 
     // Check max_participants is set (only required for intra conventions)
     const maxParticipants: number = training.max_participants || 0;
-    if (!isIndividualConvention && maxParticipants < 1) {
+    if (!isIndividualConvention && !isInterSession && maxParticipants < 1) {
       return new Response(
         JSON.stringify({
           error: "Le nombre maximum de participants doit être configuré (minimum 1) avant de générer la convention. Modifiez la formation pour définir ce champ.",
@@ -207,7 +216,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // For inter/e-learning, participantId is required
-    if (isIndividualConvention && !participantId) {
+    if (isInterSession && !participantId) {
       return new Response(
         JSON.stringify({
           error: "participantId est requis pour les formations inter-entreprises et e-learning",
@@ -226,12 +235,16 @@ serve(async (req: Request): Promise<Response> => {
     // Fetch participants based on format
     let participantList: Participant[] = [];
     let singleParticipant: Participant | null = null;
+    let groupParticipantIds: string[] = [];
 
     if (isIndividualConvention && participantId) {
-      // Fetch single participant for inter/e-learning
+      const PARTICIPANT_FIELDS =
+        "id, first_name, last_name, email, company, company_address, company_zip, company_city, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht, formula_id";
+
+      // Fetch reference participant
       const { data: participant } = await supabase
         .from("training_participants")
-        .select("first_name, last_name, email, company, company_address, company_zip, company_city, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht, formula_id")
+        .select(PARTICIPANT_FIELDS)
         .eq("id", participantId)
         .single();
 
@@ -241,6 +254,29 @@ serve(async (req: Request): Promise<Response> => {
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      // Regroupe les participants de la même entreprise / du même commanditaire :
+      // une seule convention pour tout le groupe, montant = somme des inscriptions.
+      const norm = (v: unknown) => (typeof v === "string" ? v.trim().toLowerCase() : "");
+      const refSponsor = norm((participant as any).sponsor_email);
+      const refCompany = norm((participant as any).company);
+      const groupKey = (p: any) => norm(p.sponsor_email) || norm(p.company);
+      const refKey = refSponsor || refCompany;
+
+      const { data: allParticipants } = await supabase
+        .from("training_participants")
+        .select(PARTICIPANT_FIELDS)
+        .eq("training_id", trainingId)
+        .order("added_at", { ascending: true });
+
+      const group = refKey
+        ? (allParticipants || []).filter((p) => groupKey(p) === refKey)
+        : [];
+      participantList = group.length > 0 ? group : [participant];
+      groupParticipantIds = participantList
+        .map((p) => (p as any).id)
+        .filter((id: string | undefined): id is string => !!id);
+      if (groupParticipantIds.length === 0) groupParticipantIds = [participantId];
 
       // Résolution de la durée e-learning (priorité : formule participant → formules du catalogue → défaut global)
       let formulaDureeHeures: number | null = null;
@@ -268,7 +304,6 @@ serve(async (req: Request): Promise<Response> => {
       (participant as any)._formulaDureeHeures = formulaDureeHeures;
 
       singleParticipant = participant;
-      participantList = [participant];
     } else {
       // Fetch all participants for intra
       const { data: participants } = await supabase
@@ -279,6 +314,7 @@ serve(async (req: Request): Promise<Response> => {
 
       participantList = participants || [];
     }
+
 
     const scheduleList = schedules || [];
 
