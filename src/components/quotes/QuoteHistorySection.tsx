@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import type { Quote, QuoteStatus, SignedDevis } from "@/types/quotes";
+import { openStorageUrl } from "@/lib/storageUrl";
 
 const statusLabels: Record<QuoteStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Brouillon", variant: "secondary" },
