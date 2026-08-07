@@ -1758,7 +1758,7 @@ export async function fetchElearningIntegrationIssues(
       .select("id, is_cancelled, catalog_id, supports_lms_course_id")
       .not("supports_lms_course_id", "is", null),
     supabase.from("training_formulas").select("training_id, formula_id"),
-    supabase.from("formation_formulas").select("id, formation_config_id, woocommerce_product_id"),
+    supabase.from("formation_formulas").select("id, formation_config_id, woocommerce_product_id, prix"),
   ]);
 
   const err = coursesRes.error || trainingsRes.error || linksRes.error || formulasRes.error;
@@ -1819,8 +1819,9 @@ export async function fetchElearningIntegrationIssues(
       continue;
     }
 
+    // Une formule gratuite (prix 0) n'a pas besoin d'ID produit WooCommerce.
     const hasWoo = [...explicit, ...fallback].some(
-      (f) => typeof f.woocommerce_product_id === "number",
+      (f) => typeof f.woocommerce_product_id === "number" || f.prix === 0,
     );
     if (!hasWoo) {
       issues.push({
