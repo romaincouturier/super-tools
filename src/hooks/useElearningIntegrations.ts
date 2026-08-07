@@ -30,7 +30,7 @@ export function useElearningIntegrations() {
           .select("id, training_name, is_cancelled, catalog_id, supports_lms_course_id")
           .not("supports_lms_course_id", "is", null),
         supabase.from("training_formulas").select("training_id, formula_id"),
-        supabase.from("formation_formulas").select("id, name, formation_config_id, woocommerce_product_id"),
+        supabase.from("formation_formulas").select("id, name, formation_config_id, woocommerce_product_id, prix"),
       ]);
 
       const firstError = coursesRes.error || trainingsRes.error || linksRes.error || formulasRes.error;
