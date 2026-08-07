@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { rpc } from "@/lib/supabase-rpc";
+import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, FileText, Calendar, Building, User, PenLine, Shield, ExternalLink, Euro } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -120,8 +121,31 @@ const SignatureDevis = () => {
     fetchDevisData();
   }, [token, trackEvent, trackPageLoaded]);
 
-  const handlePdfConsulted = () => {
+  const [openingPdf, setOpeningPdf] = useState(false);
+
+  const handleOpenPdf = async () => {
     trackEvent("pdf_consulted", { pdf_url: devisData?.pdf_url });
+    if (!token) return;
+    const win = window.open("about:blank", "_blank");
+    setOpeningPdf(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("get-devis-pdf-url", {
+        body: { token },
+      });
+      const url = (data as { pdf_url?: string } | null)?.pdf_url;
+      if (error || !url) throw error || new Error("PDF indisponible");
+      if (win) win.location.href = url;
+      else window.open(url, "_blank");
+    } catch (err) {
+      win?.close();
+      toast({
+        title: "Impossible d'ouvrir le devis",
+        description: err instanceof Error ? err.message : "Erreur inconnue",
+        variant: "destructive",
+      });
+    } finally {
+      setOpeningPdf(false);
+    }
   };
 
   const handleNameChange = (value: string) => {
@@ -284,11 +308,9 @@ const SignatureDevis = () => {
             )}
             {devisData?.pdf_url && (
               <div className="pt-2">
-                <Button variant="outline" asChild className="w-full sm:w-auto" onClick={handlePdfConsulted}>
-                  <a href={devisData.pdf_url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Consulter le devis PDF
-                  </a>
+                <Button variant="outline" className="w-full sm:w-auto" onClick={handleOpenPdf} disabled={openingPdf}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  {openingPdf ? "Ouverture..." : "Consulter le devis PDF"}
                 </Button>
               </div>
             )}

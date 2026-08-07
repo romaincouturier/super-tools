@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import type { Quote, QuoteStatus, SignedDevis } from "@/types/quotes";
+import { openStorageUrl } from "@/lib/storageUrl";
 
 const statusLabels: Record<QuoteStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Brouillon", variant: "secondary" },
@@ -112,15 +113,14 @@ export default function QuoteHistorySection({ cardId }: Props) {
               </div>
 
               {d.signed_pdf_url && (
-                <a
-                  href={d.signed_pdf_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openStorageUrl(d.signed_pdf_url!)}
                   className="inline-flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 hover:underline"
                 >
                   <Download className="w-3 h-3" />
                   Télécharger le devis signé (PDF)
-                </a>
+                </button>
               )}
             </div>
           ))}

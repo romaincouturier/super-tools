@@ -13,6 +13,7 @@ import QuoteHistorySection from "@/components/quotes/QuoteHistorySection";
 import CardTranscriptsSection from "./CardTranscriptsSection";
 import type { CardDetailState, CardDetailHandlers, CardDetails } from "./types";
 import { useDemoMode } from "@/contexts/DemoModeContext";
+import { getSignedUrl } from "@/lib/storageUrl";
 import { maskEmail, maskFileName } from "@/lib/demoMask";
 
 function formatActivityType(type: string): string {
@@ -108,15 +109,13 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
             <div key={att.id} className="flex items-center justify-between p-2 bg-muted rounded">
               <button
                 className="flex items-center gap-2 hover:text-primary transition-colors text-left min-w-0"
-                onClick={() => {
-                  const { data } = supabase.storage
-                    .from("crm-attachments")
-                    .getPublicUrl(att.file_path);
-                  if (data?.publicUrl) {
+                onClick={async () => {
+                  const signed = await getSignedUrl("crm-attachments", att.file_path);
+                  if (signed) {
                     const a = document.createElement("a");
-                    a.href = data.publicUrl;
+                    a.href = signed;
                     a.target = "_blank";
-                    a.rel = "noopener";
+                    a.rel = "noopener noreferrer";
                     a.click();
                   }
                 }}
