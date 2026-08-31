@@ -1,4 +1,5 @@
-import { Suspense, lazy } from "react";
+import { Suspense } from "react";
+import { lazyWithRetry as lazy } from "@/lib/lazyWithRetry";
 import * as Sentry from "@sentry/react";
 import { AppErrorFallback } from "@/components/AppErrorFallback";
 import { useSentryInit } from "@/hooks/useSentryInit";
