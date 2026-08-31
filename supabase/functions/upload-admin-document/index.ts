@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { resolveContentType } from "../_shared/file-utils.ts";
 
 const BUCKET = "admin-archives";
 
@@ -19,29 +20,6 @@ function sanitizeFileName(name: string): string {
     .toLowerCase();
 }
 
-function resolveContentType(file: File): string {
-  if (file.type) return file.type.toLowerCase().split(";")[0].trim();
-  const ext = file.name.split(".").pop()?.toLowerCase() || "";
-  const map: Record<string, string> = {
-    pdf: "application/pdf",
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    gif: "image/gif",
-    webp: "image/webp",
-    heic: "image/heic",
-    heif: "image/heif",
-    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    xls: "application/vnd.ms-excel",
-    doc: "application/msword",
-    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ppt: "application/vnd.ms-powerpoint",
-    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    txt: "text/plain",
-    csv: "text/csv",
-  };
-  return map[ext] || "application/octet-stream";
-}
 
 async function triggerAnalysisInBackground(
   admin: ReturnType<typeof createClient>,

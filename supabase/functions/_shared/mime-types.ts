@@ -26,12 +26,21 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   gif: "image/gif",
   webp: "image/webp",
   svg: "image/svg+xml",
-  // Médias
+  heic: "image/heic",
+  heif: "image/heif",
+  // Vidéo
   mp4: "video/mp4",
   mov: "video/quicktime",
   webm: "video/webm",
+  // Audio
   mp3: "audio/mpeg",
   m4a: "audio/mp4",
+  aac: "audio/aac",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+  flac: "audio/flac",
+  caf: "audio/x-caf",
+  wma: "audio/x-ms-wma",
 };
 
 /** Type MIME déduit de l'extension, `fallback` si l'extension est inconnue. */

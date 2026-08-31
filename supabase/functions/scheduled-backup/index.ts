@@ -22,6 +22,7 @@ import { getSenderEmail } from "../_shared/email-settings.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { streamFileToGoogleDrive } from "../_shared/drive-resumable-upload.ts";
 import { mimeTypeFromFileName } from "../_shared/mime-types.ts";
+import { refreshGoogleAccessToken } from "../_shared/google-oauth.ts";
 
 // ─── Tables to backup ───────────────────────────────────────────────────────
 
@@ -147,30 +148,6 @@ const GFS_WEEKLY = 4;
 const GFS_MONTHLY = 3;
 
 // ─── Google Drive helpers ───────────────────────────────────────────────────
-
-async function refreshGoogleAccessToken(refreshToken: string): Promise<string> {
-  const clientId = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID");
-  const clientSecret = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET");
-  if (!clientId || !clientSecret) throw new Error("Google OAuth credentials not configured");
-
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to refresh Google access token: ${errorText}`);
-  }
-
-  return (await response.json()).access_token;
-}
 
 async function uploadJsonToGoogleDrive(
   accessToken: string,
@@ -399,6 +376,9 @@ interface StorageBackupResult {
   filesCount: number;
   totalSizeBytes: number;
   uploadedFiles: number;
+  /** Sous-ensemble de uploadedFiles passé par le stream (fichiers > 25 Mo). */
+  streamedFiles: number;
+  streamedBytes: number;
   errors: string[];
 }
 
@@ -421,6 +401,8 @@ async function backupStorageBucket(
     filesCount: 0,
     totalSizeBytes: 0,
     uploadedFiles: 0,
+    streamedFiles: 0,
+    streamedBytes: 0,
     errors: [],
     nextIndex: startIndex,
     done: false,
@@ -485,6 +467,8 @@ async function backupStorageBucket(
             heartbeatIntervalMs: STREAM_HEARTBEAT_MS,
           });
           result.uploadedFiles++;
+          result.streamedFiles++;
+          result.streamedBytes += file.size;
           continue;
         }
 
@@ -958,7 +942,7 @@ async function getDriveAccess(supabase: any): Promise<{ accessToken: string; roo
   }
   if (!tokenRow?.refresh_token) return null;
 
-  const accessToken = await refreshGoogleAccessToken(tokenRow.refresh_token);
+  const { accessToken } = await refreshGoogleAccessToken(tokenRow.refresh_token);
   await supabase
     .from(tokenTable)
     .update({
@@ -1168,6 +1152,8 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
     let totalFiles = Number(run.totals.storageTotalFiles || 0);
     let totalBytes = Number(run.totals.storageTotalBytes || 0);
     let fileCursor = Number(run.totals.storageFileCursor || 0);
+    let streamedFiles = Number(run.totals.storageStreamedFiles || 0);
+    let streamedBytes = Number(run.totals.storageStreamedBytes || 0);
     const totals: Record<string, number | string> = { ...run.totals };
 
     while (cursor < STORAGE_BUCKETS.length && !outOfBudget()) {
@@ -1187,6 +1173,8 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
       totalFiles += res.filesCount;
       uploaded += res.uploadedFiles;
       totalBytes += res.totalSizeBytes;
+      streamedFiles += res.streamedFiles;
+      streamedBytes += res.streamedBytes;
       if (res.errors.length > 0) {
         errors.push(...res.errors.slice(0, 3));
         if (res.errors.length > 3) errors.push(`[Storage] ${bucket}: +${res.errors.length - 3} autres erreurs`);
@@ -1207,6 +1195,8 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
     totals.storageTotalFiles = totalFiles;
     totals.storageTotalBytes = totalBytes;
     totals.storageFileCursor = fileCursor;
+    totals.storageStreamedFiles = streamedFiles;
+    totals.storageStreamedBytes = streamedBytes;
 
     if (cursor >= STORAGE_BUCKETS.length) {
       phase = "finalize";
@@ -1261,6 +1251,8 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
   const success = dbErrors === 0 && integrityResult?.passed !== false;
   const durationMs = Date.now() - new Date(run.started_at).getTime();
   const storageMB = (Number(run.totals.storageTotalBytes || 0) / 1024 / 1024).toFixed(2);
+  const streamedFiles = Number(run.totals.storageStreamedFiles || 0);
+  const streamedMB = (Number(run.totals.storageStreamedBytes || 0) / 1024 / 1024).toFixed(2);
 
   const details = {
     success,
@@ -1274,6 +1266,8 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
       totalFiles: Number(run.totals.storageTotalFiles || 0),
       uploadedFiles: Number(run.totals.storageUploadedFiles || 0),
       totalSizeMB: storageMB,
+      streamedFiles,
+      streamedSizeMB: streamedMB,
     },
     deletedOldBackups,
     gfsRetention: `${GFS_DAILY}d/${GFS_WEEKLY}w/${GFS_MONTHLY}m`,
@@ -1318,6 +1312,7 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
             <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Tables</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${TABLES_TO_BACKUP.length} (${fileIds.length} fichiers)</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Lignes</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${totalRows.toLocaleString("fr-FR")}</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Fichiers storage</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${Number(run.totals.storageUploadedFiles || 0)}/${Number(run.totals.storageTotalFiles || 0)} (${storageMB} Mo)</td></tr>
+            ${streamedFiles > 0 ? `<tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">dont gros fichiers streamés</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${streamedFiles} (${streamedMB} Mo)</td></tr>` : ""}
             <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Dossier Drive</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${folderId}</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Durée totale</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${(durationMs / 1000).toFixed(0)}s en ${chunks} tranches</td></tr>
           </table>

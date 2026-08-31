@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { resolveContentType } from "../_shared/file-utils.ts";
 
 const BUCKET = "media";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -15,39 +16,6 @@ function sanitizeFileName(name: string): string {
     .toLowerCase();
 }
 
-function resolveContentType(file: File): string {
-  const rawType = file.type?.toLowerCase().split(";")[0].trim();
-  const normalized: Record<string, string> = {
-    "audio/x-m4a": "audio/mp4",
-    "audio/x-wav": "audio/wav",
-    "audio/x-aac": "audio/aac",
-  };
-  if (rawType) return normalized[rawType] || rawType;
-
-  const ext = file.name.split(".").pop()?.toLowerCase() || "";
-  const map: Record<string, string> = {
-    svg: "image/svg+xml",
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    gif: "image/gif",
-    webp: "image/webp",
-    heic: "image/heic",
-    heif: "image/heif",
-    mp4: "video/mp4",
-    webm: "video/webm",
-    mov: "video/quicktime",
-    m4a: "audio/mp4",
-    mp3: "audio/mpeg",
-    wav: "audio/wav",
-    aac: "audio/aac",
-    ogg: "audio/ogg",
-    caf: "audio/x-caf",
-    flac: "audio/flac",
-    wma: "audio/x-ms-wma",
-  };
-  return map[ext] || "application/octet-stream";
-}
 
 function getFileType(contentType: string): "image" | "video" | "audio" | null {
   if (contentType.startsWith("image/")) return "image";

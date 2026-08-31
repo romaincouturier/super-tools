@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { resolveContentType } from "../_shared/file-utils.ts";
 
 const BUCKET = "mission-media";
 
@@ -12,24 +13,6 @@ function sanitizeFileName(name: string): string {
     .toLowerCase();
 }
 
-function resolveContentType(file: File): string {
-  if (file.type) return file.type.toLowerCase().split(";")[0].trim();
-  const ext = file.name.split(".").pop()?.toLowerCase() || "";
-  const map: Record<string, string> = {
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    gif: "image/gif",
-    webp: "image/webp",
-    svg: "image/svg+xml",
-    heic: "image/heic",
-    heif: "image/heif",
-    mp4: "video/mp4",
-    webm: "video/webm",
-    mov: "video/quicktime",
-  };
-  return map[ext] || "application/octet-stream";
-}
 
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);

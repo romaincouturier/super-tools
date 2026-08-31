@@ -2,7 +2,10 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { refreshGoogleAccessToken } from "../_shared/google-oauth.ts";
 
+// Toujours nécessaires ici : l'échange initial du code d'autorisation reste
+// propre à cette fonction, seul le refresh est mutualisé.
 const GOOGLE_OAUTH_CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID")!;
 const GOOGLE_OAUTH_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -28,24 +31,6 @@ function redirectToClientCallback(
   return Response.redirect(callbackUrl.toString(), 303);
 }
 
-async function refreshGoogleAccessToken(refreshToken: string): Promise<string> {
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: GOOGLE_OAUTH_CLIENT_ID,
-      client_secret: GOOGLE_OAUTH_CLIENT_SECRET,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
-  });
-
-  const data = await response.json();
-  if (!response.ok || !data.access_token) {
-    throw new Error(`Token refresh failed: ${JSON.stringify(data)}`);
-  }
-  return data.access_token;
-}
 
 function getGoogleCalendarCreateError(errorText: string): { message: string; reason?: string; status: number } {
   let data: any = null;
@@ -316,7 +301,7 @@ serve(async (req: Request): Promise<Response> => {
       const isExpired = new Date(tokenRow.token_expires_at) < new Date();
       if (isExpired) {
         try {
-          accessToken = await refreshGoogleAccessToken(tokenRow.refresh_token);
+          accessToken = (await refreshGoogleAccessToken(tokenRow.refresh_token)).accessToken;
           const newExpiry = new Date(Date.now() + 3600 * 1000).toISOString();
           await supabase
             .from(tokenTable)
@@ -423,7 +408,7 @@ serve(async (req: Request): Promise<Response> => {
       let accessToken = tokenRow.access_token;
       const isExpired = new Date(tokenRow.token_expires_at) < new Date();
       if (isExpired) {
-        accessToken = await refreshGoogleAccessToken(tokenRow.refresh_token);
+        accessToken = (await refreshGoogleAccessToken(tokenRow.refresh_token)).accessToken;
         const newExpiry = new Date(Date.now() + 3600 * 1000).toISOString();
         await supabase
           .from(tokenTable)
