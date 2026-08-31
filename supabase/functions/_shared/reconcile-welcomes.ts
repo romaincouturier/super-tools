@@ -11,19 +11,10 @@
  * doit avoir une convocation soit déjà envoyée, soit en file d'attente.
  */
 
-import { fetchWorkingDays } from "./working-days.ts";
+import { fetchWorkingDays, subtractWorkingDays } from "./working-days.ts";
 
 const WELCOME_OFFSET_WORKING_DAYS = 7;
 
-function subtractWorkingDays(from: Date, days: number, workingDays: boolean[]): Date {
-  const result = new Date(from);
-  let remaining = days;
-  while (remaining > 0) {
-    result.setDate(result.getDate() - 1);
-    if (workingDays[result.getDay()]) remaining--;
-  }
-  return result;
-}
 
 export interface ReconcileResult {
   checkedTrainings: number;
