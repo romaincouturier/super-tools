@@ -61,6 +61,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
   const { isDemoMode } = useDemoMode();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState<string | null>(null);
+  const [loadingConvention, setLoadingConvention] = useState<string | null>(null);
 
   const { data: sentDevis, isLoading } = useQuery({
     queryKey: ["crm-sent-devis", email, cardId],
