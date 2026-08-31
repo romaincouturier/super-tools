@@ -20,6 +20,7 @@ import {
 import { sendEmail } from "../_shared/resend.ts";
 import { getSenderEmail } from "../_shared/email-settings.ts";
 import { getBccList } from "../_shared/email-settings.ts";
+import { streamFileToGoogleDrive } from "../_shared/drive-resumable-upload.ts";
 
 // ─── Tables to backup ───────────────────────────────────────────────────────
 
@@ -383,6 +384,15 @@ function computeGfsKeepSet(
 
 // ─── Storage Backup ─────────────────────────────────────────────────────────
 
+// Au-delà de cette taille le fichier n'est plus téléchargé en mémoire mais
+// streamé chunk par chunk vers une session resumable Drive.
+const INLINE_UPLOAD_MAX_BYTES = 25 * 1024 * 1024;
+// Garde-fou : un fichier plus gros ne tiendrait pas dans le budget d'un tick.
+const STREAM_FILE_MAX_BYTES = 500 * 1024 * 1024;
+const STREAM_FILE_BUDGET_MS = 90_000;
+// Doit rester < RUN_LOCK_MS pour que le run ne soit jamais vu comme inactif.
+const STREAM_HEARTBEAT_MS = 20_000;
+
 interface StorageBackupResult {
   bucket: string;
   filesCount: number;
@@ -403,6 +413,7 @@ async function backupStorageBucket(
   startIndex: number,
   cachedBucketFolderId: string | null,
   shouldStop: () => boolean,
+  heartbeat: () => Promise<void>,
 ): Promise<StorageBackupResult & { nextIndex: number; done: boolean; bucketFolderId: string | null }> {
   const result: StorageBackupResult & { nextIndex: number; done: boolean; bucketFolderId: string | null } = {
     bucket: bucketName,
@@ -436,12 +447,43 @@ async function backupStorageBucket(
       i++;
 
       try {
-        // Ignorer les gros fichiers sans les télécharger (limite mémoire edge)
-        if (file.size && file.size > 25 * 1024 * 1024) {
+        // Flatten path for Drive (replace / with ___)
+        const driveName = file.name.replace(/\//g, "___");
+        const mimeType = guessMimeType(file.name);
+
+        // Gros fichier : streamé sans passer par la mémoire de l'edge function.
+        if (file.size && file.size > INLINE_UPLOAD_MAX_BYTES) {
           result.totalSizeBytes += file.size;
-          result.errors.push(
-            `${bucketName}/${file.name}: skipped (${(file.size / 1024 / 1024).toFixed(1)}MB > 25MB limit)`,
-          );
+
+          if (file.size > STREAM_FILE_MAX_BYTES) {
+            result.errors.push(
+              `${bucketName}/${file.name}: skipped (${(file.size / 1024 / 1024).toFixed(1)}MB > ${STREAM_FILE_MAX_BYTES / 1024 / 1024}MB limit)`,
+            );
+            continue;
+          }
+
+          const { data: signed, error: signError } = await supabase.storage
+            .from(bucketName)
+            .createSignedUrl(file.name, 3600);
+          if (signError || !signed?.signedUrl) {
+            result.errors.push(
+              `${bucketName}/${file.name}: signed URL failed (${signError?.message || "unknown error"})`,
+            );
+            continue;
+          }
+
+          await streamFileToGoogleDrive({
+            accessToken,
+            fileName: driveName,
+            mimeType,
+            folderId: bucketFolderId,
+            sourceUrl: signed.signedUrl,
+            totalSize: file.size,
+            deadline: Date.now() + STREAM_FILE_BUDGET_MS,
+            heartbeat,
+            heartbeatIntervalMs: STREAM_HEARTBEAT_MS,
+          });
+          result.uploadedFiles++;
           continue;
         }
 
@@ -453,14 +495,14 @@ async function backupStorageBucket(
 
         result.totalSizeBytes += data.size;
 
-        if (data.size > 25 * 1024 * 1024) {
-          result.errors.push(`${bucketName}/${file.name}: skipped (${(data.size / 1024 / 1024).toFixed(1)}MB > 25MB limit)`);
+        // Taille absente des métadonnées : le fichier est déjà en mémoire, on ne
+        // peut plus basculer sur le stream.
+        if (data.size > INLINE_UPLOAD_MAX_BYTES) {
+          result.errors.push(
+            `${bucketName}/${file.name}: skipped (${(data.size / 1024 / 1024).toFixed(1)}MB, taille inconnue avant téléchargement)`,
+          );
           continue;
         }
-
-        // Flatten path for Drive (replace / with ___)
-        const driveName = file.name.replace(/\//g, "___");
-        const mimeType = guessMimeType(file.name);
 
         await uploadBlobToGoogleDrive(accessToken, driveName, data, mimeType, bucketFolderId);
         result.uploadedFiles++;
@@ -1163,6 +1205,7 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
         fileCursor,
         (totals[folderKey] as string) || null,
         outOfBudget,
+        () => saveRun(supabase, run.id, {}),
       );
       if (res.bucketFolderId) totals[folderKey] = res.bucketFolderId;
       totalFiles += res.filesCount;
