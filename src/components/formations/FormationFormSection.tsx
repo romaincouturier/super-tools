@@ -88,6 +88,7 @@ export default function FormationFormSection(props: FormationFormSectionProps) {
         setTypeSubrogation={props.setTypeSubrogation}
         offrirFraisAdmin={props.offrirFraisAdmin}
         setOffrirFraisAdmin={props.setOffrirFraisAdmin}
+        publicSectorNotice={props.publicSectorNotice}
       />
       <FormationSummary
         formationDemandee={props.formationDemandee}

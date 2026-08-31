@@ -62,6 +62,7 @@ const MicroDevis = () => {
   const [includeCadeau, setIncludeCadeau] = useState(false);
   
   const [typeSubrogation, setTypeSubrogation] = useState<"sans" | "avec" | "les2">("les2");
+  const [publicSectorNotice, setPublicSectorNotice] = useState<string | null>(null);
   const [offrirFraisAdmin, setOffrirFraisAdmin] = useState(false);
   const [jsonPreviewOpen, setJsonPreviewOpen] = useState(false);
   const [initialDefaultsApplied, setInitialDefaultsApplied] = useState(false);
@@ -351,6 +352,20 @@ const MicroDevis = () => {
   const onSearchSiren = async () => {
     const r = await sirenSearch.handleSearchSiren();
     if (r) {
+      if (r.isPublicSector) {
+        setTypeSubrogation("sans");
+        setPublicSectorNotice(
+          "Cet établissement est identifié comme un organisme public (catégorie juridique INSEE " +
+          (r.categorieJuridique || "4xxx/7xxx") +
+          "). Les organismes publics ne cotisent pas à un OPCO : la formation est financée sur leur budget propre, il n'y a donc pas de subrogation de paiement possible. Le devis sans subrogation est sélectionné par défaut (frais de dossier 150 €)."
+        );
+        toast({
+          title: "Organisme public détecté",
+          description: "Devis sans subrogation sélectionné automatiquement (pas d'OPCO pour le secteur public).",
+        });
+      } else {
+        setPublicSectorNotice(null);
+      }
       if (r.nomClient) setNomClient(r.nomClient);
       if (r.adresseClient) setAdresseClient(r.adresseClient);
       if (r.codePostalClient) setCodePostalClient(r.codePostalClient);
@@ -521,6 +536,7 @@ const MicroDevis = () => {
                   includeCadeau={includeCadeau} setIncludeCadeau={setIncludeCadeau}
                   typeSubrogation={typeSubrogation} setTypeSubrogation={setTypeSubrogation}
                   offrirFraisAdmin={offrirFraisAdmin} setOffrirFraisAdmin={setOffrirFraisAdmin}
+                  publicSectorNotice={publicSectorNotice}
                   getSelectedFormationConfig={getSelectedFormationConfig}
                   onSelectInterSession={applyInterSession}
                 />
