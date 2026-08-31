@@ -37,7 +37,7 @@ export async function updateTraining(id: string, updates: Record<string, unknown
   // des participants inscrits avant que la date soit connue (sinon jamais envoyées).
   if ("start_date" in updates && updates.start_date) {
     try {
-      await db().functions.invoke("reconcile-welcome-emails", { body: {} });
+      await supabase.functions.invoke("reconcile-welcome-emails", { body: {} });
     } catch (err) {
       console.warn("reconcile-welcome-emails failed:", err);
     }
