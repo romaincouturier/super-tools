@@ -378,9 +378,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (result.success) {
       // For shipment follow-up: just log, don't change kanban status or overwrite email_sent_at
       if (templateKeyOverride !== "shipment_followup") {
-        const nextStatus = gameType === "dropshipping" || gameType === "supertilt" || gameType === "partner"
+        // Jeu partenaire : l'email n'est qu'une notification de vente au partenaire,
+        // l'expédition reste à notre charge → la ligne reste en "Reçues".
+        const nextStatus = gameType === "dropshipping" || gameType === "supertilt"
           ? "processed"
-          : undefined; // location stays in location_pending until contract returned
+          : undefined; // location stays in location_pending until contract returned; partner stays received
 
         await (admin as any).from("order_items")
           .update({
