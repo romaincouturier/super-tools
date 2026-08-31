@@ -37,7 +37,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
 
-  const authedUser = await verifyAuth(req.headers.get("Authorization"));
+  // Appel interne (webhook auto-send) : le token est la service role key,
+  // qui ne correspond à aucun utilisateur → on l'autorise explicitement.
+  const bearer = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
+  const isInternalCall = !!SUPABASE_SERVICE_ROLE_KEY && bearer === SUPABASE_SERVICE_ROLE_KEY;
+  const authedUser = isInternalCall ? { id: "service_role" } : await verifyAuth(req.headers.get("Authorization"));
   if (!authedUser) {
     return new Response(JSON.stringify({ error: "Non autorisé" }), {
       status: 401,
