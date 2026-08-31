@@ -1126,9 +1126,11 @@ export default function LmsCourseHomePage() {
 
   if (courseLoading || !course) {
     return (
-      <div className="flex items-center justify-center h-screen" style={{ background: "var(--st-white)", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}>
-        <p style={{ color: "var(--st-ink-muted)", fontSize: 14 }}>Chargement…</p>
-      </div>
+      <CourseLoadState
+        isLoading={courseLoading}
+        error={courseError}
+        onRetry={() => refetchCourse()}
+      />
     );
   }
 
