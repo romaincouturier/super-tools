@@ -142,7 +142,13 @@ serve(async (req) => {
       return { searchBody, status: res.status, payload: await res.json().catch(() => null) };
     };
 
-    const firstPage = await fetchPage(null);
+    // Retry sur la première page : un 429 au démarrage interrompait la synchro
+    // sans laisser de chance de reprise.
+    const firstPage = await fetchPageWithRetry(
+      (token) => fetchPage(token).then((p) => ({ status: p.status, payload: p.payload })),
+      null,
+      "page 1",
+    );
 
     // ── Sonde : le contrat de l'API sans rien écrire ─────────
     if (body.probe) {
@@ -153,7 +159,7 @@ serve(async (req) => {
         countries,
         ted_cpv_codes: tedCpvCodes,
         since,
-        request: firstPage.searchBody,
+        request: firstPage.payload?.__searchBody ?? null,
         http_status: firstPage.status,
         response_keys:
           firstPage.payload && typeof firstPage.payload === "object"
