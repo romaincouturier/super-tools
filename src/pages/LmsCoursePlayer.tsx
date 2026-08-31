@@ -38,6 +38,7 @@ import WorkDepositSection from "@/components/lms/WorkDepositSection";
 import type { WorkDepositConfig } from "@/types/lms-work-deposit";
 import { useConfirm } from "@/hooks/useConfirm";
 import { supabase } from "@/integrations/supabase/client";
+import CourseLoadState from "@/components/lms/CourseLoadState";
 
 export default function LmsCoursePlayer() {
   const { courseId } = useParams<{ courseId: string }>();

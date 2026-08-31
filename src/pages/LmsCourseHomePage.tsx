@@ -55,6 +55,7 @@ import {
 import CourseHomeSidebar, { CommunityCtaButton, communityUrlWithContext, type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
 import LmsCourseLayout from "@/components/lms/LmsCourseLayout";
 import HomeIntroBox from "@/components/lms/HomeIntroBox";
+import CourseLoadState from "@/components/lms/CourseLoadState";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
