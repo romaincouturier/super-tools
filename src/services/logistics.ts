@@ -150,9 +150,8 @@ export async function fetchChecklistTemplates(entityType?: LogisticsEntityType):
   let q = sb.from(TEMPLATES_TABLE).select(`*, items:${TEMPLATE_ITEMS_TABLE}(*)`)
     .order("name", { ascending: true });
   if (entityType === "event") {
-    // `entity_type = null` signifie « missions et formations » (cf. le
-    // sélecteur des paramètres) : ces modèles ne concernent pas les événements.
-    q = q.eq("entity_type", "event");
+    // Les événements peuvent réutiliser tous les modèles déjà paramétrés
+    // (événement, missions/formations ou globaux) : aucun filtrage.
   } else if (entityType) {
     q = q.or(`entity_type.eq.${entityType},entity_type.is.null`);
   }
