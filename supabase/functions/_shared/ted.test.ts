@@ -223,8 +223,13 @@ describe("walkTedPages", () => {
   // une page en échec au milieu du parcours laissait passer une
   // synchronisation « réussie » à laquelle il manquait la moitié du flux.
   it("remonte une page en échec au lieu de la taire", async () => {
+    // 4 pages 503 = appel initial + 3 retries ; fetchPageWithRetry abandonne
+    // et walkTedPages propage le statut.
     const ted = fakeTed([
       { notices: [{ id: 1 }], next: "t1" },
+      { status: 503 },
+      { status: 503 },
+      { status: 503 },
       { status: 503 },
     ]);
     const r = await walkTedPages({ fetchPage: ted.fetchPage, maxRecords: 100, maxPages: 10 });
