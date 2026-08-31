@@ -160,7 +160,7 @@ serve(async (req) => {
         countries,
         ted_cpv_codes: tedCpvCodes,
         since,
-        request: firstPage.payload?.__searchBody ?? null,
+        request: firstPage.searchBody,
         http_status: firstPage.status,
         response_keys:
           firstPage.payload && typeof firstPage.payload === "object"
