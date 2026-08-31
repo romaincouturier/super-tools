@@ -1,54 +1,32 @@
-# Plan — Continuité parcours "Opportunité gagnée → Formation" + rendez-vous commanditaire + mobile
+# Convention de formation depuis un devis
 
-Trois chantiers indépendants, à livrer dans cet ordre.
+Objectif : pouvoir remettre au client une convention de formation correspondant à un devis déjà envoyé (demande OPCO), sans passer par la création d'une session de formation.
 
-## 1. Rupture parcours : entrée au catalogue manquante
+## Ce qui change pour l'utilisateur
 
-**Problème actuel.** Depuis une opportunité gagnée dans le CRM, on clique sur "Créer une nouvelle formation". On est envoyé vers `/formations/new?...` avec des params préremplis. Si l'intitulé demandé ne correspond à aucune entrée du catalogue (`formation_configs`), la création échoue avec un message d'erreur. L'utilisateur doit alors quitter la page, aller créer l'entrée au catalogue, puis relancer toute la démarche.
+Dans la carte CRM, bloc historique « emails & devis » (`SentDevisSection`) :
 
-**Correctif.**
-- Dans `CreateTrainingDialog` (le dialog qui suit "Opportunité gagnée"), avant de naviguer vers `/formations/new`, on vérifie via `useFormationConfigs` si l'intitulé de l'opportunité matche une entrée existante.
-- Si aucun match : le dialog passe dans un 3e mode `create-catalog-entry` proposant :
-  - un input pré-rempli avec l'intitulé de l'opportunité
-  - les champs minimums d'une entrée catalogue (nom, durée, prix, programme URL optionnel)
-  - un bouton "Créer l'entrée au catalogue et continuer"
-- Après création, on rebascule automatiquement sur la navigation vers `/formations/new` avec `formation_config_id` désormais présent dans les params.
-- Bonus : ajouter le même garde-fou côté `FormationEdit.tsx` (nouvelle formation) — si `formation_config_id` est passé mais introuvable, on affiche un CTA "Créer cette entrée au catalogue" au lieu d'un blocage.
-
-## 2. Proposer un rendez-vous au commanditaire après création formation
-
-**Problème actuel.** Une fois la formation créée, aucun raccourci pour caler un point avec le commanditaire. La fonctionnalité existe déjà dans les opportunités (`CreateCalendarEventDialog`) et dans les missions.
-
-**Correctif.**
-- Réutiliser `CreateCalendarEventDialog` (déjà branché Google Calendar via edge function `google-calendar-events`).
-- Dans `FormationEdit.tsx`, ajouter un bouton "Proposer un rendez-vous au commanditaire" dans la barre d'actions de l'en-tête, actif seulement si un email commanditaire est renseigné.
-- Ouvrir le dialog pré-rempli avec :
-  - **Titre** : `Point préparation — {training_name} — {client_name}`
-  - **Description** : template Markdown listant "Recueil des besoins · Échange sur le contenu · Adaptation · Revue planification & logistique"
-  - **Invité** : email commanditaire (+ trainer optionnel)
-  - **Durée** : 45 min par défaut
-- L'événement est créé côté Google Agenda du user connecté ; Google envoie l'invitation au commanditaire.
-- Log dans `mission_activities` ? Non — les formations ont leur propre modèle, on trace juste l'action sans nouvelle table.
-
-## 3. Ergonomie mobile
-
-**Problèmes signalés.**
-- La barre de recherche `AppTopBar` occupe une hauteur excessive sur iPhone (padding vertical fixe `18px`, layout desktop non adapté).
-- Le scroll horizontal des kanbans CRM est difficile sur mobile.
-
-**Correctifs.**
-- `AppTopBar.tsx` : passer les styles en responsive via `useIsMobile()`, réduire le padding à `10px 14px` et la hauteur du bouton search à ~34 px, cacher le raccourci ⌘K et le bouton "Nouveau" en <768px (ils restent accessibles via le menu).
-- `CrmKanbanBoard` / colonnes : ajouter `overflow-x-auto` + `scroll-snap-type: x proximity` + `scroll-snap-align: start` sur chaque colonne + `-webkit-overflow-scrolling: touch`, et forcer `min-width: 85vw` sur les colonnes en mobile pour un swipe une-colonne-à-la-fois.
+- Sur chaque devis de formation, le bouton « Dupliquer » est remplacé par « Télécharger la convention de formation ».
+- Si le devis a été envoyé en 2 versions (avec / sans subrogation), deux boutons apparaissent : « Convention sans subrogation » et « Convention avec subrogation ».
+- Un clic génère le PDF de convention (même modèle PDFMonkey que les conventions de formation existantes) et l'ouvre dans un nouvel onglet. Aucun email n'est envoyé, aucun programme n'est joint.
+- Les dates et le lieu reprennent exactement le texte du devis (y compris « à définir » ou une date en texte libre) ; les horaires restent la mention par défaut du modèle.
 
 ## Détails techniques
 
-- Aucune nouvelle table. Le catalog entry est créé via l'API existante `useFormationConfigs.addConfig`.
-- L'invite Google Calendar réutilise la connexion existante (`google_calendar_tokens`). Si non connecté, on affiche un CTA "Connecter Google Calendar" (déjà présent dans les autres flows).
-- Pas de changement de RLS.
-- Tests visuels manuels : iPhone 12 (390×844) et desktop 1440.
+Nouvelle fonction edge `generate-devis-convention` :
 
-## Hors-scope
+- Entrée : `activityLogId` du devis (`activity_logs.action_type = 'micro_devis_sent'`) + `subrogation: boolean`.
+- Relit `details.form_data` du log (client, adresse, CP, ville, commanditaire, formation, formule, date/date libre, lieu/lieu autre, participants, prix, durée, nb participants, `offrirFraisAdmin`, `typeSubrogation`).
+- Construit le payload PDFMonkey du modèle Convention (`CONVENTION_TEMPLATE_ID` déjà utilisé par `generate-convention-formation`) : `CLIENT`, `ADRESSE`, `TITRE_FORMATION`, `FORMAT` (intra / inter), `PARTICIPANTS`, `STAGIAIRES` (liste saisie dans le devis, sinon placeholders), `DATES` (texte du devis tel quel), `LIEU`, `PRIX` (prix × nb participants + frais de dossier selon subrogation, mêmes règles que `generate-micro-devis`), `TVA`, `PRIX_TTC`, `SUBROGATION`, `URL_PROGRAMME_FORMATION` (programme de la config formation), `HORAIRES` / `JOURS` valeurs par défaut.
+- Poll PDFMonkey (même boucle que la fonction existante), puis retourne `{ pdfUrl, fileName }` et journalise `action_type: 'convention_devis_generated'` dans `activity_logs` avec `crm_card_id`.
+- Pas de nouvelle table : la convention n'est pas persistée côté session puisqu'aucune formation n'existe encore.
 
-- Refonte du kanban desktop.
-- Pas de synchro bidirectionnelle Google Calendar (on crée seulement).
-- Pas de notification Slack sur création rendez-vous formation (peut être ajouté après si demandé).
+Front :
+
+- `src/components/crm/SentDevisSection.tsx` : remplacer le bouton « Dupliquer » (pour les devis de formation) par un ou deux boutons de convention, avec état de chargement et gestion d'erreur via `toastError`. Les devis de jeu (`game_devis_sent`) ne sont pas concernés.
+- Déclarer la fonction dans `supabase/config.toml` et dans la liste de santé `src/lib/edgeFunctionsHealth.ts`.
+
+## Hors périmètre
+
+- Envoi par email de la convention et signature électronique (peut être ajouté plus tard).
+- Jonction du programme de formation.
