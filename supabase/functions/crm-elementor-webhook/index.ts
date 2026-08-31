@@ -534,6 +534,49 @@ serve(async (req) => {
 
     const rawInput = buildRawInput(submission);
 
+    // ─── Anti-doublon ───
+    // Un prospect qui renvoie le formulaire (ou une relivraison du webhook côté
+    // WordPress) créait jusqu'ici une seconde carte identique. Sur la même
+    // adresse email et dans une fenêtre de 30 minutes, on complète la carte
+    // existante au lieu d'en créer une nouvelle.
+    if (detectedEmail) {
+      const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      const { data: recentCards } = await supabase
+        .from("crm_cards")
+        .select("id, description_html, raw_input")
+        .eq("email", detectedEmail)
+        .eq("sales_status", "OPEN")
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      const dup = recentCards?.[0];
+      if (dup) {
+        const alreadySeen = (dup.raw_input ?? "").includes(rawInput.trim());
+        if (!alreadySeen) {
+          await supabase
+            .from("crm_cards")
+            .update({
+              description_html: `${dup.description_html ?? ""}<p><em>Nouvelle soumission du formulaire :</em></p>${buildDescriptionHtml(rawInput)}`,
+              raw_input: `${dup.raw_input ?? ""}\n\n--- Nouvelle soumission ---\n${rawInput}`,
+            })
+            .eq("id", dup.id);
+        }
+        await supabase.from("crm_activity_log").insert({
+          card_id: dup.id,
+          action_type: "comment_added",
+          actor_email: "system@elementor",
+          new_value: "Soumission de formulaire en doublon fusionnée dans cette opportunité",
+        });
+        console.log("Duplicate submission merged into card:", dup.id);
+        return new Response(
+          JSON.stringify({ success: true, duplicate: true, card_id: dup.id }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
+
     // ─── Fetch available tags ───
     const { data: tagsData } = await supabase
       .from("crm_tags")
