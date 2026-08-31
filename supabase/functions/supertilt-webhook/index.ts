@@ -236,7 +236,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       "completed",
       "processing",
     ];
-    const autoSend = getSetting("auto_send_emails") === true;
+    // Défensif : la valeur peut être un booléen, "true" ou "\"true\"" (double encodage JSON)
+    const autoSendRaw = getSetting("auto_send_emails");
+    const autoSend = autoSendRaw === true ||
+      (typeof autoSendRaw === "string" && autoSendRaw.replace(/\\?"/g, "").trim() === "true");
     const vatRate: number = Number(getSetting("vat_rate") ?? 0.20);
     const stripeFeeRate: number = Number(getSetting("stripe_fee_rate") ?? 0.014);
     const stripeFeeFixed: number = Number(getSetting("stripe_fee_fixed") ?? 0.25);
