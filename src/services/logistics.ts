@@ -149,7 +149,11 @@ const TEMPLATE_ITEMS_TABLE = "checklist_template_items";
 export async function fetchChecklistTemplates(entityType?: LogisticsEntityType): Promise<ChecklistTemplate[]> {
   let q = sb.from(TEMPLATES_TABLE).select(`*, items:${TEMPLATE_ITEMS_TABLE}(*)`)
     .order("name", { ascending: true });
-  if (entityType) {
+  if (entityType === "event") {
+    // `entity_type = null` signifie « missions et formations » (cf. le
+    // sélecteur des paramètres) : ces modèles ne concernent pas les événements.
+    q = q.eq("entity_type", "event");
+  } else if (entityType) {
     q = q.or(`entity_type.eq.${entityType},entity_type.is.null`);
   }
   const { data, error } = await q;
