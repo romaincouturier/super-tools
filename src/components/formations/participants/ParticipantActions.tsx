@@ -99,25 +99,25 @@ const ParticipantActions = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-7 w-7 ${isConvoked ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+                  className={`h-7 w-7 ${isConvoked ? "text-primary" : isScheduled ? "text-amber-600 hover:text-primary" : "text-muted-foreground hover:text-primary"}`}
                   onClick={() => onResendWelcome(participant)}
                   disabled={isResending}
                 >
                   {isResending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (isConvoked ? <Send className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />)}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent><p>{isConvoked ? "Relancer la convocation" : "Envoyer la convocation"}</p></TooltipContent>
+              <TooltipContent><p>{isConvoked ? "Relancer la convocation" : isScheduled ? "Convocation programmée (non envoyée) — cliquer pour envoyer maintenant" : "Envoyer la convocation"}</p></TooltipContent>
             </Tooltip>
           );
         }
         return (
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className={`inline-flex items-center justify-center h-7 w-7 ${isConvoked ? "text-primary" : "text-muted-foreground/50"}`}>
+              <span className={`inline-flex items-center justify-center h-7 w-7 ${isConvoked ? "text-primary" : isScheduled ? "text-amber-600" : "text-muted-foreground/50"}`}>
                 {isConvoked ? <Send className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
               </span>
             </TooltipTrigger>
-            <TooltipContent><p>{isConvoked ? "Convocation envoyée" : "Convocation non envoyée"}</p></TooltipContent>
+            <TooltipContent><p>{isConvoked ? "Convocation envoyée" : isScheduled ? "Convocation programmée (non encore envoyée)" : "Convocation non envoyée"}</p></TooltipContent>
           </Tooltip>
         );
       })()}
