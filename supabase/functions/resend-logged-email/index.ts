@@ -34,8 +34,11 @@ serve(async (req) => {
 
     const to = recipientOverride || log.recipient_email;
 
+    const bcc = await getBccSettings();
+
     const result = await sendEmail({
       to: Array.isArray(to) ? to : [to],
+      bcc: bcc.length ? bcc : undefined,
       subject: log.subject,
       html: log.html_content,
       cc: log.cc_emails || undefined,
