@@ -297,7 +297,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                       PDF expiré — dupliquez pour regénérer
                     </span>
                   )}
-                  {details?.form_data && (
+                  {details?.form_data && isGame && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -307,6 +307,55 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                       <Copy className="h-3 w-3 mr-1" />
                       Dupliquer
                     </Button>
+                  )}
+                  {details?.form_data && !isGame && (
+                    details?.type_subrogation === "les2" ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7 px-2"
+                          disabled={loadingConvention === `${devis.id}-sans`}
+                          onClick={() => handleGenerateConvention(devis, false)}
+                        >
+                          {loadingConvention === `${devis.id}-sans` ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <FileText className="h-3 w-3 mr-1" />
+                          )}
+                          Convention sans subrogation
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7 px-2"
+                          disabled={loadingConvention === `${devis.id}-avec`}
+                          onClick={() => handleGenerateConvention(devis, true)}
+                        >
+                          {loadingConvention === `${devis.id}-avec` ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <FileText className="h-3 w-3 mr-1" />
+                          )}
+                          Convention avec subrogation
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-7 px-2"
+                        disabled={loadingConvention === `${devis.id}-${details?.type_subrogation === "avec" ? "avec" : "sans"}`}
+                        onClick={() => handleGenerateConvention(devis, details?.type_subrogation === "avec")}
+                      >
+                        {loadingConvention?.startsWith(devis.id) ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <FileText className="h-3 w-3 mr-1" />
+                        )}
+                        Télécharger la convention de formation
+                      </Button>
+                    )
                   )}
                 </div>
               </div>
