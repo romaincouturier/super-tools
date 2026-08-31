@@ -134,21 +134,22 @@ serve(async (req) => {
         since,
         iterationNextToken: token,
       });
-      const res = await fetch(`${TED_BASE}/notices/search`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(searchBody),
-      });
-      return { searchBody, status: res.status, payload: await res.json().catch(() => null) };
+      const page = await fetchPageWithRetry(
+        async () => {
+          const res = await fetch(`${TED_BASE}/notices/search`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify(searchBody),
+          });
+          return { status: res.status, payload: await res.json().catch(() => null) };
+        },
+        token,
+        token == null ? "page 1" : `page ${token.slice(0, 16)}`,
+      );
+      return { searchBody, ...page };
     };
 
-    // Retry sur la première page : un 429 au démarrage interrompait la synchro
-    // sans laisser de chance de reprise.
-    const firstPage = await fetchPageWithRetry(
-      (token) => fetchPage(token).then((p) => ({ status: p.status, payload: p.payload })),
-      null,
-      "page 1",
-    );
+    const firstPage = await fetchPage(null);
 
     // ── Sonde : le contrat de l'API sans rien écrire ─────────
     if (body.probe) {
