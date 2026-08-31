@@ -150,6 +150,17 @@ describe("streamFileToGoogleDrive", () => {
     expect(calls.some((c) => c.method === "DELETE")).toBe(true);
   });
 
+  it("échoue si Drive n'a jamais finalisé le fichier malgré tous les octets envoyés", async () => {
+    // Dernier chunk acquitté en 308 au lieu de 200 : le fichier n'existe pas.
+    const calls = mockFetch({ putStatuses: [308], confirmedEnds: [1023] });
+
+    await expect(streamFileToGoogleDrive({ ...baseOptions, totalSize: 1024 })).rejects.toThrow(
+      /incomplete/,
+    );
+
+    expect(calls.some((c) => c.method === "DELETE")).toBe(true);
+  });
+
   it("échoue sans session si Drive refuse l'initialisation", async () => {
     const calls = mockFetch({ initStatus: 403 });
 
