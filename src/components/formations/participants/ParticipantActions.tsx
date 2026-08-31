@@ -89,7 +89,8 @@ const ParticipantActions = ({
     <div className="flex items-center gap-0.5">
       {/* 0a. Convocation status indicator (clickable to resend for inter-entreprise) */}
       {(() => {
-        const isConvoked = !["non_envoye", "manuel"].includes(participant.needs_survey_status);
+        const isScheduled = participant.needs_survey_status === "programme";
+        const isConvoked = !["non_envoye", "manuel", "programme"].includes(participant.needs_survey_status);
         const isResending = resendingWelcomeId === participant.id;
         if (isInterEntreprise) {
           return (
