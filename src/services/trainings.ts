@@ -3,7 +3,9 @@
  * Eliminates scattered `supabase.from("trainings")` calls across components.
  */
 import { db, throwIfError } from "@/lib/supabase-helpers";
+import { supabase } from "@/integrations/supabase/client";
 import type { ReadRepository } from "./repository";
+
 
 /** Fetch a single training by ID */
 export async function getTraining(id: string) {
