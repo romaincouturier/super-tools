@@ -451,6 +451,58 @@ export function noticesOf(payload: Json): unknown[] {
   return Array.isArray(found) ? found : [];
 }
 
+/** Retarde l'exécution du nombre de millisecondes demandé. */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Codes HTTP passagers qu'il vaut mieux réessayer qu'abandonner. Le 429 est le
+ * cas observé en production ; les 5xx couvrent les indispositions passagères
+ * de l'API TED. Un 4xx autre qu'un 429 est un problème de requête : le retry
+ * ne fera qu'ajouter du bruit.
+ */
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || (status >= 500 && status < 600);
+}
+
+/**
+ * Appelle `fetchPage` avec retry exponentiel sur les erreurs passagères.
+ *
+ * Le TED a renvoyé des 429 en plein milieu d'un parcours, interrompant la
+ * synchronisation alors qu'il restait des pages à lire. Un backoff court
+ * (1s, 2s, 4s) permet de reprendre sans dépasser le budget d'une fonction Edge.
+ */
+export async function fetchPageWithRetry(
+  fetchPage: (token: string | null) => Promise<TedPage>,
+  token: string | null,
+  pageLabel: string,
+): Promise<TedPage> {
+  const maxRetries = 3;
+  const baseDelayMs = 1000;
+  let lastPage: TedPage | undefined;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const page = await fetchPage(token);
+    lastPage = page;
+    if (page.status >= 200 && page.status < 300) {
+      return page;
+    }
+    if (!isRetryableStatus(page.status)) {
+      return page;
+    }
+    if (attempt < maxRetries) {
+      const delay = baseDelayMs * 2 ** attempt;
+      console.log(
+        `[ted] ${pageLabel} a répondu ${page.status}, retry ${attempt + 1}/${maxRetries} dans ${delay}ms`,
+      );
+      await sleep(delay);
+    }
+  }
+
+  return lastPage!;
+}
+
 /**
  * Suit `iterationNextToken` jusqu'à épuisement.
  *
@@ -474,7 +526,7 @@ export async function walkTedPages(opts: {
    */
   firstPage?: TedPage;
 }): Promise<TedWalkResult> {
-  const first = opts.firstPage ?? (await opts.fetchPage(null));
+  const first = opts.firstPage ?? (await fetchPageWithRetry(opts.fetchPage, null, "page 1"));
   if (first.status < 200 || first.status >= 300) {
     return { notices: [], pages: 0, truncated: false, error: `TED a répondu ${first.status}` };
   }
@@ -487,7 +539,7 @@ export async function walkTedPages(opts: {
     if (notices.length >= opts.maxRecords || pages >= opts.maxPages) {
       return { notices, pages, truncated: true, error: null };
     }
-    const next = await opts.fetchPage(token);
+    const next = await fetchPageWithRetry(opts.fetchPage, token, `page ${pages + 1}`);
     if (next.status < 200 || next.status >= 300) {
       return {
         notices,

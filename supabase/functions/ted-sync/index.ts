@@ -7,6 +7,7 @@ import {
 } from "../_shared/mod.ts";
 import {
   buildTedSearchBody,
+  fetchPageWithRetry,
   mapTedNotice,
   noticesOf,
   TED_BASE,
@@ -133,12 +134,19 @@ serve(async (req) => {
         since,
         iterationNextToken: token,
       });
-      const res = await fetch(`${TED_BASE}/notices/search`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(searchBody),
-      });
-      return { searchBody, status: res.status, payload: await res.json().catch(() => null) };
+      const page = await fetchPageWithRetry(
+        async () => {
+          const res = await fetch(`${TED_BASE}/notices/search`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify(searchBody),
+          });
+          return { status: res.status, payload: await res.json().catch(() => null) };
+        },
+        token,
+        token == null ? "page 1" : `page ${token.slice(0, 16)}`,
+      );
+      return { searchBody, ...page };
     };
 
     const firstPage = await fetchPage(null);
