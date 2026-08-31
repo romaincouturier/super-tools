@@ -3,7 +3,9 @@
  * Eliminates scattered `supabase.from("trainings")` calls across components.
  */
 import { db, throwIfError } from "@/lib/supabase-helpers";
+import { supabase } from "@/integrations/supabase/client";
 import type { ReadRepository } from "./repository";
+
 
 /** Fetch a single training by ID */
 export async function getTraining(id: string) {
@@ -30,7 +32,18 @@ export async function fetchTrainingNames(): Promise<{ id: string; training_name:
 export async function updateTraining(id: string, updates: Record<string, unknown>) {
   const result = await db().from("trainings").update(updates).eq("id", id);
   throwIfError(result);
+
+  // Quand une date de début est renseignée/modifiée, rattrape les convocations
+  // des participants inscrits avant que la date soit connue (sinon jamais envoyées).
+  if ("start_date" in updates && updates.start_date) {
+    try {
+      await supabase.functions.invoke("reconcile-welcome-emails", { body: {} });
+    } catch (err) {
+      console.warn("reconcile-welcome-emails failed:", err);
+    }
+  }
 }
+
 
 /** Fetch upcoming trainings (start_date >= today) */
 export async function fetchUpcomingTrainings(fromDate: string) {

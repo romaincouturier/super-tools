@@ -1,7 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import { reconcileMissingWelcomes } from "../_shared/reconcile-welcomes.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+
 
 /**
  * Process Scheduled Emails
@@ -31,9 +33,22 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = getSupabaseClient();
 
+    // Rattrapage : programme les convocations manquantes (sessions datées après
+    // coup, participants ajoutés avant que la date soit connue).
+    let reconcile = { checkedTrainings: 0, scheduled: 0, errors: 0 };
+    try {
+      reconcile = await reconcileMissingWelcomes(supabase);
+      if (reconcile.scheduled > 0) {
+        console.log(`[process-scheduled-emails] ${reconcile.scheduled} convocation(s) rattrapée(s)`);
+      }
+    } catch (err) {
+      console.error("[process-scheduled-emails] reconcile welcomes failed:", err);
+    }
+
     // Get all pending emails that are due (scheduled_for <= now)
     const now = new Date().toISOString();
     console.log(`[process-scheduled-emails] Checking for pending emails due before: ${now}`);
+
 
     const { data: pendingEmails, error: fetchError } = await supabase
       .from("scheduled_emails")
@@ -54,8 +69,10 @@ serve(async (req) => {
         JSON.stringify({ 
           success: true, 
           message: "No pending emails to process",
+          reconcile,
           _version: FUNCTION_VERSION
         }),
+
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -111,8 +128,10 @@ serve(async (req) => {
         processed: pendingEmails.length,
         sent: successCount,
         failed: failCount,
+        reconcile,
         results,
         _version: FUNCTION_VERSION
+
       }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
