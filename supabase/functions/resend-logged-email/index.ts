@@ -5,7 +5,9 @@ import {
   createJsonResponse,
   getSupabaseClient,
   sendEmail,
+  getBccSettings,
 } from "../_shared/mod.ts";
+
 
 /**
  * Resend Logged Email
