@@ -17,7 +17,7 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { trainingId, subject, content } = await req.json();
+    const { trainingId, subject, content, participantIds } = await req.json();
 
     if (!trainingId || !subject || !content) {
       return createErrorResponse("trainingId, subject et content sont requis", 400);
@@ -25,11 +25,15 @@ serve(async (req) => {
 
     const supabase = getSupabaseClient();
 
-    // Fetch participants
-    const { data: participants, error: pError } = await supabase
+    // Fetch participants (optionally restricted to a subset)
+    let pQuery = supabase
       .from("training_participants")
       .select("id, email, first_name, last_name")
       .eq("training_id", trainingId);
+    if (Array.isArray(participantIds) && participantIds.length > 0) {
+      pQuery = pQuery.in("id", participantIds);
+    }
+    const { data: participants, error: pError } = await pQuery;
 
     if (pError || !participants || participants.length === 0) {
       return createErrorResponse("Aucun participant trouvé", 404);
