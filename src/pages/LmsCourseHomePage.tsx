@@ -55,6 +55,7 @@ import {
 import CourseHomeSidebar, { CommunityCtaButton, communityUrlWithContext, type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
 import LmsCourseLayout from "@/components/lms/LmsCourseLayout";
 import HomeIntroBox from "@/components/lms/HomeIntroBox";
+import CourseLoadState from "@/components/lms/CourseLoadState";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -956,7 +957,7 @@ export default function LmsCourseHomePage() {
   const isPreview = searchParams.get("preview") === "admin";
   const initialLessonId = searchParams.get("lesson");
 
-  const { data: course, isLoading: courseLoading } = useCourse(courseId);
+  const { data: course, isLoading: courseLoading, error: courseError, refetch: refetchCourse } = useCourse(courseId);
   const { data: modules = [] } = useCourseModules(courseId);
   const { data: allLessons = [] } = useCourseLessons(courseId);
   const { data: progress = [] } = useLearnerProgress(courseId, email || undefined);
@@ -1125,9 +1126,11 @@ export default function LmsCourseHomePage() {
 
   if (courseLoading || !course) {
     return (
-      <div className="flex items-center justify-center h-screen" style={{ background: "var(--st-white)", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}>
-        <p style={{ color: "var(--st-ink-muted)", fontSize: 14 }}>Chargement…</p>
-      </div>
+      <CourseLoadState
+        isLoading={courseLoading}
+        error={courseError}
+        onRetry={() => refetchCourse()}
+      />
     );
   }
 

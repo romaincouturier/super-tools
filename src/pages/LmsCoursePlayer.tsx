@@ -38,6 +38,7 @@ import WorkDepositSection from "@/components/lms/WorkDepositSection";
 import type { WorkDepositConfig } from "@/types/lms-work-deposit";
 import { useConfirm } from "@/hooks/useConfirm";
 import { supabase } from "@/integrations/supabase/client";
+import CourseLoadState from "@/components/lms/CourseLoadState";
 
 export default function LmsCoursePlayer() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -49,7 +50,7 @@ export default function LmsCoursePlayer() {
   // participant saisit son adresse au lieu d'un cul-de-sac.
   const [emailPrompt, setEmailPrompt] = useState("");
 
-  const { data: course } = useCourse(courseId);
+  const { data: course, isLoading: courseLoading, error: courseError, refetch: refetchCourse } = useCourse(courseId);
   const { data: modules = [] } = useCourseModules(courseId);
   const { data: allLessons = [] } = useCourseLessons(courseId);
   const { data: progress = [] } = useLearnerProgress(courseId, learnerEmail || undefined);
@@ -360,9 +361,11 @@ export default function LmsCoursePlayer() {
 
   if (!course) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">Chargement du cours...</p>
-      </div>
+      <CourseLoadState
+        isLoading={courseLoading}
+        error={courseError}
+        onRetry={() => refetchCourse()}
+      />
     );
   }
 
