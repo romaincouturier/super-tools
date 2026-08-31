@@ -128,8 +128,10 @@ serve(async (req) => {
         processed: pendingEmails.length,
         sent: successCount,
         failed: failCount,
+        reconcile,
         results,
         _version: FUNCTION_VERSION
+
       }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
