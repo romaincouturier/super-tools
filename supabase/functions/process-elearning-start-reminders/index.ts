@@ -24,9 +24,9 @@ serve(async (req) => {
     const signature = await getSigniticSignature();
 
     // E-learning trainings only
-    const { data: trainings, error: trainingsError } = await supabase
+    const { data: allTrainings, error: trainingsError } = await supabase
       .from("trainings")
-      .select("id, training_name, start_date, end_date, supports_lms_course_id, supertilt_link, location, sponsor_formal_address, catalog_id")
+      .select("id, training_name, start_date, end_date, supports_lms_course_id, supertilt_link, location, sponsor_formal_address, catalog_id, is_cancelled")
       .eq("format_formation", "e_learning");
 
     if (trainingsError) {
@@ -34,9 +34,17 @@ serve(async (req) => {
       return createErrorResponse(trainingsError.message, 500);
     }
 
-    if (!trainings || trainings.length === 0) {
+    // Only sessions that have actually started (start_date <= today) or permanent sessions (no start_date).
+    // A learner enrolled in a session starting in November must not be nudged to "start now".
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const trainings = (allTrainings || []).filter(
+      (t: any) => !t.is_cancelled && (!t.start_date || t.start_date <= todayIso),
+    );
+
+    if (trainings.length === 0) {
       return createJsonResponse({ success: true, processed: 0, sent: 0, message: "No e-learning trainings" });
     }
+
 
     // Access link = personal magic link to the SuperTools learner portal (built per participant below).
 
