@@ -21,6 +21,7 @@ import { sendEmail } from "../_shared/resend.ts";
 import { getSenderEmail } from "../_shared/email-settings.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { streamFileToGoogleDrive } from "../_shared/drive-resumable-upload.ts";
+import { mimeTypeFromFileName } from "../_shared/mime-types.ts";
 
 // ─── Tables to backup ───────────────────────────────────────────────────────
 
@@ -449,7 +450,7 @@ async function backupStorageBucket(
       try {
         // Flatten path for Drive (replace / with ___)
         const driveName = file.name.replace(/\//g, "___");
-        const mimeType = guessMimeType(file.name);
+        const mimeType = mimeTypeFromFileName(file.name);
 
         // Gros fichier : streamé sans passer par la mémoire de l'edge function.
         if (file.size && file.size > INLINE_UPLOAD_MAX_BYTES) {
@@ -557,31 +558,6 @@ async function listBucketFiles(
   return allFiles;
 }
 
-function guessMimeType(fileName: string): string {
-  const ext = fileName.split(".").pop()?.toLowerCase();
-  const map: Record<string, string> = {
-    pdf: "application/pdf",
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    gif: "image/gif",
-    webp: "image/webp",
-    svg: "image/svg+xml",
-    mp4: "video/mp4",
-    webm: "video/webm",
-    doc: "application/msword",
-    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    xls: "application/vnd.ms-excel",
-    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    ppt: "application/vnd.ms-powerpoint",
-    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    json: "application/json",
-    txt: "text/plain",
-    csv: "text/csv",
-    zip: "application/zip",
-  };
-  return map[ext || ""] || "application/octet-stream";
-}
 
 // ─── Integrity Verification ─────────────────────────────────────────────────
 
