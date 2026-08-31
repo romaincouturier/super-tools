@@ -91,11 +91,12 @@ const ParticipantMobileCard = ({
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0">
                 {(() => {
-                  const isConvoked = !["non_envoye", "manuel"].includes(participant.needs_survey_status);
+                  const isScheduled = participant.needs_survey_status === "programme";
+                  const isConvoked = !["non_envoye", "manuel", "programme"].includes(participant.needs_survey_status);
                   return (
-                    <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${isConvoked ? "text-primary" : "text-muted-foreground"}`}>
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${isConvoked ? "text-primary" : isScheduled ? "text-amber-600" : "text-muted-foreground"}`}>
                       {isConvoked ? <Send className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                      {isConvoked ? "Convoqué" : "Non convoqué"}
+                      {isConvoked ? "Convoqué" : isScheduled ? "Convocation programmée" : "Non convoqué"}
                     </span>
                   );
                 })()}
