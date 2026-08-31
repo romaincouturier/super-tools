@@ -87,7 +87,10 @@ export async function verifyAuth(
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const anonKey =
+    Deno.env.get("SUPABASE_ANON_KEY") ||
+    Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ||
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
   console.log("verifyAuth env check - URL:", !!supabaseUrl, "ANON_KEY:", !!anonKey);
 
