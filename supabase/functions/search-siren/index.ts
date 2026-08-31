@@ -131,6 +131,14 @@ serve(async (req: Request): Promise<Response> => {
 
     console.log(`Company name from SIREN: ${nomClient}`);
 
+    // Legal category (INSEE): 4xxxx = etablissement public / regie,
+    // 7xxxx = personne morale de droit public (Etat, collectivites, hopitaux...)
+    const categorieJuridique: string = String(
+      currentPeriode?.categorieJuridiqueUniteLegale || ""
+    );
+    const isPublicSector = /^(4|7)/.test(categorieJuridique);
+    console.log(`Categorie juridique: ${categorieJuridique}, public: ${isPublicSector}`);
+
     // Now fetch the headquarters (siege) to get the address
     const siegeResponse = await fetch(
       `https://api.insee.fr/api-sirene/3.11/siret?q=siren:${siren} AND etablissementSiege:true`,
@@ -196,6 +204,8 @@ serve(async (req: Request): Promise<Response> => {
         codePostal,
         ville,
         pays,
+        categorieJuridique,
+        isPublicSector,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

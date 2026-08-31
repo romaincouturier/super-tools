@@ -76,6 +76,7 @@ export interface FormationFormSectionProps {
   typeSubrogation: "sans" | "avec" | "les2";
   setTypeSubrogation: (v: "sans" | "avec" | "les2") => void;
   offrirFraisAdmin: boolean;
+  publicSectorNotice?: string | null;
   setOffrirFraisAdmin: (v: boolean) => void;
   getSelectedFormationConfig: () => FormationConfig | undefined;
   onSelectInterSession?: (d: import("@/types/formations").FormationDate) => void;

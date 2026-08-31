@@ -10,6 +10,8 @@ interface SirenSearchResult {
   villeClient?: string;
   pays?: string;
   paysAutre?: string;
+  isPublicSector?: boolean;
+  categorieJuridique?: string;
 }
 
 export function useSirenSearch() {
@@ -67,6 +69,8 @@ export function useSirenSearch() {
       }
 
       const result: SirenSearchResult = {};
+      result.isPublicSector = data?.isPublicSector === true;
+      if (data?.categorieJuridique) result.categorieJuridique = String(data.categorieJuridique);
       if (data?.nomClient) result.nomClient = capitalizeName(data.nomClient) ?? "";
       if (data?.adresse) result.adresseClient = capitalizeName(data.adresse) ?? "";
       if (data?.codePostal) result.codePostalClient = data.codePostal;

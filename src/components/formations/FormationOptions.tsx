@@ -1,6 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Info } from "lucide-react";
 
 interface FormationOptionsProps {
   includeCadeau: boolean;
@@ -9,6 +10,7 @@ interface FormationOptionsProps {
   setTypeSubrogation: (v: "sans" | "avec" | "les2") => void;
   offrirFraisAdmin: boolean;
   setOffrirFraisAdmin: (v: boolean) => void;
+  publicSectorNotice?: string | null;
 }
 
 export default function FormationOptions({
@@ -18,6 +20,7 @@ export default function FormationOptions({
   setTypeSubrogation,
   offrirFraisAdmin,
   setOffrirFraisAdmin,
+  publicSectorNotice,
 }: FormationOptionsProps) {
   return (
     <>
@@ -36,6 +39,12 @@ export default function FormationOptions({
       </div>
 
       <div className="space-y-3">
+        {publicSectorNotice && (
+          <div className="flex gap-2 items-start rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+            <Info className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+            <span className="text-muted-foreground">{publicSectorNotice}</span>
+          </div>
+        )}
         <Label>Type de devis à générer * <span className="text-muted-foreground font-normal text-sm">(150€ de frais de dossier sans subrogation, 350€ avec)</span></Label>
         <RadioGroup value={typeSubrogation} onValueChange={(v) => setTypeSubrogation(v as "sans" | "avec" | "les2")} className="space-y-2">
           <div className="flex items-center space-x-2">
