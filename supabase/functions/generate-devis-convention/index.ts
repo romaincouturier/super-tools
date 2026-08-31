@@ -58,7 +58,7 @@ serve(async (req) => {
 
   try {
     const auth = await verifyAuth(req);
-    if (!auth?.user) {
+    if (!auth) {
       return new Response(JSON.stringify({ error: "Non autorisé" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
