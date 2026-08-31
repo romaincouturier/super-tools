@@ -362,3 +362,87 @@ describe("walkTedPages : première page fournie", () => {
     expect(r.notices).toEqual([]);
   });
 });
+
+describe("fetchPageWithRetry", () => {
+  it("réussit au premier appel quand l'API répond 200", async () => {
+    const page = await fetchPageWithRetry(
+      () => Promise.resolve({ status: 200, payload: { ok: true } }),
+      null,
+      "page 1",
+    );
+    expect(page.status).toBe(200);
+    expect(page.payload).toEqual({ ok: true });
+  });
+
+  it("réessaie sur un 429 puis récupère la page suivante", async () => {
+    let calls = 0;
+    const page = await fetchPageWithRetry(
+      () => {
+        calls++;
+        if (calls === 1) return Promise.resolve({ status: 429, payload: null });
+        return Promise.resolve({ status: 200, payload: { notices: [{ id: 1 }] } });
+      },
+      "t1",
+      "page 2",
+    );
+    expect(calls).toBe(2);
+    expect(page.status).toBe(200);
+  });
+
+  it("échoue après 3 retries sur des 429 successifs", async () => {
+    let calls = 0;
+    const page = await fetchPageWithRetry(
+      () => {
+        calls++;
+        return Promise.resolve({ status: 429, payload: null });
+      },
+      "t1",
+      "page 2",
+    );
+    expect(calls).toBe(4); // appel initial + 3 retries
+    expect(page.status).toBe(429);
+  });
+
+  it("ne retry pas un 400", async () => {
+    let calls = 0;
+    const page = await fetchPageWithRetry(
+      () => {
+        calls++;
+        return Promise.resolve({ status: 400, payload: { error: "bad request" } });
+      },
+      null,
+      "page 1",
+    );
+    expect(calls).toBe(1);
+    expect(page.status).toBe(400);
+  });
+});
+
+describe("walkTedPages avec retry", () => {
+  it("reprend le parcours après un 429 passager", async () => {
+    let calls: Array<string | null> = [];
+    let attempts = 0;
+    const r = await walkTedPages({
+      fetchPage: (token) => {
+        calls.push(token);
+        if (token === "t1" && attempts === 0) {
+          attempts++;
+          return Promise.resolve({ status: 429, payload: null });
+        }
+        return Promise.resolve({
+          status: 200,
+          payload: {
+            notices: [{ id: token ?? "first" }],
+            iterationNextToken: token === null ? "t1" : null,
+          },
+        });
+      },
+      maxRecords: 100,
+      maxPages: 10,
+    });
+    expect(r.notices).toHaveLength(2);
+    expect(r.error).toBeNull();
+    expect(r.truncated).toBe(false);
+    expect(calls).toEqual([null, "t1", "t1"]);
+  });
+});
