@@ -360,9 +360,11 @@ export default function LmsCoursePlayer() {
 
   if (!course) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">Chargement du cours...</p>
-      </div>
+      <CourseLoadState
+        isLoading={courseLoading}
+        error={courseError}
+        onRetry={() => refetchCourse()}
+      />
     );
   }
 
