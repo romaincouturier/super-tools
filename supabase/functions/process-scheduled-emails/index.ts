@@ -33,9 +33,22 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = getSupabaseClient();
 
+    // Rattrapage : programme les convocations manquantes (sessions datées après
+    // coup, participants ajoutés avant que la date soit connue).
+    let reconcile = { checkedTrainings: 0, scheduled: 0, errors: 0 };
+    try {
+      reconcile = await reconcileMissingWelcomes(supabase);
+      if (reconcile.scheduled > 0) {
+        console.log(`[process-scheduled-emails] ${reconcile.scheduled} convocation(s) rattrapée(s)`);
+      }
+    } catch (err) {
+      console.error("[process-scheduled-emails] reconcile welcomes failed:", err);
+    }
+
     // Get all pending emails that are due (scheduled_for <= now)
     const now = new Date().toISOString();
     console.log(`[process-scheduled-emails] Checking for pending emails due before: ${now}`);
+
 
     const { data: pendingEmails, error: fetchError } = await supabase
       .from("scheduled_emails")
