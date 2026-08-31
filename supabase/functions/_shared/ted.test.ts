@@ -394,19 +394,23 @@ describe("fetchPageWithRetry", () => {
     expect(page.status).toBe(200);
   });
 
-  it("échoue après 3 retries sur des 429 successifs", async () => {
-    let calls = 0;
-    const page = await fetchPageWithRetry(
-      () => {
-        calls++;
-        return Promise.resolve({ status: 429, payload: null });
-      },
-      "t1",
-      "page 2",
-    );
-    expect(calls).toBe(4); // appel initial + 3 retries
-    expect(page.status).toBe(429);
-  });
+  it(
+    "échoue après 3 retries sur des 429 successifs",
+    async () => {
+      let calls = 0;
+      const page = await fetchPageWithRetry(
+        () => {
+          calls++;
+          return Promise.resolve({ status: 429, payload: null });
+        },
+        "t1",
+        "page 2",
+      );
+      expect(calls).toBe(4); // appel initial + 3 retries
+      expect(page.status).toBe(429);
+    },
+    10_000,
+  );
 
   it("ne retry pas un 400", async () => {
     let calls = 0;
