@@ -957,7 +957,7 @@ export default function LmsCourseHomePage() {
   const isPreview = searchParams.get("preview") === "admin";
   const initialLessonId = searchParams.get("lesson");
 
-  const { data: course, isLoading: courseLoading } = useCourse(courseId);
+  const { data: course, isLoading: courseLoading, error: courseError, refetch: refetchCourse } = useCourse(courseId);
   const { data: modules = [] } = useCourseModules(courseId);
   const { data: allLessons = [] } = useCourseLessons(courseId);
   const { data: progress = [] } = useLearnerProgress(courseId, email || undefined);
