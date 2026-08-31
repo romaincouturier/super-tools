@@ -69,8 +69,10 @@ serve(async (req) => {
         JSON.stringify({ 
           success: true, 
           message: "No pending emails to process",
+          reconcile,
           _version: FUNCTION_VERSION
         }),
+
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
