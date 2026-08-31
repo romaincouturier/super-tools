@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { refreshGoogleAccessToken } from "../_shared/google-oauth.ts";
 // List of all tables to backup
 const TABLES_TO_BACKUP = [
   "activity_logs",
@@ -244,34 +245,6 @@ const TABLES_TO_BACKUP = [
   "wp_traffic_daily",
 ];
 
-async function refreshGoogleAccessToken(refreshToken: string): Promise<string> {
-  const GOOGLE_OAUTH_CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID");
-  const GOOGLE_OAUTH_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET");
-
-  if (!GOOGLE_OAUTH_CLIENT_ID || !GOOGLE_OAUTH_CLIENT_SECRET) {
-    throw new Error("Google OAuth credentials not configured");
-  }
-
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: GOOGLE_OAUTH_CLIENT_ID,
-      client_secret: GOOGLE_OAUTH_CLIENT_SECRET,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Failed to refresh token:", errorText);
-    throw new Error("Failed to refresh Google access token");
-  }
-
-  const data = await response.json();
-  return data.access_token;
-}
 
 async function uploadToGoogleDrive(
   accessToken: string,
@@ -402,7 +375,7 @@ serve(async (req) => {
       } else {
         try {
           // Refresh access token
-          const accessToken = await refreshGoogleAccessToken(tokenData.refresh_token);
+          const { accessToken } = await refreshGoogleAccessToken(tokenData.refresh_token);
 
           // Get backup folder ID from settings
           const { data: settings } = await supabase

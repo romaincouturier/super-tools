@@ -17,6 +17,19 @@ describe("mimeTypeFromFileName", () => {
     );
   });
 
+  it("couvre les extensions attendues par les fonctions d'upload", () => {
+    // Ces six fonctions avaient chacune leur table : la table unique doit
+    // couvrir la réunion de leurs entrées, sinon l'une d'elles régresse.
+    expect(mimeTypeFromFileName("photo.heic")).toBe("image/heic");
+    expect(mimeTypeFromFileName("photo.heif")).toBe("image/heif");
+    expect(mimeTypeFromFileName("memo.caf")).toBe("audio/x-caf");
+    expect(mimeTypeFromFileName("piste.flac")).toBe("audio/flac");
+    expect(mimeTypeFromFileName("piste.wav")).toBe("audio/wav");
+    expect(mimeTypeFromFileName("piste.ogg")).toBe("audio/ogg");
+    expect(mimeTypeFromFileName("piste.aac")).toBe("audio/aac");
+    expect(mimeTypeFromFileName("piste.wma")).toBe("audio/x-ms-wma");
+  });
+
   it("retombe sur octet-stream pour une extension inconnue", () => {
     expect(mimeTypeFromFileName("archive.xyz")).toBe("application/octet-stream");
   });

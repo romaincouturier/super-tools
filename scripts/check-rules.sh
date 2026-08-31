@@ -422,6 +422,40 @@ if [ "$STAGED_MODE" = "false" ]; then
     "grep -l 'cron\.alter_job([0-9]\\|cron\.unschedule([0-9]' supabase/migrations/*.sql 2>/dev/null \
        | xargs -r grep -L 'FROM cron.job WHERE jobid' 2>/dev/null"
 
+  # [052a] Le rafraîchissement d'un token Google vit dans _shared/google-oauth.ts.
+  # Cinq copies coexistaient, divergentes sur la gestion d'erreur, dont aucune ne
+  # traitait la réponse 200 portant un corps d'erreur (31/08/2026).
+  check "052a" "Aucune copie du refresh OAuth Google hors _shared/google-oauth.ts" \
+    "grep -rn 'grant_type: \"refresh_token\"' supabase/functions --include='*.ts' \
+       | grep -v '_shared/google-oauth.ts'"
+
+  # [052b] Une table extension → MIME recopiée finit par diverger : seules
+  # certaines connaissaient .mov, ce qui aurait envoyé les vidéos dans Drive en
+  # application/octet-stream sans la moindre erreur (31/08/2026).
+  # Une table par runtime, pas une par fichier : le frontend et les edge
+  # functions ne peuvent pas importer le même module, mais chaque côté n'a
+  # qu'une référence — _shared/mime-types.ts et src/lib/file-utils.ts. Une
+  # liste d'extensions autorisées (input accept, validation de bucket) n'est
+  # pas une table de conversion et n'est pas visée : la signature cherchée est
+  # une entrée de conversion bureautique ou vidéo.
+  check "052b" "Aucune table extension → MIME hors des deux fichiers de référence" \
+    "grep -rnE '^[[:space:]]+(mov|docx|xlsx|pptx): \"(image|video|audio|application|text)/' \
+       supabase/functions src --include='*.ts' 2>/dev/null \
+       | grep -v '_shared/mime-types.ts' | grep -v 'src/lib/file-utils.ts'"
+
+  # [053] new Response(corps, { status: 204 }) lève une TypeError — un statut
+  # sans corps ne peut pas en porter. Dans un mock, le test part alors dans le
+  # catch et le chemin nominal n'est jamais exercé, en restant vert.
+  check "053" "Aucun mock construisant une Response à corps sur un statut 204/205/304" \
+    "grep -rnE 'new Response\\([^)]*[\"'\\''\`][^\"'\\''\`)]+[\"'\\''\`][^)]*status: (204|205|304)' \
+       src supabase --include='*.test.ts' --include='*.test.tsx' 2>/dev/null"
+
+  # [054] Une edge function absente de config.toml se déploie avec les défauts
+  # de la CLI (verify_jwt = true) sans que personne ne l'ait décidé.
+  check "054" "Toute edge function est déclarée dans config.toml" \
+    "comm -3 <(ls -d supabase/functions/*/ | sed 's|supabase/functions/||;s|/\$||' | grep -v '^_shared\$' | sort) \
+             <(grep -oP '(?<=^\\[functions\\.)[^]]+' supabase/config.toml | sort)"
+
   # [044] Aucun CREATE POLICY ne doit lire auth.users : le rôle `authenticated`
   # n'a pas SELECT dessus, la policy échoue en 403 / 42501 et l'écran reste vide
   # (constat du 03/08/2026 sur inbound_emails). Le contrôle de droits passe par

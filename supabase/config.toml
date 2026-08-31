@@ -706,3 +706,16 @@ verify_jwt = false
 
 [functions.mission-page-comment]
 verify_jwt = false
+
+# Ces trois fonctions n'étaient pas déclarées : elles se déployaient donc avec
+# le défaut verify_jwt = true. La valeur est reprise telle quelle pour ne rien
+# changer à leur comportement. tender-analyze et upload-tender-document
+# vérifient en plus l'utilisateur elles-mêmes via verifyAuth(req).
+[functions.ted-sync]
+verify_jwt = true
+
+[functions.tender-analyze]
+verify_jwt = true
+
+[functions.upload-tender-document]
+verify_jwt = true
