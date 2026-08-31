@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { WifiOff } from "lucide-react";
 
@@ -12,16 +13,28 @@ type Props = {
 /**
  * Écran d'attente du cours. Sans état d'erreur explicite, un échec réseau
  * (connexion faible) laissait l'apprenant sur "Chargement…" indéfiniment.
+ * Filet supplémentaire : au-delà de 15s sans réponse, on propose "Réessayer"
+ * même si React Query n'a pas encore rendu la main.
  */
 export default function CourseLoadState({ isLoading, error, onRetry }: Props) {
+  const [tooSlow, setTooSlow] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading) return;
+    setTooSlow(false);
+    const t = setTimeout(() => setTooSlow(true), 15000);
+    return () => clearTimeout(t);
+  }, [isLoading]);
+
   return (
     <div
       className="min-h-screen flex items-center justify-center p-6"
       style={{ background: "var(--st-white)", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}
     >
-      {isLoading && !error ? (
+      {isLoading && !error && !tooSlow ? (
         <p className="text-sm text-muted-foreground">Chargement…</p>
       ) : (
+
         <div className="max-w-sm w-full text-center space-y-4">
           <WifiOff className="w-10 h-10 mx-auto text-muted-foreground" />
           <h2 className="text-lg font-semibold">Impossible de charger la formation</h2>
