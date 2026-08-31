@@ -63,7 +63,8 @@ export async function streamFileToGoogleDrive(options: StreamUploadOptions): Pro
   }
 
   const sessionUrl = initRes.headers.get("location");
-  await initRes.body?.cancel();
+  // Corps lu même vide : une réponse non consommée garde la connexion ouverte.
+  await initRes.text();
   if (!sessionUrl) throw new Error("Drive resumable session URL missing");
 
   try {
@@ -81,7 +82,13 @@ export async function streamFileToGoogleDrive(options: StreamUploadOptions): Pro
         throw new Error(`storage range read failed (${partRes.status}) at ${offset}`);
       }
       const chunk = new Uint8Array(await partRes.arrayBuffer());
-      if (chunk.length === 0) throw new Error(`storage range read empty at ${offset}`);
+      const expected = rangeEnd - offset + 1;
+      // Un storage qui ignore l'en-tête Range renvoie le fichier entier : on
+      // enverrait alors des octets qui ne correspondent pas au Content-Range
+      // annoncé, donc un fichier corrompu dans Drive.
+      if (chunk.length !== expected) {
+        throw new Error(`storage range read mismatch at ${offset} (${chunk.length} octets pour ${expected} demandés)`);
+      }
 
       const putRes = await fetch(sessionUrl, {
         method: "PUT",
@@ -90,7 +97,7 @@ export async function streamFileToGoogleDrive(options: StreamUploadOptions): Pro
       });
 
       if (putRes.status === 200 || putRes.status === 201) {
-        await putRes.body?.cancel();
+        await putRes.text();
         return;
       }
       if (putRes.status !== 308) {
@@ -100,7 +107,7 @@ export async function streamFileToGoogleDrive(options: StreamUploadOptions): Pro
       // 308 = chunk accepté. Drive renvoie le dernier octet réellement reçu,
       // qui peut être inférieur à ce qui a été envoyé.
       const confirmedRange = putRes.headers.get("range");
-      await putRes.body?.cancel();
+      await putRes.text();
       const confirmed = confirmedRange ? Number(confirmedRange.split("-")[1]) + 1 : NaN;
       offset = Number.isFinite(confirmed) && confirmed > offset ? confirmed : offset + chunk.length;
 
@@ -114,9 +121,16 @@ export async function streamFileToGoogleDrive(options: StreamUploadOptions): Pro
     throw new Error(`Drive resumable upload incomplete (${totalSize} octets envoyés, aucune confirmation)`);
   } catch (err) {
     // Session annulée pour ne pas laisser de fichier partiel dans Drive.
-    await fetch(sessionUrl, { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } })
-      .then((r) => r.body?.cancel())
-      .catch(() => {});
+    // L'échec de l'annulation ne doit jamais masquer l'erreur d'origine.
+    try {
+      const cancelRes = await fetch(sessionUrl, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      await cancelRes.text();
+    } catch (cancelErr) {
+      console.warn("[drive-resumable-upload] Annulation de session échouée:", cancelErr);
+    }
     throw err;
   }
 }
