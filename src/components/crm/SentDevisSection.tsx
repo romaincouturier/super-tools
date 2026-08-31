@@ -3,7 +3,7 @@ import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskEmail, maskText, maskFileName, maskName } from "@/lib/demoMask";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Receipt, Copy, FileDown, AlertCircle, Loader2, ChevronDown, Mail, Paperclip, Eye, MousePointerClick, CheckCircle2, XCircle } from "lucide-react";
+import { Receipt, Copy, FileDown, FileText, AlertCircle, Loader2, ChevronDown, Mail, Paperclip, Eye, MousePointerClick, CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -61,6 +61,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
   const { isDemoMode } = useDemoMode();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState<string | null>(null);
+  const [loadingConvention, setLoadingConvention] = useState<string | null>(null);
 
   const { data: sentDevis, isLoading } = useQuery({
     queryKey: ["crm-sent-devis", email, cardId],
@@ -175,6 +176,25 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
     params.set("source", "crm");
 
     window.open(`/micro-devis?${params.toString()}`, "_blank");
+  };
+
+  const handleGenerateConvention = async (devis: SentDevis, subrogation: boolean) => {
+    const loadKey = `${devis.id}-${subrogation ? "avec" : "sans"}`;
+    setLoadingConvention(loadKey);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-devis-convention", {
+        body: { activityLogId: devis.id, subrogation },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.pdfUrl) throw new Error("PDF non généré");
+      window.open(data.pdfUrl, "_blank");
+      toast.success("Convention de formation générée");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Impossible de générer la convention");
+    } finally {
+      setLoadingConvention(null);
+    }
   };
 
   const getSubrogationLabel = (type?: string) => {
@@ -297,7 +317,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                       PDF expiré — dupliquez pour regénérer
                     </span>
                   )}
-                  {details?.form_data && (
+                  {details?.form_data && isGame && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -307,6 +327,55 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                       <Copy className="h-3 w-3 mr-1" />
                       Dupliquer
                     </Button>
+                  )}
+                  {details?.form_data && !isGame && (
+                    details?.type_subrogation === "les2" ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7 px-2"
+                          disabled={loadingConvention === `${devis.id}-sans`}
+                          onClick={() => handleGenerateConvention(devis, false)}
+                        >
+                          {loadingConvention === `${devis.id}-sans` ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <FileText className="h-3 w-3 mr-1" />
+                          )}
+                          Convention sans subrogation
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7 px-2"
+                          disabled={loadingConvention === `${devis.id}-avec`}
+                          onClick={() => handleGenerateConvention(devis, true)}
+                        >
+                          {loadingConvention === `${devis.id}-avec` ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <FileText className="h-3 w-3 mr-1" />
+                          )}
+                          Convention avec subrogation
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-7 px-2"
+                        disabled={loadingConvention === `${devis.id}-${details?.type_subrogation === "avec" ? "avec" : "sans"}`}
+                        onClick={() => handleGenerateConvention(devis, details?.type_subrogation === "avec")}
+                      >
+                        {loadingConvention?.startsWith(devis.id) ? (
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        ) : (
+                          <FileText className="h-3 w-3 mr-1" />
+                        )}
+                        Télécharger la convention de formation
+                      </Button>
+                    )
                   )}
                 </div>
               </div>

@@ -53,6 +53,7 @@ export const EXPECTED_FUNCTIONS = [
   "generate-attendance-pdf",
   "generate-certificates",
   "generate-convention-formation",
+  "generate-devis-convention",
   "generate-daily-actions",
   "generate-daily-agenda",
   "generate-game-devis",
