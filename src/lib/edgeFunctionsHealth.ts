@@ -245,8 +245,23 @@ export interface HealthCheckResult {
 }
 
 export async function checkEdgeFunctionsHealth(): Promise<HealthCheckResult> {
+  // La fonction exige un JWT admin : sans session, on ne tente pas l'appel
+  // (sinon 401 + écran blanc sur les pages publiques).
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    return {
+      checked_at: new Date().toISOString(),
+      total: EXPECTED_FUNCTIONS.length,
+      deployed: 0,
+      missing: 0,
+      unknown: EXPECTED_FUNCTIONS.length,
+      functions: EXPECTED_FUNCTIONS.map((name) => ({ name, status: "unknown" as const })),
+    };
+  }
+
   const { data, error } = await supabase.functions.invoke<HealthCheckResult>("check-functions-health", {
     body: {},
+    headers: { Authorization: `Bearer ${session.access_token}` },
   });
 
   if (error) {
