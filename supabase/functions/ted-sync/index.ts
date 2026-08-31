@@ -7,6 +7,7 @@ import {
 } from "../_shared/mod.ts";
 import {
   buildTedSearchBody,
+  fetchPageWithRetry,
   mapTedNotice,
   noticesOf,
   TED_BASE,
