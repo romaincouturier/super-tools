@@ -142,6 +142,9 @@ verify_jwt = false
 [functions.generate-convention-formation]
 verify_jwt = false
 
+[functions.generate-devis-convention]
+verify_jwt = false
+
 [functions.get-devis-pdf-url]
 verify_jwt = false
 
