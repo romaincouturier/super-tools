@@ -473,7 +473,7 @@ function isRetryableStatus(status: number): boolean {
  * synchronisation alors qu'il restait des pages à lire. Un backoff court
  * (1s, 2s, 4s) permet de reprendre sans dépasser le budget d'une fonction Edge.
  */
-async function fetchPageWithRetry(
+export async function fetchPageWithRetry(
   fetchPage: (token: string | null) => Promise<TedPage>,
   token: string | null,
   pageLabel: string,
