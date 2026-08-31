@@ -1,5 +1,5 @@
 # Roadmap
 
 - [ ] Mail d'attente Echo aux clients de la colonne "Reçues" (proposition rédigée, envoi à valider)
-- [ ] Convocations J-7 non programmées : si une session est créée sans date (intra) puis datée ensuite, aucun `scheduled_emails` type `welcome` n'est créé -> convocation jamais envoyée (cas Agirc-ARRCO 12/10/2026). Programmer la convocation à la confirmation de la date.
+- [x] Convocations J-7 non programmées : rattrapage via `reconcile-welcome-emails` (appelé à la mise à jour de `start_date` et par le cron `process-scheduled-emails`). Cas Agirc-ARRCO corrigé (7 convocations programmées au 01/10).
 - [x] Icône avion : `needs_survey_status = programme` affichait "Convocation envoyée" (corrigé : "Convocation programmée")
