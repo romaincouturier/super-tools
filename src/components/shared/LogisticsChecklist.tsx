@@ -151,16 +151,20 @@ export function LogisticsChecklist({ entityType, entityId, hideWhenEmpty = false
               </span>
             )}
           </h4>
-          {templates.length > 0 && (
-            <Popover open={importOpen} onOpenChange={setImportOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
-                  <Download className="h-3.5 w-3.5" />
-                  Importer un modèle
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-2" align="end">
-                <p className="text-xs text-muted-foreground mb-2 px-1">Choisir un modèle à ajouter :</p>
+          <Popover open={importOpen} onOpenChange={setImportOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
+                <Download className="h-3.5 w-3.5" />
+                Importer un modèle
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-2" align="end">
+              <p className="text-xs text-muted-foreground mb-2 px-1">Choisir un modèle à ajouter :</p>
+              {templates.length === 0 ? (
+                <p className="text-xs text-muted-foreground px-1 py-1">
+                  Aucun modèle disponible. Créez-en un dans Paramètres généraux.
+                </p>
+              ) : (
                 <ul className="space-y-0.5">
                   {templates.map((t) => (
                     <li key={t.id}>
@@ -178,9 +182,10 @@ export function LogisticsChecklist({ entityType, entityId, hideWhenEmpty = false
                     </li>
                   ))}
                 </ul>
-              </PopoverContent>
-            </Popover>
-          )}
+              )}
+            </PopoverContent>
+          </Popover>
+
         </div>
 
         {items.length === 0 && (
