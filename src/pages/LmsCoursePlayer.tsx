@@ -49,7 +49,7 @@ export default function LmsCoursePlayer() {
   // participant saisit son adresse au lieu d'un cul-de-sac.
   const [emailPrompt, setEmailPrompt] = useState("");
 
-  const { data: course } = useCourse(courseId);
+  const { data: course, isLoading: courseLoading, error: courseError, refetch: refetchCourse } = useCourse(courseId);
   const { data: modules = [] } = useCourseModules(courseId);
   const { data: allLessons = [] } = useCourseLessons(courseId);
   const { data: progress = [] } = useLearnerProgress(courseId, learnerEmail || undefined);
