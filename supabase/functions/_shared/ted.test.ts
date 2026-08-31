@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   allTexts,
   buildTedSearchBody,
+  fetchPageWithRetry,
   firstText,
   mapTedNotice,
   noticesOf,
