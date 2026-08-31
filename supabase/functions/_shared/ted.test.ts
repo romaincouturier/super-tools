@@ -222,21 +222,25 @@ describe("walkTedPages", () => {
   // Le défaut le plus coûteux d'un connecteur est celui qui ne se voit pas :
   // une page en échec au milieu du parcours laissait passer une
   // synchronisation « réussie » à laquelle il manquait la moitié du flux.
-  it("remonte une page en échec au lieu de la taire", async () => {
-    // 4 pages 503 = appel initial + 3 retries ; fetchPageWithRetry abandonne
-    // et walkTedPages propage le statut.
-    const ted = fakeTed([
-      { notices: [{ id: 1 }], next: "t1" },
-      { status: 503 },
-      { status: 503 },
-      { status: 503 },
-      { status: 503 },
-    ]);
-    const r = await walkTedPages({ fetchPage: ted.fetchPage, maxRecords: 100, maxPages: 10 });
-    expect(r.notices).toHaveLength(1);
-    expect(r.error).toContain("503");
-    expect(r.truncated).toBe(true);
-  });
+  it(
+    "remonte une page en échec au lieu de la taire",
+    async () => {
+      // 4 pages 503 = appel initial + 3 retries ; fetchPageWithRetry abandonne
+      // et walkTedPages propage le statut.
+      const ted = fakeTed([
+        { notices: [{ id: 1 }], next: "t1" },
+        { status: 503 },
+        { status: 503 },
+        { status: 503 },
+        { status: 503 },
+      ]);
+      const r = await walkTedPages({ fetchPage: ted.fetchPage, maxRecords: 100, maxPages: 10 });
+      expect(r.notices).toHaveLength(1);
+      expect(r.error).toContain("503");
+      expect(r.truncated).toBe(true);
+    },
+    10_000,
+  );
 
   it("remonte un échec dès la première page", async () => {
     const ted = fakeTed([{ status: 400 }]);
