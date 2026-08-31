@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "@/lib/toast";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { cn } from "@/lib/utils";
 import { openStorageUrl } from "@/lib/storageUrl";
 import DOMPurify from "dompurify";
@@ -132,6 +133,12 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
     return items;
   }, [emails, sentDevis]);
 
+  // Le message d'erreur remonte du corps de la réponse, pas du toast générique.
+  const { invoke: invokeGenerateConvention } = useEdgeFunction<{ error?: string; pdfUrl?: string; fileName?: string }>(
+    "generate-devis-convention",
+    { silentOnError: true },
+  );
+
   const handleOpenPdf = async (storagePath: string | undefined | null, fallbackUrl: string | undefined | null, loadKey: string) => {
     // Prefer signed URL from Supabase Storage
     if (storagePath) {
@@ -145,8 +152,9 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
           setLoadingPdf(null);
           return;
         }
-      } catch {
-        // Fall through to fallback URL
+      } catch (signedUrlErr) {
+        // On bascule sur l'URL historique, mais sans perdre la cause.
+        console.warn("[SentDevisSection] URL signée indisponible:", signedUrlErr);
       }
       setLoadingPdf(null);
     }
@@ -183,10 +191,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
     const loadKey = `${devis.id}-${subrogation ? "avec" : "sans"}`;
     setLoadingConvention(loadKey);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-devis-convention", {
-        body: { activityLogId: devis.id, subrogation },
-      });
-      if (error) throw error;
+      const data = await invokeGenerateConvention({ activityLogId: devis.id, subrogation });
       if (data?.error) throw new Error(data.error);
       if (!data?.pdfUrl) throw new Error("PDF non généré");
       const fileName = data.fileName || `convention-${subrogation ? "avec" : "sans"}-subrogation.pdf`;
@@ -202,7 +207,9 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 5000);
-      } catch {
+      } catch (downloadErr) {
+        // Téléchargement direct impossible : on retombe sur un lien classique.
+        console.warn("[SentDevisSection] Téléchargement du PDF échoué:", downloadErr);
         const a = document.createElement("a");
         a.href = data.pdfUrl;
         a.download = fileName;

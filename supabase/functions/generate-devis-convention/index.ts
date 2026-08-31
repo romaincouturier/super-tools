@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 import { getDossierFee } from "../_shared/dossier-fee.ts";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 
@@ -56,10 +56,7 @@ serve(async (req) => {
   try {
     const auth = await verifyAuth(req);
     if (!auth) {
-      return new Response(JSON.stringify({ error: "Non autorisé" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("Non autorisé", 401);
     }
 
     const { activityLogId, subrogation = false }: RequestBody = await req.json();
@@ -238,11 +235,11 @@ serve(async (req) => {
 
     throw new Error("Delai de generation PDF depasse");
   } catch (error: unknown) {
-    await reportEdgeError(error, { fn: "generate-devis-convention" });
     console.error("Error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    return createErrorResponse(
+      error instanceof Error ? error.message : "Unknown error",
+      500,
+      { cause: error, fn: "generate-devis-convention" },
     );
   }
 });
