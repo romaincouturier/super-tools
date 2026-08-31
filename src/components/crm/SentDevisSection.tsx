@@ -177,6 +177,25 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
     window.open(`/micro-devis?${params.toString()}`, "_blank");
   };
 
+  const handleGenerateConvention = async (devis: SentDevis, subrogation: boolean) => {
+    const loadKey = `${devis.id}-${subrogation ? "avec" : "sans"}`;
+    setLoadingConvention(loadKey);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-devis-convention", {
+        body: { activityLogId: devis.id, subrogation },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.pdfUrl) throw new Error("PDF non généré");
+      window.open(data.pdfUrl, "_blank");
+      toast.success("Convention de formation générée");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Impossible de générer la convention");
+    } finally {
+      setLoadingConvention(null);
+    }
+  };
+
   const getSubrogationLabel = (type?: string) => {
     switch (type) {
       case "sans": return "Sans subrogation";
