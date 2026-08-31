@@ -118,7 +118,7 @@ serve(async (req) => {
       .filter((p) => p.length > 0);
     const nbParticipants = Math.max(
       1,
-      Number(form.nbParticipants ?? (details.nb_participants as number) ?? participantsList.length || 1),
+      Number(form.nbParticipants ?? (details.nb_participants as number) ?? (participantsList.length || 1)),
     );
     const stagiaires = [...participantsList];
     for (let i = stagiaires.length; i < nbParticipants; i++) {
