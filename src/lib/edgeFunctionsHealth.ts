@@ -260,18 +260,24 @@ export async function checkEdgeFunctionsHealth(): Promise<HealthCheckResult> {
     };
   }
 
-  const { data, error } = await supabase.functions.invoke<HealthCheckResult>("check-functions-health", {
-    body: {},
-    headers: { Authorization: `Bearer ${session.access_token}` },
-  });
+  const unknownResult: HealthCheckResult = {
+    checked_at: new Date().toISOString(),
+    total: EXPECTED_FUNCTIONS.length,
+    deployed: 0,
+    missing: 0,
+    unknown: EXPECTED_FUNCTIONS.length,
+    functions: EXPECTED_FUNCTIONS.map((name) => ({ name, status: "unknown" as const })),
+  };
 
-  if (error) {
-    throw new Error(error.message || "Impossible de vérifier les Edge Functions");
+  try {
+    const { data, error } = await supabase.functions.invoke<HealthCheckResult>("check-functions-health", {
+      body: {},
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (error || !data) return unknownResult;
+    return data;
+  } catch {
+    // Erreur réseau / fonction indisponible : pas d'alerte, pas de remontée Sentry
+    return unknownResult;
   }
-
-  if (!data) {
-    throw new Error("Aucune réponse de vérification des Edge Functions");
-  }
-
-  return data;
 }
