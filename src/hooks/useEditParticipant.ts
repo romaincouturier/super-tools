@@ -52,6 +52,7 @@ export interface UseEditParticipantOptions {
   trainingId: string;
   formatFormation?: string | null;
   isInterEntreprise: boolean;
+  isFreeTraining?: boolean;
   availableFormulas: FormationFormula[];
   onParticipantUpdated: () => void;
 }
@@ -85,6 +86,7 @@ export function useEditParticipant({
   trainingId,
   formatFormation,
   isInterEntreprise,
+  isFreeTraining = false,
   availableFormulas,
   onParticipantUpdated,
 }: UseEditParticipantOptions) {
@@ -156,8 +158,8 @@ export function useEditParticipant({
         last_name: capitalizeName(v.lastName) || null,
         email: v.email.trim().toLowerCase(),
         company: v.company.trim() || null,
-        type_stagiaire_bpf: v.typeStagiaireBpf || null,
-        source_financement_bpf: v.sourceFinancementBpf || null,
+        type_stagiaire_bpf: isFreeTraining ? null : (v.typeStagiaireBpf || null),
+        source_financement_bpf: isFreeTraining ? null : (v.sourceFinancementBpf || null),
       };
 
       if (isInterEntreprise) {
@@ -181,9 +183,9 @@ export function useEditParticipant({
           ? v.financeurUrl.trim() || null
           : null;
         updateData.payment_mode = v.paymentMode;
-        updateData.sold_price_ht = v.soldPriceHt
-          ? parseFloat(v.soldPriceHt)
-          : null;
+        updateData.sold_price_ht = isFreeTraining
+          ? null
+          : (v.soldPriceHt ? parseFloat(v.soldPriceHt) : null);
         if (availableFormulas.length > 0) {
           updateData.formula = v.formula || null;
           const matched = availableFormulas.find((f) => f.name === v.formula);
@@ -201,7 +203,7 @@ export function useEditParticipant({
 
       return updateData;
     },
-    [isInterEntreprise, availableFormulas, formulaAllowsCoaching],
+    [isInterEntreprise, isFreeTraining, availableFormulas, formulaAllowsCoaching],
   );
 
   // --- Compose form values for auto-save tracking ---

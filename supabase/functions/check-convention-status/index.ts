@@ -46,7 +46,7 @@ serve(async (req: Request): Promise<Response> => {
 
     const { data: trainings, error: trainingsError } = await supabase
       .from("trainings")
-      .select("id, training_name, start_date, format_formation, convention_file_url, client_name, sponsor_email")
+      .select("id, training_name, start_date, format_formation, convention_file_url, client_name, sponsor_email, is_free")
       .gte("start_date", today)
       .order("start_date", { ascending: true });
 
@@ -55,7 +55,9 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error("Impossible de récupérer les formations");
     }
 
-    if (!trainings || trainings.length === 0) {
+    const billableTrainings = (trainings || []).filter((training) => !training.is_free);
+
+    if (billableTrainings.length === 0) {
       console.log("No upcoming trainings found");
       return new Response(
         JSON.stringify({ success: true, message: "Aucune formation à venir", issues: 0 }),
@@ -63,8 +65,8 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Fetch convention email logs for all upcoming trainings
-    const trainingIds = trainings.map((t) => t.id);
+    // Fetch convention email logs for all upcoming billable trainings
+    const trainingIds = billableTrainings.map((t) => t.id);
 
     const { data: conventionLogs } = await supabase
       .from("activity_logs")
@@ -84,7 +86,7 @@ serve(async (req: Request): Promise<Response> => {
 
     // For inter-entreprises, also check per-participant convention emails
     // Fetch participants for inter trainings
-    const interTrainingIds = trainings
+    const interTrainingIds = billableTrainings
       .filter((t) => t.format_formation === "inter-entreprises" || t.format_formation === "e_learning")
       .map((t) => t.id);
 
@@ -120,7 +122,7 @@ serve(async (req: Request): Promise<Response> => {
     // Identify issues
     const issuesList: TrainingIssue[] = [];
 
-    for (const training of trainings) {
+    for (const training of billableTrainings) {
       const issues: string[] = [];
       const isIntra = training.format_formation === "intra";
       const isInter = training.format_formation === "inter-entreprises" || training.format_formation === "e_learning";

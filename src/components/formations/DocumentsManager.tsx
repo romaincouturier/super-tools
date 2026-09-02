@@ -20,6 +20,7 @@ const DocumentsManager = ({
   supportsLmsCourseId: initialSupportsLmsCourseId,
   evaluationLink, formatFormation,
   isInterEntreprise: isInterEntrepriseProp,
+  isFreeTraining = false,
   conventionFileUrl: initialConventionUrl,
   trainerName, location, schedules, participants,
   signedConventionUrls: initialSignedConventionUrls, clientName, trainingDuree, onUpdate,
@@ -54,7 +55,7 @@ const DocumentsManager = ({
           <CardDescription>Gérez les documents administratifs et les communications</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <ConventionSection
+          {!isFreeTraining && <ConventionSection
             trainingId={trainingId} isInterEntreprise={isInterEntreprise} formatFormation={formatFormation}
             conventionFileUrl={conventionFileUrl} setConventionFileUrl={setConventionFileUrl}
             sponsorEmail={sponsorEmail} sponsorName={sponsorName} sponsorFirstName={sponsorFirstName}
@@ -65,7 +66,7 @@ const DocumentsManager = ({
             conventionSignatureUrl={conventionSignatureUrl} setConventionSignatureUrl={setConventionSignatureUrl}
             signedConventionUrls={signedConventionUrls} setSignedConventionUrls={setSignedConventionUrls}
             onUpdate={onUpdate}
-          />
+          />}
           <SupportsSection
             trainingId={trainingId}
             initialType={initialSupportsType}
@@ -85,10 +86,10 @@ const DocumentsManager = ({
             setAttendanceSheetsUrls={setAttendanceSheetsUrls} sheetsSentAt={documentsSentInfo.sheets}
             onUpdate={onUpdate}
           />
-          <InvoiceSection
+          {!isFreeTraining && <InvoiceSection
             trainingId={trainingId} isInterEntreprise={isInterEntreprise} invoiceFileUrl={invoiceFileUrl}
             setInvoiceFileUrl={setInvoiceFileUrl} invoiceSentAt={documentsSentInfo.invoice} onUpdate={onUpdate}
-          />
+          />}
           <DocumentDeliverySection
             trainingId={trainingId} trainingName={trainingName} startDate={startDate} endDate={endDate}
             isInterEntreprise={isInterEntreprise} invoiceFileUrl={invoiceFileUrl}

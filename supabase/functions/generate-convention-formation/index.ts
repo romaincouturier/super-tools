@@ -190,6 +190,12 @@ serve(async (req: Request): Promise<Response> => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    if (training.is_free) {
+      return new Response(
+        JSON.stringify({ error: "Aucune convention n'est générée pour une formation gratuite" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     // Determine convention scope.
     // - Sessions inter (session_type = "inter", ou format inter-entreprises / e-learning) :

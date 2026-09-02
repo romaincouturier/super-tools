@@ -59,7 +59,7 @@ const ParticipantTable = ({
             </button>
           </TableHead>
           <TableHead>Entreprise</TableHead>
-          {actionsProps.isInterEntreprise && (
+          {actionsProps.isInterEntreprise && !actionsProps.isFreeTraining && (
             <TableHead>
               <button onClick={() => onToggleSort("amount")} className="flex items-center hover:text-foreground transition-colors">
                 Montant HT <SortIcon field="amount" sortField={sortField} sortDirection={sortDirection} />
@@ -110,9 +110,10 @@ const ParticipantTable = ({
                       )}
                       {(() => {
                         const missingType =
-                    actionsProps.isInterEntreprise && !participant.type_stagiaire_bpf;
+                    actionsProps.isInterEntreprise && !actionsProps.isFreeTraining && !participant.type_stagiaire_bpf;
                         const missingSource =
                           actionsProps.isInterEntreprise &&
+                          !actionsProps.isFreeTraining &&
                           !actionsProps.bpfTrainingHasSource &&
                           !participant.source_financement_bpf;
                         if (!missingType && !missingSource) return null;
@@ -183,7 +184,7 @@ const ParticipantTable = ({
               <TableCell className="text-sm text-muted-foreground">
                 {isDemoMode ? maskText(participant.company) || "—" : (participant.company || "—")}
               </TableCell>
-              {actionsProps.isInterEntreprise && (
+              {actionsProps.isInterEntreprise && !actionsProps.isFreeTraining && (
                 <TableCell className="tabular-nums">
                   {participant.sold_price_ht != null
                     ? (isDemoMode ? maskAmount(participant.sold_price_ht) : `${participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €`)

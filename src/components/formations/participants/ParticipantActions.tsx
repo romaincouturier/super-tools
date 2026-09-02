@@ -38,6 +38,7 @@ const ParticipantActions = ({
   formatFormation,
   isInterEntreprise,
   isIndividualConvention,
+  isFreeTraining,
   trainingLocation,
   trainingDuree,
   trainingStartDate,
@@ -346,6 +347,7 @@ const ParticipantActions = ({
         trainingId={trainingId}
         formatFormation={formatFormation}
         isInterEntreprise={isInterEntreprise}
+        isFreeTraining={isFreeTraining}
         availableFormulas={availableFormulas}
         trainingDuree={trainingDuree}
         trainingDates={[trainingStartDate, trainingEndDate]}

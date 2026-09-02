@@ -52,6 +52,7 @@ interface AddParticipantDialogProps {
   clientName?: string;
   formatFormation?: string | null;
   isInterEntreprise?: boolean;
+  isFreeTraining?: boolean;
   availableFormulas?: FormationFormula[];
   trainingFormulaId?: string | null;
   onParticipantAdded: () => void;
@@ -82,7 +83,7 @@ interface AddParticipantDialogProps {
   description?: string;
 }
 
-const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSponsorPhone, initialSoldPriceHt, initialFormulaId, initialPaymentMode, initialFinanceurSameAsSponsor, initialFinanceurName, initialFinanceurUrl, initialTypeStagiaireBpf, initialSourceFinancementBpf, externalOpen, onExternalOpenChange, trigger, title, description }: AddParticipantDialogProps) => {
+const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, isFreeTraining = false, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSponsorPhone, initialSoldPriceHt, initialFormulaId, initialPaymentMode, initialFinanceurSameAsSponsor, initialFinanceurName, initialFinanceurUrl, initialTypeStagiaireBpf, initialSourceFinancementBpf, externalOpen, onExternalOpenChange, trigger, title, description }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = (v: boolean) => {
@@ -250,9 +251,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
       financeurName,
       financeurUrl,
       paymentMode,
-      soldPriceHt,
-      typeStagiaireBpf,
-      sourceFinancementBpf,
+      soldPriceHt: isFreeTraining ? "" : soldPriceHt,
+      typeStagiaireBpf: isFreeTraining ? "" : typeStagiaireBpf,
+      sourceFinancementBpf: isFreeTraining ? "" : sourceFinancementBpf,
     });
   };
 
@@ -330,7 +331,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
               />
             </div>
 
-            {isInterEntreprise && (
+            {isInterEntreprise && !isFreeTraining && (
               <div className="space-y-2">
                 <Label htmlFor="companyAddress">Adresse de la société</Label>
                 <Input
@@ -400,7 +401,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
             )}
 
             {/* BPF: type de stagiaire + source de financement */}
-            {isInterEntreprise && (
+            {isInterEntreprise && !isFreeTraining && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Type de stagiaire (BPF)</Label>

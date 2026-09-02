@@ -110,6 +110,7 @@ const FormationDetailSections = ({
           evaluationLink={training.evaluation_link}
           formatFormation={training.format_formation}
           isInterEntreprise={isInterSession}
+          isFreeTraining={!!training.is_free}
           conventionFileUrl={training.convention_file_url}
           trainerName={training.trainer_name}
           location={training.location}

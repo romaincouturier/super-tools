@@ -62,6 +62,7 @@ interface Training {
   is_cancelled: boolean | null;
   is_permanent?: boolean | null;
   sold_price_ht?: number | null;
+  is_free?: boolean;
   participant_count?: number;
   /** Number of participants with payment_mode=invoice and no invoice_file_url */
   unbilled_count?: number;
@@ -201,9 +202,9 @@ const Formations = () => {
         return {
           ...t,
           participant_count: countMap.get(t.id) || 0,
-          unbilled_count: unbilledCount,
+          unbilled_count: t.is_free ? 0 : unbilledCount,
           is_intra: isIntra,
-          bpf_incomplete: bpfIncomplete,
+          bpf_incomplete: t.is_free ? false : bpfIncomplete,
         };
       });
       setTrainings(trainingsWithCount);
@@ -680,6 +681,7 @@ const Formations = () => {
                                   : `${training.unbilled_count} non facturé${(training.unbilled_count ?? 0) > 1 ? "s" : ""}`}
                               </Badge>
                             )}
+                            {training.is_free && <Badge variant="secondary" className="text-xs px-1.5 py-0">🎁 Gratuite</Badge>}
                             {filter === "past" && training.bpf_incomplete && (
                               <Badge variant="destructive" className="text-xs px-1.5 py-0">
                                 BPF
@@ -834,6 +836,7 @@ const Formations = () => {
                                     : `${training.unbilled_count} non facturé${(training.unbilled_count ?? 0) > 1 ? "s" : ""}`}
                                 </Badge>
                               )}
+                              {training.is_free && <Badge variant="secondary" className="text-xs px-1.5 py-0">🎁 Gratuite</Badge>}
                               {filter === "past" && training.bpf_incomplete && (
                                 <Badge variant="destructive" className="text-xs px-1.5 py-0">
                                   BPF

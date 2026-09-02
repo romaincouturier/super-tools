@@ -24,13 +24,14 @@ interface BulkAddParticipantsDialogProps {
   onParticipantsAdded: () => void;
   onScheduledEmailsRefresh?: () => void;
   isInterEntreprise?: boolean;
+  isFreeTraining?: boolean;
   formatFormation?: string | null;
 }
 
 const pluralize = (count: number) => (count !== 1 ? "s" : "");
 
 const BulkAddParticipantsDialog = ({
-  trainingId, trainingStartDate, trainingEndDate, onParticipantsAdded, onScheduledEmailsRefresh, isInterEntreprise = false, formatFormation,
+  trainingId, trainingStartDate, trainingEndDate, onParticipantsAdded, onScheduledEmailsRefresh, isInterEntreprise = false, isFreeTraining = false, formatFormation,
 }: BulkAddParticipantsDialogProps) => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -57,7 +58,7 @@ const BulkAddParticipantsDialog = ({
       const ongoing = isTrainingOngoing(trainingStartDate, trainingEndDate);
       // Send welcome email when training is future (existing behaviour) OR ongoing
       // (mid-session add: participants still need convocation / classe virtuelle link).
-      if ((status !== "non_envoye" || ongoing) && data && data.length > 0 && formatFormation !== "e_learning") {
+      if (!isFreeTraining && (status !== "non_envoye" || ongoing) && data && data.length > 0 && formatFormation !== "e_learning") {
         await sendWelcomeEmailsToBatch(data, trainingId);
       }
       if (formatFormation === "e_learning" && data && data.length > 0) await sendElearningAccessToBatch(data, trainingId);
@@ -79,7 +80,11 @@ const BulkAddParticipantsDialog = ({
       }
       if (data && data.length > 0) await logBulkAddActivity(data, trainingId, isInterEntreprise);
       const n = data?.length || 0;
-      const baseMessage = ongoing
+      const baseMessage = isFreeTraining
+        ? formatFormation === "e_learning"
+          ? "Formation gratuite — accès e-learning envoyé."
+          : "Formation gratuite — aucune convocation ni convention envoyée."
+        : ongoing
         ? `Formation en cours — mail d'accueil envoyé${attendanceCatchUpSlots > 0 ? `, ${attendanceCatchUpSlots} demande${pluralize(attendanceCatchUpSlots)} d'émargement rattrapée${pluralize(attendanceCatchUpSlots)}` : ""}.`
         : buildStatusMessage(status, sendWelcomeNow, needsSurveySkipped);
       toast({

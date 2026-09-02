@@ -11357,6 +11357,7 @@ export type Database = {
           id: string
           invoice_file_url: string | null
           is_cancelled: boolean | null
+          is_free: boolean
           location: string
           logistics_email_sent_at: string | null
           logistics_email_sent_to: string | null
@@ -11428,6 +11429,7 @@ export type Database = {
           id?: string
           invoice_file_url?: string | null
           is_cancelled?: boolean | null
+          is_free?: boolean
           location: string
           logistics_email_sent_at?: string | null
           logistics_email_sent_to?: string | null
@@ -11499,6 +11501,7 @@ export type Database = {
           id?: string
           invoice_file_url?: string | null
           is_cancelled?: boolean | null
+          is_free?: boolean
           location?: string
           logistics_email_sent_at?: string | null
           logistics_email_sent_to?: string | null

@@ -54,7 +54,7 @@ serve(async (req: Request): Promise<Response> => {
     // Fetch training details
     const { data: training, error: trainingError } = await supabase
       .from("trainings")
-      .select("training_name, start_date, end_date, client_name, sponsor_email, admin_contact_same_as_sponsor, admin_contact_email, admin_contact_first_name, admin_contact_last_name")
+      .select("training_name, start_date, end_date, client_name, sponsor_email, admin_contact_same_as_sponsor, admin_contact_email, admin_contact_first_name, admin_contact_last_name, is_free")
       .eq("id", trainingId)
       .single();
 
@@ -62,6 +62,13 @@ serve(async (req: Request): Promise<Response> => {
       return new Response(
         JSON.stringify({ error: "Formation introuvable" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (training.is_free) {
+      return new Response(
+        JSON.stringify({ error: "Aucune convention n'est envoyée pour une formation gratuite" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

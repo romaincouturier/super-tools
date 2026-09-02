@@ -64,6 +64,7 @@ export interface ParticipantListProps {
    * the per-participant BPF alert for inter sessions where the training-level
    * source already covers everyone. */
   bpfTrainingHasSource?: boolean;
+  isFreeTraining?: boolean;
 }
 
 export interface ParticipantActionsProps {
@@ -119,6 +120,7 @@ export interface ParticipantActionsProps {
   canSendConventionReminderFor: (participant: Participant) => boolean;
   /** True if the training itself has a source_financement_bpf. */
   bpfTrainingHasSource?: boolean;
+  isFreeTraining?: boolean;
 }
 
 export type SortField = "last_name" | "first_name" | "email" | "amount";

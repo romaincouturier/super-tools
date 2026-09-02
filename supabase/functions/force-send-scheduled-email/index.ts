@@ -69,6 +69,13 @@ const handler = async (req: Request): Promise<Response> => {
     if (trainingError || !training) {
       throw new Error("Training not found");
     }
+    if (training.is_free && scheduledEmail.email_type === "welcome") {
+      await supabase
+        .from("scheduled_emails")
+        .update({ status: "cancelled", error_message: "Convocation non envoyée pour une formation gratuite" })
+        .eq("id", scheduledEmailId);
+      throw new Error("La convocation n'est pas envoyée pour une formation gratuite");
+    }
 
     // Fetch required equipment from catalog if linked
     let requiredEquipment = "";

@@ -69,9 +69,10 @@ const ParticipantMobileCard = ({
                 )}
                 {(() => {
                   const missingType =
-                    actionsProps.isInterEntreprise && !participant.type_stagiaire_bpf;
+                    actionsProps.isInterEntreprise && !actionsProps.isFreeTraining && !participant.type_stagiaire_bpf;
                   const missingSource =
                     actionsProps.isInterEntreprise &&
+                    !actionsProps.isFreeTraining &&
                     !actionsProps.bpfTrainingHasSource &&
                     !participant.source_financement_bpf;
                   if (!missingType && !missingSource) return null;
@@ -109,7 +110,7 @@ const ParticipantMobileCard = ({
                 </Badge>
               </div>
             </div>
-            {actionsProps.isInterEntreprise && participant.sold_price_ht != null && (
+            {actionsProps.isInterEntreprise && !actionsProps.isFreeTraining && participant.sold_price_ht != null && (
               <p className="text-xs text-muted-foreground">
                 {isDemoMode ? maskAmount(participant.sold_price_ht) : `${participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € HT`}
                 {participant.payment_mode === "invoice" && !participant.invoice_file_url && (

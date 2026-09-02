@@ -15,6 +15,7 @@ const ParticipantList = ({
   formatFormation, isInterEntreprise: isInterEntrepriseProp,
   availableFormulas = [], attendanceSheetsUrls, clientName, trainingDuree, onParticipantUpdated,
   bpfTrainingHasSource,
+  isFreeTraining = false,
 }: ParticipantListProps) => {
   const isMobile = useIsMobile();
   const [documentsParticipant, setDocumentsParticipant] = useState<Participant | null>(null);
@@ -38,6 +39,7 @@ const ParticipantList = ({
   });
 
   const toggleSort = (field: SortField) => {
+    if (isFreeTraining && field === "amount") return;
     if (sortField === field) {
       if (sortDirection === "asc") setSortDirection("desc");
       else { setSortField(null); setSortDirection("asc"); }
@@ -51,7 +53,7 @@ const ParticipantList = ({
       case "last_name": return dir * (a.last_name || "").localeCompare(b.last_name || "", "fr");
       case "first_name": return dir * (a.first_name || "").localeCompare(b.first_name || "", "fr");
       case "email": return dir * a.email.localeCompare(b.email, "fr");
-      case "amount": return dir * ((a.sold_price_ht || 0) - (b.sold_price_ht || 0));
+      case "amount": return isFreeTraining ? 0 : dir * ((a.sold_price_ht || 0) - (b.sold_price_ht || 0));
       default: return 0;
     }
   }), [participants, sortField, sortDirection]);
@@ -103,6 +105,7 @@ const ParticipantList = ({
     canSendSurveyFor: actions.canSendSurveyFor, canSendReminderFor: actions.canSendReminderFor,
     canSendConventionReminderFor: actions.canSendConventionReminderFor,
     bpfTrainingHasSource: !!bpfTrainingHasSource,
+    isFreeTraining,
   };
 
   return (
