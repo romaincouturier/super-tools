@@ -114,13 +114,27 @@ serve(async (req) => {
 
         console.log(`[${VERSION}] Sending for "${training.training_name}" — ${reason}`);
 
-        // Format training date for email
-        const trainingDateFormatted = new Date(training.start_date).toLocaleDateString("fr-FR", {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        });
+        // Date de session réelle : planning d'abord, start_date seulement si journée unique
+        const { data: logisticsSchedules } = await supabase
+          .from("training_schedules")
+          .select("day_date")
+          .eq("training_id", training.id)
+          .order("day_date", { ascending: true });
+
+        const { sessionStart } = resolveSessionDate(
+          logisticsSchedules,
+          training.start_date,
+          training.end_date,
+        );
+
+        const trainingDateFormatted = sessionStart
+          ? new Date(sessionStart).toLocaleDateString("fr-FR", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })
+          : "";
 
         // Fetch template
         const useTutoiement = training.sponsor_formal_address === false;
