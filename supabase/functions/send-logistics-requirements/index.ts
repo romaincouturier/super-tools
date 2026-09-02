@@ -6,6 +6,7 @@ import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { resolveSessionDate } from "../_shared/training-date.ts";
 
 /**
  * Send Logistics Requirements Email
