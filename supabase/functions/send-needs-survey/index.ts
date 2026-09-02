@@ -12,6 +12,7 @@ import {
   prepareTemplatedEmail,
   logEmailActivity,
 } from "../_shared/email-helpers.ts";
+import { resolveSessionDate } from "../_shared/training-date.ts";
 
 // Default templates (fallback if no custom template in DB)
 const DEFAULT_SUBJECT_TU = "Prépare ta formation \"{{training_name}}\"";
