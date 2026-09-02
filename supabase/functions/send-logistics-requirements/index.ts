@@ -115,12 +115,8 @@ serve(async (req) => {
         console.log(`[${VERSION}] Sending for "${training.training_name}" — ${reason}`);
 
         // Format training date for email
-        const trainingDateFormatted = new Date(training.start_date).toLocaleDateString("fr-FR", {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        });
+        const { training_date: trainingDateFormatted, no_date: trainingNoDate } =
+          trainingDateVariables(training);
 
         // Fetch template
         const useTutoiement = training.sponsor_formal_address === false;
@@ -142,6 +138,7 @@ serve(async (req) => {
           sponsor_first_name: training.sponsor_first_name || null,
           training_name: training.training_name,
           training_date: trainingDateFormatted,
+          no_date: trainingNoDate,
           location: training.location || "",
         };
 
