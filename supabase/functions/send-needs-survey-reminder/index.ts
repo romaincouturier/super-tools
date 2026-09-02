@@ -10,6 +10,7 @@ import {
   formatDateWithDayFr,
 } from "../_shared/mod.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
+import { resolveSessionDate } from "../_shared/training-date.ts";
 
 // Default templates (fallback if no custom template in DB)
 const DEFAULT_SUBJECT_TU = "Rappel : Prépare ta formation \"{{training_name}}\"";
