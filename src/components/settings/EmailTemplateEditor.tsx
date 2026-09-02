@@ -40,7 +40,10 @@ const EmailTemplateEditor = ({
   onUpdateTemplate,
   onImproveWithAI,
   onResetTemplate,
-}: EmailTemplateEditorProps) => (
+}: EmailTemplateEditorProps) => {
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  return (
   <>
     <div className="flex items-center gap-2 mb-4">
       <span className="text-sm text-muted-foreground">Version :</span>
