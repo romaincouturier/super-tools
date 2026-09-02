@@ -1,0 +1,2 @@
+ALTER TABLE public.support_tickets DROP CONSTRAINT IF EXISTS support_tickets_submitted_by_fkey;
+ALTER TABLE public.support_tickets ADD CONSTRAINT support_tickets_submitted_by_fkey FOREIGN KEY (submitted_by) REFERENCES auth.users(id) ON DELETE SET NULL;
