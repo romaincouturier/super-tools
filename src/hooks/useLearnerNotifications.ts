@@ -24,6 +24,7 @@ export function useLearnerNotifications(email: string | null) {
       const { data, error } = await c
         .from("learner_notifications")
         .select("*")
+        .eq("learner_email", email.toLowerCase())
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
