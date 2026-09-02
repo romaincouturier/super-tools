@@ -1,3 +1,5 @@
+import { computeAvgRating } from "./evaluationUtils";
+
 /**
  * Moyenne de l'appréciation générale par formation du catalogue et par année.
  *
@@ -47,8 +49,11 @@ export function sessionYear(training: SatisfactionTrainingInput): string | null 
   return /^\d{4}$/.test(year) ? year : null;
 }
 
-function toStat(sum: number, count: number): SatisfactionStat {
-  return { average: Math.round((sum / count) * 10) / 10, count };
+function toStat(notes: number[]): SatisfactionStat {
+  // La moyenne elle-même vient de computeAvgRating, seule implémentation du
+  // calcul dans le projet : deux moyennes maison finiraient par diverger.
+  const average = computeAvgRating(notes.map((note) => ({ appreciation_generale: note })));
+  return { average: Math.round(average * 10) / 10, count: notes.length };
 }
 
 export function computeCatalogSatisfaction(
@@ -62,12 +67,14 @@ export function computeCatalogSatisfaction(
     trainingIndex.set(training.id, { catalogId: training.catalog_id, year });
   }
 
-  // Sommes intermédiaires : la moyenne n'est calculée qu'une fois tout cumulé,
-  // sinon on moyennerait des moyennes.
-  const sums = new Map<string, { sum: number; count: number }>();
+  // Les notes sont regroupées avant d'être moyennées, jamais moyennées par
+  // sous-groupe puis remoyennées : une moyenne de moyennes fausse le résultat
+  // dès que les effectifs annuels diffèrent.
+  const groups = new Map<string, number[]>();
   const bump = (key: string, note: number) => {
-    const current = sums.get(key) || { sum: 0, count: 0 };
-    sums.set(key, { sum: current.sum + note, count: current.count + 1 });
+    const current = groups.get(key);
+    if (current) current.push(note);
+    else groups.set(key, [note]);
   };
 
   for (const evaluation of evaluations) {
@@ -82,13 +89,13 @@ export function computeCatalogSatisfaction(
   }
 
   const result: Record<string, CatalogSatisfaction> = {};
-  for (const [key, { sum, count }] of sums) {
+  for (const [key, notes] of groups) {
     const [catalogId, year] = key.split("::");
     if (!result[catalogId]) {
       result[catalogId] = { byYear: {}, overall: { average: 0, count: 0 } };
     }
-    if (year === "*") result[catalogId].overall = toStat(sum, count);
-    else result[catalogId].byYear[year] = toStat(sum, count);
+    if (year === "*") result[catalogId].overall = toStat(notes);
+    else result[catalogId].byYear[year] = toStat(notes);
   }
 
   return result;
