@@ -7,7 +7,7 @@ import {
   getBccSettings,
   getSupabaseClient,
   sendEmail,
-  formatDateWithDayFr,
+  trainingDateVariables,
 } from "../_shared/mod.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 
@@ -186,13 +186,14 @@ serve(async (req) => {
 
     // Build questionnaire URL
     const questionnaireUrl = `${appUrl}/questionnaire/${token}`;
-    const formattedDate = formatDateWithDayFr(training.start_date);
+    const { training_date: formattedDate, no_date } = trainingDateVariables(training);
 
     // Process template
     const variables = {
       first_name: participant.first_name || null,
       training_name: training.training_name,
       training_date: formattedDate,
+      no_date,
       training_location: training.location || "",
       questionnaire_link: questionnaireUrl,
     };
