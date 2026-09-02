@@ -134,8 +134,8 @@ const EmailTemplateEditor = ({
       templateType={type}
       subject={editedSubject}
       content={editedContent}
-      declaredVariables={defaultTemplate.variables}
-    />
+       declaredVariables={documentedVariables}
+     />
   </>
   );
 };
