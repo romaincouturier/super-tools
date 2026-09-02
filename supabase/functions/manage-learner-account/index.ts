@@ -1,6 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import {
-  corsHeaders,
   handleCorsPreflightIfNeeded,
   createErrorResponse,
   createJsonResponse,
@@ -109,9 +108,6 @@ Deno.serve(async (req) => {
     return createErrorResponse("Action inconnue", 400);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erreur interne";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return createErrorResponse(message, 500);
   }
 });
