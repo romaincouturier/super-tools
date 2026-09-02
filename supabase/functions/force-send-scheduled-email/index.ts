@@ -168,6 +168,11 @@ const handler = async (req: Request): Promise<Response> => {
       });
     };
 
+    // Date de session réelle (planning d'abord) : vide pour les sessions e-learning
+    // qui couvrent une période sans planning.
+    const { sessionStart } = resolveSessionDate(schedules, training.start_date, training.end_date);
+    const sessionDateLabel = sessionStart ? formatDate(sessionStart) : "";
+
     const formatSchedules = (schedulesList: any[]) => {
       return schedulesList
         .map((s) => {
