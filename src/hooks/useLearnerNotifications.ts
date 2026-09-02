@@ -44,6 +44,7 @@ export function useMarkLearnerNotificationsRead(email: string | null) {
       const { error } = await c
         .from("learner_notifications")
         .update({ is_read: true })
+        .eq("learner_email", email.toLowerCase())
         .in("id", ids);
       if (error) throw error;
     },
