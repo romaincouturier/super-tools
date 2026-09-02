@@ -11,6 +11,7 @@ import {
   sendEmail,
   escapeHtml,
   emailButton,
+  trainingDateVariables,
 } from "../_shared/mod.ts";
 import { processTemplate } from "../_shared/templates.ts";
 
