@@ -246,38 +246,37 @@ export interface HealthCheckResult {
 }
 
 export async function checkEdgeFunctionsHealth(): Promise<HealthCheckResult> {
-  // La fonction exige un JWT admin : sans session, on ne tente pas l'appel
-  // (sinon 401 + écran blanc sur les pages publiques).
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    return {
-      checked_at: new Date().toISOString(),
-      total: EXPECTED_FUNCTIONS.length,
-      deployed: 0,
-      missing: 0,
-      unknown: EXPECTED_FUNCTIONS.length,
-      functions: EXPECTED_FUNCTIONS.map((name) => ({ name, status: "unknown" as const })),
-    };
-  }
-
-  const unknownResult: HealthCheckResult = {
+  const emptyResult = (): HealthCheckResult => ({
     checked_at: new Date().toISOString(),
     total: EXPECTED_FUNCTIONS.length,
     deployed: 0,
     missing: 0,
     unknown: EXPECTED_FUNCTIONS.length,
     functions: EXPECTED_FUNCTIONS.map((name) => ({ name, status: "unknown" as const })),
-  };
+  });
+
+  // La fonction exige un JWT admin : sans session, ou pour un non-admin,
+  // on ne tente pas l'appel (sinon 401/403 + écran blanc).
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return emptyResult();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("user_id", session.user.id)
+    .maybeSingle();
+  if (profile?.is_admin !== true) return emptyResult();
 
   try {
     const { data, error } = await supabase.functions.invoke<HealthCheckResult>("check-functions-health", {
       body: {},
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
-    if (error || !data) return unknownResult;
+    if (error || !data) return emptyResult();
     return data;
   } catch {
     // Erreur réseau / fonction indisponible : pas d'alerte, pas de remontée Sentry
-    return unknownResult;
+    return emptyResult();
   }
+
 }
