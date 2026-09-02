@@ -12,6 +12,7 @@ import {
   resolveSupportsUrlBase,
 } from "../_shared/supports-url.ts";
 import { logLovableUsage } from "../_shared/api-usage.ts";
+import { resolveSessionDate } from "../_shared/training-date.ts";
 
 interface ForceSendRequest {
   scheduledEmailId: string;
