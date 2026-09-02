@@ -203,11 +203,31 @@ Deno.serve(async (req: Request): Promise<Response> => {
     } = body;
 
     const isDraft = (body as { draft?: boolean }).draft === true;
+    const { data: training } = await admin
+      .from("trainings")
+      .select("is_free")
+      .eq("id", trainingId)
+      .maybeSingle();
+    const isFreeTraining = training?.is_free === true;
 
     if (!trainingId || (!body.email && !isDraft)) {
       return new Response(
         JSON.stringify({ error: "trainingId et email sont requis" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (!training) {
+      return new Response(
+        JSON.stringify({ error: "Formation introuvable" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (!training) {
+      return new Response(
+        JSON.stringify({ error: "Formation introuvable" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -233,9 +253,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
           company_address: companyAddress?.trim() || null,
           company_city: companyCity?.trim() || null,
           company_zip: companyZip?.trim() || null,
-          type_stagiaire_bpf: typeStagiaireBpf || null,
-          source_financement_bpf: sourceFinancementBpf || null,
-          sold_price_ht: soldPriceHt ? parseFloat(String(soldPriceHt)) : null,
+          type_stagiaire_bpf: isFreeTraining ? null : (typeStagiaireBpf || null),
+          source_financement_bpf: isFreeTraining ? null : (sourceFinancementBpf || null),
+          sold_price_ht: isFreeTraining ? null : (soldPriceHt ? parseFloat(String(soldPriceHt)) : null),
           payment_mode: paymentMode,
           sponsor_first_name: capitalizeName(sponsorFirstName || ""),
           sponsor_last_name: capitalizeName(sponsorLastName || ""),
@@ -313,7 +333,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // Envoie la convocation si la formation n'est pas passée OU si elle est
     // en cours (mid-session add). Pour l'e-learning : envoi immédiat à l'inscription.
     const shouldSendWelcome =
-      isElearning || emailStatus !== "non_envoye" || ongoing;
+      !isFreeTraining && (isElearning || emailStatus !== "non_envoye" || ongoing);
 
     // ── 3. Participant existant ? ────────────────────────────────────────────
     const { data: existing } = await admin
@@ -353,9 +373,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
           company_address: companyAddress?.trim() || null,
           company_city: companyCity?.trim() || null,
           company_zip: companyZip?.trim() || null,
-          type_stagiaire_bpf: typeStagiaireBpf || null,
-          source_financement_bpf: sourceFinancementBpf || null,
-          sold_price_ht: soldPriceHt ? parseFloat(String(soldPriceHt)) : null,
+          type_stagiaire_bpf: isFreeTraining ? null : (typeStagiaireBpf || null),
+          source_financement_bpf: isFreeTraining ? null : (sourceFinancementBpf || null),
+          sold_price_ht: isFreeTraining ? null : (soldPriceHt ? parseFloat(String(soldPriceHt)) : null),
           payment_mode: paymentMode,
           sponsor_first_name: capitalizeName(effectiveSponsorFirstName),
           sponsor_last_name: capitalizeName(effectiveSponsorLastName),
@@ -397,7 +417,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // ── 6. Programmation des emails ────────────────────────────────────────
       // Recueil des besoins : envoyé pour toutes les formations (y compris e-learning).
       // Pour e-learning ou sans date : envoi immédiat. Sinon : J-needsSurveyDelay.
-      if (emailStatus !== "non_envoye" && !ongoing) {
+      if (!isFreeTraining && emailStatus !== "non_envoye" && !ongoing) {
         try {
           const now = new Date();
           let scheduledFor: string;
@@ -426,7 +446,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // Relance recueil des besoins : programmée pour toutes les formations
       // si la date de relance est encore future. La case force-send vérifiera
       // l'état du questionnaire avant envoi (skip si déjà complété).
-      if (emailStatus !== "non_envoye" && !ongoing) {
+      if (!isFreeTraining && emailStatus !== "non_envoye" && !ongoing) {
         try {
           const now = new Date();
           const baseDate = (isElearning || !trainingStartDate)
@@ -450,7 +470,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // Rappel "votre formation approche" : programmé pour toutes les formations
       // (y compris e-learning) à J-delay_reminder_days jours ouvrés, si la date
       // est encore future.
-      if (trainingStartDate) {
+      if (!isFreeTraining && trainingStartDate) {
         try {
           const startDate = new Date(`${trainingStartDate}T00:00:00`);
           const approachDate = subtractWorkingDays(startDate, reminderDelay, workingDaysArr);
@@ -470,7 +490,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
       // Convocation J-7 : uniquement quand la formation est à plus de 7 j
       // (status "programme") et non e-learning.
-      if (trainingStartDate && !isElearning && emailStatus === "programme") {
+      if (!isFreeTraining && trainingStartDate && !isElearning && emailStatus === "programme") {
         try {
           const startDate = new Date(`${trainingStartDate}T00:00:00`);
           const welcomeDate = subtractWorkingDays(startDate, 7, workingDaysArr);
@@ -492,7 +512,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // ── 7. Récapitulatif formateur (une seule fois par session) ───────────────
     let trainerSummaryScheduled = false;
-    if (trainingStartDate && emailStatus !== "non_envoye") {
+    if (!isFreeTraining && trainingStartDate && emailStatus !== "non_envoye") {
       try {
         const { data: existingSummary } = await admin
           .from("scheduled_emails")
@@ -522,7 +542,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     let welcomeSent = false;
     let welcomeFailed = false;
     const sendWelcomeImmediately =
-      shouldSendWelcome && (sendWelcomeNow || ongoing || isElearning);
+      !isFreeTraining && shouldSendWelcome && (sendWelcomeNow || ongoing || isElearning);
     if (sendWelcomeImmediately) {
       try {
         await admin.functions.invoke("send-welcome-email", {
@@ -537,7 +557,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // ── 9. Rattrapage d'émargement (ajout en cours de formation) ─────────────
     let attendanceCatchUp: { sentSlots: number; errors: number } | null = null;
-    if (ongoing && !isElearning) {
+    if (!isFreeTraining && ongoing && !isElearning) {
       try {
         const { data: sentRows } = await admin
           .from("attendance_signatures")
@@ -615,7 +635,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     let conventionEmailSent = false;
     let conventionRecipientEmail: string | null = null;
     let conventionParticipantsCount: number | null = null;
-    if (isInterEntreprise && !alreadyExisted) {
+    if (!isFreeTraining && isInterEntreprise && !alreadyExisted) {
       try {
         const { data: convData, error: convErr } = await admin.functions.invoke(
           "generate-convention-formation",

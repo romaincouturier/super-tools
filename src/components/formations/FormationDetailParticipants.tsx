@@ -106,7 +106,7 @@ const FormationDetailParticipants = ({
           <div>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />Participants
-              {bpfNeedsAttention && (
+              {!training.is_free && bpfNeedsAttention && (
                 <span
                   className="ml-1 inline-block h-2 w-2 rounded-full bg-destructive ring-2 ring-background"
                   title="BPF incomplet : renseignez le type de stagiaire (et la source de financement pour les inter)"
@@ -175,6 +175,7 @@ const FormationDetailParticipants = ({
                 onParticipantsAdded={fetchParticipants}
                 onScheduledEmailsRefresh={() => setEmailsRefreshTrigger(prev => prev + 1)}
                 isInterEntreprise={isInterSession}
+                isFreeTraining={!!training.is_free}
                 formatFormation={training.format_formation}
               />
               <AddParticipantDialog
@@ -184,6 +185,7 @@ const FormationDetailParticipants = ({
                 clientName={training.client_name}
                 formatFormation={training.format_formation}
                 isInterEntreprise={isInterSession}
+                isFreeTraining={!!training.is_free}
                 availableFormulas={availableFormulas}
                 trainingFormulaId={(training as unknown as { formula_id?: string | null }).formula_id ?? undefined}
                 onParticipantAdded={fetchParticipants}
@@ -224,6 +226,7 @@ const FormationDetailParticipants = ({
           trainingDuree={`${calculateTotalDuration()}h`}
           onParticipantUpdated={fetchParticipants}
           bpfTrainingHasSource={!!training.source_financement_bpf}
+          isFreeTraining={!!training.is_free}
         />
 
         <NeedsSurveySummaryDialog

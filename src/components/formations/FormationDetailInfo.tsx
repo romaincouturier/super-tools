@@ -138,7 +138,7 @@ const FormationDetailInfo = ({
             <Clock className="h-3.5 w-3.5" />{calculateTotalDuration()}h
           </Badge>
         )}
-        {isInterSession ? (
+        {!training.is_free && isInterSession ? (
           (() => {
             const totalCA = participants.reduce((sum, p) => sum + (p.sold_price_ht || 0), 0);
             const resteAFacturer = participants.filter(p => p.payment_mode === "invoice" && !p.invoice_file_url).reduce((sum, p) => sum + (p.sold_price_ht || 0), 0);
@@ -158,7 +158,7 @@ const FormationDetailInfo = ({
             );
           })()
         ) : (
-          training.sold_price_ht != null && (
+          !training.is_free && training.sold_price_ht != null && (
             <>
               <Badge variant="outline" className="flex items-center gap-1.5">
                 <Euro className="h-3.5 w-3.5" />{isDemoMode ? maskAmount(training.sold_price_ht) : `${training.sold_price_ht.toLocaleString("fr-FR")} € HT`}

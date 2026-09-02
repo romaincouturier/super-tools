@@ -27,6 +27,7 @@ interface ParticipantFormFieldsProps {
   companyCity: string;
   setCompanyCity: (v: string) => void;
   isInterEntreprise: boolean;
+  isFreeTraining?: boolean;
   soldPriceHt: string;
   setSoldPriceHt: (v: string) => void;
   formula: string;
@@ -62,6 +63,7 @@ const ParticipantFormFields = ({
   companyCity,
   setCompanyCity,
   isInterEntreprise,
+  isFreeTraining = false,
   soldPriceHt,
   setSoldPriceHt,
   formula,
@@ -152,7 +154,7 @@ const ParticipantFormFields = ({
       )}
 
 
-      {isInterEntreprise && setTypeStagiaireBpf && (
+      {isInterEntreprise && !isFreeTraining && setTypeStagiaireBpf && (
         <div className="space-y-2">
           <Label>Type de stagiaire (BPF)</Label>
           <Select
@@ -185,14 +187,14 @@ const ParticipantFormFields = ({
         </div>
       )}
 
-      {isInterEntreprise && setSourceFinancementBpf && (
+      {isInterEntreprise && !isFreeTraining && setSourceFinancementBpf && (
         <SourceFinancementSelector
           value={sourceFinancementBpf ?? null}
           onChange={setSourceFinancementBpf}
         />
       )}
 
-      {isInterEntreprise && (
+      {isInterEntreprise && !isFreeTraining && (
         <>
           <div className="space-y-2">
             <Label htmlFor="edit-soldPriceHt">Montant vendu HT (€)</Label>

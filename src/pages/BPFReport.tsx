@@ -60,7 +60,7 @@ interface TrainingRow {
 }
 
 function toTrainingRow(row: Record<string, unknown>): TrainingRow | null {
-  if (row.is_cancelled === true) return null;
+  if (row.is_cancelled === true || row.is_free === true) return null;
   return {
     id: String(row.id ?? ""),
     source_financement_bpf: (row.source_financement_bpf as SourceFinancement | null) ?? null,

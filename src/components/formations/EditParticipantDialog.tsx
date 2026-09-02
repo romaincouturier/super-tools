@@ -31,6 +31,7 @@ interface EditParticipantDialogProps {
   trainingId: string;
   formatFormation?: string | null;
   isInterEntreprise?: boolean;
+  isFreeTraining?: boolean;
   availableFormulas?: FormationFormula[];
   trainingDuree?: string;
   trainingDates?: [string | null, string | null];
@@ -43,6 +44,7 @@ const EditParticipantDialog = ({
   trainingId,
   formatFormation,
   isInterEntreprise: isInterEntrepriseProp,
+  isFreeTraining = false,
   availableFormulas = [],
   trainingDuree,
   trainingDates,
@@ -58,6 +60,7 @@ const EditParticipantDialog = ({
     trainingId,
     formatFormation,
     isInterEntreprise,
+    isFreeTraining,
     availableFormulas,
     onParticipantUpdated,
   });
@@ -130,6 +133,7 @@ const EditParticipantDialog = ({
             companyCity={hook.companyCity}
             setCompanyCity={hook.setCompanyCity}
             isInterEntreprise={isInterEntreprise}
+            isFreeTraining={isFreeTraining}
             soldPriceHt={hook.soldPriceHt}
             setSoldPriceHt={hook.setSoldPriceHt}
             formula={hook.formula}

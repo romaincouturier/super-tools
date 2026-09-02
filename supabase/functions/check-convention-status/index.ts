@@ -46,7 +46,7 @@ serve(async (req: Request): Promise<Response> => {
 
     const { data: trainings, error: trainingsError } = await supabase
       .from("trainings")
-      .select("id, training_name, start_date, format_formation, convention_file_url, client_name, sponsor_email")
+      .select("id, training_name, start_date, format_formation, convention_file_url, client_name, sponsor_email, is_free")
       .gte("start_date", today)
       .order("start_date", { ascending: true });
 

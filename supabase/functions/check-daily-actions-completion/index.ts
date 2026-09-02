@@ -88,7 +88,7 @@ serve(async (req) => {
         ? supabase.from("crm_cards").select("id, sales_status, column_id").in("id", crmCardIds)
         : { data: [] },
       trainingIds.length > 0
-        ? supabase.from("trainings").select("id, convention_file_url, signed_convention_urls, invoice_file_url, train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready").in("id", trainingIds)
+        ? supabase.from("trainings").select("id, convention_file_url, signed_convention_urls, invoice_file_url, train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready, is_free").in("id", trainingIds)
         : { data: [] },
       reviewIds.length > 0
         ? supabase.from("content_reviews").select("id, status").in("id", reviewIds)
@@ -245,6 +245,7 @@ serve(async (req) => {
         case "formations_conventions": {
           const t = trainingsMap.get(action.entity_id);
           if (t) {
+            if (t.is_free) { resolved = true; break; }
             const desc = action.description || "";
             if (desc.includes("non générée")) {
               // Check if convention is now generated
@@ -273,7 +274,7 @@ serve(async (req) => {
 
         case "formations_facture": {
           const t = trainingsMap.get(action.entity_id);
-          if (t && t.invoice_file_url) resolved = true;
+          if (t && (t.is_free || t.invoice_file_url)) resolved = true;
           // Also check if all participants paid online
           if (t && !t.invoice_file_url) {
             const parts = participantsByTraining.get(action.entity_id) || [];
@@ -294,6 +295,7 @@ serve(async (req) => {
         case "reservations_formation": {
           const t = trainingsMap.get(action.entity_id);
           if (t) {
+            if (t.is_free) { resolved = true; break; }
             // Check all booking fields — if all relevant ones are done, resolve
             const allBooked = t.train_booked && t.hotel_booked && t.restaurant_booked !== false && t.room_rental_booked !== false && t.equipment_ready;
             if (allBooked) resolved = true;

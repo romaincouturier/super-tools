@@ -529,11 +529,11 @@ export async function fetchCrmAlerts(supabase: SupabaseClient, today: string): P
 export async function fetchTrainingConventions(supabase: SupabaseClient, today: string): Promise<TrainingConventionItem[]> {
   const { data: allTrainings } = await supabase
     .from("trainings")
-    .select("id, training_name, start_date, format_formation, session_type, convention_file_url, signed_convention_urls, sponsor_email, assigned_to, is_cancelled")
+    .select("id, training_name, start_date, format_formation, session_type, convention_file_url, signed_convention_urls, sponsor_email, assigned_to, is_cancelled, is_free")
     .gt("start_date", today)
     .or("is_cancelled.is.null,is_cancelled.eq.false");
 
-  const trainings = allTrainings || [];
+  const trainings = (allTrainings || []).filter((t: any) => !t.is_free);
   const trainingIds = trainings.map((t: any) => t.id);
 
   const { data: allParticipants } = trainingIds.length > 0
@@ -868,14 +868,16 @@ export async function fetchCfpReminders(supabase: SupabaseClient, today: string)
 export async function fetchPastTrainingsNoInvoice(supabase: SupabaseClient, today: string): Promise<TrainingInvoiceItem[]> {
   const { data: pastTrainings } = await supabase
     .from("trainings")
-    .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to, format_formation, session_type, is_cancelled")
+    .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to, format_formation, session_type, is_cancelled, is_free")
     .lt("start_date", today)
     .is("invoice_file_url", null)
     .or("is_cancelled.is.null,is_cancelled.eq.false");
 
   if (!pastTrainings) return [];
 
-  const pastTrainingIds = pastTrainings
+  const billableTrainings = pastTrainings.filter((t: any) => !t.is_free);
+
+  const pastTrainingIds = billableTrainings
     .filter((t: any) => {
       const endDate = t.end_date || t.start_date;
       return new Date(endDate) < new Date(today);
@@ -898,7 +900,7 @@ export async function fetchPastTrainingsNoInvoice(supabase: SupabaseClient, toda
   }
 
   const results: TrainingInvoiceItem[] = [];
-  for (const t of pastTrainings) {
+  for (const t of billableTrainings) {
     const endDate = t.end_date || t.start_date;
     if (new Date(endDate) >= new Date(today)) continue;
 
@@ -1018,19 +1020,20 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
   // Trainings
   const { data: trainings } = await supabase
     .from("trainings")
-    .select("id, training_name, location, start_date, train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready, format_formation, session_type, assigned_to, is_cancelled")
+    .select("id, training_name, location, start_date, train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready, format_formation, session_type, assigned_to, is_cancelled, is_free")
     .not("start_date", "is", null)
     .gte("start_date", today)
     .lte("start_date", sixtyDaysStr)
     .or("is_cancelled.is.null,is_cancelled.eq.false");
 
+  const billableTrainings = (trainings || []).filter((t: any) => !t.is_free);
   const trainingChecklists = await fetchPendingChecklists(
     "training",
-    (trainings || []).map((t: any) => t.id),
+    billableTrainings.map((t: any) => t.id),
   );
 
-  if (trainings) {
-    for (const t of trainings) {
+  if (billableTrainings.length > 0) {
+    for (const t of billableTrainings) {
       const hasLocation = !!t.location?.trim();
       const isPresentiel = t.format_formation !== "e_learning" && t.format_formation !== "classe_virtuelle";
       const isInter = t.format_formation === "inter-entreprises" || t.session_type === "inter";

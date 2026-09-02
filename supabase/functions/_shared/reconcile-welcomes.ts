@@ -29,7 +29,7 @@ export async function reconcileMissingWelcomes(supabase: any): Promise<Reconcile
 
   const { data: trainings, error: trainingsError } = await supabase
     .from("trainings")
-    .select("id, training_name, start_date, format_formation, is_cancelled")
+    .select("id, training_name, start_date, format_formation, is_cancelled, is_free")
     .gte("start_date", today)
     .not("start_date", "is", null);
 
@@ -40,7 +40,7 @@ export async function reconcileMissingWelcomes(supabase: any): Promise<Reconcile
 
   const eligible = (trainings || []).filter(
     // deno-lint-ignore no-explicit-any
-    (t: any) => !t.is_cancelled && t.format_formation !== "e_learning",
+    (t: any) => !t.is_cancelled && !t.is_free && t.format_formation !== "e_learning",
   );
   if (eligible.length === 0) return result;
 

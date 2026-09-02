@@ -21,6 +21,7 @@ export interface Training {
   client_name: string;
   client_address: string | null;
   sold_price_ht: number | null;
+  is_free?: boolean;
   evaluation_link: string;
   program_file_url: string | null;
   prerequisites: string[];

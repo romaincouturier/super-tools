@@ -63,6 +63,7 @@ export interface DocumentsManagerProps {
   evaluationLink: string;
   formatFormation?: string | null;
   isInterEntreprise?: boolean;
+  isFreeTraining?: boolean;
   conventionFileUrl?: string | null;
   trainerName: string;
   location: string;

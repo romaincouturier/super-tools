@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -90,6 +91,7 @@ const FormationEdit = () => {
   const [selectedVenue, setSelectedVenue] = useState<TrainingVenue | null>(null);
   const [sourceFinancementBpf, setSourceFinancementBpf] = useState<string | null>(null);
   const [typeStagiaireBpf, setTypeStagiaireBpf] = useState<string | null>(null);
+  const [isFree, setIsFree] = useState(false);
   const [availableFormulas, setAvailableFormulas] = useState<FormationFormula[]>([]);
   const [trainingIsPermanent, setTrainingIsPermanent] = useState<boolean>(false);
   const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
@@ -148,6 +150,7 @@ N'hésitez pas à me contacter en amont pour toute question.
       form.setClientName(t.client_name);
       form.setClientAddress(t.client_address || "");
       form.setSoldPriceHt(t.sold_price_ht != null ? String(t.sold_price_ht) : "");
+      setIsFree((t as unknown as { is_free?: boolean }).is_free ?? false);
       form.setAncillaryFeesHt(t.ancillary_fees_ht != null ? String(t.ancillary_fees_ht) : "");
       form.setMaxParticipants(t.max_participants != null ? String(t.max_participants) : "");
 
@@ -322,8 +325,13 @@ N'hésitez pas à me contacter en amont pour toute question.
         payload.location = location;
       }
 
-      payload.source_financement_bpf = sourceFinancementBpf || null;
-      (payload as Record<string, unknown>).type_stagiaire_bpf = typeStagiaireBpf || null;
+      payload.source_financement_bpf = isFree ? null : (sourceFinancementBpf || null);
+      (payload as Record<string, unknown>).type_stagiaire_bpf = isFree ? null : (typeStagiaireBpf || null);
+      (payload as Record<string, unknown>).is_free = isFree;
+      if (isFree) {
+        payload.sold_price_ht = null;
+        payload.ancillary_fees_ht = null;
+      }
 
       const { error: trainingError } = await supabase
         .from("trainings")
@@ -541,8 +549,16 @@ N'hésitez pas à me contacter en amont pour toute question.
                     </>
                   )}
 
+                  <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="is-free">Formation gratuite</Label>
+                      <p className="text-xs text-muted-foreground">Aucun montant, champ BPF, devis, convention ou email de convocation ne sera requis.</p>
+                    </div>
+                    <Switch id="is-free" checked={isFree} onCheckedChange={setIsFree} />
+                  </div>
+
                   {/* Sold price HT + Ancillary fees */}
-                  {!form.isInter && (!form.hasFormulas || form.sessionType === "intra") && (
+                  {!isFree && !form.isInter && (!form.hasFormulas || form.sessionType === "intra") && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="soldPriceHt">Prix vendu HT (€)</Label>
@@ -597,7 +613,7 @@ N'hésitez pas à me contacter en amont pour toute question.
                   </div>
 
                   {/* Source de financement BPF — intra only (inter sessions use per-participant source) */}
-                  {!form.isInter && (
+                  {!isFree && !form.isInter && (
                     <>
                       <SourceFinancementSelector
                         value={sourceFinancementBpf}

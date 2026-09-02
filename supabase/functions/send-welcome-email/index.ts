@@ -127,6 +127,9 @@ serve(async (req) => {
     if (trainingError || !training) {
       throw new Error("Training not found");
     }
+    if (training.is_free) {
+      throw new Error("Aucune convocation n'est envoyée pour une formation gratuite");
+    }
 
     const isInterEntreprise = training.format_formation !== "intra";
 
