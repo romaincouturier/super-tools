@@ -224,13 +224,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    if (!training) {
-      return new Response(
-        JSON.stringify({ error: "Formation introuvable" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
     // ── Duplication "brouillon" ───────────────────────────────────────────────
     // Copie un participant en effaçant nom/prénom/email (placeholder unique car
     // email est NOT NULL + unique par formation). Aucun onboarding n'est déclenché.

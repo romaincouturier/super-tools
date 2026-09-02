@@ -6,7 +6,7 @@ import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import { formatDateFr } from "../_shared/date-utils.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -66,9 +66,10 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     if (training.is_free) {
-      return new Response(
-        JSON.stringify({ error: "Aucune convention n'est envoyée pour une formation gratuite" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      return createErrorResponse(
+        "Aucune convention n'est envoyée pour une formation gratuite",
+        400,
+        { fn: "send-convention-email" },
       );
     }
 
