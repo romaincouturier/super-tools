@@ -52,6 +52,15 @@ const EmailTemplatePreviewDialog = ({
     return [...new Set([...declaredVariables, ...used])].sort();
   }, [subject, content, declaredVariables]);
 
+  const conditionalVariables = useMemo(
+    () => new Set(extractConditionalVariables(subject, content)),
+    [subject, content],
+  );
+  const valueVariables = useMemo(
+    () => new Set(extractValueVariables(subject, content)),
+    [subject, content],
+  );
+
   const defaults = useMemo(() => {
     const map: Record<string, string> = {};
     variables.forEach((v) => { map[v] = sampleValue(v); });
