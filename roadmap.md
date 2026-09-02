@@ -6,5 +6,5 @@
 - [x] Sentry JAVASCRIPT-REACT-F : parcours TED interrompu par un 429 (2 avis sur 58) — backoff/reprise paginée ajouté dans `walkTedPages` et `ted-sync`
 - [x] Monitoring : `get_course_training_sessions_admin` appelait `is_admin()` (0 arg) inexistant → corrigé en `is_admin(auth.uid())`
 - [x] Monitoring : prévisualisation email alignée sur le rendu réel par type de modèle (escaped / puces / HTML brut)
-- [ ] Suppression d'un compte apprenant depuis l'admin (edge function service_role : purge `learner_profiles`, magic links, progression LMS, puis `auth.admin.deleteUser`) + écran de gestion des comptes apprenants
-- [ ] Dette technique : ratchets Loader2 inline, `functions.invoke` inline, `catch {}` sans binding, réponses d'erreur manuelles ; `CREATE POLICY` non idempotent (migration 20260901080254)
+- [x] Suppression d'un compte apprenant : déjà disponible sur /lms/apprenants (edge `manage-learner-account`, admin uniquement)
+- [x] Dette technique : 4 ratchets ramenés à la baseline + `CREATE POLICY` rendu idempotent → check-rules 65/65
