@@ -12,6 +12,7 @@ import {
   sendTemplatedEmail,
   logEmailActivity,
 } from "../_shared/email-helpers.ts";
+import { resolveSessionDate } from "../_shared/training-date.ts";
 
 /**
  * Send Convention Reminder
@@ -49,7 +50,18 @@ serve(async (req) => {
       throw new Error("Formation introuvable");
     }
 
-    const formattedDate = formatDateWithDayFr(training.start_date);
+    const { data: conventionSchedules } = await supabase
+      .from("training_schedules")
+      .select("day_date")
+      .eq("training_id", trainingId)
+      .order("day_date", { ascending: true });
+
+    const { sessionStart } = resolveSessionDate(
+      conventionSchedules,
+      training.start_date,
+      training.end_date,
+    );
+    const formattedDate = sessionStart ? formatDateWithDayFr(sessionStart) : "";
     const isIntra = training.format_formation === "intra";
 
     let recipientEmail: string;
@@ -141,14 +153,14 @@ serve(async (req) => {
     const defaultContent = useFormal
       ? `
 <p>${greeting}</p>
-<p>Je me permets de vous relancer au sujet de la <strong>convention de formation</strong> pour la formation <strong>"${training.training_name}"</strong> prévue le <strong>${formattedDate}</strong>.</p>
+<p>Je me permets de vous relancer au sujet de la <strong>convention de formation</strong> pour la formation <strong>"${training.training_name}"</strong> ${formattedDate ? `prévue le <strong>${formattedDate}</strong>` : ""}.</p>
 <p>Pourriez-vous nous retourner la convention signée dès que possible afin que nous puissions finaliser l'inscription ?</p>
 ${signatureBlock}
 <p>Je reste à votre disposition pour toute question.</p>
 <p>Bien cordialement,</p>`
       : `
 <p>${greeting}</p>
-<p>Je me permets de te relancer au sujet de la <strong>convention de formation</strong> pour la formation <strong>"${training.training_name}"</strong> prévue le <strong>${formattedDate}</strong>.</p>
+<p>Je me permets de te relancer au sujet de la <strong>convention de formation</strong> pour la formation <strong>"${training.training_name}"</strong> ${formattedDate ? `prévue le <strong>${formattedDate}</strong>` : ""}.</p>
 <p>Peux-tu nous retourner la convention signée dès que possible afin que nous puissions finaliser l'inscription ?</p>
 ${signatureBlock}
 <p>N'hésite pas si tu as des questions !</p>
@@ -164,7 +176,7 @@ ${signatureBlock}
       variables: {
         first_name: recipientFirstName,
         training_name: training.training_name,
-        training_date: formattedDate,
+        training_date: formattedDate || null,
         signature_link: signatureUrl,
       },
       emailType: "convention_reminder",
