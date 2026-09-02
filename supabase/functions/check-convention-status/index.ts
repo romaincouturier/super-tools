@@ -122,7 +122,7 @@ serve(async (req: Request): Promise<Response> => {
     // Identify issues
     const issuesList: TrainingIssue[] = [];
 
-    for (const training of billableTrainings)
+    for (const training of billableTrainings) {
       const issues: string[] = [];
       const isIntra = training.format_formation === "intra";
       const isInter = training.format_formation === "inter-entreprises" || training.format_formation === "e_learning";
