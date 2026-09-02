@@ -124,7 +124,7 @@ const FormationDetailSections = ({
         <EntityDocumentsManager entityType="training" entityId={id} title="Documents joints" />
       </div>
       <div className="space-y-6">
-        {!training.is_free && <EmailTimelineComputed
+        <EmailTimelineComputed
           trainingId={training.id}
           participants={participants}
           refreshTrigger={emailsRefreshTrigger}
@@ -140,18 +140,18 @@ const FormationDetailSections = ({
           schedules={schedules}
           hasCoaching={hasCoaching}
           isElearning={isElearningSession}
-        />}
-        {!training.is_free && <ScheduledEmailsSummary
+        />
+        <ScheduledEmailsSummary
           trainingId={training.id}
           participants={participants}
           refreshTrigger={emailsRefreshTrigger}
-        />}
+        />
       </div>
     </div>
 
     {/* Scheduled Actions + Attendance */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      {!training.is_free && <ScheduledActionsEditor
+      <ScheduledActionsEditor
         actions={scheduledActions}
         onActionsChange={setScheduledActions}
         onSave={() => handleSaveActions(scheduledActions)}
@@ -165,7 +165,7 @@ const FormationDetailSections = ({
             toastError(toast, "Impossible de supprimer l'action.");
           }
         }}
-      />}
+      />
       <AttendanceSignatureBlock
         trainingId={training.id}
         trainingName={training.training_name}

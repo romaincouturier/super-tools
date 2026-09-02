@@ -417,7 +417,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // ── 6. Programmation des emails ────────────────────────────────────────
       // Recueil des besoins : envoyé pour toutes les formations (y compris e-learning).
       // Pour e-learning ou sans date : envoi immédiat. Sinon : J-needsSurveyDelay.
-      if (!isFreeTraining && emailStatus !== "non_envoye" && !ongoing) {
+      if (emailStatus !== "non_envoye" && !ongoing) {
         try {
           const now = new Date();
           let scheduledFor: string;
@@ -446,7 +446,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // Relance recueil des besoins : programmée pour toutes les formations
       // si la date de relance est encore future. La case force-send vérifiera
       // l'état du questionnaire avant envoi (skip si déjà complété).
-      if (!isFreeTraining && emailStatus !== "non_envoye" && !ongoing) {
+      if (emailStatus !== "non_envoye" && !ongoing) {
         try {
           const now = new Date();
           const baseDate = (isElearning || !trainingStartDate)
@@ -470,7 +470,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // Rappel "votre formation approche" : programmé pour toutes les formations
       // (y compris e-learning) à J-delay_reminder_days jours ouvrés, si la date
       // est encore future.
-      if (!isFreeTraining && trainingStartDate) {
+      if (trainingStartDate) {
         try {
           const startDate = new Date(`${trainingStartDate}T00:00:00`);
           const approachDate = subtractWorkingDays(startDate, reminderDelay, workingDaysArr);
@@ -512,7 +512,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // ── 7. Récapitulatif formateur (une seule fois par session) ───────────────
     let trainerSummaryScheduled = false;
-    if (!isFreeTraining && trainingStartDate && emailStatus !== "non_envoye") {
+    if (trainingStartDate && emailStatus !== "non_envoye") {
       try {
         const { data: existingSummary } = await admin
           .from("scheduled_emails")
@@ -557,7 +557,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // ── 9. Rattrapage d'émargement (ajout en cours de formation) ─────────────
     let attendanceCatchUp: { sentSlots: number; errors: number } | null = null;
-    if (!isFreeTraining && ongoing && !isElearning) {
+    if (ongoing && !isElearning) {
       try {
         const { data: sentRows } = await admin
           .from("attendance_signatures")

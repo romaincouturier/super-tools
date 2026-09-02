@@ -295,7 +295,6 @@ serve(async (req) => {
         case "reservations_formation": {
           const t = trainingsMap.get(action.entity_id);
           if (t) {
-            if (t.is_free) { resolved = true; break; }
             // Check all booking fields — if all relevant ones are done, resolve
             const allBooked = t.train_booked && t.hotel_booked && t.restaurant_booked !== false && t.room_rental_booked !== false && t.equipment_ready;
             if (allBooked) resolved = true;

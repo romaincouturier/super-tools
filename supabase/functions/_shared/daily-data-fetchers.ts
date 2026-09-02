@@ -1026,14 +1026,13 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
     .lte("start_date", sixtyDaysStr)
     .or("is_cancelled.is.null,is_cancelled.eq.false");
 
-  const billableTrainings = (trainings || []).filter((t: any) => !t.is_free);
   const trainingChecklists = await fetchPendingChecklists(
     "training",
-    billableTrainings.map((t: any) => t.id),
+    (trainings || []).map((t: any) => t.id),
   );
 
-  if (billableTrainings.length > 0) {
-    for (const t of billableTrainings) {
+  if (trainings) {
+    for (const t of trainings) {
       const hasLocation = !!t.location?.trim();
       const isPresentiel = t.format_formation !== "e_learning" && t.format_formation !== "classe_virtuelle";
       const isInter = t.format_formation === "inter-entreprises" || t.session_type === "inter";
