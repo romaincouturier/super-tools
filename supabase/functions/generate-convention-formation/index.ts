@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { formatDateFr, formatDateFr as formatDateFrench } from "../_shared/date-utils.ts";
 
@@ -191,10 +191,7 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
     if (training.is_free) {
-      return new Response(
-        JSON.stringify({ error: "Aucune convention n'est générée pour une formation gratuite" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return createErrorResponse("Aucune convention n'est générée pour une formation gratuite", 400, { fn: "generate-convention-formation" });
     }
 
     // Determine convention scope.
