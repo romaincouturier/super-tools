@@ -16,6 +16,8 @@ import {
   extractVariables,
   processTemplate,
   renderEmailDocument,
+  rendererForTemplateType,
+  RENDERER_LABELS,
   sampleValue,
 } from "@/lib/emailTemplatePreview";
 import { getVariableDoc, TEMPLATE_SYNTAX_HELP } from "@/lib/emailVariableDocs";
@@ -24,6 +26,8 @@ interface EmailTemplatePreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   templateName: string;
+  /** Template type key (drives which server-side renderer is mirrored). */
+  templateType?: string;
   subject: string;
   content: string;
   /** Variables declared for this template (merged with those found in the text). */
@@ -34,10 +38,12 @@ const EmailTemplatePreviewDialog = ({
   open,
   onOpenChange,
   templateName,
+  templateType,
   subject,
   content,
   declaredVariables = [],
 }: EmailTemplatePreviewDialogProps) => {
+  const renderer = rendererForTemplateType(templateType);
   const variables = useMemo(() => {
     const used = extractVariables(subject, content);
     return [...new Set([...declaredVariables, ...used])].sort();
@@ -54,7 +60,10 @@ const EmailTemplatePreviewDialog = ({
   useEffect(() => { if (open) setValues(defaults); }, [open, defaults]);
 
   const renderedSubject = processTemplate(subject, values, false);
-  const emailDocument = useMemo(() => renderEmailDocument(content, values), [content, values]);
+  const emailDocument = useMemo(
+    () => renderEmailDocument(content, values, renderer),
+    [content, values, renderer],
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -62,7 +71,8 @@ const EmailTemplatePreviewDialog = ({
         <DialogHeader>
           <DialogTitle>Prévisualisation : {templateName}</DialogTitle>
           <DialogDescription>
-            Le rendu ci-dessous utilise exactement le même HTML que l'email envoyé (police, largeur, paragraphes).
+            Le rendu ci-dessous reprend exactement la mise en forme appliquée à l'envoi de ce modèle
+            (police, largeur, paragraphes). {RENDERER_LABELS[renderer]}{" "}
             Modifiez les valeurs pour tester. Rien n'est enregistré ni envoyé.
           </DialogDescription>
         </DialogHeader>

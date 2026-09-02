@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { rpc } from "@/lib/supabase-rpc";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/invokeEdge";
 import { CheckCircle2, FileText, Calendar, Building, User, PenLine, Shield, ExternalLink, Euro } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -129,11 +129,9 @@ const SignatureDevis = () => {
     const win = window.open("about:blank", "_blank");
     setOpeningPdf(true);
     try {
-      const { data, error } = await supabase.functions.invoke("get-devis-pdf-url", {
-        body: { token },
-      });
-      const url = (data as { pdf_url?: string } | null)?.pdf_url;
-      if (error || !url) throw error || new Error("PDF indisponible");
+      const data = await invokeEdge<{ pdf_url?: string } | null>("get-devis-pdf-url", { token });
+      const url = data?.pdf_url;
+      if (!url) throw new Error("PDF indisponible");
       if (win) win.location.href = url;
       else window.open(url, "_blank");
     } catch (err) {

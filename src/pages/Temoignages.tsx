@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskText } from "@/lib/demoMask";
-import { Star, CheckCircle2, XCircle, Clock, Loader2, RefreshCw, Download, Wand2, Plus } from "lucide-react";
+import { Star, CheckCircle2, XCircle, Clock, RefreshCw, Download, Wand2, Plus } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { invokeEdge } from "@/lib/invokeEdge";
 import { PollingIndicator } from "@/components/shared/PollingIndicator";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -18,7 +20,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
-import { supabase } from "@/integrations/supabase/client";
 import {
   useTestimonials,
   useTestimonialCounts,
@@ -217,7 +218,7 @@ function AddTestimonialDialog({ onClose }: { onClose: () => void }) {
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button onClick={submit} disabled={isPending}>
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+            {isPending ? <Spinner className="h-4 w-4 mr-1" /> : null}
             Ajouter
           </Button>
         </DialogFooter>
@@ -244,11 +245,12 @@ function ValidationSheet({ testimonial, onClose }: ValidationSheetProps) {
   const retryTranscript = async () => {
     setRetrying(true);
     try {
-      const { data, error } = await supabase.functions.invoke("retry-testimonial-transcript", {
-        body: { testimonial_id: testimonial.id },
-      });
-      if (error || !(data as { ok?: boolean })?.ok) {
-        throw new Error((data as { error?: string })?.error || error?.message || "Échec");
+      const data = await invokeEdge<{ ok?: boolean; error?: string }>(
+        "retry-testimonial-transcript",
+        { testimonial_id: testimonial.id },
+      );
+      if (!data?.ok) {
+        throw new Error(data?.error || "Échec");
       }
       toast({ title: "Transcription relancée", description: "Le transcript apparaîtra dans quelques minutes." });
     } catch (e) {
@@ -323,7 +325,7 @@ function ValidationSheet({ testimonial, onClose }: ValidationSheetProps) {
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Transcript</p>
                 {!testimonial.raw_transcript && (
                   <Button size="sm" variant="outline" onClick={retryTranscript} disabled={retrying}>
-                    {retrying ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Wand2 className="h-3 w-3 mr-1" />}
+                    {retrying ? <Spinner className="h-3 w-3 mr-1" /> : <Wand2 className="h-3 w-3 mr-1" />}
                     Générer le transcript
                   </Button>
                 )}
@@ -344,7 +346,7 @@ function ValidationSheet({ testimonial, onClose }: ValidationSheetProps) {
 
         <SheetFooter className="flex gap-2 shrink-0">
           <Button variant="outline" onClick={() => save()} disabled={isPending}>
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sauvegarder"}
+            {isPending ? <Spinner className="h-4 w-4" /> : "Sauvegarder"}
           </Button>
           {testimonial.status !== "rejected" && (
             <Button variant="destructive" onClick={() => save("rejected")} disabled={isPending}>
@@ -366,7 +368,7 @@ function TestimonialList({ status, search }: { status: TestimonialStatus | ""; s
   const [selected, setSelected] = useState<Testimonial | null>(null);
   const { data, isLoading, refetch } = useTestimonials(status);
 
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  if (isLoading) return <div className="flex justify-center py-12"><Spinner className="h-6 w-6" /></div>;
 
   const q = search.trim().toLowerCase();
   const filtered = q

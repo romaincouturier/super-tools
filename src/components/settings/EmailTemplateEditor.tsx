@@ -126,6 +126,7 @@ const EmailTemplateEditor = ({
       open={previewOpen}
       onOpenChange={setPreviewOpen}
       templateName={`${defaultTemplate.name} (${currentMode === "tu" ? "tutoiement" : "vouvoiement"})`}
+      templateType={type}
       subject={editedSubject}
       content={editedContent}
       declaredVariables={defaultTemplate.variables}

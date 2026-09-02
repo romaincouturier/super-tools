@@ -57,8 +57,8 @@ export async function checkDuplicates(body: string, title: string): Promise<{ is
         similarTitle: data.similar_title,
       };
     }
-  } catch {
-    console.warn("[Watch] Duplicate check failed");
+  } catch (err) {
+    console.warn("[Watch] Duplicate check failed", err);
   }
 
   return { isDuplicate: false, duplicateId: null, similarTitle: null };
@@ -68,8 +68,8 @@ export async function checkDuplicates(body: string, title: string): Promise<{ is
 export async function triggerWeeklyDigest() {
   try {
     await supabase.functions.invoke("watch-weekly-digest");
-  } catch {
-    console.warn("[Watch] Failed to trigger weekly digest");
+  } catch (err) {
+    console.warn("[Watch] Failed to trigger weekly digest", err);
   }
 }
 
@@ -77,7 +77,7 @@ export async function triggerWeeklyDigest() {
 export async function triggerClusterAnalysis() {
   try {
     await supabase.functions.invoke("watch-cluster-analysis");
-  } catch {
-    console.warn("[Watch] Failed to trigger cluster analysis");
+  } catch (err) {
+    console.warn("[Watch] Failed to trigger cluster analysis", err);
   }
 }

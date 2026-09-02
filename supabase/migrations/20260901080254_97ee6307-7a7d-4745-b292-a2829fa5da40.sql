@@ -1,3 +1,5 @@
+DROP POLICY IF EXISTS "Dropshipping staff can read woocommerce_orders" ON public.woocommerce_orders;
+
 CREATE POLICY "Dropshipping staff can read woocommerce_orders"
 ON public.woocommerce_orders
 FOR SELECT
