@@ -1,4 +1,6 @@
-import { RotateCcw, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Eye, RotateCcw, Sparkles } from "lucide-react";
+import EmailTemplatePreviewDialog from "@/components/settings/EmailTemplatePreviewDialog";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
