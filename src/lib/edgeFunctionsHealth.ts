@@ -267,25 +267,16 @@ export async function checkEdgeFunctionsHealth(): Promise<HealthCheckResult> {
     .maybeSingle();
   if (profile?.is_admin !== true) return emptyResult();
 
-
-  const unknownResult: HealthCheckResult = {
-    checked_at: new Date().toISOString(),
-    total: EXPECTED_FUNCTIONS.length,
-    deployed: 0,
-    missing: 0,
-    unknown: EXPECTED_FUNCTIONS.length,
-    functions: EXPECTED_FUNCTIONS.map((name) => ({ name, status: "unknown" as const })),
-  };
-
   try {
     const { data, error } = await supabase.functions.invoke<HealthCheckResult>("check-functions-health", {
       body: {},
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
-    if (error || !data) return unknownResult;
+    if (error || !data) return emptyResult();
     return data;
   } catch {
     // Erreur réseau / fonction indisponible : pas d'alerte, pas de remontée Sentry
-    return unknownResult;
+    return emptyResult();
   }
+
 }
