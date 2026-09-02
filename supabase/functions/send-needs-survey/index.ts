@@ -194,14 +194,41 @@ serve(async (req) => {
     // Build questionnaire URL
     const questionnaireUrl = `${appUrl}/questionnaire/${token}`;
 
-    // Only compute dates if start_date exists and is valid (e-learning/permanent/undated intra trainings have none)
+    // Real planning: schedules first, start_date only as a single-day fallback.
+    // E-learning / permanent sessions span a period (start_date != end_date) without
+    // schedules: they have no session date, so neither training_date nor no_date apply.
+    const { data: schedules } = await supabase
+      .from("training_schedules")
+      .select("day_date")
+      .eq("training_id", trainingId)
+      .order("day_date", { ascending: true });
+
+    const parse = (d?: string | null) => {
+      if (!d) return null;
+      const parsed = new Date(d);
+      return !isNaN(parsed.getTime()) && parsed.getFullYear() > 2000 ? parsed : null;
+    };
+
+    let sessionStart: string | null = null;
+    let hasPeriodWithoutSessionDate = false;
+
+    if (schedules && schedules.length > 0) {
+      sessionStart = schedules[0].day_date;
+    } else {
+      const start = parse(training.start_date);
+      const end = parse(training.end_date);
+      if (start && (!end || end.getTime() === start.getTime())) {
+        sessionStart = training.start_date;
+      } else if (start) {
+        hasPeriodWithoutSessionDate = true;
+      }
+    }
+
     let formattedDate: string | null = null;
     let formattedDeadline: string | null = null;
-    const startDate = training.start_date ? new Date(training.start_date) : null;
-    const hasValidDate = !!startDate && !isNaN(startDate.getTime()) && startDate.getFullYear() > 2000;
-    if (hasValidDate) {
-      formattedDate = formatDateWithDayFr(training.start_date);
-      const deadlineDate = new Date(startDate!);
+    if (sessionStart) {
+      formattedDate = formatDateWithDayFr(sessionStart);
+      const deadlineDate = new Date(sessionStart);
       deadlineDate.setDate(deadlineDate.getDate() - 2);
       formattedDeadline = formatDateWithDayFr(deadlineDate.toISOString().split("T")[0]);
     }
@@ -211,7 +238,7 @@ serve(async (req) => {
       first_name: participant.first_name || null,
       training_name: training.training_name,
       training_date: formattedDate,
-      no_date: hasValidDate ? null : "1",
+      no_date: formattedDate || hasPeriodWithoutSessionDate ? null : "1",
       questionnaire_link: questionnaireUrl,
       deadline_date: formattedDeadline,
     };
