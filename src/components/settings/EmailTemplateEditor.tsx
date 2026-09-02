@@ -65,14 +65,44 @@ const EmailTemplateEditor = ({
       <Textarea value={editedContent} onChange={(e) => onUpdateTemplate(type, currentMode, "content", e.target.value)} placeholder="Contenu du mail..." className="min-h-[200px] font-mono text-sm" />
     </div>
 
-    <div className="space-y-2">
-      <Label className="text-muted-foreground">Variables disponibles</Label>
-      <div className="flex flex-wrap gap-2">
-        {defaultTemplate.variables.map((variable) => (
-          <code key={variable} className="px-2 py-1 bg-muted rounded text-xs">{`{{${variable}}}`}</code>
-        ))}
+    <div className="space-y-3">
+      <div>
+        <Label className="text-muted-foreground">Variables disponibles</Label>
+        <p className="text-xs text-muted-foreground mt-1">
+          Copiez le code entre accolades dans l'objet ou le contenu : il sera remplacé par la vraie valeur à l'envoi.
+        </p>
       </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {defaultTemplate.variables.map((variable) => {
+          const doc = getVariableDoc(variable);
+          return (
+            <div key={variable} className="rounded-md border bg-muted/30 p-2">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-xs font-medium">{doc.label}</span>
+                <code className="px-1.5 py-0.5 bg-background border rounded text-[11px] whitespace-nowrap">
+                  {doc.isCondition ? `{{#${variable}}}…{{/${variable}}}` : `{{${variable}}}`}
+                </code>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">{doc.description}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <details className="rounded-md border p-3">
+        <summary className="text-sm font-medium cursor-pointer">Comment écrire le modèle ?</summary>
+        <div className="mt-3 space-y-3">
+          {TEMPLATE_SYNTAX_HELP.map((help) => (
+            <div key={help.title} className="space-y-1">
+              <p className="text-sm font-medium">{help.title}</p>
+              <p className="text-xs text-muted-foreground">{help.detail}</p>
+              <pre className="text-[11px] bg-muted rounded p-2 whitespace-pre-wrap">{help.example}</pre>
+            </div>
+          ))}
+        </div>
+      </details>
     </div>
+
 
     <div className="flex flex-wrap gap-2 pt-2 items-center">
       <AutoSaveIndicator status={templateAutoSaveStatus} />
