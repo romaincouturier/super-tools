@@ -81,7 +81,9 @@ const BulkAddParticipantsDialog = ({
       if (data && data.length > 0) await logBulkAddActivity(data, trainingId, isInterEntreprise);
       const n = data?.length || 0;
       const baseMessage = isFreeTraining
-        ? "Formation gratuite — aucun email automatique envoyé."
+        ? formatFormation === "e_learning"
+          ? "Formation gratuite — accès e-learning envoyé."
+          : "Formation gratuite — aucune convocation ni convention envoyée."
         : ongoing
         ? `Formation en cours — mail d'accueil envoyé${attendanceCatchUpSlots > 0 ? `, ${attendanceCatchUpSlots} demande${pluralize(attendanceCatchUpSlots)} d'émargement rattrapée${pluralize(attendanceCatchUpSlots)}` : ""}.`
         : buildStatusMessage(status, sendWelcomeNow, needsSurveySkipped);
