@@ -170,9 +170,10 @@ serve(async (req) => {
       return `${date} : ${s.start_time.slice(0, 5)} - ${s.end_time.slice(0, 5)}`;
     }).join('<br/>') || '';
 
-    // Format training date (only if start_date is set - e-learning asynchrone may not have one)
-    const trainingDate = training.start_date
-      ? new Date(training.start_date).toLocaleDateString('fr-FR', {
+    // Date de session réelle : planning d'abord, start_date seulement si journée unique.
+    const { sessionStart } = resolveSessionDate(schedules, training.start_date, training.end_date);
+    const trainingDate = sessionStart
+      ? new Date(sessionStart).toLocaleDateString('fr-FR', {
           weekday: 'long',
           day: 'numeric',
           month: 'long',
