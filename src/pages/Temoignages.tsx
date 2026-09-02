@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskText } from "@/lib/demoMask";
-import { Star, CheckCircle2, XCircle, Clock, Loader2, RefreshCw, Download, Wand2, Plus } from "lucide-react";
+import { Star, CheckCircle2, XCircle, Clock, RefreshCw, Download, Wand2, Plus } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { invokeEdge } from "@/lib/invokeEdge";
 import { PollingIndicator } from "@/components/shared/PollingIndicator";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
