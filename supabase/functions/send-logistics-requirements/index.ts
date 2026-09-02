@@ -46,7 +46,7 @@ serve(async (req) => {
     // ── Fetch eligible trainings ──
     let query = supabase
       .from("trainings")
-      .select("id, training_name, start_date, sponsor_email, sponsor_first_name, sponsor_formal_address, location, format_formation, logistics_email_sent_at, logistics_email_sent_to, is_cancelled")
+      .select("id, training_name, start_date, end_date, sponsor_email, sponsor_first_name, sponsor_formal_address, location, format_formation, logistics_email_sent_at, logistics_email_sent_to, is_cancelled")
       .not("sponsor_email", "is", null)
       .not("start_date", "is", null)
       .or("is_cancelled.is.null,is_cancelled.eq.false");
