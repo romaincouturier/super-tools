@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AutoSaveIndicator } from "@/components/settings/SettingsAutoSaveIndicator";
+import { getVariableDoc, TEMPLATE_SYNTAX_HELP } from "@/lib/emailVariableDocs";
 import type { AddressMode, TemplateConfig } from "@/components/settings/settingsConstants";
+
 
 interface EmailTemplateEditorProps {
   type: string;
