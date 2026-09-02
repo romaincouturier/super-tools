@@ -1,8 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  compactForApi,
   withCacheBreakpoints,
-  KEEP_RECENT_MESSAGES,
+  stripThinking,
   type Message,
 } from "./agent-history.ts";
 
@@ -14,6 +13,7 @@ function assistantToolUse(id: string, name: string): Message {
   return {
     role: "assistant",
     content: [
+      { type: "thinking", thinking: "...", signature: `sig-${id}` },
       { type: "text", text: "Je consulte." },
       { type: "tool_use", id, name, input: {} },
     ],
@@ -30,63 +30,21 @@ function toolResult(id: string, content: string): Message {
 /** Simule un tour d'agent : N rounds de tool loop sur un historique de départ. */
 function simulateTurn(initial: Message[], rounds: number) {
   const history = [...initial];
-  const cutoff = history.length - KEEP_RECENT_MESSAGES;
   const rendered: Message[][] = [];
 
   for (let r = 0; r < rounds; r++) {
-    rendered.push(withCacheBreakpoints(compactForApi(history, cutoff)));
+    rendered.push(withCacheBreakpoints(history));
     history.push(assistantToolUse(`t${r}`, "query_database"));
     history.push(toolResult(`t${r}`, "x".repeat(5000)));
   }
   return rendered;
 }
 
-describe("compactForApi", () => {
-  it("tronque les tool_results au-delà de la fenêtre récente", () => {
-    const messages: Message[] = [
-      userText("question"),
-      assistantToolUse("t0", "query_database"),
-      toolResult("t0", "y".repeat(5000)),
-      ...Array.from({ length: KEEP_RECENT_MESSAGES }, (_, i) => userText(`filler ${i}`)),
-    ];
-
-    const out = compactForApi(messages);
-    const block = (out[2].content as Array<Record<string, unknown>>)[0];
-    expect(String(block.content).length).toBeLessThan(5000);
-    expect(String(block.content)).toContain("résultat tronqué");
-  });
-
-  it("laisse intacts les résultats des tools de lecture de contenu", () => {
-    const long = "z".repeat(5000);
-    const messages: Message[] = [
-      userText("question"),
-      assistantToolUse("t0", "read_document"),
-      toolResult("t0", long),
-      ...Array.from({ length: KEEP_RECENT_MESSAGES }, (_, i) => userText(`filler ${i}`)),
-    ];
-
-    const out = compactForApi(messages);
-    const block = (out[2].content as Array<Record<string, unknown>>)[0];
-    expect(block.content).toBe(long);
-  });
-
-  it("ne mute pas les messages d'origine", () => {
-    const messages: Message[] = [
-      userText("question"),
-      assistantToolUse("t0", "query_database"),
-      toolResult("t0", "w".repeat(5000)),
-      ...Array.from({ length: KEEP_RECENT_MESSAGES }, (_, i) => userText(`filler ${i}`)),
-    ];
-
-    compactForApi(messages);
-    const original = (messages[2].content as Array<Record<string, unknown>>)[0];
-    expect(String(original.content).length).toBe(5000);
-  });
-
-  it("avec une fenêtre figée, le préfixe déjà rendu ne change plus", () => {
-    // L'invariant qui rend le prompt caching exploitable : sans cutoff figé,
-    // un message envoyé entier au round N est tronqué au round N+3 et le
-    // cache est perdu à chaque round.
+describe("historique append-only", () => {
+  it("le préfixe déjà rendu ne change plus d'un round à l'autre", () => {
+    // L'invariant qui conditionne le prompt caching et la validité des blocs
+    // thinking : la signature d'un bloc scelle tout ce qui le précède, donc
+    // réécrire un tour déjà envoyé invalide tous les blocs postérieurs.
     const initial: Message[] = [
       userText("question"),
       ...Array.from({ length: 10 }, (_, i) =>
@@ -114,8 +72,10 @@ describe("compactForApi", () => {
     }
   });
 
-  it("sans fenêtre figée, le préfixe change entre deux rounds", () => {
-    // Contre-test : documente la régression que le cutoff figé corrige.
+  it("un nouveau tour utilisateur ne retouche pas les tours précédents", () => {
+    // Le rabotage des tool_results se faisait ici et retronquait, à chaque
+    // nouveau tour, des messages envoyés entiers au tour d'avant. Il est passé
+    // au context editing serveur, qui ne compte pas comme une édition.
     const history: Message[] = [
       userText("question"),
       ...Array.from({ length: 10 }, (_, i) =>
@@ -124,14 +84,46 @@ describe("compactForApi", () => {
           : toolResult(`init${i - 1}`, "a".repeat(5000)),
       ),
     ];
+    const before = history.map((m) => JSON.stringify(m));
 
-    const before = compactForApi(history);
-    history.push(assistantToolUse("next", "query_database"));
-    history.push(toolResult("next", "b".repeat(5000)));
-    const after = compactForApi(history);
+    history.push(userText("nouvelle question"));
 
-    const changed = before.some((m, i) => JSON.stringify(m) !== JSON.stringify(after[i]));
-    expect(changed).toBe(true);
+    expect(history.slice(0, before.length).map((m) => JSON.stringify(m))).toEqual(before);
+  });
+});
+
+describe("stripThinking", () => {
+  it("retire les blocs thinking et redacted_thinking", () => {
+    const messages: Message[] = [
+      {
+        role: "assistant",
+        content: [
+          { type: "thinking", thinking: "...", signature: "sig" },
+          { type: "redacted_thinking", data: "opaque" },
+          { type: "text", text: "réponse" },
+          { type: "tool_use", id: "t0", name: "query_database", input: {} },
+        ],
+      },
+    ];
+
+    const out = stripThinking(messages);
+    expect(out[0].content).toEqual([
+      { type: "text", text: "réponse" },
+      { type: "tool_use", id: "t0", name: "query_database", input: {} },
+    ]);
+  });
+
+  it("laisse intact un message sans bloc thinking", () => {
+    const messages: Message[] = [userText("question"), toolResult("t0", "résultat")];
+    const out = stripThinking(messages);
+    expect(out[0]).toBe(messages[0]);
+    expect(out[1]).toBe(messages[1]);
+  });
+
+  it("ne mute pas les messages d'origine", () => {
+    const messages: Message[] = [assistantToolUse("t0", "query_database")];
+    stripThinking(messages);
+    expect((messages[0].content as unknown[]).length).toBe(3);
   });
 });
 

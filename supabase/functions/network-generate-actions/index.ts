@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 import { logAnthropicUsage, logApiUsage } from "../_shared/api-usage.ts";
+import { anthropicText } from "../_shared/anthropic-response.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -113,7 +114,7 @@ Génère mon plan d'actions réseau pour cette semaine.`;
         trigger: "user",
         usage: data.usage,
       });
-      answer = data.content?.[0]?.text || "[]";
+      answer = anthropicText(data) || "[]";
     }
 
     // Parse JSON from response (handle potential markdown wrapping)

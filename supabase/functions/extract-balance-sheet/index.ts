@@ -10,6 +10,7 @@ import {
 } from "../_shared/mod.ts";
 import { CLAUDE_ADVANCED } from "../_shared/claude-models.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
+import { anthropicText } from "../_shared/anthropic-response.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
@@ -185,7 +186,7 @@ Deno.serve(async (req) => {
       trigger: "user",
       usage: aiJson.usage,
     });
-    const rawText: string = aiJson?.content?.[0]?.text ?? "";
+    const rawText: string = anthropicText(aiJson);
     if (!rawText) {
       return createErrorResponse("Réponse IA vide", 502);
     }

@@ -37,12 +37,15 @@ import {
 import { CLAUDE_ADVANCED, CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
 import {
-  compactForApi,
   withCacheBreakpoints,
+  stripThinking,
+  CONTENT_READ_TOOLS,
   KEEP_RECENT_MESSAGES,
+  KEEP_RECENT_TOOL_USES,
   type Message,
 } from "../_shared/agent-history.ts";
 import { searchContent } from "../_shared/agent-search.ts";
+import { anthropicText } from "../_shared/anthropic-response.ts";
 import {
   BULK_DEFAULT_DOCUMENTS,
   getClientDossier,
@@ -872,13 +875,16 @@ async function summarizeIfLong(messages: Message[], userId?: string): Promise<Me
       usage: data.usage,
       durationMs: Date.now() - startedAt,
     });
-    const summary = data.content?.[0]?.text?.trim();
+    const summary = anthropicText(data).trim();
     if (!summary) return messages;
 
+    // Les tours conservés en queue portent des blocs thinking scellés sur
+    // l'historique complet : derrière le résumé, leur préfixe a changé et les
+    // rejouer ferait échouer la requête. Le texte et les tool_use restent.
     return [
       { role: "user", content: `${SUMMARY_MARKER}\n${summary}` },
       { role: "assistant", content: "Contexte repris. Je poursuis." },
-      ...messages.slice(cut),
+      ...stripThinking(messages.slice(cut)),
     ];
   } catch (e) {
     // Un résumé raté ne doit pas casser la conversation : on continue sans.
@@ -925,9 +931,6 @@ async function runAgentStreaming(
   // AG-11 : le début d'une longue conversation est condensé une fois pour
   // toutes, et le résultat est persisté avec la conversation.
   const conversationMessages = await summarizeIfLong([...messages], userId);
-  // Figé avant le premier round : tout ce que le tour ajoute ensuite reste
-  // intact, donc le préfixe envoyé à l'API ne fait que croître.
-  const compactionCutoff = conversationMessages.length - KEEP_RECENT_MESSAGES;
   let fullResponse = "";
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
@@ -950,6 +953,7 @@ async function runAgentStreaming(
         "x-api-key": ANTHROPIC_API_KEY,
         "content-type": "application/json",
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "context-management-2025-06-27",
       },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
@@ -970,7 +974,20 @@ async function runAgentStreaming(
           },
         ],
         tools: TOOLS,
-        messages: withCacheBreakpoints(compactForApi(conversationMessages, compactionCutoff)),
+        // Ménage des vieux tool_results côté serveur : purger ici, dans le
+        // tableau `messages`, réécrirait des tours déjà envoyés et
+        // invaliderait les blocs thinking qui les suivent.
+        context_management: {
+          edits: [
+            {
+              type: "clear_tool_uses_20250919",
+              trigger: { type: "input_tokens", value: 60000 },
+              keep: { type: "tool_uses", value: KEEP_RECENT_TOOL_USES },
+              exclude_tools: CONTENT_READ_TOOLS,
+            },
+          ],
+        },
+        messages: withCacheBreakpoints(conversationMessages),
       }),
     });
 
@@ -1246,7 +1263,7 @@ async function generateTitle(
       usage: data.usage,
       durationMs: Date.now() - startedAt,
     });
-    const title = data.content?.[0]?.text?.trim();
+    const title = anthropicText(data).trim();
     return title || userMessage.slice(0, 80);
   } catch {
     return userMessage.slice(0, 80);

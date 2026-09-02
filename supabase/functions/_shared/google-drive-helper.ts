@@ -4,6 +4,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logAnthropicUsage, logAssemblyAiUsage } from "./api-usage.ts";
+import { anthropicText } from "./anthropic-response.ts";
 
 const GOOGLE_OAUTH_CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID")!;
 const GOOGLE_OAUTH_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET")!;
@@ -332,7 +333,7 @@ ${text.slice(0, 4000)}`;
       trigger: "cron",
       usage: data.usage,
     });
-    const raw = data.content?.[0]?.text ?? "{}";
+    const raw = anthropicText(data) || "{}";
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     return jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: "", tags: [] };
   } catch {
@@ -408,7 +409,7 @@ ${text.slice(0, 4000)}`;
       trigger: "cron",
       usage: data.usage,
     });
-    const raw = data.content?.[0]?.text ?? "{}";
+    const raw = anthropicText(data) || "{}";
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     return jsonMatch
       ? JSON.parse(jsonMatch[0])

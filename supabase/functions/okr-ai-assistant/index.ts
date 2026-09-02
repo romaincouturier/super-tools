@@ -4,6 +4,7 @@ import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
 import { logAnthropicUsage, logApiUsage } from "../_shared/api-usage.ts";
+import { anthropicText } from "../_shared/anthropic-response.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -242,7 +243,7 @@ Règles :
       trigger: "user",
       usage: data.usage,
     });
-    const answer = data.content?.[0]?.text || "Pas de réponse";
+    const answer = anthropicText(data) || "Pas de réponse";
 
     return new Response(JSON.stringify({ answer, mode }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

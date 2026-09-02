@@ -5,6 +5,7 @@ import OpenAI from "https://esm.sh/openai@4.77.0";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { anthropicText } from "../_shared/anthropic-response.ts";
 
 interface RequestBody {
   apiKey: string;
@@ -129,7 +130,7 @@ Tu DOIS repondre UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte a
         system: systemPrompt,
         messages: [{ role: "user", content: userContent }],
       });
-      text = response.content[0].type === "text" ? response.content[0].text : "";
+      text = anthropicText(response);
       await logAnthropicUsage({
         origin: "arena-orchestrator",
         operation: "next-speaker",

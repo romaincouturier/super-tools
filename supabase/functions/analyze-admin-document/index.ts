@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
+import { anthropicText } from "../_shared/anthropic-response.ts";
 
 const CATEGORIES = [
   "Facture",
@@ -131,7 +132,7 @@ serve(async (req) => {
       trigger: "user",
       usage: claudeJson.usage,
     });
-    const rawText = claudeJson.content?.[0]?.text ?? "{}";
+    const rawText = anthropicText(claudeJson) || "{}";
 
     let analysis: { year?: number | null; category?: string; tags?: string[]; summary?: string } = {};
     try {

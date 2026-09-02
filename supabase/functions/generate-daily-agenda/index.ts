@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 import { logAnthropicUsage, logApiUsage } from "../_shared/api-usage.ts";
+import { anthropicText } from "../_shared/anthropic-response.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -111,7 +112,7 @@ Propose-moi un agenda priorisé pour traiter ces actions.`;
         trigger: "cron",
         usage: data.usage,
       });
-      agenda = data.content?.[0]?.text || "Impossible de générer l'agenda.";
+      agenda = anthropicText(data) || "Impossible de générer l'agenda.";
     }
 
     return new Response(

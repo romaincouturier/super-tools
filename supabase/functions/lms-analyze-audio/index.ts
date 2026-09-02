@@ -8,6 +8,7 @@ import {
 } from "../_shared/mod.ts";
 import { CLAUDE_ADVANCED } from "../_shared/claude-models.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
+import { anthropicText } from "../_shared/anthropic-response.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const SETTING_KEY = "lms_audio_reformulation_prompt";
@@ -134,7 +135,7 @@ serve(async (req) => {
       trigger: "user",
       usage: aiData.usage,
     });
-    const rawText = aiData.content?.[0]?.text ?? "";
+    const rawText = anthropicText(aiData);
 
     let parsed: { assignments: AudioAssignment[] };
     try {

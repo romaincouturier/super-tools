@@ -3,6 +3,7 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
 import { logAnthropicUsage, logApiUsage } from "../_shared/api-usage.ts";
+import { anthropicText } from "../_shared/anthropic-response.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -136,7 +137,7 @@ serve(async (req) => {
         trigger: "user",
         usage: data.usage,
       });
-      answer = data.content?.[0]?.text || "Pas de réponse";
+      answer = anthropicText(data) || "Pas de réponse";
     }
 
     // Extract structured data from response

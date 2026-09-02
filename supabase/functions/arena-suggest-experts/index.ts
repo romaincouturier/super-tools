@@ -4,6 +4,7 @@ import { verifyAuth } from "../_shared/supabase-client.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.74.0";
 import OpenAI from "https://esm.sh/openai@4.77.0";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
+import { anthropicText } from "../_shared/anthropic-response.ts";
 
 // Inline expert catalog for the Edge Function (avoids sharing code with frontend)
 const EXPERT_IDS = [
@@ -150,7 +151,7 @@ Tu DOIS repondre UNIQUEMENT avec un JSON valide :
         max_tokens: 500,
         messages: [{ role: "user", content: prompt }],
       });
-      text = response.content[0].type === "text" ? response.content[0].text : "";
+      text = anthropicText(response);
     }
 
     let parsed;

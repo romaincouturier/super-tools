@@ -1,10 +1,19 @@
 /**
- * Historique de conversation de l'agent — compaction et points de cache.
+ * Historique de conversation de l'agent — points de cache et blocs thinking.
  *
  * Extrait d'agent-chat pour être testable : l'invariant « le préfixe envoyé à
- * l'API ne fait que croître pendant un tour » conditionne tout le bénéfice du
- * prompt caching, et se casse silencieusement si la fenêtre de compaction
- * redevient glissante.
+ * l'API ne fait que croître » conditionne à la fois le prompt caching et la
+ * validité des blocs `thinking`, et se casse silencieusement dès qu'un tour
+ * déjà envoyé est réécrit.
+ *
+ * Le rabotage des tool_results se faisait ici, côté client : chaque nouveau
+ * tour retronquait des messages envoyés entiers au tour précédent. C'est
+ * exactement l'édition d'historique que la règle « preserved thinking »
+ * interdit — la signature d'un bloc thinking scelle tout ce qui le précède,
+ * donc une troncature rétroactive invalide tous les blocs postérieurs. Le
+ * ménage passe désormais par le context editing serveur
+ * (`clear_tool_uses_20250919`), qui ne compte pas comme une édition puisque
+ * l'API compare la conversation telle qu'elle a été envoyée.
  */
 
 export interface Message {
@@ -12,94 +21,46 @@ export interface Message {
   content: unknown;
 }
 
-const CONTENT_READ_TOOLS = new Set([
+export const KEEP_RECENT_MESSAGES = 6;
+
+/**
+ * Nombre de paires tool_use/tool_result que le context editing serveur
+ * conserve intactes. Unité différente de KEEP_RECENT_MESSAGES, qui compte des
+ * messages : un round à plusieurs tools en parallèle tient dans deux messages.
+ */
+export const KEEP_RECENT_TOOL_USES = 6;
+
+/**
+ * Tools dont le résultat ne doit jamais être purgé par le context editing.
+ * Un dossier ou une page de mission n'a d'intérêt que lu en entier, et le
+ * relire coûte un aller-retour complet. `read_media_image` en est exclu :
+ * une image base64 renvoyée à chaque tour pèse plusieurs Mo pour une
+ * information déjà exploitée, elle a vocation à être purgée.
+ */
+export const CONTENT_READ_TOOLS = [
   "get_mission_dossier",
   "get_client_dossier",
   "read_mission_page",
   "read_document",
   "read_mission_documents",
-  "read_media_image",
-]);
-
-// Les tool_results (jusqu'à 100 lignes JSON) sont conservés en base mais
-// tronqués à l'envoi API au-delà des derniers messages : sans cela chaque
-// tour renvoie l'intégralité des résultats SQL de toute la conversation.
-
-export const KEEP_RECENT_MESSAGES = 6;
-const TOOL_RESULT_MAX_CHARS = 1200;
-/**
- * Plafond des lectures de contenu. Très supérieur au rabotage ordinaire : un
- * document ou une page de mission n'a d'intérêt que lu en entier, et le
- * relire coûte un aller-retour complet. Assez large pour qu'une lecture
- * survive à plusieurs tours, assez borné pour qu'une conversation entière de
- * lectures ne sature pas le contexte.
- */
-const CONTENT_RESULT_MAX_CHARS = 120000;
-
-/** tool_use_id -> nom du tool, pour savoir quoi raboter et quoi préserver. */
-export function toolNamesById(messages: Message[]): Map<string, string> {
-  const names = new Map<string, string>();
-  for (const m of messages) {
-    if (!Array.isArray(m.content)) continue;
-    for (const block of m.content as Array<Record<string, unknown>>) {
-      if (block.type === "tool_use" && block.id) {
-        names.set(block.id as string, block.name as string);
-      }
-    }
-  }
-  return names;
-}
+];
 
 /**
- * @param frozenCutoff Index à partir duquel les messages sont laissés intacts.
- *   Calculé une seule fois par tour d'agent : si la fenêtre glissait à chaque
- *   round, un message envoyé entier au round N serait tronqué au round N+3.
- *   Les octets du préfixe changeraient, et le cache de prompt ne pourrait
- *   jamais être relu — c'est exactement ce qui faisait repayer plein tarif
- *   toute la conversation à chacun des 25 rounds possibles.
+ * Retire les blocs `thinking` et `redacted_thinking` des messages indiqués.
+ *
+ * Nécessaire après une compaction par résumé : les tours conservés en queue
+ * portent des blocs produits quand tout l'historique était présent. Les
+ * rejouer derrière le résumé fait échouer la vérification de préfixe. Les
+ * blocs `text` et `tool_use` du tour restent, eux, valides.
  */
-export function compactForApi(messages: Message[], frozenCutoff?: number): Message[] {
-  const cutoff = frozenCutoff ?? messages.length - KEEP_RECENT_MESSAGES;
-  const names = toolNamesById(messages);
-
-  return messages.map((m, i) => {
-    if (i >= cutoff || !Array.isArray(m.content)) return m;
-    const content = (m.content as Array<Record<string, unknown>>).map((block) => {
-      if (block.type !== "tool_result") return block;
-
-      // Blocs mixtes (documents scannés, photos) : le texte est conservé, les
-      // images sont remplacées par une note. Une image base64 renvoyée à
-      // chaque tour pèse plusieurs Mo pour une information déjà exploitée.
-      if (Array.isArray(block.content)) {
-        const blocks = block.content as Array<Record<string, unknown>>;
-        const images = blocks.filter((b) => b.type === "image").length;
-        if (images === 0) return block;
-        return {
-          ...block,
-          content: [
-            ...blocks.filter((b) => b.type !== "image"),
-            {
-              type: "text",
-              text: `[${images} image(s) déjà lue(s), retirées de l'historique — relancer le tool pour les revoir]`,
-            },
-          ],
-        };
-      }
-
-      if (typeof block.content !== "string") return block;
-
-      const isRead = CONTENT_READ_TOOLS.has(names.get(block.tool_use_id as string) ?? "");
-      const max = isRead ? CONTENT_RESULT_MAX_CHARS : TOOL_RESULT_MAX_CHARS;
-      const text = block.content as string;
-      if (text.length <= max) return block;
-
-      return {
-        ...block,
-        content: text.slice(0, max) +
-          "\n… [résultat tronqué — relancer le tool si besoin du détail]",
-      };
-    });
-    return { ...m, content };
+export function stripThinking(messages: Message[]): Message[] {
+  return messages.map((m) => {
+    if (!Array.isArray(m.content)) return m;
+    const blocks = m.content as Array<Record<string, unknown>>;
+    const kept = blocks.filter(
+      (b) => b.type !== "thinking" && b.type !== "redacted_thinking",
+    );
+    return kept.length === blocks.length ? m : { ...m, content: kept };
   });
 }
 
@@ -108,15 +69,16 @@ export function compactForApi(messages: Message[], frozenCutoff?: number): Messa
  *
  * Le system (schéma + tools) était déjà caché, mais `messages` ne l'était pas :
  * chaque round renvoyait toute la conversation au plein tarif d'entrée. On
- * marque le dernier bloc du dernier message — le préfixe étant désormais
- * append-only pendant un tour, les rounds suivants le relisent à 0,1x.
+ * marque le dernier bloc du dernier message — le préfixe étant append-only,
+ * les rounds suivants le relisent à 0,1x.
  *
  * Un second point est posé quelques messages en arrière : un breakpoint ne
  * remonte que 20 blocs de contenu pour retrouver une entrée de cache, et un
  * round avec plusieurs tools en parallèle peut dépasser ce seuil.
  *
- * Les objets sont copiés : `cache_control` ne doit pas fuiter dans
- * `agent_conversations.messages`, qui est persisté tel quel.
+ * Poser, déplacer ou retirer un marqueur `cache_control` ne compte pas comme
+ * une édition d'historique. Les objets sont malgré tout copiés : le marqueur
+ * ne doit pas fuiter dans `agent_conversations.messages`, persisté tel quel.
  */
 const CACHE_LOOKBACK_ANCHOR = 3;
 

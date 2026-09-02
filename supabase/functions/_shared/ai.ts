@@ -17,6 +17,7 @@ import { getSupabaseClient } from "./supabase-client.ts";
 import { getOpenAIApiKey, getAnthropicApiKey } from "./api-keys.ts";
 import { CLAUDE_DEFAULT, CLAUDE_ADVANCED } from "./claude-models.ts";
 import { logApiUsage, type ApiProvider, type TriggerSource } from "./api-usage.ts";
+import { anthropicRefusal, anthropicText } from "./anthropic-response.ts";
 
 export type AiTier = "fast" | "smart";
 export type AiProvider = "lovable" | "anthropic" | "openai" | "gemini";
@@ -155,8 +156,12 @@ async function callAnthropic(model: string, opts: AiChatOptions): Promise<AiCall
     }),
   );
   const data = await res.json();
+  // Un refus de classifieur revient en HTTP 200 sans bloc texte : sans ce
+  // garde-fou l'appelant reçoit une chaîne vide au lieu d'une erreur tracée.
+  const refusal = anthropicRefusal(data);
+  if (refusal) throw new Error(refusal);
   return {
-    text: data.content?.[0]?.text || "",
+    text: anthropicText(data),
     inputTokens: data.usage?.input_tokens ?? 0,
     outputTokens: data.usage?.output_tokens ?? 0,
     cacheReadTokens: data.usage?.cache_read_input_tokens ?? 0,

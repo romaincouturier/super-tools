@@ -276,6 +276,21 @@ check "051" "TED : liste CPV par source, pas de filtre de langue inerte" \
    grep -qE 'tender_ted_languages|isReadableLanguage' \"\$f\" && echo \"VIOLATION: \$f référence encore le filtre de langue inerte\"; \
    grep -qE 'export function (isReadableLanguage|noticeLanguages)' supabase/functions/_shared/ted.ts && echo \"VIOLATION: filtre de langue inerte toujours exporté dans _shared/ted.ts\"; true"
 
+# [052] Réponse Anthropic — le premier bloc n'est pas le texte. Le thinking est
+# adaptatif par défaut à partir de Sonnet 5 : content[0] est alors un bloc
+# thinking et la lecture rend undefined, sans erreur.
+check "052" "Réponse Anthropic lue via anthropicText (pas de content[0])" \
+  "grep -rnE 'content\\??\\.?\\[0\\]' supabase/functions/ --include='*.ts' | grep -v '_shared/anthropic-response' | grep -v '\.test\.ts'"
+
+# [053] Historique agent — append-only. Raboter les tool_results côté client
+# réécrit des tours déjà envoyés et invalide les blocs thinking postérieurs
+# (preserved thinking) : le ménage passe par le context editing serveur.
+check "053" "Agent : ménage de l'historique côté serveur, pas de réécriture cliente" \
+  "f=supabase/functions/agent-chat/index.ts; [ -f \"\$f\" ] || exit 0; \
+   grep -q 'clear_tool_uses_20250919' \"\$f\" || echo \"VIOLATION: \$f ne configure pas le context editing serveur\"; \
+   grep -q 'context-management-2025-06-27' \"\$f\" || echo \"VIOLATION: \$f n'envoie pas le header beta du context editing\"; \
+   grep -rn 'compactForApi' supabase/functions/ --include='*.ts'; true"
+
 # [038] Backup — toute table créée en migration doit être dans TABLES_TO_BACKUP
 # des deux fonctions de backup, ou exclue explicitement (scripts/backup-exclusions.txt).
 check "038" "Toute table migrée est backupée (backup-export + scheduled-backup) ou exclue explicitement" \
@@ -450,11 +465,11 @@ if [ "$STAGED_MODE" = "false" ]; then
   # [046] Prompt caching de l'agent — le cache ne tient que si le prefixe rendu est
   # append-only pendant un tour (cutoff de compaction fige) ET si des points de cache
   # sont poses sur l'historique, pas seulement sur le system.
-  check "048" "Agent : historique cache et cutoff de compaction fige" \
-    "grep -q 'withCacheBreakpoints(compactForApi(conversationMessages, compactionCutoff))' supabase/functions/agent-chat/index.ts \
-       || echo 'VIOLATION [046]: agent-chat doit envoyer withCacheBreakpoints(compactForApi(..., compactionCutoff))'; \
+  check "048" "Agent : points de cache sur l historique append-only" \
+    "grep -q 'withCacheBreakpoints(conversationMessages)' supabase/functions/agent-chat/index.ts \
+       || echo 'VIOLATION [048]: agent-chat doit envoyer withCacheBreakpoints(conversationMessages)'; \
      test -f supabase/functions/_shared/agent-history.test.ts \
-       || echo 'VIOLATION [046]: test invariant de prefixe supprime (_shared/agent-history.test.ts)'"
+       || echo 'VIOLATION [048]: test invariant de prefixe supprime (_shared/agent-history.test.ts)'"
 
   # [049] Evenement de cout — idempotent par unite facturee. AssemblyAI facture le
   # job de transcription, pas ses relectures : sans identifiant externe, chaque

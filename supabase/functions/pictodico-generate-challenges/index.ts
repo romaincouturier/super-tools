@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { CLAUDE_ADVANCED } from "../_shared/claude-models.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
+import { anthropicText } from "../_shared/anthropic-response.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -174,7 +175,7 @@ Retourne un tableau JSON de 10 objets avec cette structure exacte :
       trigger: "cron",
       usage: aiData.usage,
     });
-    const content = aiData.content?.[0]?.text || "";
+    const content = anthropicText(aiData);
 
     let challenges: Array<{ month: number; year: number; theme: string; words: string[] }>;
     try {
