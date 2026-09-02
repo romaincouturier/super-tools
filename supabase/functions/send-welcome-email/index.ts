@@ -11,6 +11,7 @@ import {
   sendEmail,
   escapeHtml,
   emailButton,
+  trainingDateVariables,
 } from "../_shared/mod.ts";
 import { processTemplate } from "../_shared/templates.ts";
 
@@ -192,6 +193,7 @@ serve(async (req) => {
       participant_company: participant.company || '',
       training_name: training.training_name,
       training_date: trainingDate,
+      no_date: trainingDateVariables(training).no_date || '',
       training_location: training.location,
       training_schedule: scheduleStr,
       client_name: training.client_name,

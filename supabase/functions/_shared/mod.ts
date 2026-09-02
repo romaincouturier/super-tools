@@ -41,6 +41,8 @@ export {
   calculateDurationDays,
   todayAsISO,
   dateAsISO,
+  hasRealStartDate,
+  trainingDateVariables,
 } from "./date-utils.ts";
 
 // Supabase client
