@@ -117,35 +117,42 @@ function RecommendedCoursesBlock({
     );
   }
 
+  const priceLabel = (c: RecoCourse) =>
+    c.prix === 0 ? "Gratuit" : c.prix != null ? `${c.prix.toLocaleString("fr-FR")} €` : null;
+
   if (variant === "compact") {
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         {promoBanner}
         {courses.slice(0, 3).map((c) => (
-          <a
-            key={c.id}
-            href={c.boutique_url ?? undefined}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-3 p-2 rounded-xl transition-all hover:bg-black/5"
-          >
+          <div key={c.id} className="flex gap-3 p-3 rounded-xl border"
+            style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
             {c.cover_image_url ? (
-              <img src={c.cover_image_url} alt={c.title}
-                className="w-10 h-10 rounded-lg object-cover shrink-0" />
+              <img src={c.cover_image_url} alt={c.title} loading="lazy"
+                className="w-16 h-16 rounded-lg object-cover shrink-0" />
             ) : (
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+              <div className="w-16 h-16 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: "var(--st-surface, #F2F4F4)" }}>
-                <Sparkles size={16} style={{ color: "var(--st-ink-muted)" }} />
+                <Sparkles size={18} style={{ color: "var(--st-ink-muted)" }} />
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium truncate" style={{ color: "var(--st-ink)" }}>{c.title}</p>
-              <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-                {c.prix === 0 ? "Gratuit" : c.prix != null ? `${c.prix.toLocaleString("fr-FR")} €` : "Découvrir"}
+              <p className="text-sm font-semibold leading-tight" style={{ color: "var(--st-ink)" }}>{c.title}</p>
+              <p className="text-xs mt-0.5 line-clamp-2" style={{ color: "var(--st-ink-muted)" }}>
+                {c.reason}
               </p>
+              <div className="mt-1.5 flex items-center gap-2">
+                <a href={c.boutique_url} target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold"
+                  style={{ color: "var(--st-ink)" }}>
+                  Découvrir la formation <ChevronRight size={13} />
+                </a>
+                {priceLabel(c) && (
+                  <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>· {priceLabel(c)}</span>
+                )}
+              </div>
             </div>
-            <ChevronRight size={16} style={{ color: "var(--st-ink-muted)" }} />
-          </a>
+          </div>
         ))}
       </div>
     );
@@ -159,24 +166,25 @@ function RecommendedCoursesBlock({
         <div key={c.id} className="rounded-2xl border overflow-hidden flex flex-col"
           style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
           {c.cover_image_url ? (
-            <img src={c.cover_image_url} alt={c.title} className="w-full h-40 object-cover" />
+            <img src={c.cover_image_url} alt={c.title} loading="lazy" className="w-full h-40 object-cover" />
           ) : (
             <div className="w-full h-40 flex items-center justify-center"
               style={{ background: "var(--st-surface, #F2F4F4)" }}>
               <Sparkles size={32} style={{ color: "var(--st-ink-muted)" }} />
             </div>
           )}
-          <div className="p-4 flex-1 flex flex-col gap-3">
+          <div className="p-4 flex-1 flex flex-col gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--st-ink-muted)" }}>
+              {c.reason}
+            </p>
             <h3 className="text-base font-bold leading-tight" style={{ color: "var(--st-ink)" }}>{c.title}</h3>
             {c.description && (
               <p className="text-sm line-clamp-3" style={{ color: "var(--st-ink-muted)" }}>{c.description}</p>
             )}
             <div className="mt-auto pt-2 flex items-end justify-between gap-3">
               <div>
-                {c.prix != null && (
-                  <p className="text-lg font-black" style={{ color: "var(--st-ink)" }}>
-                    {c.prix === 0 ? "Gratuit" : `${c.prix.toLocaleString("fr-FR")} €`}
-                  </p>
+                {priceLabel(c) && (
+                  <p className="text-lg font-black" style={{ color: "var(--st-ink)" }}>{priceLabel(c)}</p>
                 )}
                 {c.estimated_duration_minutes ? (
                   <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
@@ -184,13 +192,11 @@ function RecommendedCoursesBlock({
                   </p>
                 ) : null}
               </div>
-              {c.boutique_url ? (
-                <a href={c.boutique_url} target="_blank" rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-4 py-2 rounded-full text-xs font-semibold"
-                  style={{ background: "var(--st-ink)", color: "#fff" }}>
-                  S'inscrire <ChevronRight size={14} />
-                </a>
-              ) : null}
+              <a href={c.boutique_url} target="_blank" rel="noreferrer"
+                className="inline-flex items-center gap-1 px-4 py-2 rounded-full text-xs font-semibold shrink-0"
+                style={{ background: "var(--st-ink)", color: "#fff" }}>
+                Découvrir la formation <ChevronRight size={14} />
+              </a>
             </div>
           </div>
         </div>
@@ -199,6 +205,7 @@ function RecommendedCoursesBlock({
     </div>
   );
 }
+
 
 
 
