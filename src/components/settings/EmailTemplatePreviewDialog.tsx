@@ -8,16 +8,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   extractVariables,
-  looksLikeHtml,
   processTemplate,
+  renderEmailDocument,
   sampleValue,
-  textToHtml,
 } from "@/lib/emailTemplatePreview";
+import { getVariableDoc, TEMPLATE_SYNTAX_HELP } from "@/lib/emailVariableDocs";
 
 interface EmailTemplatePreviewDialogProps {
   open: boolean;
@@ -53,21 +54,20 @@ const EmailTemplatePreviewDialog = ({
   useEffect(() => { if (open) setValues(defaults); }, [open, defaults]);
 
   const renderedSubject = processTemplate(subject, values, false);
-  const renderedHtml = looksLikeHtml(content)
-    ? processTemplate(content, values, true)
-    : textToHtml(processTemplate(content, values, false));
+  const emailDocument = useMemo(() => renderEmailDocument(content, values), [content, values]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full sm:max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="w-full sm:max-w-5xl max-h-[92vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Prévisualisation : {templateName}</DialogTitle>
           <DialogDescription>
-            Modifiez les valeurs des variables pour voir le rendu du mail. Rien n'est enregistré ni envoyé.
+            Le rendu ci-dessous utilise exactement le même HTML que l'email envoyé (police, largeur, paragraphes).
+            Modifiez les valeurs pour tester. Rien n'est enregistré ni envoyé.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6 md:grid-cols-[280px_1fr] overflow-hidden flex-1">
+        <div className="grid gap-6 md:grid-cols-[320px_1fr] overflow-hidden flex-1">
           <div className="flex flex-col min-h-0">
             <div className="flex items-center justify-between mb-2">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">Variables</Label>
@@ -80,35 +80,69 @@ const EmailTemplatePreviewDialog = ({
               {variables.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Ce modèle ne contient aucune variable.</p>
               ) : (
-                <div className="space-y-3">
-                  {variables.map((v) => (
-                    <div key={v} className="space-y-1">
-                      <Label className="text-xs font-mono">{`{{${v}}}`}</Label>
-                      <Input
-                        value={values[v] ?? ""}
-                        onChange={(e) => setValues((prev) => ({ ...prev, [v]: e.target.value }))}
-                        placeholder="(vide)"
-                      />
-                    </div>
-                  ))}
+                <div className="space-y-4">
+                  {variables.map((v) => {
+                    const doc = getVariableDoc(v);
+                    return (
+                      <div key={v} className="space-y-1">
+                        <Label className="text-sm font-medium">{doc.label}</Label>
+                        <p className="text-xs text-muted-foreground">{doc.description}</p>
+                        <code className="inline-block text-[11px] px-1.5 py-0.5 bg-muted rounded">
+                          {doc.isCondition ? `{{#${v}}} ... {{/${v}}}` : `{{${v}}}`}
+                        </code>
+                        {doc.isBlock ? (
+                          <Textarea
+                            className="text-sm min-h-[70px]"
+                            value={values[v] ?? ""}
+                            onChange={(e) => setValues((prev) => ({ ...prev, [v]: e.target.value }))}
+                            placeholder="(vide)"
+                          />
+                        ) : (
+                          <Input
+                            value={values[v] ?? ""}
+                            onChange={(e) => setValues((prev) => ({ ...prev, [v]: e.target.value }))}
+                            placeholder="(vide)"
+                          />
+                        )}
+                        {doc.isCondition && (
+                          <p className="text-[11px] text-muted-foreground">
+                            Laissez vide pour masquer le bloc conditionnel.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
+
+              <div className="mt-6 border-t pt-4 space-y-3">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Comment écrire le modèle
+                </Label>
+                {TEMPLATE_SYNTAX_HELP.map((help) => (
+                  <div key={help.title} className="space-y-1">
+                    <p className="text-sm font-medium">{help.title}</p>
+                    <p className="text-xs text-muted-foreground">{help.detail}</p>
+                    <pre className="text-[11px] bg-muted rounded p-2 whitespace-pre-wrap">{help.example}</pre>
+                  </div>
+                ))}
+              </div>
             </ScrollArea>
           </div>
 
           <div className="flex flex-col min-h-0">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Aperçu</Label>
-            <div className="rounded-lg border overflow-hidden flex flex-col min-h-0">
+            <div className="rounded-lg border overflow-hidden flex flex-col min-h-0 flex-1">
               <div className="px-4 py-3 border-b bg-muted/40">
                 <p className="text-xs text-muted-foreground">Objet</p>
                 <p className="text-sm font-medium break-words">{renderedSubject || "(objet vide)"}</p>
               </div>
-              <ScrollArea className="flex-1">
-                <div
-                  className="p-4 text-sm leading-relaxed [&_p]:mb-3 [&_a]:underline [&_a]:text-primary"
-                  dangerouslySetInnerHTML={{ __html: renderedHtml }}
-                />
-              </ScrollArea>
+              <iframe
+                title="Aperçu de l'email"
+                sandbox=""
+                srcDoc={emailDocument}
+                className="flex-1 w-full min-h-[420px] bg-white"
+              />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               La signature et l'en-tête d'expédition sont ajoutés automatiquement à l'envoi.
