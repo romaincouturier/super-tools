@@ -59,6 +59,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
     });
   }
 
+  if (!row.drive_file_id) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "testimonial has no drive_file_id" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
   const run = async () => {
     try {
       const accessToken = await getValidDriveAccessToken(admin);
