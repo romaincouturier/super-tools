@@ -91,10 +91,9 @@ export function renderEmailDocument(
   variables: PreviewVariables,
   signatureHtml = "",
 ): string {
-  const body = looksLikeHtml(content)
-    ? processTemplate(content, variables, false)
-    : textToHtml(processTemplate(content, variables, false));
+  const body = textToHtml(processTemplate(content, variables, false));
   return wrapEmailHtml(body, signatureHtml);
+
 }
 
 /** Collect every {{var}} / {{#var}} referenced in subject + content. */
