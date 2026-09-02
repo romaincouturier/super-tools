@@ -132,9 +132,4 @@ export const TEMPLATE_SYNTAX_HELP: { title: string; detail: string; example: str
     detail: "Encadrez un mot de deux astérisques pour le mettre en gras.",
     example: "La formation démarre le **12 mars**.",
   },
-  {
-    title: "Liste à puces",
-    detail: "Commencez les lignes par un tiret pour créer une liste.",
-    example: "- Apporter un carnet\n- Prévoir des feutres",
-  },
 ];
