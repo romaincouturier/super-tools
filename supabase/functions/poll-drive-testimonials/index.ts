@@ -210,6 +210,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .select("id")
       .is("raw_transcript", null)
       .is("metadata->>assemblyai_id", null)
+      .not("drive_file_id", "is", null)
       .neq("status", "rejected")
       .limit(5);
 
