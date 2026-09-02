@@ -12,7 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import {
+  extractConditionalVariables,
+  extractValueVariables,
   extractVariables,
   processTemplate,
   renderEmailDocument,
@@ -48,6 +51,15 @@ const EmailTemplatePreviewDialog = ({
     const used = extractVariables(subject, content);
     return [...new Set([...declaredVariables, ...used])].sort();
   }, [subject, content, declaredVariables]);
+
+  const conditionalVariables = useMemo(
+    () => new Set(extractConditionalVariables(subject, content)),
+    [subject, content],
+  );
+  const valueVariables = useMemo(
+    () => new Set(extractValueVariables(subject, content)),
+    [subject, content],
+  );
 
   const defaults = useMemo(() => {
     const map: Record<string, string> = {};
@@ -93,14 +105,34 @@ const EmailTemplatePreviewDialog = ({
                 <div className="space-y-4">
                   {variables.map((v) => {
                     const doc = getVariableDoc(v);
+                    const isCondition = conditionalVariables.has(v) || doc.isCondition;
+                    const isValue = valueVariables.has(v);
+                    const toggleOnly = isCondition && !isValue;
+                    const filled = Boolean(values[v]);
                     return (
                       <div key={v} className="space-y-1">
                         <Label className="text-sm font-medium">{doc.label}</Label>
                         <p className="text-xs text-muted-foreground">{doc.description}</p>
                         <code className="inline-block text-[11px] px-1.5 py-0.5 bg-muted rounded">
-                          {doc.isCondition ? `{{#${v}}} ... {{/${v}}}` : `{{${v}}}`}
+                          {isCondition && !isValue
+                            ? `{{#${v}}} ... {{/${v}}}`
+                            : isCondition
+                              ? `{{${v}}} + {{#${v}}} ... {{/${v}}}`
+                              : `{{${v}}}`}
                         </code>
-                        {doc.isBlock ? (
+                        {toggleOnly ? (
+                          <div className="flex items-center gap-2 pt-1">
+                            <Switch
+                              checked={filled}
+                              onCheckedChange={(checked) =>
+                                setValues((prev) => ({ ...prev, [v]: checked ? sampleValue(v) || "1" : "" }))
+                              }
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {filled ? "Bloc affiché" : "Bloc masqué"}
+                            </span>
+                          </div>
+                        ) : doc.isBlock ? (
                           <Textarea
                             className="text-sm min-h-[70px]"
                             value={values[v] ?? ""}
@@ -114,9 +146,9 @@ const EmailTemplatePreviewDialog = ({
                             placeholder="(vide)"
                           />
                         )}
-                        {doc.isCondition && (
+                        {isCondition && !toggleOnly && (
                           <p className="text-[11px] text-muted-foreground">
-                            Laissez vide pour masquer le bloc conditionnel.
+                            Laissez vide pour masquer le bloc conditionnel {`{{#${v}}}`}.
                           </p>
                         )}
                       </div>

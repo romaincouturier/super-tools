@@ -205,3 +205,25 @@ export function extractVariables(...sources: string[]): string[] {
   }
   return [...found];
 }
+
+/** Variables opening a conditional block {{#var}}...{{/var}}. */
+export function extractConditionalVariables(...sources: string[]): string[] {
+  const found = new Set<string>();
+  for (const source of sources) {
+    for (const match of (source || "").matchAll(/\{\{#(\w+)\}\}/g)) {
+      found.add(match[1]);
+    }
+  }
+  return [...found];
+}
+
+/** Variables interpolated as a value {{var}} (excludes block open/close tags). */
+export function extractValueVariables(...sources: string[]): string[] {
+  const found = new Set<string>();
+  for (const source of sources) {
+    for (const match of (source || "").matchAll(/\{\{(\w+)\}\}/g)) {
+      found.add(match[1]);
+    }
+  }
+  return [...found];
+}
