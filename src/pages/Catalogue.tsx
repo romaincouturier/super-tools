@@ -21,6 +21,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import CatalogFormDialog from "@/components/catalogue/CatalogFormDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  computeCatalogSatisfaction,
+  availableYears,
+  statForYear,
+  type CatalogSatisfaction,
+} from "@/lib/catalogSatisfaction";
 
 interface CatalogEntry {
   id: string;
@@ -43,10 +50,28 @@ interface CatalogEntry {
   formula_names: string[];
   last_session_date: string | null;
   is_permanent: boolean;
+  satisfaction: CatalogSatisfaction | undefined;
 }
 
-type SortColumn = "formation_name" | "duree_heures" | "training_count" | "formula_names" | "last_session_date";
+type SortColumn = "formation_name" | "duree_heures" | "training_count" | "formula_names" | "last_session_date" | "satisfaction";
 type SortDirection = "asc" | "desc";
+
+/**
+ * Note moyenne de l'appréciation générale, avec l'effectif qui la fonde :
+ * un « 5/5 » sur une seule réponse ne se lit pas comme un « 5/5 » sur trente.
+ */
+const SatisfactionCell = ({ entry, year }: { entry: CatalogEntry; year: string }) => {
+  const stat = statForYear(entry.satisfaction, year);
+  if (!stat) return <span className="text-xs text-muted-foreground">—</span>;
+  return (
+    <span className="text-sm">
+      {stat.average.toLocaleString("fr-FR", { minimumFractionDigits: 1 })}/5{" "}
+      <span className="text-xs text-muted-foreground">
+        ({stat.count} avis)
+      </span>
+    </span>
+  );
+};
 
 const Catalogue = () => {
   const [catalogEntries, setCatalogEntries] = useState<CatalogEntry[]>([]);
@@ -54,6 +79,8 @@ const Catalogue = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<CatalogEntry | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [years, setYears] = useState<string[]>([]);
   const [sortColumn, setSortColumn] = useState<SortColumn>("formation_name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const navigate = useNavigate();
@@ -76,11 +103,19 @@ const Catalogue = () => {
       const today = new Date().toISOString().split("T")[0];
       const { data: trainings } = await supabase
         .from("trainings")
-        .select("catalog_id, start_date, end_date");
+        .select("id, catalog_id, start_date, end_date");
+
+      // Appréciation générale (note sur 5) des évaluations à chaud soumises.
+      const { data: evaluations } = await supabase
+        .from("training_evaluations")
+        .select("training_id, appreciation_generale, etat");
+
+      const satisfactionByCatalog = computeCatalogSatisfaction(trainings || [], evaluations || []);
+      setYears(availableYears(trainings || []));
 
       const countMap: Record<string, number> = {};
       const lastDateMap: Record<string, string> = {};
-      trainings?.forEach((t: { catalog_id: string | null; start_date: string | null; end_date: string | null }) => {
+      trainings?.forEach((t: { id: string; catalog_id: string | null; start_date: string | null; end_date: string | null }) => {
         if (t.catalog_id) {
           countMap[t.catalog_id] = (countMap[t.catalog_id] || 0) + 1;
           const effectiveEnd = t.end_date || t.start_date;
@@ -112,6 +147,7 @@ const Catalogue = () => {
           training_count: countMap[e.id] || 0,
           formula_names: formulaMap[e.id] || [],
           last_session_date: lastDateMap[e.id] || null,
+          satisfaction: satisfactionByCatalog[e.id],
         })) as CatalogEntry[]
       );
     } catch (error: unknown) {
@@ -170,6 +206,11 @@ const Catalogue = () => {
           return dir * (a.training_count - b.training_count);
         case "formula_names":
           return dir * (a.formula_names.join(", ")).localeCompare(b.formula_names.join(", "), "fr");
+        case "satisfaction": {
+          const sa = statForYear(a.satisfaction, selectedYear)?.average ?? -1;
+          const sb = statForYear(b.satisfaction, selectedYear)?.average ?? -1;
+          return dir * (sa - sb);
+        }
         case "last_session_date":
           if (!a.last_session_date && !b.last_session_date) return 0;
           if (!a.last_session_date) return dir;
@@ -179,7 +220,7 @@ const Catalogue = () => {
           return 0;
       }
     });
-  }, [catalogEntries, searchQuery, sortColumn, sortDirection]);
+  }, [catalogEntries, searchQuery, sortColumn, sortDirection, selectedYear]);
 
   const handleCreate = () => {
     setEditingEntry(null);
@@ -276,6 +317,17 @@ const Catalogue = () => {
                   </button>
                 )}
               </div>
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-[180px]" aria-label="Année de satisfaction">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes les années</SelectItem>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
           <CardContent>
@@ -333,6 +385,8 @@ const Catalogue = () => {
                           ? `Dernière : ${formatDate(entry.last_session_date)}`
                           : "Aucune session"}
                       </span>
+                      <span>&middot;</span>
+                      <SatisfactionCell entry={entry} year={selectedYear} />
                     </div>
                   </div>
                 ))}
@@ -376,6 +430,15 @@ const Catalogue = () => {
                       <div className="flex items-center">
                         Formules
                         <SortIcon column="formula_names" />
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="w-[130px] cursor-pointer select-none"
+                      onClick={() => handleSort("satisfaction")}
+                    >
+                      <div className="flex items-center">
+                        Satisfaction
+                        <SortIcon column="satisfaction" />
                       </div>
                     </TableHead>
                     <TableHead
@@ -436,6 +499,9 @@ const Catalogue = () => {
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <SatisfactionCell entry={entry} year={selectedYear} />
                       </TableCell>
                       <TableCell>
                         {entry.last_session_date ? (
