@@ -13,6 +13,7 @@ import {
   emailButton,
 } from "../_shared/mod.ts";
 import { processTemplate } from "../_shared/templates.ts";
+import { resolveSessionDate } from "../_shared/training-date.ts";
 
 // Send notification to sponsor (intra-enterprise)
 async function sendSponsorNotification(
