@@ -10,6 +10,7 @@ import {
   formatDateWithDayFr,
 } from "../_shared/mod.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
+import { resolveSessionDate } from "../_shared/training-date.ts";
 
 // Default templates (fallback if no custom template in DB)
 const DEFAULT_SUBJECT_TU = "Rappel : Prépare ta formation \"{{training_name}}\"";
@@ -186,13 +187,14 @@ serve(async (req) => {
 
     // Build questionnaire URL
     const questionnaireUrl = `${appUrl}/questionnaire/${token}`;
-    const formattedDate = formatDateWithDayFr(training.start_date);
+    const { sessionStart } = resolveSessionDate(schedules, training.start_date, training.end_date);
+    const formattedDate = sessionStart ? formatDateWithDayFr(sessionStart) : "";
 
     // Process template
     const variables = {
       first_name: participant.first_name || null,
       training_name: training.training_name,
-      training_date: formattedDate,
+      training_date: formattedDate || null,
       training_location: training.location || "",
       questionnaire_link: questionnaireUrl,
     };

@@ -12,6 +12,7 @@ import {
   prepareTemplatedEmail,
   logEmailActivity,
 } from "../_shared/email-helpers.ts";
+import { resolveSessionDate } from "../_shared/training-date.ts";
 
 // Default templates (fallback if no custom template in DB)
 const DEFAULT_SUBJECT_TU = "Prépare ta formation \"{{training_name}}\"";
@@ -194,35 +195,14 @@ serve(async (req) => {
     // Build questionnaire URL
     const questionnaireUrl = `${appUrl}/questionnaire/${token}`;
 
-    // Real planning: schedules first, start_date only as a single-day fallback.
-    // E-learning / permanent sessions span a period (start_date != end_date) without
-    // schedules: they have no session date, so neither training_date nor no_date apply.
     const { data: schedules } = await supabase
       .from("training_schedules")
       .select("day_date")
       .eq("training_id", trainingId)
       .order("day_date", { ascending: true });
 
-    const parse = (d?: string | null) => {
-      if (!d) return null;
-      const parsed = new Date(d);
-      return !isNaN(parsed.getTime()) && parsed.getFullYear() > 2000 ? parsed : null;
-    };
-
-    let sessionStart: string | null = null;
-    let hasPeriodWithoutSessionDate = false;
-
-    if (schedules && schedules.length > 0) {
-      sessionStart = schedules[0].day_date;
-    } else {
-      const start = parse(training.start_date);
-      const end = parse(training.end_date);
-      if (start && (!end || end.getTime() === start.getTime())) {
-        sessionStart = training.start_date;
-      } else if (start) {
-        hasPeriodWithoutSessionDate = true;
-      }
-    }
+    const { sessionStart, isPeriodWithoutSessionDate: hasPeriodWithoutSessionDate } =
+      resolveSessionDate(schedules, training.start_date, training.end_date);
 
     let formattedDate: string | null = null;
     let formattedDeadline: string | null = null;

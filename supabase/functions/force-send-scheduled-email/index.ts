@@ -12,6 +12,7 @@ import {
   resolveSupportsUrlBase,
 } from "../_shared/supports-url.ts";
 import { logLovableUsage } from "../_shared/api-usage.ts";
+import { resolveSessionDate } from "../_shared/training-date.ts";
 
 interface ForceSendRequest {
   scheduledEmailId: string;
@@ -168,6 +169,11 @@ const handler = async (req: Request): Promise<Response> => {
       });
     };
 
+    // Date de session réelle (planning d'abord) : vide pour les sessions e-learning
+    // qui couvrent une période sans planning.
+    const { sessionStart } = resolveSessionDate(schedules, training.start_date, training.end_date);
+    const sessionDateLabel = sessionStart ? formatDate(sessionStart) : "";
+
     const formatSchedules = (schedulesList: any[]) => {
       return schedulesList
         .map((s) => {
@@ -203,7 +209,7 @@ const handler = async (req: Request): Promise<Response> => {
         const vars = {
           first_name: firstName,
           training_name: training.training_name,
-          training_date: formatDate(training.start_date),
+          training_date: sessionDateLabel,
           training_schedule: formatSchedules(schedules || []),
           training_location: training.location,
         };
@@ -212,13 +218,13 @@ const handler = async (req: Request): Promise<Response> => {
           subject = resolved.subject;
           htmlContent = resolved.htmlContent;
         } else {
-          subject = `${training.training_name} – ${formatDate(training.start_date)} – Confirmation d'inscription`;
+          subject = `${training.training_name} – ${(sessionDateLabel || "date à définir")} – Confirmation d'inscription`;
           htmlContent = `
             <p>${greeting}</p>
             <p>Nous avons le plaisir de ${formalAddress ? "vous" : "te"} confirmer ${formalAddress ? "votre" : "ton"} inscription à la formation <strong>"${training.training_name}"</strong>.</p>
             <p><strong>Informations pratiques :</strong></p>
             <ul>
-              <li>Date : ${formatDate(training.start_date)}</li>
+              <li>Date : ${(sessionDateLabel || "à définir")}</li>
               <li>Horaires :<br>${formatSchedules(schedules || [])}</li>
               <li>Lieu : ${training.location}</li>
             </ul>
@@ -280,7 +286,7 @@ const handler = async (req: Request): Promise<Response> => {
         const vars = {
           first_name: firstName,
           training_name: training.training_name,
-          training_date: formatDate(training.start_date),
+          training_date: sessionDateLabel,
           questionnaire_link: `<a href="${surveyUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a>`,
           deadline_date: "",
         };
@@ -292,7 +298,7 @@ const handler = async (req: Request): Promise<Response> => {
           subject = `${training.training_name} – Questionnaire de recueil des besoins`;
           htmlContent = `
             <p>${greeting}</p>
-            <p>${formalAddress ? "Vous êtes inscrit(e)" : "Tu es inscrit(e)"} à la formation <strong>"${training.training_name}"</strong> qui aura lieu le ${formatDate(training.start_date)}.</p>
+            <p>${formalAddress ? "Vous êtes inscrit(e)" : "Tu es inscrit(e)"} à la formation <strong>"${training.training_name}"</strong> ${sessionDateLabel ? `qui aura lieu le ${sessionDateLabel}` : "à venir"}.</p>
             <p>Afin de personnaliser cette formation à ${formalAddress ? "vos" : "tes"} attentes, je ${formalAddress ? "vous" : "t'"}invite à remplir un court questionnaire de recueil des besoins :</p>
             <p><a href="${surveyUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a></p>
             <p>Ce questionnaire ${formalAddress ? "vous" : "te"} prendra environ 5 minutes et me permettra d'adapter le contenu de la formation à ${formalAddress ? "vos" : "tes"} besoins spécifiques.</p>
@@ -359,7 +365,7 @@ const handler = async (req: Request): Promise<Response> => {
         const vars = {
           first_name: firstName,
           training_name: training.training_name,
-          training_date: formatDate(training.start_date),
+          training_date: sessionDateLabel,
           training_schedule: formatSchedules(schedules || []),
           training_location: training.location,
           required_equipment: requiredEquipment,
@@ -369,13 +375,13 @@ const handler = async (req: Request): Promise<Response> => {
           subject = resolved.subject;
           htmlContent = resolved.htmlContent;
         } else {
-          subject = `Rappel : Formation ${training.training_name} – ${formatDate(training.start_date)}`;
+          subject = `Rappel : Formation ${training.training_name}`;
           htmlContent = `
             <p>${greeting}</p>
             <p>${formalAddress ? "Votre" : "Ta"} formation <strong>"${training.training_name}"</strong> approche !</p>
             <p><strong>Pour rappel :</strong></p>
             <ul>
-              <li>Date : ${formatDate(training.start_date)}</li>
+              <li>Date : ${(sessionDateLabel || "à définir")}</li>
               <li>Horaires :<br>${formatSchedules(schedules || [])}</li>
               <li>Lieu : ${training.location}</li>
               ${equipmentLine}
@@ -528,7 +534,7 @@ const handler = async (req: Request): Promise<Response> => {
           first_name: trainerFirstName,
           training_name: training.training_name,
           client_name: training.client_name,
-          training_date: formatDate(training.start_date),
+          training_date: sessionDateLabel,
           training_location: training.location,
           training_schedule: schedules && schedules.length > 0 ? formatSchedules(schedules) : "",
           survey_stats: statsLine,
@@ -542,7 +548,7 @@ const handler = async (req: Request): Promise<Response> => {
           subject = `☀️ Demain c'est le grand jour ! Synthèse pré-formation – ${training.training_name}`;
           htmlContent = `
             <p>Salut ${trainerFirstName} 👋</p>
-            <p>Ta formation <strong>"${training.training_name}"</strong> pour <strong>${training.client_name}</strong> a lieu <strong>demain ${formatDate(training.start_date)}</strong> !</p>
+            <p>Ta formation <strong>"${training.training_name}"</strong> pour <strong>${training.client_name}</strong> a lieu <strong>demain${sessionDateLabel ? ` ${sessionDateLabel}` : ""}</strong> !</p>
             <p>📍 Lieu : ${training.location}</p>
             ${schedules && schedules.length > 0 ? `<p>🕐 Horaires :<br>${formatSchedules(schedules)}</p>` : ""}
             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">

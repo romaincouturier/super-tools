@@ -6,6 +6,7 @@ import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { resolveSessionDate } from "../_shared/training-date.ts";
 
 /**
  * Send Logistics Requirements Email
@@ -46,7 +47,7 @@ serve(async (req) => {
     // ── Fetch eligible trainings ──
     let query = supabase
       .from("trainings")
-      .select("id, training_name, start_date, sponsor_email, sponsor_first_name, sponsor_formal_address, location, format_formation, logistics_email_sent_at, logistics_email_sent_to, is_cancelled")
+      .select("id, training_name, start_date, end_date, sponsor_email, sponsor_first_name, sponsor_formal_address, location, format_formation, logistics_email_sent_at, logistics_email_sent_to, is_cancelled")
       .not("sponsor_email", "is", null)
       .not("start_date", "is", null)
       .or("is_cancelled.is.null,is_cancelled.eq.false");
@@ -114,13 +115,27 @@ serve(async (req) => {
 
         console.log(`[${VERSION}] Sending for "${training.training_name}" — ${reason}`);
 
-        // Format training date for email
-        const trainingDateFormatted = new Date(training.start_date).toLocaleDateString("fr-FR", {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        });
+        // Date de session réelle : planning d'abord, start_date seulement si journée unique
+        const { data: logisticsSchedules } = await supabase
+          .from("training_schedules")
+          .select("day_date")
+          .eq("training_id", training.id)
+          .order("day_date", { ascending: true });
+
+        const { sessionStart } = resolveSessionDate(
+          logisticsSchedules,
+          training.start_date,
+          training.end_date,
+        );
+
+        const trainingDateFormatted = sessionStart
+          ? new Date(sessionStart).toLocaleDateString("fr-FR", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })
+          : "";
 
         // Fetch template
         const useTutoiement = training.sponsor_formal_address === false;
