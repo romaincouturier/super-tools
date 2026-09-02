@@ -37,26 +37,28 @@ export function processTemplate(template: string, variables: PreviewVariables, e
 }
 
 /**
- * Same semantics as the server textToHtml (supabase/functions/_shared/templates.ts):
- * blank line = new paragraph, single newline = <br>, **bold** = <strong>.
- * Escaping is applied first, bold markers after, so user text is never un-escaped.
+ * Exact mirror of the server-side formatContentToHtml (see
+ * supabase/functions/send-elearning-access/index.ts and friends):
+ * the content is split on blank lines; a block that already starts with a
+ * block-level tag is kept as-is, any other block becomes a <p> with <br>
+ * between its lines. Markdown **bold** is converted first.
+ * No escaping: stored templates may legitimately contain inline HTML (<a>, <strong>).
  */
 export function textToHtml(text: string): string {
   if (!text) return "";
-  return text
+  const withBold = text.replace(/\r\n/g, "\n").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  return withBold
     .split(/\n\n+/)
-    .map((paragraph) => {
-      const lines = paragraph.split(/\n/).map((line) => escapeHtml(line.trim()));
-      return `<p>${lines.join("<br>")}</p>`;
+    .map((block) => {
+      const trimmed = block.trim();
+      if (!trimmed) return "";
+      if (/^<(p|div|table|ol|ul|h[1-6]|blockquote)\b/i.test(trimmed)) return trimmed;
+      return `<p>${trimmed.split(/\n/).map((l) => l.trim()).join("<br>")}</p>`;
     })
-    .join("")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    .filter(Boolean)
+    .join("\n");
 }
 
-/** True when the content already contains HTML markup (stored templates may be HTML). */
-export function looksLikeHtml(content: string): boolean {
-  return /<(p|div|br|table|h[1-6]|a|ul|ol|strong)\b/i.test(content);
-}
 
 /** Sample value for a variable, from its documentation when known. */
 export function sampleValue(variable: string): string {
@@ -89,10 +91,9 @@ export function renderEmailDocument(
   variables: PreviewVariables,
   signatureHtml = "",
 ): string {
-  const body = looksLikeHtml(content)
-    ? processTemplate(content, variables, false)
-    : textToHtml(processTemplate(content, variables, false));
+  const body = textToHtml(processTemplate(content, variables, false));
   return wrapEmailHtml(body, signatureHtml);
+
 }
 
 /** Collect every {{var}} / {{#var}} referenced in subject + content. */
