@@ -29,9 +29,13 @@ Deno.serve(async (req) => {
   if (authErr || !caller) {
     return createErrorResponse("Forbidden", 403);
   }
-  // Server-side admin check (user_metadata is user-writable and unsafe).
-  const { data: isAdm, error: isAdmErr } = await admin.rpc("is_admin", { _user_id: caller.id });
-  if (isAdmErr || !isAdm) {
+  // Server-side authorization (user_metadata is user-writable and unsafe).
+  // Admins, and users granted the "lms" module, can manage learner accounts.
+  const [{ data: isAdm }, { data: hasLms }] = await Promise.all([
+    admin.rpc("is_admin", { _user_id: caller.id }),
+    admin.rpc("has_module_access", { _user_id: caller.id, _module: "lms" }),
+  ]);
+  if (!isAdm && !hasLms) {
     return createErrorResponse("Forbidden", 403);
   }
 
