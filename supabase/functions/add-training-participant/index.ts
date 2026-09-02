@@ -17,7 +17,7 @@
  *   - Le log d'activité
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { fetchWorkingDays, subtractWorkingDays, addWorkingDays } from "../_shared/working-days.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
@@ -218,7 +218,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     if (!training) {
-      return createErrorResponse("Formation introuvable", 404, { fn: "add-training-participant" });
+      return new Response(
+        JSON.stringify({ error: "Formation introuvable" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     if (!training) {
