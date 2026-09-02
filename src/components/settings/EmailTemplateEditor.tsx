@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AutoSaveIndicator } from "@/components/settings/SettingsAutoSaveIndicator";
+import { extractVariables } from "@/lib/emailTemplatePreview";
 import { getVariableDoc, TEMPLATE_SYNTAX_HELP } from "@/lib/emailVariableDocs";
 import type { AddressMode, TemplateConfig } from "@/components/settings/settingsConstants";
 
@@ -44,6 +45,10 @@ const EmailTemplateEditor = ({
   onResetTemplate,
 }: EmailTemplateEditorProps) => {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const documentedVariables = [...new Set([
+    ...defaultTemplate.variables,
+    ...extractVariables(editedSubject, editedContent),
+  ])].sort();
 
   return (
   <>
@@ -74,8 +79,8 @@ const EmailTemplateEditor = ({
           Copiez le code entre accolades dans l'objet ou le contenu : il sera remplacé par la vraie valeur à l'envoi.
         </p>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {defaultTemplate.variables.map((variable) => {
+        <div className="grid gap-2 sm:grid-cols-2">
+        {documentedVariables.map((variable) => {
           const doc = getVariableDoc(variable);
           return (
             <div key={variable} className="rounded-md border bg-muted/30 p-2">

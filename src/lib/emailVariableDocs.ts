@@ -76,6 +76,7 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   youtube_url: { label: "Chaîne YouTube", description: "Adresse de la chaîne YouTube.", sample: "https://youtube.com/@supertilt" },
 
   // Conditions
+  no_date: { label: "Dates non fixées ?", description: "Condition : vraie lorsqu'aucune date réelle de session n'est définie, y compris pour une formation e-learning sur une période sans planning précis. À utiliser sous la forme {{#no_date}}...{{/no_date}}.", sample: "oui", isCondition: true },
   has_certificates: { label: "Certificats joints ?", description: "Condition : vraie si des certificats sont joints au mail. À utiliser sous la forme {{#has_certificates}}...{{/has_certificates}}.", sample: "oui", isCondition: true },
   has_invoice: { label: "Facture jointe ?", description: "Condition : vraie si une facture est jointe. À utiliser sous la forme {{#has_invoice}}...{{/has_invoice}}.", sample: "oui", isCondition: true },
   has_sheets: { label: "Feuilles jointes ?", description: "Condition : vraie si des feuilles d'émargement sont jointes.", sample: "oui", isCondition: true },

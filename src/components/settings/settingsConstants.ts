@@ -159,7 +159,7 @@ Afin de garantir les meilleures conditions d'apprentissage pour tous les partici
 
 Merci beaucoup pour votre aide ! N'hésitez pas à me contacter si vous avez la moindre question.`,
     },
-    variables: ["sponsor_first_name", "training_name", "training_date", "location"],
+    variables: ["sponsor_first_name", "training_name", "training_date"],
   },
   // DURING TRAINING
   attendance_signature: {
@@ -311,7 +311,7 @@ Merci d'avance pour votre temps et votre retour ! Je reste à disposition pour t
 
 Bonne journée`,
     },
-    variables: ["first_name", "training_name"],
+    variables: ["first_name", "training_name", "sender_email"],
   },
   // MISSION EMAILS
   mission_google_review: {
@@ -723,7 +723,7 @@ Je reste à votre disposition pour toute question.
 
 Cordialement,`,
     },
-    variables: ["first_name", "training_name", "start_date", "end_date", "signature_link"],
+    variables: ["first_name", "training_name", "start_date", "end_date", "signature_link", "sender_email"],
   },
   elearning_access: {
     name: "Email d'accès e-learning",
