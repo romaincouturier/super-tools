@@ -158,10 +158,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Format helpers
-    const formatDate = (dateStr: string | null | undefined) => {
-      if (!dateStr) return "";
+    const formatDate = (dateStr: string) => {
       const date = new Date(dateStr);
-      if (isNaN(date.getTime()) || date.getFullYear() <= 2000) return "";
       return date.toLocaleDateString("fr-FR", {
         weekday: "long",
         day: "numeric",
@@ -205,8 +203,7 @@ const handler = async (req: Request): Promise<Response> => {
         const vars = {
           first_name: firstName,
           training_name: training.training_name,
-          training_date: formatDate(training.start_date) || null,
-          no_date: trainingDateVariables(training).no_date,
+          training_date: formatDate(training.start_date),
           training_schedule: formatSchedules(schedules || []),
           training_location: training.location,
         };
@@ -283,8 +280,7 @@ const handler = async (req: Request): Promise<Response> => {
         const vars = {
           first_name: firstName,
           training_name: training.training_name,
-          training_date: formatDate(training.start_date) || null,
-          no_date: trainingDateVariables(training).no_date,
+          training_date: formatDate(training.start_date),
           questionnaire_link: `<a href="${surveyUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a>`,
           deadline_date: "",
         };
@@ -363,8 +359,7 @@ const handler = async (req: Request): Promise<Response> => {
         const vars = {
           first_name: firstName,
           training_name: training.training_name,
-          training_date: formatDate(training.start_date) || null,
-          no_date: trainingDateVariables(training).no_date,
+          training_date: formatDate(training.start_date),
           training_schedule: formatSchedules(schedules || []),
           training_location: training.location,
           required_equipment: requiredEquipment,
@@ -533,8 +528,7 @@ const handler = async (req: Request): Promise<Response> => {
           first_name: trainerFirstName,
           training_name: training.training_name,
           client_name: training.client_name,
-          training_date: formatDate(training.start_date) || null,
-          no_date: trainingDateVariables(training).no_date,
+          training_date: formatDate(training.start_date),
           training_location: training.location,
           training_schedule: schedules && schedules.length > 0 ? formatSchedules(schedules) : "",
           survey_stats: statsLine,

@@ -4,7 +4,6 @@ import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-sett
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
-import { trainingDateVariables } from "../_shared/date-utils.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
@@ -116,8 +115,12 @@ serve(async (req) => {
         console.log(`[${VERSION}] Sending for "${training.training_name}" — ${reason}`);
 
         // Format training date for email
-        const { training_date: trainingDateFormatted, no_date: trainingNoDate } =
-          trainingDateVariables(training);
+        const trainingDateFormatted = new Date(training.start_date).toLocaleDateString("fr-FR", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
 
         // Fetch template
         const useTutoiement = training.sponsor_formal_address === false;
@@ -139,7 +142,6 @@ serve(async (req) => {
           sponsor_first_name: training.sponsor_first_name || null,
           training_name: training.training_name,
           training_date: trainingDateFormatted,
-          no_date: trainingNoDate,
           location: training.location || "",
         };
 

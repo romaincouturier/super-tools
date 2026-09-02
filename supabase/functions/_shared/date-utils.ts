@@ -168,37 +168,3 @@ export function todayAsISO(): string {
 export function dateAsISO(date: Date): string {
   return date.toISOString().split("T")[0];
 }
-
-// ── Variables de date pour les emails ───────────────────────────────────────
-
-export interface TrainingDateSource {
-  start_date?: string | null;
-  session_type?: string | null;
-  format_formation?: string | null;
-}
-
-/** Vrai si la formation possède une date de début réellement renseignée. */
-export function hasRealStartDate(training: TrainingDateSource): boolean {
-  if (!training.start_date) return false;
-  const date = new Date(training.start_date);
-  return !isNaN(date.getTime()) && date.getFullYear() > 2000;
-}
-
-/**
- * Variables `training_date` / `no_date` à passer aux modèles d'emails.
- * - `training_date` reste `null` (bloc conditionnel ignoré) sans date valide,
- *   jamais un timestamp 0 / 1er janvier 1970.
- * - `no_date` n'est vrai que pour une formation intra sans date, dont les dates
- *   sont à définir avec le participant. Une formation e-learning / autonome
- *   sans date n'affiche aucun commentaire.
- */
-export function trainingDateVariables(
-  training: TrainingDateSource,
-  format: (dateStr: string) => string = formatDateWithDayFr,
-): { training_date: string | null; no_date: string | null } {
-  if (hasRealStartDate(training)) {
-    return { training_date: format(training.start_date as string), no_date: null };
-  }
-  const isIntra = training.session_type === "intra" || training.format_formation === "intra";
-  return { training_date: null, no_date: isIntra ? "1" : null };
-}

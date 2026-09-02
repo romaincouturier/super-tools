@@ -6,8 +6,6 @@ import {
   getSupabaseClient,
   sendEmail,
   formatDateWithDayFr,
-  trainingDateVariables,
-  hasRealStartDate,
 } from "../_shared/mod.ts";
 import {
   tuVousSuffix,
@@ -197,10 +195,13 @@ serve(async (req) => {
     const questionnaireUrl = `${appUrl}/questionnaire/${token}`;
 
     // Only compute dates if start_date exists and is valid (e-learning/permanent/undated intra trainings have none)
+    let formattedDate: string | null = null;
     let formattedDeadline: string | null = null;
-    const { training_date: formattedDate, no_date } = trainingDateVariables(training);
-    if (hasRealStartDate(training)) {
-      const deadlineDate = new Date(training.start_date);
+    const startDate = training.start_date ? new Date(training.start_date) : null;
+    const hasValidDate = !!startDate && !isNaN(startDate.getTime()) && startDate.getFullYear() > 2000;
+    if (hasValidDate) {
+      formattedDate = formatDateWithDayFr(training.start_date);
+      const deadlineDate = new Date(startDate!);
       deadlineDate.setDate(deadlineDate.getDate() - 2);
       formattedDeadline = formatDateWithDayFr(deadlineDate.toISOString().split("T")[0]);
     }
@@ -210,7 +211,7 @@ serve(async (req) => {
       first_name: participant.first_name || null,
       training_name: training.training_name,
       training_date: formattedDate,
-      no_date,
+      no_date: hasValidDate ? null : "1",
       questionnaire_link: questionnaireUrl,
       deadline_date: formattedDeadline,
     };
