@@ -186,13 +186,14 @@ serve(async (req) => {
 
     // Build questionnaire URL
     const questionnaireUrl = `${appUrl}/questionnaire/${token}`;
-    const formattedDate = formatDateWithDayFr(training.start_date);
+    const { sessionStart } = resolveSessionDate(schedules, training.start_date, training.end_date);
+    const formattedDate = sessionStart ? formatDateWithDayFr(sessionStart) : "";
 
     // Process template
     const variables = {
       first_name: participant.first_name || null,
       training_name: training.training_name,
-      training_date: formattedDate,
+      training_date: formattedDate || null,
       training_location: training.location || "",
       questionnaire_link: questionnaireUrl,
     };
