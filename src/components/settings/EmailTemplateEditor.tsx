@@ -1,4 +1,6 @@
-import { RotateCcw, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { Eye, RotateCcw, Sparkles } from "lucide-react";
+import EmailTemplatePreviewDialog from "@/components/settings/EmailTemplatePreviewDialog";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,7 +40,10 @@ const EmailTemplateEditor = ({
   onUpdateTemplate,
   onImproveWithAI,
   onResetTemplate,
-}: EmailTemplateEditorProps) => (
+}: EmailTemplateEditorProps) => {
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  return (
   <>
     <div className="flex items-center gap-2 mb-4">
       <span className="text-sm text-muted-foreground">Version :</span>
@@ -75,12 +80,26 @@ const EmailTemplateEditor = ({
         {improving === saveKey ? <Spinner className="mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
         Améliorer avec l'IA
       </Button>
+      <Button variant="outline" onClick={() => setPreviewOpen(true)}>
+        <Eye className="h-4 w-4 mr-2" />
+        Prévisualiser
+      </Button>
       <Button variant="outline" onClick={() => onResetTemplate(type, currentMode)} disabled={saving === saveKey || improving === saveKey}>
         <RotateCcw className="h-4 w-4 mr-2" />
         Réinitialiser
       </Button>
     </div>
+
+    <EmailTemplatePreviewDialog
+      open={previewOpen}
+      onOpenChange={setPreviewOpen}
+      templateName={`${defaultTemplate.name} (${currentMode === "tu" ? "tutoiement" : "vouvoiement"})`}
+      subject={editedSubject}
+      content={editedContent}
+      declaredVariables={defaultTemplate.variables}
+    />
   </>
-);
+  );
+};
 
 export default EmailTemplateEditor;
