@@ -14,12 +14,13 @@ import icebreakerALaCarte from "@/assets/academy/icebreaker-a-la-carte.png.asset
 import postureManager from "@/assets/academy/posture-manager.png.asset.json";
 import fondamentauxAgilite from "@/assets/academy/fondamentaux-agilite.png.asset.json";
 
-/** Formations gratuites mises en avant sur la landing, avec leur miniature officielle. */
+const academyAssetUrl = (url: string) => import.meta.env.DEV ? `https://super-tools.lovable.app${url}` : url;
+
 const FREE_COURSE_THUMBNAILS: Record<string, string> = {
-  "f794d041-0794-4ced-b2e2-cd3fb7ac8287": icebreakerModeEmploi.url,
-  "1a8efa6c-fddc-4e4c-9228-e67aff4083b0": icebreakerALaCarte.url,
-  "2da412a9-4917-4306-9187-a2137b17700c": postureManager.url,
-  "d20bf41f-6eeb-47b7-aab7-57def92d69ca": fondamentauxAgilite.url,
+  "f794d041-0794-4ced-b2e2-cd3fb7ac8287": academyAssetUrl(icebreakerModeEmploi.url),
+  "1a8efa6c-fddc-4e4c-9228-e67aff4083b0": academyAssetUrl(icebreakerALaCarte.url),
+  "2da412a9-4917-4306-9187-a2137b17700c": academyAssetUrl(postureManager.url),
+  "d20bf41f-6eeb-47b7-aab7-57def92d69ca": academyAssetUrl(fondamentauxAgilite.url),
 };
 const FREE_COURSE_ORDER = Object.keys(FREE_COURSE_THUMBNAILS);
 
