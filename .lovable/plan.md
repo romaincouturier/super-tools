@@ -32,7 +32,7 @@
 **H1** : Apprenez, expérimentez, progressez avec SuperTilt.
 
 **Sous-titre** :
-Des formations en ligne, des mini-cours et des ressources pour développer vos pratiques en facilitation graphique, intelligence collective et gestion de projet. Et pour commencer, quatre formations sont accessibles gratuitement.
+Des formations en ligne, des mini-cours et des ressources pour progresser en facilitation graphique, intelligence collective et gestion de projet. Et pour commencer, quatre formations sont accessibles gratuitement.
 
 **CTA** : Commencer gratuitement
 
@@ -50,7 +50,7 @@ Des formations en ligne, des mini-cours et des ressources pour développer vos p
 - Durée
 - CTA : Démarrer cette formation
 
-**Micro-texte** : Aucune carte bancaire. Accès immédiat.
+
 
 **Parcours** : depuis une carte, la formation choisie est mémorisée ; après création de compte, l'apprenant est inscrit et redirigé directement vers cette formation, sans recherche.
 
@@ -67,7 +67,7 @@ Dessiner simplement, synthétiser une réunion en une image, rendre une idée vi
 Concevoir et animer des ateliers, faire émerger les idées d'un groupe et l'aider à décider.
 
 **Bloc 3 — Gestion de projet**
-Cadrer un projet, piloter son avancement, communiquer clairement avec les parties prenantes.
+Cadrer un projet, suivre son avancement et mieux communiquer avec les personnes impliquées.
 
 ### 4. Réassurance
 
