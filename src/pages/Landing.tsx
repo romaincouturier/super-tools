@@ -9,6 +9,19 @@ import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useAcademyCatalog, type AcademyCatalogCourse } from "@/hooks/useAcademyCatalog";
 import { supabase } from "@/integrations/supabase/client";
+import icebreakerModeEmploi from "@/assets/academy/icebreaker-mode-emploi.png.asset.json";
+import icebreakerALaCarte from "@/assets/academy/icebreaker-a-la-carte.png.asset.json";
+import postureManager from "@/assets/academy/posture-manager.png.asset.json";
+import fondamentauxAgilite from "@/assets/academy/fondamentaux-agilite.png.asset.json";
+
+/** Formations gratuites mises en avant sur la landing, avec leur miniature officielle. */
+const FREE_COURSE_THUMBNAILS: Record<string, string> = {
+  "f794d041-0794-4ced-b2e2-cd3fb7ac8287": icebreakerModeEmploi.url,
+  "1a8efa6c-fddc-4e4c-9228-e67aff4083b0": icebreakerALaCarte.url,
+  "2da412a9-4917-4306-9187-a2137b17700c": postureManager.url,
+  "d20bf41f-6eeb-47b7-aab7-57def92d69ca": fondamentauxAgilite.url,
+};
+const FREE_COURSE_ORDER = Object.keys(FREE_COURSE_THUMBNAILS);
 
 const expertise = [
   { label: "Facilitation graphique", text: "Structurer une idée, la rendre visible et la partager avec des mots simples et des dessins accessibles.", mark: "01" },
