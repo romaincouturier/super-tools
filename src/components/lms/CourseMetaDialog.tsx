@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useUpdateCourse, type LmsCourse } from "@/hooks/useLms";
 import { ACCESS_OPTIONS, EXPERTISE_OPTIONS, STATUS_OPTIONS } from "@/lib/lmsCourseMeta";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +25,7 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
   const [expertise, setExpertise] = useState(NO_EXPERTISE);
   const [access, setAccess] = useState("gratuit");
   const [status, setStatus] = useState("draft");
+  const [isFeatured, setIsFeatured] = useState(false);
 
   useEffect(() => {
     if (!course) return;
@@ -31,6 +33,7 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
     setExpertise(course.expertise ?? NO_EXPERTISE);
     setAccess(course.access_type ?? "gratuit");
     setStatus(course.status);
+    setIsFeatured(course.is_featured ?? false);
   }, [course]);
 
   const handleSave = async () => {
@@ -42,6 +45,7 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
         expertise: expertise === NO_EXPERTISE ? null : expertise,
         access_type: access,
         status,
+        is_featured: isFeatured,
       });
       toast({ title: "Cours mis à jour" });
       onClose();
@@ -105,6 +109,13 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/30 px-4 py-3">
+            <div className="space-y-1">
+              <Label htmlFor="course-featured">Mise en avant</Label>
+              <p className="text-xs text-muted-foreground">Afficher ce cours dans la sélection « Aller plus loin » de l’Academy.</p>
+            </div>
+            <Switch id="course-featured" checked={isFeatured} onCheckedChange={setIsFeatured} />
           </div>
           {course && <CourseIntegrationStatus courseId={course.id} />}
           <Button onClick={handleSave} disabled={updateCourse.isPending} className="w-full">

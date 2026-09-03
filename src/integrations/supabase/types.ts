@@ -4917,6 +4917,7 @@ export type Database = {
           formation_config_id: string | null
           home_config: Json
           id: string
+          is_featured: boolean
           org_id: string | null
           status: string
           tags: string[] | null
@@ -4939,6 +4940,7 @@ export type Database = {
           formation_config_id?: string | null
           home_config?: Json
           id?: string
+          is_featured?: boolean
           org_id?: string | null
           status?: string
           tags?: string[] | null
@@ -4961,6 +4963,7 @@ export type Database = {
           formation_config_id?: string | null
           home_config?: Json
           id?: string
+          is_featured?: boolean
           org_id?: string | null
           status?: string
           tags?: string[] | null
