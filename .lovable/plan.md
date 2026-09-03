@@ -120,6 +120,58 @@ Section volontairement compacte.
 
 ---
 
+## Design et charte graphique
+
+La charte SuperTilt (octobre 2024) fait office de référence directe pour la landing.
+
+### Couleurs
+
+```text
+Jaune         #ffd100   → couleur principale, fonds de sections, badges, CTA primaires
+Anthracite    #101820   → texte, fonds sombres, contraste
+Gris clair    #f2f4f4   → fonds neutres, cartes
+Blanc         #ffffff   → respiration, texte sur fond anthracite
+```
+
+Le fond de la landing passe en **jaune SuperTilt** sur les sections hautes (hero, expertises, conversion finale), avec des sections claires (gris/blanc) pour les blocs de catalogue. Le noir n'est utilisé qu'en touches : texte, éléments graphiques, footer.
+
+### Typographie
+
+La charte prescrit **Métropolis** (Bold pour les titres, Regular pour le corps, Light pour les légendes). Si la licence web n'est pas disponible immédiatement, on utilisera **Manrope** comme fallback géométrique proche, puis on basculera sur Métropolis dès que les fichiers seront fournis. Les titres de la landing seront en gras condensé, les corps en sans-serif régulier.
+
+### Formes et motifs
+
+- **Angles très arrondis** (environ 20-40 px) sur les blocs et les cartes, pour un aspect humain et convivial.
+- **Arcs de cercle** jaunes/noirs en arrière-plan, coupés hors-champ, pour dynamiser les sections.
+- **Crayonnés** : lignes manuscrites sous les titres, encerclements ovales autour de mots-clés.
+- **Texture solaire** : disque jaune/orange granuleux en haut de page, rappelant le soleil.
+- **Pills et badges** : fond jaune, texte anthracite, bords arrondis complets.
+
+### Logo
+
+Le logo SuperTilt (version sans baseline) est utilisé en **anthracite sur fond jaune/blanc**, et en **blanc sur fond anthracite** dans le footer. L'asset existant `supertilt-logo-anthracite.jpg` est conservé via le composant `SupertiltLogo`. Si un fichier vectoriel ou une version blanche est disponible, on l'intègrera.
+
+### CTA
+
+- Primaire : fond anthracite, texte blanc, bords arrondis, icône flèche.
+- Secondaire : fond jaune, texte anthracite, pour les badges et les actions de moindre importance.
+- Tertiaire : contour anthracite sur fond clair.
+
+### Sections appliquées
+
+```text
+Hero                         — fond jaune, arc noir en haut à droite, logo blanc/anthracite,
+                                 H1 large, sous-titre, CTA anthracite
+Formations gratuites         — fond blanc ou gris clair, cartes blanches à gros radius,
+                                 badge "Gratuit" jaune
+Les 3 expertises             — fond jaune, 3 blocs arrondis avec icône + crayonné
+Réassurance                  — fond blanc/gris, chiffres et témoignages sobres
+Formations payantes          — fond blanc, cartes avec image, prix, CTA
+SuperTilt, c'est aussi       — fond anthracite, texte blanc, CTA jaune
+Rappel de conversion         — fond jaune, formulaire/CTA final
+Footer                       — fond anthracite, logo blanc, liens blancs
+```
+
 ## Points techniques à préparer
 
 **Formations gratuites** : requête sur les cours publiés au type d'accès gratuit, hors intra et hors clients. Affichage automatique, sans limite fixe.
@@ -130,15 +182,23 @@ Section volontairement compacte.
 
 **Référencement** : title et meta description propres à l'Academy, un seul H1, texte alternatif sur les visuels de formation.
 
+**Polices** : vérifier disponibilité de Métropolis en webfont ; sinon fallback Manrope puis migration.
+
+**Assets à produire ou récupérer** :
+- logo SuperTilt en blanc (SVG/PNG) pour footer et sections sombres ;
+- visuels des formations gratuites et payantes (miniatures 16:9) ;
+- éventuellement arcs/cercles en SVG si on ne les code pas directement en CSS.
+
 ---
 
 ## Éléments encore à fournir
 
 - Preuves de réassurance : chiffres exacts, témoignages réels, références clients.
 - Formations payantes à mettre en avant.
+- Fichiers Métropolis (woff2) si licence disponible.
 
 ---
 
 ## Prochaine étape
 
-Valider ces contenus, puis passer au design et à la charte graphique de la page.
+Valider la direction design, puis implémenter la landing (structure React, tokens CSS, typographie, assets et contenus).
