@@ -50,7 +50,7 @@ Des formations en ligne, des mini-cours et des ressources pour progresser en fac
 - Durée
 - CTA : Démarrer cette formation
 
-**Micro-texte** : Aucune carte bancaire. Accès immédiat.
+
 
 **Parcours** : depuis une carte, la formation choisie est mémorisée ; après création de compte, l'apprenant est inscrit et redirigé directement vers cette formation, sans recherche.
 
