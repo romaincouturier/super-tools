@@ -37,8 +37,9 @@ function formatDuration(course: AcademyCatalogCourse) {
   return minutes >= 60 ? `${Math.round(minutes / 60)} h` : `${minutes} min`;
 }
 
-function CourseImage({ course, className = "" }: { course: AcademyCatalogCourse; className?: string }) {
-  if (course.cover_image_url) return <img src={course.cover_image_url} alt="" className={`h-full w-full object-cover ${className}`} loading="lazy" />;
+function CourseImage({ course, className = "", src }: { course: AcademyCatalogCourse; className?: string; src?: string }) {
+  const url = src ?? course.cover_image_url;
+  if (url) return <img src={url} alt={`Miniature de la formation ${course.title}`} className={`h-full w-full object-cover ${className}`} loading="lazy" />;
   return <div className={`flex h-full w-full items-center justify-center bg-secondary ${className}`}><BookOpen className="h-10 w-10 text-primary" strokeWidth={1.5} /></div>;
 }
 
