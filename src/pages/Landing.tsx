@@ -1,276 +1,75 @@
-import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowRight, CheckCircle2, Clock, BookOpen, Sparkles, Target, Users,
+  ArrowRight, BookOpen, Check, Clock3, Compass, Gift, Layers3, Menu, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
+import { useAcademyCatalog, type AcademyCatalogCourse } from "@/hooks/useAcademyCatalog";
+import { supabase } from "@/integrations/supabase/client";
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: (i: number) => ({
-    opacity: 1, y: 0,
-    transition: { delay: i * 0.1, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
-  }),
-};
+const expertise = [
+  { label: "Facilitation graphique", text: "Structurer une idée, la rendre visible et la partager avec des mots simples et des dessins accessibles.", mark: "01" },
+  { label: "Facilitation & intelligence collective", text: "Préparer et animer des temps de travail où chacun contribue et où le groupe avance vraiment.", mark: "02" },
+  { label: "Gestion de projet", text: "Cadrer un projet, suivre son avancement et mieux communiquer avec les personnes impliquées.", mark: "03" },
+];
 
-interface ModuleRow { id: string; title: string; position: number; course_id: string }
-interface CourseRow {
-  id: string;
-  title: string;
-  description: string | null;
-  cover_image_url: string | null;
-  estimated_duration_minutes: number | null;
-  modules: ModuleRow[];
-  boutique_url: string | null;
-  prix: number | null;
-  duree_heures: number | null;
+const fallbackDescription = "Un parcours concret pour apprendre à votre rythme, avec des vidéos, des exercices et des ressources.";
+
+function formatDuration(course: AcademyCatalogCourse) {
+  const minutes = course.estimated_duration_minutes || ((course.formation_configs?.duree_heures ?? 0) * 60);
+  if (!minutes) return null;
+  return minutes >= 60 ? `${Math.round(minutes / 60)} h` : `${minutes} min`;
 }
 
-const audience = [
-  { icon: Users, title: "Formateurs & coachs", desc: "Donnez plus d'impact à vos interventions avec le visuel." },
-  { icon: Target, title: "Facilitateurs", desc: "Modélisez les conversations et idées sur le vif." },
-  { icon: Sparkles, title: "Toute personne créative", desc: "Aucun prérequis en dessin. Juste l'envie d'essayer." },
-];
+function CourseImage({ course, className = "" }: { course: AcademyCatalogCourse; className?: string }) {
+  if (course.cover_image_url) return <img src={course.cover_image_url} alt="" className={`h-full w-full object-cover ${className}`} loading="lazy" />;
+  return <div className={`flex h-full w-full items-center justify-center bg-secondary ${className}`}><BookOpen className="h-10 w-10 text-primary" strokeWidth={1.5} /></div>;
+}
+
+function FreeCourseCard({ course, index }: { course: AcademyCatalogCourse; index: number }) {
+  return (
+    <motion.article initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-80px" }} transition={{ delay: index * 0.08, duration: 0.45 }} className="group flex h-full flex-col overflow-hidden border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
+      <div className="relative aspect-[16/9] overflow-hidden"><CourseImage course={course} className="transition-transform duration-500 group-hover:scale-[1.03]" /><span className="absolute left-4 top-4 inline-flex items-center gap-1.5 bg-primary px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-primary-foreground"><Gift className="h-3.5 w-3.5" /> Gratuit</span></div>
+      <div className="flex flex-1 flex-col p-6"><h3 className="text-xl font-bold leading-tight text-foreground">{course.title}</h3><p className="mt-3 flex-1 text-sm leading-6 text-muted-foreground">{course.description || fallbackDescription}</p>{formatDuration(course) && <div className="mt-5 flex items-center gap-2 text-xs font-medium text-muted-foreground"><Clock3 className="h-4 w-4 text-primary" /> {formatDuration(course)} de contenu</div>}<Button asChild className="mt-6 w-full font-bold"><Link to={`/academy/inscription?course=${encodeURIComponent(course.id)}`}>Commencer gratuitement <ArrowRight className="ml-2 h-4 w-4" /></Link></Button></div>
+    </motion.article>
+  );
+}
+
+function PaidCourseCard({ course }: { course: AcademyCatalogCourse }) {
+  const href = course.formation_configs?.supertilt_link;
+  return <article className="group flex min-h-[370px] flex-col overflow-hidden border border-border bg-card shadow-sm transition-shadow hover:shadow-md"><div className="relative h-44 overflow-hidden"><CourseImage course={course} className="transition-transform duration-500 group-hover:scale-[1.03]" />{course.is_featured && <span className="absolute right-4 top-4 bg-foreground px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-background">À découvrir</span>}</div><div className="flex flex-1 flex-col p-6"><h3 className="text-xl font-bold leading-tight">{course.title}</h3><p className="mt-3 flex-1 text-sm leading-6 text-muted-foreground">{course.description || fallbackDescription}</p><div className="mt-6 flex items-center justify-between gap-4">{course.formation_configs?.prix != null && <span className="text-lg font-bold">{course.formation_configs.prix.toLocaleString("fr-FR")} €</span>}{href ? <Button asChild variant="outline" className="font-bold"><a href={href} target="_blank" rel="noreferrer">Découvrir la formation <ArrowRight className="ml-2 h-4 w-4" /></a></Button> : <span className="text-sm text-muted-foreground">Bientôt disponible</span>}</div></div></article>;
+}
 
 export default function Landing() {
   const navigate = useNavigate();
-  const [courses, setCourses] = useState<CourseRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, isError } = useAcademyCatalog();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const courses = data?.courses ?? [];
+  const freeCourses = useMemo(() => courses.filter((course) => course.access_type === "gratuit").slice(0, 4), [courses]);
+  const paidCourses = useMemo(() => courses.filter((course) => course.access_type === "payant" && course.is_featured).slice(0, 3), [courses]);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/dashboard");
-    });
-  }, [navigate]);
+  useEffect(() => { supabase.auth.getSession().then(({ data: { session } }) => { if (session) navigate("/espace-apprenant"); }); }, [navigate]);
 
-  useEffect(() => {
-    (async () => {
-      const [coursesRes, modulesRes, configsRes] = await Promise.all([
-        (supabase as any)
-          .from("lms_courses")
-          .select("id, title, description, cover_image_url, estimated_duration_minutes")
-          .eq("status", "published")
-          .order("created_at", { ascending: true }),
-        (supabase as any).from("lms_modules").select("id, title, position, course_id").order("position", { ascending: true }),
-        (supabase as any).from("formation_configs").select("formation_name, supertilt_link, prix, duree_heures").not("supertilt_link", "is", null),
-      ]);
+  return <main className="min-h-screen bg-background text-foreground">
+    <nav className="absolute inset-x-0 top-0 z-20"><div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10"><Link to="/" aria-label="Academy SuperTilt"><SupertiltLogo className="h-9" /></Link><div className="hidden items-center gap-8 md:flex"><a href="#formations" className="text-sm font-semibold hover:text-primary">Les formations</a><a href="#expertises" className="text-sm font-semibold hover:text-primary">Ce que vous pouvez apprendre</a><Link to="/apprenant" className="text-sm font-semibold hover:text-primary">Se connecter</Link></div><button type="button" className="md:hidden" aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"} onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}</button></div>{menuOpen && <div className="border-y border-border bg-background px-6 py-4 md:hidden"><div className="flex flex-col gap-4 text-sm font-semibold"><a href="#formations" onClick={() => setMenuOpen(false)}>Les formations</a><a href="#expertises" onClick={() => setMenuOpen(false)}>Ce que vous pouvez apprendre</a><Link to="/apprenant">Se connecter</Link></div></div>}</nav>
 
-      const allModules: ModuleRow[] = modulesRes.data || [];
-      const configs: Array<{ formation_name: string; supertilt_link: string; prix: number | null; duree_heures: number | null }> = configsRes.data || [];
+    <section className="relative overflow-hidden bg-primary px-6 pb-20 pt-32 lg:px-10 lg:pb-28 lg:pt-44"><div className="pointer-events-none absolute -right-20 top-24 h-64 w-64 rounded-full border-[28px] border-primary-foreground/10 lg:h-96 lg:w-96" /><div className="pointer-events-none absolute bottom-[-180px] left-[8%] h-72 w-72 rounded-full border-[18px] border-primary-foreground/10" /><div className="relative mx-auto grid max-w-7xl items-end gap-14 lg:grid-cols-[1.1fr_0.9fr] lg:gap-20"><div className="max-w-3xl"><p className="mb-7 text-sm font-bold uppercase tracking-[0.18em] text-primary-foreground/70">Academy SuperTilt</p><h1 className="max-w-3xl text-5xl font-black leading-[0.98] tracking-tight text-primary-foreground sm:text-6xl lg:text-8xl">Apprenez, expérimentez, progressez avec SuperTilt.</h1><p className="mt-8 max-w-2xl text-lg leading-8 text-primary-foreground/80 sm:text-xl">Des formations en ligne, des mini-cours et des ressources pour progresser en facilitation graphique, intelligence collective et gestion de projet. Et pour commencer, quatre formations sont accessibles gratuitement.</p><div className="mt-10 flex flex-col gap-3 sm:flex-row"><Button asChild size="lg" className="bg-foreground px-7 font-bold text-background hover:bg-foreground/90"><a href="#formations">Commencer gratuitement <ArrowRight className="ml-2 h-5 w-5" /></a></Button><Link to="/apprenant" className="inline-flex h-12 items-center justify-center px-4 font-bold text-primary-foreground underline-offset-4 hover:underline">J’ai déjà un compte</Link></div></div><div className="hidden lg:block"><div className="border-l-2 border-primary-foreground/30 pl-8"><p className="text-6xl font-black text-primary-foreground">4</p><p className="mt-2 max-w-xs text-lg font-semibold leading-7 text-primary-foreground/80">formations gratuites pour découvrir l’Academy et passer à l’action.</p></div></div></div></section>
 
-      const matchConfig = (title: string) => {
-        const t = title.toLowerCase();
-        return configs.find((c) => {
-          const n = (c.formation_name || "").toLowerCase();
-          return n.includes(t) || t.includes(n) || n.split(" ").filter((w) => w.length > 4).some((w) => t.includes(w));
-        });
-      };
+    <section id="formations" className="bg-background px-6 py-20 lg:px-10 lg:py-28"><div className="mx-auto max-w-7xl"><div className="mb-12 flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><p className="mb-3 text-sm font-bold uppercase tracking-[0.15em] text-primary">Pour commencer</p><h2 className="text-4xl font-black tracking-tight sm:text-5xl">Commencez gratuitement</h2></div><p className="max-w-xl text-base leading-7 text-muted-foreground">Envie de tester l’Academy ? Commencez avec l’une de nos quatre formations gratuites. Créez simplement votre compte et lancez-vous.</p></div>{isLoading ? <div className="flex min-h-40 items-center justify-center"><Spinner size="lg" className="text-primary" /></div> : isError ? <p className="border border-border bg-secondary p-6 text-muted-foreground">Les formations seront bientôt disponibles.</p> : freeCourses.length > 0 ? <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{freeCourses.map((course, index) => <FreeCourseCard key={course.id} course={course} index={index} />)}</div> : <p className="text-muted-foreground">Aucune formation gratuite n’est disponible pour le moment.</p>}</div></section>
 
-      const enriched: CourseRow[] = (coursesRes.data || []).map((c: any) => {
-        const cfg = matchConfig(c.title);
-        return {
-          ...c,
-          modules: allModules.filter((m) => m.course_id === c.id),
-          boutique_url: cfg?.supertilt_link ?? null,
-          prix: cfg?.prix ?? null,
-          duree_heures: cfg?.duree_heures ?? null,
-        };
-      });
-      setCourses(enriched);
-      setLoading(false);
-    })();
-  }, []);
+    <section id="expertises" className="bg-secondary px-6 py-20 lg:px-10 lg:py-28"><div className="mx-auto max-w-7xl"><div className="mb-12 flex items-end justify-between gap-8"><div><p className="mb-3 text-sm font-bold uppercase tracking-[0.15em] text-primary">Les sujets de l’Academy</p><h2 className="text-4xl font-black tracking-tight sm:text-5xl">Ce que vous pouvez apprendre</h2></div><Compass className="hidden h-14 w-14 text-primary md:block" strokeWidth={1.5} /></div><div className="grid border-t border-border md:grid-cols-3">{expertise.map((item) => <article key={item.label} className="border-b border-border py-8 md:border-b-0 md:border-r md:px-8 md:first:pl-0 md:last:border-r-0"><span className="text-sm font-black text-primary">{item.mark}</span><h3 className="mt-10 text-2xl font-bold leading-tight">{item.label}</h3><p className="mt-4 text-base leading-7 text-muted-foreground">{item.text}</p></article>)}</div></div></section>
 
-  return (
-    <div className="min-h-screen bg-foreground text-secondary">
-      {/* ─── NAVBAR ─── */}
-      <nav className="fixed top-0 inset-x-0 z-50 bg-foreground/95 backdrop-blur border-b border-border/20">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
-          <SupertiltLogo className="h-8" invert />
-          <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
-            <a href="#formations" className="hover:text-primary transition-colors">Formations</a>
-            <a href="#audience" className="hover:text-primary transition-colors">Pour qui</a>
-          </div>
-          <Button variant="ghost" className="text-secondary hover:text-primary" asChild>
-            <Link to="/apprenant">Connexion</Link>
-          </Button>
-        </div>
-      </nav>
+    <section className="bg-foreground px-6 py-20 text-background lg:px-10 lg:py-24"><div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-[1fr_1.5fr] md:items-center"><div><p className="text-sm font-bold uppercase tracking-[0.15em] text-primary">Une façon simple d’apprendre</p><h2 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">Du concret, à votre rythme.</h2></div><div className="grid gap-5 sm:grid-cols-3">{[{ icon: BookOpen, text: "Des contenus courts et accessibles" }, { icon: Layers3, text: "Des exercices pour pratiquer" }, { icon: Check, text: "Des ressources à garder" }].map(({ icon: Icon, text }) => <div key={text} className="border-l border-background/20 pl-5"><Icon className="h-6 w-6 text-primary" /><p className="mt-4 text-sm font-semibold leading-6 text-background/75">{text}</p></div>)}</div></div></section>
 
-      {/* ─── HERO ─── */}
-      <section className="pt-32 pb-16 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-              <Sparkles className="w-4 h-4" /> Apprentissage en ligne · 100 % à votre rythme
-            </span>
-          </motion.div>
-          <motion.h1
-            className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] mb-6"
-            initial="hidden" animate="visible" variants={fadeUp} custom={1}
-          >
-            Faites parler vos idées,{" "}
-            <span className="text-primary">en images</span>.
-          </motion.h1>
-          <motion.p
-            className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10"
-            initial="hidden" animate="visible" variants={fadeUp} custom={2}
-          >
-            Découvrez nos formations e-learning dédiées à la facilitation graphique et à la communication visuelle. Vidéos, exercices guidés, communauté d'apprenants.
-          </motion.p>
-          <motion.div
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
-            initial="hidden" animate="visible" variants={fadeUp} custom={3}
-          >
-            <Button size="lg" className="text-base px-8 py-6 font-bold" asChild>
-              <a href="#formations">
-                Voir les formations <ArrowRight className="ml-2 w-5 h-5" />
-              </a>
-            </Button>
-          </motion.div>
-        </div>
-      </section>
+    {paidCourses.length > 0 && <section className="bg-background px-6 py-20 lg:px-10 lg:py-28"><div className="mx-auto max-w-7xl"><div className="mb-12 flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><p className="mb-3 text-sm font-bold uppercase tracking-[0.15em] text-primary">Pour aller plus loin</p><h2 className="text-4xl font-black tracking-tight sm:text-5xl">Aller plus loin</h2></div><p className="max-w-xl text-base leading-7 text-muted-foreground">Vous voulez approfondir ? Découvrez une sélection de nos formations en ligne.</p></div><div className="grid gap-6 md:grid-cols-3">{paidCourses.map((course) => <PaidCourseCard key={course.id} course={course} />)}</div></div></section>}
 
-      {/* ─── AUDIENCE ─── */}
-      <section id="audience" className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
-          <motion.div className="text-center mb-12" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Pour qui ?</h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Que vous animiez, formiez ou facilitiez, le visuel est un levier d'impact.
-            </p>
-          </motion.div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {audience.map((a, i) => (
-              <motion.div key={a.title} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}>
-                <div className="bg-card/5 border border-border/20 rounded-2xl p-6 h-full hover:border-primary/40 transition-colors">
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                    <a.icon className="w-6 h-6 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2 text-secondary">{a.title}</h3>
-                  <p className="text-muted-foreground text-sm">{a.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+    <section className="bg-secondary px-6 py-20 lg:px-10 lg:py-24"><div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-[0.8fr_1.2fr] md:items-center"><h2 className="text-4xl font-black tracking-tight sm:text-5xl">Et au-delà de l’Academy ?</h2><div><p className="max-w-2xl text-lg leading-8 text-muted-foreground">Nous proposons aussi des formations en présentiel et accompagnons les équipes directement sur le terrain : coaching, facilitation d’ateliers et de séminaires, scribing…</p><a href="https://supertilt.fr" target="_blank" rel="noreferrer" className="mt-8 inline-flex items-center font-bold underline decoration-primary decoration-2 underline-offset-4">Découvrir SuperTilt <ArrowRight className="ml-2 h-5 w-5" /></a></div></div></section>
 
-      {/* ─── FORMATIONS ─── */}
-      <section id="formations" className="py-20 px-6 bg-card/5">
-        <div className="max-w-6xl mx-auto">
-          <motion.div className="text-center mb-12" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Les formations disponibles</h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Des parcours structurés, vidéo + pratique, avec retour personnalisé.
-            </p>
-          </motion.div>
+    <section className="bg-primary px-6 py-20 lg:px-10 lg:py-24"><div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 md:flex-row md:items-end"><div><p className="text-sm font-bold uppercase tracking-[0.15em] text-primary-foreground/70">À vous de jouer</p><h2 className="mt-4 text-4xl font-black tracking-tight text-primary-foreground sm:text-6xl">Envie de commencer ?</h2><p className="mt-5 max-w-xl text-lg leading-8 text-primary-foreground/80">Choisissez une formation gratuite, créez votre compte et c’est parti.</p></div><Button asChild size="lg" className="bg-foreground px-7 font-bold text-background hover:bg-foreground/90"><a href="#formations">Voir les formations <ArrowRight className="ml-2 h-5 w-5" /></a></Button></div></section>
 
-          {loading ? (
-            <div className="text-center text-muted-foreground py-12">Chargement…</div>
-          ) : (
-            <div className="grid md:grid-cols-2 gap-8">
-              {courses.map((c, i) => (
-                <motion.article
-                  key={c.id}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  variants={fadeUp}
-                  custom={i}
-                  className="bg-background/30 border border-border/20 rounded-3xl overflow-hidden flex flex-col hover:border-primary/40 transition-colors"
-                >
-                  {c.cover_image_url ? (
-                    <img src={c.cover_image_url} alt={c.title} className="w-full h-48 object-cover" />
-                  ) : (
-                    <div className="w-full h-48 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                      <BookOpen className="w-16 h-16 text-primary/40" />
-                    </div>
-                  )}
-                  <div className="p-6 flex-1 flex flex-col">
-                    <h3 className="text-2xl font-bold mb-2">{c.title}</h3>
-                    {c.description && (
-                      <p className="text-muted-foreground text-sm mb-4">{c.description}</p>
-                    )}
-
-                    {/* Méta */}
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mb-5">
-                      <span className="flex items-center gap-1.5">
-                        <BookOpen className="w-3.5 h-3.5 text-primary" />
-                        {c.modules.length} module{c.modules.length > 1 ? "s" : ""}
-                      </span>
-                      {c.duree_heures && c.duree_heures > 0 && (
-                        <span className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-primary" />
-                          {c.duree_heures} h
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Programme */}
-                    {c.modules.length > 0 && (
-                      <div className="mb-6">
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3 font-semibold">Programme</p>
-                        <ul className="space-y-2">
-                          {c.modules.map((m) => (
-                            <li key={m.id} className="flex items-start gap-2 text-sm">
-                              <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                              <span>{m.title}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* CTA */}
-                    <div className="mt-auto pt-4 flex items-end justify-between gap-4">
-                      <div>
-                        {c.prix != null && (
-                          <p className="text-2xl font-black">
-                            {c.prix === 0 ? "Gratuit" : `${c.prix.toLocaleString("fr-FR")} €`}
-                          </p>
-                        )}
-                      </div>
-                      {c.boutique_url ? (
-                        <Button asChild className="font-semibold">
-                          <a href={c.boutique_url} target="_blank" rel="noreferrer">
-                            S'inscrire <ArrowRight className="ml-1.5 w-4 h-4" />
-                          </a>
-                        </Button>
-                      ) : (
-                        <Button variant="outline" disabled className="font-semibold border-border/30">
-                          Bientôt disponible
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </motion.article>
-              ))}
-              {courses.length === 0 && (
-                <p className="text-center text-muted-foreground col-span-full py-12">
-                  Aucune formation publiée pour le moment.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ─── FOOTER ─── */}
-      <footer className="border-t border-border/20 py-12 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <SupertiltLogo className="h-6" invert />
-          <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <Link to="/politique-confidentialite" className="hover:text-primary transition-colors">Politique de confidentialité</Link>
-            <a href="mailto:contact@supertilt.fr" className="hover:text-primary transition-colors">Contact</a>
-          </div>
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Supertilt. Tous droits réservés.</p>
-        </div>
-      </footer>
-    </div>
-  );
+    <footer className="bg-foreground px-6 py-10 text-background lg:px-10"><div className="mx-auto flex max-w-7xl flex-col gap-5 md:flex-row md:items-center md:justify-between"><SupertiltLogo className="h-7" invert /><div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-background/60"><Link to="/politique-confidentialite" className="hover:text-primary">Politique de confidentialité</Link><a href="mailto:contact@supertilt.fr" className="hover:text-primary">Contact</a><span>© {new Date().getFullYear()} SuperTilt</span></div></div></footer>
+  </main>;
 }

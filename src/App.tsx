@@ -84,6 +84,7 @@ const QuoteWorkflowPage = lazy(() => import("./pages/QuoteWorkflow"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Landing = lazy(() => import("./pages/Landing"));
+const AcademySignup = lazy(() => import("./pages/AcademySignup"));
 const Signup = lazy(() => import("./pages/Signup"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const LearnerAccess = lazy(() => import("./pages/LearnerAccess"));
@@ -177,6 +178,7 @@ const App = () => {
             <Routes>
               {/* Public routes — no auth required */}
               <Route path="/" element={<Landing />} />
+              <Route path="/academy/inscription" element={<AcademySignup />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/onboarding" element={<Onboarding />} />

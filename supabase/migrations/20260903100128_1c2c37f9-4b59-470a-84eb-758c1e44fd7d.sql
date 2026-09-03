@@ -1,0 +1,2 @@
+ALTER TABLE public.lms_courses
+  ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAULT false;
