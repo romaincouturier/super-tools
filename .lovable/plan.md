@@ -32,7 +32,7 @@
 **H1** : Apprenez, expérimentez, progressez avec SuperTilt.
 
 **Sous-titre** :
-Des formations en ligne, des mini-cours et des ressources pour développer vos pratiques en facilitation graphique, intelligence collective et gestion de projet. Et pour commencer, quatre formations sont accessibles gratuitement.
+Des formations en ligne, des mini-cours et des ressources pour progresser en facilitation graphique, intelligence collective et gestion de projet. Et pour commencer, quatre formations sont accessibles gratuitement.
 
 **CTA** : Commencer gratuitement
 
