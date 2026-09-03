@@ -67,7 +67,7 @@ Dessiner simplement, synthétiser une réunion en une image, rendre une idée vi
 Concevoir et animer des ateliers, faire émerger les idées d'un groupe et l'aider à décider.
 
 **Bloc 3 — Gestion de projet**
-Cadrer un projet, piloter son avancement, communiquer clairement avec les parties prenantes.
+Cadrer un projet, suivre son avancement et mieux communiquer avec les personnes impliquées.
 
 ### 4. Réassurance
 
