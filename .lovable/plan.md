@@ -201,7 +201,7 @@ Titre, texte et CTA uniquement. Aucun formulaire.
 
 ## Éléments encore à fournir
 
-- Preuves de réassurance : chiffres exacts, témoignages réels, références clients.
+- Preuves de réassurance : chiffres exacts, témoignages réels, références clients. Tant qu'ils manquent, la section n'est pas publiée.
 - Formations payantes à mettre en avant.
 - Fichiers Métropolis (woff2) si licence disponible.
 
@@ -209,4 +209,4 @@ Titre, texte et CTA uniquement. Aucun formulaire.
 
 ## Prochaine étape
 
-Valider la direction design, puis implémenter la landing (structure React, tokens CSS, typographie, assets et contenus).
+Implémenter la landing : refonte de `src/pages/Landing.tsx` selon l'architecture et la direction ci-dessus, indicateur "mise en avant" côté administration LMS, parcours d'inscription sans friction, et métadonnées SEO.
