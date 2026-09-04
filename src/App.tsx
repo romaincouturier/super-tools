@@ -79,6 +79,7 @@ const Catalogue = lazy(() => import("./pages/Catalogue"));
 const ReclamationPublic = lazy(() => import("./pages/ReclamationPublic"));
 const TrainerEvaluation = lazy(() => import("./pages/TrainerEvaluation"));
 const Reclamations = lazy(() => import("./pages/Reclamations"));
+const Signalements = lazy(() => import("./pages/Signalements"));
 const Support = lazy(() => import("./pages/Support"));
 const QuoteWorkflowPage = lazy(() => import("./pages/QuoteWorkflow"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -278,6 +279,7 @@ const App = () => {
                 <Route path="/arena/results" element={<ArenaResults />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/reclamations" element={<Reclamations />} />
+                <Route path="/signalements" element={<Signalements />} />
                 <Route path="/devis/:cardId" element={<QuoteWorkflowPage />} />
                 <Route path="/support" element={<Support />} />
                 <Route path="/reseau" element={<Reseau />} />
