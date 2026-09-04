@@ -3231,6 +3231,10 @@ export type Database = {
           supports_url: string | null
           updated_at: string
           woocommerce_product_id: number | null
+          access_delay: string | null
+          accessibility_terms: string | null
+          funding_terms: string | null
+          recognition_type: string | null
         }
         Insert: {
           available_formulas?: string[] | null
@@ -3258,6 +3262,10 @@ export type Database = {
           supports_url?: string | null
           updated_at?: string
           woocommerce_product_id?: number | null
+          access_delay?: string | null
+          accessibility_terms?: string | null
+          funding_terms?: string | null
+          recognition_type?: string | null
         }
         Update: {
           available_formulas?: string[] | null
@@ -3285,6 +3293,10 @@ export type Database = {
           supports_url?: string | null
           updated_at?: string
           woocommerce_product_id?: number | null
+          access_delay?: string | null
+          accessibility_terms?: string | null
+          funding_terms?: string | null
+          recognition_type?: string | null
         }
         Relationships: [
           {
@@ -8743,6 +8755,89 @@ export type Database = {
           },
         ]
       }
+      quality_risks: {
+        Row: {
+          cause: string | null
+          created_at: string
+          created_by: string | null
+          criticality: number | null
+          formation_config_id: string | null
+          framework_version: string
+          id: string
+          impact: number
+          improvement_id: string | null
+          label: string
+          modality: string | null
+          owner: string | null
+          preventive_measure: string | null
+          probability: number
+          reclamation_id: string | null
+          review_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cause?: string | null
+          created_at?: string
+          created_by?: string | null
+          formation_config_id?: string | null
+          framework_version?: string
+          id?: string
+          impact?: number
+          improvement_id?: string | null
+          label: string
+          modality?: string | null
+          owner?: string | null
+          preventive_measure?: string | null
+          probability?: number
+          reclamation_id?: string | null
+          review_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cause?: string | null
+          created_at?: string
+          created_by?: string | null
+          formation_config_id?: string | null
+          framework_version?: string
+          id?: string
+          impact?: number
+          improvement_id?: string | null
+          label?: string
+          modality?: string | null
+          owner?: string | null
+          preventive_measure?: string | null
+          probability?: number
+          reclamation_id?: string | null
+          review_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_risks_formation_config_id_fkey"
+            columns: ["formation_config_id"]
+            isOneToOne: false
+            referencedRelation: "formation_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_risks_improvement_id_fkey"
+            columns: ["improvement_id"]
+            isOneToOne: false
+            referencedRelation: "improvements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_risks_reclamation_id_fkey"
+            columns: ["reclamation_id"]
+            isOneToOne: false
+            referencedRelation: "reclamations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quote_settings: {
         Row: {
           ape_code: string
@@ -11459,6 +11554,9 @@ export type Database = {
           updated_at: string
           venue_booking_sent_at: string | null
           venue_id: string | null
+          pedagogical_referent_designated_at: string | null
+          pedagogical_referent_email: string | null
+          pedagogical_referent_name: string | null
         }
         Insert: {
           admin_contact_email?: string | null
@@ -11531,6 +11629,9 @@ export type Database = {
           updated_at?: string
           venue_booking_sent_at?: string | null
           venue_id?: string | null
+          pedagogical_referent_designated_at?: string | null
+          pedagogical_referent_email?: string | null
+          pedagogical_referent_name?: string | null
         }
         Update: {
           admin_contact_email?: string | null
@@ -11603,6 +11704,9 @@ export type Database = {
           updated_at?: string
           venue_booking_sent_at?: string | null
           venue_id?: string | null
+          pedagogical_referent_designated_at?: string | null
+          pedagogical_referent_email?: string | null
+          pedagogical_referent_name?: string | null
         }
         Relationships: [
           {

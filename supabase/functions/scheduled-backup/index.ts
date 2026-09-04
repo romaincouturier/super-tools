@@ -83,7 +83,7 @@ const TABLES_TO_BACKUP = [
   "practice_post_comments", "practice_post_hashtags", "practice_post_reactions", "practice_posts",
   "profiles", "program_files",
   "questionnaire_besoins", "questionnaire_events",
-  "quote_settings", "quotes", "reclamations", "review_comments",
+  "quality_risks", "quote_settings", "quotes", "reclamations", "review_comments",
   "scheduled_emails", "sent_emails_log", "session_start_notifications",
   "sponsor_cold_evaluations", "stakeholder_appreciations", "subscriptions",
   "supertilt_actions", "supertilt_columns", "supertilt_settings",
