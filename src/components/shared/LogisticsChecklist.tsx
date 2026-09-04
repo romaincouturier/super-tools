@@ -355,7 +355,7 @@ const ChecklistItemRow = ({ item, onToggle, onDelete, onUpdate }: RowProps) => {
         </Tooltip>
       )}
 
-      <Popover>
+      <Popover open={scheduleOpen} onOpenChange={openSchedule}>
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
