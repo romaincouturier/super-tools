@@ -392,8 +392,8 @@ const ChecklistItemRow = ({ item, onToggle, onDelete, onUpdate }: RowProps) => {
               Sans échéance, pas de rappel possible.
             </p>
           </div>
-          <Button size="sm" onClick={saveSchedule} className="w-full">
-            Enregistrer
+          <Button size="sm" onClick={saveSchedule} disabled={saving} className="w-full">
+            {saving ? "Enregistrement…" : "Enregistrer"}
           </Button>
         </PopoverContent>
       </Popover>
