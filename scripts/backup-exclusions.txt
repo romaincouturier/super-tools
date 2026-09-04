@@ -14,3 +14,8 @@ okr_scheduled_emails
 # api_usage_events : télémétrie de consommation des APIs payantes, volumineuse et
 # purgée à 180 jours. Aucune donnée métier, rien à restaurer.
 api_usage_events
+# vhd_report_narratives : récit nominatif d'un signalement de violence, de
+# harcèlement ou de discrimination. Le registre (vhd_reports) est sauvegardé et
+# prouve le traitement ; le témoignage lui-même ne quitte pas la base, pour ne
+# pas en laisser de copie en clair dans Drive pendant toute la rotation GFS.
+vhd_report_narratives

@@ -103,6 +103,7 @@ const TABLES_TO_BACKUP = [
   "transcript_ai_prompts", "transcript_generations", "transcripts",
   "usage_records", "user_module_access", "user_positioning",
   "user_preferences", "user_security_metadata",
+  "vhd_procedures", "vhd_reports",
   "watch_clusters", "watch_digests", "watch_items",
   "webhook_logs",
   "woocommerce_coupons", "woocommerce_orders", "woocommerce_pending_formations",

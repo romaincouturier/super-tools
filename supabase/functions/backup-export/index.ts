@@ -232,6 +232,8 @@ const TABLES_TO_BACKUP = [
   "usage_records",
   "user_module_access",
   "user_positioning",
+  "vhd_procedures",
+  "vhd_reports",
   "user_preferences",
   "user_security_metadata",
   "watch_clusters",
