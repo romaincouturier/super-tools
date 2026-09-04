@@ -11880,6 +11880,149 @@ export type Database = {
         }
         Relationships: []
       }
+      vhd_procedures: {
+        Row: {
+          contact_email: string | null
+          contact_name: string | null
+          content: string
+          created_at: string
+          created_by: string | null
+          effective_from: string | null
+          framework_version: string
+          id: string
+          status: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_name?: string | null
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          framework_version?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_name?: string | null
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          framework_version?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      vhd_report_narratives: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          narrative: string
+          report_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          narrative?: string
+          report_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          narrative?: string
+          report_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vhd_report_narratives_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: true
+            referencedRelation: "vhd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vhd_reports: {
+        Row: {
+          actions_taken: string | null
+          category: string
+          channel: string
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          framework_version: string
+          handled_by: string | null
+          id: string
+          procedure_id: string | null
+          reported_at: string
+          status: string
+          training_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          actions_taken?: string | null
+          category?: string
+          channel?: string
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          framework_version?: string
+          handled_by?: string | null
+          id?: string
+          procedure_id?: string | null
+          reported_at?: string
+          status?: string
+          training_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actions_taken?: string | null
+          category?: string
+          channel?: string
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          framework_version?: string
+          handled_by?: string | null
+          id?: string
+          procedure_id?: string | null
+          reported_at?: string
+          status?: string
+          training_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vhd_reports_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "vhd_procedures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vhd_reports_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       watch_clusters: {
         Row: {
           created_at: string
