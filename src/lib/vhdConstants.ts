@@ -34,12 +34,6 @@ export const VHD_STATUSES = [
 
 export type VhdStatus = (typeof VHD_STATUSES)[number]["value"];
 
-export const VHD_PROCEDURE_STATUSES = [
-  { value: "draft", label: "Brouillon" },
-  { value: "active", label: "En vigueur" },
-  { value: "archived", label: "Archivée" },
-] as const;
-
 function labelFrom(
   list: ReadonlyArray<{ value: string; label: string }>,
   value: string | null | undefined,
@@ -59,33 +53,6 @@ export function isOverdue(
   if (report.status === "cloture") return false;
   if (!report.due_date) return false;
   return report.due_date < today;
-}
-
-/** Délai de traitement en jours, borne haute non close comprise. */
-export function handlingDays(
-  report: { reported_at: string; closed_at: string | null },
-  today: string,
-): number {
-  const start = new Date(report.reported_at).getTime();
-  const end = new Date(report.closed_at ?? today).getTime();
-  if (!Number.isFinite(start) || !Number.isFinite(end)) return 0;
-  return Math.max(0, Math.round((end - start) / 86_400_000));
-}
-
-/**
- * Répartition par statut, pour montrer d'un coup d'œil ce qui reste ouvert.
- * Un statut inconnu est compté à part plutôt qu'ignoré : une ligne qui
- * disparaît d'un registre réglementaire est pire qu'une ligne mal rangée.
- */
-export function countByStatus(
-  reports: ReadonlyArray<{ status: string }>,
-): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const { value } of VHD_STATUSES) counts[value] = 0;
-  for (const report of reports) {
-    counts[report.status] = (counts[report.status] ?? 0) + 1;
-  }
-  return counts;
 }
 
 /** Champs du formulaire de signalement, tels que saisis à l'écran. */

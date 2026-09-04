@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { todayAsISO } from "@/lib/dateFormatters";
+import { useConfirm } from "@/hooks/useConfirm";
 import {
   useVhdReports,
   EMPTY_VHD_FORM,
@@ -73,19 +74,24 @@ const Signalements = () => {
     setStatusFilter,
     fetchNarrative,
     saveReport,
+    deleteReport,
     changeStatus,
+    trainings,
   } = useVhdReports();
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<VhdReportForm>(EMPTY_VHD_FORM);
   const [saving, setSaving] = useState(false);
+  const [narrativeLoaded, setNarrativeLoaded] = useState(true);
 
   const today = todayAsISO();
 
   const openCreate = () => {
     setEditingId(null);
     setForm({ ...EMPTY_VHD_FORM, reported_at: today });
+    setNarrativeLoaded(true);
     setDialogOpen(true);
   };
 
@@ -102,15 +108,19 @@ const Signalements = () => {
       status: report.status,
       narrative: "",
     });
+    setNarrativeLoaded(false);
     setDialogOpen(true);
     const narrative = await fetchNarrative(report.id);
-    setForm((prev) => ({ ...prev, narrative }));
+    // L'utilisateur a pu commencer à écrire pendant le chargement : sa saisie
+    // prime sur le récit stocké.
+    setForm((prev) => (prev.narrative ? prev : { ...prev, narrative }));
+    setNarrativeLoaded(true);
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await saveReport(form, user?.id, editingId ?? undefined);
+      await saveReport(form, user?.id, editingId ?? undefined, narrativeLoaded);
       setDialogOpen(false);
     } catch (err) {
       toastError(toast, err instanceof Error ? err.message : "Enregistrement impossible");
@@ -298,6 +308,24 @@ const Signalements = () => {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="training_id">Formation concernée</Label>
+                <Select
+                  value={form.training_id || "none"}
+                  onValueChange={(v) => set("training_id", v === "none" ? "" : v)}
+                >
+                  <SelectTrigger id="training_id">
+                    <SelectValue placeholder="Hors session" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Hors session</SelectItem>
+                    {trainings.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.training_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="narrative">Description confidentielle</Label>
                 <Textarea
                   id="narrative"
@@ -342,15 +370,34 @@ const Signalements = () => {
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="gap-2 sm:justify-between">
+              {editingId && (
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    const ok = await confirm({
+                      title: "Supprimer ce signalement ?",
+                      description: "Le récit associé est supprimé avec lui. Cette action est définitive.",
+                    });
+                    if (!ok) return;
+                    await deleteReport(editingId);
+                    setDialogOpen(false);
+                  }}
+                >
+                  Supprimer
+                </Button>
+              )}
+              <div className="flex gap-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
               <Button onClick={handleSave} disabled={saving}>
                 {saving && <Spinner className="mr-2" />}
                 Enregistrer
               </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        <ConfirmDialog />
       </main>
     </ModuleLayout>
   );

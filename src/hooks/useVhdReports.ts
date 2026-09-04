@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { todayAsISO } from "@/lib/dateFormatters";
-import { buildReportRecord, countByStatus, isOverdue, type VhdStatus } from "@/lib/vhdConstants";
+import { buildReportRecord, isOverdue, type VhdStatus } from "@/lib/vhdConstants";
 
 /**
  * Accès au registre des signalements (indicateur 12).
@@ -53,8 +53,14 @@ export const EMPTY_VHD_FORM: VhdReportForm = {
   narrative: "",
 };
 
+export interface VhdTrainingOption {
+  id: string;
+  training_name: string;
+}
+
 export function useVhdReports() {
   const [reports, setReports] = useState<VhdReport[]>([]);
+  const [trainings, setTrainings] = useState<VhdTrainingOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("open");
   const { toast } = useToast();
@@ -73,10 +79,18 @@ export function useVhdReports() {
     setReports((data || []) as unknown as VhdReport[]);
   }, [toast]);
 
+  const fetchTrainings = useCallback(async () => {
+    const { data } = await supabase
+      .from("trainings")
+      .select("id, training_name")
+      .order("start_date", { ascending: false });
+    if (data) setTrainings(data);
+  }, []);
+
   useEffect(() => {
     setLoading(true);
-    fetchReports().finally(() => setLoading(false));
-  }, [fetchReports]);
+    Promise.all([fetchReports(), fetchTrainings()]).finally(() => setLoading(false));
+  }, [fetchReports, fetchTrainings]);
 
   const today = todayAsISO();
 
@@ -88,7 +102,6 @@ export function useVhdReports() {
 
   const stats = useMemo(
     () => ({
-      byStatus: countByStatus(reports),
       overdue: reports.filter((r) => isOverdue(r, today)).length,
       total: reports.length,
     }),
@@ -111,7 +124,7 @@ export function useVhdReports() {
   }, []);
 
   const saveReport = useCallback(
-    async (form: VhdReportForm, userId?: string, existingId?: string) => {
+    async (form: VhdReportForm, userId?: string, existingId?: string, narrativeLoaded = true) => {
       const record = buildReportRecord(form, new Date().toISOString(), todayAsISO());
 
       let reportId = existingId;
@@ -131,11 +144,19 @@ export function useVhdReports() {
 
       if (reportId) {
         const narrative = form.narrative.trim();
-        // Un récit vide n'écrase pas un récit existant par inadvertance.
         if (narrative) {
           const { error } = await supabase
             .from("vhd_report_narratives")
             .upsert({ report_id: reportId, narrative, created_by: userId }, { onConflict: "report_id" });
+          if (error) throw error;
+        } else if (narrativeLoaded) {
+          // Vider le champ efface réellement le récit. Sur des données aussi
+          // sensibles, ne pas pouvoir effacer serait un défaut, pas une
+          // sécurité : une demande d'effacement doit pouvoir être honorée.
+          const { error } = await supabase
+            .from("vhd_report_narratives")
+            .delete()
+            .eq("report_id", reportId);
           if (error) throw error;
         }
       }
@@ -165,15 +186,30 @@ export function useVhdReports() {
     [toast, fetchReports],
   );
 
+  const deleteReport = useCallback(
+    async (id: string) => {
+      // Le récit part avec, par cascade sur la clé étrangère.
+      const { error } = await supabase.from("vhd_reports").delete().eq("id", id);
+      if (error) {
+        toastError(toast, "Impossible de supprimer le signalement");
+        return;
+      }
+      toast({ title: "Signalement supprimé" });
+      await fetchReports();
+    },
+    [toast, fetchReports],
+  );
+
   return {
     reports: visibleReports,
-    allReports: reports,
+    trainings,
     stats,
     loading,
     statusFilter,
     setStatusFilter,
     fetchNarrative,
     saveReport,
+    deleteReport,
     changeStatus,
     refresh: fetchReports,
   };

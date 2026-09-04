@@ -4,8 +4,6 @@ import {
   channelLabel,
   statusLabel,
   isOverdue,
-  handlingDays,
-  countByStatus,
   VHD_CATEGORIES,
   buildReportRecord,
 } from "./vhdConstants";
@@ -52,56 +50,6 @@ describe("isOverdue", () => {
 
   it("ne signale rien sans échéance", () => {
     expect(isOverdue({ status: "recu", due_date: null }, "2026-09-04")).toBe(false);
-  });
-});
-
-describe("handlingDays", () => {
-  it("compte les jours jusqu'à la clôture", () => {
-    expect(
-      handlingDays({ reported_at: "2026-09-01", closed_at: "2026-09-11T10:00:00Z" }, "2026-09-30"),
-    ).toBe(10);
-  });
-
-  it("compte jusqu'à aujourd'hui tant que le signalement est ouvert", () => {
-    expect(handlingDays({ reported_at: "2026-09-01", closed_at: null }, "2026-09-04")).toBe(3);
-  });
-
-  it("ne rend jamais de durée négative", () => {
-    expect(handlingDays({ reported_at: "2026-09-10", closed_at: null }, "2026-09-04")).toBe(0);
-  });
-
-  it("rend zéro sur une date illisible plutôt que NaN", () => {
-    expect(handlingDays({ reported_at: "à définir", closed_at: null }, "2026-09-04")).toBe(0);
-  });
-});
-
-describe("countByStatus", () => {
-  it("compte chaque statut, y compris ceux à zéro", () => {
-    const counts = countByStatus([
-      { status: "recu" },
-      { status: "recu" },
-      { status: "cloture" },
-    ]);
-
-    expect(counts.recu).toBe(2);
-    expect(counts.cloture).toBe(1);
-    expect(counts.en_analyse).toBe(0);
-    expect(counts.mesures_prises).toBe(0);
-  });
-
-  it("compte un statut inconnu plutôt que de le perdre", () => {
-    const counts = countByStatus([{ status: "statut_inattendu" }]);
-
-    expect(counts.statut_inattendu).toBe(1);
-  });
-
-  it("rend tous les compteurs à zéro sur un registre vide", () => {
-    expect(countByStatus([])).toEqual({
-      recu: 0,
-      en_analyse: 0,
-      mesures_prises: 0,
-      cloture: 0,
-    });
   });
 });
 
