@@ -308,6 +308,7 @@ export const acquisitionSourceConfig: Record<AcquisitionSource, string> = {
   nouvelle_mission: 'Nouvelle mission',
   partenaire: 'Partenaire',
   email_entrant: 'Email entrant',
+  appel_entrant: 'Appel entrant',
   evenement: 'Événement',
   appel_froid: 'Appel à froid',
   demarchage: 'Démarchage',
