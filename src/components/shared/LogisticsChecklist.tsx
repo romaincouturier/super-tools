@@ -254,12 +254,23 @@ interface RowProps {
 }
 
 const ChecklistItemRow = ({ item, onToggle, onDelete, onUpdate }: RowProps) => {
+  const { toast } = useToast();
   const [editingLabel, setEditingLabel] = useState(false);
   const [labelDraft, setLabelDraft] = useState(item.label);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [dueDate, setDueDate] = useState(item.due_date || "");
   const [notifyDays, setNotifyDays] = useState<string>(
     item.notify_days_before != null ? String(item.notify_days_before) : "",
   );
+
+  const openSchedule = (open: boolean) => {
+    if (open) {
+      setDueDate(item.due_date || "");
+      setNotifyDays(item.notify_days_before != null ? String(item.notify_days_before) : "");
+    }
+    setScheduleOpen(open);
+  };
 
   const saveLabel = async () => {
     const trimmed = labelDraft.trim();
@@ -273,10 +284,20 @@ const ChecklistItemRow = ({ item, onToggle, onDelete, onUpdate }: RowProps) => {
   };
 
   const saveSchedule = async () => {
-    await onUpdate({
-      due_date: dueDate || null,
-      notify_days_before: notifyDays ? parseInt(notifyDays, 10) || null : null,
-    });
+    setSaving(true);
+    try {
+      const parsed = notifyDays.trim() === "" ? null : Number.parseInt(notifyDays, 10);
+      await onUpdate({
+        due_date: dueDate || null,
+        notify_days_before: dueDate && parsed != null && Number.isFinite(parsed) ? parsed : null,
+      });
+      toast({ title: dueDate ? "Échéance enregistrée" : "Échéance supprimée" });
+      setScheduleOpen(false);
+    } catch (e) {
+      toastError(e, "Impossible d'enregistrer l'échéance");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
