@@ -8,7 +8,10 @@ import { test, expect } from "@playwright/test";
 test("la landing page se charge sans écran blanc", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("h1").first()).toBeVisible();
-  await expect(page.getByRole("link", { name: "Connexion" })).toBeVisible();
+  // Le lien de connexion mène à l'espace apprenant depuis la refonte de la
+  // landing. Il est rendu deux fois — barre de navigation et menu mobile —
+  // d'où le premier des deux.
+  await expect(page.getByRole("link", { name: "Se connecter" }).first()).toBeVisible();
 });
 
 test("la page /auth affiche le formulaire de connexion", async ({ page }) => {

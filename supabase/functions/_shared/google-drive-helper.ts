@@ -4,9 +4,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logAnthropicUsage, logAssemblyAiUsage } from "./api-usage.ts";
-
-const GOOGLE_OAUTH_CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID")!;
-const GOOGLE_OAUTH_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET")!;
+import { refreshGoogleAccessToken } from "./google-oauth.ts";
 
 export interface DriveFile {
   id: string;
@@ -88,31 +86,20 @@ export async function getValidDriveAccessToken(
   }
 
   // Refresh
-  const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: GOOGLE_OAUTH_CLIENT_ID,
-      client_secret: GOOGLE_OAUTH_CLIENT_SECRET,
-      refresh_token: active.refresh_token as string,
-      grant_type: "refresh_token",
-    }),
-  });
-
-  if (!refreshRes.ok) {
-    console.error("Drive token refresh failed:", await refreshRes.text());
+  let refreshed;
+  try {
+    refreshed = await refreshGoogleAccessToken(active.refresh_token as string);
+  } catch (refreshErr) {
+    console.error("Drive token refresh failed:", refreshErr);
     return null;
   }
 
-  const refreshData = await refreshRes.json();
-  const newExpiresAt = new Date(Date.now() + refreshData.expires_in * 1000).toISOString();
-
   await (admin as any)
     .from(tableName)
-    .update({ access_token: refreshData.access_token, token_expires_at: newExpiresAt })
+    .update({ access_token: refreshed.accessToken, token_expires_at: refreshed.expiresAt })
     .eq("id", active.id);
 
-  return refreshData.access_token as string;
+  return refreshed.accessToken;
 }
 
 /** List files in a Drive folder, optionally filtering by mimeType prefix and modifiedTime. */

@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { resolveContentType } from "../_shared/file-utils.ts";
 
 const BUCKET = "mission-documents";
 
@@ -21,31 +22,6 @@ function sanitizeFileName(name: string): string {
     .toLowerCase();
 }
 
-function resolveContentType(file: File): string {
-  const detected = file.type?.toLowerCase().split(";")[0].trim();
-  if (detected && detected !== "audio/x-m4a") return detected;
-  const ext = file.name.split(".").pop()?.toLowerCase() || "";
-  const map: Record<string, string> = {
-    pdf: "application/pdf",
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    webp: "image/webp",
-    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    xls: "application/vnd.ms-excel",
-    doc: "application/msword",
-    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ppt: "application/vnd.ms-powerpoint",
-    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    txt: "text/plain",
-    csv: "text/csv",
-    mp4: "video/mp4",
-    mov: "video/quicktime",
-    mp3: "audio/mpeg",
-    m4a: "audio/mp4",
-  };
-  return map[ext] || "application/octet-stream";
-}
 
 async function triggerAudioProcessing(supabaseUrl: string, serviceKey: string, documentId: string) {
   try {

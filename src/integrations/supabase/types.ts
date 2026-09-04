@@ -3189,6 +3189,10 @@ export type Database = {
           supports_url: string | null
           updated_at: string
           woocommerce_product_id: number | null
+          access_delay: string | null
+          accessibility_terms: string | null
+          funding_terms: string | null
+          recognition_type: string | null
         }
         Insert: {
           available_formulas?: string[] | null
@@ -3216,6 +3220,10 @@ export type Database = {
           supports_url?: string | null
           updated_at?: string
           woocommerce_product_id?: number | null
+          access_delay?: string | null
+          accessibility_terms?: string | null
+          funding_terms?: string | null
+          recognition_type?: string | null
         }
         Update: {
           available_formulas?: string[] | null
@@ -3243,6 +3251,10 @@ export type Database = {
           supports_url?: string | null
           updated_at?: string
           woocommerce_product_id?: number | null
+          access_delay?: string | null
+          accessibility_terms?: string | null
+          funding_terms?: string | null
+          recognition_type?: string | null
         }
         Relationships: [
           {
@@ -8683,6 +8695,89 @@ export type Database = {
           },
         ]
       }
+      quality_risks: {
+        Row: {
+          cause: string | null
+          created_at: string
+          created_by: string | null
+          criticality: number | null
+          formation_config_id: string | null
+          framework_version: string
+          id: string
+          impact: number
+          improvement_id: string | null
+          label: string
+          modality: string | null
+          owner: string | null
+          preventive_measure: string | null
+          probability: number
+          reclamation_id: string | null
+          review_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cause?: string | null
+          created_at?: string
+          created_by?: string | null
+          formation_config_id?: string | null
+          framework_version?: string
+          id?: string
+          impact?: number
+          improvement_id?: string | null
+          label: string
+          modality?: string | null
+          owner?: string | null
+          preventive_measure?: string | null
+          probability?: number
+          reclamation_id?: string | null
+          review_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cause?: string | null
+          created_at?: string
+          created_by?: string | null
+          formation_config_id?: string | null
+          framework_version?: string
+          id?: string
+          impact?: number
+          improvement_id?: string | null
+          label?: string
+          modality?: string | null
+          owner?: string | null
+          preventive_measure?: string | null
+          probability?: number
+          reclamation_id?: string | null
+          review_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_risks_formation_config_id_fkey"
+            columns: ["formation_config_id"]
+            isOneToOne: false
+            referencedRelation: "formation_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_risks_improvement_id_fkey"
+            columns: ["improvement_id"]
+            isOneToOne: false
+            referencedRelation: "improvements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_risks_reclamation_id_fkey"
+            columns: ["reclamation_id"]
+            isOneToOne: false
+            referencedRelation: "reclamations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quote_settings: {
         Row: {
           ape_code: string
@@ -11399,6 +11494,9 @@ export type Database = {
           updated_at: string
           venue_booking_sent_at: string | null
           venue_id: string | null
+          pedagogical_referent_designated_at: string | null
+          pedagogical_referent_email: string | null
+          pedagogical_referent_name: string | null
         }
         Insert: {
           admin_contact_email?: string | null
@@ -11471,6 +11569,9 @@ export type Database = {
           updated_at?: string
           venue_booking_sent_at?: string | null
           venue_id?: string | null
+          pedagogical_referent_designated_at?: string | null
+          pedagogical_referent_email?: string | null
+          pedagogical_referent_name?: string | null
         }
         Update: {
           admin_contact_email?: string | null
@@ -11543,6 +11644,9 @@ export type Database = {
           updated_at?: string
           venue_booking_sent_at?: string | null
           venue_id?: string | null
+          pedagogical_referent_designated_at?: string | null
+          pedagogical_referent_email?: string | null
+          pedagogical_referent_name?: string | null
         }
         Relationships: [
           {
@@ -11879,6 +11983,149 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vhd_procedures: {
+        Row: {
+          contact_email: string | null
+          contact_name: string | null
+          content: string
+          created_at: string
+          created_by: string | null
+          effective_from: string | null
+          framework_version: string
+          id: string
+          status: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_name?: string | null
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          framework_version?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_name?: string | null
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          framework_version?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      vhd_report_narratives: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          narrative: string
+          report_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          narrative?: string
+          report_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          narrative?: string
+          report_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vhd_report_narratives_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: true
+            referencedRelation: "vhd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vhd_reports: {
+        Row: {
+          actions_taken: string | null
+          category: string
+          channel: string
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          framework_version: string
+          handled_by: string | null
+          id: string
+          procedure_id: string | null
+          reported_at: string
+          status: string
+          training_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          actions_taken?: string | null
+          category?: string
+          channel?: string
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          framework_version?: string
+          handled_by?: string | null
+          id?: string
+          procedure_id?: string | null
+          reported_at?: string
+          status?: string
+          training_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actions_taken?: string | null
+          category?: string
+          channel?: string
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          framework_version?: string
+          handled_by?: string | null
+          id?: string
+          procedure_id?: string | null
+          reported_at?: string
+          status?: string
+          training_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vhd_reports_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "vhd_procedures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vhd_reports_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       watch_clusters: {
         Row: {
