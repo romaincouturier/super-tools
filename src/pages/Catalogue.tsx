@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, BookOpen, Search, X, ArrowUpDown, ArrowUp, ArrowDown, FileDown } from "lucide-react";
+import { Plus, BookOpen, Search, X, ArrowUpDown, ArrowUp, ArrowDown, FileDown, Copy } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -28,6 +28,8 @@ import {
   statForYear,
   type CatalogSatisfaction,
 } from "@/lib/catalogSatisfaction";
+import { buildDisclosureText } from "@/lib/satisfactionDisclosure";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
 interface CatalogEntry {
   id: string;
@@ -60,15 +62,42 @@ type SortDirection = "asc" | "desc";
  * Note moyenne de l'appréciation générale, avec l'effectif qui la fonde :
  * un « 5/5 » sur une seule réponse ne se lit pas comme un « 5/5 » sur trente.
  */
-const SatisfactionCell = ({ entry, year }: { entry: CatalogEntry; year: string }) => {
+const SatisfactionCell = ({
+  entry,
+  year,
+  years,
+}: { entry: CatalogEntry; year: string; years: string[] }) => {
+  const { copy } = useCopyToClipboard();
   const stat = statForYear(entry.satisfaction, year);
   if (!stat) return <span className="text-xs text-muted-foreground">—</span>;
+
+  // Le texte diffusé porte la méthode de calcul : sans elle, le taux publié
+  // ne satisfait pas l'indicateur 2.
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    copy(
+      buildDisclosureText({
+        formationName: entry.formation_name,
+        stat,
+        year,
+        coveredYears: year === "all" ? Object.keys(entry.satisfaction?.byYear ?? {}) : years,
+      }),
+      { title: "Texte copié", description: "Prêt à coller sur la page produit." },
+    );
+  };
+
   return (
-    <span className="text-sm">
+    <span className="inline-flex items-center gap-1.5 text-sm">
       {stat.average.toLocaleString("fr-FR", { minimumFractionDigits: 1 })}/5{" "}
-      <span className="text-xs text-muted-foreground">
-        ({stat.count} avis)
-      </span>
+      <span className="text-xs text-muted-foreground">({stat.count} avis)</span>
+      <button
+        type="button"
+        onClick={handleCopy}
+        title="Copier le texte de diffusion, méthode de calcul comprise"
+        className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+      >
+        <Copy className="h-3.5 w-3.5" />
+      </button>
     </span>
   );
 };
@@ -386,7 +415,7 @@ const Catalogue = () => {
                           : "Aucune session"}
                       </span>
                       <span>&middot;</span>
-                      <SatisfactionCell entry={entry} year={selectedYear} />
+                      <SatisfactionCell entry={entry} year={selectedYear} years={years} />
                     </div>
                   </div>
                 ))}
@@ -501,7 +530,7 @@ const Catalogue = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        <SatisfactionCell entry={entry} year={selectedYear} />
+                        <SatisfactionCell entry={entry} year={selectedYear} years={years} />
                       </TableCell>
                       <TableCell>
                         {entry.last_session_date ? (

@@ -180,6 +180,7 @@ const TABLES_TO_BACKUP = [
   "program_files",
   "questionnaire_besoins",
   "questionnaire_events",
+  "quality_risks",
   "quote_settings",
   "quotes",
   "reclamations",
