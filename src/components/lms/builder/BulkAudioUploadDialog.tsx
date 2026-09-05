@@ -8,11 +8,11 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
-import { useCourseModules, useModuleLessons, useCreateLesson } from "@/hooks/useLms";
+import { useCourseModules, useModuleLessons, useCourseLessons, useCreateLesson } from "@/hooks/useLms";
 import { useCreateLessonBlock } from "@/hooks/useLmsBlocks";
 import { uploadMediaFile, useAddMedia } from "@/hooks/useMedia";
 import { resolveContentType } from "@/lib/file-utils";
-import { transcribeAudio, analyzeAudioForLessons } from "@/services/lmsMediaImport";
+import { transcribeAudio, analyzeAudioForLessons, type AudioSegment } from "@/services/lmsMediaImport";
 import { createLessonBlock } from "@/services/lms-blocks";
 import type { LmsModule, LmsLesson } from "@/hooks/useLms";
 import {
