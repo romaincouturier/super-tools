@@ -489,7 +489,7 @@ const Evaluation = () => {
                   <div className="flex items-start gap-2">
                     <RadioGroupItem value="oui" id="consent-oui" className="mt-1" />
                     <Label htmlFor="consent-oui" className="font-normal cursor-pointer text-sm">
-                      Oui, j'accepte la publication (format : {form.evaluation.first_name} {form.evaluation.last_name?.[0]}. - {form.evaluation.company || "Entreprise"})
+                      Oui, j'accepte la publication (format : {form.evaluation.first_name} {form.evaluation.last_name?.[0]}. - {form.evaluation.company || form.training?.client_name || "Entreprise"})
                     </Label>
                   </div>
                   <div className="flex items-center gap-2">
