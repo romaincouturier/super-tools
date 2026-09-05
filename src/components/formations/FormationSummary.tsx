@@ -36,11 +36,13 @@ export default function FormationSummary({
   const showSans = typeSubrogation === "sans" || showBoth;
   const renderColumn = (variant: "sans" | "avec") => {
     const withSub = variant === "avec";
-    const baseFrais = withSub ? 350 : 150;
-    const remise = offrirFraisAdmin ? 150 : 0;
-    const frais = baseFrais - remise;
-    const totalHT = prixFormation + frais;
-    const totalTTC = totalHT;
+    const { baseFrais, remise, frais, totalHT, totalTTC } = computeDevisTotals({
+      prixUnitaire,
+      nbParticipants,
+      variant,
+      offrirFraisAdmin,
+    });
+
     return (
       <div className="text-sm space-y-1">
         {showBoth && (
