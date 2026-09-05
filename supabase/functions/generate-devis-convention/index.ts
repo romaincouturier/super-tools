@@ -33,6 +33,7 @@ interface DevisFormData {
   prix?: number;
   dureeHeures?: number;
   offrirFraisAdmin?: boolean;
+  remiseFraisAdmin?: number;
   formatFormation?: string;
   typeSubrogation?: string;
 }
@@ -122,7 +123,7 @@ serve(async (req) => {
     }
 
     const unitPrice = Number(form.prix || 0);
-    const priceHt = unitPrice * nbParticipants + getDossierFee(!!form.offrirFraisAdmin, subrogation);
+    const priceHt = unitPrice * nbParticipants + getDossierFee(form.remiseFraisAdmin ?? !!form.offrirFraisAdmin, subrogation);
     const prixTtc = priceHt * (1 + tvaRate / 100);
 
     const dureeHeures = Number(form.dureeHeures || 0);
