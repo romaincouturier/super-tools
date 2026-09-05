@@ -454,51 +454,102 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
 
                 {audio.status === "done" && (
                   <>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Leçon cible</Label>
-                      <LessonPicker
-                        courseId={courseId}
-                        value={audio.lessonId}
-                        onChange={(lessonId) =>
-                          setAudios((prev) => prev.map((a, i) => i === idx ? { ...a, lessonId } : a))
-                        }
-                      />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {audio.segments.length > 1
+                          ? `${audio.segments.length} sujets détectés — chaque sujet part dans sa propre leçon`
+                          : "1 sujet détecté"}
+                      </span>
+                      {audio.segments.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() =>
+                            setAudios((prev) => prev.map((a, i) => i === idx ? { ...a, segments: mergeSegments(a.segments) } : a))
+                          }
+                        >
+                          Fusionner en un seul bloc
+                        </Button>
+                      )}
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Contenu reformulé</Label>
-                      <Textarea
-                        value={audio.reformulatedText}
-                        onChange={(e) =>
-                          setAudios((prev) => prev.map((a, i) => i === idx ? { ...a, reformulatedText: e.target.value } : a))
-                        }
-                        rows={5}
-                        className="text-sm resize-y"
-                      />
-                    </div>
-                    {audio.keyPoints.length > 0 && (
-                      <div className="space-y-1">
-                        <Label className="text-xs">Points clés</Label>
-                        <ul className="text-sm space-y-1">
-                          {audio.keyPoints.map((kp, kpIdx) => (
-                            <li key={kpIdx} className="flex gap-2 items-start">
-                              <span className="text-primary mt-0.5">•</span>
-                              <input
-                                className="flex-1 bg-transparent outline-none border-b border-transparent hover:border-muted-foreground/30 focus:border-primary transition-colors"
-                                value={kp}
-                                onChange={(e) =>
-                                  setAudios((prev) =>
-                                    prev.map((a, i) => i === idx
-                                      ? { ...a, keyPoints: a.keyPoints.map((k, ki) => ki === kpIdx ? e.target.value : k) }
-                                      : a
-                                    )
-                                  )
+
+                    {audio.segments.map((seg, segIdx) => {
+                      const updateSegment = (patch: Partial<AudioSegment>) =>
+                        setAudios((prev) =>
+                          prev.map((a, i) => i === idx
+                            ? { ...a, segments: a.segments.map((s, si) => si === segIdx ? { ...s, ...patch } : s) }
+                            : a,
+                          ),
+                        );
+                      return (
+                        <div key={segIdx} className="rounded-md border border-dashed p-3 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <input
+                              className="flex-1 text-sm font-medium bg-transparent outline-none border-b border-transparent hover:border-muted-foreground/30 focus:border-primary transition-colors"
+                              value={seg.title}
+                              placeholder={`Sujet ${segIdx + 1}`}
+                              onChange={(e) => updateSegment({ title: e.target.value })}
+                            />
+                            {audio.segments.length > 1 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs text-destructive"
+                                onClick={() =>
+                                  setAudios((prev) => prev.map((a, i) => i === idx
+                                    ? { ...a, segments: a.segments.filter((_, si) => si !== segIdx) }
+                                    : a,
+                                  ))
                                 }
-                              />
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                              >
+                                Supprimer
+                              </Button>
+                            )}
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs">Leçon cible</Label>
+                            <LessonPicker
+                              courseId={courseId}
+                              value={seg.lesson_id}
+                              onChange={(lessonId) => updateSegment({ lesson_id: lessonId })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Contenu reformulé</Label>
+                            <Textarea
+                              value={seg.reformulated_text}
+                              onChange={(e) => updateSegment({ reformulated_text: e.target.value })}
+                              rows={5}
+                              className="text-sm resize-y"
+                            />
+                          </div>
+                          {seg.key_points.length > 0 && (
+                            <div className="space-y-1">
+                              <Label className="text-xs">Points clés</Label>
+                              <ul className="text-sm space-y-1">
+                                {seg.key_points.map((kp, kpIdx) => (
+                                  <li key={kpIdx} className="flex gap-2 items-start">
+                                    <span className="text-primary mt-0.5">•</span>
+                                    <input
+                                      className="flex-1 bg-transparent outline-none border-b border-transparent hover:border-muted-foreground/30 focus:border-primary transition-colors"
+                                      value={kp}
+                                      onChange={(e) =>
+                                        updateSegment({
+                                          key_points: seg.key_points.map((k, ki) => ki === kpIdx ? e.target.value : k),
+                                        })
+                                      }
+                                    />
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </>
                 )}
               </div>
