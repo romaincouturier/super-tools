@@ -16,6 +16,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { logLovableUsage } from "../_shared/api-usage.ts";
+import { parseAiJson, truncateForLog, STRICT_JSON_INSTRUCTION } from "../_shared/ai-json.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -47,19 +48,6 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
-
-/** Extrait le premier objet JSON d'une réponse IA (tolère les fences markdown). */
-function extractJson(raw: string): Record<string, unknown> | null {
-  const cleaned = raw.replace(/```(?:json)?/gi, "").trim();
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end <= start) return null;
-  try {
-    return JSON.parse(cleaned.slice(start, end + 1));
-  } catch {
-    return null;
-  }
 }
 
 Deno.serve(async (req) => {
@@ -121,38 +109,67 @@ Deno.serve(async (req) => {
     const excerpt = (t.raw_text as string).slice(0, 30000);
     const userPrompt = applyTemplate(prompt.user_prompt_template, { transcript: excerpt });
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: prompt.model || "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: prompt.system_prompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
+    async function callAi(system: string) {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: prompt.model || "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: userPrompt },
+          ],
+        }),
+      });
 
-    if (!aiRes.ok) {
-      const errText = await aiRes.text();
-      console.error("[analyze-transcript-editorial] AI error", aiRes.status, errText);
-      if (aiRes.status === 429) return json({ error: "Rate limit IA, réessayez plus tard." }, 429);
-      if (aiRes.status === 402) return json({ error: "Crédits IA épuisés." }, 402);
-      return failed(`Erreur IA ${aiRes.status}`, 500);
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("[analyze-transcript-editorial] AI error", res.status, errText);
+        return { ok: false as const, status: res.status };
+      }
+
+      const aiJson = await res.json();
+      await logLovableUsage({
+        origin: "analyze-transcript-editorial",
+        trigger: "cron",
+        data: aiJson,
+      });
+      return { ok: true as const, text: String(aiJson?.choices?.[0]?.message?.content ?? "").trim() };
     }
 
-    const aiJson = await aiRes.json();
-    await logLovableUsage({
-      origin: "analyze-transcript-editorial",
-      trigger: "cron",
-      data: aiJson,
-    });
-    const content = (aiJson?.choices?.[0]?.message?.content ?? "").trim();
-    const parsed = extractJson(content);
-    if (!parsed) return failed("Réponse IA non parsable", 500);
+    const aiError = (status: number) => {
+      if (status === 429) return json({ error: "Rate limit IA, réessayez plus tard." }, 429);
+      if (status === 402) return json({ error: "Crédits IA épuisés." }, 402);
+      return failed(`Erreur IA ${status}`, 500);
+    };
+
+    const first = await callAi(prompt.system_prompt);
+    if (!first.ok) return aiError(first.status);
+
+    let parsed = parseAiJson<Record<string, unknown>>(first.text);
+
+    if (!parsed) {
+      console.error(
+        "[analyze-transcript-editorial] unparseable AI response:",
+        truncateForLog(first.text),
+      );
+      const retry = await callAi(`${prompt.system_prompt}\n\n${STRICT_JSON_INSTRUCTION}`);
+      if (!retry.ok) return aiError(retry.status);
+      parsed = parseAiJson<Record<string, unknown>>(retry.text);
+      if (!parsed) {
+        console.error(
+          "[analyze-transcript-editorial] retry also unparseable:",
+          truncateForLog(retry.text),
+        );
+        return failed(
+          "L'IA n'a pas réussi à structurer l'analyse de cette transcription. Réessayez dans un instant.",
+          422,
+        );
+      }
+    }
 
     // Validation stricte des énumérations, avec valeurs de repli prudentes.
     const qualification = QUALIFICATIONS.has(String(parsed.qualification))
