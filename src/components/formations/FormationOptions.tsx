@@ -1,6 +1,9 @@
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { REMISE_FRAIS_ADMIN } from "@/lib/devisPricing";
 import { Info } from "lucide-react";
 
 interface FormationOptionsProps {
@@ -8,8 +11,8 @@ interface FormationOptionsProps {
   setIncludeCadeau: (v: boolean) => void;
   typeSubrogation: "sans" | "avec" | "les2";
   setTypeSubrogation: (v: "sans" | "avec" | "les2") => void;
-  offrirFraisAdmin: boolean;
-  setOffrirFraisAdmin: (v: boolean) => void;
+  remiseFraisAdmin: number;
+  setRemiseFraisAdmin: (v: number) => void;
   publicSectorNotice?: string | null;
 }
 
@@ -18,8 +21,8 @@ export default function FormationOptions({
   setIncludeCadeau,
   typeSubrogation,
   setTypeSubrogation,
-  offrirFraisAdmin,
-  setOffrirFraisAdmin,
+  remiseFraisAdmin,
+  setRemiseFraisAdmin,
   publicSectorNotice,
 }: FormationOptionsProps) {
   return (
