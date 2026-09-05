@@ -89,7 +89,7 @@ function NewTemplateForm({ isAdmin, userId, onClose }: { isAdmin: boolean; userI
           <Select value={entityType} onValueChange={(v) => setEntityType(v as LogisticsEntityType | "both")}>
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="both">Missions et formations</SelectItem>
+              <SelectItem value="both">Missions, formations et événements</SelectItem>
               <SelectItem value="mission">Mission uniquement</SelectItem>
               <SelectItem value="training">Formation uniquement</SelectItem>
               <SelectItem value="event">Événement uniquement</SelectItem>

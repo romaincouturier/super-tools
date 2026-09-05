@@ -1,0 +1,2 @@
+ALTER TABLE public.checklist_templates DROP CONSTRAINT checklist_templates_entity_type_check;
+ALTER TABLE public.checklist_templates ADD CONSTRAINT checklist_templates_entity_type_check CHECK (entity_type = ANY (ARRAY['mission'::text, 'training'::text, 'event'::text]));
