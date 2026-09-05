@@ -108,6 +108,19 @@ interface AudioItem {
 
 type Step = "upload" | "transcribing" | "validate" | "confirming";
 
+/** Recolle les segments d'un audio en un seul, quand le découpage IA ne convient pas. */
+function mergeSegments(segments: AudioSegment[]): AudioSegment[] {
+  if (segments.length <= 1) return segments;
+  return [
+    {
+      title: segments[0].title,
+      lesson_id: segments[0].lesson_id,
+      reformulated_text: segments.map((s) => s.reformulated_text).join("\n"),
+      key_points: segments.flatMap((s) => s.key_points),
+    },
+  ];
+}
+
 // ── Main dialog ────────────────────────────────────────────────────────────
 
 interface Props {
