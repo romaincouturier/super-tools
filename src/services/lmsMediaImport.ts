@@ -134,9 +134,9 @@ export async function analyzeAudioForLessons(
     body: { transcripts, lessons },
   });
   if (error) throw await extractFunctionError(error, "lms-analyze-audio");
-  const assignments = (data as { assignments?: AudioAssignment[] })?.assignments;
-  if (!assignments) {
+  const raw = (data as { assignments?: unknown })?.assignments;
+  if (!raw) {
     throw new Error("Réponse IA invalide : champ 'assignments' manquant");
   }
-  return assignments;
+  return normalizeAudioAssignments(raw);
 }
