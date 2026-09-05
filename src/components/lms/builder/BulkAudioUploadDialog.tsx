@@ -175,9 +175,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
               url,
               status: "pending",
               transcript: "",
-              lessonId: null,
-              reformulatedText: "",
-              keyPoints: [],
+              segments: [],
             });
           } catch (err) {
             const msg = err instanceof Error ? err.message : "Erreur inconnue";
