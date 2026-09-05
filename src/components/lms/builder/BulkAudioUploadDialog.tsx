@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Mic, Upload, ChevronDown, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Mic, Upload, ChevronDown, Loader2, CheckCircle2, AlertCircle, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
@@ -8,11 +8,11 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
-import { useCourseModules, useModuleLessons, useCreateLesson } from "@/hooks/useLms";
+import { useCourseModules, useModuleLessons, useCourseLessons, useCreateLesson } from "@/hooks/useLms";
 import { useCreateLessonBlock } from "@/hooks/useLmsBlocks";
 import { uploadMediaFile, useAddMedia } from "@/hooks/useMedia";
 import { resolveContentType } from "@/lib/file-utils";
-import { transcribeAudio, analyzeAudioForLessons } from "@/services/lmsMediaImport";
+import { transcribeAudio, analyzeAudioForLessons, type AudioSegment } from "@/services/lmsMediaImport";
 import { createLessonBlock } from "@/services/lms-blocks";
 import type { LmsModule, LmsLesson } from "@/hooks/useLms";
 import {
@@ -102,13 +102,24 @@ interface AudioItem {
   status: TranscriptionStatus;
   transcript: string;
   error?: string;
-  // After AI analysis:
-  lessonId: string | null; // null = ressources
-  reformulatedText: string;
-  keyPoints: string[];
+  // After AI analysis: one entry per detected topic
+  segments: AudioSegment[];
 }
 
 type Step = "upload" | "transcribing" | "validate" | "confirming";
+
+/** Recolle les segments d'un audio en un seul, quand le découpage IA ne convient pas. */
+function mergeSegments(segments: AudioSegment[]): AudioSegment[] {
+  if (segments.length <= 1) return segments;
+  return [
+    {
+      title: segments[0].title,
+      lesson_id: segments[0].lesson_id,
+      reformulated_text: segments.map((s) => s.reformulated_text).join("\n"),
+      key_points: segments.flatMap((s) => s.key_points),
+    },
+  ];
+}
 
 // ── Main dialog ────────────────────────────────────────────────────────────
 
@@ -124,6 +135,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
   const addMedia = useAddMedia();
   const createLesson = useCreateLesson();
   const { data: modules = [] } = useCourseModules(courseId);
+  const { refetch: refetchCourseLessons } = useCourseLessons(courseId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
 
@@ -177,9 +189,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
               url,
               status: "pending",
               transcript: "",
-              lessonId: null,
-              reformulatedText: "",
-              keyPoints: [],
+              segments: [],
             });
           } catch (err) {
             const msg = err instanceof Error ? err.message : "Erreur inconnue";
@@ -227,13 +237,15 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
       setAudios([...updated]);
     }
 
-    const allLessons: { id: string; title: string; module_title: string }[] = [];
-    for (const mod of modules) {
-      const cached = qc.getQueryData<LmsLesson[]>(["lms-lessons", mod.id]) ?? [];
-      for (const l of cached) {
-        allLessons.push({ id: l.id, title: l.title, module_title: mod.title });
-      }
-    }
+    // Toutes les leçons du cours, lues en base : le cache ne contient que les
+    // modules déjà ouverts, ce qui privait l'IA d'une partie des leçons cibles.
+    const { data: freshLessons } = await refetchCourseLessons();
+    const moduleTitleById = new Map(modules.map((m) => [m.id, m.title]));
+    const allLessons = (freshLessons ?? []).map((l) => ({
+      id: l.id,
+      title: l.title,
+      module_title: moduleTitleById.get(l.module_id) ?? "",
+    }));
 
     const successAudios = updated.filter((a) => a.status === "done" && a.transcript);
     if (!successAudios.length) {
@@ -258,12 +270,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         prev.map((a) => {
           const assignment = assignments.find((x) => x.audio_id === a.id);
           if (!assignment) return a;
-          return {
-            ...a,
-            lessonId: assignment.lesson_id,
-            reformulatedText: assignment.reformulated_text,
-            keyPoints: assignment.key_points,
-          };
+          return { ...a, segments: assignment.segments };
         }),
       );
       setStep("validate");
@@ -285,9 +292,11 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
   const handleConfirm = async () => {
     setStep("confirming");
     try {
-      // Find or create "Ressources" lesson for audios with null lessonId
+      // Find or create "Ressources" lesson for segments without a target lesson
       let ressourcesLessonId: string | null = null;
-      const needsRessources = audios.some((a) => a.lessonId === null && a.status === "done");
+      const needsRessources = audios.some(
+        (a) => a.status === "done" && a.segments.some((s) => s.lesson_id === null),
+      );
 
       if (needsRessources) {
         // Search in cached lessons
@@ -311,31 +320,39 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         }
       }
 
+      let blocksCreated = 0;
       for (const audio of audios) {
-        if (audio.status !== "done" || !audio.reformulatedText) continue;
-        const targetLessonId = audio.lessonId ?? ressourcesLessonId;
-        if (!targetLessonId) continue;
+        if (audio.status !== "done") continue;
+        for (const seg of audio.segments) {
+          if (!seg.reformulated_text.trim()) continue;
+          const targetLessonId = seg.lesson_id ?? ressourcesLessonId;
+          if (!targetLessonId) continue;
 
-        const htmlContent = [
-          audio.reformulatedText,
-          audio.keyPoints.length
-            ? `<ul>${audio.keyPoints.map((kp) => `<li><strong>${kp}</strong></li>`).join("")}</ul>`
-            : "",
-        ]
-          .filter(Boolean)
-          .join("\n");
+          const htmlContent = [
+            seg.title.trim() ? `<h3>${seg.title.trim()}</h3>` : "",
+            seg.reformulated_text,
+            seg.key_points.length
+              ? `<ul>${seg.key_points.map((kp) => `<li><strong>${kp}</strong></li>`).join("")}</ul>`
+              : "",
+          ]
+            .filter(Boolean)
+            .join("\n");
 
-        await createLessonBlock({
-          lesson_id: targetLessonId,
-          type: "text",
-          kind: "content",
-          parent_block_id: null,
-          position: 9999,
-          content: { html: htmlContent },
-        });
+          await createLessonBlock({
+            lesson_id: targetLessonId,
+            type: "text",
+            kind: "content",
+            parent_block_id: null,
+            position: 9999,
+            content: { html: htmlContent },
+          });
+          blocksCreated++;
+        }
       }
 
-      toast({ title: "Blocs créés dans les leçons" });
+      toast({
+        title: `${blocksCreated} bloc${blocksCreated > 1 ? "s" : ""} créé${blocksCreated > 1 ? "s" : ""} dans les leçons`,
+      });
       resetAndClose();
     } catch (err) {
       setStep("validate");
@@ -458,51 +475,102 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
 
                 {audio.status === "done" && (
                   <>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Leçon cible</Label>
-                      <LessonPicker
-                        courseId={courseId}
-                        value={audio.lessonId}
-                        onChange={(lessonId) =>
-                          setAudios((prev) => prev.map((a, i) => i === idx ? { ...a, lessonId } : a))
-                        }
-                      />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {audio.segments.length > 1
+                          ? `${audio.segments.length} sujets détectés — chaque sujet part dans sa propre leçon`
+                          : "1 sujet détecté"}
+                      </span>
+                      {audio.segments.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() =>
+                            setAudios((prev) => prev.map((a, i) => i === idx ? { ...a, segments: mergeSegments(a.segments) } : a))
+                          }
+                        >
+                          Fusionner en un seul bloc
+                        </Button>
+                      )}
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Contenu reformulé</Label>
-                      <Textarea
-                        value={audio.reformulatedText}
-                        onChange={(e) =>
-                          setAudios((prev) => prev.map((a, i) => i === idx ? { ...a, reformulatedText: e.target.value } : a))
-                        }
-                        rows={5}
-                        className="text-sm resize-y"
-                      />
-                    </div>
-                    {audio.keyPoints.length > 0 && (
-                      <div className="space-y-1">
-                        <Label className="text-xs">Points clés</Label>
-                        <ul className="text-sm space-y-1">
-                          {audio.keyPoints.map((kp, kpIdx) => (
-                            <li key={kpIdx} className="flex gap-2 items-start">
-                              <span className="text-primary mt-0.5">•</span>
-                              <input
-                                className="flex-1 bg-transparent outline-none border-b border-transparent hover:border-muted-foreground/30 focus:border-primary transition-colors"
-                                value={kp}
-                                onChange={(e) =>
-                                  setAudios((prev) =>
-                                    prev.map((a, i) => i === idx
-                                      ? { ...a, keyPoints: a.keyPoints.map((k, ki) => ki === kpIdx ? e.target.value : k) }
-                                      : a
-                                    )
-                                  )
+
+                    {audio.segments.map((seg, segIdx) => {
+                      const updateSegment = (patch: Partial<AudioSegment>) =>
+                        setAudios((prev) =>
+                          prev.map((a, i) => i === idx
+                            ? { ...a, segments: a.segments.map((s, si) => si === segIdx ? { ...s, ...patch } : s) }
+                            : a,
+                          ),
+                        );
+                      return (
+                        <div key={segIdx} className="rounded-md border border-dashed p-3 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Layers className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <input
+                              className="flex-1 text-sm font-medium bg-transparent outline-none border-b border-transparent hover:border-muted-foreground/30 focus:border-primary transition-colors"
+                              value={seg.title}
+                              placeholder={`Sujet ${segIdx + 1}`}
+                              onChange={(e) => updateSegment({ title: e.target.value })}
+                            />
+                            {audio.segments.length > 1 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs text-destructive"
+                                onClick={() =>
+                                  setAudios((prev) => prev.map((a, i) => i === idx
+                                    ? { ...a, segments: a.segments.filter((_, si) => si !== segIdx) }
+                                    : a,
+                                  ))
                                 }
-                              />
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                              >
+                                Supprimer
+                              </Button>
+                            )}
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs">Leçon cible</Label>
+                            <LessonPicker
+                              courseId={courseId}
+                              value={seg.lesson_id}
+                              onChange={(lessonId) => updateSegment({ lesson_id: lessonId })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Contenu reformulé</Label>
+                            <Textarea
+                              value={seg.reformulated_text}
+                              onChange={(e) => updateSegment({ reformulated_text: e.target.value })}
+                              rows={5}
+                              className="text-sm resize-y"
+                            />
+                          </div>
+                          {seg.key_points.length > 0 && (
+                            <div className="space-y-1">
+                              <Label className="text-xs">Points clés</Label>
+                              <ul className="text-sm space-y-1">
+                                {seg.key_points.map((kp, kpIdx) => (
+                                  <li key={kpIdx} className="flex gap-2 items-start">
+                                    <span className="text-primary mt-0.5">•</span>
+                                    <input
+                                      className="flex-1 bg-transparent outline-none border-b border-transparent hover:border-muted-foreground/30 focus:border-primary transition-colors"
+                                      value={kp}
+                                      onChange={(e) =>
+                                        updateSegment({
+                                          key_points: seg.key_points.map((k, ki) => ki === kpIdx ? e.target.value : k),
+                                        })
+                                      }
+                                    />
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </>
                 )}
               </div>
