@@ -1,5 +1,7 @@
+import { computeDevisTotals } from "@/lib/devisPricing";
 import type { FormationConfig } from "@/types/formations";
 import type { FormationFormula } from "@/types/training";
+
 
 interface FormationSummaryProps {
   formationDemandee: string;
