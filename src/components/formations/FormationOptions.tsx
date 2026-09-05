@@ -63,16 +63,41 @@ export default function FormationOptions({
       </div>
 
       <div className="space-y-3">
-        <div className="flex items-start space-x-2">
-          <Checkbox
-            id="offrir-frais-admin"
-            checked={offrirFraisAdmin}
-            onCheckedChange={(checked) => setOffrirFraisAdmin(checked === true)}
-          />
-          <Label htmlFor="offrir-frais-admin" className="font-normal cursor-pointer text-sm leading-relaxed">
-            Offrir les frais administratifs (-150€)
-          </Label>
+        <Label htmlFor="remise-frais-admin">Remise sur les frais de dossier</Label>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setRemiseFraisAdmin(REMISE_FRAIS_ADMIN)}
+          >
+            Offrir les frais administratifs (150€)
+          </Button>
+          <div className="flex items-center gap-2">
+            <Input
+              id="remise-frais-admin"
+              type="number"
+              min={0}
+              step={10}
+              className="w-28"
+              value={remiseFraisAdmin === 0 ? "" : remiseFraisAdmin}
+              placeholder="0"
+              onChange={(e) => {
+                const v = Number.parseFloat(e.target.value);
+                setRemiseFraisAdmin(Number.isFinite(v) && v > 0 ? v : 0);
+              }}
+            />
+            <span className="text-sm text-muted-foreground">€ offerts</span>
+          </div>
+          {remiseFraisAdmin > 0 && (
+            <Button type="button" variant="ghost" size="sm" onClick={() => setRemiseFraisAdmin(0)}>
+              Retirer
+            </Button>
+          )}
         </div>
+        <p className="text-xs text-muted-foreground">
+          La remise est plafonnée au montant des frais de dossier (150€ sans subrogation, 350€ avec).
+        </p>
       </div>
     </>
   );
