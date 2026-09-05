@@ -135,6 +135,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
   const addMedia = useAddMedia();
   const createLesson = useCreateLesson();
   const { data: modules = [] } = useCourseModules(courseId);
+  const { refetch: refetchCourseLessons } = useCourseLessons(courseId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
 
