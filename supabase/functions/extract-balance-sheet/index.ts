@@ -10,6 +10,7 @@ import {
 } from "../_shared/mod.ts";
 import { CLAUDE_ADVANCED } from "../_shared/claude-models.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
+import { parseAiJson, truncateForLog, STRICT_JSON_INSTRUCTION } from "../_shared/ai-json.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
@@ -139,63 +140,71 @@ Deno.serve(async (req) => {
 
     const userPrompt = `Voici le bilan comptable de l'année ${annee}. Extrait les données au format JSON strict défini dans le system prompt.`;
 
-    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
+    async function callAi(system: string) {
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY!,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: CLAUDE_ADVANCED,
+          max_tokens: 4096,
+          system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "document",
+                  source: { type: "base64", media_type: "application/pdf", data: base64 },
+                },
+                { type: "text", text: userPrompt },
+              ],
+            },
+          ],
+        }),
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        console.error("[extract-balance-sheet] Anthropic error", resp.status, errText.slice(0, 500));
+        return { ok: false as const, status: resp.status };
+      }
+
+      const aiJson = await resp.json();
+      await logAnthropicUsage({
+        origin: "extract-balance-sheet",
+        operation: "extract",
         model: CLAUDE_ADVANCED,
-        max_tokens: 4096,
-        system: [
-          {
-            type: "text",
-            text: SYSTEM_PROMPT,
-            cache_control: { type: "ephemeral" },
-          },
-        ],
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "document",
-                source: { type: "base64", media_type: "application/pdf", data: base64 },
-              },
-              { type: "text", text: userPrompt },
-            ],
-          },
-        ],
-      }),
-    });
-
-    if (!aiResp.ok) {
-      const errText = await aiResp.text();
-      console.error("[extract-balance-sheet] Anthropic error", aiResp.status, errText.slice(0, 500));
-      return createErrorResponse(`Anthropic API ${aiResp.status}`, aiResp.status >= 500 ? 502 : 400);
+        trigger: "user",
+        usage: aiJson.usage,
+      });
+      return { ok: true as const, text: String(aiJson?.content?.[0]?.text ?? "") };
     }
 
-    const aiJson = await aiResp.json();
-    await logAnthropicUsage({
-      origin: "extract-balance-sheet",
-      operation: "extract",
-      model: CLAUDE_ADVANCED,
-      trigger: "user",
-      usage: aiJson.usage,
-    });
-    const rawText: string = aiJson?.content?.[0]?.text ?? "";
-    if (!rawText) {
-      return createErrorResponse("Réponse IA vide", 502);
+    const first = await callAi(SYSTEM_PROMPT);
+    if (!first.ok) {
+      return createErrorResponse(`Anthropic API ${first.status}`, first.status >= 500 ? 502 : 400);
     }
 
-    let data: BalanceData;
-    try {
-      data = JSON.parse(stripCodeFences(rawText));
-    } catch (e) {
-      console.error("[extract-balance-sheet] JSON parse error", rawText.slice(0, 500));
-      return createErrorResponse(`Sortie IA non parsable : ${e instanceof Error ? e.message : "unknown"}`, 502);
+    let data = parseAiJson<BalanceData>(first.text);
+
+    if (!data) {
+      console.error("[extract-balance-sheet] unparseable AI response:", truncateForLog(first.text));
+      const retry = await callAi(`${SYSTEM_PROMPT}\n\n${STRICT_JSON_INSTRUCTION}`);
+      if (!retry.ok) {
+        return createErrorResponse(`Anthropic API ${retry.status}`, retry.status >= 500 ? 502 : 400);
+      }
+      data = parseAiJson<BalanceData>(retry.text);
+      if (!data) {
+        console.error("[extract-balance-sheet] retry also unparseable:", truncateForLog(retry.text));
+        return createErrorResponse(
+          "L'IA n'a pas réussi à structurer les données de ce bilan. Réessayez, ou vérifiez que le PDF est bien lisible.",
+          422,
+        );
+      }
     }
 
     // Force l'année (l'IA peut s'embrouiller sur le millésime).
