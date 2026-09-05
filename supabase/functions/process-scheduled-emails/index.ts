@@ -142,6 +142,7 @@ serve(async (req) => {
         sent: successCount,
         failed: failCount,
         reconcile,
+        reconcileSurveys,
         results,
         _version: FUNCTION_VERSION
 
