@@ -21,19 +21,26 @@ Transcriptions audio :
 {{transcripts}}
 
 Pour chaque audio, tu dois :
-1. Identifier la leçon la plus pertinente parmi celles listées (en te basant sur le contenu)
-2. Si aucune leçon ne correspond clairement, mettre lesson_id à null (le contenu ira dans une leçon "Ressources")
-3. Reformuler le contenu de manière claire et pédagogique (style formation professionnelle, sans les hésitations orales)
-4. Extraire les 3 à 6 points clés les plus importants
+1. Détecter si l'enregistrement traite d'un seul sujet ou de plusieurs sujets distincts correspondant à des leçons différentes.
+2. Découper l'audio en segments thématiques : un segment par sujet réellement distinct. Si l'audio ne traite qu'un seul sujet, renvoie un seul segment. Ne découpe jamais artificiellement un propos continu.
+3. Pour chaque segment : identifier la leçon la plus pertinente parmi celles listées. Si aucune ne correspond clairement, mettre lesson_id à null (le contenu ira dans une leçon "Ressources").
+4. Pour chaque segment : reformuler le contenu de manière claire et pédagogique (style formation professionnelle, sans les hésitations orales) et extraire 3 à 6 points clés.
+5. Donner à chaque segment un titre court qui résume son sujet.
+6. Ne pas dupliquer un passage dans deux segments : chaque partie de la transcription appartient à un seul segment, dans l'ordre de l'enregistrement.
 
 Réponds UNIQUEMENT en JSON valide avec ce format exact :
 {
   "assignments": [
     {
       "audio_id": "id de l'audio",
-      "lesson_id": "id de la leçon ou null",
-      "reformulated_text": "texte reformulé en HTML basique (<p>, <strong>, <em>)",
-      "key_points": ["point 1", "point 2", "point 3"]
+      "segments": [
+        {
+          "title": "titre court du segment",
+          "lesson_id": "id de la leçon ou null",
+          "reformulated_text": "texte reformulé en HTML basique (<p>, <strong>, <em>)",
+          "key_points": ["point 1", "point 2", "point 3"]
+        }
+      ]
     }
   ]
 }`;
