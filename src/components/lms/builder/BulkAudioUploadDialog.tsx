@@ -254,12 +254,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         prev.map((a) => {
           const assignment = assignments.find((x) => x.audio_id === a.id);
           if (!assignment) return a;
-          return {
-            ...a,
-            lessonId: assignment.lesson_id,
-            reformulatedText: assignment.reformulated_text,
-            keyPoints: assignment.key_points,
-          };
+          return { ...a, segments: assignment.segments };
         }),
       );
       setStep("validate");
