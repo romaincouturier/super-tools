@@ -350,7 +350,9 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         }
       }
 
-      toast({ title: "Blocs créés dans les leçons" });
+      toast({
+        title: `${blocksCreated} bloc${blocksCreated > 1 ? "s" : ""} créé${blocksCreated > 1 ? "s" : ""} dans les leçons`,
+      });
       resetAndClose();
     } catch (err) {
       setStep("validate");
