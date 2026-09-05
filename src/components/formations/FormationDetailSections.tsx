@@ -12,6 +12,7 @@ import EmailTimelineComputed from "@/components/formations/EmailTimelineComputed
 import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 import AttendanceSignatureBlock from "@/components/formations/AttendanceSignatureBlock";
 import TrainerAdequacy from "@/components/formations/TrainerAdequacy";
+import PedagogicalReferent from "@/components/formations/PedagogicalReferent";
 import TrainerEvaluationBlock from "@/components/formations/TrainerEvaluationBlock";
 import ParticipantEvaluationsBlock from "@/components/formations/ParticipantEvaluationsBlock";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
@@ -183,6 +184,7 @@ const FormationDetailSections = ({
     {/* Trainer Adequacy + Evaluation */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <TrainerAdequacy trainingId={training.id} trainerName={training.trainer_name} />
+      <PedagogicalReferent trainingId={training.id} trainerName={training.trainer_name} />
       <TrainerEvaluationBlock trainingId={training.id} trainerName={training.trainer_name} trainerId={(training as unknown as { trainer_id?: string | null }).trainer_id} />
     </div>
 

@@ -15,7 +15,7 @@ Le diff des 32 libellés entre le V9 et l'annexe du décret donne **six indicate
 | 1 | type de reconnaissance, modalités de financement, interdiction de toute mention trompeuse | livré |
 | 2 | diffusion des résultats « en précisant de manière transparente leurs modalités de calcul » | livré |
 | 12 | prévention et traitement des violences, du harcèlement et des discriminations | livré |
-| 19 | vérification de l'effectivité du suivi à distance, référent pédagogique au-delà d'un seuil | partiel |
+| 19 | vérification de l'effectivité du suivi à distance, référent pédagogique au-delà d'un seuil | livré |
 | 27 | traçabilité de la conformité dans les contrats de sous-traitance | non applicable |
 | 32 | analyse des risques sur la qualité des formations | partiel |
 
@@ -68,21 +68,39 @@ Aucune donnée existante n'est modifiée ni supprimée : les migrations ajoutent
 - `src/lib/catalogSatisfaction.ts` — moyenne par formation et par année (ind. 2)
 - `src/lib/satisfactionDisclosure.ts` — texte de diffusion avec sa méthode (ind. 2)
 - `src/lib/vhdConstants.ts` — catégories, statuts, retards, construction d'enregistrement (ind. 12)
+- `src/lib/distanceFollowUp.ts` — statut d'effectivité du suivi à distance et faits qui le fondent (ind. 19)
 
 **Accès données**
 - `src/hooks/useVhdReports.ts`
+- `src/hooks/useDistanceFollowUp.ts` — consolidation des traces LMS existantes
+- `src/hooks/usePedagogicalReferent.ts` — référent de session et seuil de l'arrêté
 
 **Écrans**
 - `src/pages/Signalements.tsx` — registre des signalements (nouveau)
 - `src/pages/Catalogue.tsx` — colonne satisfaction et bouton de copie
 - `src/components/catalogue/CatalogFormDialog.tsx` — quatre champs d'information du public
+- `src/components/lms/DistanceFollowUpTab.tsx` — onglet « Suivi distanciel » d'un parcours LMS
+- `src/components/formations/PedagogicalReferent.tsx` — désignation sur la fiche session
 
 **Navigation** : `src/App.tsx`, `src/components/AppSidebar.tsx`, `src/components/moduleIcons.ts`, `src/hooks/useModuleAccess.ts`.
 
 **Sauvegarde** : `supabase/functions/scheduled-backup/index.ts`, `supabase/functions/backup-export/index.ts`, `scripts/backup-exclusions.txt`.
 
+## Indicateur 19 : ce qui est vérifié
+
+Aucune donnée nouvelle n'est collectée. Le statut de chaque apprenant se déduit des traces LMS déjà présentes : modules obligatoires terminés (`lms_progress`), modules ouverts (`lms_page_views`), et **activités rendues** — quiz réussis rattachés à une leçon du parcours, dépôts de travaux, devoirs remis.
+
+Le décret demande l'effectivité du suivi, pas un taux de complétion. Deux conséquences dans le calcul :
+
+- un parcours entièrement coché sans une seule activité rendue est `incomplet`, jamais conforme ;
+- un parcours sans leçon obligatoire n'a pas d'attendu, donc aucun apprenant ne peut y être déclaré conforme.
+
+Le délai d'inactivité qui déclenche `à relancer` est de 21 jours, passé en paramètre à `computeFollowUp` : il se change en un endroit.
+
+Le référent pédagogique est **facultatif**. Le décret ne l'impose qu'« au-delà d'un nombre d'intervenants par formation, fixé par arrêté » ; l'arrêté n'est pas paru, donc le réglage `distance_intervenant_threshold` reste vide et l'écran le dit. Le renseigner suffira à faire apparaître le seuil, sans redéploiement.
+
 ## Reste à faire
 
 - Écran du registre des risques (ind. 32) — la table existe, la saisie non.
-- Synthèse d'effectivité du suivi à distance et saisie du référent pédagogique (ind. 19) — les preuves brutes existent déjà dans les tables LMS.
+- Écran d'édition de la procédure VHD (ind. 12) et preuve de l'information des apprenants.
 - Pièces jointes aux signalements et journal des consultations.
