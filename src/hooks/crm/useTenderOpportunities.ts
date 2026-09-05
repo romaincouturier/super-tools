@@ -72,8 +72,8 @@ export const useTenderOpportunities = (status: "open" | "decided" = "open") => {
             .or(`datelimitereponse.is.null,datelimitereponse.gte.${new Date().toISOString()}`)
         : query.in("status", ["go", "no_go", "expired"]);
 
-      // Les avis sans date limite connue passent en dernier plutôt que d'être
-      // traités comme les plus urgents.
+      // Les avis sans date limite connue passent EN PREMIER : une échéance
+      // inconnue peut être imminente, c'est le cas le plus urgent à vérifier.
       const PAGE_MAX = 200;
       const { data, error, count } = await query
         .order("datelimitereponse", { ascending: true, nullsFirst: true })
@@ -151,6 +151,24 @@ export const useTenderOpportunities = (status: "open" | "decided" = "open") => {
     },
   });
 };
+
+// ── Saisie manuelle de la date limite ────────────────────────
+
+/**
+ * Renseigne à la main la date limite d'un avis dont le parsing ne l'a pas
+ * extraite : l'avis reprend ensuite sa place normale dans le tri.
+ */
+export const useTenderSetDeadline = () =>
+  useCrmMutation(
+    async ({ id, deadline }: { id: string; deadline: string | null }) => {
+      const { error } = await supabase
+        .from("tender_opportunities")
+        .update({ datelimitereponse: deadline })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    { successMessage: "Date limite enregistrée", invalidateKey: [TENDERS_QUERY_KEY] },
+  );
 
 // ── No Go ────────────────────────────────────────────────────
 

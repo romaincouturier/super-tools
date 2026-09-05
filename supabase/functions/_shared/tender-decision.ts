@@ -178,8 +178,8 @@ export async function listPendingTenders(
     .neq("nature", "ATTRIBUTION")
     .in("status", OPEN_STATUSES)
     .or(`datelimitereponse.is.null,datelimitereponse.gte.${new Date().toISOString()}`)
-    // Les avis sans date limite passent en dernier plutôt que d'être traités
-    // comme les plus urgents.
+    // Les avis sans date limite passent EN PREMIER : une échéance inconnue
+    // peut être imminente. Même ordre que l'écran CRM.
     .order("datelimitereponse", { ascending: true, nullsFirst: true })
     .order("dateparution", { ascending: false })
     .limit(limit);
