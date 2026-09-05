@@ -18,9 +18,11 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { daysLeft, describeMatch, resolveDceLink, TENDER_URGENT_DAYS } from "@/lib/tenders";
 import { useDceReviewFlag } from "@/hooks/crm/useDceReviewFlag";
+import { useTenderSetDeadline } from "@/hooks/crm/useTenderOpportunities";
 import { tenderNoGoReasonConfig, tenderSourceConfig, type TenderWithContext } from "@/types/tenders";
 
 interface TenderCardProps {
@@ -52,10 +54,14 @@ function DeadlineBadge({
         <Badge
           variant="outline"
           className="gap-1 border-amber-500 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
-          asChild={!!tender.url_avis}
         >
           {tender.url_avis ? (
-            <a href={tender.url_avis} target="_blank" rel="noopener noreferrer">
+            <a
+              href={tender.url_avis}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1"
+            >
               <AlertTriangle className="h-3 w-3" />
               Date limite non détectée — à vérifier sur l'avis
             </a>
@@ -124,7 +130,7 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: 
             </p>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <DeadlineBadge deadline={tender.datelimitereponse} />
+            <DeadlineBadge tender={tender} decided={decided} />
             <Badge variant="secondary" className="text-[10px]">
               {tenderSourceConfig[tender.source] ?? tender.source}
             </Badge>
