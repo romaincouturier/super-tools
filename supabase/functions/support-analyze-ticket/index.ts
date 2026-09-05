@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import { logLovableUsage } from "../_shared/api-usage.ts";
+import { parseAiJson, truncateForLog, STRICT_JSON_INSTRUCTION } from "../_shared/ai-json.ts";
+
 
 serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
