@@ -180,7 +180,7 @@ export async function listPendingTenders(
     .or(`datelimitereponse.is.null,datelimitereponse.gte.${new Date().toISOString()}`)
     // Les avis sans date limite passent en dernier plutôt que d'être traités
     // comme les plus urgents.
-    .order("datelimitereponse", { ascending: true, nullsFirst: false })
+    .order("datelimitereponse", { ascending: true, nullsFirst: true })
     .order("dateparution", { ascending: false })
     .limit(limit);
   if (error) throw new Error(error.message);

@@ -76,7 +76,7 @@ export const useTenderOpportunities = (status: "open" | "decided" = "open") => {
       // traités comme les plus urgents.
       const PAGE_MAX = 200;
       const { data, error, count } = await query
-        .order("datelimitereponse", { ascending: true, nullsFirst: false })
+        .order("datelimitereponse", { ascending: true, nullsFirst: true })
         .order("dateparution", { ascending: false })
         .limit(PAGE_MAX);
       if (error) throw error;
