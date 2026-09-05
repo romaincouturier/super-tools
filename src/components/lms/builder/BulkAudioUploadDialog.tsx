@@ -307,28 +307,34 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         }
       }
 
+      let blocksCreated = 0;
       for (const audio of audios) {
-        if (audio.status !== "done" || !audio.reformulatedText) continue;
-        const targetLessonId = audio.lessonId ?? ressourcesLessonId;
-        if (!targetLessonId) continue;
+        if (audio.status !== "done") continue;
+        for (const seg of audio.segments) {
+          if (!seg.reformulated_text.trim()) continue;
+          const targetLessonId = seg.lesson_id ?? ressourcesLessonId;
+          if (!targetLessonId) continue;
 
-        const htmlContent = [
-          audio.reformulatedText,
-          audio.keyPoints.length
-            ? `<ul>${audio.keyPoints.map((kp) => `<li><strong>${kp}</strong></li>`).join("")}</ul>`
-            : "",
-        ]
-          .filter(Boolean)
-          .join("\n");
+          const htmlContent = [
+            seg.title.trim() ? `<h3>${seg.title.trim()}</h3>` : "",
+            seg.reformulated_text,
+            seg.key_points.length
+              ? `<ul>${seg.key_points.map((kp) => `<li><strong>${kp}</strong></li>`).join("")}</ul>`
+              : "",
+          ]
+            .filter(Boolean)
+            .join("\n");
 
-        await createLessonBlock({
-          lesson_id: targetLessonId,
-          type: "text",
-          kind: "content",
-          parent_block_id: null,
-          position: 9999,
-          content: { html: htmlContent },
-        });
+          await createLessonBlock({
+            lesson_id: targetLessonId,
+            type: "text",
+            kind: "content",
+            parent_block_id: null,
+            position: 9999,
+            content: { html: htmlContent },
+          });
+          blocksCreated++;
+        }
       }
 
       toast({ title: "Blocs créés dans les leçons" });
