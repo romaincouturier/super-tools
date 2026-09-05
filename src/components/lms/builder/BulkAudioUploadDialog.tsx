@@ -238,7 +238,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
 
     // Toutes les leçons du cours, lues en base : le cache ne contient que les
     // modules déjà ouverts, ce qui privait l'IA d'une partie des leçons cibles.
-    const freshLessons = await qc.fetchQuery<LmsLesson[]>({ queryKey: ["lms-course-lessons", courseId] });
+    const { data: freshLessons } = await refetchCourseLessons();
     const moduleTitleById = new Map(modules.map((m) => [m.id, m.title]));
     const allLessons = (freshLessons ?? []).map((l) => ({
       id: l.id,
