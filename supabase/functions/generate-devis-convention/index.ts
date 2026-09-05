@@ -8,8 +8,6 @@ import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 // Même modèle PDFMonkey que les conventions de formation classiques.
 const CONVENTION_TEMPLATE_ID = "A9C4C140-4854-40AF-9EFA-BDD88EEA39A4";
 
-const DOSSIER_FEE_WITH_SUBROGATION = 350;
-const DOSSIER_FEE_WITHOUT_SUBROGATION = 150;
 
 interface RequestBody {
   activityLogId: string;
