@@ -236,13 +236,15 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
       setAudios([...updated]);
     }
 
-    const allLessons: { id: string; title: string; module_title: string }[] = [];
-    for (const mod of modules) {
-      const cached = qc.getQueryData<LmsLesson[]>(["lms-lessons", mod.id]) ?? [];
-      for (const l of cached) {
-        allLessons.push({ id: l.id, title: l.title, module_title: mod.title });
-      }
-    }
+    // Toutes les leçons du cours, lues en base : le cache ne contient que les
+    // modules déjà ouverts, ce qui privait l'IA d'une partie des leçons cibles.
+    const freshLessons = await qc.fetchQuery<LmsLesson[]>({ queryKey: ["lms-course-lessons", courseId] });
+    const moduleTitleById = new Map(modules.map((m) => [m.id, m.title]));
+    const allLessons = (freshLessons ?? []).map((l) => ({
+      id: l.id,
+      title: l.title,
+      module_title: moduleTitleById.get(l.module_id) ?? "",
+    }));
 
     const successAudios = updated.filter((a) => a.status === "done" && a.transcript);
     if (!successAudios.length) {
