@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
+import { getDossierFee } from "../_shared/dossier-fee.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
@@ -7,8 +8,6 @@ import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 // Même modèle PDFMonkey que les conventions de formation classiques.
 const CONVENTION_TEMPLATE_ID = "A9C4C140-4854-40AF-9EFA-BDD88EEA39A4";
 
-const DOSSIER_FEE_WITH_SUBROGATION = 350;
-const DOSSIER_FEE_WITHOUT_SUBROGATION = 150;
 
 interface RequestBody {
   activityLogId: string;
@@ -47,10 +46,7 @@ function sanitizeForFilename(str: string): string {
     .trim();
 }
 
-function getDossierFee(offrirFraisAdmin: boolean, subrogation: boolean): number {
-  const base = subrogation ? DOSSIER_FEE_WITH_SUBROGATION : DOSSIER_FEE_WITHOUT_SUBROGATION;
-  return Math.max(0, base - (offrirFraisAdmin ? 150 : 0));
-}
+
 
 serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);

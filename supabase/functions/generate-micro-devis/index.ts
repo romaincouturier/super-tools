@@ -6,6 +6,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { guessMimeType } from "../_shared/mime-types.ts";
 
+import { getDossierFee } from "../_shared/dossier-fee.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 
@@ -50,15 +51,8 @@ interface EmailAttachmentPayload {
 }
 
 const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
-const DOSSIER_FEE_WITH_SUBROGATION = 350;
-const DOSSIER_FEE_WITHOUT_SUBROGATION = 150;
-
 function getDossierFeeAmount(data: RequestBody, subrogation: boolean): number {
-  // Frais de dossier systématiques : 150€ sans subrogation, 350€ avec.
-  // Si "offrir les frais administratifs" est coché, on retire 150€.
-  const base = subrogation ? DOSSIER_FEE_WITH_SUBROGATION : DOSSIER_FEE_WITHOUT_SUBROGATION;
-  const remise = data.offrirFraisAdmin ? 150 : 0;
-  return Math.max(0, base - remise);
+  return getDossierFee(!!data.offrirFraisAdmin, subrogation);
 }
 
 async function generatePdfWithPdfMonkey(
