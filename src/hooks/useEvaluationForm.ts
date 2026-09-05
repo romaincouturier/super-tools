@@ -42,6 +42,7 @@ type TrainingRecord = {
   start_date: string;
   end_date: string | null;
   objectives: string[] | null;
+  client_name?: string | null;
 };
 
 type ObjectiveEvaluation = { objectif: string; niveau: number };
