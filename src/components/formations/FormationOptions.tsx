@@ -81,7 +81,8 @@ export default function FormationOptions({
               id="remise-frais-admin"
               type="number"
               min={0}
-              step={10}
+              step="any"
+              inputMode="decimal"
               className="w-28"
               value={remiseFraisAdmin === 0 ? "" : remiseFraisAdmin}
               placeholder="0"
