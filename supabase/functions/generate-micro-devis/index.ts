@@ -26,6 +26,7 @@ interface RequestBody {
   includeCadeau: boolean;
   fraisDossier: boolean;
   offrirFraisAdmin?: boolean;
+  remiseFraisAdmin?: number;
   prix: number;
   dureeHeures: number;
   programmeUrl: string | null;
@@ -52,7 +53,7 @@ interface EmailAttachmentPayload {
 
 const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
 function getDossierFeeAmount(data: RequestBody, subrogation: boolean): number {
-  return getDossierFee(!!data.offrirFraisAdmin, subrogation);
+  return getDossierFee(data.remiseFraisAdmin ?? !!data.offrirFraisAdmin, subrogation);
 }
 
 async function generatePdfWithPdfMonkey(

@@ -4,10 +4,13 @@ export const REMISE_FRAIS_ADMIN = 150;
 
 /**
  * Frais de dossier : 150€ sans subrogation, 350€ avec.
- * Si "offrir les frais administratifs" est actif, on retire 150€ (plancher 0).
+ * `remise` accepte un montant (nouveau champ éditable) ou un booléen (anciens devis = 150€).
+ * La remise est plafonnée au montant des frais.
  */
-export function getDossierFee(offrirFraisAdmin: boolean, subrogation: boolean): number {
+export function getDossierFee(remise: boolean | number | null | undefined, subrogation: boolean): number {
   const base = subrogation ? DOSSIER_FEE_WITH_SUBROGATION : DOSSIER_FEE_WITHOUT_SUBROGATION;
-  const remise = offrirFraisAdmin ? REMISE_FRAIS_ADMIN : 0;
-  return Math.max(0, base - remise);
+  const amount = typeof remise === "number" && Number.isFinite(remise)
+    ? Math.max(0, remise)
+    : (remise ? REMISE_FRAIS_ADMIN : 0);
+  return Math.max(0, base - Math.min(base, amount));
 }

@@ -28,14 +28,14 @@ describe("FormationSummary", () => {
   });
 
   it("affiche la remise et le total réduit quand les frais sont offerts", () => {
-    renderSummary({ offrirFraisAdmin: true });
+    renderSummary({ remiseFraisAdmin: 150 });
     expect(screen.getByText(/− 150€ offerts/)).toBeInTheDocument();
     expect(screen.getAllByText("2000€").length).toBeGreaterThan(0);
     expect(screen.getByText("2000.00€")).toBeInTheDocument();
   });
 
   it("applique la remise sur les frais avec subrogation", () => {
-    renderSummary({ typeSubrogation: "avec", offrirFraisAdmin: true });
+    renderSummary({ typeSubrogation: "avec", remiseFraisAdmin: 150 });
     expect(screen.getByText(/Frais de dossier : 350€/)).toBeInTheDocument();
     expect(screen.getByText("200€")).toBeInTheDocument();
     expect(screen.getByText("2200€")).toBeInTheDocument();

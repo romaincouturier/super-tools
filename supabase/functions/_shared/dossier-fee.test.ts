@@ -21,4 +21,18 @@ describe("getDossierFee", () => {
   it("ne descend jamais sous 0", () => {
     expect(getDossierFee(true, false)).toBeGreaterThanOrEqual(0);
   });
+
+  it("accepte un montant de remise personnalise", () => {
+    expect(getDossierFee(50, false)).toBe(100);
+    expect(getDossierFee(200, true)).toBe(150);
+  });
+
+  it("plafonne la remise au montant des frais", () => {
+    expect(getDossierFee(500, false)).toBe(0);
+    expect(getDossierFee(500, true)).toBe(0);
+  });
+
+  it("traite 0 comme aucune remise", () => {
+    expect(getDossierFee(0, false)).toBe(150);
+  });
 });

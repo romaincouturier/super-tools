@@ -27,4 +27,24 @@ describe("computeDevisTotals", () => {
     expect(t.frais).toBe(0);
     expect(t.totalHT).toBe(0);
   });
+
+  it("montant de remise personnalise", () => {
+    const t = computeDevisTotals({ prixUnitaire: 1000, nbParticipants: 1, variant: "avec", remiseFraisAdmin: 200 });
+    expect(t).toMatchObject({ remise: 200, frais: 150, totalHT: 1150 });
+  });
+
+  it("remise plafonnee aux frais de base", () => {
+    const t = computeDevisTotals({ prixUnitaire: 1000, nbParticipants: 1, variant: "sans", remiseFraisAdmin: 900 });
+    expect(t).toMatchObject({ remise: 150, frais: 0, totalHT: 1000 });
+  });
+
+  it("remise 0 prime sur l ancien booleen", () => {
+    const t = computeDevisTotals({ prixUnitaire: 1000, nbParticipants: 1, variant: "sans", remiseFraisAdmin: 0, offrirFraisAdmin: true });
+    expect(t.frais).toBe(150);
+  });
+
+  it("brouillon ancien: booleen true vaut 150", () => {
+    const t = computeDevisTotals({ prixUnitaire: 1000, nbParticipants: 1, variant: "sans", offrirFraisAdmin: true });
+    expect(t.frais).toBe(0);
+  });
 });

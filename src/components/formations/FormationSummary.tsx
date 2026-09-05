@@ -7,7 +7,7 @@ interface FormationSummaryProps {
   formationDemandee: string;
   participants: string;
   typeSubrogation?: "sans" | "avec" | "les2";
-  offrirFraisAdmin?: boolean;
+  remiseFraisAdmin?: number;
   getSelectedFormationConfig: () => FormationConfig | undefined;
   formationFormulas: FormationFormula[];
   selectedFormulaId: string;
@@ -18,7 +18,7 @@ export default function FormationSummary({
   formationDemandee,
   participants,
   typeSubrogation,
-  offrirFraisAdmin,
+  remiseFraisAdmin,
   getSelectedFormationConfig,
   formationFormulas,
   selectedFormulaId,
@@ -42,7 +42,7 @@ export default function FormationSummary({
       prixUnitaire,
       nbParticipants,
       variant,
-      offrirFraisAdmin,
+      remiseFraisAdmin,
     });
 
     return (
