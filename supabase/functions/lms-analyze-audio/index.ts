@@ -122,7 +122,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: CLAUDE_ADVANCED,
-        max_tokens: 4096,
+        max_tokens: 16000,
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -141,15 +141,39 @@ serve(async (req) => {
       trigger: "user",
       usage: aiData.usage,
     });
-    const rawText = aiData.content?.[0]?.text ?? "";
+    const rawText: string = (Array.isArray(aiData.content) ? aiData.content : [])
+      .filter((b: any) => b?.type === "text" && typeof b.text === "string")
+      .map((b: any) => b.text)
+      .join("")
+      .trim();
+
+    if (!rawText) {
+      console.error(
+        "Empty AI response, stop_reason:",
+        aiData.stop_reason,
+        "content types:",
+        JSON.stringify((aiData.content ?? []).map((b: any) => b?.type)),
+      );
+      return createErrorResponse(
+        aiData.stop_reason === "max_tokens"
+          ? "Analyse trop longue pour l'IA : importez moins d'audios à la fois."
+          : "L'IA n'a renvoyé aucun contenu, réessayez.",
+        500,
+      );
+    }
 
     let parsed: { assignments: AudioAssignment[] };
     try {
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
       parsed = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
     } catch {
-      console.error("Failed to parse AI response:", rawText);
-      return createErrorResponse("Réponse IA non parseable", 500);
+      console.error("Failed to parse AI response (len " + rawText.length + "):", rawText.slice(0, 2000));
+      return createErrorResponse(
+        aiData.stop_reason === "max_tokens"
+          ? "Analyse trop longue pour l'IA : importez moins d'audios à la fois."
+          : "Réponse IA non parseable",
+        500,
+      );
     }
 
     return createJsonResponse(parsed);
