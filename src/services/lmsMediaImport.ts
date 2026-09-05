@@ -12,11 +12,52 @@ export interface LessonInfo {
   module_title: string;
 }
 
-export interface AudioAssignment {
-  audio_id: string;
+export interface AudioSegment {
+  title: string;
   lesson_id: string | null;
   reformulated_text: string;
   key_points: string[];
+}
+
+export interface AudioAssignment {
+  audio_id: string;
+  segments: AudioSegment[];
+}
+
+/**
+ * Normalise la réponse IA : accepte le nouveau format multi-segments comme
+ * l'ancien format (une seule leçon par audio), et écarte les segments vides.
+ */
+export function normalizeAudioAssignments(raw: unknown): AudioAssignment[] {
+  const list = Array.isArray(raw) ? raw : [];
+  const out: AudioAssignment[] = [];
+  for (const item of list) {
+    const a = item as Record<string, unknown>;
+    const audioId = typeof a?.audio_id === "string" ? a.audio_id : "";
+    if (!audioId) continue;
+
+    const rawSegments = Array.isArray(a.segments)
+      ? (a.segments as unknown[])
+      : [{ title: "", lesson_id: a.lesson_id, reformulated_text: a.reformulated_text, key_points: a.key_points }];
+
+    const segments: AudioSegment[] = [];
+    for (const s of rawSegments) {
+      const seg = s as Record<string, unknown>;
+      const text = typeof seg?.reformulated_text === "string" ? seg.reformulated_text.trim() : "";
+      if (!text) continue;
+      segments.push({
+        title: typeof seg.title === "string" ? seg.title : "",
+        lesson_id: typeof seg.lesson_id === "string" && seg.lesson_id ? seg.lesson_id : null,
+        reformulated_text: text,
+        key_points: Array.isArray(seg.key_points)
+          ? (seg.key_points as unknown[]).filter((k): k is string => typeof k === "string" && !!k.trim())
+          : [],
+      });
+    }
+
+    if (segments.length) out.push({ audio_id: audioId, segments });
+  }
+  return out;
 }
 
 /**
