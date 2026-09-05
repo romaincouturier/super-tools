@@ -276,9 +276,11 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
   const handleConfirm = async () => {
     setStep("confirming");
     try {
-      // Find or create "Ressources" lesson for audios with null lessonId
+      // Find or create "Ressources" lesson for segments without a target lesson
       let ressourcesLessonId: string | null = null;
-      const needsRessources = audios.some((a) => a.lessonId === null && a.status === "done");
+      const needsRessources = audios.some(
+        (a) => a.status === "done" && a.segments.some((s) => s.lesson_id === null),
+      );
 
       if (needsRessources) {
         // Search in cached lessons
