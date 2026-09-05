@@ -87,10 +87,6 @@ interface BalanceData {
   compte_resultat?: Record<string, unknown>;
 }
 
-function stripCodeFences(text: string): string {
-  return text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
-}
-
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
   if (preflight) return preflight;
