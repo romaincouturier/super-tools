@@ -156,7 +156,12 @@ export function ElearningDatesFields({
 // --- Training Days Calendar ---
 
 export function TrainingDaysCalendar({ form, optional }: { form: FormationFormHook; optional?: boolean }) {
+  const firstSelectedDate =
+    form.selectedDates.length > 0
+      ? [...form.selectedDates].sort((a, b) => a.getTime() - b.getTime())[0]
+      : undefined;
   return (
+
     <div className="space-y-2">
       <Label>Jours de formation {optional ? "" : "*"}</Label>
       <Popover open={form.calendarOpen} onOpenChange={form.setCalendarOpen}>
@@ -174,13 +179,16 @@ export function TrainingDaysCalendar({ form, optional }: { form: FormationFormHo
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <CalendarComponent
+            key={form.selectedDates.length > 0 ? firstSelectedDate?.toISOString() : "empty"}
             mode="multiple"
             selected={form.selectedDates}
+            defaultMonth={firstSelectedDate}
             onSelect={(dates) => form.setSelectedDates(dates || [])}
             initialFocus
             className="pointer-events-auto"
             locale={fr}
           />
+
           <div className="border-t p-3 flex justify-between items-center">
             <span className="text-sm text-muted-foreground">
               {form.selectedDates.length} jour
