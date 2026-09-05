@@ -33,14 +33,52 @@ interface TenderCardProps {
   decided?: boolean;
 }
 
-function DeadlineBadge({ deadline }: { deadline: string | null }) {
+function DeadlineBadge({
+  tender,
+  decided,
+}: {
+  tender: TenderWithContext;
+  decided?: boolean;
+}) {
+  const deadline = tender.datelimitereponse;
   const left = daysLeft(deadline);
+  const setDeadline = useTenderSetDeadline();
+
+  // Date limite non extraite du parsing : l'avis peut être à échéance
+  // imminente, il faut le vérifier sur l'avis d'origine.
   if (left === null) {
     return (
-      <Badge variant="outline" className="gap-1">
-        <CalendarClock className="h-3 w-3" />
-        Date limite non publiée
-      </Badge>
+      <div className="flex flex-col items-end gap-1.5">
+        <Badge
+          variant="outline"
+          className="gap-1 border-amber-500 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+          asChild={!!tender.url_avis}
+        >
+          {tender.url_avis ? (
+            <a href={tender.url_avis} target="_blank" rel="noopener noreferrer">
+              <AlertTriangle className="h-3 w-3" />
+              Date limite non détectée — à vérifier sur l'avis
+            </a>
+          ) : (
+            <span className="inline-flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              Date limite non détectée — à vérifier sur l'avis
+            </span>
+          )}
+        </Badge>
+        {!decided && (
+          <Input
+            type="date"
+            aria-label="Saisir la date limite de réponse"
+            className="h-7 w-[140px] text-xs"
+            disabled={setDeadline.isPending}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value) setDeadline.mutate({ id: tender.id, deadline: value });
+            }}
+          />
+        )}
+      </div>
     );
   }
   const urgent = left <= TENDER_URGENT_DAYS;
@@ -55,6 +93,7 @@ function DeadlineBadge({ deadline }: { deadline: string | null }) {
     </Badge>
   );
 }
+
 
 export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: TenderCardProps) {
   const d = tender.decision ?? {};
