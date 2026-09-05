@@ -102,10 +102,8 @@ interface AudioItem {
   status: TranscriptionStatus;
   transcript: string;
   error?: string;
-  // After AI analysis:
-  lessonId: string | null; // null = ressources
-  reformulatedText: string;
-  keyPoints: string[];
+  // After AI analysis: one entry per detected topic
+  segments: AudioSegment[];
 }
 
 type Step = "upload" | "transcribing" | "validate" | "confirming";
