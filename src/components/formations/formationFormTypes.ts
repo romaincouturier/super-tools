@@ -75,9 +75,9 @@ export interface FormationFormSectionProps {
   setIncludeCadeau: (v: boolean) => void;
   typeSubrogation: "sans" | "avec" | "les2";
   setTypeSubrogation: (v: "sans" | "avec" | "les2") => void;
-  offrirFraisAdmin: boolean;
+  remiseFraisAdmin: number;
   publicSectorNotice?: string | null;
-  setOffrirFraisAdmin: (v: boolean) => void;
+  setRemiseFraisAdmin: (v: number) => void;
   getSelectedFormationConfig: () => FormationConfig | undefined;
   onSelectInterSession?: (d: import("@/types/formations").FormationDate) => void;
 }
