@@ -51,51 +51,59 @@ Si c'est une **évolution**, réponds avec ce schéma exact :
     const userPrompt = `Voici la description soumise par l'utilisateur :\n\n${description.trim()}`;
 
     const aiGatewayUrl = Deno.env.get("AI_GATEWAY_URL") || "https://ai.gateway.lovable.dev/v1/chat/completions";
-    const response = await fetch(aiGatewayUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      if (response.status === 429) {
-        return createErrorResponse("Trop de requêtes IA, veuillez réessayer dans un instant.", 429);
+    async function callAi(system: string) {
+      const response = await fetch(aiGatewayUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: userPrompt },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("AI gateway error:", response.status, errorText);
+        return { ok: false as const, status: response.status };
       }
-      if (response.status === 402) {
-        return createErrorResponse("Crédits IA insuffisants.", 402);
-      }
+
+      const aiData = await response.json();
+      await logLovableUsage({ origin: "support-analyze-ticket", trigger: "user", data: aiData });
+      return { ok: true as const, text: aiData.choices?.[0]?.message?.content || "" };
+    }
+
+    const gatewayError = (status: number) => {
+      if (status === 429) return createErrorResponse("Trop de requêtes IA, veuillez réessayer dans un instant.", 429);
+      if (status === 402) return createErrorResponse("Crédits IA insuffisants.", 402);
       return createErrorResponse("Erreur du service IA", 500);
+    };
+
+    const first = await callAi(systemPrompt);
+    if (!first.ok) return gatewayError(first.status);
+
+    let analysis = parseAiJson<Record<string, string>>(first.text);
+
+    if (!analysis) {
+      console.error("[support-analyze-ticket] unparseable AI response:", truncateForLog(first.text));
+      const retry = await callAi(`${systemPrompt}\n\n${STRICT_JSON_INSTRUCTION}`);
+      if (!retry.ok) return gatewayError(retry.status);
+      analysis = parseAiJson<Record<string, string>>(retry.text);
+      if (!analysis) {
+        console.error("[support-analyze-ticket] retry also unparseable:", truncateForLog(retry.text));
+        return createErrorResponse(
+          "L'IA n'a pas réussi à structurer l'analyse du ticket. Réessayez, ou complétez le ticket manuellement.",
+          422,
+        );
+      }
     }
 
-    const aiData = await response.json();
-    await logLovableUsage({
-      origin: "support-analyze-ticket",
-      trigger: "user",
-      data: aiData,
-    });
-    const rawContent = aiData.choices?.[0]?.message?.content || "";
-
-    // Parse the JSON response from AI
-    let analysis;
-    try {
-      // Strip potential markdown fences
-      const cleaned = rawContent.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-      analysis = JSON.parse(cleaned);
-    } catch {
-      console.error("Failed to parse AI response:", rawContent);
-      return createErrorResponse("L'IA n'a pas retourné un format valide. Veuillez réessayer.", 500);
-    }
 
     // Validate required fields
     if (!analysis.type || !["bug", "evolution"].includes(analysis.type)) {
