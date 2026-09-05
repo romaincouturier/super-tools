@@ -113,67 +113,83 @@ serve(async (req) => {
       .replaceAll("{{lessons}}", lessonsBlock)
       .replaceAll("{{transcripts}}", transcriptsBlock);
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
+    async function callAi(userContent: string) {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": ANTHROPIC_API_KEY!,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          model: CLAUDE_ADVANCED,
+          max_tokens: 16000,
+          messages: [{ role: "user", content: userContent }],
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        console.error("Anthropic error:", response.status, err);
+        return { ok: false as const, status: response.status };
+      }
+
+      const aiData = await response.json();
+      await logAnthropicUsage({
+        origin: "lms-analyze-audio",
+        operation: "analyze",
         model: CLAUDE_ADVANCED,
-        max_tokens: 16000,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      console.error("Anthropic error:", err);
-      return createErrorResponse("Erreur lors de l'analyse IA", 500);
+        trigger: "user",
+        usage: aiData.usage,
+      });
+      const text: string = (Array.isArray(aiData.content) ? aiData.content : [])
+        .filter((b: any) => b?.type === "text" && typeof b.text === "string")
+        .map((b: any) => b.text)
+        .join("")
+        .trim();
+      return { ok: true as const, text, stopReason: aiData.stop_reason as string | undefined };
     }
 
-    const aiData = await response.json();
-    await logAnthropicUsage({
-      origin: "lms-analyze-audio",
-      operation: "analyze",
-      model: CLAUDE_ADVANCED,
-      trigger: "user",
-      usage: aiData.usage,
-    });
-    const rawText: string = (Array.isArray(aiData.content) ? aiData.content : [])
-      .filter((b: any) => b?.type === "text" && typeof b.text === "string")
-      .map((b: any) => b.text)
-      .join("")
-      .trim();
+    let attempt = await callAi(prompt);
+    if (!attempt.ok) return createErrorResponse("Erreur lors de l'analyse IA", 500);
 
-    if (!rawText) {
+    let parsed = parseAiJson<{ assignments: AudioAssignment[] }>(attempt.text);
+
+    if (!parsed || !Array.isArray(parsed.assignments)) {
       console.error(
-        "Empty AI response, stop_reason:",
-        aiData.stop_reason,
-        "content types:",
-        JSON.stringify((aiData.content ?? []).map((b: any) => b?.type)),
+        "[lms-analyze-audio] unparseable AI response (stop_reason:",
+        attempt.stopReason,
+        "):",
+        truncateForLog(attempt.text),
       );
-      return createErrorResponse(
-        aiData.stop_reason === "max_tokens"
-          ? "Analyse trop longue pour l'IA : importez moins d'audios à la fois."
-          : "L'IA n'a renvoyé aucun contenu, réessayez.",
-        500,
-      );
-    }
 
-    let parsed: { assignments: AudioAssignment[] };
-    try {
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      parsed = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
-    } catch {
-      console.error("Failed to parse AI response (len " + rawText.length + "):", rawText.slice(0, 2000));
-      return createErrorResponse(
-        aiData.stop_reason === "max_tokens"
-          ? "Analyse trop longue pour l'IA : importez moins d'audios à la fois."
-          : "Réponse IA non parseable",
-        500,
-      );
+      if (attempt.stopReason === "max_tokens") {
+        return createErrorResponse(
+          "Analyse trop longue pour l'IA : importez moins d'audios à la fois.",
+          422,
+        );
+      }
+
+      // One retry with an explicit strict-JSON instruction
+      const retry = await callAi(`${prompt}\n\n${STRICT_JSON_INSTRUCTION}`);
+      if (!retry.ok) return createErrorResponse("Erreur lors de l'analyse IA", 500);
+
+      parsed = parseAiJson<{ assignments: AudioAssignment[] }>(retry.text);
+
+      if (!parsed || !Array.isArray(parsed.assignments)) {
+        console.error(
+          "[lms-analyze-audio] retry also unparseable (stop_reason:",
+          retry.stopReason,
+          "):",
+          truncateForLog(retry.text),
+        );
+        return createErrorResponse(
+          retry.stopReason === "max_tokens"
+            ? "Analyse trop longue pour l'IA : importez moins d'audios à la fois."
+            : "L'IA n'a pas réussi à structurer l'analyse de ces audios. Réessayez, ou importez moins d'audios à la fois.",
+          422,
+        );
+      }
     }
 
     return createJsonResponse(parsed);
@@ -182,3 +198,4 @@ serve(async (req) => {
     return createErrorResponse(err instanceof Error ? err.message : "Erreur interne", 500);
   }
 });
+
