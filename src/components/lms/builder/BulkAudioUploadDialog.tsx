@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Mic, Upload, ChevronDown, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Mic, Upload, ChevronDown, Loader2, CheckCircle2, AlertCircle, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
