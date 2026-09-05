@@ -28,25 +28,35 @@ Contexte : Session de coaching pour ${participant_name || "un participant"} dans
 
 Réponds UNIQUEMENT en JSON valide, sans markdown.`;
 
-    const content = await aiChat({
-      system: systemPrompt,
-      messages: [{ role: "user", content: `Notes de session :\n\n${notes}` }],
-      tier: "fast",
-      temperature: 0.3,
-      origin: "summarize-coaching",
-      operation: "summary",
-      trigger: "user",
-    });
+    const askAi = (extra?: string) =>
+      aiChat({
+        system: extra ? `${systemPrompt}\n\n${extra}` : systemPrompt,
+        messages: [{ role: "user", content: `Notes de session :\n\n${notes}` }],
+        tier: "fast",
+        temperature: 0.3,
+        origin: "summarize-coaching",
+        operation: "summary",
+        trigger: "user",
+      });
 
-    // Parse JSON from AI response
-    let parsed;
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      // Try extracting JSON from markdown code block
-      const match = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      parsed = match ? JSON.parse(match[1]) : { summary: content, key_topics: [], action_items: [] };
+    const content = await askAi();
+    let parsed = parseAiJson<Record<string, unknown>>(content);
+
+    if (!parsed) {
+      console.error("[summarize-coaching] unparseable AI response:", truncateForLog(content));
+      const retryContent = await askAi(STRICT_JSON_INSTRUCTION);
+      parsed = parseAiJson<Record<string, unknown>>(retryContent);
+      if (!parsed) {
+        console.error("[summarize-coaching] retry also unparseable:", truncateForLog(retryContent));
+        return new Response(
+          JSON.stringify({
+            error: "L'IA n'a pas réussi à structurer le résumé. Réessayez dans un instant.",
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
+
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
