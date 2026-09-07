@@ -21,10 +21,8 @@ function sanitizeFileName(name: string): string {
     .toLowerCase();
 }
 
-function resolveContentType(file: File): string {
-  const detected = file.type?.toLowerCase().split(";")[0].trim();
-  if (detected && detected !== "audio/x-m4a") return detected;
-  const ext = file.name.split(".").pop()?.toLowerCase() || "";
+function mimeFromName(name: string): string {
+  const ext = name.split(".").pop()?.toLowerCase() || "";
   const map: Record<string, string> = {
     pdf: "application/pdf",
     png: "image/png",
@@ -45,6 +43,12 @@ function resolveContentType(file: File): string {
     m4a: "audio/mp4",
   };
   return map[ext] || "application/octet-stream";
+}
+
+function resolveContentType(file: File): string {
+  const detected = file.type?.toLowerCase().split(";")[0].trim();
+  if (detected && detected !== "audio/x-m4a") return detected;
+  return mimeFromName(file.name);
 }
 
 async function triggerAudioProcessing(supabaseUrl: string, serviceKey: string, documentId: string) {
