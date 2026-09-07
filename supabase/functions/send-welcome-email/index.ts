@@ -13,7 +13,7 @@ import {
   emailButton,
 } from "../_shared/mod.ts";
 import { processTemplate } from "../_shared/templates.ts";
-import { resolveSessionDate } from "../_shared/training-date.ts";
+import { formatSessionDateFr } from "../_shared/training-date.ts";
 
 // Send notification to sponsor (intra-enterprise)
 async function sendSponsorNotification(
@@ -172,15 +172,7 @@ serve(async (req) => {
     }).join('<br/>') || '';
 
     // Date de session réelle : planning d'abord, start_date seulement si journée unique.
-    const { sessionStart } = resolveSessionDate(schedules, training.start_date, training.end_date);
-    const trainingDate = sessionStart
-      ? new Date(sessionStart).toLocaleDateString('fr-FR', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
-        })
-      : '';
+    const trainingDate = formatSessionDateFr(schedules, training.start_date, training.end_date);
 
 
     // Build training summary page URL

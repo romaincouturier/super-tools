@@ -12,7 +12,7 @@ import {
   sendTemplatedEmail,
   logEmailActivity,
 } from "../_shared/email-helpers.ts";
-import { resolveSessionDate } from "../_shared/training-date.ts";
+import { formatSessionDateFr } from "../_shared/training-date.ts";
 
 /**
  * Send Convention Reminder
@@ -56,12 +56,11 @@ serve(async (req) => {
       .eq("training_id", trainingId)
       .order("day_date", { ascending: true });
 
-    const { sessionStart } = resolveSessionDate(
+    const formattedDate = formatSessionDateFr(
       conventionSchedules,
       training.start_date,
       training.end_date,
     );
-    const formattedDate = sessionStart ? formatDateWithDayFr(sessionStart) : "";
     const isIntra = training.format_formation === "intra";
 
     let recipientEmail: string;
