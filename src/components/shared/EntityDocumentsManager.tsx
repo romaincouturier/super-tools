@@ -124,6 +124,7 @@ const EntityDocumentsManager = ({
           console.error("[EntityDocumentsManager] Upload error:", err);
           toast.error(`Erreur lors de l'upload de ${file.name}`, {
             description: (err instanceof Error ? err.message : "Erreur inconnue"),
+            cause: err,
           });
         }
       }
@@ -150,6 +151,7 @@ const EntityDocumentsManager = ({
       console.error("Download error:", err);
       toast.error("Erreur de téléchargement", {
         description: err instanceof Error ? err.message : "Impossible de télécharger le document.",
+        cause: err,
       });
     } finally {
       setDownloadingId(null);
@@ -173,6 +175,7 @@ const EntityDocumentsManager = ({
       console.error("Delete error:", err);
       toast.error("Erreur de suppression", {
         description: err instanceof Error ? err.message : "Impossible de supprimer le document.",
+        cause: err,
       });
     } finally {
       setDeletingId(null);
