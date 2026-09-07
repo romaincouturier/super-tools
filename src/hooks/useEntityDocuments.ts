@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeFileName, extractStoragePath, resolveContentType } from "@/lib/file-utils";
+import { invokeEdge } from "@/lib/invokeEdge";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -205,11 +206,11 @@ const uploadMissionDocumentSigned = async (
   file: File,
   missionId: string,
 ): Promise<{ file_url: string; document?: EntityDocument }> => {
-  const { data: signed, error: signError } = await supabase.functions.invoke("upload-mission-document", {
-    body: { action: "sign", missionId, fileName: file.name },
-  });
-  if (signError) throw signError;
-  const { path, token, bucket } = (signed ?? {}) as { path?: string; token?: string; bucket?: string };
+  const signed = await invokeEdge<{ path?: string; token?: string; bucket?: string }>(
+    "upload-mission-document",
+    { action: "sign", missionId, fileName: file.name },
+  );
+  const { path, token, bucket } = signed ?? {};
   if (!path || !token || !bucket) throw new Error("URL signée d'upload introuvable");
 
   const { error: uploadError } = await supabase.storage
@@ -217,8 +218,9 @@ const uploadMissionDocumentSigned = async (
     .uploadToSignedUrl(path, token, file, { contentType: resolveContentType(file) });
   if (uploadError) throw uploadError;
 
-  const { data, error } = await supabase.functions.invoke("upload-mission-document", {
-    body: {
+  const data = await invokeEdge<{ document?: EntityDocument & { file_url?: string } } | null>(
+    "upload-mission-document",
+    {
       action: "register",
       missionId,
       path,
@@ -226,9 +228,8 @@ const uploadMissionDocumentSigned = async (
       fileSize: file.size,
       mimeType: resolveContentType(file),
     },
-  });
-  if (error) throw error;
-  const document = (data as { document?: EntityDocument & { file_url?: string } } | null)?.document;
+  );
+  const document = data?.document;
   if (!document?.file_url) throw new Error("URL du document introuvable après upload");
   return { file_url: document.file_url, document };
 };
