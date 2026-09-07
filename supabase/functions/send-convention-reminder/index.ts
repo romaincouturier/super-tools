@@ -4,7 +4,6 @@ import {
   createErrorResponse,
   createJsonResponse,
   getSupabaseClient,
-  formatDateWithDayFr,
   emailButton,
 } from "../_shared/mod.ts";
 import {
