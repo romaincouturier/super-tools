@@ -294,7 +294,7 @@ const ChecklistItemRow = ({ item, onToggle, onDelete, onUpdate }: RowProps) => {
       toast({ title: dueDate ? "Échéance enregistrée" : "Échéance supprimée" });
       setScheduleOpen(false);
     } catch (e) {
-      toastError(e, "Impossible d'enregistrer l'échéance");
+      toastError(toast, e instanceof Error ? e : "Impossible d'enregistrer l'échéance");
     } finally {
       setSaving(false);
     }

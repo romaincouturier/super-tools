@@ -39,3 +39,41 @@ export function resolveSessionDate(
   }
   return { sessionStart: null, isPeriodWithoutSessionDate: true };
 }
+
+const fmt = (d: Date, opts: Intl.DateTimeFormatOptions) =>
+  d.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris", ...opts });
+
+/**
+ * Libellé de date à injecter dans {{training_date}}.
+ *
+ * Ne renvoie jamais une chaîne vide quand la formation a des dates : une
+ * période sans planning devient "1er au 5 octobre 2026" au lieu d'un blanc
+ * qui laisserait "prévue le" ou "Date :" sans valeur dans les emails.
+ */
+export function formatSessionDateFr(
+  schedules: Array<{ day_date: string }> | null | undefined,
+  startDate?: string | null,
+  endDate?: string | null,
+): string {
+  const { sessionStart } = resolveSessionDate(schedules, startDate, endDate);
+  if (sessionStart) {
+    return fmt(new Date(sessionStart), {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
+
+  const start = parseDate(startDate);
+  const end = parseDate(endDate);
+  if (!start) return "";
+  if (!end) return fmt(start, { day: "numeric", month: "long", year: "numeric" });
+
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+  const startLabel = sameMonth
+    ? fmt(start, { day: "numeric" })
+    : fmt(start, { day: "numeric", month: "long" });
+  const endLabel = fmt(end, { day: "numeric", month: "long", year: "numeric" });
+  return `${startLabel} au ${endLabel}`;
+}
