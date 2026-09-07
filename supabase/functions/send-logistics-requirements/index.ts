@@ -6,7 +6,7 @@ import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
-import { resolveSessionDate } from "../_shared/training-date.ts";
+import { formatSessionDateFr } from "../_shared/training-date.ts";
 
 /**
  * Send Logistics Requirements Email
@@ -122,20 +122,11 @@ serve(async (req) => {
           .eq("training_id", training.id)
           .order("day_date", { ascending: true });
 
-        const { sessionStart } = resolveSessionDate(
+        const trainingDateFormatted = formatSessionDateFr(
           logisticsSchedules,
           training.start_date,
           training.end_date,
         );
-
-        const trainingDateFormatted = sessionStart
-          ? new Date(sessionStart).toLocaleDateString("fr-FR", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })
-          : "";
 
         // Fetch template
         const useTutoiement = training.sponsor_formal_address === false;
