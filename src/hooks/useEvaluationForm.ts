@@ -139,10 +139,14 @@ export function useEvaluationForm(token: string | undefined) {
         }
       }
 
-      // First open tracking
+      // First open tracking (non-blocking: must never break form display)
       if (!evTyped.date_premiere_ouverture) {
         const nowIso = new Date().toISOString();
-        await rpc.updateEvaluationByToken(token, { date_premiere_ouverture: nowIso });
+        try {
+          await rpc.updateEvaluationByToken(token, { date_premiere_ouverture: nowIso });
+        } catch (trackingErr) {
+          console.warn("First open tracking failed (non-blocking):", trackingErr);
+        }
       }
     } catch (e: unknown) {
       console.error("Failed to load evaluation", e);

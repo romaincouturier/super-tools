@@ -165,15 +165,19 @@ export function useQuestionnaire() {
       const { data: qArr, error: qErr } = await rpc.getQuestionnaireByToken(token);
       if (qErr) {
         console.error("RPC error:", qErr.message, qErr);
-        // Retry once on network errors
-        if (attempt === 1 && (qErr.message?.includes("fetch") || qErr.message?.includes("network") || qErr.message?.includes("Failed"))) {
-          console.log("Retrying questionnaire fetch (attempt 2)...");
-          await new Promise(r => setTimeout(r, 2000));
-          return fetchData(2);
+        // Retry on any transient backend/network failure (empty messages included)
+        if (attempt < 3) {
+          console.log(`Retrying questionnaire fetch (attempt ${attempt + 1})...`);
+          await new Promise(r => setTimeout(r, attempt * 1500));
+          return fetchData(attempt + 1);
         }
         throw qErr;
       }
-      if (!qArr || (Array.isArray(qArr) && qArr.length === 0)) throw new Error("Questionnaire introuvable");
+      if (!qArr || (Array.isArray(qArr) && qArr.length === 0)) {
+        const notFound = new Error("Questionnaire introuvable");
+        (notFound as Error & { notFound?: boolean }).notFound = true;
+        throw notFound;
+      }
       const qData = Array.isArray(qArr) ? qArr[0] : qArr;
       const qTyped = qData as unknown as QuestionnaireRecord;
       setQuestionnaireAndRef(qTyped);
@@ -182,19 +186,24 @@ export function useQuestionnaire() {
       if (qTyped.modalites_preferences) setPrerequisValidationsAndRef(qTyped.modalites_preferences as Record<string, string>);
 
       if (qTyped.training_id) {
-        const { data: t, error: tErr } = await rpc.getTrainingPublicInfo(qTyped.training_id);
-        if (!tErr && t) {
-          setTraining(t as unknown as TrainingRecord);
-          if (t.prerequisites && Array.isArray(t.prerequisites)) {
-            const existing = qTyped.modalites_preferences as Record<string, string> || {};
-            const nv: Record<string, string> = {};
-            t.prerequisites.forEach((prereq: string) => { nv[prereq] = existing[prereq] || ""; });
-            setPrerequisValidationsAndRef(nv);
+        try {
+          const { data: t, error: tErr } = await rpc.getTrainingPublicInfo(qTyped.training_id);
+          if (!tErr && t) {
+            setTraining(t as unknown as TrainingRecord);
+            if (t.prerequisites && Array.isArray(t.prerequisites)) {
+              const existing = qTyped.modalites_preferences as Record<string, string> || {};
+              const nv: Record<string, string> = {};
+              t.prerequisites.forEach((prereq: string) => { nv[prereq] = existing[prereq] || ""; });
+              setPrerequisValidationsAndRef(nv);
+            }
           }
-        }
 
-        const { data: sched, error: schedErr } = await rpc.getTrainingSchedulesPublic(qTyped.training_id);
-        if (!schedErr && sched) setSchedules((Array.isArray(sched) ? sched : []) as ScheduleRecord[]);
+          const { data: sched, error: schedErr } = await rpc.getTrainingSchedulesPublic(qTyped.training_id);
+          if (!schedErr && sched) setSchedules((Array.isArray(sched) ? sched : []) as ScheduleRecord[]);
+        } catch (sideErr) {
+          // Training info is decorative: never block the form
+          console.warn("Failed to load training info (non-blocking):", sideErr);
+        }
       }
 
       if (!qTyped.date_premiere_ouverture) {
@@ -212,12 +221,18 @@ export function useQuestionnaire() {
       }
     } catch (e: unknown) {
       console.error("Failed to load questionnaire", e);
-      const errDetail = e instanceof Error ? e.message : typeof e === "object" && e !== null && "code" in e ? String((e as { code: unknown }).code) : "unknown";
-      const errorMsg = `Impossible d'ouvrir ce questionnaire. Erreur : ${errDetail}. Essayez de recharger la page.`;
+      const isNotFound = typeof e === "object" && e !== null && "notFound" in e;
+      const raw = e as { message?: string; code?: string; details?: string } | null;
+      const errDetail =
+        [raw?.message, raw?.code, raw?.details].filter(Boolean).join(" | ") || "unknown";
+      const errorMsg = isNotFound
+        ? "Ce lien ne correspond à aucun questionnaire. Il a peut-être été remplacé : demandez un nouveau lien à votre contact formation."
+        : "Le service est momentanément indisponible. Rechargez la page dans quelques instants ; vos réponses éventuelles sont conservées.";
       setError(errorMsg);
       supabase.functions.invoke("alert-form-error", { body: { formType: "besoins", token, errorMessage: errDetail, userAgent: navigator.userAgent, url: window.location.href, attempt } }).catch(() => {});
     } finally { setLoading(false); initialLoadCompleteRef.current = true; }
   };
+
 
   const saveDraft = async (opts?: { silent?: boolean; force?: boolean }) => {
     const cq = questionnaireRef.current;
