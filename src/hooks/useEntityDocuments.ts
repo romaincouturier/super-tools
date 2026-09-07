@@ -198,6 +198,41 @@ export const useToggleDocumentDeliverable = (entityType: DocumentEntityType) => 
 
 // ── Storage helpers ──────────────────────────────────────────────────
 
+/** Au-delà de cette taille, on contourne l'edge function pour l'octet. */
+const SIGNED_UPLOAD_THRESHOLD = 5 * 1024 * 1024;
+
+const uploadMissionDocumentSigned = async (
+  file: File,
+  missionId: string,
+): Promise<{ file_url: string; document?: EntityDocument }> => {
+  const { data: signed, error: signError } = await supabase.functions.invoke("upload-mission-document", {
+    body: { action: "sign", missionId, fileName: file.name },
+  });
+  if (signError) throw signError;
+  const { path, token, bucket } = (signed ?? {}) as { path?: string; token?: string; bucket?: string };
+  if (!path || !token || !bucket) throw new Error("URL signée d'upload introuvable");
+
+  const { error: uploadError } = await supabase.storage
+    .from(bucket)
+    .uploadToSignedUrl(path, token, file, { contentType: resolveContentType(file) });
+  if (uploadError) throw uploadError;
+
+  const { data, error } = await supabase.functions.invoke("upload-mission-document", {
+    body: {
+      action: "register",
+      missionId,
+      path,
+      fileName: file.name,
+      fileSize: file.size,
+      mimeType: resolveContentType(file),
+    },
+  });
+  if (error) throw error;
+  const document = (data as { document?: EntityDocument & { file_url?: string } } | null)?.document;
+  if (!document?.file_url) throw new Error("URL du document introuvable après upload");
+  return { file_url: document.file_url, document };
+};
+
 export const uploadEntityDocument = async (
   file: File,
   entityType: DocumentEntityType,
@@ -210,6 +245,14 @@ export const uploadEntityDocument = async (
   };
   const uploader = uploaders[entityType];
   if (uploader) {
+    // Le corps d'une requête d'edge function est plafonné (~20 Mo) : au-delà,
+    // l'envoi multipart échoue en « Failed to send a request to the Edge
+    // Function ». Les gros fichiers passent donc en direct au stockage via une
+    // URL signée, l'edge function n'enregistrant que la ligne en base.
+    if (entityType === "mission" && file.size > SIGNED_UPLOAD_THRESHOLD) {
+      return await uploadMissionDocumentSigned(file, entityId);
+    }
+
     const formData = new FormData();
     const { idKey, fn: fnName } = uploader;
     formData.append(idKey, entityId);
