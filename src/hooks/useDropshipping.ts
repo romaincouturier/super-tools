@@ -71,7 +71,10 @@ export function useUpsertGameAuthor() {
       if (error) throw error;
       return data as GameAuthor;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["game-authors"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["game-authors"] });
+      qc.invalidateQueries({ queryKey: ["authors-full"] });
+    },
   });
 }
 
