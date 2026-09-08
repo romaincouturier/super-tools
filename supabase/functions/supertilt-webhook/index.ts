@@ -13,6 +13,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { appendRowToSheet } from "../_shared/google-sheets-helper.ts";
+import { postWooOrderToSlack } from "../_shared/woo-slack.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -743,6 +744,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
         });
       }
     }
+
+    // ── Slack #e-commerce notification (once per order, non blocking) ──
+    await postWooOrderToSlack(admin, order, wooOrderId);
 
     await updateLog({ status: "processed", response_status: 200, wc_order_id: order.id, processed_at: new Date().toISOString() });
     return new Response(JSON.stringify({ ok: true, wc_order_id: order.id, log_id: logId, ...results }), {
