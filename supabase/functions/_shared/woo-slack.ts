@@ -115,7 +115,7 @@ export function buildWooSlackMessage(
   if (order.billing?.email) contextParts.push(order.billing.email);
   if (storeUrl) {
     const base = storeUrl.replace(/\/$/, "");
-    contextParts.push(`<${base}/wp-admin/post.php?post=${order.id}&action=edit|Voir la commande>`);
+    contextParts.push(`<${base}/wp-admin/admin.php?page=wc-orders&action=edit&id=${order.id}|Voir la commande>`);
   }
   if (contextParts.length > 0) {
     blocks.push({ type: "context", elements: [{ type: "mrkdwn", text: contextParts.join("  •  ") }] });
