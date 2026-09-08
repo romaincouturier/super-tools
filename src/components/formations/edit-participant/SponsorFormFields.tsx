@@ -296,16 +296,15 @@ const SponsorFormFields = ({
                 </p>
               )}
             </div>
-            <a
-              href={conventionSignature.signed_pdf_url}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => openStorageUrl(conventionSignature.signed_pdf_url!)}
             >
-              <Button type="button" variant="outline" size="sm">
-                <ExternalLink className="h-4 w-4 mr-1" />
-                Voir
-              </Button>
-            </a>
+              <ExternalLink className="h-4 w-4 mr-1" />
+              Voir
+            </Button>
           </div>
         )}
 
