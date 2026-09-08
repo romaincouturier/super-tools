@@ -500,6 +500,17 @@ if [ "$STAGED_MODE" = "false" ]; then
        supabase/functions --include='*.ts' 2>/dev/null \
        | grep -v api-pricing.ts"
 
+  # [057] Les deux fichiers de constantes de modèles se sont désynchronisés en
+  # silence : le front est resté sur Sonnet 4.6 pendant que le serveur passait
+  # à Sonnet 5, l'Arena lançant donc un modèle plus ancien et plus cher que le
+  # reste de l'application, sous un libellé qui annonçait encore autre chose.
+  check "057" "Constantes de modèles identiques entre front et edge functions" \
+    "for c in CLAUDE_DEFAULT CLAUDE_ADVANCED; do \
+       a=\$(grep -oP \"(?<=^export const \$c = \\\")[^\\\"]+\" src/lib/claude-models.ts); \
+       b=\$(grep -oP \"(?<=^export const \$c = \\\")[^\\\"]+\" supabase/functions/_shared/claude-models.ts); \
+       [ \"\$a\" = \"\$b\" ] || echo \"VIOLATION [057]: \$c vaut \$a côté front et \$b côté serveur\"; \
+     done"
+
   # [055c] L'Arena tient sa propre table de tarifs (elle facture aussi OpenAI et
   # Gemini). Les lignes Claude doivent rester égales à celles du serveur, sinon
   # deux écrans affichent deux coûts différents pour le même appel.

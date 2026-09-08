@@ -14,9 +14,15 @@ describe("estimateCost", () => {
   // ── Cas nominaux ───────────────────────────────────────────
 
   it("calculates cost for Claude Sonnet correctly", () => {
-    // 1000 input tokens at $3/1M + 500 output tokens at $15/1M
+    // 1000 tokens d'entrée à 2 $/1M + 500 de sortie à 10 $/1M
     const cost = estimateCost(CLAUDE_ADVANCED, 1000, 500);
-    expect(cost).toBeCloseTo(0.003 + 0.0075, 6);
+    expect(cost).toBeCloseTo(0.002 + 0.005, 6);
+  });
+
+  it("garde le tarif des sessions passées sur Sonnet 4.6", () => {
+    // Les sessions gardent en base le modèle avec lequel elles ont tourné :
+    // retirer cette ligne remettrait leur coût affiché à zéro.
+    expect(estimateCost("claude-sonnet-4-6", 1_000_000, 1_000_000)).toBeCloseTo(18, 6);
   });
 
   it("applique le tarif public de Haiku 4.5", () => {

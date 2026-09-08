@@ -357,6 +357,25 @@ export interface ApiUsageTopCall {
   error_message: string | null;
 }
 
+/**
+ * Une ligne = un tour utilisateur d'un agent, tous ses appels confondus.
+ * `errors > 0` marque une tâche qui n'a pas abouti : le coût d'un agent se
+ * juge sur les tâches réussies.
+ */
+export interface ApiUsageTask {
+  task_id: string;
+  origin: string;
+  started_at: string;
+  calls: number;
+  errors: number;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
+  cost_usd: number;
+  duration_ms: number;
+}
+
 export const rpc = {
   // --- Training public ---
   getTrainingPublicInfo: (trainingId: string) =>
@@ -507,6 +526,9 @@ export const rpc = {
 
   getApiUsageTopCalls: (days: number, limit: number) =>
     call<ApiUsageTopCall[]>("get_api_usage_top_calls", { p_days: days, p_limit: limit }),
+
+  getApiUsageByTask: (days: number, limit: number) =>
+    call<ApiUsageTask[]>("get_api_usage_by_task", { p_days: days, p_limit: limit }),
 
   // --- Rate limiting ---
   checkFormulairRateLimit: (ipAddress: string, maxRequests: number, windowSeconds: number) =>
