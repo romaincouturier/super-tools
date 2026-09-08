@@ -71,7 +71,10 @@ export function useUpsertGameAuthor() {
       if (error) throw error;
       return data as GameAuthor;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["game-authors"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["game-authors"] });
+      qc.invalidateQueries({ queryKey: ["authors-full"] });
+    },
   });
 }
 
@@ -82,7 +85,10 @@ export function useDeleteGameAuthor() {
       const { error } = await (supabase as any).from("game_authors").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["game-authors"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["game-authors"] });
+      qc.invalidateQueries({ queryKey: ["authors-full"] });
+    },
   });
 }
 
