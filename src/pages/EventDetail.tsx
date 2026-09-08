@@ -496,6 +496,23 @@ const EventDetail = () => {
           />
         )}
 
+        {/* Transcripts */}
+        {id && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileAudio className="h-5 w-5" />
+                Transcripts
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EntityTranscriptsSection entity="event" entityId={id} />
+            </CardContent>
+          </Card>
+        )}
+
+
+
         {/* Summary Notes - shown for past events */}
         {(() => {
           const eventDate = new Date(event.event_date);
