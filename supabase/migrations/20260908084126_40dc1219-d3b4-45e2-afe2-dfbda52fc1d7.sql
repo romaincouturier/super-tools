@@ -1,0 +1,1 @@
+ALTER TABLE public.pictodico_challenges ADD COLUMN IF NOT EXISTS warmup_picto text;

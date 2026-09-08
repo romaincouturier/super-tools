@@ -50,6 +50,7 @@ interface PictoChallenge {
   title: string;
   theme: string;
   theme_description: string | null;
+  warmup_picto: string | null;
   words: string[];
   challenge_date: string;
   challenge_time: string | null;
@@ -411,10 +412,11 @@ function ImportTab() {
 interface ChallengeCardProps {
   challenge: PictoChallenge;
   onSchedule: (challenge: PictoChallenge) => void;
+  onWarmupChange: (challenge: PictoChallenge, value: string) => void;
   isScheduling: boolean;
 }
 
-function ChallengeCard({ challenge, onSchedule, isScheduling }: ChallengeCardProps) {
+function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: ChallengeCardProps) {
   const [local, setLocal] = useState<PictoChallenge>(challenge);
 
   useEffect(() => {
@@ -462,6 +464,18 @@ function ChallengeCard({ challenge, onSchedule, isScheduling }: ChallengeCardPro
               disabled={!!local.event_id}
             />
           </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Picto d'échauffement</label>
+          <Input
+            type="text"
+            placeholder="Ex : bonjour"
+            value={local.warmup_picto ?? ""}
+            onChange={(e) => setLocal((prev) => ({ ...prev, warmup_picto: e.target.value }))}
+            onBlur={(e) => onWarmupChange(local, e.target.value)}
+            className="text-sm"
+          />
         </div>
 
         <div className="space-y-2">
@@ -597,6 +611,7 @@ function ChallengesTab() {
           title: c.title,
           theme: c.theme,
           theme_description: c.theme_description ?? null,
+          warmup_picto: null,
           words: c.words,
           challenge_date: c.challenge_date,
           challenge_time: c.challenge_time ?? "09:00",
@@ -612,6 +627,27 @@ function ChallengesTab() {
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  async function saveWarmupPicto(challenge: PictoChallenge, value: string) {
+    const clean = value.trim() || null;
+    if (clean === (challenge.warmup_picto ?? null)) return;
+
+    setGeneratedChallenges((prev) =>
+      prev.map((c) => (c.id === challenge.id ? { ...c, warmup_picto: clean } : c)),
+    );
+
+    if (challenge.id.startsWith("temp-")) return;
+
+    const { error } = await supabase
+      .from("pictodico_challenges")
+      .update({ warmup_picto: clean, updated_at: new Date().toISOString() } as never)
+      .eq("id", challenge.id);
+    if (error) {
+      toastError(toast, error.message);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["pictodico_challenges"] });
   }
 
   async function scheduleChallenge(challenge: PictoChallenge) {
@@ -645,6 +681,7 @@ function ChallengesTab() {
         title: challenge.title,
         theme: challenge.theme,
         theme_description: challenge.theme_description,
+        warmup_picto: challenge.warmup_picto?.trim() || null,
         words: challenge.words,
         challenge_date: challenge.challenge_date.slice(0, 10),
         challenge_time: time,
@@ -759,6 +796,7 @@ function ChallengesTab() {
               key={challenge.id}
               challenge={challenge}
               onSchedule={scheduleChallenge}
+              onWarmupChange={saveWarmupPicto}
               isScheduling={schedulingId === challenge.id}
             />
           ))}
