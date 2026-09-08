@@ -5,8 +5,8 @@
 -- c'est ce qui rend une consultation opposable, et ce qu'une personne
 -- concernée peut légitimement demander.
 --
--- La lecture passe par `read_vhd_narrative`, qui journalise **avant** de
--- rendre le texte. Pour que ce ne soit pas qu'une convention, la policy de
+-- La lecture passe par `read_vhd_narrative`, qui écrit la trace avant de
+-- rendre le texte — et ne journalise rien quand il n'y a pas de récit. Pour que ce ne soit pas qu'une convention, la policy de
 -- `vhd_report_narratives` perd son volet SELECT : écrire et effacer restent
 -- possibles, lire ne l'est plus qu'à travers la fonction. Un accès avec la
 -- clé de service reste hors de portée de ce journal, qui couvre l'usage de
@@ -58,12 +58,20 @@ BEGIN
     RAISE EXCEPTION 'Accès réservé aux administrateurs';
   END IF;
 
-  INSERT INTO public.vhd_narrative_access (report_id, user_id)
-  VALUES (p_report_id, auth.uid());
-
   SELECT narrative INTO v_narrative
   FROM public.vhd_report_narratives
   WHERE report_id = p_report_id;
+
+  -- Un signalement sans récit n'a rien à consulter : le journaliser ferait
+  -- dire au registre que des témoignages ont été lus là où il n'y en a pas.
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+
+  -- Le texte n'est rendu qu'une fois la trace écrite : si l'insertion échoue,
+  -- la fonction échoue et rien n'est lu.
+  INSERT INTO public.vhd_narrative_access (report_id, user_id)
+  VALUES (p_report_id, auth.uid());
 
   RETURN v_narrative;
 END;

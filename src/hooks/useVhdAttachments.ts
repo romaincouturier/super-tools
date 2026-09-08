@@ -8,8 +8,8 @@ import { useEdgeFunction } from "@/hooks/useEdgeFunction";
  * Pièces jointes d'un signalement (indicateur 12).
  *
  * Le bucket est privé : aucune URL publique n'existe. L'ouverture d'un fichier
- * demande une URL signée à courte durée, créée au moment du clic — un lien
- * copié ne survit donc pas à la journée.
+ * demande une URL signée valable cinq minutes, créée au moment du clic : un
+ * lien copié cesse de fonctionner presque aussitôt.
  */
 
 /** Durée de validité d'un lien d'ouverture, en secondes. */

@@ -66,6 +66,7 @@ const TABLES_TO_BACKUP = [
   "evaluation_analyses",
   "event_media",
   "event_shares",
+  "event_transcripts",
   "events",
   "failed_emails",
   "faq_items",

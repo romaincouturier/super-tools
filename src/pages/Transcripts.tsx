@@ -215,8 +215,8 @@ function TranscriptCard({ t, onClick }: { t: TranscriptListItem; onClick: () => 
         return;
       }
       copy(raw, { title: "Transcript copié" });
-    } catch {
-      toast.error("Impossible de copier le transcript");
+    } catch (err) {
+      toast.error("Impossible de copier le transcript", { cause: err });
     }
   };
   return (

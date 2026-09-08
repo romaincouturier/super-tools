@@ -72,3 +72,29 @@ export function useUnlinkEntityTranscript(entity: TranscriptEntity) {
     },
   });
 }
+
+/**
+ * Contenu complet d'un transcript, pour la copie dans le presse-papier.
+ *
+ * Vit ici et non dans le composant : la règle [014b] veut que l'accès aux
+ * données passe par un hook ou un service, jamais par `src/components`.
+ */
+export async function fetchTranscriptContent(transcriptId: string): Promise<{
+  ai_title: string | null;
+  title: string | null;
+  summary: string | null;
+  raw_text: string | null;
+} | null> {
+  const { data, error } = await (supabase as unknown as { from: typeof supabase.from })
+    .from("transcripts")
+    .select("ai_title,title,summary,raw_text")
+    .eq("id", transcriptId)
+    .single();
+  if (error || !data) return null;
+  return data as {
+    ai_title: string | null;
+    title: string | null;
+    summary: string | null;
+    raw_text: string | null;
+  };
+}

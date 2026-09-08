@@ -50,17 +50,17 @@ CREATE POLICY vhd_report_attachments_admin ON public.vhd_report_attachments
 DROP POLICY IF EXISTS vhd_attachments_read ON storage.objects;
 CREATE POLICY vhd_attachments_read ON storage.objects
   FOR SELECT TO authenticated
-  USING (bucket_id = 'vhd-attachments' AND is_admin(auth.uid()));
+  USING (bucket_id = 'vhd-attachments' AND public.is_admin(auth.uid()));
 
 DROP POLICY IF EXISTS vhd_attachments_write ON storage.objects;
 CREATE POLICY vhd_attachments_write ON storage.objects
   FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'vhd-attachments' AND is_admin(auth.uid()));
+  WITH CHECK (bucket_id = 'vhd-attachments' AND public.is_admin(auth.uid()));
 
 DROP POLICY IF EXISTS vhd_attachments_delete ON storage.objects;
 CREATE POLICY vhd_attachments_delete ON storage.objects
   FOR DELETE TO authenticated
-  USING (bucket_id = 'vhd-attachments' AND is_admin(auth.uid()));
+  USING (bucket_id = 'vhd-attachments' AND public.is_admin(auth.uid()));
 
 COMMENT ON TABLE public.vhd_report_attachments IS
   'Pièces jointes d''un signalement, dans le bucket privé vhd-attachments. Exclu de la sauvegarde Drive, comme le récit.';

@@ -158,7 +158,7 @@ Le règlement intérieur gagne à renvoyer vers cette section ; c'est une phrase
 
 Une consultation du récit laisse une trace : la lecture passe par une fonction qui journalise avant de rendre le texte, et la policy de lecture directe a été retirée pour que ce ne soit pas qu'une convention. Le journal est visible sous chaque signalement, avec la date et le lecteur.
 
-Une pièce jointe ne quitte pas la base : bucket privé, exclu de la sauvegarde Drive, jamais d'URL publique. Un fichier ne s'ouvre que par un lien signé valable cinq minutes, créé au moment du clic ; un lien copié ne survit pas à la journée.
+Une pièce jointe ne quitte pas la base : bucket privé, exclu de la sauvegarde Drive, jamais d'URL publique. Un fichier ne s'ouvre que par un lien signé valable cinq minutes, créé au moment du clic : un lien copié cesse de fonctionner presque aussitôt.
 
 Les deux exclusions de sauvegarde ont le même motif que celle du récit : ce qui est nominatif ne part pas en copie claire dans une rotation conservée sept jours, quatre semaines et trois mois, où une demande d'effacement deviendrait impossible à honorer. Le registre, lui, est sauvegardé et prouve le traitement.
 
