@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { decodeWord } from "@/lib/pictoWord";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
@@ -559,6 +560,7 @@ function ChallengesTab() {
   const [themesInput, setThemesInput] = useState("");
   const [generatedChallenges, setGeneratedChallenges] = useState<PictoChallenge[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<{ label: string; percent: number } | null>(null);
   const [schedulingId, setSchedulingId] = useState<string | null>(null);
 
   const parsedThemes = useMemo(() => parseThemeLines(themesInput), [themesInput]);
