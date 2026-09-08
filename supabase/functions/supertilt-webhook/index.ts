@@ -518,45 +518,56 @@ Deno.serve(async (req: Request): Promise<Response> => {
           ? (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 1); return d.toISOString().split("T")[0]; })()
           : null;
 
-        const { data: addResult, error: addError } = await (admin as any).functions.invoke(
-          "add-training-participant",
-          {
-            body: {
-              trainingId: training.id,
-              trainingStartDate: training.start_date,
-              trainingEndDate: training.end_date,
-              formatFormation: training.format_formation,
-              isInterEntreprise: true,
-              email: customerEmail,
-              firstName: order.billing?.first_name ?? null,
-              lastName: order.billing?.last_name ?? null,
-              company: billingCompany || null,
-              companyAddress: [billingAddr?.address_1, billingAddr?.address_2].filter(Boolean).join(", ") || null,
-              companyCity: billingAddr?.city ?? null,
-              companyZip: billingAddr?.postcode ?? null,
-              typeStagiaireBpf: billingCompany ? "Entreprise" : "Particulier",
-              sponsorEmail: customerEmail,
-              sponsorFirstName: order.billing?.first_name ?? null,
-              sponsorLastName: order.billing?.last_name ?? null,
-              soldPriceHt: parseFloat(item.total ?? "0") || null,
-              paymentMode: "online",
-              formulaId: formula.id || null,
-              formulaName: formula.name || null,
-              coachingSessionsTotal: coachingTotal,
-              coachingDeadline,
-              source: "woocommerce",
-              notes: `Vente WooCommerce #${order.id} — ${item.name}`,
-              woocommerceOrderId: order.id,
-              woocommerceProductId: item.product_id,
-              routingReason,
-            },
-          },
-        );
+        const participantPayload = {
+          trainingId: training.id,
+          trainingStartDate: training.start_date,
+          trainingEndDate: training.end_date,
+          formatFormation: training.format_formation,
+          isInterEntreprise: true,
+          email: customerEmail,
+          firstName: order.billing?.first_name ?? null,
+          lastName: order.billing?.last_name ?? null,
+          company: billingCompany || null,
+          companyAddress: [billingAddr?.address_1, billingAddr?.address_2].filter(Boolean).join(", ") || null,
+          companyCity: billingAddr?.city ?? null,
+          companyZip: billingAddr?.postcode ?? null,
+          typeStagiaireBpf: billingCompany ? "Entreprise" : "Particulier",
+          sponsorEmail: customerEmail,
+          sponsorFirstName: order.billing?.first_name ?? null,
+          sponsorLastName: order.billing?.last_name ?? null,
+          soldPriceHt: parseFloat(item.total ?? "0") || null,
+          paymentMode: "online",
+          formulaId: formula.id || null,
+          formulaName: formula.name || null,
+          coachingSessionsTotal: coachingTotal,
+          coachingDeadline,
+          source: "woocommerce",
+          notes: `Vente WooCommerce #${order.id} — ${item.name}`,
+          woocommerceOrderId: order.id,
+          woocommerceProductId: item.product_id,
+          routingReason,
+        };
+
+        // Retry: les échecs passagers (saturation DB, timeout) ne doivent pas
+        // laisser la commande bloquée en "à valider".
+        let addResult: unknown = null;
+        let addError: { message?: string } | null = null;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          const res = await (admin as any).functions.invoke(
+            "add-training-participant",
+            { body: participantPayload },
+          );
+          addResult = res.data;
+          addError = res.error ?? null;
+          if (!addError) break;
+          console.error(`add-training-participant failed (tentative ${attempt}/3):`, addError);
+          if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 2000));
+        }
 
         if (addError) {
-          console.error("add-training-participant failed:", addError);
           throw new Error(`add-training-participant: ${addError.message ?? String(addError)}`);
         }
+
 
         console.log(`Formation routed: ${formationName} → training ${training.id} (${routingReason})`, addResult);
         await upsertVisibleOrderItem(admin, wooOrderId, order, item, {
