@@ -147,19 +147,6 @@ RÈGLES ABSOLUES :
 - Retourne UNIQUEMENT du JSON valide, sans texte avant ni après, sans markdown.`;
 
 
-  const themesText = cleanThemes
-    .map((t, i) => `${i + 1}. ${schedule[i].label} — ${t.theme}${t.description ? ` : ${t.description}` : ""}`)
-    .join("\n");
-
-  const userPrompt = `Thèmes de l'année scolaire ${startYear}-${startYear + 1} :
-${themesText}
-
-Mots collectés (${uniqueWords.length}) :
-${uniqueWords.length > 0 ? uniqueWords.join(", ") : "(aucun mot collecté)"}
-
-Retourne un tableau JSON d'objets, un par thème, dans le même ordre :
-[{ "index": 1, "words": ["mot1", "mot2"] }]`;
-
   type Entry = { index: number; words: string[] };
   const extract = (raw: string): Entry[] | null => {
     const direct = parseAiJson<Entry[]>(raw);
@@ -175,47 +162,81 @@ Retourne un tableau JSON d'objets, un par thème, dans le même ordre :
     return null;
   };
 
+  type ChunkTheme = { index: number; theme: string; description: string; label: string };
+  const buildPrompt = (chunk: ChunkTheme[], pool: string[]) =>
+    `Thèmes de l'année scolaire ${startYear}-${startYear + 1} à traiter :
+${chunk.map((t) => `${t.index}. ${t.label} — ${t.theme}${t.description ? ` : ${t.description}` : ""}`).join("\n")}
+
+Mots collectés encore disponibles (${pool.length}) :
+${pool.length > 0 ? pool.join(", ") : "(aucun mot disponible)"}
+
+Retourne un tableau JSON d'objets, un par thème traité, avec l'index exact indiqué ci-dessus :
+[{ "index": ${chunk[0].index}, "words": ["mot1", "mot2"] }]`;
+
   try {
-    let raw = await callAnthropic(systemPrompt, userPrompt);
-    let parsed = extract(raw);
-
-    if (!parsed) {
-      raw = await callAnthropic(systemPrompt, `${userPrompt}\n\n${STRICT_JSON_INSTRUCTION}`);
-      parsed = extract(raw);
-    }
-
-    if (!parsed) {
-      // Dernier recours : on renvoie quand même les thèmes (sans mots) pour que
-      // l'utilisateur puisse programmer ses évènements et compléter à la main.
-      console.error("[pictodico-generate-challenges] réponse IA non parseable:", truncateForLog(raw));
-      parsed = [];
-    }
-
-
     const allowed = new Set(uniqueWords);
     const used = new Set<string>();
+    const perTheme = new Map<number, string[]>();
+    const CHUNK_SIZE = 3;
+
+    // Traitement par petits lots : une réponse par lot reste courte, ce qui évite
+    // les réponses tronquées qui laissaient les derniers mois sans mots.
+    for (let start = 0; start < cleanThemes.length; start += CHUNK_SIZE) {
+      const chunk: ChunkTheme[] = cleanThemes
+        .slice(start, start + CHUNK_SIZE)
+        .map((t, k) => ({
+          index: start + k + 1,
+          theme: t.theme,
+          description: t.description,
+          label: schedule[start + k].label,
+        }));
+
+      const pool = uniqueWords.filter((w) => !used.has(w));
+      if (pool.length === 0) break;
+
+      const prompt = buildPrompt(chunk, pool);
+      let raw = await callAnthropic(systemPrompt, prompt);
+      let parsed = extract(raw);
+
+      if (!parsed) {
+        raw = await callAnthropic(systemPrompt, `${prompt}\n\n${STRICT_JSON_INSTRUCTION}`);
+        parsed = extract(raw);
+      }
+
+      if (!parsed) {
+        console.error(
+          "[pictodico-generate-challenges] réponse IA non parseable:",
+          truncateForLog(raw),
+        );
+        continue;
+      }
+
+      chunk.forEach((th, k) => {
+        const entry = parsed!.find((p) => Number(p.index) === th.index) ?? parsed![k];
+        const picked = Array.isArray(entry?.words) ? entry.words : [];
+        const selected: string[] = [];
+        for (const w of picked) {
+          if (selected.length >= 18) break;
+          const clean = String(w).trim().toLowerCase();
+          if (allowed.has(clean) && !used.has(clean)) {
+            used.add(clean);
+            selected.push(clean);
+          }
+        }
+        perTheme.set(th.index, selected);
+      });
+    }
 
     const challenges = cleanThemes.map((t, i) => {
-      const entry = parsed!.find((p) => Number(p.index) === i + 1) ?? parsed![i];
-      const picked = Array.isArray(entry?.words) ? entry.words : [];
-      const selected: string[] = [];
-      for (const w of picked) {
-        if (selected.length >= 18) break;
-        const clean = String(w).trim().toLowerCase();
-        if (allowed.has(clean) && !used.has(clean)) {
-          used.add(clean);
-          selected.push(clean);
-        }
-      }
       const { month, year } = schedule[i];
       return {
         month,
         year,
         theme: t.theme,
         theme_description: t.description || null,
-        words: selected,
+        words: perTheme.get(i + 1) ?? [],
         challenge_date: `${year}-${String(month).padStart(2, "0")}-01`,
-        challenge_time: "09:00",
+        challenge_time: "12:30",
         title: `PictoChallenge — ${t.theme}`,
       };
     });
