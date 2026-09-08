@@ -459,7 +459,7 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
             <label className="text-xs font-medium text-muted-foreground">Heure</label>
             <Input
               type="time"
-              value={(local.challenge_time || "09:00").slice(0, 5)}
+              value={(local.challenge_time || "12:30").slice(0, 5)}
               onChange={(e) => setLocal((prev) => ({ ...prev, challenge_time: e.target.value }))}
               className="text-sm"
               disabled={!!local.event_id}
