@@ -8009,33 +8009,39 @@ export type Database = {
       pictodico_challenges: {
         Row: {
           challenge_date: string
+          challenge_time: string
           created_at: string
           event_id: string | null
           id: string
           school_year: string
           theme: string
+          theme_description: string | null
           title: string
           updated_at: string
           words: Json
         }
         Insert: {
           challenge_date: string
+          challenge_time?: string
           created_at?: string
           event_id?: string | null
           id?: string
           school_year: string
           theme: string
+          theme_description?: string | null
           title: string
           updated_at?: string
           words?: Json
         }
         Update: {
           challenge_date?: string
+          challenge_time?: string
           created_at?: string
           event_id?: string | null
           id?: string
           school_year?: string
           theme?: string
+          theme_description?: string | null
           title?: string
           updated_at?: string
           words?: Json
@@ -8073,6 +8079,7 @@ export type Database = {
           created_at: string
           error_description: string | null
           id: string
+          is_chosen: boolean
           language: string
           received_at: string
           request_type: string | null
@@ -8084,6 +8091,7 @@ export type Database = {
           created_at?: string
           error_description?: string | null
           id?: string
+          is_chosen?: boolean
           language?: string
           received_at?: string
           request_type?: string | null
@@ -8095,6 +8103,7 @@ export type Database = {
           created_at?: string
           error_description?: string | null
           id?: string
+          is_chosen?: boolean
           language?: string
           received_at?: string
           request_type?: string | null
