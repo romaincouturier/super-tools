@@ -731,6 +731,52 @@ function ChallengesTab() {
     queryClient.invalidateQueries({ queryKey: ["pictodico_challenges"] });
   }
 
+  // Modifier le numéro d'un mois renumérote les mois suivants (+1 à chaque fois).
+  async function saveChallengeNumber(challenge: PictoChallenge, value: number) {
+    const list = displayChallenges;
+    const startIndex = list.findIndex((c) => c.id === challenge.id);
+    if (startIndex === -1) return;
+
+    const updates = list
+      .slice(startIndex)
+      .map((c, offset) => ({ c, number: value + offset }))
+      .filter(({ c, number }) => c.challenge_number !== number);
+    if (updates.length === 0) return;
+
+    const numberById = new Map(updates.map(({ c, number }) => [c.id, number]));
+    const retitle = (c: PictoChallenge, n: number) =>
+      /^PictoChallenge #\d+/.test(c.title)
+        ? c.title.replace(/^PictoChallenge #\d+/, `PictoChallenge #${n}`)
+        : c.title;
+
+    setGeneratedChallenges((prev) =>
+      prev.map((c) => {
+        const n = numberById.get(c.id);
+        return n ? { ...c, challenge_number: n, title: retitle(c, n) } : c;
+      }),
+    );
+
+    const persisted = updates.filter(({ c }) => !c.id.startsWith("temp-"));
+    for (const { c, number } of persisted) {
+      const { error } = await supabase
+        .from("pictodico_challenges")
+        .update({
+          challenge_number: number,
+          title: retitle(c, number),
+          updated_at: new Date().toISOString(),
+        } as never)
+        .eq("id", c.id);
+      if (error) {
+        toastError(toast, error.message);
+        return;
+      }
+    }
+    if (persisted.length > 0) {
+      queryClient.invalidateQueries({ queryKey: ["pictodico_challenges"] });
+    }
+  }
+
+
   async function scheduleChallenge(challenge: PictoChallenge) {
     setSchedulingId(challenge.id);
     try {
