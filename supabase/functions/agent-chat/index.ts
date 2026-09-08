@@ -822,7 +822,11 @@ function messageToText(m: Message): string {
   return parts.length ? `${m.role}: ${parts.join("\n")}` : "";
 }
 
-async function summarizeIfLong(messages: Message[], userId?: string): Promise<Message[]> {
+async function summarizeIfLong(
+  messages: Message[],
+  userId?: string,
+  taskId?: string,
+): Promise<Message[]> {
   if (messages.length < SUMMARY_TRIGGER_MESSAGES || !ANTHROPIC_API_KEY) return messages;
   // Déjà résumé : le marqueur ouvre la conversation compactée.
   if (typeof messages[0]?.content === "string" && (messages[0].content as string).startsWith(SUMMARY_MARKER)) {
@@ -871,6 +875,7 @@ async function summarizeIfLong(messages: Message[], userId?: string): Promise<Me
       userId,
       usage: data.usage,
       durationMs: Date.now() - startedAt,
+      metadata: { task_id: taskId },
     });
     const summary = data.content?.[0]?.text?.trim();
     if (!summary) return messages;
@@ -901,6 +906,7 @@ async function runAgentStreaming(
   writer: WritableStreamDefaultWriter<Uint8Array>,
   userId?: string,
   authHeader?: string | null,
+  taskId?: string,
 ): Promise<{
   fullResponse: string;
   updatedMessages: Message[];
@@ -924,7 +930,7 @@ async function runAgentStreaming(
 
   // AG-11 : le début d'une longue conversation est condensé une fois pour
   // toutes, et le résultat est persisté avec la conversation.
-  const conversationMessages = await summarizeIfLong([...messages], userId);
+  const conversationMessages = await summarizeIfLong([...messages], userId, taskId);
   // Figé avant le premier round : tout ce que le tour ajoute ensuite reste
   // intact, donc le préfixe envoyé à l'API ne fait que croître.
   const compactionCutoff = conversationMessages.length - KEEP_RECENT_MESSAGES;
@@ -986,7 +992,7 @@ async function runAgentStreaming(
         durationMs: Date.now() - roundStartedAt,
         status: "error",
         errorMessage: `HTTP ${apiRes.status}`,
-        metadata: { round },
+        metadata: { task_id: taskId, round },
       });
       throw new Error(`Claude API error: ${apiRes.status}`);
     }
@@ -1144,7 +1150,7 @@ async function runAgentStreaming(
         cache_creation_input_tokens: roundCacheWriteTokens,
       },
       durationMs: Date.now() - roundStartedAt,
-      metadata: { round, stop_reason: stopReason },
+      metadata: { task_id: taskId, round, stop_reason: stopReason },
     });
 
     // Add assistant response to conversation
@@ -1210,6 +1216,7 @@ async function generateTitle(
   userMessage: string,
   assistantResponse: string,
   userId?: string,
+  taskId?: string,
 ): Promise<string> {
   if (!ANTHROPIC_API_KEY) return userMessage.slice(0, 80);
 
@@ -1245,6 +1252,7 @@ async function generateTitle(
       userId,
       usage: data.usage,
       durationMs: Date.now() - startedAt,
+      metadata: { task_id: taskId },
     });
     const title = data.content?.[0]?.text?.trim();
     return title || userMessage.slice(0, 80);
@@ -1286,6 +1294,12 @@ serve(async (req) => {
 
     const supabase = getSupabaseClient();
     const userId = authResult.id;
+
+    // Identifiant de la tâche : un tour utilisateur, c'est-à-dire la boucle
+    // complète question → outils → réponse. Le coût d'un agent se juge par
+    // tâche aboutie, pas par appel : sans cet identifiant, les rounds d'un
+    // même tour sont indistinguables dans `api_usage_events`.
+    const taskId = crypto.randomUUID();
 
     // Load or create conversation
     let conversationId = conversation_id;
@@ -1341,6 +1355,7 @@ serve(async (req) => {
           writer,
           userId,
           req.headers.get("Authorization"),
+          taskId,
         );
 
         // Save conversation with token usage
@@ -1356,7 +1371,7 @@ serve(async (req) => {
           });
         } else {
           // Generate a smart title for new conversations
-          title = await generateTitle(message, fullResponse, userId);
+          title = await generateTitle(message, fullResponse, userId, taskId);
 
           const { data: newConv, error: insertError } = await supabase
             .from("agent_conversations")

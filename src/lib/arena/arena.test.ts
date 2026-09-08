@@ -19,6 +19,13 @@ describe("estimateCost", () => {
     expect(cost).toBeCloseTo(0.003 + 0.0075, 6);
   });
 
+  it("applique le tarif public de Haiku 4.5", () => {
+    // 1 $ / 5 $ le million. Une valeur inventée ici ne casse rien : elle
+    // affiche simplement un coût faux dans l'Arena, sans aucun signal.
+    expect(MODEL_COSTS[CLAUDE_DEFAULT]).toEqual({ input: 1, output: 5 });
+    expect(estimateCost(CLAUDE_DEFAULT, 1_000_000, 1_000_000)).toBeCloseTo(6, 6);
+  });
+
   it("calculates cost for GPT-4o Mini (cheapest model)", () => {
     const cost = estimateCost("gpt-4o-mini", 1_000_000, 1_000_000);
     expect(cost).toBeCloseTo(0.15 + 0.6, 4);

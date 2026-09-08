@@ -481,6 +481,48 @@ if [ "$STAGED_MODE" = "false" ]; then
        | grep -v '_shared/api-usage.ts' \
        | while read -r f; do grep -q 'api-usage' \"\$f\" || echo \"VIOLATION [045]: \$f appelle une API payante sans logApiUsage\"; done"
 
+  # [055a] Un modèle absent de la table des tarifs est logué à 0 $ : la ligne
+  # existe dans api_usage_events, le coût est faux, et rien ne le signale.
+  check "055a" "Tout modèle de claude-models.ts a un tarif dans api-pricing.ts" \
+    "grep -oE '\"claude-[a-z0-9.-]+\"' supabase/functions/_shared/claude-models.ts \
+       | tr -d '\"' \
+       | while read -r m; do \
+           n=\$(echo \"\$m\" | sed -E 's/-[0-9]{8}\$//'); \
+           grep -q \"\\\"\$n\\\":\" supabase/functions/_shared/api-pricing.ts \
+             || echo \"VIOLATION [055a]: \$m appelé sans tarif dans api-pricing.ts\"; \
+         done"
+
+  # [055b] Le TTL d'une heure facture l'écriture de cache 2x, pas 1,25x.
+  # Tant que api-pricing.ts n'a qu'un seul ratio d'écriture, l'activer
+  # sous-estimerait le coût sans aucun signal.
+  check "055b" "Pas de cache TTL 1h tant que le ratio d'écriture est unique" \
+    "grep -rnE '[\"'\\'']?ttl[\"'\\'']?[[:space:]]*:[[:space:]]*[\"'\\'']1h[\"'\\'']' \
+       supabase/functions --include='*.ts' 2>/dev/null \
+       | grep -v api-pricing.ts"
+
+  # [055c] L'Arena tient sa propre table de tarifs (elle facture aussi OpenAI et
+  # Gemini). Les lignes Claude doivent rester égales à celles du serveur, sinon
+  # deux écrans affichent deux coûts différents pour le même appel.
+  check "055c" "Tarifs Claude de l'Arena alignés sur api-pricing.ts" \
+    "for c in CLAUDE_DEFAULT CLAUDE_ADVANCED; do \
+       m=\$(grep -oP \"(?<=^export const \$c = \\\")[^\\\"]+\" src/lib/claude-models.ts); \
+       n=\$(echo \"\$m\" | sed -E 's/-[0-9]{8}\$//'); \
+       ref=\$(grep -oP \"(?<=\\\"\$n\\\": ).*(?=,)\" supabase/functions/_shared/api-pricing.ts); \
+       cur=\$(grep -oP \"(?<=\\[\$c\\]: ).*(?=,)\" src/lib/arena/types.ts); \
+       [ -n \"\$ref\" ] && [ \"\$ref\" != \"\$cur\" ] \
+         && echo \"VIOLATION [055c]: \$c (\$m) coûte \$cur dans l'Arena et \$ref côté serveur\"; \
+     done; true"
+
+  # [056] Le coût d'un agent se juge par tâche aboutie, pas par appel : sans
+  # identifiant de tâche, les rounds d'un même tour sont indistinguables et
+  # api_usage_events ne peut pas répondre « combien a coûté cette question ».
+  check "056" "Toute boucle d'agent logue un task_id" \
+    "for f in supabase/functions/*/index.ts; do \
+       grep -qE '(stopReason|stop_reason)[^=]*[!=]==?[[:space:]]*\"tool_use\"' \"\$f\" || continue; \
+       grep -q 'task_id' \"\$f\" \
+         || echo \"VIOLATION [056]: \$(dirname \$f) boucle sur tool_use sans task_id dans les logs d'usage\"; \
+     done"
+
   # [046] Prompt caching de l'agent — le cache ne tient que si le prefixe rendu est
   # append-only pendant un tour (cutoff de compaction fige) ET si des points de cache
   # sont poses sur l'historique, pas seulement sur le system.
