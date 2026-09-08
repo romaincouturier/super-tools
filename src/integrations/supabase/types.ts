@@ -8018,6 +8018,7 @@ export type Database = {
           theme_description: string | null
           title: string
           updated_at: string
+          warmup_picto: string | null
           words: Json
         }
         Insert: {
@@ -8031,6 +8032,7 @@ export type Database = {
           theme_description?: string | null
           title: string
           updated_at?: string
+          warmup_picto?: string | null
           words?: Json
         }
         Update: {
@@ -8044,6 +8046,7 @@ export type Database = {
           theme_description?: string | null
           title?: string
           updated_at?: string
+          warmup_picto?: string | null
           words?: Json
         }
         Relationships: [
