@@ -128,17 +128,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
             <MediaThumb item={item} />
           ) : (
             <div className="w-full h-full relative bg-muted">
-              <video
-                src={`${item.file_url}#t=0.1`}
-                className="w-full h-full object-cover"
-                preload="metadata"
-                muted
-                playsInline
-                onError={(e) => {
-                  const el = e.currentTarget;
-                  el.style.display = "none";
-                }}
-              />
+              <MediaVideoThumb item={item} />
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20">
                 <Play className="h-10 w-10 text-white drop-shadow" />
                 {item.file_name.toLowerCase().endsWith(".mov") && (
