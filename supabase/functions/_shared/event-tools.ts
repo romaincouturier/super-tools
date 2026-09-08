@@ -36,7 +36,70 @@ export interface EventHistoryOptions {
   event_type?: string;
   include_upcoming?: boolean;
   limit?: number;
+  /** Joindre les transcripts associés (titre, résumé, tags). Défaut: true. */
+  include_transcripts?: boolean;
+  /** Joindre le texte intégral des transcripts (tronqué). Défaut: false. */
+  include_transcript_text?: boolean;
 }
+
+/** Longueur max du texte intégral renvoyé par transcript. */
+const TRANSCRIPT_TEXT_LIMIT = 20000;
+
+interface LinkedTranscript {
+  id: string;
+  title: string | null;
+  created_at: string;
+  duration_seconds: number | null;
+  summary: string | null;
+  tags: string[] | null;
+  raw_text?: string;
+  raw_text_truncated?: boolean;
+}
+
+/**
+ * Transcripts rattachés aux événements via `event_transcripts`, regroupés par
+ * `event_id`. Un seul appel pour toute la page d'événements.
+ */
+async function fetchEventTranscripts(
+  supabase: SupabaseClient,
+  eventIds: string[],
+  withText: boolean,
+): Promise<Record<string, LinkedTranscript[]>> {
+  if (eventIds.length === 0) return {};
+
+  const columns = "id, title, ai_title, created_at, duration_seconds, summary, tags" +
+    (withText ? ", raw_text" : "");
+
+  const { data, error } = await supabase
+    .from("event_transcripts")
+    .select(`event_id, transcript:transcripts(${columns})`)
+    .in("event_id", eventIds);
+
+  if (error) throw new Error(error.message);
+
+  const byEvent: Record<string, LinkedTranscript[]> = {};
+  for (const row of (data ?? []) as Array<Record<string, unknown>>) {
+    const eventId = row.event_id as string;
+    const t = row.transcript as Record<string, unknown> | null;
+    if (!t) continue;
+    const entry: LinkedTranscript = {
+      id: t.id as string,
+      title: (t.ai_title as string | null) || (t.title as string | null),
+      created_at: t.created_at as string,
+      duration_seconds: (t.duration_seconds as number | null) ?? null,
+      summary: (t.summary as string | null) ?? null,
+      tags: (t.tags as string[] | null) ?? null,
+    };
+    if (withText) {
+      const text = (t.raw_text as string | null) ?? "";
+      entry.raw_text = text.slice(0, TRANSCRIPT_TEXT_LIMIT);
+      entry.raw_text_truncated = text.length > TRANSCRIPT_TEXT_LIMIT;
+    }
+    (byEvent[eventId] ??= []).push(entry);
+  }
+  return byEvent;
+}
+
 
 function isoDay(d: Date): string {
   return d.toISOString().slice(0, 10);
