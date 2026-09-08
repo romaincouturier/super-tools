@@ -154,7 +154,7 @@ function WordsTab() {
 
   const filtered = useMemo(() => {
     return words.filter((w) => {
-      const matchSearch = w.word.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = decodeWord(w.word).toLowerCase().includes(search.toLowerCase());
       const matchSource = filterSource === "all" || w.source === filterSource;
       return matchSearch && matchSource;
     });
