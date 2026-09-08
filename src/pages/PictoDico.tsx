@@ -420,10 +420,11 @@ interface ChallengeCardProps {
   challenge: PictoChallenge;
   onSchedule: (challenge: PictoChallenge) => void;
   onWarmupChange: (challenge: PictoChallenge, value: string) => void;
+  onNumberChange: (challenge: PictoChallenge, value: number) => void;
   isScheduling: boolean;
 }
 
-function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: ChallengeCardProps) {
+function ChallengeCard({ challenge, onSchedule, onWarmupChange, onNumberChange, isScheduling }: ChallengeCardProps) {
   const [local, setLocal] = useState<PictoChallenge>(challenge);
 
   useEffect(() => {
@@ -437,15 +438,37 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
     <Card className="flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-            {local.challenge_number ? `#${local.challenge_number} · ` : ""}
-            {monthLabel}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+              N°
+            </span>
+            <Input
+              type="number"
+              min={1}
+              value={local.challenge_number ?? ""}
+              onChange={(e) =>
+                setLocal((prev) => ({
+                  ...prev,
+                  challenge_number: e.target.value ? Number(e.target.value) : null,
+                }))
+              }
+              onBlur={(e) => {
+                const n = Number(e.target.value);
+                if (Number.isFinite(n) && n >= 1) onNumberChange(local, n);
+              }}
+              className="h-7 w-16 text-sm"
+              disabled={!!local.event_id}
+            />
+            <span className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+              {monthLabel}
+            </span>
+          </div>
           <Badge variant="secondary" className="text-xs">
             {local.words.length} mot{local.words.length !== 1 ? "s" : ""}
           </Badge>
         </div>
         <CardTitle className="text-base mt-1">{local.theme}</CardTitle>
+
         {local.theme_description && (
           <p className="text-xs text-muted-foreground">{local.theme_description}</p>
         )}
@@ -642,7 +665,11 @@ function ChallengesTab() {
     try {
       const { data, error } = await supabase.functions.invoke("pictodico-generate-challenges", {
         body: {
-          words: words.map((w) => decodeWord(w.word)),
+          words: words
+            .map((w) => decodeWord(w.word))
+            // Les signalements d'erreur ne sont pas des mots à proposer.
+            .filter((w) => !/^erreur\s*signal/i.test(w.trim())),
+
           startYear,
           themes: parsedThemes,
         },
