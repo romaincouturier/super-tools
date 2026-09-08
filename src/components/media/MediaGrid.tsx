@@ -105,7 +105,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
 
   const downloadFile = async (url: string, fileName: string) => {
     try {
-      const response = await fetch(url);
+      const response = await fetch(await resolveStorageUrl(url));
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
