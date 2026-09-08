@@ -77,3 +77,25 @@ export function formatSessionDateFr(
   const endLabel = fmt(end, { day: "numeric", month: "long", year: "numeric" });
   return `${startLabel} au ${endLabel}`;
 }
+
+/**
+ * Formations permanentes / e-learning sans dates : aucune date ne doit
+ * apparaître dans les emails. Retire les propositions du type
+ * « qui se déroulera du {{start_date}} au {{end_date}} » ainsi que les
+ * placeholders résiduels, plutôt que d'écrire « date inconnue ».
+ */
+export function stripDatePlaceholders(html: string): string {
+  return html
+    // Clause relative ou verbale introduisant la période
+    .replace(
+      /\s*(?:,\s*)?(?:qui\s+)?(?:se\s+déroulera|se\s+déroule|aura\s+lieu|est\s+accessible)[\s\S]{0,80}?\{\{start_date\}\}[\s\S]{0,80}?\{\{end_date\}\}(?:\s*<\/strong>)?/gi,
+      "",
+    )
+    // Phrase entière restée orpheline (« La formation est accessible du … au …. »)
+    .replace(/[^.<>]*\{\{start_date\}\}[\s\S]{0,120}?\{\{end_date\}\}[\s\S]{0,20}?\./gi, "")
+    // Derniers placeholders et résidus « du  au  »
+    .replace(/\{\{(?:start|end)_date\}\}/gi, "")
+    .replace(/\s*du\s*(?:<strong>\s*<\/strong>)?\s*au\s*(?:<strong>\s*<\/strong>)?\s*(?=[.<])/gi, "")
+    .replace(/<strong>\s*<\/strong>/gi, "")
+    .replace(/\s+([.,])/g, "$1");
+}
