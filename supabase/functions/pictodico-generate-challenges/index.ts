@@ -3,7 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { CLAUDE_ADVANCED } from "../_shared/claude-models.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
-import { parseAiJson, truncateForLog, STRICT_JSON_INSTRUCTION } from "../_shared/ai-json.ts";
+import {
+  parseAiJson,
+  parseTruncatedAiJson,
+  truncateForLog,
+  STRICT_JSON_INSTRUCTION,
+} from "../_shared/ai-json.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -37,7 +42,7 @@ async function callAnthropic(systemPrompt: string, userPrompt: string) {
     },
     body: JSON.stringify({
       model: CLAUDE_ADVANCED,
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
@@ -63,11 +68,13 @@ async function callAnthropic(systemPrompt: string, userPrompt: string) {
         .join("\n")
         .trim()
     : "";
-  if (!text) {
+  if (!text || aiData.stop_reason === "max_tokens") {
     console.error(
-      "[pictodico-generate-challenges] réponse Anthropic sans texte:",
+      "[pictodico-generate-challenges] réponse Anthropic incomplète:",
       JSON.stringify({
         stop_reason: aiData.stop_reason,
+        text_length: text.length,
+        output_tokens: aiData.usage?.output_tokens,
         content_types: Array.isArray(aiData.content)
           ? aiData.content.map((b: { type?: string }) => b?.type)
           : null,
@@ -153,22 +160,37 @@ ${uniqueWords.length > 0 ? uniqueWords.join(", ") : "(aucun mot collecté)"}
 Retourne un tableau JSON d'objets, un par thème, dans le même ordre :
 [{ "index": 1, "words": ["mot1", "mot2"] }]`;
 
+  type Entry = { index: number; words: string[] };
+  const extract = (raw: string): Entry[] | null => {
+    const direct = parseAiJson<Entry[]>(raw);
+    if (Array.isArray(direct)) return direct;
+    // Réponse coupée en cours de génération : on récupère les thèmes complets.
+    const salvaged = parseTruncatedAiJson<Entry[]>(raw);
+    if (Array.isArray(salvaged) && salvaged.length > 0) {
+      console.warn(
+        `[pictodico-generate-challenges] JSON tronqué récupéré (${salvaged.length} thèmes)`,
+      );
+      return salvaged;
+    }
+    return null;
+  };
+
   try {
     let raw = await callAnthropic(systemPrompt, userPrompt);
-    let parsed = parseAiJson<Array<{ index: number; words: string[] }>>(raw);
+    let parsed = extract(raw);
 
-    if (!Array.isArray(parsed)) {
+    if (!parsed) {
       raw = await callAnthropic(systemPrompt, `${userPrompt}\n\n${STRICT_JSON_INSTRUCTION}`);
-      parsed = parseAiJson<Array<{ index: number; words: string[] }>>(raw);
+      parsed = extract(raw);
     }
 
-    if (!Array.isArray(parsed)) {
+    if (!parsed) {
+      // Dernier recours : on renvoie quand même les thèmes (sans mots) pour que
+      // l'utilisateur puisse programmer ses évènements et compléter à la main.
       console.error("[pictodico-generate-challenges] réponse IA non parseable:", truncateForLog(raw));
-      return json(
-        { error: "L'IA n'a pas réussi à rattacher les mots aux thèmes. Réessayez dans un instant." },
-        502,
-      );
+      parsed = [];
     }
+
 
     const allowed = new Set(uniqueWords);
     const used = new Set<string>();
@@ -198,7 +220,8 @@ Retourne un tableau JSON d'objets, un par thème, dans le même ordre :
       };
     });
 
-    return json({ challenges });
+    const partial = challenges.some((c) => c.words.length === 0);
+    return json({ challenges, partial });
   } catch (err) {
     console.error("[pictodico-generate-challenges] erreur:", err);
     const message = err instanceof Error ? err.message : "Unknown error";

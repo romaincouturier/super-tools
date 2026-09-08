@@ -72,6 +72,36 @@ export function parseAiJson<T = unknown>(raw: string): T | null {
   return null;
 }
 
+/**
+ * Last-resort recovery for a JSON array/object cut off mid-generation
+ * (e.g. the model hit its max_tokens limit): keep everything up to the last
+ * complete element and close the structure.
+ */
+export function parseTruncatedAiJson<T = unknown>(raw: string): T | null {
+  if (!raw || typeof raw !== "string") return null;
+  const cleaned = stripFences(raw);
+  const start = (() => {
+    const a = cleaned.indexOf("[");
+    const o = cleaned.indexOf("{");
+    if (a === -1) return o;
+    if (o === -1) return a;
+    return Math.min(a, o);
+  })();
+  if (start === -1) return null;
+  const open = cleaned[start];
+  const body = cleaned.slice(start);
+
+  // Cut after the last closing brace of a complete element, then close.
+  for (let i = body.length - 1; i >= 0; i--) {
+    if (body[i] !== "}") continue;
+    const candidate = open === "[" ? `${body.slice(0, i + 1)}]` : body.slice(0, i + 1);
+    try {
+      return JSON.parse(removeTrailingCommas(candidate)) as T;
+    } catch { /* keep scanning backwards */ }
+  }
+  return null;
+}
+
 /** Truncated raw response, safe for logs. */
 export function truncateForLog(raw: string, max = 2000): string {
   if (!raw) return "";
