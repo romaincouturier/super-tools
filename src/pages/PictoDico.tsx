@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { decodeWord } from "@/lib/pictoWord";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
@@ -559,6 +560,7 @@ function ChallengesTab() {
   const [themesInput, setThemesInput] = useState("");
   const [generatedChallenges, setGeneratedChallenges] = useState<PictoChallenge[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<{ label: string; percent: number } | null>(null);
   const [schedulingId, setSchedulingId] = useState<string | null>(null);
 
   const parsedThemes = useMemo(() => parseThemeLines(themesInput), [themesInput]);
@@ -590,8 +592,31 @@ function ChallengesTab() {
     },
   });
 
+  function startProgressSimulation() {
+    const steps = [
+      { label: "Préparation de l'analyse des mots...", percent: 5 },
+      { label: "Association des mots aux thèmes 1 à 3...", percent: 20 },
+      { label: "Association des mots aux thèmes 4 à 6...", percent: 45 },
+      { label: "Association des mots aux thèmes 7 à 9...", percent: 70 },
+      { label: "Association du thème 10...", percent: 90 },
+      { label: "Finalisation des PictoChallenges...", percent: 98 },
+    ];
+    setGenerationProgress(steps[0]);
+    let index = 0;
+    const interval = setInterval(() => {
+      index++;
+      if (index < steps.length) {
+        setGenerationProgress(steps[index]);
+      } else {
+        clearInterval(interval);
+      }
+    }, 2200);
+    return interval;
+  }
+
   async function generateChallenges() {
     setIsGenerating(true);
+    const progressInterval = startProgressSimulation();
     try {
       const { data, error } = await supabase.functions.invoke("pictodico-generate-challenges", {
         body: {
@@ -622,10 +647,13 @@ function ChallengesTab() {
           updated_at: new Date().toISOString(),
         })),
       );
+      setGenerationProgress({ label: `${challenges.length} évènement(s) préparé(s)`, percent: 100 });
       toast({ title: `${challenges.length} évènement(s) préparé(s)` });
     } catch (err: unknown) {
       toastError(toast, err instanceof Error ? err.message : "Erreur lors de la génération");
     } finally {
+      clearInterval(progressInterval);
+      setTimeout(() => setGenerationProgress(null), 1200);
       setIsGenerating(false);
     }
   }
@@ -786,6 +814,14 @@ function ChallengesTab() {
               Valider les thèmes
             </Button>
           </div>
+          {generationProgress && (
+            <div className="space-y-2 pt-2">
+              <Progress value={generationProgress.percent} className="h-2" />
+              <p className="text-sm text-muted-foreground text-center">
+                {generationProgress.label}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
