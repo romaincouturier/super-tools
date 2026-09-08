@@ -2947,6 +2947,45 @@ export type Database = {
           },
         ]
       }
+      event_transcripts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_id: string
+          id: string
+          transcript_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_id: string
+          id?: string
+          transcript_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_id?: string
+          id?: string
+          transcript_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_transcripts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_transcripts_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           assigned_to: string | null
