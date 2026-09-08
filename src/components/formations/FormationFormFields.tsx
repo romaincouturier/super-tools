@@ -1,4 +1,5 @@
-import { Calendar } from "lucide-react";
+import { useState } from "react";
+import { Calendar, CalendarPlus } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,21 @@ import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { FormationFormHook, PREDEFINED_LOCATIONS } from "@/hooks/useFormationForm";
+import CreateCalendarEventDialog from "@/components/crm/CreateCalendarEventDialog";
+
+const SPONSOR_MEETING_DESCRIPTION = `Bonjour,
+
+Je vous propose ce point de préparation pour cadrer ensemble votre session de formation.
+
+Au programme :
+- Recueil des besoins
+- Échange sur le contenu
+- Adaptation aux spécificités de votre équipe
+- Revue de la planification et de la logistique
+
+N'hésitez pas à me contacter en amont pour toute question.
+
+À très vite,`;
 
 // --- Session Type / Format Selector ---
 
@@ -254,13 +270,32 @@ export function LocationRadioGroup({ form }: { form: FormationFormHook }) {
 // --- Sponsor Card ---
 
 export function SponsorCard({ form }: { form: FormationFormHook }) {
+  const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
+
   if (form.isInter) return null;
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Commanditaire</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle>Commanditaire</CardTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setMeetingDialogOpen(true)}
+              disabled={!form.sponsorEmail}
+              title={
+                form.sponsorEmail
+                  ? "Créer un RDV Google Calendar avec le commanditaire"
+                  : "Renseignez l'email du commanditaire pour proposer un RDV"
+              }
+            >
+              <CalendarPlus className="h-4 w-4" />
+            </Button>
+          </div>
           <div className="flex items-center gap-2">
             <Label htmlFor="formalAddress" className="text-sm text-muted-foreground">
               Tutoiement
@@ -320,6 +355,16 @@ export function SponsorCard({ form }: { form: FormationFormHook }) {
           </div>
         </div>
       </CardContent>
+      <CreateCalendarEventDialog
+        open={meetingDialogOpen}
+        onOpenChange={setMeetingDialogOpen}
+        opportunityTitle={form.trainingName || "préparation formation"}
+        company={form.clientName || ""}
+        contactEmail={form.sponsorEmail || ""}
+        initialSummary={`Point préparation — ${form.trainingName}${form.clientName ? ` — ${form.clientName}` : ""}`}
+        initialDescription={SPONSOR_MEETING_DESCRIPTION}
+        defaultFormality={form.sponsorFormalAddress ? "vous" : "tu"}
+      />
     </Card>
   );
 }
