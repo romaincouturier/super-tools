@@ -660,6 +660,7 @@ function ChallengesTab() {
         title: challenge.title,
         theme: challenge.theme,
         theme_description: challenge.theme_description,
+        warmup_picto: challenge.warmup_picto?.trim() || null,
         words: challenge.words,
         challenge_date: challenge.challenge_date.slice(0, 10),
         challenge_time: time,
