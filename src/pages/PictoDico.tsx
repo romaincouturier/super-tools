@@ -598,6 +598,7 @@ function ChallengesTab() {
           title: c.title,
           theme: c.theme,
           theme_description: c.theme_description ?? null,
+          warmup_picto: null,
           words: c.words,
           challenge_date: c.challenge_date,
           challenge_time: c.challenge_time ?? "09:00",
