@@ -654,8 +654,12 @@ function ChallengesTab() {
   async function scheduleChallenge(challenge: PictoChallenge) {
     setSchedulingId(challenge.id);
     try {
-      const time = (challenge.challenge_time || "09:00").slice(0, 5);
+      const time = (challenge.challenge_time || "12:30").slice(0, 5);
+      const [sh, sm] = time.split(":").map(Number);
+      const endMinutes = sh * 60 + sm + 30;
+      const endTime = `${String(Math.floor(endMinutes / 60) % 24).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
       const description = [
+        `Créneau : ${time.replace(":", "h")} - ${endTime.replace(":", "h")}`,
         challenge.theme_description,
         challenge.words.length > 0 ? `Mots : ${challenge.words.join(", ")}` : null,
       ]
