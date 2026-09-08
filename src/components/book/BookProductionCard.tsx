@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Video, Edit2, Trash2, Star, Link2, ImageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import WatermarkOverlay from '@/components/book/WatermarkOverlay';
 import type { BookProduction } from '@/types/book';
 
 interface BookProductionCardProps {
@@ -11,6 +12,7 @@ interface BookProductionCardProps {
   onDelete: () => void;
   onEdit: () => void;
   onSetCover?: () => void;
+  watermarkText?: string;
 }
 
 export default function BookProductionCard({
@@ -20,6 +22,7 @@ export default function BookProductionCard({
   onDelete,
   onEdit,
   onSetCover,
+  watermarkText,
 }: BookProductionCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const visibleTags = production.tags.slice(0, 2);
@@ -77,6 +80,8 @@ export default function BookProductionCard({
           <span className="text-xs font-medium truncate max-w-full">{production.title}</span>
         </div>
       )}
+
+      {watermarkText && <WatermarkOverlay text={watermarkText} dense />}
 
       {/* Persistent badges */}
       <div className="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none">
