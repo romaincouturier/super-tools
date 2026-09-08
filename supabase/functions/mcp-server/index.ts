@@ -518,7 +518,7 @@ const MCP_TOOLS = [
   {
     name: "get_event_history",
     description:
-      "Past events (conferences, trade shows, talks) with everything that was written about them: the submitted pitch (description), the preparation notes (notes) and the debrief written afterwards (summary_notes), plus location, date, CFP deadline / URL / submission date, and a derived outcome. This is the tool for reusing an already submitted session: 'what did we pitch at X', 'the talks that were accepted', 'the CFP that were refused'. SuperTools has no accepted/refused field: outcome is derived (held, not_selected = CFP refused, cancelled, upcoming) and cfp_status tells whether the submission was actually sent. Past events only by default. Event media are not returned.",
+      "Past events (conferences, trade shows, talks) with everything that was written about them: the submitted pitch (description), the preparation notes (notes) and the debrief written afterwards (summary_notes), plus location, date, CFP deadline / URL / submission date, a derived outcome, and the meeting transcripts linked to the event. This is the tool for reusing an already submitted session: 'what did we pitch at X', 'the talks that were accepted', 'the CFP that were refused', 'what was said during the event'. SuperTools has no accepted/refused field: outcome is derived (held, not_selected = CFP refused, cancelled, upcoming) and cfp_status tells whether the submission was actually sent. Past events only by default. Event media are not returned.",
     inputSchema: {
       type: "object",
       properties: {
@@ -531,9 +531,12 @@ const MCP_TOOLS = [
         to: { type: "string", description: "Latest event date YYYY-MM-DD" },
         event_type: { type: "string", enum: ["internal", "external"], description: "internal = our own event, external = someone else's event we speak at" },
         include_upcoming: { type: "boolean", description: "Also return events still to come (default false)" },
+        include_transcripts: { type: "boolean", description: "Return the transcripts linked to each event (title, summary, tags). Default true." },
+        include_transcript_text: { type: "boolean", description: "Also return the full transcript text, truncated to 20 000 characters each (default false)." },
         limit: { type: "number", description: "Number of events (default 50, max 200)" },
       },
     },
+
   },
   {
     name: "list_pending_tenders",
