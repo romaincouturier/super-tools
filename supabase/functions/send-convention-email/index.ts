@@ -8,6 +8,7 @@ import { emailButton } from "../_shared/templates.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import { formatDateFr } from "../_shared/date-utils.ts";
+import { stripDatePlaceholders } from "../_shared/training-date.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -135,15 +136,23 @@ serve(async (req: Request): Promise<Response> => {
       .eq("is_default", true)
       .maybeSingle();
 
-    const startDateFormatted = formatDateFr(training.start_date);
-    const endDateFormatted = training.end_date
-      ? formatDateFr(training.end_date)
-      : startDateFormatted;
+    // Formation permanente / e-learning sans dates : aucune date ne doit
+    // apparaître (pas de « date inconnue »).
+    const hasTrainingDates = Boolean(training.start_date);
+    const startDateFormatted = hasTrainingDates ? formatDateFr(training.start_date) : "";
+    const endDateFormatted = hasTrainingDates
+      ? (training.end_date ? formatDateFr(training.end_date) : startDateFormatted)
+      : "";
     const firstName = toFirstName || toName || "";
 
     // Build subject and body from template (or defaults)
     let subject = template?.subject || `Convention de formation - ${training.training_name}`;
     let htmlBody = template?.html_content || `<p>Bonjour,</p><p>Veuillez trouver ci-joint la convention de formation.</p>`;
+
+    if (!hasTrainingDates) {
+      subject = stripDatePlaceholders(subject);
+      htmlBody = stripDatePlaceholders(htmlBody);
+    }
 
     // Replace template variables
     const replacements: Record<string, string> = {
@@ -158,6 +167,7 @@ serve(async (req: Request): Promise<Response> => {
       subject = subject.replaceAll(key, value);
       htmlBody = htmlBody.replaceAll(key, value);
     }
+
 
     // If online signature is enabled, add the signature button block
     if (enableOnlineSignature && signatureUrl) {
