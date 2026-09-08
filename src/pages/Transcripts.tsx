@@ -594,12 +594,41 @@ export default function Transcripts() {
           </CardContent>
         </Card>
       )}
-      {!isLoading && data && data.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {data.map((t) => (
-            <TranscriptCard key={t.id} t={t} onClick={() => setSelectedId(t.id)} />
-          ))}
-        </div>
+      {!isLoading && data.length > 0 && (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {data.map((t) => (
+              <TranscriptCard key={t.id} t={t} onClick={() => setSelectedId(t.id)} />
+            ))}
+          </div>
+          <div className="flex items-center justify-between gap-3 mt-6">
+            <p className="text-xs text-muted-foreground">
+              {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} sur {total}
+              {isFetching && " · chargement…"}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 0 || isFetching}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+              >
+                Précédent
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Page {page + 1} / {pageCount}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page + 1 >= pageCount || isFetching}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Suivant
+              </Button>
+            </div>
+          </div>
+        </>
       )}
 
       {selectedId && <TranscriptDetail id={selectedId} onClose={() => setSelectedId(null)} />}
