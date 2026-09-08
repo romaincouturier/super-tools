@@ -1,4 +1,5 @@
-import { Calendar } from "lucide-react";
+import { useState } from "react";
+import { Calendar, CalendarPlus } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,21 @@ import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { FormationFormHook, PREDEFINED_LOCATIONS } from "@/hooks/useFormationForm";
+import CreateCalendarEventDialog from "@/components/crm/CreateCalendarEventDialog";
+
+const SPONSOR_MEETING_DESCRIPTION = `Bonjour,
+
+Je vous propose ce point de préparation pour cadrer ensemble votre session de formation.
+
+Au programme :
+- Recueil des besoins
+- Échange sur le contenu
+- Adaptation aux spécificités de votre équipe
+- Revue de la planification et de la logistique
+
+N'hésitez pas à me contacter en amont pour toute question.
+
+À très vite,`;
 
 // --- Session Type / Format Selector ---
 
