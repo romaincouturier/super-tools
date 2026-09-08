@@ -56,6 +56,8 @@ interface PictoChallenge {
   words: string[];
   challenge_date: string;
   challenge_time: string | null;
+  challenge_end_time: string | null;
+  challenge_number: number | null;
   school_year: string;
   event_id: string | null;
   created_at: string;
@@ -70,8 +72,11 @@ interface GeneratedChallenge {
   words: string[];
   challenge_date: string;
   challenge_time: string | null;
+  challenge_end_time: string | null;
+  challenge_number: number | null;
   title: string;
 }
+
 
 
 // ---------------------------------------------------------------------------
