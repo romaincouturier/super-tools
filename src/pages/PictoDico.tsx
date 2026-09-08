@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { decodeWord } from "@/lib/pictoWord";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
@@ -154,7 +155,7 @@ function WordsTab() {
 
   const filtered = useMemo(() => {
     return words.filter((w) => {
-      const matchSearch = w.word.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = decodeWord(w.word).toLowerCase().includes(search.toLowerCase());
       const matchSource = filterSource === "all" || w.source === filterSource;
       return matchSearch && matchSource;
     });
@@ -243,7 +244,7 @@ function WordsTab() {
                       <td className="px-4 py-3 font-medium">
                         <span className="inline-flex items-center gap-1.5">
                           {word.is_chosen && <span title="Mot retenu pour un PictoChallenge">✅</span>}
-                          {word.word}
+                          {decodeWord(word.word)}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -458,7 +459,7 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
             <label className="text-xs font-medium text-muted-foreground">Heure</label>
             <Input
               type="time"
-              value={(local.challenge_time || "09:00").slice(0, 5)}
+              value={(local.challenge_time || "12:30").slice(0, 5)}
               onChange={(e) => setLocal((prev) => ({ ...prev, challenge_time: e.target.value }))}
               className="text-sm"
               disabled={!!local.event_id}
@@ -594,7 +595,7 @@ function ChallengesTab() {
     try {
       const { data, error } = await supabase.functions.invoke("pictodico-generate-challenges", {
         body: {
-          words: words.map((w) => w.word),
+          words: words.map((w) => decodeWord(w.word)),
           startYear,
           themes: parsedThemes,
         },
@@ -614,7 +615,7 @@ function ChallengesTab() {
           warmup_picto: null,
           words: c.words,
           challenge_date: c.challenge_date,
-          challenge_time: c.challenge_time ?? "09:00",
+          challenge_time: c.challenge_time ?? "12:30",
           school_year: schoolYearLabel(startYear),
           event_id: null,
           created_at: new Date().toISOString(),
@@ -653,8 +654,12 @@ function ChallengesTab() {
   async function scheduleChallenge(challenge: PictoChallenge) {
     setSchedulingId(challenge.id);
     try {
-      const time = (challenge.challenge_time || "09:00").slice(0, 5);
+      const time = (challenge.challenge_time || "12:30").slice(0, 5);
+      const [sh, sm] = time.split(":").map(Number);
+      const endMinutes = sh * 60 + sm + 30;
+      const endTime = `${String(Math.floor(endMinutes / 60) % 24).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
       const description = [
+        `Créneau : ${time.replace(":", "h")} - ${endTime.replace(":", "h")}`,
         challenge.theme_description,
         challenge.words.length > 0 ? `Mots : ${challenge.words.join(", ")}` : null,
       ]
@@ -704,7 +709,8 @@ function ChallengesTab() {
 
       // Marquer les mots retenus
       if (challenge.words.length > 0) {
-        const ids = words.filter((w) => challenge.words.includes(w.word)).map((w) => w.id);
+        const picked = new Set(challenge.words.map((w) => decodeWord(w).toLowerCase()));
+        const ids = words.filter((w) => picked.has(decodeWord(w.word).toLowerCase())).map((w) => w.id);
         if (ids.length > 0) {
           await supabase
             .from("pictodico_words")
