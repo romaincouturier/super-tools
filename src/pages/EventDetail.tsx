@@ -56,6 +56,8 @@ import {
 import { useEntityMedia, useAddMedia, useDeleteMedia } from "@/hooks/useMedia";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import SendToContentBoardButton from "@/components/events/SendToContentBoardButton";
+import AddEventToGoogleCalendarButton from "@/components/events/AddEventToGoogleCalendarButton";
+
 import { LogisticsChecklist } from "@/components/shared/LogisticsChecklist";
 
 const EventDetail = () => {
