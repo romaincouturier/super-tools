@@ -646,6 +646,9 @@ function ChallengesTab() {
           words: c.words,
           challenge_date: c.challenge_date,
           challenge_time: c.challenge_time ?? "12:30",
+          challenge_end_time: c.challenge_end_time ?? "13:00",
+          challenge_number: c.challenge_number ?? i + 1,
+
           school_year: schoolYearLabel(startYear),
           event_id: null,
           created_at: new Date().toISOString(),
