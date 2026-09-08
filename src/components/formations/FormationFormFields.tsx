@@ -355,6 +355,16 @@ export function SponsorCard({ form }: { form: FormationFormHook }) {
           </div>
         </div>
       </CardContent>
+      <CreateCalendarEventDialog
+        open={meetingDialogOpen}
+        onOpenChange={setMeetingDialogOpen}
+        opportunityTitle={form.trainingName || "préparation formation"}
+        company={form.clientName || ""}
+        contactEmail={form.sponsorEmail || ""}
+        initialSummary={`Point préparation — ${form.trainingName}${form.clientName ? ` — ${form.clientName}` : ""}`}
+        initialDescription={SPONSOR_MEETING_DESCRIPTION}
+        defaultFormality={form.sponsorFormalAddress ? "vous" : "tu"}
+      />
     </Card>
   );
 }
