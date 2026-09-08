@@ -155,7 +155,7 @@ export async function postWooOrderToSlack(
         .map((s) => [s.setting_key, (s.setting_value || "").replace(/^"|"$/g, "").trim()]),
     );
 
-    const channel = map.get("slack_ecommerce_channel") || "e-commerce";
+    const channel = map.get("slack_ecommerce_channel") || "ecommerce";
     const storeUrl = map.get("il_store_url") || null;
 
     const headers = {
