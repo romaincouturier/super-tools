@@ -11,6 +11,7 @@ interface BookProductionCardProps {
   onDelete: () => void;
   onEdit: () => void;
   onSetCover?: () => void;
+  watermarkText?: string;
 }
 
 export default function BookProductionCard({
@@ -20,6 +21,7 @@ export default function BookProductionCard({
   onDelete,
   onEdit,
   onSetCover,
+  watermarkText,
 }: BookProductionCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const visibleTags = production.tags.slice(0, 2);

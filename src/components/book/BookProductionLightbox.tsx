@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useRecordView } from '@/hooks/useBook';
+import WatermarkOverlay from '@/components/book/WatermarkOverlay';
 import type { BookProduction } from '@/types/book';
 
 interface BookProductionLightboxProps {
@@ -155,12 +156,15 @@ export default function BookProductionLightbox({
             />
           )}
           {isPublic && production.file_type === 'image' && (
-            <div
-              className="absolute inset-0"
-              style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
-              onContextMenu={(e) => e.preventDefault()}
-              onDragStart={(e) => e.preventDefault()}
-            />
+            <>
+              <WatermarkOverlay text={watermarkText} />
+              <div
+                className="absolute inset-0"
+                style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
+                onContextMenu={(e) => e.preventDefault()}
+                onDragStart={(e) => e.preventDefault()}
+              />
+            </>
           )}
         </div>
 
