@@ -487,8 +487,8 @@ export default function Transcripts() {
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-3 mb-6">
         {[
-          { key: "total", label: "Total", value: counts.total, icon: <Mic className="h-4 w-4" />, onClick: () => setStatus("") },
-          { key: "ready", label: "Prêts", value: counts.ready, icon: <CheckCircle2 className="h-4 w-4 text-green-600" />, onClick: () => setStatus("ready") },
+          { key: "total", label: "Total", value: counts.total, icon: <Mic className="h-4 w-4" />, onClick: () => { setStatus(""); resetPage(); } },
+          { key: "ready", label: "Prêts", value: counts.ready, icon: <CheckCircle2 className="h-4 w-4 text-green-600" />, onClick: () => { setStatus("ready"); resetPage(); } },
           {
             key: "processing",
             label: "En cours",
@@ -496,14 +496,14 @@ export default function Transcripts() {
             icon: counts.processing > 0
               ? <Spinner className="text-blue-600" />
               : <Clock className="h-4 w-4 text-blue-600" />,
-            onClick: () => setStatus("processing"),
+            onClick: () => { setStatus("processing"); resetPage(); },
           },
           {
             key: "trashed",
             label: "Corbeille",
             value: counts.trashed,
             icon: <Trash2 className="h-4 w-4 text-muted-foreground" />,
-            onClick: () => setStatus("trashed"),
+            onClick: () => { setStatus("trashed"); resetPage(); },
           },
         ].map(({ key, label, value, icon, onClick }) => (
           <Card
@@ -533,10 +533,10 @@ export default function Transcripts() {
         <Input
           placeholder="Rechercher par titre…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); resetPage(); }}
           className="max-w-xs"
         />
-        <Select value={source || "all"} onValueChange={(v) => setSource(v === "all" ? "" : (v as TranscriptSource))}>
+        <Select value={source || "all"} onValueChange={(v) => { setSource(v === "all" ? "" : (v as TranscriptSource)); resetPage(); }}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Toutes les sources" />
           </SelectTrigger>
@@ -546,7 +546,7 @@ export default function Transcripts() {
             <SelectItem value="fireflies">Fireflies</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={status || "all"} onValueChange={(v) => setStatus(v === "all" ? "" : (v as TranscriptStatus))}>
+        <Select value={status || "all"} onValueChange={(v) => { setStatus(v === "all" ? "" : (v as TranscriptStatus)); resetPage(); }}>
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Tous les statuts" />
           </SelectTrigger>
@@ -559,7 +559,7 @@ export default function Transcripts() {
             <SelectItem value="trashed">Corbeille</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={qualification || "all"} onValueChange={(v) => setQualification(v === "all" ? "" : v)}>
+        <Select value={qualification || "all"} onValueChange={(v) => { setQualification(v === "all" ? "" : v); resetPage(); }}>
           <SelectTrigger className="w-52">
             <SelectValue placeholder="Toutes les qualifications" />
           </SelectTrigger>
