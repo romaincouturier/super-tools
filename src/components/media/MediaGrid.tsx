@@ -8,6 +8,8 @@ import { formatFileSize } from "@/lib/file-utils";
 import MediaTagEditor from "./MediaTagEditor";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskText } from "@/lib/demoMask";
+import { useResolvedStorageUrl } from "@/hooks/useResolvedStorageUrl";
+import { resolveStorageUrl } from "@/lib/storageUrl";
 
 const sourceIcon = (sourceType: string) => {
   switch (sourceType) {
