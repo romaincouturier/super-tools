@@ -40,6 +40,7 @@ interface PictoWord {
   request_type: "demande_ajout" | "erreur_signalee" | null;
   source_url: string | null;
   error_description: string | null;
+  is_chosen: boolean | null;
   received_at: string | null;
   created_at: string;
 }
@@ -48,8 +49,10 @@ interface PictoChallenge {
   id: string;
   title: string;
   theme: string;
+  theme_description: string | null;
   words: string[];
   challenge_date: string;
+  challenge_time: string | null;
   school_year: string;
   event_id: string | null;
   created_at: string;
@@ -60,10 +63,13 @@ interface GeneratedChallenge {
   month: number;
   year: number;
   theme: string;
+  theme_description: string | null;
   words: string[];
   challenge_date: string;
+  challenge_time: string | null;
   title: string;
 }
+
 
 // ---------------------------------------------------------------------------
 // Helpers
