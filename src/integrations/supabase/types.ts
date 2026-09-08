@@ -2958,6 +2958,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           event_date: string
+          event_end_time: string | null
           event_time: string | null
           event_type: string
           event_url: string | null
@@ -2986,6 +2987,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           event_date: string
+          event_end_time?: string | null
           event_time?: string | null
           event_type?: string
           event_url?: string | null
@@ -3014,6 +3016,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           event_date?: string
+          event_end_time?: string | null
           event_time?: string | null
           event_type?: string
           event_url?: string | null
@@ -8009,6 +8012,8 @@ export type Database = {
       pictodico_challenges: {
         Row: {
           challenge_date: string
+          challenge_end_time: string | null
+          challenge_number: number | null
           challenge_time: string
           created_at: string
           event_id: string | null
@@ -8023,6 +8028,8 @@ export type Database = {
         }
         Insert: {
           challenge_date: string
+          challenge_end_time?: string | null
+          challenge_number?: number | null
           challenge_time?: string
           created_at?: string
           event_id?: string | null
@@ -8037,6 +8044,8 @@ export type Database = {
         }
         Update: {
           challenge_date?: string
+          challenge_end_time?: string | null
+          challenge_number?: number | null
           challenge_time?: string
           created_at?: string
           event_id?: string | null
