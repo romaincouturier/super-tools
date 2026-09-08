@@ -433,38 +433,34 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
   );
 }
 
+const PAGE_SIZE = 24;
+
 export default function Transcripts() {
   const [search, setSearch] = useState("");
   const [source, setSource] = useState<TranscriptSource | "">("");
   const [status, setStatus] = useState<TranscriptStatus | "">("");
   const [qualification, setQualification] = useState<string>("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
 
-  const { data: rawData, isLoading, refetch } = useTranscripts({
+  // Tout changement de filtre repart de la première page.
+  const resetPage = () => setPage(0);
+
+  const { data: pageData, isLoading, isFetching, refetch } = useTranscriptsPage({
     search,
     source,
     status: status === "trashed" ? "" : status,
     trashed: status === "trashed",
+    qualification,
+    page,
+    pageSize: PAGE_SIZE,
   });
 
-  // Vue éditoriale : filtre par qualification IA. "editorial" = vue resserrée
-  // qui exclut automatiquement le personnel/hors sujet et le non exploitable.
-  const data = (rawData ?? []).filter((t) => {
-    if (!qualification) return true;
-    if (qualification === "editorial") {
-      return t.editorial_qualification === "pro_exploitable";
-    }
-    if (qualification === "none") return !t.editorial_qualification;
-    return t.editorial_qualification === qualification;
-  });
+  const data = pageData?.rows ?? [];
+  const total = pageData?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const { data: trashedData } = useTranscripts({ trashed: true });
-  const counts = {
-    total: data?.length ?? 0,
-    ready: data?.filter((t) => t.status === "ready").length ?? 0,
-    processing: data?.filter((t) => t.status === "processing").length ?? 0,
-    trashed: trashedData?.length ?? 0,
-  };
+  const { data: counts = { total: 0, ready: 0, processing: 0, trashed: 0 } } = useTranscriptCounts(source);
   const isTrashedView = status === "trashed";
 
   return (
