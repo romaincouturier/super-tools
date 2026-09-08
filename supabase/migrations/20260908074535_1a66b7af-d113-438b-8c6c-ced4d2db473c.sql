@@ -1,0 +1,1 @@
+alter table public.woocommerce_orders add column if not exists slack_notified_at timestamptz;

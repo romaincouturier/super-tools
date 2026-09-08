@@ -12155,6 +12155,7 @@ export type Database = {
           raw_order: Json
           shipping_address: Json | null
           shipping_total: number | null
+          slack_notified_at: string | null
           total_ht: number | null
           total_tax: number | null
           total_ttc: number | null
@@ -12177,6 +12178,7 @@ export type Database = {
           raw_order?: Json
           shipping_address?: Json | null
           shipping_total?: number | null
+          slack_notified_at?: string | null
           total_ht?: number | null
           total_tax?: number | null
           total_ttc?: number | null
@@ -12199,6 +12201,7 @@ export type Database = {
           raw_order?: Json
           shipping_address?: Json | null
           shipping_total?: number | null
+          slack_notified_at?: string | null
           total_ht?: number | null
           total_tax?: number | null
           total_ttc?: number | null
