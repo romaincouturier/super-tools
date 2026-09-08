@@ -47,7 +47,10 @@ export function useAssociateEntityTranscript(entity: TranscriptEntity) {
     mutationFn: async ({ entityId, transcriptId }: { entityId: string; transcriptId: string }) => {
       const { error } = await (supabase as any)
         .from(table)
-        .insert({ [fk]: entityId, transcript_id: transcriptId, created_by: user?.id ?? null });
+        .upsert(
+          { [fk]: entityId, transcript_id: transcriptId, created_by: user?.id ?? null },
+          { onConflict: `${fk},transcript_id`, ignoreDuplicates: true },
+        );
       if (error) throw error;
     },
     onSuccess: (_d, { entityId }) => {

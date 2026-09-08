@@ -164,9 +164,14 @@ const EntityTranscriptsSection = ({ entity, entityId }: Props) => {
                     key={t.id}
                     className="w-full text-left p-2 rounded hover:bg-accent transition-colors flex items-center gap-2"
                     onClick={async () => {
-                      await associate.mutateAsync({ entityId, transcriptId: t.id });
-                      setAssociateOpen(false);
-                      setSearch("");
+                      try {
+                        await associate.mutateAsync({ entityId, transcriptId: t.id });
+                        setAssociateOpen(false);
+                        setSearch("");
+                      } catch (err) {
+                        console.error("associate transcript failed", err);
+                        toastError(toast, "Impossible d'associer le transcript");
+                      }
                     }}
                   >
                     <FileAudio className="h-4 w-4 shrink-0" />
