@@ -244,7 +244,7 @@ function WordsTab() {
                       <td className="px-4 py-3 font-medium">
                         <span className="inline-flex items-center gap-1.5">
                           {word.is_chosen && <span title="Mot retenu pour un PictoChallenge">✅</span>}
-                          {word.word}
+                          {decodeWord(word.word)}
                         </span>
                       </td>
                       <td className="px-4 py-3">
