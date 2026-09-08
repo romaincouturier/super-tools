@@ -814,6 +814,14 @@ function ChallengesTab() {
               Valider les thèmes
             </Button>
           </div>
+          {generationProgress && (
+            <div className="space-y-2 pt-2">
+              <Progress value={generationProgress.percent} className="h-2" />
+              <p className="text-sm text-muted-foreground text-center">
+                {generationProgress.label}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
