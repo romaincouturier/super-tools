@@ -23,6 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
+import { openStorageUrl } from "@/lib/storageUrl";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useToast } from "@/hooks/use-toast";
 import { useGamePriceOptions, useReplaceGamePriceOptions } from "@/hooks/useGamePriceOptions";
