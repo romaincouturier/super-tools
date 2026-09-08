@@ -160,22 +160,37 @@ ${uniqueWords.length > 0 ? uniqueWords.join(", ") : "(aucun mot collecté)"}
 Retourne un tableau JSON d'objets, un par thème, dans le même ordre :
 [{ "index": 1, "words": ["mot1", "mot2"] }]`;
 
+  type Entry = { index: number; words: string[] };
+  const extract = (raw: string): Entry[] | null => {
+    const direct = parseAiJson<Entry[]>(raw);
+    if (Array.isArray(direct)) return direct;
+    // Réponse coupée en cours de génération : on récupère les thèmes complets.
+    const salvaged = parseTruncatedAiJson<Entry[]>(raw);
+    if (Array.isArray(salvaged) && salvaged.length > 0) {
+      console.warn(
+        `[pictodico-generate-challenges] JSON tronqué récupéré (${salvaged.length} thèmes)`,
+      );
+      return salvaged;
+    }
+    return null;
+  };
+
   try {
     let raw = await callAnthropic(systemPrompt, userPrompt);
-    let parsed = parseAiJson<Array<{ index: number; words: string[] }>>(raw);
+    let parsed = extract(raw);
 
-    if (!Array.isArray(parsed)) {
+    if (!parsed) {
       raw = await callAnthropic(systemPrompt, `${userPrompt}\n\n${STRICT_JSON_INSTRUCTION}`);
-      parsed = parseAiJson<Array<{ index: number; words: string[] }>>(raw);
+      parsed = extract(raw);
     }
 
-    if (!Array.isArray(parsed)) {
+    if (!parsed) {
+      // Dernier recours : on renvoie quand même les thèmes (sans mots) pour que
+      // l'utilisateur puisse programmer ses évènements et compléter à la main.
       console.error("[pictodico-generate-challenges] réponse IA non parseable:", truncateForLog(raw));
-      return json(
-        { error: "L'IA n'a pas réussi à rattacher les mots aux thèmes. Réessayez dans un instant." },
-        502,
-      );
+      parsed = [];
     }
+
 
     const allowed = new Set(uniqueWords);
     const used = new Set<string>();
