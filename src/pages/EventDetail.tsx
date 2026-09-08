@@ -18,7 +18,9 @@ import {
   Globe,
   FileText,
   AlertTriangle,
+  FileAudio,
 } from "lucide-react";
+import EntityTranscriptsSection from "@/components/shared/EntityTranscriptsSection";
 import { supabase } from "@/integrations/supabase/client";
 import { CANCELLATION_REASONS, getCfpDaysLeft } from "@/types/events";
 import ShareEventDialog from "@/components/events/ShareEventDialog";
