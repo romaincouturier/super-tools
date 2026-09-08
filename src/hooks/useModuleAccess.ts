@@ -23,6 +23,7 @@ export type AppModule =
   | "arena"
   | "reclamations"
   | "signalements"
+  | "risques"
   | "support"
   | "reseau"
   | "lms"
@@ -62,6 +63,7 @@ export const ALL_MODULES: AppModule[] = [
   "arena",
   "reclamations",
   "signalements",
+  "risques",
   "support",
   "reseau",
   "lms",
@@ -102,6 +104,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   arena: "AI Arena",
   reclamations: "Réclamations",
   signalements: "Signalements VHD",
+  risques: "Risques qualité",
   support: "Support",
   reseau: "Réseau professionnel",
   lms: "E-learning",

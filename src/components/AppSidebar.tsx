@@ -69,6 +69,7 @@ const NAV_CONFIG: NavConfig[] = [
       { key: "besoins" },
       { key: "reclamations" },
       { key: "signalements" },
+      { key: "risques" },
       { key: "ameliorations" },
     ],
   },
