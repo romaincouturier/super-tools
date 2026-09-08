@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/popover";
 import { ChevronsUpDown, Check, StickyNote, Loader2, CheckCircle2, ExternalLink, FileText, Upload, Trash2, Download } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { openStorageUrl } from "@/lib/storageUrl";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
