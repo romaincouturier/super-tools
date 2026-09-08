@@ -227,6 +227,20 @@ Retourne un tableau JSON d'objets, un par thème traité, avec l'index exact ind
       });
     }
 
+    // Complément : chaque thème est rempli jusqu'à 18 mots avec des mots
+    // collectés encore non associés (toujours sans doublon entre thèmes).
+    for (let i = 1; i <= cleanThemes.length; i++) {
+      const selected = perTheme.get(i) ?? [];
+      if (selected.length >= 18) continue;
+      for (const w of uniqueWords) {
+        if (selected.length >= 18) break;
+        if (used.has(w)) continue;
+        used.add(w);
+        selected.push(w);
+      }
+      perTheme.set(i, selected);
+    }
+
     const challenges = cleanThemes.map((t, i) => {
       const { month, year } = schedule[i];
       return {
