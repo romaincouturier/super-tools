@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useResolvedStorageUrl } from "@/hooks/useResolvedStorageUrl";
 
 interface MediaLightboxProps {
   item: MediaItem;
@@ -21,6 +22,7 @@ const slideVariants = {
 };
 
 const MediaLightbox = ({ item, items, onClose, onNavigate, autoFullscreen }: MediaLightboxProps) => {
+  const mediaUrl = useResolvedStorageUrl(item.file_url);
   const currentIndex = items.findIndex((i) => i.id === item.id);
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < items.length - 1;
@@ -154,21 +156,21 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, autoFullscreen }: Med
           >
             {item.file_type === "image" ? (
               <img
-                src={item.file_url}
+                src={mediaUrl ?? undefined}
                 alt={item.file_name}
                 className="pointer-events-auto w-full h-full object-contain rounded"
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
               <video
-                src={item.file_url}
+                src={mediaUrl ?? undefined}
                 controls
                 autoPlay
                 playsInline
                 className="pointer-events-auto max-w-full max-h-full rounded"
                 onClick={(e) => e.stopPropagation()}
               >
-                <source src={item.file_url} type={item.mime_type || "video/mp4"} />
+                {mediaUrl && <source src={mediaUrl} type={item.mime_type || "video/mp4"} />}
               </video>
             )}
           </motion.div>

@@ -8,6 +8,8 @@ import { formatFileSize } from "@/lib/file-utils";
 import MediaTagEditor from "./MediaTagEditor";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskText } from "@/lib/demoMask";
+import { useResolvedStorageUrl } from "@/hooks/useResolvedStorageUrl";
+import { resolveStorageUrl } from "@/lib/storageUrl";
 
 const sourceIcon = (sourceType: string) => {
   switch (sourceType) {
@@ -25,6 +27,36 @@ const sourceIconLarge = (sourceType: string) => {
     case "crm": return <HandCoins className="h-3 w-3 flex-shrink-0" />;
     default: return <Briefcase className="h-3 w-3 flex-shrink-0" />;
   }
+};
+
+/** Vignette image : résout les URLs des buckets privés en URL signée. */
+const MediaThumb = ({ item }: { item: MediaItem }) => {
+  const src = useResolvedStorageUrl(item.file_url);
+  return (
+    <img
+      src={src ?? undefined}
+      alt={item.file_name}
+      className="w-full h-full object-cover will-change-transform"
+      loading="lazy"
+    />
+  );
+};
+
+/** Vignette vidéo : même résolution d'URL, image figée à 0,1 s. */
+const MediaVideoThumb = ({ item }: { item: MediaItem }) => {
+  const src = useResolvedStorageUrl(item.file_url);
+  return (
+    <video
+      src={src ? `${src}#t=0.1` : undefined}
+      className="w-full h-full object-cover"
+      preload="metadata"
+      muted
+      playsInline
+      onError={(e) => {
+        e.currentTarget.style.display = "none";
+      }}
+    />
+  );
 };
 
 interface MediaGridProps {
@@ -73,7 +105,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
 
   const downloadFile = async (url: string, fileName: string) => {
     try {
-      const response = await fetch(url);
+      const response = await fetch(await resolveStorageUrl(url));
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -125,25 +157,10 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
           onClick={() => onOpenLightbox(item)}
         >
           {item.file_type === "image" ? (
-            <img
-              src={item.file_url}
-              alt={item.file_name}
-              className="w-full h-full object-cover will-change-transform"
-              loading="lazy"
-            />
+            <MediaThumb item={item} />
           ) : (
             <div className="w-full h-full relative bg-muted">
-              <video
-                src={`${item.file_url}#t=0.1`}
-                className="w-full h-full object-cover"
-                preload="metadata"
-                muted
-                playsInline
-                onError={(e) => {
-                  const el = e.currentTarget;
-                  el.style.display = "none";
-                }}
-              />
+              <MediaVideoThumb item={item} />
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20">
                 <Play className="h-10 w-10 text-white drop-shadow" />
                 {item.file_name.toLowerCase().endsWith(".mov") && (

@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 /** Buckets that are private and therefore require a signed URL to be read. */
 const PRIVATE_BUCKETS = new Set([
+  "book-productions",
   "crm-attachments",
   "devis-pdfs",
   "participant-files",
