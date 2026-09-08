@@ -56,6 +56,8 @@ interface PictoChallenge {
   words: string[];
   challenge_date: string;
   challenge_time: string | null;
+  challenge_end_time: string | null;
+  challenge_number: number | null;
   school_year: string;
   event_id: string | null;
   created_at: string;
@@ -70,8 +72,11 @@ interface GeneratedChallenge {
   words: string[];
   challenge_date: string;
   challenge_time: string | null;
+  challenge_end_time: string | null;
+  challenge_number: number | null;
   title: string;
 }
+
 
 
 // ---------------------------------------------------------------------------
@@ -433,6 +438,7 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
           <span className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+            {local.challenge_number ? `#${local.challenge_number} · ` : ""}
             {monthLabel}
           </span>
           <Badge variant="secondary" className="text-xs">
@@ -445,7 +451,7 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
         )}
       </CardHeader>
       <CardContent className="flex-1 space-y-3 pt-0">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Date</label>
             <Input
@@ -457,7 +463,7 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Heure</label>
+            <label className="text-xs font-medium text-muted-foreground">Début</label>
             <Input
               type="time"
               value={(local.challenge_time || "12:30").slice(0, 5)}
@@ -466,7 +472,18 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
               disabled={!!local.event_id}
             />
           </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Fin</label>
+            <Input
+              type="time"
+              value={(local.challenge_end_time || "13:00").slice(0, 5)}
+              onChange={(e) => setLocal((prev) => ({ ...prev, challenge_end_time: e.target.value }))}
+              className="text-sm"
+              disabled={!!local.event_id}
+            />
+          </div>
         </div>
+
 
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Picto d'échauffement</label>
@@ -491,7 +508,8 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
                   key={word}
                   className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs px-2 py-1 rounded-full font-medium"
                 >
-                  {word}
+                  {decodeWord(word)}
+
                 </span>
               ))
             )}
@@ -641,6 +659,9 @@ function ChallengesTab() {
           words: c.words,
           challenge_date: c.challenge_date,
           challenge_time: c.challenge_time ?? "12:30",
+          challenge_end_time: c.challenge_end_time ?? "13:00",
+          challenge_number: c.challenge_number ?? i + 1,
+
           school_year: schoolYearLabel(startYear),
           event_id: null,
           created_at: new Date().toISOString(),
@@ -683,13 +704,21 @@ function ChallengesTab() {
     setSchedulingId(challenge.id);
     try {
       const time = (challenge.challenge_time || "12:30").slice(0, 5);
-      const [sh, sm] = time.split(":").map(Number);
-      const endMinutes = sh * 60 + sm + 30;
-      const endTime = `${String(Math.floor(endMinutes / 60) % 24).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
+      const endTime = (challenge.challenge_end_time || "13:00").slice(0, 5);
+      const number = challenge.challenge_number ?? null;
+      const title = number && !/#\d/.test(challenge.title)
+        ? `PictoChallenge #${number} — ${challenge.theme}`
+        : challenge.title;
       const description = [
+        number ? `PictoChallenge #${number}` : null,
         `Créneau : ${time.replace(":", "h")} - ${endTime.replace(":", "h")}`,
         challenge.theme_description,
-        challenge.words.length > 0 ? `Mots : ${challenge.words.join(", ")}` : null,
+        challenge.warmup_picto?.trim()
+          ? `Picto d'échauffement : ${challenge.warmup_picto.trim()}`
+          : null,
+        challenge.words.length > 0
+          ? `Mots :\n${challenge.words.map((w) => decodeWord(w)).join("\n")}`
+          : null,
       ]
         .filter(Boolean)
         .join("\n\n");
@@ -697,27 +726,31 @@ function ChallengesTab() {
       const { data: eventData, error: eventError } = await supabase
         .from("events")
         .insert({
-          title: challenge.title,
+          title,
           description: description || null,
           event_date: challenge.challenge_date.slice(0, 10),
           event_time: time,
+          event_end_time: endTime,
           event_type: "internal",
           status: "active",
           location_type: "visio",
-        })
+        } as never)
         .select("id")
         .single();
       if (eventError) throw eventError;
       const eventId = eventData.id as string;
 
       const payload = {
-        title: challenge.title,
+        title,
         theme: challenge.theme,
         theme_description: challenge.theme_description,
         warmup_picto: challenge.warmup_picto?.trim() || null,
         words: challenge.words,
         challenge_date: challenge.challenge_date.slice(0, 10),
         challenge_time: time,
+        challenge_end_time: endTime,
+        challenge_number: number,
+
         school_year: challenge.school_year,
         event_id: eventId,
       };
@@ -737,7 +770,10 @@ function ChallengesTab() {
 
       // Marquer les mots retenus
       if (challenge.words.length > 0) {
-        const picked = new Set(challenge.words.map((w) => decodeWord(w).toLowerCase()));
+        const picked = new Set(
+          challenge.words.map((w) => decodeWord(w.split("→")[0].trim()).toLowerCase()),
+        );
+
         const ids = words.filter((w) => picked.has(decodeWord(w.word).toLowerCase())).map((w) => w.id);
         if (ids.length > 0) {
           await supabase

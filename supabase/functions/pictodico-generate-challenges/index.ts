@@ -143,11 +143,12 @@ RÈGLES ABSOLUES :
 - N'invente jamais de mot.
 - Un même mot peut être utilisé pour un seul thème (le plus pertinent) : aucun doublon d'un thème à l'autre.
 - Sélectionne au maximum 18 mots par thème, les plus pertinents d'abord.
+- Si un mot est en anglais, donne sa traduction française dans le champ "fr" (sinon "fr" vaut null).
 - Si un thème n'a aucun mot pertinent, retourne un tableau de mots vide.
 - Retourne UNIQUEMENT du JSON valide, sans texte avant ni après, sans markdown.`;
 
 
-  type Entry = { index: number; words: string[] };
+  type Entry = { index: number; words: (string | { w?: string; fr?: string | null })[] };
   const extract = (raw: string): Entry[] | null => {
     const direct = parseAiJson<Entry[]>(raw);
     if (Array.isArray(direct)) return direct;
@@ -171,7 +172,8 @@ Mots collectés encore disponibles (${pool.length}) :
 ${pool.length > 0 ? pool.join(", ") : "(aucun mot disponible)"}
 
 Retourne un tableau JSON d'objets, un par thème traité, avec l'index exact indiqué ci-dessus :
-[{ "index": ${chunk[0].index}, "words": ["mot1", "mot2"] }]`;
+[{ "index": ${chunk[0].index}, "words": [{ "w": "mot collecté", "fr": null }, { "w": "deadline", "fr": "échéance" }] }]`;
+
 
   try {
     const allowed = new Set(uniqueWords);
@@ -215,12 +217,16 @@ Retourne un tableau JSON d'objets, un par thème traité, avec l'index exact ind
         const entry = parsed!.find((p) => Number(p.index) === th.index) ?? parsed![k];
         const picked = Array.isArray(entry?.words) ? entry.words : [];
         const selected: string[] = [];
-        for (const w of picked) {
+        for (const item of picked) {
           if (selected.length >= 18) break;
-          const clean = String(w).trim().toLowerCase();
+          const rawWord = typeof item === "string" ? item : (item?.w ?? "");
+          const translation =
+            typeof item === "string" ? null : (item?.fr ?? null);
+          const clean = String(rawWord).trim().toLowerCase();
           if (allowed.has(clean) && !used.has(clean)) {
             used.add(clean);
-            selected.push(clean);
+            const fr = translation ? String(translation).trim().toLowerCase() : "";
+            selected.push(fr && fr !== clean ? `${clean} → ${fr}` : clean);
           }
         }
         perTheme.set(th.index, selected);
@@ -243,17 +249,21 @@ Retourne un tableau JSON d'objets, un par thème traité, avec l'index exact ind
 
     const challenges = cleanThemes.map((t, i) => {
       const { month, year } = schedule[i];
+      const number = i + 1;
       return {
         month,
         year,
         theme: t.theme,
         theme_description: t.description || null,
-        words: perTheme.get(i + 1) ?? [],
+        words: perTheme.get(number) ?? [],
         challenge_date: `${year}-${String(month).padStart(2, "0")}-01`,
         challenge_time: "12:30",
-        title: `PictoChallenge — ${t.theme}`,
+        challenge_end_time: "13:00",
+        challenge_number: number,
+        title: `PictoChallenge #${number} — ${t.theme}`,
       };
     });
+
 
     const partial = challenges.some((c) => c.words.length === 0);
     return json({ challenges, partial });
