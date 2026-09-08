@@ -125,12 +125,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
           onClick={() => onOpenLightbox(item)}
         >
           {item.file_type === "image" ? (
-            <img
-              src={item.file_url}
-              alt={item.file_name}
-              className="w-full h-full object-cover will-change-transform"
-              loading="lazy"
-            />
+            <MediaThumb item={item} />
           ) : (
             <div className="w-full h-full relative bg-muted">
               <video
