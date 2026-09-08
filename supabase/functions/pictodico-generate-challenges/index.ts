@@ -178,6 +178,7 @@ Retourne un tableau JSON d'objets, un par thème, dans le même ordre :
       const picked = Array.isArray(entry?.words) ? entry.words : [];
       const selected: string[] = [];
       for (const w of picked) {
+        if (selected.length >= 18) break;
         const clean = String(w).trim().toLowerCase();
         if (allowed.has(clean) && !used.has(clean)) {
           used.add(clean);
