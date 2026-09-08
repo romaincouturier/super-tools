@@ -229,7 +229,7 @@ function TranscriptCard({ t, onClick }: { t: TranscriptListItem; onClick: () => 
             )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {t.raw_text && (
+            {hasText && (
               <Button
                 variant="ghost"
                 size="icon"
