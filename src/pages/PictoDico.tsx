@@ -239,16 +239,36 @@ function WordsTab() {
                 <tbody>
                   {filtered.map((word) => (
                     <tr key={word.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium">{word.word}</td>
+                      <td className="px-4 py-3 font-medium">
+                        <span className="inline-flex items-center gap-1.5">
+                          {word.is_chosen && <span title="Mot retenu pour un PictoChallenge">✅</span>}
+                          {word.word}
+                        </span>
+                      </td>
                       <td className="px-4 py-3">
                         {word.request_type ? (
-                          <Badge variant={word.request_type === "erreur_signalee" ? "destructive" : "secondary"} className="text-xs">
-                            {word.request_type === "erreur_signalee" ? "Erreur signalée" : "Demande d'ajout"}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={word.request_type === "erreur_signalee" ? "destructive" : "secondary"} className="text-xs">
+                              {word.request_type === "erreur_signalee" ? "Erreur signalée" : "Demande d'ajout"}
+                            </Badge>
+                            {word.request_type === "erreur_signalee" && word.source_url && (
+                              <a
+                                href={word.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs text-primary underline"
+                                title={word.error_description || "Ouvrir la page concernée"}
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                Voir la page
+                              </a>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
+
                       <td className="px-4 py-3">
                         <Badge variant="outline" className="text-xs">
                           {word.source === "webhook" ? "Webhook" : "Manuel"}
