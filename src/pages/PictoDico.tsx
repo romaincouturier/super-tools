@@ -438,6 +438,7 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
           <span className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+            {local.challenge_number ? `#${local.challenge_number} · ` : ""}
             {monthLabel}
           </span>
           <Badge variant="secondary" className="text-xs">
@@ -450,7 +451,7 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
         )}
       </CardHeader>
       <CardContent className="flex-1 space-y-3 pt-0">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Date</label>
             <Input
@@ -462,7 +463,7 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Heure</label>
+            <label className="text-xs font-medium text-muted-foreground">Début</label>
             <Input
               type="time"
               value={(local.challenge_time || "12:30").slice(0, 5)}
@@ -471,7 +472,18 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
               disabled={!!local.event_id}
             />
           </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Fin</label>
+            <Input
+              type="time"
+              value={(local.challenge_end_time || "13:00").slice(0, 5)}
+              onChange={(e) => setLocal((prev) => ({ ...prev, challenge_end_time: e.target.value }))}
+              className="text-sm"
+              disabled={!!local.event_id}
+            />
+          </div>
         </div>
+
 
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Picto d'échauffement</label>
