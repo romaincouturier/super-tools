@@ -27,6 +27,36 @@ const sourceIconLarge = (sourceType: string) => {
   }
 };
 
+/** Vignette image : résout les URLs des buckets privés en URL signée. */
+const MediaThumb = ({ item }: { item: MediaItem }) => {
+  const src = useResolvedStorageUrl(item.file_url);
+  return (
+    <img
+      src={src ?? undefined}
+      alt={item.file_name}
+      className="w-full h-full object-cover will-change-transform"
+      loading="lazy"
+    />
+  );
+};
+
+/** Vignette vidéo : même résolution d'URL, image figée à 0,1 s. */
+const MediaVideoThumb = ({ item }: { item: MediaItem }) => {
+  const src = useResolvedStorageUrl(item.file_url);
+  return (
+    <video
+      src={src ? `${src}#t=0.1` : undefined}
+      className="w-full h-full object-cover"
+      preload="metadata"
+      muted
+      playsInline
+      onError={(e) => {
+        e.currentTarget.style.display = "none";
+      }}
+    />
+  );
+};
+
 interface MediaGridProps {
   items: MediaItem[];
   onOpenLightbox: (item: MediaItem) => void;
