@@ -611,26 +611,30 @@ function ChallengesTab() {
   });
 
   function startProgressSimulation() {
-    const steps = [
-      { label: "Préparation de l'analyse des mots...", percent: 5 },
-      { label: "Association des mots aux thèmes 1 à 3...", percent: 20 },
-      { label: "Association des mots aux thèmes 4 à 6...", percent: 45 },
-      { label: "Association des mots aux thèmes 7 à 9...", percent: 70 },
-      { label: "Association du thème 10...", percent: 90 },
-      { label: "Finalisation des PictoChallenges...", percent: 98 },
-    ];
-    setGenerationProgress(steps[0]);
-    let index = 0;
-    const interval = setInterval(() => {
-      index++;
-      if (index < steps.length) {
-        setGenerationProgress(steps[index]);
-      } else {
-        clearInterval(interval);
-      }
-    }, 2200);
-    return interval;
+    const chunkCount = Math.ceil(parsedThemes.length / 3);
+    // Avance en continu : le libellé suit le pourcentage, plus de palier
+    // "Finalisation" bloqué pendant tout le reste du traitement.
+    let percent = 3;
+    const tick = () => {
+      percent = Math.min(percent + 1, 95);
+      const chunkIndex = Math.min(
+        chunkCount,
+        Math.max(1, Math.ceil((percent / 95) * chunkCount)),
+      );
+      const from = (chunkIndex - 1) * 3 + 1;
+      const to = Math.min(parsedThemes.length, chunkIndex * 3);
+      setGenerationProgress({
+        label:
+          percent < 8
+            ? "Préparation de l'analyse des mots..."
+            : `Association des mots aux thèmes ${from} à ${to}...`,
+        percent,
+      });
+    };
+    tick();
+    return setInterval(tick, 500);
   }
+
 
   async function generateChallenges() {
     setIsGenerating(true);
