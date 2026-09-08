@@ -86,6 +86,11 @@ export function formatSessionDateFr(
  */
 export function stripDatePlaceholders(html: string): string {
   return html
+    // Phrase autonome entièrement consacrée aux dates
+    .replace(
+      /(>)\s*[^.<]*\{\{start_date\}\}[\s\S]{0,80}?\{\{end_date\}\}(?:\s*<\/strong>)?[^.<]*\.\s*/gi,
+      "$1",
+    )
     // Clause relative ou verbale introduisant la période
     .replace(
       /\s*(?:,\s*)?(?:qui\s+)?(?:se\s+déroulera|se\s+déroule|aura\s+lieu|est\s+accessible)[\s\S]{0,80}?\{\{start_date\}\}[\s\S]{0,80}?\{\{end_date\}\}(?:\s*<\/strong>)?/gi,
@@ -97,5 +102,7 @@ export function stripDatePlaceholders(html: string): string {
     .replace(/\{\{(?:start|end)_date\}\}/gi, "")
     .replace(/\s*du\s*(?:<strong>\s*<\/strong>)?\s*au\s*(?:<strong>\s*<\/strong>)?\s*(?=[.<])/gi, "")
     .replace(/<strong>\s*<\/strong>/gi, "")
-    .replace(/\s+([.,])/g, "$1");
+    .replace(/\s+([.,])/g, "$1")
+    // Paragraphes vidés par les suppressions
+    .replace(/<p[^>]*>\s*<\/p>/gi, "");
 }
