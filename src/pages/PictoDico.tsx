@@ -508,7 +508,8 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
                   key={word}
                   className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs px-2 py-1 rounded-full font-medium"
                 >
-                  {word}
+                  {decodeWord(word)}
+
                 </span>
               ))
             )}
