@@ -50,6 +50,7 @@ interface PictoChallenge {
   title: string;
   theme: string;
   theme_description: string | null;
+  warmup_picto: string | null;
   words: string[];
   challenge_date: string;
   challenge_time: string | null;
