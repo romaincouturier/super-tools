@@ -376,6 +376,18 @@ export interface ApiUsageTask {
   duration_ms: number;
 }
 
+/**
+ * Procédure de prévention en vigueur, telle que publiée aux apprenants.
+ * Le RPC ne rend jamais les brouillons ni les versions archivées.
+ */
+export interface ActiveVhdProcedure {
+  version: string;
+  content: string;
+  contact_name: string | null;
+  contact_email: string | null;
+  effective_from: string | null;
+}
+
 export const rpc = {
   // --- Training public ---
   getTrainingPublicInfo: (trainingId: string) =>
@@ -529,6 +541,10 @@ export const rpc = {
 
   getApiUsageByTask: (days: number, limit: number) =>
     call<ApiUsageTask[]>("get_api_usage_by_task", { p_days: days, p_limit: limit }),
+
+  /** Procédure de prévention en vigueur, pour la page publique de session. */
+  getActiveVhdProcedure: () =>
+    call<ActiveVhdProcedure | null>("get_active_vhd_procedure", {}),
 
   // --- Rate limiting ---
   checkFormulairRateLimit: (ipAddress: string, maxRequests: number, windowSeconds: number) =>

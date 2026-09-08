@@ -25,7 +25,7 @@ L'indicateur 27 ne s'applique pas : l'organisme ne sous-traite pas. Le formateur
 
 ## Migration
 
-Trois migrations, à appliquer dans l'ordre de leur horodatage. Toutes idempotentes et rejouables sur base vierge.
+Quatre migrations, à appliquer dans l'ordre de leur horodatage. Toutes idempotentes et rejouables sur base vierge.
 
 ### `20260902140000_quality_framework_and_vhd_register.sql`
 
@@ -46,6 +46,10 @@ Trois migrations, à appliquer dans l'ordre de leur horodatage. Toutes idempoten
 
 - Policy de `quality_risks` étendue au module `risques`, qui porte l'écran dédié. Le droit par `formations` est conservé : personne ne perd l'accès.
 
+### `20260908110000_vhd_procedure_public.sql`
+
+- Fonction `get_active_vhd_procedure()`, seule porte ouverte sur `vhd_procedures` pour un visiteur sans compte. Elle ne rend que la version **active** et seulement les champs à publier : ni brouillons, ni versions archivées, ni `created_by`.
+
 ### Réversibilité
 
 Aucune donnée existante n'est modifiée ni supprimée : les migrations ajoutent des colonnes et des tables. Un retour arrière consiste à supprimer les trois tables `vhd_*` et `quality_risks`, les sept colonnes ajoutées et les deux réglages. Aucune écriture n'a lieu sur les tables existantes.
@@ -53,7 +57,7 @@ Aucune donnée existante n'est modifiée ni supprimée : les migrations ajoutent
 ### Après application
 
 1. Vérifier que les quatre nouvelles tables existent et que `select` depuis un compte non administrateur renvoie zéro ligne.
-2. Renseigner la procédure de prévention dans `vhd_procedures` et la passer en `active`.
+2. Rédiger la procédure de prévention dans Signalements → Procédure et la mettre en vigueur.
 3. Compléter les quatre champs d'information du public pour chaque formation du catalogue.
 4. Laisser `distance_intervenant_threshold` vide tant que l'arrêté n'est pas publié.
 5. Accorder le module `risques` aux comptes qui doivent tenir le registre des risques ; les administrateurs l'ont d'office.
@@ -67,7 +71,7 @@ Aucune donnée existante n'est modifiée ni supprimée : les migrations ajoutent
 
 ## Fichiers
 
-**Migrations** : les trois ci-dessus, plus un garde de rejeu ajouté à `20260904081727_*.sql` (migration LMS venue de `main`, qui cassait la CI).
+**Migrations** : les quatre ci-dessus, plus un garde de rejeu ajouté à `20260904081727_*.sql` (migration LMS venue de `main`, qui cassait la CI).
 
 **Logique métier, testée à 100 %**
 - `src/lib/catalogSatisfaction.ts` — moyenne par formation et par année (ind. 2)
@@ -75,12 +79,14 @@ Aucune donnée existante n'est modifiée ni supprimée : les migrations ajoutent
 - `src/lib/vhdConstants.ts` — catégories, statuts, retards, construction d'enregistrement (ind. 12)
 - `src/lib/distanceFollowUp.ts` — statut d'effectivité du suivi à distance et faits qui le fondent (ind. 19)
 - `src/lib/qualityRiskConstants.ts` — échelles, bandes de criticité et synthèse du registre des risques (ind. 32)
+- `src/lib/vhdProcedure.ts` — versions de la procédure de prévention et conditions de publication (ind. 12)
 
 **Accès données**
 - `src/hooks/useVhdReports.ts`
 - `src/hooks/useDistanceFollowUp.ts` — consolidation des traces LMS existantes
 - `src/hooks/usePedagogicalReferent.ts` — référent de session et seuil de l'arrêté
 - `src/hooks/useQualityRisks.ts` — registre des risques et ses trois rattachements
+- `src/hooks/useVhdProcedures.ts` — versions de la procédure, archivage avant publication
 
 **Écrans**
 - `src/pages/Signalements.tsx` — registre des signalements (nouveau)
@@ -89,6 +95,8 @@ Aucune donnée existante n'est modifiée ni supprimée : les migrations ajoutent
 - `src/components/lms/DistanceFollowUpTab.tsx` — onglet « Suivi distanciel » d'un parcours LMS
 - `src/components/formations/PedagogicalReferent.tsx` — désignation sur la fiche session
 - `src/pages/RegistreRisques.tsx` — registre des risques qualité (nouveau)
+- `src/components/formations/VhdProcedureEditor.tsx` — onglet « Procédure » de la page Signalements
+- `src/pages/TrainingSummary.tsx` — publication de la procédure sur la page de session
 
 **Navigation** : `src/App.tsx`, `src/components/AppSidebar.tsx`, `src/components/moduleIcons.ts`, `src/hooks/useModuleAccess.ts`.
 
@@ -119,7 +127,18 @@ Le seul chiffre qui appelle une action est le nombre de risques actifs de bande 
 
 Les trois rattachements — formation du catalogue, réclamation à l'origine, action d'amélioration engagée — restent facultatifs : un risque transverse n'en a aucun. Ce sont eux qui distinguent la prévention de la correction.
 
+## Indicateur 12 : comment les apprenants sont informés
+
+La procédure vit dans `vhd_procedures`, pas dans le règlement intérieur. Ce dernier est un PDF déposé dans un réglage unique : le remplacer écrase le précédent, sans historique. On ne pourrait donc pas dire quelle procédure s'appliquait à la date de faits signalés, alors que le registre des signalements référence précisément cette version.
+
+Publier une version **archive** la précédente au lieu de l'écraser, et l'archivage passe avant la mise en vigueur : un index unique interdit deux procédures actives, l'ordre inverse échouerait en laissant l'ancienne en place sans le dire.
+
+Le canal d'information est la page publique de session, `/formation-info/:trainingId`, qui porte déjà le règlement intérieur. Son lien part dans l'email d'accueil de chaque participant (`send-welcome-email`) et dans les rappels de veille et du jour ; chaque envoi horodate `needs_survey_sent_at`. La trace disponible est donc : la version publiée, sa date d'entrée en vigueur, et la date d'envoi du lien à chaque apprenant.
+
+Ce que cela ne prouve pas : que l'apprenant a lu le texte. Le décret demande à l'organisme de s'assurer de la prévention et du traitement de ces situations, sans exiger d'accusé de lecture. Aucune case à cocher n'a donc été imposée, conformément à la consigne de ne pas coder de règle d'audit absente du texte. Une trace individuelle reste possible via le portail apprenant, déjà authentifié, si le besoin apparaît.
+
+Le règlement intérieur gagne à renvoyer vers cette section ; c'est une phrase à ajouter au PDF, hors application.
+
 ## Reste à faire
 
-- Écran d'édition de la procédure VHD (ind. 12) et preuve de l'information des apprenants.
 - Pièces jointes aux signalements et journal des consultations.

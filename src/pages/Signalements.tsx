@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ShieldAlert, Plus, AlertTriangle } from "lucide-react";
+import { ShieldAlert, Plus, AlertTriangle, FileText, ListChecks } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import VhdProcedureEditor from "@/components/formations/VhdProcedureEditor";
 import {
   Table,
   TableBody,
@@ -80,6 +82,7 @@ const Signalements = () => {
   } = useVhdReports();
   const { confirm, ConfirmDialog } = useConfirm();
 
+  const [tab, setTab] = useState("registre");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<VhdReportForm>(EMPTY_VHD_FORM);
@@ -140,13 +143,32 @@ const Signalements = () => {
           title="Signalements"
           subtitle="Violences, harcèlement et discriminations — registre confidentiel"
           actions={
-            <Button onClick={openCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              {!isMobile && "Nouveau signalement"}
-            </Button>
+            tab === "registre" ? (
+              <Button onClick={openCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                {!isMobile && "Nouveau signalement"}
+              </Button>
+            ) : undefined
           }
         />
 
+        <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="registre" className="gap-1.5">
+              <ListChecks className="w-4 h-4" />
+              Registre
+            </TabsTrigger>
+            <TabsTrigger value="procedure" className="gap-1.5">
+              <FileText className="w-4 h-4" />
+              Procédure
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="procedure">
+            <VhdProcedureEditor />
+          </TabsContent>
+
+          <TabsContent value="registre">
         <Card>
           <CardHeader className="pb-3">
             <div className="flex flex-wrap items-center gap-3">
@@ -247,6 +269,8 @@ const Signalements = () => {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+        </Tabs>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto">
