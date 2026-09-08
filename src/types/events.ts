@@ -4,6 +4,8 @@ export interface Event {
   description: string | null;
   event_date: string;
   event_time: string | null;
+  event_end_time: string | null;
+
   location: string | null;
   location_type: "physical" | "visio";
   notes: string | null;
