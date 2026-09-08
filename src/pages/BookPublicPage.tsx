@@ -46,7 +46,8 @@ export default function BookPublicPage() {
   }
 
   const { album, profile } = data;
-  const watermarkText = profile?.bio ?? 'Facilitation graphique';
+  void profile;
+  const watermarkText = '© SuperTilt — Tous droits réservés';
 
 
   return (
@@ -76,6 +77,7 @@ export default function BookPublicPage() {
                 onClick={() => openLightbox(index)}
                 onDelete={() => {}}
                 onEdit={() => {}}
+                watermarkText={production.file_type === 'image' ? watermarkText : undefined}
               />
             ))}
           </div>
