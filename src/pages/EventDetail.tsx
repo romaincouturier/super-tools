@@ -260,7 +260,9 @@ const EventDetail = () => {
                 <Badge variant="destructive">Annulé</Badge>
               )}
               <SendToContentBoardButton event={event} />
+              <AddEventToGoogleCalendarButton event={event} />
               <ShareEventDialog event={event} />
+
               <Button variant="outline" size="sm" onClick={handleDuplicate}>
                 <Copy className="h-4 w-4 mr-1" />
                 Dupliquer
