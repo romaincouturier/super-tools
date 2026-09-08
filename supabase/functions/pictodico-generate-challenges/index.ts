@@ -134,9 +134,11 @@ Pour chaque thème, tu sélectionnes parmi les MOTS COLLECTÉS ceux qui se rappo
 RÈGLES ABSOLUES :
 - N'utilise QUE des mots présents dans la liste des mots collectés, à l'identique (même orthographe).
 - N'invente jamais de mot.
-- Un même mot peut être utilisé pour un seul thème (le plus pertinent).
+- Un même mot peut être utilisé pour un seul thème (le plus pertinent) : aucun doublon d'un thème à l'autre.
+- Sélectionne au maximum 18 mots par thème, les plus pertinents d'abord.
 - Si un thème n'a aucun mot pertinent, retourne un tableau de mots vide.
 - Retourne UNIQUEMENT du JSON valide, sans texte avant ni après, sans markdown.`;
+
 
   const themesText = cleanThemes
     .map((t, i) => `${i + 1}. ${schedule[i].label} — ${t.theme}${t.description ? ` : ${t.description}` : ""}`)
@@ -176,6 +178,7 @@ Retourne un tableau JSON d'objets, un par thème, dans le même ordre :
       const picked = Array.isArray(entry?.words) ? entry.words : [];
       const selected: string[] = [];
       for (const w of picked) {
+        if (selected.length >= 18) break;
         const clean = String(w).trim().toLowerCase();
         if (allowed.has(clean) && !used.has(clean)) {
           used.add(clean);
