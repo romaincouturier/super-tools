@@ -709,7 +709,8 @@ function ChallengesTab() {
 
       // Marquer les mots retenus
       if (challenge.words.length > 0) {
-        const ids = words.filter((w) => challenge.words.includes(w.word)).map((w) => w.id);
+        const picked = new Set(challenge.words.map((w) => decodeWord(w).toLowerCase()));
+        const ids = words.filter((w) => picked.has(decodeWord(w.word).toLowerCase())).map((w) => w.id);
         if (ids.length > 0) {
           await supabase
             .from("pictodico_words")
