@@ -170,11 +170,25 @@ export async function getEventHistory(
 
   if (error) throw new Error(error.message);
 
-  const events = ((data ?? []) as Array<Record<string, unknown>>).map((e) => ({
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  const includeTranscripts = opts.include_transcripts !== false;
+  const transcriptsByEvent = includeTranscripts
+    ? await fetchEventTranscripts(
+        supabase,
+        rows.map((e) => e.id as string),
+        Boolean(opts.include_transcript_text),
+      )
+    : {};
+
+  const events = rows.map((e) => ({
     ...e,
     outcome: eventOutcome(e as { status?: string | null; cancellation_reason?: string | null; event_date: string }, today),
     cfp_status: cfpStatus(e as { cfp_deadline?: string | null; cfp_url?: string | null; cfp_submitted_at?: string | null }),
+    ...(includeTranscripts
+      ? { transcripts: transcriptsByEvent[e.id as string] ?? [] }
+      : {}),
   }));
+
 
   const countBy = (key: "outcome" | "cfp_status") =>
     events.reduce<Record<string, number>>((acc, e) => {
