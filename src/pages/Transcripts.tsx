@@ -22,11 +22,14 @@ import { TranscriptGenerationPanel } from "@/components/transcripts/TranscriptGe
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import {
-  useTranscripts,
+  useTranscriptsPage,
+  useTranscriptCounts,
   useTranscript,
   useTrashTranscript,
   useRestoreTranscript,
+  fetchTranscriptRawText,
   type Transcript,
+  type TranscriptListItem,
   type TranscriptSource,
   type TranscriptStatus,
 } from "@/hooks/useTranscripts";
@@ -198,14 +201,23 @@ function EditorialSheet({ t }: { t: Transcript }) {
   );
 }
 
-function TranscriptCard({ t, onClick }: { t: Transcript; onClick: () => void }) {
+function TranscriptCard({ t, onClick }: { t: TranscriptListItem; onClick: () => void }) {
   const displayTitle = t.ai_title || t.title || "Sans titre";
   const showFilename = !!t.ai_title && !!t.title && t.ai_title !== t.title;
   const { copy } = useCopyToClipboard();
-  const handleCopy = (e: React.MouseEvent) => {
+  const hasText = t.status === "ready";
+  const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!t.raw_text) return;
-    copy(t.raw_text, { title: "Transcript copié" });
+    try {
+      const raw = await fetchTranscriptRawText(t.id);
+      if (!raw) {
+        toast.error("Aucun texte disponible");
+        return;
+      }
+      copy(raw, { title: "Transcript copié" });
+    } catch {
+      toast.error("Impossible de copier le transcript");
+    }
   };
   return (
     <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
@@ -220,7 +232,7 @@ function TranscriptCard({ t, onClick }: { t: Transcript; onClick: () => void }) 
             )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {t.raw_text && (
+            {hasText && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -421,38 +433,34 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
   );
 }
 
+const PAGE_SIZE = 24;
+
 export default function Transcripts() {
   const [search, setSearch] = useState("");
   const [source, setSource] = useState<TranscriptSource | "">("");
   const [status, setStatus] = useState<TranscriptStatus | "">("");
   const [qualification, setQualification] = useState<string>("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
 
-  const { data: rawData, isLoading, refetch } = useTranscripts({
+  // Tout changement de filtre repart de la première page.
+  const resetPage = () => setPage(0);
+
+  const { data: pageData, isLoading, isFetching, refetch } = useTranscriptsPage({
     search,
     source,
     status: status === "trashed" ? "" : status,
     trashed: status === "trashed",
+    qualification,
+    page,
+    pageSize: PAGE_SIZE,
   });
 
-  // Vue éditoriale : filtre par qualification IA. "editorial" = vue resserrée
-  // qui exclut automatiquement le personnel/hors sujet et le non exploitable.
-  const data = (rawData ?? []).filter((t) => {
-    if (!qualification) return true;
-    if (qualification === "editorial") {
-      return t.editorial_qualification === "pro_exploitable";
-    }
-    if (qualification === "none") return !t.editorial_qualification;
-    return t.editorial_qualification === qualification;
-  });
+  const data = pageData?.rows ?? [];
+  const total = pageData?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const { data: trashedData } = useTranscripts({ trashed: true });
-  const counts = {
-    total: data?.length ?? 0,
-    ready: data?.filter((t) => t.status === "ready").length ?? 0,
-    processing: data?.filter((t) => t.status === "processing").length ?? 0,
-    trashed: trashedData?.length ?? 0,
-  };
+  const { data: counts = { total: 0, ready: 0, processing: 0, trashed: 0 } } = useTranscriptCounts(source);
   const isTrashedView = status === "trashed";
 
   return (
@@ -479,8 +487,8 @@ export default function Transcripts() {
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-3 mb-6">
         {[
-          { key: "total", label: "Total", value: counts.total, icon: <Mic className="h-4 w-4" />, onClick: () => setStatus("") },
-          { key: "ready", label: "Prêts", value: counts.ready, icon: <CheckCircle2 className="h-4 w-4 text-green-600" />, onClick: () => setStatus("ready") },
+          { key: "total", label: "Total", value: counts.total, icon: <Mic className="h-4 w-4" />, onClick: () => { setStatus(""); resetPage(); } },
+          { key: "ready", label: "Prêts", value: counts.ready, icon: <CheckCircle2 className="h-4 w-4 text-green-600" />, onClick: () => { setStatus("ready"); resetPage(); } },
           {
             key: "processing",
             label: "En cours",
@@ -488,14 +496,14 @@ export default function Transcripts() {
             icon: counts.processing > 0
               ? <Spinner className="text-blue-600" />
               : <Clock className="h-4 w-4 text-blue-600" />,
-            onClick: () => setStatus("processing"),
+            onClick: () => { setStatus("processing"); resetPage(); },
           },
           {
             key: "trashed",
             label: "Corbeille",
             value: counts.trashed,
             icon: <Trash2 className="h-4 w-4 text-muted-foreground" />,
-            onClick: () => setStatus("trashed"),
+            onClick: () => { setStatus("trashed"); resetPage(); },
           },
         ].map(({ key, label, value, icon, onClick }) => (
           <Card
@@ -525,10 +533,10 @@ export default function Transcripts() {
         <Input
           placeholder="Rechercher par titre…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); resetPage(); }}
           className="max-w-xs"
         />
-        <Select value={source || "all"} onValueChange={(v) => setSource(v === "all" ? "" : (v as TranscriptSource))}>
+        <Select value={source || "all"} onValueChange={(v) => { setSource(v === "all" ? "" : (v as TranscriptSource)); resetPage(); }}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Toutes les sources" />
           </SelectTrigger>
@@ -538,7 +546,7 @@ export default function Transcripts() {
             <SelectItem value="fireflies">Fireflies</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={status || "all"} onValueChange={(v) => setStatus(v === "all" ? "" : (v as TranscriptStatus))}>
+        <Select value={status || "all"} onValueChange={(v) => { setStatus(v === "all" ? "" : (v as TranscriptStatus)); resetPage(); }}>
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Tous les statuts" />
           </SelectTrigger>
@@ -551,7 +559,7 @@ export default function Transcripts() {
             <SelectItem value="trashed">Corbeille</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={qualification || "all"} onValueChange={(v) => setQualification(v === "all" ? "" : v)}>
+        <Select value={qualification || "all"} onValueChange={(v) => { setQualification(v === "all" ? "" : v); resetPage(); }}>
           <SelectTrigger className="w-52">
             <SelectValue placeholder="Toutes les qualifications" />
           </SelectTrigger>
@@ -586,12 +594,41 @@ export default function Transcripts() {
           </CardContent>
         </Card>
       )}
-      {!isLoading && data && data.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {data.map((t) => (
-            <TranscriptCard key={t.id} t={t} onClick={() => setSelectedId(t.id)} />
-          ))}
-        </div>
+      {!isLoading && data.length > 0 && (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {data.map((t) => (
+              <TranscriptCard key={t.id} t={t} onClick={() => setSelectedId(t.id)} />
+            ))}
+          </div>
+          <div className="flex items-center justify-between gap-3 mt-6">
+            <p className="text-xs text-muted-foreground">
+              {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} sur {total}
+              {isFetching && " · chargement…"}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 0 || isFetching}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+              >
+                Précédent
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Page {page + 1} / {pageCount}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page + 1 >= pageCount || isFetching}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Suivant
+              </Button>
+            </div>
+          </div>
+        </>
       )}
 
       {selectedId && <TranscriptDetail id={selectedId} onClose={() => setSelectedId(null)} />}

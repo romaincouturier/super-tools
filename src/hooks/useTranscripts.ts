@@ -48,6 +48,91 @@ interface UseTranscriptsOptions {
   trashed?: boolean;
 }
 
+/** Colonnes légères : exclut `raw_text` (parfois plusieurs centaines de Ko). */
+const LIST_COLUMNS =
+  "id, source, title, ai_title, external_id, summary, tags, duration_seconds, status, error_message, metadata, editorial_qualification, editorial_analysis, editorial_analyzed_at, created_at, updated_at";
+
+export type TranscriptListItem = Omit<Transcript, "raw_text">;
+
+interface UseTranscriptsPageOptions extends UseTranscriptsOptions {
+  /** Filtre de qualification éditoriale ("editorial", "none" ou une valeur exacte). */
+  qualification?: string;
+  page: number;
+  pageSize: number;
+}
+
+/**
+ * Liste paginée côté serveur (range + count exact), sans `raw_text`.
+ * Tri par date de création décroissante (assuré par Postgres, pas en mémoire).
+ */
+export function useTranscriptsPage({
+  search,
+  source,
+  status,
+  trashed,
+  qualification,
+  page,
+  pageSize,
+}: UseTranscriptsPageOptions) {
+  return useQuery({
+    queryKey: ["transcripts-page", { search, source, status, trashed, qualification, page, pageSize }],
+    queryFn: async () => {
+      let q = (supabase as any)
+        .from("transcripts")
+        .select(LIST_COLUMNS, { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(page * pageSize, page * pageSize + pageSize - 1);
+
+      if (trashed) q = q.eq("status", "trashed");
+      else if (status) q = q.eq("status", status);
+      else q = q.neq("status", "trashed");
+      if (source) q = q.eq("source", source);
+      if (search) q = q.ilike("title", `%${search}%`);
+      if (qualification === "none") q = q.is("editorial_qualification", null);
+      else if (qualification === "editorial") q = q.eq("editorial_qualification", "pro_exploitable");
+      else if (qualification) q = q.eq("editorial_qualification", qualification);
+
+      const { data, error, count } = await q;
+      if (error) throw error;
+      return { rows: (data ?? []) as TranscriptListItem[], total: count ?? 0 };
+    },
+  });
+}
+
+/** Compteurs KPI via `head: true` : aucune ligne transférée. */
+export function useTranscriptCounts(source?: TranscriptSource | "") {
+  return useQuery({
+    queryKey: ["transcripts-counts", source],
+    queryFn: async () => {
+      const countFor = async (build: (q: any) => any) => {
+        let q = (supabase as any).from("transcripts").select("id", { count: "exact", head: true });
+        if (source) q = q.eq("source", source);
+        const { count, error } = await build(q);
+        if (error) throw error;
+        return count ?? 0;
+      };
+      const [total, ready, processing, trashed] = await Promise.all([
+        countFor((q) => q.neq("status", "trashed")),
+        countFor((q) => q.eq("status", "ready")),
+        countFor((q) => q.eq("status", "processing")),
+        countFor((q) => q.eq("status", "trashed")),
+      ]);
+      return { total, ready, processing, trashed };
+    },
+  });
+}
+
+/** Récupère le texte brut d'un transcript à la demande (copie depuis la liste). */
+export async function fetchTranscriptRawText(id: string): Promise<string | null> {
+  const { data, error } = await (supabase as any)
+    .from("transcripts")
+    .select("raw_text")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return (data?.raw_text as string | null) ?? null;
+}
+
 export function useTranscripts({ search, source, status, trashed }: UseTranscriptsOptions = {}) {
   return useQuery({
     queryKey: ["transcripts", search, source, status, trashed ? "trashed" : "active"],
