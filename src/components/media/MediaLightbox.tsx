@@ -154,21 +154,21 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, autoFullscreen }: Med
           >
             {item.file_type === "image" ? (
               <img
-                src={item.file_url}
+                src={mediaUrl ?? undefined}
                 alt={item.file_name}
                 className="pointer-events-auto w-full h-full object-contain rounded"
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
               <video
-                src={item.file_url}
+                src={mediaUrl ?? undefined}
                 controls
                 autoPlay
                 playsInline
                 className="pointer-events-auto max-w-full max-h-full rounded"
                 onClick={(e) => e.stopPropagation()}
               >
-                <source src={item.file_url} type={item.mime_type || "video/mp4"} />
+                {mediaUrl && <source src={mediaUrl} type={item.mime_type || "video/mp4"} />}
               </video>
             )}
           </motion.div>
