@@ -3,7 +3,7 @@
  * Replaces the "Slack for WooCommerce" WordPress plugin: the SuperTools
  * webhook already receives every order, so the message is built here.
  *
- * Channel: app_settings.slack_ecommerce_channel (defaults to "e-commerce").
+ * Channel: app_settings.slack_ecommerce_channel (defaults to "ecommerce").
  * Idempotent: the caller passes the woocommerce_orders row id and the helper
  * stamps slack_notified_at so an order.updated webhook never re-posts.
  */
@@ -148,7 +148,7 @@ export async function postWooOrderToSlack(
     const { data: settings } = await supabase
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", ["slack_ecommerce_channel", "il_store_url"]);
+      .in("setting_key", ["slack_ecommerce_channel", "woocommerce_store_url"]);
 
     const map = new Map(
       ((settings ?? []) as Array<{ setting_key: string; setting_value: string | null }>)
@@ -156,7 +156,7 @@ export async function postWooOrderToSlack(
     );
 
     const channel = map.get("slack_ecommerce_channel") || "ecommerce";
-    const storeUrl = map.get("il_store_url") || null;
+    const storeUrl = map.get("woocommerce_store_url") || null;
 
     const headers = {
       "Authorization": `Bearer ${LOVABLE_API_KEY}`,
