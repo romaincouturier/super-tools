@@ -703,13 +703,21 @@ function ChallengesTab() {
     setSchedulingId(challenge.id);
     try {
       const time = (challenge.challenge_time || "12:30").slice(0, 5);
-      const [sh, sm] = time.split(":").map(Number);
-      const endMinutes = sh * 60 + sm + 30;
-      const endTime = `${String(Math.floor(endMinutes / 60) % 24).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
+      const endTime = (challenge.challenge_end_time || "13:00").slice(0, 5);
+      const number = challenge.challenge_number ?? null;
+      const title = number && !/#\d/.test(challenge.title)
+        ? `PictoChallenge #${number} — ${challenge.theme}`
+        : challenge.title;
       const description = [
+        number ? `PictoChallenge #${number}` : null,
         `Créneau : ${time.replace(":", "h")} - ${endTime.replace(":", "h")}`,
         challenge.theme_description,
-        challenge.words.length > 0 ? `Mots : ${challenge.words.join(", ")}` : null,
+        challenge.warmup_picto?.trim()
+          ? `Picto d'échauffement : ${challenge.warmup_picto.trim()}`
+          : null,
+        challenge.words.length > 0
+          ? `Mots :\n${challenge.words.map((w) => decodeWord(w)).join("\n")}`
+          : null,
       ]
         .filter(Boolean)
         .join("\n\n");
@@ -717,27 +725,31 @@ function ChallengesTab() {
       const { data: eventData, error: eventError } = await supabase
         .from("events")
         .insert({
-          title: challenge.title,
+          title,
           description: description || null,
           event_date: challenge.challenge_date.slice(0, 10),
           event_time: time,
+          event_end_time: endTime,
           event_type: "internal",
           status: "active",
           location_type: "visio",
-        })
+        } as never)
         .select("id")
         .single();
       if (eventError) throw eventError;
       const eventId = eventData.id as string;
 
       const payload = {
-        title: challenge.title,
+        title,
         theme: challenge.theme,
         theme_description: challenge.theme_description,
         warmup_picto: challenge.warmup_picto?.trim() || null,
         words: challenge.words,
         challenge_date: challenge.challenge_date.slice(0, 10),
         challenge_time: time,
+        challenge_end_time: endTime,
+        challenge_number: number,
+
         school_year: challenge.school_year,
         event_id: eventId,
       };
