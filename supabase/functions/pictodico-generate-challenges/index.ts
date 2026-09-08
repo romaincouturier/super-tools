@@ -42,7 +42,7 @@ async function callAnthropic(systemPrompt: string, userPrompt: string) {
     },
     body: JSON.stringify({
       model: CLAUDE_ADVANCED,
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
