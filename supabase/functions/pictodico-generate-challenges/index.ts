@@ -54,8 +54,29 @@ async function callAnthropic(systemPrompt: string, userPrompt: string) {
     trigger: "manual",
     usage: aiData.usage,
   });
-  return aiData.content?.[0]?.text || "";
+  // Concatène tous les blocs texte (les modèles récents peuvent renvoyer
+  // des blocs "thinking" avant le texte, d'où content[0] parfois vide).
+  const text = Array.isArray(aiData.content)
+    ? aiData.content
+        .filter((b: { type?: string; text?: string }) => typeof b?.text === "string")
+        .map((b: { text: string }) => b.text)
+        .join("\n")
+        .trim()
+    : "";
+  if (!text) {
+    console.error(
+      "[pictodico-generate-challenges] réponse Anthropic sans texte:",
+      JSON.stringify({
+        stop_reason: aiData.stop_reason,
+        content_types: Array.isArray(aiData.content)
+          ? aiData.content.map((b: { type?: string }) => b?.type)
+          : null,
+      }),
+    );
+  }
+  return text;
 }
+
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
