@@ -23,6 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
+import { openStorageUrl } from "@/lib/storageUrl";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useToast } from "@/hooks/use-toast";
 import { useGamePriceOptions, useReplaceGamePriceOptions } from "@/hooks/useGamePriceOptions";
@@ -558,7 +559,7 @@ function LocationContractSection({ item }: { item: OrderItem }) {
           <CheckCircle className="h-3.5 w-3.5" />
           Signé le {sig?.signed_at ? DATE(sig.signed_at) : ""}
           {sig?.signed_pdf_url && (
-            <a href={sig.signed_pdf_url} target="_blank" rel="noopener noreferrer" className="ml-1 underline">Télécharger</a>
+            <button type="button" onClick={() => openStorageUrl(sig.signed_pdf_url!)} className="ml-1 underline">Télécharger</button>
           )}
         </div>
       ) : isSent ? (

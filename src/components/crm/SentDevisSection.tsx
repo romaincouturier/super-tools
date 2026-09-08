@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { openStorageUrl } from "@/lib/storageUrl";
 import DOMPurify from "dompurify";
 
 interface SentDevisDetails {
@@ -150,9 +151,9 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
       setLoadingPdf(null);
     }
 
-    // Fallback to old PDFMonkey URL
+    // Fallback: legacy URL (public URL on a now-private bucket, or PDFMonkey link)
     if (fallbackUrl) {
-      window.open(fallbackUrl, "_blank");
+      await openStorageUrl(fallbackUrl);
       return;
     }
 

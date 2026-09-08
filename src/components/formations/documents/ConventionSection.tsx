@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { downloadFile } from "@/lib/file-utils";
+import { openStorageUrl } from "@/lib/storageUrl";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { formatSentDateTime } from "@/lib/dateFormatters";
 import {
@@ -231,9 +232,10 @@ const ConventionSection = ({
                   {conventionSignatureStatus.signed_at && <span className="text-xs text-green-600 dark:text-green-400 ml-1">le {formatSentDate(conventionSignatureStatus.signed_at)}</span>}
                 </div>
                 {conventionSignatureStatus.signed_pdf_url && (
-                  <a href={conventionSignatureStatus.signed_pdf_url} target="_blank" rel="noopener noreferrer">
-                    <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1"><FileDown className="h-3 w-3" /> PDF signé</Button>
-                  </a>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1"
+                    onClick={() => openStorageUrl(conventionSignatureStatus.signed_pdf_url!)}>
+                    <FileDown className="h-3 w-3" /> PDF signé
+                  </Button>
                 )}
                 <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => setShowAuditPanel(!showAuditPanel)}>
                   <Shield className="h-3 w-3" />Preuve{showAuditPanel ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}

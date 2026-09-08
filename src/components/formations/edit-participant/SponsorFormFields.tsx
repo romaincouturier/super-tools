@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/popover";
 import { ChevronsUpDown, Check, StickyNote, Loader2, CheckCircle2, ExternalLink, FileText, Upload, Trash2, Download } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { openStorageUrl } from "@/lib/storageUrl";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -295,16 +296,15 @@ const SponsorFormFields = ({
                 </p>
               )}
             </div>
-            <a
-              href={conventionSignature.signed_pdf_url}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => openStorageUrl(conventionSignature.signed_pdf_url!)}
             >
-              <Button type="button" variant="outline" size="sm">
-                <ExternalLink className="h-4 w-4 mr-1" />
-                Voir
-              </Button>
-            </a>
+              <ExternalLink className="h-4 w-4 mr-1" />
+              Voir
+            </Button>
           </div>
         )}
 
