@@ -629,6 +629,27 @@ function ChallengesTab() {
     }
   }
 
+  async function saveWarmupPicto(challenge: PictoChallenge, value: string) {
+    const clean = value.trim() || null;
+    if (clean === (challenge.warmup_picto ?? null)) return;
+
+    setGeneratedChallenges((prev) =>
+      prev.map((c) => (c.id === challenge.id ? { ...c, warmup_picto: clean } : c)),
+    );
+
+    if (challenge.id.startsWith("temp-")) return;
+
+    const { error } = await supabase
+      .from("pictodico_challenges")
+      .update({ warmup_picto: clean, updated_at: new Date().toISOString() } as never)
+      .eq("id", challenge.id);
+    if (error) {
+      toastError(toast, error.message);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["pictodico_challenges"] });
+  }
+
   async function scheduleChallenge(challenge: PictoChallenge) {
     setSchedulingId(challenge.id);
     try {
