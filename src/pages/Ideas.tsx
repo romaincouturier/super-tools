@@ -52,21 +52,31 @@ function IdeaCard({
   onVote,
   onPromote,
   onDelete,
+  onEdit,
 }: {
   idea: Idea;
   onVote: (i: Idea) => void;
   onPromote: (i: Idea) => void;
   onDelete: (id: string) => void;
+  onEdit: (i: Idea) => void;
 }) {
+  const stop = (fn: () => void) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fn();
+  };
   return (
-    <div className="rounded-lg border bg-card p-3 space-y-2 w-full">
+    <div
+      className="rounded-lg border bg-card p-3 space-y-2 w-full cursor-pointer hover:border-primary/50 transition-colors"
+      onClick={() => onEdit(idea)}
+      title="Modifier cette idée"
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="font-medium text-sm leading-snug break-words">{idea.title}</p>
         <Button
           variant={idea.has_voted ? "default" : "outline"}
           size="sm"
           className="h-7 shrink-0 gap-1 px-2"
-          onClick={() => onVote(idea)}
+          onClick={stop(() => onVote(idea))}
           title={idea.has_voted ? "Retirer mon vote" : "Voter pour cette idée"}
         >
           <ThumbsUp className="h-3.5 w-3.5" />
@@ -79,7 +89,7 @@ function IdeaCard({
       )}
 
       {idea.image_url && (
-        <a href={idea.image_url} target="_blank" rel="noreferrer">
+        <a href={idea.image_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
           <img src={idea.image_url} alt="" className="rounded-md max-h-32 w-full object-cover border" />
         </a>
       )}
@@ -107,7 +117,7 @@ function IdeaCard({
             size="icon"
             className="h-7 w-7 shrink-0"
             title="Promouvoir en amélioration"
-            onClick={() => onPromote(idea)}
+            onClick={stop(() => onPromote(idea))}
           >
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Button>
@@ -117,7 +127,7 @@ function IdeaCard({
           size="icon"
           className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
           title="Supprimer"
-          onClick={() => onDelete(idea.id)}
+          onClick={stop(() => onDelete(idea.id))}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
@@ -126,16 +136,20 @@ function IdeaCard({
   );
 }
 
-function NewIdeaDialog({
+function IdeaDialog({
   open,
   onOpenChange,
   onCreate,
   onFindSimilar,
+  editing,
+  onUpdate,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onCreate: (input: { title: string; description: string; tags: string[]; file: File | null }) => Promise<void>;
   onFindSimilar: (query: string) => Promise<SimilarIdea[]>;
+  editing: Idea | null;
+  onUpdate: (id: string, input: { title: string; description: string; tags: string[]; file: File | null }) => Promise<void>;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -147,6 +161,16 @@ function NewIdeaDialog({
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!open) return;
+    setTitle(editing?.title ?? "");
+    setDescription(editing?.description ?? "");
+    setTags((editing?.tags ?? []).join(", "));
+    setFile(null);
+    setSimilar([]);
+  }, [open, editing]);
+
+  useEffect(() => {
+    if (editing) { setSimilar([]); return; }
     const q = title.trim();
     if (q.length < 4) { setSimilar([]); return; }
     setSearching(true);
@@ -154,7 +178,7 @@ function NewIdeaDialog({
       try { setSimilar(await onFindSimilar(q)); } finally { setSearching(false); }
     }, 500);
     return () => clearTimeout(t);
-  }, [title, onFindSimilar]);
+  }, [title, onFindSimilar, editing]);
 
   const reset = () => {
     setTitle("");
@@ -167,13 +191,15 @@ function NewIdeaDialog({
   const submit = async () => {
     if (!title.trim()) return;
     setSaving(true);
+    const payload = {
+      title,
+      description,
+      tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+      file,
+    };
     try {
-      await onCreate({
-        title,
-        description,
-        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
-        file,
-      });
+      if (editing) await onUpdate(editing.id, payload);
+      else await onCreate(payload);
       reset();
       onOpenChange(false);
     } catch {
@@ -187,7 +213,7 @@ function NewIdeaDialog({
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
       <DialogContent className="w-full sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Nouvelle idée</DialogTitle>
+          <DialogTitle>{editing ? "Modifier l'idée" : "Nouvelle idée"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
@@ -249,6 +275,9 @@ function NewIdeaDialog({
               className="hidden"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
+            {!file && editing?.image_url && (
+              <p className="text-xs text-muted-foreground">Un fichier est déjà joint. En ajouter un le remplacera.</p>
+            )}
             {file ? (
               <div className="flex items-center gap-2 text-sm">
                 <ImageIcon className="h-4 w-4 text-muted-foreground" />
@@ -269,7 +298,7 @@ function NewIdeaDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={submit} disabled={!title.trim() || saving}>
             {saving ? <Spinner className="mr-2" /> : null}
-            Ajouter
+            {editing ? "Enregistrer" : "Ajouter"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -278,10 +307,11 @@ function NewIdeaDialog({
 }
 
 export default function Ideas() {
-  const { ideas, grouped, loading, createIdea, toggleVote, changeStatus, promoteIdea, removeIdea, findSimilarIdeas } = useIdeas();
+  const { ideas, grouped, loading, createIdea, updateIdea, toggleVote, changeStatus, promoteIdea, removeIdea, findSimilarIdeas } = useIdeas();
   const { confirm, ConfirmDialog } = useConfirm();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [editingIdea, setEditingIdea] = useState<Idea | null>(null);
 
   const statsItems: KanbanStatsItem[] = useMemo(
     () =>
@@ -328,7 +358,7 @@ export default function Ideas() {
                 <BarChart3 className="h-4 w-4 md:mr-2" />
                 <span className="hidden md:inline">Statistiques</span>
               </Button>
-              <Button onClick={() => setDialogOpen(true)}>
+              <Button onClick={() => { setEditingIdea(null); setDialogOpen(true); }}>
                 <Plus className="h-4 w-4 md:mr-2" />
                 <span className="hidden md:inline">Nouvelle idée</span>
               </Button>
@@ -347,6 +377,7 @@ export default function Ideas() {
               onVote={isDragging ? () => {} : toggleVote}
               onPromote={isDragging ? () => {} : promoteIdea}
               onDelete={isDragging ? () => {} : handleDelete}
+              onEdit={isDragging ? () => {} : (i) => { setEditingIdea(i); setDialogOpen(true); }}
             />
           )}
           renderColumnHeader={(col, colCards) => (
@@ -363,10 +394,12 @@ export default function Ideas() {
           }}
         />
 
-        <NewIdeaDialog
+        <IdeaDialog
           open={dialogOpen}
-          onOpenChange={setDialogOpen}
+          onOpenChange={(v) => { setDialogOpen(v); if (!v) setEditingIdea(null); }}
           onCreate={createIdea}
+          onUpdate={updateIdea}
+          editing={editingIdea}
           onFindSimilar={findSimilarIdeas}
         />
         <KanbanStatsDialog

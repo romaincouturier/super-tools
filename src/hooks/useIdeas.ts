@@ -155,6 +155,27 @@ export function useIdeas() {
     [user?.id, toast, fetchIdeas],
   );
 
+  const updateIdea = useCallback(
+    async (id: string, input: { title: string; description?: string; tags?: string[]; file?: File | null }) => {
+      try {
+        const patch: Record<string, unknown> = {
+          title: input.title.trim(),
+          description: input.description?.trim() || null,
+          tags: input.tags ?? [],
+        };
+        if (input.file) patch.image_url = await uploadIdeaFile(input.file);
+        const { error } = await anyDb.from("ideas").update(patch as never).eq("id", id);
+        if (error) throw error;
+        toast({ title: "Idée mise à jour" });
+        await fetchIdeas();
+      } catch (err) {
+        toastError(toast, err);
+        throw err;
+      }
+    },
+    [toast, fetchIdeas],
+  );
+
   const toggleVote = useCallback(
     async (idea: Idea) => {
       if (!user?.id) return;
@@ -237,6 +258,7 @@ export function useIdeas() {
     grouped,
     loading,
     createIdea,
+    updateIdea,
     toggleVote,
     changeStatus,
     promoteIdea,
