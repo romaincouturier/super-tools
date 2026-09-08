@@ -592,8 +592,31 @@ function ChallengesTab() {
     },
   });
 
+  function startProgressSimulation() {
+    const steps = [
+      { label: "Préparation de l'analyse des mots...", percent: 5 },
+      { label: "Association des mots aux thèmes 1 à 3...", percent: 20 },
+      { label: "Association des mots aux thèmes 4 à 6...", percent: 45 },
+      { label: "Association des mots aux thèmes 7 à 9...", percent: 70 },
+      { label: "Association du thème 10...", percent: 90 },
+      { label: "Finalisation des PictoChallenges...", percent: 98 },
+    ];
+    setGenerationProgress(steps[0]);
+    let index = 0;
+    const interval = setInterval(() => {
+      index++;
+      if (index < steps.length) {
+        setGenerationProgress(steps[index]);
+      } else {
+        clearInterval(interval);
+      }
+    }, 2200);
+    return interval;
+  }
+
   async function generateChallenges() {
     setIsGenerating(true);
+    const progressInterval = startProgressSimulation();
     try {
       const { data, error } = await supabase.functions.invoke("pictodico-generate-challenges", {
         body: {
@@ -624,10 +647,13 @@ function ChallengesTab() {
           updated_at: new Date().toISOString(),
         })),
       );
+      setGenerationProgress({ label: `${challenges.length} évènement(s) préparé(s)`, percent: 100 });
       toast({ title: `${challenges.length} évènement(s) préparé(s)` });
     } catch (err: unknown) {
       toastError(toast, err instanceof Error ? err.message : "Erreur lors de la génération");
     } finally {
+      clearInterval(progressInterval);
+      setTimeout(() => setGenerationProgress(null), 1200);
       setIsGenerating(false);
     }
   }
