@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useResolvedStorageUrl } from "@/hooks/useResolvedStorageUrl";
 
 interface MediaLightboxProps {
   item: MediaItem;
