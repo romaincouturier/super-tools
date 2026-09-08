@@ -511,6 +511,15 @@ if [ "$STAGED_MODE" = "false" ]; then
        [ \"\$a\" = \"\$b\" ] || echo \"VIOLATION [057]: \$c vaut \$a côté front et \$b côté serveur\"; \
      done"
 
+  # [057b] Un identifiant de modèle écrit en dur échappe au check ci-dessus et
+  # reste sur son ancienne version le jour où la constante bouge. Pire quand il
+  # est répété entre l'appel et le log de consommation : les deux peuvent
+  # diverger, et le tableau de bord attribue alors le coût au mauvais modèle.
+  check "057b" "Aucun identifiant de modèle Claude en dur dans les edge functions" \
+    "grep -rnE '\"claude-[a-z0-9.-]+\"' supabase/functions --include='*.ts' 2>/dev/null \
+       | grep -vE '_shared/(claude-models|api-pricing)\\.ts' \
+       | grep -v '\\.test\\.ts'"
+
   # [055c] L'Arena tient sa propre table de tarifs (elle facture aussi OpenAI et
   # Gemini). Les lignes Claude doivent rester égales à celles du serveur, sinon
   # deux écrans affichent deux coûts différents pour le même appel.

@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
+import { CLAUDE_ADVANCED } from "../_shared/claude-models.ts";
 
 const CATEGORIES = [
   "Facture",
@@ -111,7 +112,7 @@ serve(async (req) => {
         ...(isPdf ? { "anthropic-beta": "pdfs-2024-09-25" } : {}),
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: CLAUDE_ADVANCED,
         max_tokens: 400,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content }],
@@ -127,7 +128,7 @@ serve(async (req) => {
     await logAnthropicUsage({
       origin: "analyze-admin-document",
       operation: "classify",
-      model: "claude-sonnet-4-6",
+      model: CLAUDE_ADVANCED,
       trigger: "user",
       usage: claudeJson.usage,
     });

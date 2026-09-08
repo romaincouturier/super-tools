@@ -2,7 +2,6 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 import { getDossierFee } from "../_shared/dossier-fee.ts";
 import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
-import { reportEdgeError } from "../_shared/sentry.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 
 // Même modèle PDFMonkey que les conventions de formation classiques.

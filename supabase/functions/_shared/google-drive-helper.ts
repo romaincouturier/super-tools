@@ -4,6 +4,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logAnthropicUsage, logAssemblyAiUsage } from "./api-usage.ts";
+import { CLAUDE_DEFAULT } from "./claude-models.ts";
 import { refreshGoogleAccessToken } from "./google-oauth.ts";
 
 export interface DriveFile {
@@ -306,7 +307,7 @@ ${text.slice(0, 4000)}`;
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model: CLAUDE_DEFAULT,
         max_tokens: 512,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -315,7 +316,7 @@ ${text.slice(0, 4000)}`;
     await logAnthropicUsage({
       origin: "google-drive-helper",
       operation: "summarize-transcript",
-      model: "claude-haiku-4-5-20251001",
+      model: CLAUDE_DEFAULT,
       trigger: "cron",
       usage: data.usage,
     });
@@ -382,7 +383,7 @@ ${text.slice(0, 4000)}`;
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model: CLAUDE_DEFAULT,
         max_tokens: 256,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -391,7 +392,7 @@ ${text.slice(0, 4000)}`;
     await logAnthropicUsage({
       origin: "google-drive-helper",
       operation: "extract-testimonial-meta",
-      model: "claude-haiku-4-5-20251001",
+      model: CLAUDE_DEFAULT,
       trigger: "cron",
       usage: data.usage,
     });
