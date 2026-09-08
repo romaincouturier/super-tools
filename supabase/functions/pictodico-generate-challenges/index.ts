@@ -68,11 +68,13 @@ async function callAnthropic(systemPrompt: string, userPrompt: string) {
         .join("\n")
         .trim()
     : "";
-  if (!text) {
+  if (!text || aiData.stop_reason === "max_tokens") {
     console.error(
-      "[pictodico-generate-challenges] réponse Anthropic sans texte:",
+      "[pictodico-generate-challenges] réponse Anthropic incomplète:",
       JSON.stringify({
         stop_reason: aiData.stop_reason,
+        text_length: text.length,
+        output_tokens: aiData.usage?.output_tokens,
         content_types: Array.isArray(aiData.content)
           ? aiData.content.map((b: { type?: string }) => b?.type)
           : null,
