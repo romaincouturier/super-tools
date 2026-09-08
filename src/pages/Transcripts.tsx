@@ -22,11 +22,14 @@ import { TranscriptGenerationPanel } from "@/components/transcripts/TranscriptGe
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import {
-  useTranscripts,
+  useTranscriptsPage,
+  useTranscriptCounts,
   useTranscript,
   useTrashTranscript,
   useRestoreTranscript,
+  fetchTranscriptRawText,
   type Transcript,
+  type TranscriptListItem,
   type TranscriptSource,
   type TranscriptStatus,
 } from "@/hooks/useTranscripts";
