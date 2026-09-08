@@ -220,7 +220,8 @@ Retourne un tableau JSON d'objets, un par thème, dans le même ordre :
       };
     });
 
-    return json({ challenges });
+    const partial = challenges.some((c) => c.words.length === 0);
+    return json({ challenges, partial });
   } catch (err) {
     console.error("[pictodico-generate-challenges] erreur:", err);
     const message = err instanceof Error ? err.message : "Unknown error";
