@@ -198,14 +198,23 @@ function EditorialSheet({ t }: { t: Transcript }) {
   );
 }
 
-function TranscriptCard({ t, onClick }: { t: Transcript; onClick: () => void }) {
+function TranscriptCard({ t, onClick }: { t: TranscriptListItem; onClick: () => void }) {
   const displayTitle = t.ai_title || t.title || "Sans titre";
   const showFilename = !!t.ai_title && !!t.title && t.ai_title !== t.title;
   const { copy } = useCopyToClipboard();
-  const handleCopy = (e: React.MouseEvent) => {
+  const hasText = t.status === "ready";
+  const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!t.raw_text) return;
-    copy(t.raw_text, { title: "Transcript copié" });
+    try {
+      const raw = await fetchTranscriptRawText(t.id);
+      if (!raw) {
+        toast.error("Aucun texte disponible");
+        return;
+      }
+      copy(raw, { title: "Transcript copié" });
+    } catch {
+      toast.error("Impossible de copier le transcript");
+    }
   };
   return (
     <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
