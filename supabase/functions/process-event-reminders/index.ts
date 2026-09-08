@@ -107,14 +107,17 @@ serve(async (req) => {
       // Location / URL block
       const locParts: string[] = [];
       if (isVisio) {
-        const visioUrl = event.private_group_url || event.event_url || event.location;
+        const visioUrl = event.location || event.event_url;
         if (visioUrl && /^https?:\/\//i.test(visioUrl)) {
           locParts.push(`<p style="margin:8px 0;"><strong>Lien visio :</strong> <a href="${escapeHtml(visioUrl)}">${escapeHtml(visioUrl)}</a></p>`);
-        } else if (event.location) {
-          locParts.push(`<p style="margin:8px 0;"><strong>Visio :</strong> ${escapeHtml(event.location)}</p>`);
+        } else if (visioUrl) {
+          locParts.push(`<p style="margin:8px 0;"><strong>Visio :</strong> ${escapeHtml(visioUrl)}</p>`);
         }
       } else if (event.location) {
         locParts.push(`<p style="margin:8px 0;"><strong>Lieu :</strong> ${escapeHtml(event.location)}</p>`);
+      }
+      if (event.private_group_url && /^https?:\/\//i.test(event.private_group_url)) {
+        locParts.push(`<p style="margin:8px 0;"><strong>Groupe privé :</strong> <a href="${escapeHtml(event.private_group_url)}">${escapeHtml(event.private_group_url)}</a></p>`);
       }
       if (isExternal && event.event_url) {
         locParts.push(`<p style="margin:8px 0;"><strong>Site de l'évènement :</strong> <a href="${escapeHtml(event.event_url)}">${escapeHtml(event.event_url)}</a></p>`);
