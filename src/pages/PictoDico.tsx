@@ -775,6 +775,7 @@ function ChallengesTab() {
               key={challenge.id}
               challenge={challenge}
               onSchedule={scheduleChallenge}
+              onWarmupChange={saveWarmupPicto}
               isScheduling={schedulingId === challenge.id}
             />
           ))}
