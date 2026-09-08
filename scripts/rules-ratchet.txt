@@ -6,6 +6,10 @@
 017=125
 020=115
 # 037a : catch {} sans binding dans src (erreur avalée, invisible pour Sentry)
+#   233 depuis `src/lib/pictoWord.ts` (main) : `decodeURIComponent` lève sur une
+#   séquence % malformée, ce qui est une entrée attendue et non une panne. Le
+#   repli rend la chaîne brute, il n'y a aucune cause à remonter. Seule montée
+#   justifiée de ce cliquet ; toute autre hausse est une régression.
 # 037b : réponses d'erreur JSON construites à la main dans les edge functions (utiliser createErrorResponse)
-037a=232
-037b=371
+037a=233
+037b=361
