@@ -219,6 +219,7 @@ export async function getEventHistory(
       "cfp_status : submitted quand cfp_submitted_at est renseigné, not_submitted quand un CFP est repéré (deadline ou URL) sans soumission, no_cfp sinon.",
       "search balaye titre, description, notes, summary_notes et lieu en insensible à la casse. Il ne fait pas de recherche sémantique : un synonyme ne remonte pas.",
       "Les médias des événements ne sont pas exposés par ce tool.",
+      "transcripts = transcripts de réunion/enregistrements rattachés à l'événement (titre, résumé, tags). Passe include_transcript_text=true pour le texte intégral (tronqué à 20 000 caractères), include_transcripts=false pour les omettre.",
     ],
   };
 }
