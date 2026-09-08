@@ -143,11 +143,12 @@ RÈGLES ABSOLUES :
 - N'invente jamais de mot.
 - Un même mot peut être utilisé pour un seul thème (le plus pertinent) : aucun doublon d'un thème à l'autre.
 - Sélectionne au maximum 18 mots par thème, les plus pertinents d'abord.
+- Si un mot est en anglais, donne sa traduction française dans le champ "fr" (sinon "fr" vaut null).
 - Si un thème n'a aucun mot pertinent, retourne un tableau de mots vide.
 - Retourne UNIQUEMENT du JSON valide, sans texte avant ni après, sans markdown.`;
 
 
-  type Entry = { index: number; words: string[] };
+  type Entry = { index: number; words: (string | { w?: string; fr?: string | null })[] };
   const extract = (raw: string): Entry[] | null => {
     const direct = parseAiJson<Entry[]>(raw);
     if (Array.isArray(direct)) return direct;
@@ -171,7 +172,8 @@ Mots collectés encore disponibles (${pool.length}) :
 ${pool.length > 0 ? pool.join(", ") : "(aucun mot disponible)"}
 
 Retourne un tableau JSON d'objets, un par thème traité, avec l'index exact indiqué ci-dessus :
-[{ "index": ${chunk[0].index}, "words": ["mot1", "mot2"] }]`;
+[{ "index": ${chunk[0].index}, "words": [{ "w": "mot collecté", "fr": null }, { "w": "deadline", "fr": "échéance" }] }]`;
+
 
   try {
     const allowed = new Set(uniqueWords);
