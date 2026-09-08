@@ -22,7 +22,12 @@ export function useAddEventToGoogleCalendar() {
 
       const time = event.event_time ? event.event_time.slice(0, 5) : "09:00";
       const start = new Date(`${event.event_date}T${time}:00`);
-      const end = new Date(start.getTime() + 60 * 60 * 1000);
+      const endTime = event.event_end_time ? event.event_end_time.slice(0, 5) : null;
+      const end = endTime
+        ? new Date(`${event.event_date}T${endTime}:00`)
+        : new Date(start.getTime() + 60 * 60 * 1000);
+      if (end.getTime() <= start.getTime()) end.setTime(start.getTime() + 60 * 60 * 1000);
+
 
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-events?action=create-event`,
