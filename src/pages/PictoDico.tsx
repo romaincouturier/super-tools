@@ -466,6 +466,18 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
           </div>
         </div>
 
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Picto d'échauffement</label>
+          <Input
+            type="text"
+            placeholder="Ex : bonjour"
+            value={local.warmup_picto ?? ""}
+            onChange={(e) => setLocal((prev) => ({ ...prev, warmup_picto: e.target.value }))}
+            onBlur={(e) => onWarmupChange(local, e.target.value)}
+            className="text-sm"
+          />
+        </div>
+
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground">Mots retenus</label>
           <div className="flex flex-wrap gap-1.5 min-h-8">
