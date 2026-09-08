@@ -20,6 +20,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import VhdProcedureEditor from "@/components/formations/VhdProcedureEditor";
+import VhdReportEvidence from "@/components/formations/VhdReportEvidence";
 import {
   Table,
   TableBody,
@@ -88,6 +89,7 @@ const Signalements = () => {
   const [form, setForm] = useState<VhdReportForm>(EMPTY_VHD_FORM);
   const [saving, setSaving] = useState(false);
   const [narrativeLoaded, setNarrativeLoaded] = useState(true);
+  const [narrativeReadAt, setNarrativeReadAt] = useState(0);
 
   const today = todayAsISO();
 
@@ -118,6 +120,8 @@ const Signalements = () => {
     // prime sur le récit stocké.
     setForm((prev) => (prev.narrative ? prev : { ...prev, narrative }));
     setNarrativeLoaded(true);
+    // La lecture vient d'être journalisée : le journal affiché doit la montrer.
+    setNarrativeReadAt(Date.now());
   };
 
   const handleSave = async () => {
@@ -393,6 +397,10 @@ const Signalements = () => {
                 />
               </div>
             </div>
+
+            {editingId && (
+              <VhdReportEvidence reportId={editingId} narrativeReadAt={narrativeReadAt} />
+            )}
 
             <DialogFooter className="gap-2 sm:justify-between">
               {editingId && (

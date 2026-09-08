@@ -19,3 +19,12 @@ api_usage_events
 # prouve le traitement ; le témoignage lui-même ne quitte pas la base, pour ne
 # pas en laisser de copie en clair dans Drive pendant toute la rotation GFS.
 vhd_report_narratives
+# vhd_report_attachments : métadonnées des pièces jointes d'un signalement. Les
+# fichiers eux-mêmes vivent dans le bucket privé vhd-attachments, volontairement
+# absent de STORAGE_BUCKETS. Sauvegarder les métadonnées sans les fichiers ne
+# restaurerait rien et exposerait les noms de fichiers, souvent nominatifs.
+vhd_report_attachments
+# vhd_narrative_access : journal des consultations du récit. Il documente qui a
+# lu quoi ; sorti de la base, il devient lui-même une donnée à protéger sans
+# rien apporter à une restauration.
+vhd_narrative_access

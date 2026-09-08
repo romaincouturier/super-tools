@@ -12086,6 +12086,76 @@ export type Database = {
         }
         Relationships: []
       }
+      vhd_narrative_access: {
+        Row: {
+          accessed_at: string
+          id: string
+          report_id: string
+          user_id: string | null
+        }
+        Insert: {
+          accessed_at?: string
+          id?: string
+          report_id: string
+          user_id?: string | null
+        }
+        Update: {
+          accessed_at?: string
+          id?: string
+          report_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vhd_narrative_access_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "vhd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vhd_report_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          report_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          report_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          report_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vhd_report_attachments_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "vhd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vhd_report_narratives: {
         Row: {
           created_at: string

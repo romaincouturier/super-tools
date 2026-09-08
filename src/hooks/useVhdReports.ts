@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { rpc } from "@/lib/supabase-rpc";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { todayAsISO } from "@/lib/dateFormatters";
@@ -108,19 +109,19 @@ export function useVhdReports() {
     [reports, today],
   );
 
-  /** Le récit n'est chargé que lorsqu'on ouvre un signalement précis. */
+  /**
+   * Le récit n'est chargé que lorsqu'on ouvre un signalement précis, et la
+   * lecture passe par un RPC qui la journalise avant de rendre le texte : dans
+   * l'application, on ne peut pas lire un témoignage sans laisser de trace.
+   */
   const fetchNarrative = useCallback(async (reportId: string): Promise<string> => {
-    const { data, error } = await supabase
-      .from("vhd_report_narratives")
-      .select("narrative")
-      .eq("report_id", reportId)
-      .maybeSingle();
+    const { data, error } = await rpc.readVhdNarrative(reportId);
 
     if (error) {
       console.error("Error fetching narrative:", error);
       return "";
     }
-    return data?.narrative ?? "";
+    return data ?? "";
   }, []);
 
   const saveReport = useCallback(

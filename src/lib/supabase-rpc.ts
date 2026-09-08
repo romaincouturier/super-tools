@@ -388,6 +388,13 @@ export interface ActiveVhdProcedure {
   effective_from: string | null;
 }
 
+/** Une consultation du récit d'un signalement. */
+export interface VhdNarrativeAccess {
+  accessed_at: string;
+  user_id: string | null;
+  reader: string;
+}
+
 export const rpc = {
   // --- Training public ---
   getTrainingPublicInfo: (trainingId: string) =>
@@ -545,6 +552,13 @@ export const rpc = {
   /** Procédure de prévention en vigueur, pour la page publique de session. */
   getActiveVhdProcedure: () =>
     call<ActiveVhdProcedure | null>("get_active_vhd_procedure", {}),
+
+  /** Récit d'un signalement. La lecture est journalisée par la base. */
+  readVhdNarrative: (reportId: string) =>
+    call<string | null>("read_vhd_narrative", { p_report_id: reportId }),
+
+  getVhdNarrativeAccess: (reportId: string) =>
+    call<VhdNarrativeAccess[]>("get_vhd_narrative_access", { p_report_id: reportId }),
 
   // --- Rate limiting ---
   checkFormulairRateLimit: (ipAddress: string, maxRequests: number, windowSeconds: number) =>

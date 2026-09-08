@@ -25,7 +25,7 @@ L'indicateur 27 ne s'applique pas : l'organisme ne sous-traite pas. Le formateur
 
 ## Migration
 
-Quatre migrations, à appliquer dans l'ordre de leur horodatage. Toutes idempotentes et rejouables sur base vierge.
+Six migrations, à appliquer dans l'ordre de leur horodatage. Toutes idempotentes et rejouables sur base vierge.
 
 ### `20260902140000_quality_framework_and_vhd_register.sql`
 
@@ -50,13 +50,24 @@ Quatre migrations, à appliquer dans l'ordre de leur horodatage. Toutes idempote
 
 - Fonction `get_active_vhd_procedure()`, seule porte ouverte sur `vhd_procedures` pour un visiteur sans compte. Elle ne rend que la version **active** et seulement les champs à publier : ni brouillons, ni versions archivées, ni `created_by`.
 
+### `20260908120000_vhd_narrative_access_log.sql`
+
+- `vhd_narrative_access` : journal des consultations du récit, en lecture seule pour les administrateurs et sans aucune policy d'écriture.
+- `read_vhd_narrative()` journalise **avant** de rendre le texte ; `get_vhd_narrative_access()` rend le journal d'un signalement.
+- La policy `FOR ALL` de `vhd_report_narratives` est remplacée par ses trois verbes d'écriture : la lecture directe disparaît, seule la fonction reste.
+
+### `20260908130000_vhd_report_attachments.sql`
+
+- Bucket privé `vhd-attachments` et table `vhd_report_attachments`, tous deux réservés aux administrateurs.
+- Le bucket est **absent** de `STORAGE_BUCKETS` et déclaré dans `scripts/backup-bucket-exclusions.txt`.
+
 ### Réversibilité
 
-Aucune donnée existante n'est modifiée ni supprimée : les migrations ajoutent des colonnes et des tables. Un retour arrière consiste à supprimer les trois tables `vhd_*` et `quality_risks`, les sept colonnes ajoutées et les deux réglages. Aucune écriture n'a lieu sur les tables existantes.
+Aucune donnée existante n'est modifiée ni supprimée : les migrations ajoutent des colonnes et des tables. Un retour arrière consiste à supprimer les cinq tables `vhd_*`, `quality_risks`, les sept colonnes ajoutées et les deux réglages, puis à rétablir la policy `FOR ALL` d'origine sur `vhd_report_narratives`. Aucune écriture n'a lieu sur les tables existantes.
 
 ### Après application
 
-1. Vérifier que les quatre nouvelles tables existent et que `select` depuis un compte non administrateur renvoie zéro ligne.
+1. Vérifier que les six nouvelles tables existent et que `select` depuis un compte non administrateur renvoie zéro ligne.
 2. Rédiger la procédure de prévention dans Signalements → Procédure et la mettre en vigueur.
 3. Compléter les quatre champs d'information du public pour chaque formation du catalogue.
 4. Laisser `distance_intervenant_threshold` vide tant que l'arrêté n'est pas publié.
@@ -67,11 +78,13 @@ Aucune donnée existante n'est modifiée ni supprimée : les migrations ajoutent
 
 `vhd_procedures`, `vhd_reports` et `quality_risks` sont ajoutées aux deux listes de sauvegarde.
 
-`vhd_report_narratives` est **explicitement exclue** (`scripts/backup-exclusions.txt`). Le registre part dans la sauvegarde et prouve que les signalements sont traités ; le récit nominatif d'une victime ne quitte pas la base. Sans cette exclusion, un témoignage se retrouverait en clair dans Drive pendant toute la rotation, et une demande d'effacement deviendrait impossible à honorer.
+Trois éléments sont **explicitement exclus** : la table `vhd_report_narratives`, la table `vhd_report_attachments` et le bucket `vhd-attachments` (`scripts/backup-exclusions.txt` et `scripts/backup-bucket-exclusions.txt`), plus `vhd_narrative_access` qui documente qui a lu quoi et n'apporte rien à une restauration.
+
+Le raisonnement est le même pour les quatre. Le registre part dans la sauvegarde et prouve que les signalements sont traités ; ce qui est nominatif — un témoignage, une attestation jointe, le nom d'un fichier, la trace de qui a lu quoi — ne quitte pas la base. Sans ces exclusions, ces données se retrouveraient en clair dans Drive pendant toute la rotation, et une demande d'effacement deviendrait impossible à honorer.
 
 ## Fichiers
 
-**Migrations** : les quatre ci-dessus, plus un garde de rejeu ajouté à `20260904081727_*.sql` (migration LMS venue de `main`, qui cassait la CI).
+**Migrations** : les six ci-dessus, plus un garde de rejeu ajouté à `20260904081727_*.sql` (migration LMS venue de `main`, qui cassait la CI).
 
 **Logique métier, testée à 100 %**
 - `src/lib/catalogSatisfaction.ts` — moyenne par formation et par année (ind. 2)
@@ -87,6 +100,7 @@ Aucune donnée existante n'est modifiée ni supprimée : les migrations ajoutent
 - `src/hooks/usePedagogicalReferent.ts` — référent de session et seuil de l'arrêté
 - `src/hooks/useQualityRisks.ts` — registre des risques et ses trois rattachements
 - `src/hooks/useVhdProcedures.ts` — versions de la procédure, archivage avant publication
+- `src/hooks/useVhdAttachments.ts` — pièces jointes, URL signée à courte durée
 
 **Écrans**
 - `src/pages/Signalements.tsx` — registre des signalements (nouveau)
@@ -97,6 +111,7 @@ Aucune donnée existante n'est modifiée ni supprimée : les migrations ajoutent
 - `src/pages/RegistreRisques.tsx` — registre des risques qualité (nouveau)
 - `src/components/formations/VhdProcedureEditor.tsx` — onglet « Procédure » de la page Signalements
 - `src/pages/TrainingSummary.tsx` — publication de la procédure sur la page de session
+- `src/components/formations/VhdReportEvidence.tsx` — pièces jointes et journal des consultations
 
 **Navigation** : `src/App.tsx`, `src/components/AppSidebar.tsx`, `src/components/moduleIcons.ts`, `src/hooks/useModuleAccess.ts`.
 
@@ -139,6 +154,12 @@ Ce que cela ne prouve pas : que l'apprenant a lu le texte. Le décret demande à
 
 Le règlement intérieur gagne à renvoyer vers cette section ; c'est une phrase à ajouter au PDF, hors application.
 
-## Reste à faire
+## Ce que le registre garantit
 
-- Pièces jointes aux signalements et journal des consultations.
+Une consultation du récit laisse une trace : la lecture passe par une fonction qui journalise avant de rendre le texte, et la policy de lecture directe a été retirée pour que ce ne soit pas qu'une convention. Le journal est visible sous chaque signalement, avec la date et le lecteur.
+
+Une pièce jointe ne quitte pas la base : bucket privé, exclu de la sauvegarde Drive, jamais d'URL publique. Un fichier ne s'ouvre que par un lien signé valable cinq minutes, créé au moment du clic ; un lien copié ne survit pas à la journée.
+
+Les deux exclusions de sauvegarde ont le même motif que celle du récit : ce qui est nominatif ne part pas en copie claire dans une rotation conservée sept jours, quatre semaines et trois mois, où une demande d'effacement deviendrait impossible à honorer. Le registre, lui, est sauvegardé et prouve le traitement.
+
+Un accès avec la clé de service échappe au journal. Il couvre l'usage de l'application, pas la base elle-même.

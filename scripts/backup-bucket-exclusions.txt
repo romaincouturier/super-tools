@@ -3,3 +3,9 @@
 # N'exclure que du contenu éphémère ou regénérable. Une ligne par bucket.
 # app-screenshots : captures du module monitoring, regénérées en continu.
 app-screenshots
+# vhd-attachments : preuves jointes à un signalement de violence, de harcèlement
+# ou de discrimination. Même raison que la table vhd_report_narratives : le
+# registre sauvegardé prouve le traitement, mais une capture d'écran ou une
+# attestation nominative ne part pas en copie claire dans Drive pour toute la
+# rotation GFS, où une demande d'effacement deviendrait impossible à honorer.
+vhd-attachments
