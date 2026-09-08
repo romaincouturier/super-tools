@@ -40,6 +40,7 @@ interface PictoWord {
   request_type: "demande_ajout" | "erreur_signalee" | null;
   source_url: string | null;
   error_description: string | null;
+  is_chosen: boolean | null;
   received_at: string | null;
   created_at: string;
 }
@@ -48,8 +49,10 @@ interface PictoChallenge {
   id: string;
   title: string;
   theme: string;
+  theme_description: string | null;
   words: string[];
   challenge_date: string;
+  challenge_time: string | null;
   school_year: string;
   event_id: string | null;
   created_at: string;
@@ -60,10 +63,13 @@ interface GeneratedChallenge {
   month: number;
   year: number;
   theme: string;
+  theme_description: string | null;
   words: string[];
   challenge_date: string;
+  challenge_time: string | null;
   title: string;
 }
+
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -233,16 +239,36 @@ function WordsTab() {
                 <tbody>
                   {filtered.map((word) => (
                     <tr key={word.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium">{word.word}</td>
+                      <td className="px-4 py-3 font-medium">
+                        <span className="inline-flex items-center gap-1.5">
+                          {word.is_chosen && <span title="Mot retenu pour un PictoChallenge">✅</span>}
+                          {word.word}
+                        </span>
+                      </td>
                       <td className="px-4 py-3">
                         {word.request_type ? (
-                          <Badge variant={word.request_type === "erreur_signalee" ? "destructive" : "secondary"} className="text-xs">
-                            {word.request_type === "erreur_signalee" ? "Erreur signalée" : "Demande d'ajout"}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={word.request_type === "erreur_signalee" ? "destructive" : "secondary"} className="text-xs">
+                              {word.request_type === "erreur_signalee" ? "Erreur signalée" : "Demande d'ajout"}
+                            </Badge>
+                            {word.request_type === "erreur_signalee" && word.source_url && (
+                              <a
+                                href={word.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs text-primary underline"
+                                title={word.error_description || "Ouvrir la page concernée"}
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                Voir la page
+                              </a>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
+
                       <td className="px-4 py-3">
                         <Badge variant="outline" className="text-xs">
                           {word.source === "webhook" ? "Webhook" : "Manuel"}
@@ -384,48 +410,19 @@ function ImportTab() {
 
 interface ChallengeCardProps {
   challenge: PictoChallenge;
-  onSave: (updated: PictoChallenge) => void;
-  onCreateEvent: (challenge: PictoChallenge) => void;
-  isSaving: boolean;
-  isCreatingEvent: boolean;
+  onSchedule: (challenge: PictoChallenge) => void;
+  isScheduling: boolean;
 }
 
-function ChallengeCard({ challenge, onSave, onCreateEvent, isSaving, isCreatingEvent }: ChallengeCardProps) {
+function ChallengeCard({ challenge, onSchedule, isScheduling }: ChallengeCardProps) {
   const [local, setLocal] = useState<PictoChallenge>(challenge);
-  const [newWord, setNewWord] = useState("");
 
   useEffect(() => {
     setLocal(challenge);
   }, [challenge]);
 
-  const wordCount = local.words.length;
-  const wordCountColor =
-    wordCount < 15 || wordCount > 18
-      ? "bg-red-100 text-red-700 border-red-200"
-      : "bg-green-100 text-green-700 border-green-200";
-
-  const monthNum = local.challenge_date
-    ? parseISO(local.challenge_date).getMonth() + 1
-    : null;
-
+  const monthNum = local.challenge_date ? parseISO(local.challenge_date).getMonth() + 1 : null;
   const monthLabel = monthNum ? MONTH_LABELS[monthNum] : "—";
-
-  function addWord() {
-    const trimmed = newWord.trim();
-    if (!trimmed || local.words.includes(trimmed)) return;
-    setLocal((prev) => ({ ...prev, words: [...prev.words, trimmed] }));
-    setNewWord("");
-  }
-
-  function removeWord(word: string) {
-    setLocal((prev) => ({ ...prev, words: prev.words.filter((w) => w !== word) }));
-  }
-
-  const isDirty =
-    local.title !== challenge.title ||
-    local.theme !== challenge.theme ||
-    local.challenge_date !== challenge.challenge_date ||
-    JSON.stringify(local.words) !== JSON.stringify(challenge.words);
 
   return (
     <Card className="flex flex-col">
@@ -434,121 +431,78 @@ function ChallengeCard({ challenge, onSave, onCreateEvent, isSaving, isCreatingE
           <span className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
             {monthLabel}
           </span>
-          <Badge variant="outline" className={`text-xs font-medium border ${wordCountColor}`}>
-            {wordCount} mot{wordCount !== 1 ? "s" : ""}
+          <Badge variant="secondary" className="text-xs">
+            {local.words.length} mot{local.words.length !== 1 ? "s" : ""}
           </Badge>
         </div>
-        <Input
-          value={local.title}
-          onChange={(e) => setLocal((prev) => ({ ...prev, title: e.target.value }))}
-          className="font-semibold text-base mt-1"
-          placeholder="Titre du challenge"
-        />
+        <CardTitle className="text-base mt-1">{local.theme}</CardTitle>
+        {local.theme_description && (
+          <p className="text-xs text-muted-foreground">{local.theme_description}</p>
+        )}
       </CardHeader>
       <CardContent className="flex-1 space-y-3 pt-0">
-        {/* Date */}
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Date</label>
-          <Input
-            type="date"
-            value={local.challenge_date ? local.challenge_date.slice(0, 10) : ""}
-            onChange={(e) =>
-              setLocal((prev) => ({ ...prev, challenge_date: e.target.value }))
-            }
-            className="text-sm"
-          />
-        </div>
-
-        {/* Theme */}
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Thème</label>
-          <Input
-            value={local.theme}
-            onChange={(e) => setLocal((prev) => ({ ...prev, theme: e.target.value }))}
-            placeholder="Thème du challenge"
-            className="text-sm"
-          />
-        </div>
-
-        {/* Words */}
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">Mots</label>
-          <div className="flex flex-wrap gap-1.5 min-h-8">
-            {local.words.map((word) => (
-              <span
-                key={word}
-                className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs px-2 py-1 rounded-full font-medium"
-              >
-                {word}
-                <button
-                  type="button"
-                  onClick={() => removeWord(word)}
-                  className="hover:text-destructive transition-colors ml-0.5"
-                  aria-label={`Supprimer ${word}`}
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-          <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Date</label>
             <Input
-              value={newWord}
-              onChange={(e) => setNewWord(e.target.value)}
-              placeholder="Ajouter un mot..."
+              type="date"
+              value={local.challenge_date ? local.challenge_date.slice(0, 10) : ""}
+              onChange={(e) => setLocal((prev) => ({ ...prev, challenge_date: e.target.value }))}
               className="text-sm"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addWord();
-                }
-              }}
+              disabled={!!local.event_id}
             />
-            <Button type="button" variant="outline" size="sm" onClick={addWord} disabled={!newWord.trim()}>
-              <Plus className="h-4 w-4" />
-            </Button>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Heure</label>
+            <Input
+              type="time"
+              value={(local.challenge_time || "09:00").slice(0, 5)}
+              onChange={(e) => setLocal((prev) => ({ ...prev, challenge_time: e.target.value }))}
+              className="text-sm"
+              disabled={!!local.event_id}
+            />
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-2 pt-2 border-t">
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1 text-xs"
-            onClick={() => onSave(local)}
-            disabled={isSaving || !isDirty}
-          >
-            {isSaving ? <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> : null}
-            Sauvegarder
-          </Button>
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-muted-foreground">Mots retenus</label>
+          <div className="flex flex-wrap gap-1.5 min-h-8">
+            {local.words.length === 0 ? (
+              <span className="text-xs text-muted-foreground">Aucun mot rattaché à ce thème</span>
+            ) : (
+              local.words.map((word) => (
+                <span
+                  key={word}
+                  className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs px-2 py-1 rounded-full font-medium"
+                >
+                  {word}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
 
+        <div className="flex gap-2 pt-2 border-t">
           {local.event_id ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-xs text-primary"
-              asChild
-            >
-              <a href="/events" target="_blank" rel="noopener noreferrer">
+            <Button size="sm" variant="ghost" className="text-xs text-primary" asChild>
+              <a href={`/events/${local.event_id}`} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-3 w-3 mr-1" />
-                Voir l'événement
+                Voir l'évènement
               </a>
             </Button>
           ) : (
             <Button
               size="sm"
-              variant="secondary"
               className="flex-1 text-xs"
-              onClick={() => onCreateEvent(local)}
-              disabled={isCreatingEvent}
+              onClick={() => onSchedule(local)}
+              disabled={isScheduling}
             >
-              {isCreatingEvent ? (
+              {isScheduling ? (
                 <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
               ) : (
                 <CalendarDays className="h-3 w-3 mr-1" />
               )}
-              Créer événement
+              Programmer
             </Button>
           )}
         </div>
@@ -561,14 +515,38 @@ function ChallengeCard({ challenge, onSave, onCreateEvent, isSaving, isCreatingE
 // Tab: PictoChallenges
 // ---------------------------------------------------------------------------
 
+export interface ParsedTheme {
+  theme: string;
+  description: string;
+}
+
+/** Parse "THEME : description" (une par ligne). */
+export function parseThemeLines(raw: string): ParsedTheme[] {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => {
+      const idx = line.indexOf(":");
+      if (idx === -1) return { theme: line, description: "" };
+      return {
+        theme: line.slice(0, idx).trim(),
+        description: line.slice(idx + 1).trim(),
+      };
+    })
+    .filter((t) => t.theme.length > 0);
+}
+
 function ChallengesTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [startYear, setStartYear] = useState(getDefaultStartYear);
+  const [themesInput, setThemesInput] = useState("");
   const [generatedChallenges, setGeneratedChallenges] = useState<PictoChallenge[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [creatingEventId, setCreatingEventId] = useState<string | null>(null);
+  const [schedulingId, setSchedulingId] = useState<string | null>(null);
+
+  const parsedThemes = useMemo(() => parseThemeLines(themesInput), [themesInput]);
 
   const { data: savedChallenges = [] } = useQuery<PictoChallenge[]>({
     queryKey: ["pictodico_challenges", startYear],
@@ -579,11 +557,10 @@ function ChallengesTab() {
         .eq("school_year", schoolYearLabel(startYear))
         .order("challenge_date", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as PictoChallenge[];
+      return (data ?? []) as unknown as PictoChallenge[];
     },
   });
 
-  // Merge: saved challenges override generated ones by id
   const displayChallenges = generatedChallenges.length > 0 ? generatedChallenges : savedChallenges;
 
   const { data: words = [] } = useQuery<PictoWord[]>({
@@ -594,131 +571,122 @@ function ChallengesTab() {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as PictoWord[];
+      return (data ?? []) as unknown as PictoWord[];
     },
   });
 
   async function generateChallenges() {
     setIsGenerating(true);
     try {
-      const wordList = words.map((w) => w.word);
       const { data, error } = await supabase.functions.invoke("pictodico-generate-challenges", {
-        body: { words: wordList, startYear },
+        body: {
+          words: words.map((w) => w.word),
+          startYear,
+          themes: parsedThemes,
+        },
       });
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       const challenges: GeneratedChallenge[] = data?.challenges ?? [];
-      if (challenges.length === 0) throw new Error("Aucun challenge généré");
+      if (challenges.length === 0) throw new Error("Aucun évènement préparé");
 
-      // Map to PictoChallenge shape (no id yet = temp uuid)
-      const mapped: PictoChallenge[] = challenges.map((c, i) => ({
-        id: `temp-${i}`,
-        title: c.title,
-        theme: c.theme,
-        words: c.words,
-        challenge_date: c.challenge_date,
-        school_year: schoolYearLabel(startYear),
-        event_id: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }));
-
-      setGeneratedChallenges(mapped);
-      toast({ title: `${mapped.length} challenge${mapped.length !== 1 ? "s" : ""} générés` });
+      setGeneratedChallenges(
+        challenges.map((c, i) => ({
+          id: `temp-${i}`,
+          title: c.title,
+          theme: c.theme,
+          theme_description: c.theme_description ?? null,
+          words: c.words,
+          challenge_date: c.challenge_date,
+          challenge_time: c.challenge_time ?? "09:00",
+          school_year: schoolYearLabel(startYear),
+          event_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })),
+      );
+      toast({ title: `${challenges.length} évènement(s) préparé(s)` });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erreur lors de la génération";
-      toastError(toast, message);
+      toastError(toast, err instanceof Error ? err.message : "Erreur lors de la génération");
     } finally {
       setIsGenerating(false);
     }
   }
 
-  async function saveChallenge(updated: PictoChallenge) {
-    setSavingId(updated.id);
+  async function scheduleChallenge(challenge: PictoChallenge) {
+    setSchedulingId(challenge.id);
     try {
-      const isTemp = updated.id.startsWith("temp-");
-      if (isTemp) {
-        const { data, error } = await supabase
-          .from("pictodico_challenges")
-          .insert({
-            title: updated.title,
-            theme: updated.theme,
-            words: updated.words,
-            challenge_date: updated.challenge_date,
-            school_year: updated.school_year,
-          })
-          .select()
-          .single();
-        if (error) throw error;
-        const newId = data.id as string;
-        setGeneratedChallenges((prev) =>
-          prev.map((c) => (c.id === updated.id ? { ...updated, id: newId } : c))
-        );
-      } else {
-        const { error } = await supabase
-          .from("pictodico_challenges")
-          .update({
-            title: updated.title,
-            theme: updated.theme,
-            words: updated.words,
-            challenge_date: updated.challenge_date,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", updated.id);
-        if (error) throw error;
-        setGeneratedChallenges((prev) =>
-          prev.map((c) => (c.id === updated.id ? updated : c))
-        );
-      }
-      queryClient.invalidateQueries({ queryKey: ["pictodico_challenges"] });
-      toast({ title: "Challenge sauvegardé" });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erreur lors de la sauvegarde";
-      toastError(toast, message);
-    } finally {
-      setSavingId(null);
-    }
-  }
+      const time = (challenge.challenge_time || "09:00").slice(0, 5);
+      const description = [
+        challenge.theme_description,
+        challenge.words.length > 0 ? `Mots : ${challenge.words.join(", ")}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
 
-  async function createEvent(challenge: PictoChallenge) {
-    setCreatingEventId(challenge.id);
-    try {
       const { data: eventData, error: eventError } = await supabase
         .from("events")
         .insert({
           title: challenge.title,
-          description: "Mots : " + challenge.words.join(", "),
-          event_date: challenge.challenge_date,
-          event_type: "external",
+          description: description || null,
+          event_date: challenge.challenge_date.slice(0, 10),
+          event_time: time,
+          event_type: "internal",
           status: "active",
-          location_type: "physical",
+          location_type: "visio",
         })
         .select("id")
         .single();
       if (eventError) throw eventError;
-
       const eventId = eventData.id as string;
 
-      const isTemp = challenge.id.startsWith("temp-");
-      if (!isTemp) {
-        const { error: updateError } = await supabase
+      const payload = {
+        title: challenge.title,
+        theme: challenge.theme,
+        theme_description: challenge.theme_description,
+        words: challenge.words,
+        challenge_date: challenge.challenge_date.slice(0, 10),
+        challenge_time: time,
+        school_year: challenge.school_year,
+        event_id: eventId,
+      };
+
+      if (challenge.id.startsWith("temp-")) {
+        const { error } = await supabase
           .from("pictodico_challenges")
-          .update({ event_id: eventId })
+          .insert(payload as never);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("pictodico_challenges")
+          .update({ ...payload, updated_at: new Date().toISOString() } as never)
           .eq("id", challenge.id);
-        if (updateError) throw updateError;
+        if (error) throw error;
       }
 
-      const updateLocal = (prev: PictoChallenge[]) =>
-        prev.map((c) => (c.id === challenge.id ? { ...c, event_id: eventId } : c));
+      // Marquer les mots retenus
+      if (challenge.words.length > 0) {
+        const ids = words.filter((w) => challenge.words.includes(w.word)).map((w) => w.id);
+        if (ids.length > 0) {
+          await supabase
+            .from("pictodico_words")
+            .update({ is_chosen: true } as never)
+            .in("id", ids);
+        }
+      }
 
-      setGeneratedChallenges((prev) => updateLocal(prev));
+      setGeneratedChallenges((prev) =>
+        prev.map((c) => (c.id === challenge.id ? { ...challenge, event_id: eventId } : c)),
+      );
       queryClient.invalidateQueries({ queryKey: ["pictodico_challenges"] });
-      toast({ title: "Événement créé avec succès" });
+      queryClient.invalidateQueries({ queryKey: ["pictodico_words"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      toast({ title: "Évènement programmé" });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erreur lors de la création de l'événement";
-      toastError(toast, message);
+      toastError(toast, err instanceof Error ? err.message : "Erreur lors de la programmation");
     } finally {
-      setCreatingEventId(null);
+      setSchedulingId(null);
     }
   }
 
@@ -726,42 +694,63 @@ function ChallengesTab() {
 
   return (
     <div className="space-y-6">
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium">Année scolaire :</label>
-          <div className="flex gap-1">
-            {yearOptions.map((y) => (
-              <Button
-                key={y}
-                variant={startYear === y ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  setStartYear(y);
-                  setGeneratedChallenges([]);
-                }}
-              >
-                {schoolYearLabel(y)}
-              </Button>
-            ))}
-          </div>
+      <div className="flex items-center gap-3">
+        <label className="text-sm font-medium">Année scolaire :</label>
+        <div className="flex gap-1">
+          {yearOptions.map((y) => (
+            <Button
+              key={y}
+              variant={startYear === y ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setStartYear(y);
+                setGeneratedChallenges([]);
+              }}
+            >
+              {schoolYearLabel(y)}
+            </Button>
+          ))}
         </div>
-        <Button onClick={generateChallenges} disabled={isGenerating} className="gap-2">
-          {isGenerating ? (
-            <RefreshCw className="h-4 w-4 animate-spin" />
-          ) : (
-            <Wand2 className="h-4 w-4" />
-          )}
-          Générer avec l'IA
-        </Button>
       </div>
 
-      {/* Grid */}
+      <Card className="max-w-3xl">
+        <CardHeader>
+          <CardTitle className="text-base">Les 10 thèmes de l'année</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Textarea
+            rows={10}
+            value={themesInput}
+            onChange={(e) => setThemesInput(e.target.value)}
+            placeholder={"Un thème par ligne, au format THEME : description\nLa rentrée : retrouver l'école et ses habitudes\nL'automne : les couleurs et la météo"}
+            className="font-mono text-sm"
+          />
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              {parsedThemes.length} thème{parsedThemes.length !== 1 ? "s" : ""} détecté
+              {parsedThemes.length !== 1 ? "s" : ""} (10 attendus : septembre à juin)
+            </p>
+            <Button
+              onClick={generateChallenges}
+              disabled={isGenerating || parsedThemes.length === 0}
+              className="gap-2"
+            >
+              {isGenerating ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Wand2 className="h-4 w-4" />
+              )}
+              Valider les thèmes
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {displayChallenges.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Wand2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p>Aucun challenge pour cette année scolaire.</p>
-          <p className="text-sm mt-1">Cliquez sur « Générer avec l'IA » pour créer les 10 challenges.</p>
+          <p>Aucun évènement préparé pour cette année scolaire.</p>
+          <p className="text-sm mt-1">Saisissez vos 10 thèmes puis cliquez sur « Valider les thèmes ».</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -769,10 +758,8 @@ function ChallengesTab() {
             <ChallengeCard
               key={challenge.id}
               challenge={challenge}
-              onSave={saveChallenge}
-              onCreateEvent={createEvent}
-              isSaving={savingId === challenge.id}
-              isCreatingEvent={creatingEventId === challenge.id}
+              onSchedule={scheduleChallenge}
+              isScheduling={schedulingId === challenge.id}
             />
           ))}
         </div>
@@ -780,6 +767,7 @@ function ChallengesTab() {
     </div>
   );
 }
+
 
 // ---------------------------------------------------------------------------
 // Tab: Configuration

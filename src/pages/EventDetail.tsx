@@ -56,6 +56,8 @@ import {
 import { useEntityMedia, useAddMedia, useDeleteMedia } from "@/hooks/useMedia";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import SendToContentBoardButton from "@/components/events/SendToContentBoardButton";
+import AddEventToGoogleCalendarButton from "@/components/events/AddEventToGoogleCalendarButton";
+
 import { LogisticsChecklist } from "@/components/shared/LogisticsChecklist";
 
 const EventDetail = () => {
@@ -260,7 +262,9 @@ const EventDetail = () => {
                 <Badge variant="destructive">Annulé</Badge>
               )}
               <SendToContentBoardButton event={event} />
+              <AddEventToGoogleCalendarButton event={event} />
               <ShareEventDialog event={event} />
+
               <Button variant="outline" size="sm" onClick={handleDuplicate}>
                 <Copy className="h-4 w-4 mr-1" />
                 Dupliquer

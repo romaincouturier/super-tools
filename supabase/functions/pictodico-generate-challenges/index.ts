@@ -3,217 +3,181 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { CLAUDE_ADVANCED } from "../_shared/claude-models.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
+import { parseAiJson, truncateForLog, STRICT_JSON_INSTRUCTION } from "../_shared/ai-json.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-interface MonthSchedule {
-  month: number;
-  year: number;
-  label: string;
-  season: string;
-  seasonalContext: string;
+/** Septembre -> Juin, dans l'ordre de l'année scolaire. */
+function buildSchedule(startYear: number): Array<{ month: number; year: number; label: string }> {
+  const months = [9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
+  const labels: Record<number, string> = {
+    1: "Janvier", 2: "Février", 3: "Mars", 4: "Avril", 5: "Mai", 6: "Juin",
+    9: "Septembre", 10: "Octobre", 11: "Novembre", 12: "Décembre",
+  };
+  return months.map((month) => {
+    const year = month >= 9 ? startYear : startYear + 1;
+    return { month, year, label: `${labels[month]} ${year}` };
+  });
 }
 
-function buildSchedule(startYear: number): MonthSchedule[] {
-  return [
-    { month: 9,  year: startYear,     label: `Septembre ${startYear}`,     season: "automne",   seasonalContext: "rentrée scolaire, nouvelles rencontres, organisation" },
-    { month: 10, year: startYear,     label: `Octobre ${startYear}`,       season: "automne",   seasonalContext: "automne, Halloween, couleurs de la forêt, récolte" },
-    { month: 11, year: startYear,     label: `Novembre ${startYear}`,      season: "automne",   seasonalContext: "famille, maison, chaleur, souvenir" },
-    { month: 12, year: startYear,     label: `Décembre ${startYear}`,      season: "hiver",     seasonalContext: "Noël, fêtes de fin d'année, cadeaux, neige" },
-    { month: 1,  year: startYear + 1, label: `Janvier ${startYear + 1}`,   season: "hiver",     seasonalContext: "nouvelle année, résolutions, froid, hibernation" },
-    { month: 2,  year: startYear + 1, label: `Février ${startYear + 1}`,   season: "hiver",     seasonalContext: "amour, Saint-Valentin, amitié, douceur" },
-    { month: 3,  year: startYear + 1, label: `Mars ${startYear + 1}`,      season: "printemps", seasonalContext: "printemps, réveil de la nature, croissance, couleurs" },
-    { month: 4,  year: startYear + 1, label: `Avril ${startYear + 1}`,     season: "printemps", seasonalContext: "Pâques, jardin, animaux bébés, pluie" },
-    { month: 5,  year: startYear + 1, label: `Mai ${startYear + 1}`,       season: "printemps", seasonalContext: "fleurs, plein air, sport, famille, fête des mères" },
-    { month: 6,  year: startYear + 1, label: `Juin ${startYear + 1}`,      season: "été",       seasonalContext: "fin d'année, vacances, été, soleil, mer ou montagne" },
-  ];
+interface ThemeInput {
+  theme: string;
+  description?: string;
+}
+
+async function callAnthropic(systemPrompt: string, userPrompt: string) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY!,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: CLAUDE_ADVANCED,
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
+    }),
+  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Anthropic ${response.status}: ${errText.slice(0, 500)}`);
+  }
+  const aiData = await response.json();
+  await logAnthropicUsage({
+    origin: "pictodico-generate-challenges",
+    operation: "challenges",
+    model: CLAUDE_ADVANCED,
+    trigger: "manual",
+    usage: aiData.usage,
+  });
+  return aiData.content?.[0]?.text || "";
 }
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  }
 
-  // Verify user auth
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  if (!authHeader) return json({ error: "Unauthorized" }, 401);
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
-
   const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  if (authError || !user) return json({ error: "Unauthorized" }, 401);
 
-  if (!ANTHROPIC_API_KEY) {
-    return new Response(JSON.stringify({ error: "AI not configured" }), {
-      status: 503,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  if (!ANTHROPIC_API_KEY) return json({ error: "AI not configured" }, 503);
 
-  let body: { words: string[]; startYear: number };
+  let body: { words?: string[]; startYear?: number; themes?: ThemeInput[] };
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: "Invalid JSON" }, 400);
   }
 
-  const { words, startYear } = body;
+  const { words, startYear, themes } = body;
+  if (!Array.isArray(words)) return json({ error: "words must be an array" }, 400);
+  if (!startYear || typeof startYear !== "number") return json({ error: "startYear must be a number" }, 400);
+  if (!Array.isArray(themes) || themes.length === 0) return json({ error: "themes must be a non-empty array" }, 400);
 
-  if (!words || !Array.isArray(words)) {
-    return new Response(JSON.stringify({ error: "words must be an array" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  const cleanThemes = themes
+    .map((t) => ({ theme: String(t.theme || "").trim(), description: String(t.description || "").trim() }))
+    .filter((t) => t.theme.length > 0)
+    .slice(0, 10);
 
-  if (!startYear || typeof startYear !== "number") {
-    return new Response(JSON.stringify({ error: "startYear must be a number" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  if (cleanThemes.length === 0) return json({ error: "Aucun thème valide" }, 400);
 
-  // Deduplicate and clean words
   const uniqueWords = [
-    ...new Set(words.map((w) => w.trim().toLowerCase()).filter((w) => w.length > 1)),
+    ...new Set(words.map((w) => String(w).trim().toLowerCase()).filter((w) => w.length > 1)),
   ];
 
-  const schedule = buildSchedule(startYear);
+  const schedule = buildSchedule(startYear).slice(0, cleanThemes.length);
 
   const systemPrompt = `Tu es un expert en orthophonie et en communication alternative et augmentée (CAA) pour le site picto-dico.fr, spécialisé dans les pictogrammes.
 
-Tu dois créer 10 PictoChallenges mensuels pour une année scolaire (septembre à juin).
-Chaque PictoChallenge est un défi mensuel pour illustrer un thème avec des pictogrammes.
+On te donne une liste de thèmes mensuels et une liste de mots collectés auprès des utilisateurs.
+Pour chaque thème, tu sélectionnes parmi les MOTS COLLECTÉS ceux qui se rapportent au thème.
 
 RÈGLES ABSOLUES :
-- Exactement 10 challenges (un par mois)
-- Chaque challenge : entre 15 et 18 mots INCLUS (jamais moins de 15, jamais plus de 18)
-- Mix OBLIGATOIRE dans chaque challenge : au moins 6 mots concrets (objets, animaux, lieux, aliments, vêtements, actions physiques) ET au moins 4 mots abstraits (émotions, sentiments, concepts, qualités morales, états d'esprit)
-- Tenir compte du contexte saisonnier et des événements culturels de chaque mois
-- Les mots doivent être pertinents pour la communication quotidienne et l'orthophonie
-- Utiliser les mots collectés fournis EN PRIORITÉ, compléter si nécessaire avec des mots pertinents
-- Ignorer les mots trop obscurs, les noms propres, les fautes d'orthographe évidentes
-- Chaque thème doit être original et distinctif des autres mois
-- Retourner UNIQUEMENT du JSON valide, sans texte avant ni après, sans markdown`;
+- N'utilise QUE des mots présents dans la liste des mots collectés, à l'identique (même orthographe).
+- N'invente jamais de mot.
+- Un même mot peut être utilisé pour un seul thème (le plus pertinent).
+- Si un thème n'a aucun mot pertinent, retourne un tableau de mots vide.
+- Retourne UNIQUEMENT du JSON valide, sans texte avant ni après, sans markdown.`;
 
-  const scheduleText = schedule
-    .map((s) => `- ${s.label} (${s.season}) : ${s.seasonalContext}`)
+  const themesText = cleanThemes
+    .map((t, i) => `${i + 1}. ${schedule[i].label} — ${t.theme}${t.description ? ` : ${t.description}` : ""}`)
     .join("\n");
 
-  const userPrompt = `Génère les 10 PictoChallenges pour l'année scolaire ${startYear}-${startYear + 1}.
+  const userPrompt = `Thèmes de l'année scolaire ${startYear}-${startYear + 1} :
+${themesText}
 
-Mots collectés par les utilisateurs (${uniqueWords.length} mots uniques) :
-${uniqueWords.length > 0 ? uniqueWords.join(", ") : "(aucun mot collecté - utilise des mots pertinents pour chaque thème)"}
+Mots collectés (${uniqueWords.length}) :
+${uniqueWords.length > 0 ? uniqueWords.join(", ") : "(aucun mot collecté)"}
 
-Planning mensuel et contexte saisonnier :
-${scheduleText}
-
-Retourne un tableau JSON de 10 objets avec cette structure exacte :
-[
-  {
-    "month": 9,
-    "year": ${startYear},
-    "theme": "Titre du thème",
-    "words": ["mot1", "mot2", ..., "mot16"]
-  }
-]`;
+Retourne un tableau JSON d'objets, un par thème, dans le même ordre :
+[{ "index": 1, "words": ["mot1", "mot2"] }]`;
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: CLAUDE_ADVANCED,
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }],
-      }),
-    });
+    let raw = await callAnthropic(systemPrompt, userPrompt);
+    let parsed = parseAiJson<Array<{ index: number; words: string[] }>>(raw);
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Anthropic API error:", errText);
-      return new Response(JSON.stringify({ error: "AI generation failed" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!Array.isArray(parsed)) {
+      raw = await callAnthropic(systemPrompt, `${userPrompt}\n\n${STRICT_JSON_INSTRUCTION}`);
+      parsed = parseAiJson<Array<{ index: number; words: string[] }>>(raw);
     }
 
-    const aiData = await response.json();
-    await logAnthropicUsage({
-      origin: "pictodico-generate-challenges",
-      operation: "challenges",
-      model: CLAUDE_ADVANCED,
-      trigger: "cron",
-      usage: aiData.usage,
-    });
-    const content = aiData.content?.[0]?.text || "";
-
-    let challenges: Array<{ month: number; year: number; theme: string; words: string[] }>;
-    try {
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error("No JSON array in response");
-      challenges = JSON.parse(jsonMatch[0]);
-    } catch (parseErr) {
-      console.error("Failed to parse AI JSON:", content.slice(0, 500));
-      return new Response(JSON.stringify({ error: "Failed to parse AI response" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!Array.isArray(parsed)) {
+      console.error("[pictodico-generate-challenges] réponse IA non parseable:", truncateForLog(raw));
+      return json(
+        { error: "L'IA n'a pas réussi à rattacher les mots aux thèmes. Réessayez dans un instant." },
+        502,
+      );
     }
 
-    // Normalize and validate each challenge
-    const normalized = challenges.map((c) => {
-      const words = Array.isArray(c.words)
-        ? c.words.map((w: string) => String(w).trim().toLowerCase()).filter(Boolean).slice(0, 18)
-        : [];
+    const allowed = new Set(uniqueWords);
+    const used = new Set<string>();
+
+    const challenges = cleanThemes.map((t, i) => {
+      const entry = parsed!.find((p) => Number(p.index) === i + 1) ?? parsed![i];
+      const picked = Array.isArray(entry?.words) ? entry.words : [];
+      const selected: string[] = [];
+      for (const w of picked) {
+        const clean = String(w).trim().toLowerCase();
+        if (allowed.has(clean) && !used.has(clean)) {
+          used.add(clean);
+          selected.push(clean);
+        }
+      }
+      const { month, year } = schedule[i];
       return {
-        month: Number(c.month),
-        year: Number(c.year),
-        theme: String(c.theme || ""),
-        words,
-        challenge_date: `${c.year}-${String(c.month).padStart(2, "0")}-01`,
-        title: `PictoChallenge ${String(c.month).padStart(2, "0")}/${c.year} — ${c.theme}`,
+        month,
+        year,
+        theme: t.theme,
+        theme_description: t.description || null,
+        words: selected,
+        challenge_date: `${year}-${String(month).padStart(2, "0")}-01`,
+        challenge_time: "09:00",
+        title: `PictoChallenge — ${t.theme}`,
       };
     });
 
-    return new Response(JSON.stringify({ challenges: normalized }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ challenges });
   } catch (err) {
-    console.error("Unexpected error:", err);
+    console.error("[pictodico-generate-challenges] erreur:", err);
     const message = err instanceof Error ? err.message : "Unknown error";
-    return new Response(JSON.stringify({ error: "Internal error", details: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: "Échec de la génération des challenges", details: message }, 500);
   }
 });
