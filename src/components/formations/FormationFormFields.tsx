@@ -270,13 +270,32 @@ export function LocationRadioGroup({ form }: { form: FormationFormHook }) {
 // --- Sponsor Card ---
 
 export function SponsorCard({ form }: { form: FormationFormHook }) {
+  const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
+
   if (form.isInter) return null;
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Commanditaire</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle>Commanditaire</CardTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setMeetingDialogOpen(true)}
+              disabled={!form.sponsorEmail}
+              title={
+                form.sponsorEmail
+                  ? "Créer un RDV Google Calendar avec le commanditaire"
+                  : "Renseignez l'email du commanditaire pour proposer un RDV"
+              }
+            >
+              <CalendarPlus className="h-4 w-4" />
+            </Button>
+          </div>
           <div className="flex items-center gap-2">
             <Label htmlFor="formalAddress" className="text-sm text-muted-foreground">
               Tutoiement
