@@ -21,6 +21,7 @@ const slideVariants = {
 };
 
 const MediaLightbox = ({ item, items, onClose, onNavigate, autoFullscreen }: MediaLightboxProps) => {
+  const mediaUrl = useResolvedStorageUrl(item.file_url);
   const currentIndex = items.findIndex((i) => i.id === item.id);
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < items.length - 1;
