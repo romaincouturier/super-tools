@@ -128,8 +128,14 @@ serve(async (req) => {
   if (cleanThemes.length === 0) return json({ error: "Aucun thème valide" }, 400);
 
   const uniqueWords = [
-    ...new Set(words.map((w) => String(w).trim().toLowerCase()).filter((w) => w.length > 1)),
+    ...new Set(
+      words
+        .map((w) => String(w).trim().toLowerCase())
+        // Les signalements d'erreur ne sont pas des mots à proposer.
+        .filter((w) => w.length > 1 && !/^erreur\s*signal/i.test(w)),
+    ),
   ];
+
 
   const schedule = buildSchedule(startYear).slice(0, cleanThemes.length);
 

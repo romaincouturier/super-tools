@@ -420,10 +420,11 @@ interface ChallengeCardProps {
   challenge: PictoChallenge;
   onSchedule: (challenge: PictoChallenge) => void;
   onWarmupChange: (challenge: PictoChallenge, value: string) => void;
+  onNumberChange: (challenge: PictoChallenge, value: number) => void;
   isScheduling: boolean;
 }
 
-function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: ChallengeCardProps) {
+function ChallengeCard({ challenge, onSchedule, onWarmupChange, onNumberChange, isScheduling }: ChallengeCardProps) {
   const [local, setLocal] = useState<PictoChallenge>(challenge);
 
   useEffect(() => {
@@ -437,15 +438,37 @@ function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: 
     <Card className="flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-            {local.challenge_number ? `#${local.challenge_number} · ` : ""}
-            {monthLabel}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+              N°
+            </span>
+            <Input
+              type="number"
+              min={1}
+              value={local.challenge_number ?? ""}
+              onChange={(e) =>
+                setLocal((prev) => ({
+                  ...prev,
+                  challenge_number: e.target.value ? Number(e.target.value) : null,
+                }))
+              }
+              onBlur={(e) => {
+                const n = Number(e.target.value);
+                if (Number.isFinite(n) && n >= 1) onNumberChange(local, n);
+              }}
+              className="h-7 w-16 text-sm"
+              disabled={!!local.event_id}
+            />
+            <span className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+              {monthLabel}
+            </span>
+          </div>
           <Badge variant="secondary" className="text-xs">
             {local.words.length} mot{local.words.length !== 1 ? "s" : ""}
           </Badge>
         </div>
         <CardTitle className="text-base mt-1">{local.theme}</CardTitle>
+
         {local.theme_description && (
           <p className="text-xs text-muted-foreground">{local.theme_description}</p>
         )}
@@ -611,26 +634,30 @@ function ChallengesTab() {
   });
 
   function startProgressSimulation() {
-    const steps = [
-      { label: "Préparation de l'analyse des mots...", percent: 5 },
-      { label: "Association des mots aux thèmes 1 à 3...", percent: 20 },
-      { label: "Association des mots aux thèmes 4 à 6...", percent: 45 },
-      { label: "Association des mots aux thèmes 7 à 9...", percent: 70 },
-      { label: "Association du thème 10...", percent: 90 },
-      { label: "Finalisation des PictoChallenges...", percent: 98 },
-    ];
-    setGenerationProgress(steps[0]);
-    let index = 0;
-    const interval = setInterval(() => {
-      index++;
-      if (index < steps.length) {
-        setGenerationProgress(steps[index]);
-      } else {
-        clearInterval(interval);
-      }
-    }, 2200);
-    return interval;
+    const chunkCount = Math.ceil(parsedThemes.length / 3);
+    // Avance en continu : le libellé suit le pourcentage, plus de palier
+    // "Finalisation" bloqué pendant tout le reste du traitement.
+    let percent = 3;
+    const tick = () => {
+      percent = Math.min(percent + 1, 95);
+      const chunkIndex = Math.min(
+        chunkCount,
+        Math.max(1, Math.ceil((percent / 95) * chunkCount)),
+      );
+      const from = (chunkIndex - 1) * 3 + 1;
+      const to = Math.min(parsedThemes.length, chunkIndex * 3);
+      setGenerationProgress({
+        label:
+          percent < 8
+            ? "Préparation de l'analyse des mots..."
+            : `Association des mots aux thèmes ${from} à ${to}...`,
+        percent,
+      });
+    };
+    tick();
+    return setInterval(tick, 500);
   }
+
 
   async function generateChallenges() {
     setIsGenerating(true);
@@ -638,7 +665,11 @@ function ChallengesTab() {
     try {
       const { data, error } = await supabase.functions.invoke("pictodico-generate-challenges", {
         body: {
-          words: words.map((w) => decodeWord(w.word)),
+          words: words
+            .map((w) => decodeWord(w.word))
+            // Les signalements d'erreur ne sont pas des mots à proposer.
+            .filter((w) => !/^erreur\s*signal/i.test(w.trim())),
+
           startYear,
           themes: parsedThemes,
         },
@@ -699,6 +730,52 @@ function ChallengesTab() {
     }
     queryClient.invalidateQueries({ queryKey: ["pictodico_challenges"] });
   }
+
+  // Modifier le numéro d'un mois renumérote les mois suivants (+1 à chaque fois).
+  async function saveChallengeNumber(challenge: PictoChallenge, value: number) {
+    const list = displayChallenges;
+    const startIndex = list.findIndex((c) => c.id === challenge.id);
+    if (startIndex === -1) return;
+
+    const updates = list
+      .slice(startIndex)
+      .map((c, offset) => ({ c, number: value + offset }))
+      .filter(({ c, number }) => c.challenge_number !== number);
+    if (updates.length === 0) return;
+
+    const numberById = new Map(updates.map(({ c, number }) => [c.id, number]));
+    const retitle = (c: PictoChallenge, n: number) =>
+      /^PictoChallenge #\d+/.test(c.title)
+        ? c.title.replace(/^PictoChallenge #\d+/, `PictoChallenge #${n}`)
+        : c.title;
+
+    setGeneratedChallenges((prev) =>
+      prev.map((c) => {
+        const n = numberById.get(c.id);
+        return n ? { ...c, challenge_number: n, title: retitle(c, n) } : c;
+      }),
+    );
+
+    const persisted = updates.filter(({ c }) => !c.id.startsWith("temp-"));
+    for (const { c, number } of persisted) {
+      const { error } = await supabase
+        .from("pictodico_challenges")
+        .update({
+          challenge_number: number,
+          title: retitle(c, number),
+          updated_at: new Date().toISOString(),
+        } as never)
+        .eq("id", c.id);
+      if (error) {
+        toastError(toast, error.message);
+        return;
+      }
+    }
+    if (persisted.length > 0) {
+      queryClient.invalidateQueries({ queryKey: ["pictodico_challenges"] });
+    }
+  }
+
 
   async function scheduleChallenge(challenge: PictoChallenge) {
     setSchedulingId(challenge.id);
@@ -875,6 +952,8 @@ function ChallengesTab() {
               challenge={challenge}
               onSchedule={scheduleChallenge}
               onWarmupChange={saveWarmupPicto}
+              onNumberChange={saveChallengeNumber}
+
               isScheduling={schedulingId === challenge.id}
             />
           ))}
