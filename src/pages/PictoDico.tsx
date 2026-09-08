@@ -412,10 +412,11 @@ function ImportTab() {
 interface ChallengeCardProps {
   challenge: PictoChallenge;
   onSchedule: (challenge: PictoChallenge) => void;
+  onWarmupChange: (challenge: PictoChallenge, value: string) => void;
   isScheduling: boolean;
 }
 
-function ChallengeCard({ challenge, onSchedule, isScheduling }: ChallengeCardProps) {
+function ChallengeCard({ challenge, onSchedule, onWarmupChange, isScheduling }: ChallengeCardProps) {
   const [local, setLocal] = useState<PictoChallenge>(challenge);
 
   useEffect(() => {
