@@ -88,7 +88,7 @@ export function stripDatePlaceholders(html: string): string {
   return html
     // Phrase autonome entièrement consacrée aux dates
     .replace(
-      /(>)\s*[^.<]*\{\{start_date\}\}[\s\S]{0,80}?\{\{end_date\}\}(?:\s*<\/strong>)?[^.<]*\.\s*/gi,
+      /(>)\s*(?:La formation|Cette formation|Elle)[^<]{0,40}(?:est accessible|se déroule[a-z]*|aura lieu)[\s\S]{0,80}?\{\{end_date\}\}(?:\s*<\/strong>)?[^.<]{0,20}\.\s*/gi,
       "$1",
     )
     // Clause relative ou verbale introduisant la période
