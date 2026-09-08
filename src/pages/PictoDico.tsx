@@ -595,7 +595,7 @@ function ChallengesTab() {
     try {
       const { data, error } = await supabase.functions.invoke("pictodico-generate-challenges", {
         body: {
-          words: words.map((w) => w.word),
+          words: words.map((w) => decodeWord(w.word)),
           startYear,
           themes: parsedThemes,
         },
