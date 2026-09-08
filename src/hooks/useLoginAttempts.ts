@@ -21,6 +21,25 @@ const initialStatus: LoginAttemptStatus = {
   remainingSeconds: 0,
 };
 
+/**
+ * Les fonctions anti-bruteforce ne doivent jamais bloquer l'écran de connexion :
+ * en cas de surcharge du backend, l'invoke peut rester en attente jusqu'au 504
+ * de la passerelle. On plafonne donc l'attente et on repart en fail-open.
+ */
+const ATTEMPT_TIMEOUT_MS = 6000;
+
+async function withTimeout<T>(promise: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("login-attempt-timeout")), ATTEMPT_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timer!);
+  }
+}
+
 export function useLoginAttempts() {
   const [status, setStatus] = useState<LoginAttemptStatus>(initialStatus);
   const [isChecking, setIsChecking] = useState(false);
@@ -55,11 +74,11 @@ export function useLoginAttempts() {
 
     setIsChecking(true);
     try {
-      const { data, error } = await supabase.functions.invoke("check-login-attempt", {
-        body: { email },
-      });
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke("check-login-attempt", { body: { email } }),
+      );
 
-      if (error) {
+      if (error || !data) {
         console.error("Error checking login attempt:", error);
         return true; // Fail-open
       }
@@ -86,9 +105,9 @@ export function useLoginAttempts() {
   // Logger une tentative
   const logAttempt = useCallback(async (email: string, success: boolean) => {
     try {
-      await supabase.functions.invoke("log-login-attempt", {
-        body: { email, success },
-      });
+      await withTimeout(
+        supabase.functions.invoke("log-login-attempt", { body: { email, success } }),
+      );
 
       // Si échec, re-vérifier le statut
       if (!success) {
