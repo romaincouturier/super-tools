@@ -21,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
 import { notifyCrmSlack } from "@/services/crmSlack";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const CRM_ACTION_PRESETS = [
   "Relancer le client",
@@ -310,7 +312,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail, initialCon
             waiting_next_action_date: nextActionDate,
             waiting_next_action_text: nextActionText || undefined,
           }),
-          description_html: rawInput
+          description_html: `<p>--- ${format(new Date(), "EEEE d MMMM yyyy 'à' HH:mm", { locale: fr })} ---</p><p></p>` + rawInput
             .replace(/\r\n/g, "\n")
             .replace(/[\u2028\u2029]/g, "\n")
             .replace(/\n[ \t]*\n/g, "\n\n")
