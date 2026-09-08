@@ -21,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
 import { notifyCrmSlack } from "@/services/crmSlack";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const CRM_ACTION_PRESETS = [
   "Relancer le client",
