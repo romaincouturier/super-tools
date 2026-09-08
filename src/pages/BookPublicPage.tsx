@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ShieldAlert } from 'lucide-react';
 import BookProductionCard from '@/components/book/BookProductionCard';
 import BookProductionLightbox from '@/components/book/BookProductionLightbox';
 import BookProfileWidget from '@/components/book/BookProfileWidget';
@@ -96,6 +96,20 @@ export default function BookPublicPage() {
         shareToken={token}
         watermarkText={watermarkText}
       />
+
+      {/* License notice */}
+      <footer className="border-t border-white/10 px-6 py-8 max-w-7xl mx-auto w-full">
+        <div className="flex items-start gap-3 text-white/50 text-sm leading-relaxed">
+          <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" />
+          <p>
+            <span className="font-semibold text-white/70">{watermarkText}.</span>{' '}
+            L'ensemble des visuels de cet album est protégé par le droit d'auteur.
+            Toute reproduction, diffusion, modification ou utilisation, même partielle
+            et à quelque titre que ce soit, est strictement interdite sans autorisation
+            écrite préalable de l'auteur.
+          </p>
+        </div>
+      </footer>
 
       <BookProfileWidget profile={profile ?? null} />
     </div>
