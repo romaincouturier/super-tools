@@ -1004,11 +1004,19 @@ function authorizePage(params: URLSearchParams, errorMsg?: string): Response {
 <title>Connecter Claude à SuperTools</title>
 <style>
   body { font-family: 'Lexend', -apple-system, system-ui, sans-serif; background: #f2f4f4; color: #101820; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-  .card { background: #fff; border-radius: 16px; padding: 36px 32px; max-width: 400px; width: 100%; box-shadow: 0 4px 24px rgba(16,24,32,.10); }
+  .card { background: #fff; border-radius: 16px; padding: 36px 32px; max-width: 460px; width: 100%; box-shadow: 0 4px 24px rgba(16,24,32,.10); }
   .logo { display: inline-flex; align-items: baseline; gap: 2px; margin-bottom: 20px; font-weight: 800; font-size: 20px; letter-spacing: .02em; }
   .logo .tilt { background: #ffd100; color: #101820; padding: 1px 7px 2px; border-radius: 6px; }
   h1 { font-size: 19px; margin: 0 0 8px; color: #101820; font-weight: 700; }
-  p { color: rgba(16,24,32,.65); font-size: 14px; line-height: 1.5; margin: 0 0 22px; }
+  p { color: rgba(16,24,32,.65); font-size: 14px; line-height: 1.5; margin: 0 0 18px; }
+  .summary { background: #f2f4f4; border-radius: 12px; padding: 14px 16px; margin: 0 0 18px; }
+  .summary h2 { font-size: 13px; margin: 0 0 10px; color: #101820; font-weight: 700; }
+  .summary ul { margin: 0; padding-left: 16px; }
+  .summary li { color: rgba(16,24,32,.75); font-size: 13px; line-height: 1.45; margin: 0 0 8px; }
+  .summary li:last-child { margin-bottom: 0; }
+  details { margin: 0 0 18px; font-size: 13px; color: rgba(16,24,32,.65); }
+  details summary { font-weight: 700; color: #101820; cursor: pointer; padding: 8px 0; border-top: 1px solid rgba(16,24,32,.12); }
+  details p { font-size: 13px; margin: 6px 0; }
   input[type=password] { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1.5px solid rgba(16,24,32,.18); border-radius: 10px; font-size: 15px; font-family: inherit; margin-bottom: 16px; outline: none; }
   input[type=password]:focus { border-color: #101820; }
   button { width: 100%; padding: 12px; border: 0; border-radius: 10px; background: #ffd100; color: #101820; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; transition: filter 120ms; }
@@ -1018,15 +1026,30 @@ function authorizePage(params: URLSearchParams, errorMsg?: string): Response {
 </style></head>
 <body><div class="card">
   <div class="logo"><span>Super</span><span class="tilt">Tilt</span></div>
-  <h1>Connecter Claude à SuperTools</h1>
-  <p>Accès en lecture seule aux données SuperTools. Réservé à ${ALLOWED_EMAIL}.</p>
+  <h1>Connexion de SuperTools à votre assistant IA via le MCP SuperTools</h1>
+  <p>Lisez ces informations avant d'autoriser la connexion.</p>
+  <div class="summary">
+    <h2>En résumé — ce qu'il faut savoir avant de connecter</h2>
+    <ul>
+      <li>Le MCP SuperTools connecte vos données SuperTools à l'assistant IA de votre choix (Claude, ChatGPT, Cursor…). SuperTilt fournit le connecteur, pas l'assistant IA.</li>
+      <li>Lecture seule : votre assistant IA peut consulter vos données SuperTools (CRM, formations, missions, évaluations, audience, contenus) selon vos instructions, mais ne peut ni les modifier ni les supprimer. Seules deux actions d'écriture existent, toutes deux additives : créer une page de mission et y attacher un fichier.</li>
+      <li>Vos données quittent SuperTools : elles sont transmises à votre assistant IA, tiers indépendant de SuperTilt. Une fois transmises, SuperTilt ne les contrôle plus.</li>
+      <li>Vérifiez les conditions de votre assistant IA : confidentialité, localisation des données, réutilisation à des fins d'entraînement. SuperTilt n'en est pas responsable.</li>
+      <li>Les réponses IA ne sont pas vérifiées par SuperTilt et ne constituent pas un conseil professionnel. Toujours vérifier avant d'agir.</li>
+    </ul>
+  </div>
+  <details>
+    <summary>Informations sur le service MCP SuperTools</summary>
+    <p>Accès réservé à ${ALLOWED_EMAIL}, protégé par une clé personnelle et limité dans le temps (30 jours, renouvelable automatiquement).</p>
+    <p>Toutes les requêtes de l'assistant sont journalisées (requêtes SQL, outils appelés) pour traçabilité. La connexion est révocable à tout moment.</p>
+  </details>
   ${errorMsg ? `<div class="err">${errorMsg}</div>` : ""}
   <form method="POST">
     ${fields}
     <input type="password" name="personal_secret" placeholder="Clé personnelle" autofocus required>
     <button type="submit">Autoriser</button>
   </form>
-  <div class="foot">Toutes les requêtes de Claude sont journalisées. Révocable à tout moment.</div>
+  <div class="foot">En autorisant la connexion, vous acceptez le transfert de vos données vers votre assistant IA dans les conditions décrites ci-dessus.</div>
 </div></body></html>`);
 }
 
