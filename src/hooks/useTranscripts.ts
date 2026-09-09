@@ -195,7 +195,7 @@ export function useTrashTranscript() {
       if (!data || data.length === 0) throw new Error("Suppression refusée (droits insuffisants).");
     },
     onSuccess: (_d, id) => {
-      qc.invalidateQueries({ queryKey: ["transcripts"] });
+      invalidateTranscriptLists(qc);
       qc.invalidateQueries({ queryKey: ["transcript", id] });
     },
   });
@@ -212,7 +212,7 @@ export function useRestoreTranscript() {
       if (error) throw error;
     },
     onSuccess: (_d, { id }) => {
-      qc.invalidateQueries({ queryKey: ["transcripts"] });
+      invalidateTranscriptLists(qc);
       qc.invalidateQueries({ queryKey: ["transcript", id] });
     },
   });
@@ -228,6 +228,6 @@ export function useRetriggerTranscriptIndexation() {
       if (res.error) throw res.error;
       return res.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["transcripts"] }),
+    onSuccess: () => invalidateTranscriptLists(qc),
   });
 }
