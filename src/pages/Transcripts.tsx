@@ -23,6 +23,7 @@ import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import {
   useTranscriptsPage,
+  invalidateTranscriptLists,
   useTranscriptCounts,
   useTranscript,
   useTrashTranscript,
@@ -125,7 +126,7 @@ function EditorialSheet({ t }: { t: Transcript }) {
     }
     toast.success("Fiche éditoriale générée");
     queryClient.invalidateQueries({ queryKey: ["transcript", t.id] });
-    queryClient.invalidateQueries({ queryKey: ["transcripts"] });
+    invalidateTranscriptLists(queryClient);
   };
 
   return (
@@ -286,7 +287,7 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
     }
     toast.success("Titre régénéré");
     queryClient.invalidateQueries({ queryKey: ["transcript", t.id] });
-    queryClient.invalidateQueries({ queryKey: ["transcripts"] });
+    invalidateTranscriptLists(queryClient);
   };
 
   const handleTrash = () => {
