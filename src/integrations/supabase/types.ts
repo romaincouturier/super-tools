@@ -3206,6 +3206,8 @@ export type Database = {
       }
       formation_configs: {
         Row: {
+          access_delay: string | null
+          accessibility_terms: string | null
           available_formulas: string[] | null
           code_specialite_nsf: string | null
           created_at: string
@@ -3215,6 +3217,7 @@ export type Database = {
           elearning_access_email_content: string | null
           format_formation: string | null
           formation_name: string
+          funding_terms: string | null
           id: string
           is_active: boolean
           is_default: boolean
@@ -3226,17 +3229,16 @@ export type Database = {
           prerequisites: string[] | null
           prix: number
           programme_url: string | null
+          recognition_type: string | null
           required_equipment: string | null
           supertilt_link: string | null
           supports_url: string | null
           updated_at: string
           woocommerce_product_id: number | null
-          access_delay: string | null
-          accessibility_terms: string | null
-          funding_terms: string | null
-          recognition_type: string | null
         }
         Insert: {
+          access_delay?: string | null
+          accessibility_terms?: string | null
           available_formulas?: string[] | null
           code_specialite_nsf?: string | null
           created_at?: string
@@ -3246,6 +3248,7 @@ export type Database = {
           elearning_access_email_content?: string | null
           format_formation?: string | null
           formation_name: string
+          funding_terms?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
@@ -3257,17 +3260,16 @@ export type Database = {
           prerequisites?: string[] | null
           prix?: number
           programme_url?: string | null
+          recognition_type?: string | null
           required_equipment?: string | null
           supertilt_link?: string | null
           supports_url?: string | null
           updated_at?: string
           woocommerce_product_id?: number | null
-          access_delay?: string | null
-          accessibility_terms?: string | null
-          funding_terms?: string | null
-          recognition_type?: string | null
         }
         Update: {
+          access_delay?: string | null
+          accessibility_terms?: string | null
           available_formulas?: string[] | null
           code_specialite_nsf?: string | null
           created_at?: string
@@ -3277,6 +3279,7 @@ export type Database = {
           elearning_access_email_content?: string | null
           format_formation?: string | null
           formation_name?: string
+          funding_terms?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
@@ -3288,15 +3291,12 @@ export type Database = {
           prerequisites?: string[] | null
           prix?: number
           programme_url?: string | null
+          recognition_type?: string | null
           required_equipment?: string | null
           supertilt_link?: string | null
           supports_url?: string | null
           updated_at?: string
           woocommerce_product_id?: number | null
-          access_delay?: string | null
-          accessibility_terms?: string | null
-          funding_terms?: string | null
-          recognition_type?: string | null
         }
         Relationships: [
           {
@@ -8591,6 +8591,91 @@ export type Database = {
         }
         Relationships: []
       }
+      quality_risks: {
+        Row: {
+          cause: string | null
+          created_at: string
+          created_by: string | null
+          criticality: number | null
+          formation_config_id: string | null
+          framework_version: string
+          id: string
+          impact: number
+          improvement_id: string | null
+          label: string
+          modality: string | null
+          owner: string | null
+          preventive_measure: string | null
+          probability: number
+          reclamation_id: string | null
+          review_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cause?: string | null
+          created_at?: string
+          created_by?: string | null
+          criticality?: number | null
+          formation_config_id?: string | null
+          framework_version?: string
+          id?: string
+          impact?: number
+          improvement_id?: string | null
+          label: string
+          modality?: string | null
+          owner?: string | null
+          preventive_measure?: string | null
+          probability?: number
+          reclamation_id?: string | null
+          review_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cause?: string | null
+          created_at?: string
+          created_by?: string | null
+          criticality?: number | null
+          formation_config_id?: string | null
+          framework_version?: string
+          id?: string
+          impact?: number
+          improvement_id?: string | null
+          label?: string
+          modality?: string | null
+          owner?: string | null
+          preventive_measure?: string | null
+          probability?: number
+          reclamation_id?: string | null
+          review_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_risks_formation_config_id_fkey"
+            columns: ["formation_config_id"]
+            isOneToOne: false
+            referencedRelation: "formation_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_risks_improvement_id_fkey"
+            columns: ["improvement_id"]
+            isOneToOne: false
+            referencedRelation: "improvements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_risks_reclamation_id_fkey"
+            columns: ["reclamation_id"]
+            isOneToOne: false
+            referencedRelation: "reclamations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       questionnaire_besoins: {
         Row: {
           besoins_accessibilite: string | null
@@ -8751,89 +8836,6 @@ export type Database = {
             columns: ["questionnaire_id"]
             isOneToOne: false
             referencedRelation: "questionnaire_besoins"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      quality_risks: {
-        Row: {
-          cause: string | null
-          created_at: string
-          created_by: string | null
-          criticality: number | null
-          formation_config_id: string | null
-          framework_version: string
-          id: string
-          impact: number
-          improvement_id: string | null
-          label: string
-          modality: string | null
-          owner: string | null
-          preventive_measure: string | null
-          probability: number
-          reclamation_id: string | null
-          review_date: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          cause?: string | null
-          created_at?: string
-          created_by?: string | null
-          formation_config_id?: string | null
-          framework_version?: string
-          id?: string
-          impact?: number
-          improvement_id?: string | null
-          label: string
-          modality?: string | null
-          owner?: string | null
-          preventive_measure?: string | null
-          probability?: number
-          reclamation_id?: string | null
-          review_date?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          cause?: string | null
-          created_at?: string
-          created_by?: string | null
-          formation_config_id?: string | null
-          framework_version?: string
-          id?: string
-          impact?: number
-          improvement_id?: string | null
-          label?: string
-          modality?: string | null
-          owner?: string | null
-          preventive_measure?: string | null
-          probability?: number
-          reclamation_id?: string | null
-          review_date?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "quality_risks_formation_config_id_fkey"
-            columns: ["formation_config_id"]
-            isOneToOne: false
-            referencedRelation: "formation_configs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quality_risks_improvement_id_fkey"
-            columns: ["improvement_id"]
-            isOneToOne: false
-            referencedRelation: "improvements"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quality_risks_reclamation_id_fkey"
-            columns: ["reclamation_id"]
-            isOneToOne: false
-            referencedRelation: "reclamations"
             referencedColumns: ["id"]
           },
         ]
@@ -11524,6 +11526,9 @@ export type Database = {
           objectives: string[] | null
           org_id: string | null
           participants_formal_address: boolean
+          pedagogical_referent_designated_at: string | null
+          pedagogical_referent_email: string | null
+          pedagogical_referent_name: string | null
           prerequisites: string[] | null
           private_group_url: string | null
           program_file_url: string | null
@@ -11554,9 +11559,6 @@ export type Database = {
           updated_at: string
           venue_booking_sent_at: string | null
           venue_id: string | null
-          pedagogical_referent_designated_at: string | null
-          pedagogical_referent_email: string | null
-          pedagogical_referent_name: string | null
         }
         Insert: {
           admin_contact_email?: string | null
@@ -11599,6 +11601,9 @@ export type Database = {
           objectives?: string[] | null
           org_id?: string | null
           participants_formal_address?: boolean
+          pedagogical_referent_designated_at?: string | null
+          pedagogical_referent_email?: string | null
+          pedagogical_referent_name?: string | null
           prerequisites?: string[] | null
           private_group_url?: string | null
           program_file_url?: string | null
@@ -11629,9 +11634,6 @@ export type Database = {
           updated_at?: string
           venue_booking_sent_at?: string | null
           venue_id?: string | null
-          pedagogical_referent_designated_at?: string | null
-          pedagogical_referent_email?: string | null
-          pedagogical_referent_name?: string | null
         }
         Update: {
           admin_contact_email?: string | null
@@ -11674,6 +11676,9 @@ export type Database = {
           objectives?: string[] | null
           org_id?: string | null
           participants_formal_address?: boolean
+          pedagogical_referent_designated_at?: string | null
+          pedagogical_referent_email?: string | null
+          pedagogical_referent_name?: string | null
           prerequisites?: string[] | null
           private_group_url?: string | null
           program_file_url?: string | null
@@ -11704,9 +11709,6 @@ export type Database = {
           updated_at?: string
           venue_booking_sent_at?: string | null
           venue_id?: string | null
-          pedagogical_referent_designated_at?: string | null
-          pedagogical_referent_email?: string | null
-          pedagogical_referent_name?: string | null
         }
         Relationships: [
           {
@@ -12044,6 +12046,35 @@ export type Database = {
         }
         Relationships: []
       }
+      vhd_narrative_access: {
+        Row: {
+          accessed_at: string
+          id: string
+          report_id: string
+          user_id: string | null
+        }
+        Insert: {
+          accessed_at?: string
+          id?: string
+          report_id: string
+          user_id?: string | null
+        }
+        Update: {
+          accessed_at?: string
+          id?: string
+          report_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vhd_narrative_access_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "vhd_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vhd_procedures: {
         Row: {
           contact_email: string | null
@@ -12085,35 +12116,6 @@ export type Database = {
           version?: string
         }
         Relationships: []
-      }
-      vhd_narrative_access: {
-        Row: {
-          accessed_at: string
-          id: string
-          report_id: string
-          user_id: string | null
-        }
-        Insert: {
-          accessed_at?: string
-          id?: string
-          report_id: string
-          user_id?: string | null
-        }
-        Update: {
-          accessed_at?: string
-          id?: string
-          report_id?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vhd_narrative_access_report_id_fkey"
-            columns: ["report_id"]
-            isOneToOne: false
-            referencedRelation: "vhd_reports"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       vhd_report_attachments: {
         Row: {
@@ -12778,8 +12780,25 @@ export type Database = {
         Returns: string
       }
       expire_tender_opportunities: { Args: never; Returns: number }
+      get_active_vhd_procedure: { Args: never; Returns: Json }
       get_agent_allowed_tables: { Args: never; Returns: string[] }
       get_agent_schema_prompt: { Args: never; Returns: string }
+      get_api_usage_by_task: {
+        Args: { p_days?: number; p_limit?: number }
+        Returns: {
+          cache_read_tokens: number
+          cache_write_tokens: number
+          calls: number
+          cost_usd: number
+          duration_ms: number
+          errors: number
+          input_tokens: number
+          origin: string
+          output_tokens: number
+          started_at: string
+          task_id: string
+        }[]
+      }
       get_api_usage_daily: {
         Args: { p_days?: number }
         Returns: {
@@ -13041,6 +13060,14 @@ export type Database = {
       }
       get_training_survey_by_token: { Args: { p_token: string }; Returns: Json }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
+      get_vhd_narrative_access: {
+        Args: { p_report_id: string }
+        Returns: {
+          accessed_at: string
+          reader: string
+          user_id: string
+        }[]
+      }
       gsc_aggregate: {
         Args: {
           p_contains?: string
@@ -13256,6 +13283,7 @@ export type Database = {
       preview_learner_token: { Args: { p_token: string }; Returns: Json }
       purge_api_usage_events: { Args: never; Returns: undefined }
       purge_seo_history: { Args: never; Returns: undefined }
+      read_vhd_narrative: { Args: { p_report_id: string }; Returns: string }
       reap_stuck_ticket_coding: { Args: never; Returns: undefined }
       recompute_opportunity_estimated_value: {
         Args: { p_card_id: string }
