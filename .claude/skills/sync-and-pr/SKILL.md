@@ -1,7 +1,7 @@
 ---
 name: sync-and-pr
 description: Synchronise la branche courante avec main, gère les conflits de rebase, vérifie le build TypeScript, audite la base de données et les edge functions, vérifie la couverture de tests, enrichit les zones non couvertes, refactorise le code dupliqué, audite l'architecture et la sécurité, et pousse une Pull Request. Utiliser quand l'utilisateur veut synchroniser sa branche, merger main, ou créer une PR après sync.
-allowed-tools: Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion
+allowed-tools: Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion, mcp__github__list_pull_requests, mcp__github__create_pull_request, mcp__github__update_pull_request
 ---
 
 Exécute les étapes suivantes dans l'ordre :
@@ -11,6 +11,7 @@ Exécute les étapes suivantes dans l'ordre :
 - Si on est sur `main`, refuse l'opération : "Tu es sur main, crée d'abord une branche feature."
 - Vérifie s'il y a des changements non commités avec `git status`
 - S'il y a des changements non commités, demande à l'utilisateur s'il veut les stasher ou les commiter avant de continuer
+- Vérifie si la PR de cette branche est déjà mergée (étape 13a pour la méthode de listing, avec `state: all`). Si oui, **ne pas empiler de commits dessus** : une PR mergée est terminée. Repartir de `main` en gardant le même nom de branche (`git fetch origin main && git checkout -B <branche> origin/main`), y porter le travail de suivi, et prévenir l'utilisateur que la PR créée en fin de skill sera une nouvelle PR
 
 ## 2. Mettre à jour main
 - `git fetch origin main`
@@ -28,6 +29,18 @@ Exécute les étapes suivantes dans l'ordre :
   6. Répète si d'autres conflits apparaissent
   7. Si un conflit est trop ambigu pour être résolu automatiquement, montre les deux versions à l'utilisateur et demande quelle version garder
 
+## 3bis. Mesurer la baseline sur main
+
+Sans point de comparaison, impossible de distinguer une erreur préexistante d'une régression introduite par la branche : on perd du temps à corriger ce qui ne vient pas de nous, ou on ignore une vraie régression.
+
+- Créer un worktree jetable sur `origin/main` :
+  `git worktree add <dossier temporaire> origin/main`
+- Y exécuter les mêmes contrôles que ceux de la branche, et **noter les échecs** :
+  `npm run typecheck`, `npm run lint`, `bash scripts/check-rules.sh`, `npx vitest run`
+- Supprimer le worktree : `git worktree remove <dossier temporaire>`
+- Règle pour toute la suite de la skill : **ne traiter que le delta**. Un échec identique sur `origin/main` est préexistant — le signaler dans le résumé et dans la PR, ne jamais le corriger dans cette branche (ça élargit le diff et brouille la revue). Un échec absent de la baseline est une régression de la branche, à corriger avant de pousser.
+- Si la baseline est coûteuse (suite complète lente), la limiter à `check-rules.sh` et `typecheck`, et comparer les tests uniquement sur les fichiers modifiés.
+
 ## 4. Build & TypeScript
 
 ### 4a. Vérifier la compilation TypeScript
@@ -38,10 +51,19 @@ Exécute les étapes suivantes dans l'ordre :
   3. Relancer `npm run typecheck` jusqu'à ce que la compilation passe
   4. Commiter les corrections : `git commit -m "fix: resolve TypeScript errors"`
 
-### 4b. Vérifier le build Vite
+### 4b. Vérifier le lint
+- Exécuter `npm run lint`
+- Corriger les erreurs introduites par la branche. Les erreurs présentes dans la baseline (étape 3bis) restent en l'état.
+
+### 4c. Vérifier le build Vite
 - Exécuter `npm run build` pour s'assurer que le build de production passe
 - Si le build échoue, analyser l'erreur (imports manquants, variables d'env, etc.) et corriger
 - Ne pas commiter d'artefacts de build (dist/)
+
+### 4d. Vérifier les règles du projet
+- Exécuter `bash scripts/check-rules.sh` — `CLAUDE.md` le rend obligatoire avant tout commit
+- Corriger les violations absentes de la baseline avant de committer
+- Ne jamais corriger dans cette branche une violation déjà présente sur `origin/main` : la signaler dans le résumé
 
 ## 5. Base de données
 
@@ -116,6 +138,14 @@ Exécute les étapes suivantes dans l'ordre :
   - Le pourcentage de couverture par fichier (lignes, branches, fonctions)
   - Les lignes et branches non couvertes spécifiquement
 
+### 8b-bis. Traiter les fichiers structurellement non testables
+Certains fichiers ne peuvent pas être importés par vitest et afficheront toujours 0 % : typiquement une edge function dont le `index.ts` appelle `serve(...)` au niveau racine, ce qui démarre un serveur à l'import.
+
+- Ne pas tenter de les tester en l'état, et ne pas monter d'infrastructure de test dédiée
+- Extraire la logique testable (parsing, calculs, découpage, protocole HTTP d'un service tiers) dans un module de `supabase/functions/_shared/`, importé par le `index.ts`
+- Viser **100 %** lignes, branches et fonctions sur les modules `_shared/` créés ou modifiés : ils sont purs, petits, et partagés entre plusieurs fonctions, donc une branche non couverte y est un vrai trou
+- Mentionner explicitement dans la PR le fichier resté non couvert et la raison
+
 ### 8c. Analyser les zones non couvertes
 - Pour chaque fichier modifié ayant une couverture < 80% en lignes OU < 70% en branches :
   1. Lire le fichier source pour comprendre la logique non couverte
@@ -138,13 +168,20 @@ Exécute les étapes suivantes dans l'ordre :
      - Suivre le pattern AAA (Arrange, Act, Assert)
   5. Demander à l'utilisateur avant de créer plus de 3 nouveaux fichiers de test
 
+### 8d-bis. Vérifier que les tests testent vraiment
+Un test peut passer sans rien vérifier. Contrôles obligatoires sur chaque test ajouté :
+
+- **Assert sur le résultat, pas sur l'appel.** Vérifier qu'une fonction a été appelée ne prouve pas qu'elle a fait quelque chose : asserter la valeur retournée, l'erreur levée, ou l'argument exact reçu.
+- **Vérifier que le mock est réaliste.** Un mock qui lève une exception à la construction fait passer le test par le chemin d'erreur sans qu'on le voie. Exemple réel : `new Response("", { status: 204 })` lève une TypeError, un statut 204 interdisant tout corps — tout le chemin nominal était silencieusement mort.
+- **Le rapport de couverture est l'arbitre.** Si la ligne visée par un nouveau test reste marquée non couverte, le test ne l'exerce pas : corriger le test, pas le seuil.
+- **Confirmer que le test échoue sans le code.** Pour un test de non-régression, vérifier mentalement ou en pratique qu'il tomberait sans le correctif.
+
 ### 8e. Valider les tests enrichis
-- Relancer la suite de tests complète : `npx vitest run`
+- Relancer uniquement les tests des fichiers concernés, avec la couverture, jusqu'à obtenir le résultat visé
+- Ne pas relancer la suite complète ici : elle est lancée une seule fois à l'étape 11bis, avant le push
 - Si des tests échouent :
   1. Analyser l'erreur
   2. Corriger le test (pas le code source, sauf si le test révèle un vrai bug)
-  3. Relancer jusqu'à ce que tous les tests passent
-- Relancer la couverture sur les fichiers modifiés pour vérifier l'amélioration
 - Afficher un tableau comparatif avant/après de la couverture
 
 ### 8f. Commiter les nouveaux tests
@@ -185,13 +222,18 @@ Exécute les étapes suivantes dans l'ordre :
   3. **Vérifier** que les imports sont corrects et que le code compile : `npm run typecheck` (limité aux fichiers concernés si possible)
   4. Demander confirmation à l'utilisateur avant de refactoriser si le changement touche plus de 5 fichiers
 
+**Périmètre : ne pas transformer un correctif en refonte.**
+- La refactorisation ne doit toucher que du code que la branche modifie déjà, ou du code partagé qu'elle consomme
+- Si l'extraction change le comportement d'appelants extérieurs à la branche (un helper mutualisé, une constante partagée), c'est autorisé mais **doit être décrit dans le corps de la PR**, avec les appelants concernés et l'effet attendu
+- Toute duplication dont la résorption dépasse ces limites est classée **à signaler**, jamais refactorisée ici
+
 ### 9d. Valider la refactorisation
-- Relancer la suite de tests complète : `npx vitest run`
+- Relancer les tests des fichiers touchés par la refactorisation, plus ceux de leurs appelants directs
 - Si des tests échouent :
   1. Analyser si l'échec est lié à la refactorisation
   2. Corriger le code refactorisé ou les imports manquants
-  3. Relancer jusqu'à ce que tous les tests passent
 - Vérifier qu'aucune régression de couverture n'a été introduite
+- La suite complète reste pour l'étape 11bis
 
 ### 9e. Commiter la refactorisation
 - Si des fichiers ont été refactorisés :
@@ -259,7 +301,7 @@ Pour chaque fichier modifié, identifier :
   1. Effectuer l'extraction/déplacement du code
   2. Mettre à jour les imports
   3. Vérifier la compilation : `npm run typecheck`
-  4. Relancer les tests : `npx vitest run`
+  4. Relancer les tests des fichiers concernés (la suite complète est lancée à l'étape 11bis)
 - Commiter si des corrections ont été faites :
   `git commit -m "refactor: improve architecture separation in <fichiers>"`
 
@@ -299,19 +341,37 @@ Pour chaque fichier modifié, identifier :
   |---------|--------|--------|--------|
 - Bloquer le push si un risque critique est détecté (secret exposé, injection SQL)
 
+## 11bis. Validation finale avant push
+Une seule passe complète, ici, plutôt qu'après chaque étape :
+
+- `npm run typecheck`
+- `npm run lint`
+- `npx vitest run`
+- `npm run build`
+- `bash scripts/check-rules.sh`
+
+Comparer chaque échec à la baseline de l'étape 3bis. Si un échec est nouveau, le corriger et relancer la commande concernée. Si tous les échecs restants sont préexistants, les lister tels quels et continuer.
+
 ## 12. Pousser la branche
 - `git push -u origin <nom-de-branche> --force-with-lease`
 - Utilise `--force-with-lease` (pas `--force`) car le rebase réécrit l'historique mais on veut rester safe
 - En cas d'erreur réseau, réessaye jusqu'à 4 fois avec backoff exponentiel
 
 ## 13. Créer ou mettre à jour la PR
-- Vérifie si une PR existe déjà pour cette branche : `gh pr list --head <nom-de-branche> --json number,url`
-- **Si aucune PR n'existe** : crée-la avec `gh pr create`
+
+### 13a. Choisir l'outil disponible
+`gh` n'existe pas partout : il est absent de Claude Code sur le web, où les opérations GitHub passent par les outils MCP. Détecter avant d'agir :
+
+- Si `command -v gh` répond et que `gh auth status` est OK → utiliser `gh pr list` / `gh pr create` / `gh pr edit`
+- Sinon → utiliser les outils MCP GitHub : `mcp__github__list_pull_requests` (avec `head: "<owner>:<branche>"`), `mcp__github__create_pull_request`, `mcp__github__update_pull_request`. Le `owner` et le `repo` se lisent dans `git remote get-url origin`
+- Si aucun des deux n'est disponible, s'arrêter là et donner à l'utilisateur le lien de création de PR affiché par `git push`
+
+### 13b. Créer ou mettre à jour
+- **Si aucune PR n'existe** : la créer sur la base `main`
   - Titre : résumé concis des changements basé sur les commits de la branche
-  - Body : liste les commits avec descriptions, mentionne que la branche est à jour avec main, et inclut le résumé de couverture des tests
-  - Base branch : `main`
-- **Si une PR existe déjà** : informe l'utilisateur que la PR est à jour avec le lien
-- Affiche le lien de la PR à l'utilisateur
+  - Corps : ce que le problème était, ce qui change et pourquoi, les vérifications passées, la couverture, et ce qui est signalé sans être traité
+- **Si une PR existe déjà** : mettre son corps à jour avec l'état réel de la branche. Ne jamais se contenter d'afficher le lien : une description périmée est pire qu'absente, elle décrit un diff qui n'existe plus
+- Afficher le lien de la PR à l'utilisateur
 
 ## 14. Résumé
 Affiche un résumé :
@@ -325,6 +385,11 @@ Affiche un résumé :
 - Duplications refactorisées (le cas échéant) et duplications signalées à traiter
 - Violations architecturales corrigées et recommandations à planifier
 - Audit sécurité : résumé des risques détectés
+- Échecs préexistants sur `origin/main`, listés séparément des corrections apportées
 - Lien vers la PR
+
+Écrire ce résumé pour être lu vite : ce qui a changé et pourquoi, pas le journal des commandes lancées.
+
+Si la passe a mis en évidence un invariant réutilisable (un piège récurrent, un pattern à généraliser, une règle de test), proposer `/learn` pour le capturer dans `IMPROVEMENTS.md`.
 
 $ARGUMENTS

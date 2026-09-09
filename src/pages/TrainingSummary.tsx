@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { getInitials } from "@/lib/stringUtils";
 import { useParams } from "react-router-dom";
-import { rpc } from "@/lib/supabase-rpc";
+import { rpc, type ActiveVhdProcedure } from "@/lib/supabase-rpc";
 
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -114,6 +114,7 @@ const TrainingSummary = () => {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [trainer, setTrainer] = useState<Trainer | null>(null);
   const [reglementInterieurUrl, setReglementInterieurUrl] = useState<string | null>(null);
+  const [vhdProcedure, setVhdProcedure] = useState<ActiveVhdProcedure | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeNav, setActiveNav] = useState("infos");
@@ -179,6 +180,12 @@ const TrainingSummary = () => {
 
       const { data: settingValue } = await rpc.getAppSettingPublic("reglement_interieur_url");
       if (settingValue) setReglementInterieurUrl(settingValue);
+
+      // Procédure de prévention en vigueur (indicateur 12). Absente tant
+      // qu'aucune version n'est publiée : on n'affiche alors rien plutôt
+      // qu'une promesse invérifiable.
+      const { data: procedure } = await rpc.getActiveVhdProcedure();
+      if (procedure) setVhdProcedure(procedure);
     } catch (err) {
       console.error("Error fetching training data:", err);
       setError("Erreur lors du chargement des données");
@@ -730,6 +737,40 @@ END:VCALENDAR`;
                 <MIcon icon="gavel" className="mb-2" />
                 <span className="text-xs font-bold text-center">Règlement intérieur</span>
               </a>
+            )}
+          </section>
+        )}
+
+        {/* ═══ SECTION: Prévention des violences et discriminations ═══ */}
+        {vhdProcedure && (
+          <section
+            id="section-prevention"
+            className="p-5 rounded-2xl border scroll-mt-20"
+            style={{
+              background: c.surfaceContainerLowest,
+              borderColor: `${c.outlineVariant}30`,
+              color: c.onSurface,
+            }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <MIcon icon="shield_person" style={{ color: c.primary }} />
+              <h2 className="text-base font-bold">
+                Violences, harcèlement et discriminations
+              </h2>
+            </div>
+            <p className="text-sm whitespace-pre-wrap" style={{ color: c.onSurfaceVariant }}>
+              {vhdProcedure.content}
+            </p>
+            {(vhdProcedure.contact_name || vhdProcedure.contact_email) && (
+              <p className="text-sm mt-3 font-medium">
+                Interlocuteur : {vhdProcedure.contact_name}
+                {vhdProcedure.contact_name && vhdProcedure.contact_email ? " — " : ""}
+                {vhdProcedure.contact_email && (
+                  <a href={`mailto:${vhdProcedure.contact_email}`} style={{ color: c.primary }}>
+                    {vhdProcedure.contact_email}
+                  </a>
+                )}
+              </p>
             )}
           </section>
         )}

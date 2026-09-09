@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, Plus, Save } from "lucide-react";
 import { toast } from "@/lib/toast";
 import LmsAudioPromptSettings from "./LmsAudioPromptSettings";
+import { CLAUDE_ADVANCED } from "@/lib/claude-models";
 
 type Kind = "blog_article" | "linkedin_post" | "title" | "editorial" | "editorial_engine";
 
@@ -75,7 +76,7 @@ function PromptCard({ row, onSaved }: { row: PromptRow; onSaved: () => void }) {
         </div>
         <div className="space-y-1">
           <Label>Modèle</Label>
-          <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="claude-sonnet-4-6" />
+          <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder={CLAUDE_ADVANCED} />
         </div>
         <Button size="sm" onClick={save} disabled={saving}>
           <Save className="h-4 w-4 mr-1" />

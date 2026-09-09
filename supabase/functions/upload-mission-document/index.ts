@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { mimeTypeFromFileName } from "../_shared/mime-types.ts";
 
 const BUCKET = "mission-documents";
 
@@ -21,34 +22,16 @@ function sanitizeFileName(name: string): string {
     .toLowerCase();
 }
 
-function mimeFromName(name: string): string {
-  const ext = name.split(".").pop()?.toLowerCase() || "";
-  const map: Record<string, string> = {
-    pdf: "application/pdf",
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    webp: "image/webp",
-    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    xls: "application/vnd.ms-excel",
-    doc: "application/msword",
-    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ppt: "application/vnd.ms-powerpoint",
-    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    txt: "text/plain",
-    csv: "text/csv",
-    mp4: "video/mp4",
-    mov: "video/quicktime",
-    mp3: "audio/mpeg",
-    m4a: "audio/mp4",
-  };
-  return map[ext] || "application/octet-stream";
-}
 
-function resolveContentType(file: File): string {
-  const detected = file.type?.toLowerCase().split(";")[0].trim();
+/**
+ * iOS déclare les .m4a en `audio/x-m4a`, que la chaîne de transcription ne
+ * reconnaît pas : dans ce seul cas on retombe sur l'extension. La table
+ * extension → MIME vit dans `_shared/mime-types.ts` (règle [052]).
+ */
+function resolveMime(declared: string | null | undefined, fileName: string): string {
+  const detected = declared?.toLowerCase().split(";")[0].trim();
   if (detected && detected !== "audio/x-m4a") return detected;
-  return mimeFromName(file.name);
+  return mimeTypeFromFileName(fileName);
 }
 
 async function triggerAudioProcessing(supabaseUrl: string, serviceKey: string, documentId: string) {
@@ -171,7 +154,7 @@ Deno.serve(async (req) => {
         const fileName = String(body?.fileName || "document");
         const fileSize = Number(body?.fileSize) || 0;
         const declaredMime = String(body?.mimeType || "").toLowerCase().split(";")[0].trim();
-        const mimeType = declaredMime && declaredMime !== "audio/x-m4a" ? declaredMime : mimeFromName(fileName);
+        const mimeType = resolveMime(declaredMime, fileName);
         return await registerDocument(admin, supabaseUrl, serviceKey, {
           missionId,
           path,
@@ -197,7 +180,7 @@ Deno.serve(async (req) => {
     }
 
     const sanitizedName = sanitizeFileName(file.name || "document");
-    const mimeType = resolveContentType(file);
+    const mimeType = resolveMime(file.type, file.name);
     const path = `${missionId}/docs/${Date.now()}_${sanitizedName}`;
 
     const { error: uploadError } = await admin.storage

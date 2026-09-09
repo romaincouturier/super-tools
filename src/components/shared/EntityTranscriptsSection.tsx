@@ -3,7 +3,6 @@ import { Plus, FileAudio, Eye, Trash2, Search, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
-import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTranscripts, useTranscript } from "@/hooks/useTranscripts";
 import {
+  fetchTranscriptContent,
   useEntityTranscripts,
   useAssociateEntityTranscript,
   useUnlinkEntityTranscript,
@@ -42,13 +42,8 @@ const EntityTranscriptsSection = ({ entity, entityId }: Props) => {
   const unlink = useUnlinkEntityTranscript(entity);
 
   const copyTranscript = async (transcriptId: string) => {
-    const { data, error } = await (supabase as unknown as { from: typeof supabase.from })
-      .from("transcripts")
-      .select("ai_title,title,summary,raw_text")
-      .eq("id", transcriptId)
-      .single();
-    if (error || !data) { toastError(toast, "Impossible de récupérer le transcript"); return; }
-    const t = data as { ai_title: string | null; title: string | null; summary: string | null; raw_text: string | null };
+    const t = await fetchTranscriptContent(transcriptId);
+    if (!t) { toastError(toast, "Impossible de récupérer le transcript"); return; }
     const parts = [t.ai_title || t.title || "Transcript", t.summary ? `\nRésumé:\n${t.summary}` : "", t.raw_text ? `\n${t.raw_text}` : ""].filter(Boolean);
     await copy(parts.join("\n"), { title: "Transcript copié", description: "Le transcript complet est dans le presse-papier." });
   };

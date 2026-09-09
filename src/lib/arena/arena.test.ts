@@ -14,9 +14,22 @@ describe("estimateCost", () => {
   // ── Cas nominaux ───────────────────────────────────────────
 
   it("calculates cost for Claude Sonnet correctly", () => {
-    // 1000 input tokens at $3/1M + 500 output tokens at $15/1M
+    // 1000 tokens d'entrée à 2 $/1M + 500 de sortie à 10 $/1M
     const cost = estimateCost(CLAUDE_ADVANCED, 1000, 500);
-    expect(cost).toBeCloseTo(0.003 + 0.0075, 6);
+    expect(cost).toBeCloseTo(0.002 + 0.005, 6);
+  });
+
+  it("garde le tarif des sessions passées sur Sonnet 4.6", () => {
+    // Les sessions gardent en base le modèle avec lequel elles ont tourné :
+    // retirer cette ligne remettrait leur coût affiché à zéro.
+    expect(estimateCost("claude-sonnet-4-6", 1_000_000, 1_000_000)).toBeCloseTo(18, 6);
+  });
+
+  it("applique le tarif public de Haiku 4.5", () => {
+    // 1 $ / 5 $ le million. Une valeur inventée ici ne casse rien : elle
+    // affiche simplement un coût faux dans l'Arena, sans aucun signal.
+    expect(MODEL_COSTS[CLAUDE_DEFAULT]).toEqual({ input: 1, output: 5 });
+    expect(estimateCost(CLAUDE_DEFAULT, 1_000_000, 1_000_000)).toBeCloseTo(6, 6);
   });
 
   it("calculates cost for GPT-4o Mini (cheapest model)", () => {

@@ -40,6 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { rpc, type ApiUsageDailyRow, type ApiUsageTopCall } from "@/lib/supabase-rpc";
+import { TaskCostCard } from "@/components/monitoring/TaskCostCard";
 
 type Period = "7" | "30" | "90";
 
@@ -487,6 +488,14 @@ const ApiUsageTab = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Coût par tâche — l'unité qui a du sens pour un agent */}
+      <TaskCostCard
+        days={Number(period)}
+        formatUsd={formatUsd}
+        formatCompact={formatCompact}
+        enabled={!usageError && allRows.length > 0}
+      />
 
       {/* Détail par origine */}
       <Card>

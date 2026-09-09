@@ -22,6 +22,8 @@ export type AppModule =
   | "parametres"
   | "arena"
   | "reclamations"
+  | "signalements"
+  | "risques"
   | "support"
   | "reseau"
   | "lms"
@@ -60,6 +62,8 @@ export const ALL_MODULES: AppModule[] = [
   "parametres",
   "arena",
   "reclamations",
+  "signalements",
+  "risques",
   "support",
   "reseau",
   "lms",
@@ -99,6 +103,8 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   parametres: "Paramètres généraux",
   arena: "AI Arena",
   reclamations: "Réclamations",
+  signalements: "Signalements VHD",
+  risques: "Risques qualité",
   support: "Support",
   reseau: "Réseau professionnel",
   lms: "E-learning",

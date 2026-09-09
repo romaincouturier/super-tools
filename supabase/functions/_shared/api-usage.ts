@@ -8,68 +8,17 @@
  * Règles :
  * - L'écriture est best-effort : jamais bloquante, jamais throwante. Un échec
  *   de log ne doit pas faire tomber la fonction métier.
- * - Le coût est calculé à l'écriture, à partir des tarifs ci-dessous. Les
- *   tokens sont stockés en parallèle pour pouvoir recalculer si les tarifs
+ * - Le coût est calculé à l'écriture, à partir des tarifs de `api-pricing.ts`.
+ *   Les tokens sont stockés en parallèle pour pouvoir recalculer si les tarifs
  *   changent.
  */
 
 import { getSupabaseClient } from "./supabase-client.ts";
+import { estimateCostUsd, type ApiProvider, type CostInput } from "./api-pricing.ts";
 
-export type ApiProvider = "anthropic" | "openai" | "assemblyai" | "lovable" | "gemini";
+export type { ApiProvider };
+export { estimateCostUsd };
 export type TriggerSource = "user" | "cron" | "webhook" | "trigger" | "unknown";
-
-// ── Tarifs, en USD par million de tokens ─────────────────────────────
-
-interface TokenPrice {
-  input: number;
-  output: number;
-}
-
-const ANTHROPIC_PRICING: Record<string, TokenPrice> = {
-  "claude-fable-5": { input: 10, output: 50 },
-  "claude-opus-5": { input: 5, output: 25 },
-  "claude-opus-4-8": { input: 5, output: 25 },
-  "claude-opus-4-7": { input: 5, output: 25 },
-  "claude-opus-4-6": { input: 5, output: 25 },
-  "claude-sonnet-5": { input: 3, output: 15 },
-  "claude-sonnet-4-6": { input: 3, output: 15 },
-  "claude-sonnet-4-5": { input: 3, output: 15 },
-  "claude-haiku-4-5": { input: 1, output: 5 },
-};
-
-const OPENAI_PRICING: Record<string, TokenPrice> = {
-  "gpt-4o": { input: 2.5, output: 10 },
-  "gpt-4o-mini": { input: 0.15, output: 0.6 },
-  "text-embedding-3-small": { input: 0.02, output: 0 },
-  "text-embedding-3-large": { input: 0.13, output: 0 },
-};
-
-// Gateway Lovable : facturée en crédits Lovable, pas en USD. On applique les
-// tarifs publics Google du modèle sous-jacent pour obtenir un ordre de grandeur
-// comparable aux autres providers.
-const LOVABLE_PRICING: Record<string, TokenPrice> = {
-  "google/gemini-2.5-flash": { input: 0.3, output: 2.5 },
-  "google/gemini-2.5-pro": { input: 1.25, output: 10 },
-};
-
-// AssemblyAI Universal : facturé à la durée d'audio.
-const ASSEMBLYAI_USD_PER_HOUR = 0.27;
-
-const ANTHROPIC_CACHE_READ_RATIO = 0.1;
-const ANTHROPIC_CACHE_WRITE_RATIO = 1.25;
-
-/** `claude-haiku-4-5-20251001` → `claude-haiku-4-5` */
-function normalizeModel(model: string): string {
-  return model.trim().replace(/-\d{8}$/, "");
-}
-
-function priceFor(provider: ApiProvider, model: string): TokenPrice | null {
-  const key = normalizeModel(model);
-  if (provider === "anthropic") return ANTHROPIC_PRICING[key] ?? null;
-  if (provider === "openai") return OPENAI_PRICING[key] ?? null;
-  if (provider === "lovable" || provider === "gemini") return LOVABLE_PRICING[key] ?? null;
-  return null;
-}
 
 /** Bloc `usage` renvoyé par l'API Anthropic (ou accumulé en streaming). */
 export interface AnthropicUsage {
@@ -79,20 +28,18 @@ export interface AnthropicUsage {
   cache_creation_input_tokens?: number;
 }
 
-export interface ApiUsageEntry {
-  provider: ApiProvider;
+/**
+ * Étend `CostInput` : tout champ qui entre dans le calcul du coût est hérité,
+ * pour qu'un tarif ajouté dans `api-pricing.ts` ne puisse pas rester sans
+ * champ correspondant ici.
+ */
+export interface ApiUsageEntry extends CostInput {
   /** Nom de l'edge function, ex: "agent-chat". */
   origin: string;
   /** Sous-opération dans la function, ex: "chat", "title". */
   operation?: string;
-  model?: string;
   trigger?: TriggerSource;
   userId?: string | null;
-  inputTokens?: number;
-  outputTokens?: number;
-  cacheReadTokens?: number;
-  cacheWriteTokens?: number;
-  audioSeconds?: number;
   durationMs?: number;
   status?: "success" | "error";
   errorMessage?: string;
@@ -103,27 +50,6 @@ export interface ApiUsageEntry {
    * fois : un index unique garantit alors un seul événement de coût.
    */
   externalId?: string | null;
-  /** Force un coût (sinon calculé depuis les tarifs). */
-  costUsd?: number;
-}
-
-export function estimateCostUsd(entry: ApiUsageEntry): number {
-  if (entry.costUsd !== undefined) return entry.costUsd;
-
-  if (entry.provider === "assemblyai") {
-    return ((entry.audioSeconds ?? 0) / 3600) * ASSEMBLYAI_USD_PER_HOUR;
-  }
-
-  const price = priceFor(entry.provider, entry.model ?? "");
-  if (!price) return 0;
-
-  const perToken = (n: number, usdPerMillion: number) => (n / 1_000_000) * usdPerMillion;
-  return (
-    perToken(entry.inputTokens ?? 0, price.input) +
-    perToken(entry.outputTokens ?? 0, price.output) +
-    perToken(entry.cacheReadTokens ?? 0, price.input * ANTHROPIC_CACHE_READ_RATIO) +
-    perToken(entry.cacheWriteTokens ?? 0, price.input * ANTHROPIC_CACHE_WRITE_RATIO)
-  );
 }
 
 /**

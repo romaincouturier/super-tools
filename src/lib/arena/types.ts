@@ -126,7 +126,7 @@ export const AGENT_COLORS = [
 export const AVAILABLE_MODELS: Record<Provider, { id: string; label: string }[]> = {
   claude: [
     { id: CLAUDE_DEFAULT, label: "Claude Haiku 4.5 (eco)" },
-    { id: CLAUDE_ADVANCED, label: "Claude Sonnet 4.5" },
+    { id: CLAUDE_ADVANCED, label: "Claude Sonnet 5" },
   ],
   openai: [
     { id: "gpt-4o-mini", label: "GPT-4o Mini (eco)" },
@@ -138,10 +138,17 @@ export const AVAILABLE_MODELS: Record<Provider, { id: string; label: string }[]>
   ],
 };
 
-// Cost per 1M tokens (input / output) in USD
+// Coût par million de tokens (entrée / sortie) en USD.
+// Les lignes Claude doivent rester égales à celles de
+// `supabase/functions/_shared/api-pricing.ts` — check [055c].
 export const MODEL_COSTS: Record<string, { input: number; output: number }> = {
-  [CLAUDE_ADVANCED]: { input: 3, output: 15 },
-  [CLAUDE_DEFAULT]: { input: 0.80, output: 4 },
+  [CLAUDE_ADVANCED]: { input: 2, output: 10 },
+  [CLAUDE_DEFAULT]: { input: 1, output: 5 },
+  // Modèle des sessions Arena antérieures au passage à Sonnet 5. Retirer cette
+  // ligne remettrait leur coût à zéro : `estimateCost` rend 0 sur un modèle
+  // inconnu, et les sessions gardent en base le modèle avec lequel elles ont
+  // tourné.
+  "claude-sonnet-4-6": { input: 3, output: 15 },
   "gpt-4o": { input: 2.5, output: 10 },
   "gpt-4o-mini": { input: 0.15, output: 0.6 },
   "gemini-2.0-flash": { input: 0.10, output: 0.40 },

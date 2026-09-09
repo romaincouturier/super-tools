@@ -422,6 +422,40 @@ if [ "$STAGED_MODE" = "false" ]; then
     "grep -l 'cron\.alter_job([0-9]\\|cron\.unschedule([0-9]' supabase/migrations/*.sql 2>/dev/null \
        | xargs -r grep -L 'FROM cron.job WHERE jobid' 2>/dev/null"
 
+  # [052a] Le rafraîchissement d'un token Google vit dans _shared/google-oauth.ts.
+  # Cinq copies coexistaient, divergentes sur la gestion d'erreur, dont aucune ne
+  # traitait la réponse 200 portant un corps d'erreur (31/08/2026).
+  check "052a" "Aucune copie du refresh OAuth Google hors _shared/google-oauth.ts" \
+    "grep -rn 'grant_type: \"refresh_token\"' supabase/functions --include='*.ts' \
+       | grep -v '_shared/google-oauth.ts'"
+
+  # [052b] Une table extension → MIME recopiée finit par diverger : seules
+  # certaines connaissaient .mov, ce qui aurait envoyé les vidéos dans Drive en
+  # application/octet-stream sans la moindre erreur (31/08/2026).
+  # Une table par runtime, pas une par fichier : le frontend et les edge
+  # functions ne peuvent pas importer le même module, mais chaque côté n'a
+  # qu'une référence — _shared/mime-types.ts et src/lib/file-utils.ts. Une
+  # liste d'extensions autorisées (input accept, validation de bucket) n'est
+  # pas une table de conversion et n'est pas visée : la signature cherchée est
+  # une entrée de conversion bureautique ou vidéo.
+  check "052b" "Aucune table extension → MIME hors des deux fichiers de référence" \
+    "grep -rnE '^[[:space:]]+(mov|docx|xlsx|pptx): \"(image|video|audio|application|text)/' \
+       supabase/functions src --include='*.ts' 2>/dev/null \
+       | grep -v '_shared/mime-types.ts' | grep -v 'src/lib/file-utils.ts'"
+
+  # [053] new Response(corps, { status: 204 }) lève une TypeError — un statut
+  # sans corps ne peut pas en porter. Dans un mock, le test part alors dans le
+  # catch et le chemin nominal n'est jamais exercé, en restant vert.
+  check "053" "Aucun mock construisant une Response à corps sur un statut 204/205/304" \
+    "grep -rnE 'new Response\\([^)]*[\"'\\''\`][^\"'\\''\`)]+[\"'\\''\`][^)]*status: (204|205|304)' \
+       src supabase --include='*.test.ts' --include='*.test.tsx' 2>/dev/null"
+
+  # [054] Une edge function absente de config.toml se déploie avec les défauts
+  # de la CLI (verify_jwt = true) sans que personne ne l'ait décidé.
+  check "054" "Toute edge function est déclarée dans config.toml" \
+    "comm -3 <(ls -d supabase/functions/*/ | sed 's|supabase/functions/||;s|/\$||' | grep -v '^_shared\$' | sort) \
+             <(grep -oP '(?<=^\\[functions\\.)[^]]+' supabase/config.toml | sort)"
+
   # [044] Aucun CREATE POLICY ne doit lire auth.users : le rôle `authenticated`
   # n'a pas SELECT dessus, la policy échoue en 403 / 42501 et l'écran reste vide
   # (constat du 03/08/2026 sur inbound_emails). Le contrôle de droits passe par
@@ -446,6 +480,68 @@ if [ "$STAGED_MODE" = "false" ]; then
     "grep -rl -E 'api\\.anthropic\\.com|ai\\.gateway\\.lovable\\.dev|api\\.openai\\.com|api\\.assemblyai\\.com/v2/transcript' supabase/functions/ --include='*.ts' 2>/dev/null \
        | grep -v '_shared/api-usage.ts' \
        | while read -r f; do grep -q 'api-usage' \"\$f\" || echo \"VIOLATION [045]: \$f appelle une API payante sans logApiUsage\"; done"
+
+  # [055a] Un modèle absent de la table des tarifs est logué à 0 $ : la ligne
+  # existe dans api_usage_events, le coût est faux, et rien ne le signale.
+  check "055a" "Tout modèle de claude-models.ts a un tarif dans api-pricing.ts" \
+    "grep -oE '\"claude-[a-z0-9.-]+\"' supabase/functions/_shared/claude-models.ts \
+       | tr -d '\"' \
+       | while read -r m; do \
+           n=\$(echo \"\$m\" | sed -E 's/-[0-9]{8}\$//'); \
+           grep -q \"\\\"\$n\\\":\" supabase/functions/_shared/api-pricing.ts \
+             || echo \"VIOLATION [055a]: \$m appelé sans tarif dans api-pricing.ts\"; \
+         done"
+
+  # [055b] Le TTL d'une heure facture l'écriture de cache 2x, pas 1,25x.
+  # Tant que api-pricing.ts n'a qu'un seul ratio d'écriture, l'activer
+  # sous-estimerait le coût sans aucun signal.
+  check "055b" "Pas de cache TTL 1h tant que le ratio d'écriture est unique" \
+    "grep -rnE '[\"'\\'']?ttl[\"'\\'']?[[:space:]]*:[[:space:]]*[\"'\\'']1h[\"'\\'']' \
+       supabase/functions --include='*.ts' 2>/dev/null \
+       | grep -v api-pricing.ts"
+
+  # [057] Les deux fichiers de constantes de modèles se sont désynchronisés en
+  # silence : le front est resté sur Sonnet 4.6 pendant que le serveur passait
+  # à Sonnet 5, l'Arena lançant donc un modèle plus ancien et plus cher que le
+  # reste de l'application, sous un libellé qui annonçait encore autre chose.
+  check "057" "Constantes de modèles identiques entre front et edge functions" \
+    "for c in CLAUDE_DEFAULT CLAUDE_ADVANCED; do \
+       a=\$(grep -oP \"(?<=^export const \$c = \\\")[^\\\"]+\" src/lib/claude-models.ts); \
+       b=\$(grep -oP \"(?<=^export const \$c = \\\")[^\\\"]+\" supabase/functions/_shared/claude-models.ts); \
+       [ \"\$a\" = \"\$b\" ] || echo \"VIOLATION [057]: \$c vaut \$a côté front et \$b côté serveur\"; \
+     done"
+
+  # [057b] Un identifiant de modèle écrit en dur échappe au check ci-dessus et
+  # reste sur son ancienne version le jour où la constante bouge. Pire quand il
+  # est répété entre l'appel et le log de consommation : les deux peuvent
+  # diverger, et le tableau de bord attribue alors le coût au mauvais modèle.
+  check "057b" "Aucun identifiant de modèle Claude en dur dans les edge functions" \
+    "grep -rnE '\"claude-[a-z0-9.-]+\"' supabase/functions --include='*.ts' 2>/dev/null \
+       | grep -vE '_shared/(claude-models|api-pricing)\\.ts' \
+       | grep -v '\\.test\\.ts'"
+
+  # [055c] L'Arena tient sa propre table de tarifs (elle facture aussi OpenAI et
+  # Gemini). Les lignes Claude doivent rester égales à celles du serveur, sinon
+  # deux écrans affichent deux coûts différents pour le même appel.
+  check "055c" "Tarifs Claude de l'Arena alignés sur api-pricing.ts" \
+    "for c in CLAUDE_DEFAULT CLAUDE_ADVANCED; do \
+       m=\$(grep -oP \"(?<=^export const \$c = \\\")[^\\\"]+\" src/lib/claude-models.ts); \
+       n=\$(echo \"\$m\" | sed -E 's/-[0-9]{8}\$//'); \
+       ref=\$(grep -oP \"(?<=\\\"\$n\\\": ).*(?=,)\" supabase/functions/_shared/api-pricing.ts); \
+       cur=\$(grep -oP \"(?<=\\[\$c\\]: ).*(?=,)\" src/lib/arena/types.ts); \
+       [ -n \"\$ref\" ] && [ \"\$ref\" != \"\$cur\" ] \
+         && echo \"VIOLATION [055c]: \$c (\$m) coûte \$cur dans l'Arena et \$ref côté serveur\"; \
+     done; true"
+
+  # [056] Le coût d'un agent se juge par tâche aboutie, pas par appel : sans
+  # identifiant de tâche, les rounds d'un même tour sont indistinguables et
+  # api_usage_events ne peut pas répondre « combien a coûté cette question ».
+  check "056" "Toute boucle d'agent logue un task_id" \
+    "for f in supabase/functions/*/index.ts; do \
+       grep -qE '(stopReason|stop_reason)[^=]*[!=]==?[[:space:]]*\"tool_use\"' \"\$f\" || continue; \
+       grep -q 'task_id' \"\$f\" \
+         || echo \"VIOLATION [056]: \$(dirname \$f) boucle sur tool_use sans task_id dans les logs d'usage\"; \
+     done"
 
   # [046] Prompt caching de l'agent — le cache ne tient que si le prefixe rendu est
   # append-only pendant un tour (cutoff de compaction fige) ET si des points de cache

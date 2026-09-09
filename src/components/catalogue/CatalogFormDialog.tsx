@@ -5,6 +5,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -101,6 +102,11 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   const [woocommerceProductId, setWoocommerceProductId] = useState("");
   const [codeSpecialiteNsf, setCodeSpecialiteNsf] = useState("");
   const [labelSpecialiteNsf, setLabelSpecialiteNsf] = useState("");
+  // Indicateur 1 : mentions que le décret 2026-728 rend explicitement exigibles.
+  const [recognitionType, setRecognitionType] = useState("");
+  const [fundingTerms, setFundingTerms] = useState("");
+  const [accessDelay, setAccessDelay] = useState("");
+  const [accessibilityTerms, setAccessibilityTerms] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [formulas, setFormulas] = useState<FormulaEdit[]>([]);
   const [expandedFormula, setExpandedFormula] = useState<number | null>(null);
@@ -127,7 +133,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   formValuesRef.current = {
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
     supertiltLink, requiredEquipment, objectives, prerequisites,
-    elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf, isActive,
+    elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf,
+    recognitionType, fundingTerms, accessDelay, accessibilityTerms, isActive,
     formulas,
   };
 
@@ -136,7 +143,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   const formHash = JSON.stringify({
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
     supertiltLink, requiredEquipment, objectives, prerequisites,
-    elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf, isActive,
+    elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf,
+    recognitionType, fundingTerms, accessDelay, accessibilityTerms, isActive,
     fml: activeFormulas.map(f => `${f.id || ""}|${f.name}|${f.duree_heures}|${f.prix}|${f.woocommerce_product_id}|${f.learndash_course_id}|${f.supports_url}|${f.elearning_access_email_content}`),
   });
 
@@ -149,6 +157,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       objectives: string[]; prerequisites: string[];
       elearningAccessEmailContent: string; woocommerceProductId: string;
       codeSpecialiteNsf: string; labelSpecialiteNsf: string;
+      recognitionType: string; fundingTerms: string;
+      accessDelay: string; accessibilityTerms: string;
       isActive: boolean; formulas: FormulaEdit[];
     };
 
@@ -169,6 +179,10 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       woocommerce_product_id: v.woocommerceProductId ? parseInt(v.woocommerceProductId, 10) : null,
       code_specialite_nsf: v.codeSpecialiteNsf.trim() || null,
       label_specialite_nsf: v.labelSpecialiteNsf.trim() || null,
+      recognition_type: v.recognitionType || null,
+      funding_terms: v.fundingTerms.trim() || null,
+      access_delay: v.accessDelay.trim() || null,
+      accessibility_terms: v.accessibilityTerms.trim() || null,
       is_active: v.isActive,
     };
 
@@ -287,6 +301,10 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setWoocommerceProductId(entry.woocommerce_product_id ? String(entry.woocommerce_product_id) : "");
         setCodeSpecialiteNsf((entry as unknown as { code_specialite_nsf?: string | null }).code_specialite_nsf || "");
         setLabelSpecialiteNsf((entry as unknown as { label_specialite_nsf?: string | null }).label_specialite_nsf || "");
+        setRecognitionType((entry as unknown as { recognition_type?: string | null }).recognition_type || "");
+        setFundingTerms((entry as unknown as { funding_terms?: string | null }).funding_terms || "");
+        setAccessDelay((entry as unknown as { access_delay?: string | null }).access_delay || "");
+        setAccessibilityTerms((entry as unknown as { accessibility_terms?: string | null }).accessibility_terms || "");
         setIsActive(entry.is_active);
         // Load formulas from DB
         supabase
@@ -319,6 +337,10 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setWoocommerceProductId("");
         setCodeSpecialiteNsf("");
         setLabelSpecialiteNsf("");
+        setRecognitionType("");
+        setFundingTerms("");
+        setAccessDelay("");
+        setAccessibilityTerms("");
         setIsActive(true);
         setFormulas([]);
       }
@@ -368,6 +390,10 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         woocommerce_product_id: woocommerceProductId ? parseInt(woocommerceProductId, 10) : null,
         code_specialite_nsf: codeSpecialiteNsf.trim() || null,
         label_specialite_nsf: labelSpecialiteNsf.trim() || null,
+        recognition_type: recognitionType || null,
+        funding_terms: fundingTerms.trim() || null,
+        access_delay: accessDelay.trim() || null,
+        accessibility_terms: accessibilityTerms.trim() || null,
         is_active: isActive,
       };
 
@@ -514,6 +540,65 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                 setLabelSpecialiteNsf(l);
               }}
             />
+
+            {/* Information du public — indicateur 1 du référentiel qualité */}
+            <div className="space-y-3 rounded-md border p-3">
+              <div className="space-y-1">
+                <Label>Information du public</Label>
+                <p className="text-xs text-muted-foreground">
+                  Mentions exigibles sur toute communication de cette formation. La
+                  communication ne doit comporter aucune mention de nature à induire
+                  le public en erreur, notamment sur les droits conférés par la formation.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="recognitionType">Type de reconnaissance délivrée</Label>
+                <Select value={recognitionType || "none"} onValueChange={(v) => setRecognitionType(v === "none" ? "" : v)}>
+                  <SelectTrigger id="recognitionType">
+                    <SelectValue placeholder="Non renseigné" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Non renseigné</SelectItem>
+                    <SelectItem value="attestation_formation">Attestation de formation</SelectItem>
+                    <SelectItem value="attestation_competences">Attestation de compétences</SelectItem>
+                    <SelectItem value="autre">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="accessDelay">Délai d'accès</Label>
+                <Input
+                  id="accessDelay"
+                  value={accessDelay}
+                  onChange={(e) => setAccessDelay(e.target.value)}
+                  placeholder="Ex : inscription jusqu'à 15 jours ouvrés avant le démarrage"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="fundingTerms">Modalités de financement</Label>
+                <Textarea
+                  id="fundingTerms"
+                  value={fundingTerms}
+                  onChange={(e) => setFundingTerms(e.target.value)}
+                  placeholder="Ex : financement direct, prise en charge OPCO sur devis"
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="accessibilityTerms">Accessibilité aux personnes en situation de handicap</Label>
+                <Textarea
+                  id="accessibilityTerms"
+                  value={accessibilityTerms}
+                  onChange={(e) => setAccessibilityTerms(e.target.value)}
+                  placeholder="Ex : aménagements possibles, contact du référent handicap"
+                  rows={2}
+                />
+              </div>
+            </div>
 
 
 

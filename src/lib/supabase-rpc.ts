@@ -357,6 +357,44 @@ export interface ApiUsageTopCall {
   error_message: string | null;
 }
 
+/**
+ * Une ligne = un tour utilisateur d'un agent, tous ses appels confondus.
+ * `errors > 0` marque une tâche qui n'a pas abouti : le coût d'un agent se
+ * juge sur les tâches réussies.
+ */
+export interface ApiUsageTask {
+  task_id: string;
+  origin: string;
+  started_at: string;
+  calls: number;
+  errors: number;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
+  cost_usd: number;
+  duration_ms: number;
+}
+
+/**
+ * Procédure de prévention en vigueur, telle que publiée aux apprenants.
+ * Le RPC ne rend jamais les brouillons ni les versions archivées.
+ */
+export interface ActiveVhdProcedure {
+  version: string;
+  content: string;
+  contact_name: string | null;
+  contact_email: string | null;
+  effective_from: string | null;
+}
+
+/** Une consultation du récit d'un signalement. */
+export interface VhdNarrativeAccess {
+  accessed_at: string;
+  user_id: string | null;
+  reader: string;
+}
+
 export const rpc = {
   // --- Training public ---
   getTrainingPublicInfo: (trainingId: string) =>
@@ -507,6 +545,20 @@ export const rpc = {
 
   getApiUsageTopCalls: (days: number, limit: number) =>
     call<ApiUsageTopCall[]>("get_api_usage_top_calls", { p_days: days, p_limit: limit }),
+
+  getApiUsageByTask: (days: number, limit: number) =>
+    call<ApiUsageTask[]>("get_api_usage_by_task", { p_days: days, p_limit: limit }),
+
+  /** Procédure de prévention en vigueur, pour la page publique de session. */
+  getActiveVhdProcedure: () =>
+    call<ActiveVhdProcedure | null>("get_active_vhd_procedure", {}),
+
+  /** Récit d'un signalement. La lecture est journalisée par la base. */
+  readVhdNarrative: (reportId: string) =>
+    call<string | null>("read_vhd_narrative", { p_report_id: reportId }),
+
+  getVhdNarrativeAccess: (reportId: string) =>
+    call<VhdNarrativeAccess[]>("get_vhd_narrative_access", { p_report_id: reportId }),
 
   // --- Rate limiting ---
   checkFormulairRateLimit: (ipAddress: string, maxRequests: number, windowSeconds: number) =>

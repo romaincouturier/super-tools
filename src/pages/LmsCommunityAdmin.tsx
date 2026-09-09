@@ -3,13 +3,14 @@ import { useParams } from "react-router-dom";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DistanceFollowUpTab } from "@/components/lms/DistanceFollowUpTab";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, MessageSquare, FileText, Settings, Eye, CheckSquare } from "lucide-react";
+import { Users, MessageSquare, FileText, Settings, Eye, CheckSquare, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { supabase } from "@/integrations/supabase/client";
@@ -406,6 +407,10 @@ export default function LmsCommunityAdmin() {
               <Users className="w-4 h-4" />
               Membres
             </TabsTrigger>
+            <TabsTrigger value="suivi" className="gap-1.5">
+              <ShieldCheck className="w-4 h-4" />
+              Suivi distanciel
+            </TabsTrigger>
             <TabsTrigger value="settings" className="gap-1.5">
               <Settings className="w-4 h-4" />
               Paramètres
@@ -458,6 +463,10 @@ export default function LmsCommunityAdmin() {
 
             <TabsContent value="members">
               <MembersTab courseId={courseId} />
+            </TabsContent>
+
+            <TabsContent value="suivi">
+              <DistanceFollowUpTab courseId={courseId} />
             </TabsContent>
 
             <TabsContent value="settings">

@@ -8,6 +8,7 @@ import { sendEmail } from "../_shared/resend.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateFr } from "../_shared/date-utils.ts";
 import { resolveCertificateHours } from "../_shared/certificate-duration.ts";
+import { refreshGoogleAccessToken } from "../_shared/google-oauth.ts";
 
 
 function uint8ToBase64(bytes: Uint8Array): string {
@@ -41,8 +42,6 @@ function buildCertificateFileName(
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const GOOGLE_OAUTH_CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID");
-const GOOGLE_OAUTH_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET");
 
 interface Participant {
   prenom: string;
@@ -206,42 +205,26 @@ async function getOAuthAccessToken(userId: string): Promise<string | null> {
   // Token expired, refresh it
   console.log("Access token expired, refreshing...");
 
-  if (!GOOGLE_OAUTH_CLIENT_ID || !GOOGLE_OAUTH_CLIENT_SECRET) {
-    console.error("OAuth credentials not configured");
+  let refreshed;
+  try {
+    refreshed = await refreshGoogleAccessToken(tokenData.refresh_token);
+  } catch (refreshErr) {
+    console.error("Token refresh failed:", refreshErr);
     return null;
   }
 
-  const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: GOOGLE_OAUTH_CLIENT_ID,
-      client_secret: GOOGLE_OAUTH_CLIENT_SECRET,
-      refresh_token: tokenData.refresh_token,
-      grant_type: "refresh_token",
-    }),
-  });
-
-  const refreshData = await refreshResponse.json();
-
-  if (!refreshResponse.ok || !refreshData.access_token) {
-    console.error("Token refresh failed:", refreshData);
-    return null;
-  }
-
-  // Update stored token
-  const newExpiresAt = new Date(Date.now() + (refreshData.expires_in * 1000)).toISOString();
+  const newExpiresAt = refreshed.expiresAt;
 
   await supabase
     .from("google_drive_tokens")
     .update({
-      access_token: refreshData.access_token,
+      access_token: refreshed.accessToken,
       token_expires_at: newExpiresAt,
     })
     .eq("user_id", userId);
 
   console.log("Access token refreshed successfully");
-  return refreshData.access_token;
+  return refreshed.accessToken;
 }
 
 // Format date as YYYY-MM-DD

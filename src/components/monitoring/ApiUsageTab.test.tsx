@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -45,11 +45,13 @@ const mockRows = [
 
 const getApiUsageDaily = vi.fn();
 const getApiUsageTopCalls = vi.fn();
+const getApiUsageByTask = vi.fn();
 
 vi.mock("@/lib/supabase-rpc", () => ({
   rpc: {
     getApiUsageDaily: (...a: unknown[]) => getApiUsageDaily(...a),
     getApiUsageTopCalls: (...a: unknown[]) => getApiUsageTopCalls(...a),
+    getApiUsageByTask: (...a: unknown[]) => getApiUsageByTask(...a),
   },
 }));
 
@@ -104,9 +106,28 @@ vi.mock("lucide-react", () => ({
   Clock: () => <span />,
   Cpu: () => <span />,
   Flame: () => <span />,
+  ListChecks: () => <span />,
   ShieldAlert: () => <span />,
   Zap: () => <span />,
 }));
+
+/** Une tâche agent telle que la rend `get_api_usage_by_task`. */
+function taskRow(over: Partial<Record<string, unknown>> = {}) {
+  return {
+    task_id: "task-1",
+    origin: "agent-chat",
+    started_at: new Date().toISOString(),
+    calls: 4,
+    errors: 0,
+    input_tokens: 12_000,
+    output_tokens: 3_000,
+    cache_read_tokens: 88_000,
+    cache_write_tokens: 0,
+    cost_usd: 0.2,
+    duration_ms: 9_400,
+    ...over,
+  };
+}
 
 function renderWithQuery(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -119,6 +140,11 @@ describe("ApiUsageTab", () => {
   beforeEach(() => {
     getApiUsageDaily.mockClear();
     getApiUsageTopCalls.mockClear();
+    getApiUsageByTask.mockClear();
+    getApiUsageByTask.mockResolvedValue({
+      data: [taskRow(), taskRow({ task_id: "task-2", cost_usd: 0.6, calls: 9, errors: 1 })],
+      error: null,
+    });
     getApiUsageDaily.mockResolvedValue({ data: mockRows, error: null });
     getApiUsageTopCalls.mockResolvedValue({
       data: [
@@ -228,5 +254,66 @@ describe("ApiUsageTab", () => {
     expect(
       await screen.findByText("Aucune consommation enregistrée sur cette période."),
     ).toBeInTheDocument();
+  });
+
+  it("moyenne le coût par tâche sur les seules tâches abouties", async () => {
+    // Deux tâches à 0,20 $ et 0,60 $, la seconde en erreur : la moyenne
+    // affichée doit être 0,20 $, pas 0,40 $. Compter l'échec ferait passer
+    // une tâche ratée pour une dépense utile.
+    const { default: ApiUsageTab } = await import("./ApiUsageTab");
+    renderWithQuery(<ApiUsageTab />);
+
+    expect(await screen.findByText("Coût par tâche")).toBeInTheDocument();
+    expect(screen.getByText("sur 1 tâche")).toBeInTheDocument();
+    expect(screen.getByText("1 tâche en erreur")).toBeInTheDocument();
+    // 0,40 $ serait la moyenne des deux tâches, échec compris.
+    expect(screen.queryByText("$0.40")).not.toBeInTheDocument();
+    expect(screen.getAllByText("$0.20").length).toBeGreaterThan(0);
+    // Le coût de la tâche ratée est isolé, pas fondu dans la moyenne.
+    expect(screen.getAllByText("$0.60").length).toBeGreaterThan(0);
+  });
+
+  it("accorde les libellés au pluriel au-delà d'une tâche", async () => {
+    getApiUsageByTask.mockResolvedValue({
+      data: [
+        taskRow({ task_id: "a" }),
+        taskRow({ task_id: "b" }),
+        taskRow({ task_id: "c", errors: 1 }),
+        taskRow({ task_id: "d", errors: 3 }),
+      ],
+      error: null,
+    });
+
+    const { default: ApiUsageTab } = await import("./ApiUsageTab");
+    renderWithQuery(<ApiUsageTab />);
+
+    expect(await screen.findByText("sur 2 tâches")).toBeInTheDocument();
+    expect(screen.getByText("2 tâches en erreur")).toBeInTheDocument();
+  });
+
+  it("ne fait pas tomber l'onglet quand le RPC des tâches échoue", async () => {
+    getApiUsageByTask.mockResolvedValue({ data: null, error: new Error("Accès refusé") });
+
+    const { default: ApiUsageTab } = await import("./ApiUsageTab");
+    renderWithQuery(<ApiUsageTab />);
+
+    expect(await screen.findByText("Détail par origine")).toBeInTheDocument();
+    // Sans cette attente, le test se termine avant que la requête ne parte :
+    // le chemin d'erreur resterait rouge au rapport de couverture.
+    await waitFor(() => expect(getApiUsageByTask).toHaveBeenCalled());
+    expect(screen.queryByText("Coût par tâche")).not.toBeInTheDocument();
+  });
+
+  it("masque la carte des tâches quand aucun agent n'a été tracé", async () => {
+    // PostgREST rend `null`, pas un tableau vide, quand la requête ne ramène
+    // rien : la carte doit le traiter comme zéro tâche, pas planter.
+    getApiUsageByTask.mockResolvedValue({ data: null, error: null });
+
+    const { default: ApiUsageTab } = await import("./ApiUsageTab");
+    renderWithQuery(<ApiUsageTab />);
+
+    await screen.findByText("Détail par origine");
+    await waitFor(() => expect(getApiUsageByTask).toHaveBeenCalled());
+    expect(screen.queryByText("Coût par tâche")).not.toBeInTheDocument();
   });
 });

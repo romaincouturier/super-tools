@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
+import { CLAUDE_ADVANCED } from "../_shared/claude-models.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -72,6 +73,11 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Résolu une seule fois : l'appel, le log de consommation et le contenu
+    // enregistré doivent nommer le même modèle. Le réglage en base prime, la
+    // constante partagée sert de défaut.
+    const model = promptCfg.model || CLAUDE_ADVANCED;
 
     // Fetch Supertilt tags
     const { data: tagsRow } = await supabase
@@ -144,7 +150,7 @@ serve(async (req) => {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: promptCfg.model || "claude-sonnet-4-6",
+        model,
         max_tokens: 32000,
         system: promptCfg.system_prompt,
         tools: [tool],
@@ -167,7 +173,7 @@ serve(async (req) => {
     await logAnthropicUsage({
       origin: "generate-transcript-content",
       operation: kind,
-      model: promptCfg.model || "claude-sonnet-4-6",
+      model,
       trigger: "user",
       userId,
       usage: data.usage,
@@ -218,7 +224,7 @@ serve(async (req) => {
         title_suggestion: firstVariant.title ?? null,
         variants: cleanVariants,
         tags: filteredTags,
-        model: promptCfg.model,
+        model,
         created_by: userId,
       })
       .select()
