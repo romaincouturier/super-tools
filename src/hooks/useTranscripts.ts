@@ -1,5 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
+export function invalidateTranscriptLists(qc: QueryClient) {
+  qc.invalidateQueries({ queryKey: ["transcripts"] });
+  qc.invalidateQueries({ queryKey: ["transcripts-page"] });
+  qc.invalidateQueries({ queryKey: ["transcripts-counts"] });
+}
 
 export type TranscriptSource = "google_drive" | "fireflies";
 export type TranscriptStatus = "pending" | "processing" | "ready" | "error" | "trashed";
