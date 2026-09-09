@@ -56,21 +56,82 @@ function isoDay(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+function maskToken(url: string): string {
+  return url.replace(/([?&]token_auth=)[^&]*/g, "$1***");
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function wpFetch(
   baseUrl: string,
   token: string,
   endpoint: string,
   params: Record<string, string>,
 ): Promise<unknown> {
-  const query = new URLSearchParams({ ...params, token_auth: token });
-  const res = await fetch(`${baseUrl}/wp-json/wpstatistics/v1/${endpoint}?${query}`, {
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) {
-    const detail = await res.text();
-    throw new Error(`WP-Statistics ${endpoint}: ${res.status} ${detail.slice(0, 200)}`);
+  const url = new URL(`${baseUrl}/wp-json/wpstatistics/v1/${endpoint}`);
+  for (const [key, value] of Object.entries({ ...params, token_auth: token })) {
+    url.searchParams.set(key, value);
   }
-  return await res.json();
+  const fullUrl = url.toString();
+  const maskedUrl = maskToken(fullUrl);
+
+  const maxAttempts = 3;
+  const timeouts = [2000, 8000]; // delays between attempts 1→2 and 2→3
+  let lastError = "unknown error";
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+
+    try {
+      const res = await fetch(fullUrl, {
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+
+      if (res.ok) {
+        return await res.json();
+      }
+
+      const detail = await res.text();
+      const summary = `${res.status} ${detail.slice(0, 200)}`;
+
+      // 4xx are not transient : fail immediately.
+      if (res.status >= 400 && res.status < 500) {
+        throw new Error(`WP-Statistics ${endpoint}: ${summary}`);
+      }
+
+      lastError = summary;
+    } catch (err) {
+      clearTimeout(timer);
+
+      if (err instanceof Error && err.name === "AbortError") {
+        lastError = "request timed out after 30s";
+      } else if (err instanceof TypeError) {
+        lastError = `network error: ${err.message}`;
+      } else if (attempt === maxAttempts) {
+        // Non-retryable error (e.g. 4xx) surfaced on the last attempt.
+        throw err;
+      } else {
+        lastError = err instanceof Error ? err.message : String(err);
+      }
+    }
+
+    if (attempt < maxAttempts) {
+      const delay = timeouts[attempt - 1] ?? 2000;
+      console.warn(
+        `wp-statistics-sync: retrying ${endpoint} (${attempt}/${maxAttempts}) after ${delay}ms — ${maskedUrl}`,
+      );
+      await sleep(delay);
+    }
+  }
+
+  const message = `WP-Statistics ${endpoint} failed after ${maxAttempts} attempts for ${maskedUrl}: ${lastError}`;
+  console.error("wp-statistics-sync:", message);
+  throw new Error(message);
 }
 
 interface TrafficRow {
