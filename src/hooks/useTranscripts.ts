@@ -1,5 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
+export function invalidateTranscriptLists(qc: QueryClient) {
+  qc.invalidateQueries({ queryKey: ["transcripts"] });
+  qc.invalidateQueries({ queryKey: ["transcripts-page"] });
+  qc.invalidateQueries({ queryKey: ["transcripts-counts"] });
+}
 
 export type TranscriptSource = "google_drive" | "fireflies";
 export type TranscriptStatus = "pending" | "processing" | "ready" | "error" | "trashed";
@@ -195,7 +201,7 @@ export function useTrashTranscript() {
       if (!data || data.length === 0) throw new Error("Suppression refusée (droits insuffisants).");
     },
     onSuccess: (_d, id) => {
-      qc.invalidateQueries({ queryKey: ["transcripts"] });
+      invalidateTranscriptLists(qc);
       qc.invalidateQueries({ queryKey: ["transcript", id] });
     },
   });
@@ -212,7 +218,7 @@ export function useRestoreTranscript() {
       if (error) throw error;
     },
     onSuccess: (_d, { id }) => {
-      qc.invalidateQueries({ queryKey: ["transcripts"] });
+      invalidateTranscriptLists(qc);
       qc.invalidateQueries({ queryKey: ["transcript", id] });
     },
   });
@@ -228,6 +234,6 @@ export function useRetriggerTranscriptIndexation() {
       if (res.error) throw res.error;
       return res.data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["transcripts"] }),
+    onSuccess: () => invalidateTranscriptLists(qc),
   });
 }
