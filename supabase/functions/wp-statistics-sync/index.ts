@@ -358,11 +358,11 @@ Deno.serve(async (req) => {
 
     return createJsonResponse({ date, ...result });
   } catch (error) {
-    console.error("wp-statistics-sync error:", error);
+    console.error(`wp-statistics-sync error for date ${date}:`, error);
     return createErrorResponse(
       error instanceof Error ? error.message : "Unknown error",
       500,
-      { cause: error, fn: "wp-statistics-sync" },
+      { cause: error, fn: "wp-statistics-sync", date },
     );
   }
 });
