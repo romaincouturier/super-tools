@@ -13365,6 +13365,10 @@ export type Database = {
         Args: { p_answers: Json; p_token: string }
         Returns: Json
       }
+      sync_training_schedules_from_lives: {
+        Args: { p_training_id: string }
+        Returns: undefined
+      }
       update_api_key_last_used: { Args: { key_id: string }; Returns: undefined }
       update_evaluation_by_token: {
         Args: { p_data: Json; p_token: string }
