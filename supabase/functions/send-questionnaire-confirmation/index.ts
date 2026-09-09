@@ -239,7 +239,10 @@ serve(async (req) => {
     // Generate calendar links for schedule days
     // For e-learning / online formats, the start_date is only a launch marker
     // (no live event scheduled), so we skip it and only expose live meetings.
-    const calendarDays = isOnline
+    // When live meetings exist, they already cover every scheduled day (a DB
+    // trigger keeps training_schedules in sync with the lives), so listing the
+    // schedule days too would duplicate every date in the email.
+    const calendarDays = (isOnline || liveMeetings.length > 0)
       ? []
       : generatePerDayCalendarLinks(
           trainingName, location, startDate, endDate, schedules, senderEmail, trainingMeetingUrl || undefined, summaryUrl
