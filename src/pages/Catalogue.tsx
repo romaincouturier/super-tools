@@ -548,6 +548,16 @@ const Catalogue = () => {
                         )}
                       </TableCell>
                       <TableCell>
+                        <div className="flex flex-wrap items-center gap-1">
+                          {expertiseLabel(entry.expertise) ? (
+                            <Badge variant="outline" className="text-xs">{expertiseLabel(entry.expertise)}</Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                          {entry.is_featured && <Badge className="text-xs">★</Badge>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <SatisfactionCell entry={entry} year={selectedYear} years={years} />
                       </TableCell>
                       <TableCell>
