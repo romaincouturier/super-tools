@@ -400,10 +400,14 @@ const Catalogue = () => {
                           {entry.duree_heures}h
                         </p>
                       </div>
-                      {!entry.is_active && (
-                        <Badge variant="secondary">Inactive</Badge>
-                      )}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {entry.is_featured && <Badge className="text-xs">Mise en avant</Badge>}
+                        {!entry.is_active && <Badge variant="secondary">Inactive</Badge>}
+                      </div>
                     </div>
+                    {expertiseLabel(entry.expertise) && (
+                      <Badge variant="outline" className="text-xs">{expertiseLabel(entry.expertise)}</Badge>
+                    )}
                     {entry.formula_names.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {entry.formula_names.map((name) => (
