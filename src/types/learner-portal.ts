@@ -39,6 +39,15 @@ export interface Training {
   reglement_interieur_url?: string | null;
   trainer_name?: string | null;
   trainer_photo_url?: string | null;
+  documents?: TrainingDocument[] | null;
+  has_documents?: boolean;
+  has_coaching?: boolean;
+  last_activity_at?: string | null;
+}
+
+export interface TrainingDocument {
+  file_name: string | null;
+  file_url: string;
 }
 
 export interface Questionnaire {
