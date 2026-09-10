@@ -433,7 +433,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         .insert({
           ...payload,
           display_order: (maxOrder?.display_order || 0) + 1,
-        })
+        } as never)
         .select("id")
         .single();
       if (error) throw error;
