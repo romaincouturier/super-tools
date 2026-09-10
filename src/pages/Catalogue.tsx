@@ -30,6 +30,7 @@ import {
 } from "@/lib/catalogSatisfaction";
 import { buildDisclosureText } from "@/lib/satisfactionDisclosure";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { expertiseLabel } from "@/lib/lmsCourseMeta";
 
 interface CatalogEntry {
   id: string;
@@ -52,10 +53,12 @@ interface CatalogEntry {
   formula_names: string[];
   last_session_date: string | null;
   is_permanent: boolean;
+  expertise?: string | null;
+  is_featured?: boolean | null;
   satisfaction: CatalogSatisfaction | undefined;
 }
 
-type SortColumn = "formation_name" | "duree_heures" | "training_count" | "formula_names" | "last_session_date" | "satisfaction";
+type SortColumn = "formation_name" | "duree_heures" | "training_count" | "formula_names" | "last_session_date" | "satisfaction" | "expertise";
 type SortDirection = "asc" | "desc";
 
 /**
@@ -235,6 +238,8 @@ const Catalogue = () => {
           return dir * (a.training_count - b.training_count);
         case "formula_names":
           return dir * (a.formula_names.join(", ")).localeCompare(b.formula_names.join(", "), "fr");
+        case "expertise":
+          return dir * (expertiseLabel(a.expertise) ?? "").localeCompare(expertiseLabel(b.expertise) ?? "", "fr");
         case "satisfaction": {
           const sa = statForYear(a.satisfaction, selectedYear)?.average ?? -1;
           const sb = statForYear(b.satisfaction, selectedYear)?.average ?? -1;
@@ -395,10 +400,14 @@ const Catalogue = () => {
                           {entry.duree_heures}h
                         </p>
                       </div>
-                      {!entry.is_active && (
-                        <Badge variant="secondary">Inactive</Badge>
-                      )}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {entry.is_featured && <Badge className="text-xs">Mise en avant</Badge>}
+                        {!entry.is_active && <Badge variant="secondary">Inactive</Badge>}
+                      </div>
                     </div>
+                    {expertiseLabel(entry.expertise) && (
+                      <Badge variant="outline" className="text-xs">{expertiseLabel(entry.expertise)}</Badge>
+                    )}
                     {entry.formula_names.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {entry.formula_names.map((name) => (
@@ -459,6 +468,15 @@ const Catalogue = () => {
                       <div className="flex items-center">
                         Formules
                         <SortIcon column="formula_names" />
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className="w-[150px] cursor-pointer select-none"
+                      onClick={() => handleSort("expertise")}
+                    >
+                      <div className="flex items-center">
+                        Expertise
+                        <SortIcon column="expertise" />
                       </div>
                     </TableHead>
                     <TableHead
@@ -528,6 +546,16 @@ const Catalogue = () => {
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap items-center gap-1">
+                          {expertiseLabel(entry.expertise) ? (
+                            <Badge variant="outline" className="text-xs">{expertiseLabel(entry.expertise)}</Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                          {entry.is_featured && <Badge className="text-xs">★</Badge>}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <SatisfactionCell entry={entry} year={selectedYear} years={years} />

@@ -40,6 +40,14 @@ import PrerequisitesEditor from "@/components/formations/PrerequisitesEditor";
 import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
 import ProgramSelector from "@/components/formations/ProgramSelector";
 import type { FormationFormula } from "@/types/training";
+import { EXPERTISE_OPTIONS } from "@/lib/lmsCourseMeta";
+
+const NO_EXPERTISE = "none";
+const CATALOG_EXPERTISE_VALUES = ["facilitation_graphique", "agilite", "intelligence_collective"] as const;
+const CATALOG_EXPERTISE_OPTIONS = EXPERTISE_OPTIONS.filter((o) =>
+  (CATALOG_EXPERTISE_VALUES as readonly string[]).includes(o.value),
+);
+
 
 interface CatalogEntry {
   id: string;
@@ -57,6 +65,8 @@ interface CatalogEntry {
   is_active: boolean;
   is_permanent: boolean;
   display_order: number;
+  expertise?: string | null;
+  is_featured?: boolean | null;
 }
 
 interface FormulaEdit {
@@ -108,6 +118,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   const [accessDelay, setAccessDelay] = useState("");
   const [accessibilityTerms, setAccessibilityTerms] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [expertise, setExpertise] = useState(NO_EXPERTISE);
+  const [isFeatured, setIsFeatured] = useState(false);
   const [formulas, setFormulas] = useState<FormulaEdit[]>([]);
   const [expandedFormula, setExpandedFormula] = useState<number | null>(null);
 
@@ -135,6 +147,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
     supertiltLink, requiredEquipment, objectives, prerequisites,
     elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf,
     recognitionType, fundingTerms, accessDelay, accessibilityTerms, isActive,
+    expertise, isFeatured,
     formulas,
   };
 
@@ -145,6 +158,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
     supertiltLink, requiredEquipment, objectives, prerequisites,
     elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf,
     recognitionType, fundingTerms, accessDelay, accessibilityTerms, isActive,
+    expertise, isFeatured,
     fml: activeFormulas.map(f => `${f.id || ""}|${f.name}|${f.duree_heures}|${f.prix}|${f.woocommerce_product_id}|${f.learndash_course_id}|${f.supports_url}|${f.elearning_access_email_content}`),
   });
 
@@ -159,7 +173,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       codeSpecialiteNsf: string; labelSpecialiteNsf: string;
       recognitionType: string; fundingTerms: string;
       accessDelay: string; accessibilityTerms: string;
-      isActive: boolean; formulas: FormulaEdit[];
+      isActive: boolean; expertise: string; isFeatured: boolean; formulas: FormulaEdit[];
     };
 
     if (!v.formationName.trim()) return;
@@ -184,11 +198,14 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       access_delay: v.accessDelay.trim() || null,
       accessibility_terms: v.accessibilityTerms.trim() || null,
       is_active: v.isActive,
+      expertise: v.expertise && v.expertise !== NO_EXPERTISE ? v.expertise : null,
+      is_featured: v.isFeatured,
     };
 
     const { error } = await supabase
       .from("formation_configs")
-      .update(payload)
+      // Colonnes expertise / is_featured ajoutées par migration : types générés en retard.
+      .update(payload as never)
       .eq("id", entryId);
     if (error) throw error;
 
@@ -306,6 +323,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setAccessDelay((entry as unknown as { access_delay?: string | null }).access_delay || "");
         setAccessibilityTerms((entry as unknown as { accessibility_terms?: string | null }).accessibility_terms || "");
         setIsActive(entry.is_active);
+        setExpertise(entry.expertise || NO_EXPERTISE);
+        setIsFeatured(!!entry.is_featured);
         // Load formulas from DB
         supabase
           .from("formation_formulas")
@@ -342,6 +361,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setAccessDelay("");
         setAccessibilityTerms("");
         setIsActive(true);
+        setExpertise(NO_EXPERTISE);
+        setIsFeatured(false);
         setFormulas([]);
       }
       setExpandedFormula(null);
@@ -395,6 +416,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         access_delay: accessDelay.trim() || null,
         accessibility_terms: accessibilityTerms.trim() || null,
         is_active: isActive,
+        expertise: expertise !== NO_EXPERTISE ? expertise : null,
+        is_featured: isFeatured,
       };
 
       // Insert — get max display_order
@@ -410,7 +433,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         .insert({
           ...payload,
           display_order: (maxOrder?.display_order || 0) + 1,
-        })
+        } as never)
         .select("id")
         .single();
       if (error) throw error;
@@ -528,6 +551,28 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                   onChange={(e) => setPrix(e.target.value)}
                   placeholder="Ex: 1490"
                 />
+              </div>
+            </div>
+
+            {/* Expertise + mise en avant (recommandations apprenant) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="expertise">Expertise</Label>
+                <Select value={expertise} onValueChange={setExpertise}>
+                  <SelectTrigger id="expertise">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_EXPERTISE}>Non renseignée</SelectItem>
+                    {CATALOG_EXPERTISE_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-3 sm:pt-8">
+                <Switch id="isFeatured" checked={isFeatured} onCheckedChange={setIsFeatured} />
+                <Label htmlFor="isFeatured">Mise en avant</Label>
               </div>
             </div>
 

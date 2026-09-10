@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -9,9 +10,27 @@ import { useUpdateCourse, type LmsCourse } from "@/hooks/useLms";
 import { ACCESS_OPTIONS, EXPERTISE_OPTIONS, STATUS_OPTIONS } from "@/lib/lmsCourseMeta";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { supabase } from "@/integrations/supabase/client";
 import CourseIntegrationStatus from "@/components/lms/CourseIntegrationStatus";
 
 const NO_EXPERTISE = "none";
+const NO_FORMATION = "none";
+
+function useActiveFormationConfigs() {
+  return useQuery({
+    queryKey: ["formation-configs-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("formation_configs")
+        .select("id, formation_name")
+        .eq("is_active", true)
+        .order("formation_name");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 type Props = {
   course: LmsCourse | null;
@@ -26,6 +45,8 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
   const [access, setAccess] = useState("gratuit");
   const [status, setStatus] = useState("draft");
   const [isFeatured, setIsFeatured] = useState(false);
+  const [formationConfigId, setFormationConfigId] = useState(NO_FORMATION);
+  const { data: formationConfigs = [] } = useActiveFormationConfigs();
 
   useEffect(() => {
     if (!course) return;
@@ -34,6 +55,7 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
     setAccess(course.access_type ?? "gratuit");
     setStatus(course.status);
     setIsFeatured(course.is_featured ?? false);
+    setFormationConfigId(course.formation_config_id ?? NO_FORMATION);
   }, [course]);
 
   const handleSave = async () => {
@@ -46,6 +68,7 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
         access_type: access,
         status,
         is_featured: isFeatured,
+        formation_config_id: formationConfigId === NO_FORMATION ? null : formationConfigId,
       });
       toast({ title: "Cours mis à jour" });
       onClose();
@@ -106,6 +129,20 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
               <SelectContent>
                 {STATUS_OPTIONS.map((o) => (
                   <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Formation du catalogue liée</Label>
+            <Select value={formationConfigId} onValueChange={setFormationConfigId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_FORMATION}>Aucune</SelectItem>
+                {formationConfigs.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>{f.formation_name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
