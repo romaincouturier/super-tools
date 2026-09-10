@@ -323,6 +323,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setAccessDelay((entry as unknown as { access_delay?: string | null }).access_delay || "");
         setAccessibilityTerms((entry as unknown as { accessibility_terms?: string | null }).accessibility_terms || "");
         setIsActive(entry.is_active);
+        setExpertise(entry.expertise || NO_EXPERTISE);
+        setIsFeatured(!!entry.is_featured);
         // Load formulas from DB
         supabase
           .from("formation_formulas")
@@ -359,6 +361,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setAccessDelay("");
         setAccessibilityTerms("");
         setIsActive(true);
+        setExpertise(NO_EXPERTISE);
+        setIsFeatured(false);
         setFormulas([]);
       }
       setExpandedFormula(null);
