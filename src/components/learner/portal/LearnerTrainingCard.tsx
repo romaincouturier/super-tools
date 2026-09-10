@@ -374,11 +374,15 @@ export function FormationItem({
   email,
   questionnaire,
   evaluation,
+  onRequestCoach,
+  requestingCoach,
 }: {
   training: Training;
   email: string;
   questionnaire: Questionnaire | undefined;
   evaluation: Questionnaire | undefined;
+  onRequestCoach: (t: Training) => void;
+  requestingCoach: string | null;
 }) {
   const [expanded, setExpanded] = useState(false);
   const completion = training.lms_completion ?? 0;
@@ -392,9 +396,10 @@ export function FormationItem({
 
   const hasDocuments = hasLearnerDocuments(training, questionnaire, evaluation);
   const hasCoaching = hasLearnerCoaching(training);
-  const showTabs = hasDocuments || hasCoaching;
+  const showCoaching = hasCoaching || isLearnerCoachingAvailable(training);
+  const showTabs = hasDocuments || showCoaching;
 
-  const tabsLabel = ["Formation", hasDocuments ? "Documents" : null, hasCoaching ? "Coaching" : null]
+  const tabsLabel = ["Formation", hasDocuments ? "Documents" : null, showCoaching ? "Coaching" : null]
     .filter(Boolean)
     .join(" · ");
 
