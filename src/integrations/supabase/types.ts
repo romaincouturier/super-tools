@@ -3215,12 +3215,14 @@ export type Database = {
           display_order: number
           duree_heures: number
           elearning_access_email_content: string | null
+          expertise: string | null
           format_formation: string | null
           formation_name: string
           funding_terms: string | null
           id: string
           is_active: boolean
           is_default: boolean
+          is_featured: boolean
           is_permanent: boolean
           label_specialite_nsf: string | null
           learndash_course_id: number | null
@@ -3246,12 +3248,14 @@ export type Database = {
           display_order?: number
           duree_heures?: number
           elearning_access_email_content?: string | null
+          expertise?: string | null
           format_formation?: string | null
           formation_name: string
           funding_terms?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
+          is_featured?: boolean
           is_permanent?: boolean
           label_specialite_nsf?: string | null
           learndash_course_id?: number | null
@@ -3277,12 +3281,14 @@ export type Database = {
           display_order?: number
           duree_heures?: number
           elearning_access_email_content?: string | null
+          expertise?: string | null
           format_formation?: string | null
           formation_name?: string
           funding_terms?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
+          is_featured?: boolean
           is_permanent?: boolean
           label_specialite_nsf?: string | null
           learndash_course_id?: number | null
