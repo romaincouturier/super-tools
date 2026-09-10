@@ -24,6 +24,10 @@ const FREE_COURSE_THUMBNAILS: Record<string, string> = {
 };
 const FREE_COURSE_ORDER = Object.keys(FREE_COURSE_THUMBNAILS);
 
+/** Formations gratuites à ne pas afficher sur la landing. */
+const HIDDEN_FREE_COURSE_IDS = new Set(["826c2e2c-884d-461d-be61-3bd66ae34440"]);
+
+
 const expertise = [
   { label: "Facilitation graphique", text: "Structurer une idée, la rendre visible et la partager avec des mots simples et des dessins accessibles.", mark: "01" },
   { label: "Facilitation & intelligence collective", text: "Préparer et animer des temps de travail où chacun contribue et où le groupe avance vraiment.", mark: "02" },
@@ -66,7 +70,10 @@ export default function Landing() {
   // Toutes les formations gratuites publiées : celles disposant d'une
   // miniature dédiée d'abord (ordre éditorial), puis les nouvelles.
   const freeCourses = useMemo(() => {
-    const gratuit = courses.filter((course) => course.access_type === "gratuit");
+    const gratuit = courses.filter(
+      (course) => course.access_type === "gratuit" && !HIDDEN_FREE_COURSE_IDS.has(course.id),
+    );
+
     const rank = (id: string) => {
       const index = FREE_COURSE_ORDER.indexOf(id);
       return index === -1 ? FREE_COURSE_ORDER.length : index;
