@@ -64,6 +64,7 @@ Deno.serve(async (req) => {
       .select("id", { count: "exact" })
       .eq("status", "ready")
       .not("raw_text", "is", null)
+      .neq("raw_text", "")
       .is("editorial_qualification", null)
       // Plafond de tentatives : un transcript dont l'analyse échoue de façon
       // reproductible sortait jamais du lot et repassait à chaque cron.

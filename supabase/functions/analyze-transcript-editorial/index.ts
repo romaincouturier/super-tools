@@ -96,7 +96,9 @@ Deno.serve(async (req) => {
       .eq("id", transcriptId)
       .single();
     if (tErr || !t) return json({ error: "Transcript introuvable" }, 404);
-    if (!t.raw_text) return json({ error: "Transcript sans texte" }, 400);
+    if (!t.raw_text || String(t.raw_text).trim() === "") {
+      return failed("Transcript sans texte", 400);
+    }
 
     const { data: prompt } = await (admin as any)
       .from("transcript_ai_prompts")
