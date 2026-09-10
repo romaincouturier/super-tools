@@ -94,9 +94,21 @@ const CrmDescriptionEditor = ({
   });
 
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content, { emitUpdate: false });
-    }
+    if (!editor) return;
+    if (content === canonicalizeHtmlImageUrls(editor.getHTML())) return;
+    let cancelled = false;
+    // Les images du CRM vivent dans un bucket privé : il faut une URL signée
+    // pour qu'elles s'affichent dans l'éditeur.
+    signHtmlImageUrls(content)
+      .then((html) => {
+        if (!cancelled) editor.commands.setContent(html, { emitUpdate: false });
+      })
+      .catch(() => {
+        if (!cancelled) editor.commands.setContent(content, { emitUpdate: false });
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [content, editor]);
 
   const insertStamp = useCallback((label: string) => {
