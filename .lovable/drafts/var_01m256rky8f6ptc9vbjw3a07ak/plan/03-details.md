@@ -13,18 +13,19 @@ Contrainte constatée : ces deux tables sont en lecture réservée au personnel 
 ## Détails techniques
 
 1. **Fonction serveur `get_learner_portal_data`** : ajouter dans l'objet JSON déjà renvoyé par formation, sans nouvelle colonne ni table :
-   - `has_documents` : `EXISTS` sur `training_documents` (par `training_id`) `OR` `EXISTS` sur `participant_files` (par `participant_id`), en gardant aussi les liens déjà existants (`program_file_url`, `supports_url`, questionnaire, évaluation) comme sources de documents affichables.
+   - `documents` : la liste réellement affichable (nom + URL) issue de `training_documents` (par `training_id`) et de `participant_files` (par `participant_id`). Ces deux tables sont réservées au personnel en lecture directe, donc la fonction serveur est le seul point d'accès.
+   - `has_documents` : vrai si `documents` n'est pas vide OU `program_file_url IS NOT NULL` OU `supports_url IS NOT NULL` OU questionnaire présent OU évaluation présente — exactement le périmètre rendu dans l'onglet, pour ne jamais avoir d'onglet vide ni de contenu masqué.
    - `has_coaching` : `tp.coaching_sessions_total > 0`.
    - `last_activity_at` : `MAX(viewed_at)` de `lms_page_views` pour ce cours et cet e-mail, nécessaire au tri par dernière activité.
    Cette modification est préparée comme migration additive et s'appliquera à l'application au moment où vous accepterez ce brouillon ; elle ne peut donc pas être testée avant.
 
-2. **`src/types/learner-portal.ts`** : ajouter `has_documents?`, `has_coaching?`, `last_activity_at?` au type `Training`.
+2. **`src/types/learner-portal.ts`** : ajouter `documents?`, `has_documents?`, `has_coaching?`, `last_activity_at?` au type `Training`.
 
 3. **`src/components/learner/portal/LearnerTrainingCard.tsx`** :
    - `FormationItem` : supprimer la branche `!primary` (ligne compacte) et le prop `primary`. Une seule mise en forme, `rounded-2xl`, bordure et ombre `0 2px 20px rgba(16,24,32,0.06)`.
    - Bouton principal jaune : « Commencer » (0 %), « Reprendre » (en cours), « Revoir » (100 %) ; secondaire « Accueil du cours ». Plus de bouton noir. Boutons `w-full` empilés sous `sm`.
    - Ligne d'onglets rendue seulement si `has_documents` ou `has_coaching`, dans la carte après un `border-t`.
-   - `TrainingDetail` : recevoir la liste d'onglets à afficher et ne construire `TabsList`/`TabsContent` que pour ceux-là ; `defaultValue` sur le premier onglet disponible. `CoachingCircles` conditionné à `coaching_sessions_total > 0`.
+   - `TrainingDetail` : recevoir la liste d'onglets à afficher et ne construire `TabsList`/`TabsContent` que pour ceux-là ; `defaultValue` sur le premier onglet disponible. L'onglet Documents liste aussi les fichiers de `documents` renvoyés par le serveur, en plus du programme, des supports, du questionnaire et de l'évaluation — donc plus de bloc « Aucun document disponible ». `CoachingCircles` conditionné à `coaching_sessions_total > 0`.
 
 4. **`src/pages/LearnerPortal.tsx`** :
    - Helper de tri partagé : dernière activité décroissante (`last_activity_at`, repli sur progression > 0), puis non commencées, puis terminées (100 %).
