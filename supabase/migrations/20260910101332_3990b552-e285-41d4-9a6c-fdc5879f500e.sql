@@ -1,6 +1,4 @@
 -- Portail apprenant : 3 états pour l'onglet Coaching
---  * has_coaching_active : l'apprenant a des séances de coaching dans sa formule
---  * coaching_available  : le catalogue propose une formule coachée pour cette formation
 CREATE OR REPLACE FUNCTION public.get_learner_portal_data(p_email text)
  RETURNS json
  LANGUAGE plpgsql
