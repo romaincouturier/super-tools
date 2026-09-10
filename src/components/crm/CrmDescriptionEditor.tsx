@@ -43,13 +43,21 @@ const CrmDescriptionEditor = ({
         formData.append("file", file);
         const { data, error } = await supabase.functions.invoke("upload-crm-image", { body: formData });
         if (error) throw error;
-        return data?.publicUrl ?? null;
+        const url = data?.publicUrl ?? null;
+        // Le bucket CRM est privé : l'URL "public" ne s'affiche pas telle quelle.
+        return url ? await resolveStorageUrl(url) : null;
       } catch (err) {
         console.error("Image upload error:", err);
         return null;
       }
     },
     [cardId]
+  );
+
+  // On persiste toujours l'URL canonique (sans jeton), jamais l'URL signée.
+  const handleChange = useCallback(
+    (html: string) => onChange(canonicalizeHtmlImageUrls(html)),
+    [onChange],
   );
 
   const handlePaste = useTiptapImagePaste(cardId ? uploadImage : undefined, setImageUploading);
