@@ -554,6 +554,28 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
               </div>
             </div>
 
+            {/* Expertise + mise en avant (recommandations apprenant) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="expertise">Expertise</Label>
+                <Select value={expertise} onValueChange={setExpertise}>
+                  <SelectTrigger id="expertise">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_EXPERTISE}>Non renseignée</SelectItem>
+                    {CATALOG_EXPERTISE_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-3 sm:pt-8">
+                <Switch id="isFeatured" checked={isFeatured} onCheckedChange={setIsFeatured} />
+                <Label htmlFor="isFeatured">Mise en avant</Label>
+              </div>
+            </div>
+
             {/* BPF — Spécialité NSF */}
             <NsfSpecialiteSelector
               code={codeSpecialiteNsf}
