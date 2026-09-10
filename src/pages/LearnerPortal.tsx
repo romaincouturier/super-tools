@@ -62,7 +62,7 @@ import { LearnerSidebar } from "@/components/learner/portal/LearnerSidebar";
 import LearnerNotificationBell from "@/components/learner/portal/LearnerNotificationBell";
 import {
   progressMessage, ProgressCircle,
-  FormationItem,
+  FormationItem, sortLearnerTrainings,
 } from "@/components/learner/portal/LearnerTrainingCard";
 import { TravauxView } from "@/components/learner/portal/TravauxView";
 import { DashCard } from "@/components/learner/portal/DashCard";
@@ -706,22 +706,21 @@ function FormationsView({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Mes formations</h2>
+        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>
+          Mes formations ({data.trainings.length})
+        </h2>
         <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
           {data.trainings.length} formation{data.trainings.length !== 1 ? "s" : ""} trouvée{data.trainings.length !== 1 ? "s" : ""}
         </p>
       </div>
       <div className="space-y-4">
-        {data.trainings.map((t) => (
+        {sortLearnerTrainings(data.trainings).map((t) => (
           <FormationItem
             key={t.training_id + t.participant_id}
             training={t}
             email={data.email}
             questionnaire={data.questionnaires?.find((q) => q.training_id === t.training_id)}
             evaluation={data.evaluations?.find((e) => e.training_id === t.training_id)}
-            onRequestCoach={onRequestCoach}
-            requestingCoach={requestingCoach}
-            primary
           />
         ))}
       </div>
