@@ -471,6 +471,15 @@ const Catalogue = () => {
                       </div>
                     </TableHead>
                     <TableHead
+                      className="w-[150px] cursor-pointer select-none"
+                      onClick={() => handleSort("expertise")}
+                    >
+                      <div className="flex items-center">
+                        Expertise
+                        <SortIcon column="expertise" />
+                      </div>
+                    </TableHead>
+                    <TableHead
                       className="w-[130px] cursor-pointer select-none"
                       onClick={() => handleSort("satisfaction")}
                     >
