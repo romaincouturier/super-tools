@@ -405,27 +405,41 @@ function DashboardView({
       <div className="grid lg:grid-cols-3 gap-4">
         {/* Left col (2/3) — Mes formations */}
         <div className="lg:col-span-2 space-y-4">
-          <DashCard title="Mes formations" icon={GraduationCap} action={{ label: "Voir toutes mes formations", onClick: () => onNav("formations") }}>
+          <DashCard
+            title={`Mes formations (${data.trainings.length})`}
+            icon={GraduationCap}
+            action={data.trainings.length > 3
+              ? undefined
+              : { label: "Voir toutes mes formations", onClick: () => onNav("formations") }}
+          >
             {data.trainings.length === 0 ? (
               <div className="py-6 text-center">
                 <GraduationCap size={32} className="mx-auto mb-2" style={{ color: "var(--st-ink-muted)" }} />
                 <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Aucune formation trouvée.</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {data.trainings.slice(0, 3).map((t, idx) => (
-                  <FormationItem
-                    key={t.training_id + t.participant_id}
-                    training={t}
-                    email={data.email}
-                    questionnaire={data.questionnaires?.find((q) => q.training_id === t.training_id)}
-                    evaluation={data.evaluations?.find((e) => e.training_id === t.training_id)}
-                    onRequestCoach={onRequestCoach}
-                    requestingCoach={requestingCoach}
-                    primary={idx === 0}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="space-y-4">
+                  {sortLearnerTrainings(data.trainings).slice(0, 3).map((t) => (
+                    <FormationItem
+                      key={t.training_id + t.participant_id}
+                      training={t}
+                      email={data.email}
+                      questionnaire={data.questionnaires?.find((q) => q.training_id === t.training_id)}
+                      evaluation={data.evaluations?.find((e) => e.training_id === t.training_id)}
+                    />
+                  ))}
+                </div>
+                {data.trainings.length > 3 && (
+                  <button
+                    onClick={() => onNav("formations")}
+                    className="mt-4 w-full flex items-center justify-center gap-1.5 text-sm font-semibold px-5 py-2.5 rounded-full border transition-all hover:bg-black/5"
+                    style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink)", fontFamily: "inherit" }}
+                  >
+                    Voir mes {data.trainings.length} formations →
+                  </button>
+                )}
+              </>
             )}
           </DashCard>
 
