@@ -289,13 +289,12 @@ export function TrainingDetail({
               </Link>
             )}
           </div>
-        )}
       </TabsContent>
+      )}
 
+      {hasCoaching && (
       <TabsContent value="coaching">
-        {training.is_coached ? (
           <div className="space-y-4">
-            {coachingTotal > 0 && (
               <div>
                 <p className="text-sm font-medium mb-2" style={{ color: "var(--st-ink)" }}>
                   Séances de coaching
@@ -307,7 +306,6 @@ export function TrainingDetail({
                     : "Toutes les séances ont été réalisées"}
                 </p>
               </div>
-            )}
             {remainingSessions > 0 && training.trainer_booking_url ? (
               <a
                 href={training.trainer_booking_url}
@@ -325,35 +323,8 @@ export function TrainingDetail({
               </p>
             ) : null}
           </div>
-        ) : (
-          <div className="rounded-2xl border border-dashed p-6 text-center space-y-4"
-            style={{ borderColor: "rgba(16,24,32,0.12)", background: "rgba(16,24,32,0.02)" }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto"
-              style={{ background: "#EDEDED" }}>
-              <Lock size={16} style={{ color: "var(--st-ink-muted)" }} />
-            </div>
-            <div>
-              <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Coaching individuel non inclus</p>
-              <p className="text-xs mt-1" style={{ color: "var(--st-ink-muted)" }}>
-                Votre formule actuelle ne comprend pas de sessions de coaching.
-              </p>
-            </div>
-            <button
-              disabled={requestingCoach === training.training_id}
-              onClick={() => onRequestCoach(training)}
-              className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-black/5"
-              style={{ borderColor: "rgba(16,24,32,0.2)", color: "var(--st-ink)", fontFamily: "inherit" }}
-            >
-              {requestingCoach === training.training_id ? (
-                <Spinner className="mr-1" />
-              ) : (
-                <Video size={13} />
-              )}
-              Demander une formule coachée
-            </button>
-          </div>
-        )}
       </TabsContent>
+      )}
     </Tabs>
   );
 }
