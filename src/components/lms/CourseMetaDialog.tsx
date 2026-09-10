@@ -45,6 +45,8 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
   const [access, setAccess] = useState("gratuit");
   const [status, setStatus] = useState("draft");
   const [isFeatured, setIsFeatured] = useState(false);
+  const [formationConfigId, setFormationConfigId] = useState(NO_FORMATION);
+  const { data: formationConfigs = [] } = useActiveFormationConfigs();
 
   useEffect(() => {
     if (!course) return;
@@ -53,6 +55,7 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
     setAccess(course.access_type ?? "gratuit");
     setStatus(course.status);
     setIsFeatured(course.is_featured ?? false);
+    setFormationConfigId(course.formation_config_id ?? NO_FORMATION);
   }, [course]);
 
   const handleSave = async () => {
@@ -65,6 +68,7 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
         access_type: access,
         status,
         is_featured: isFeatured,
+        formation_config_id: formationConfigId === NO_FORMATION ? null : formationConfigId,
       });
       toast({ title: "Cours mis à jour" });
       onClose();
