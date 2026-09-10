@@ -133,6 +133,20 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <Label>Formation du catalogue liée</Label>
+            <Select value={formationConfigId} onValueChange={setFormationConfigId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_FORMATION}>Aucune</SelectItem>
+                {formationConfigs.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>{f.formation_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/30 px-4 py-3">
             <div className="space-y-1">
               <Label htmlFor="course-featured">Mise en avant</Label>
