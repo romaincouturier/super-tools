@@ -116,18 +116,28 @@ export function hasLearnerDocuments(
   );
 }
 
+/** Séances de coaching réellement attribuées au participant. */
 export function hasLearnerCoaching(training: Training): boolean {
-  return (training.coaching_sessions_total ?? 0) > 0;
+  return training.has_coaching_active ?? (training.coaching_sessions_total ?? 0) > 0;
+}
+
+/** Une formule coachée existe au catalogue : onglet verrouillé + upsell. */
+export function isLearnerCoachingAvailable(training: Training): boolean {
+  return !!training.coaching_available;
 }
 
 export function TrainingDetail({
   training,
   questionnaire,
   evaluation,
+  onRequestCoach,
+  requestingCoach,
 }: {
   training: Training;
   questionnaire: Questionnaire | undefined;
   evaluation: Questionnaire | undefined;
+  onRequestCoach: (t: Training) => void;
+  requestingCoach: string | null;
 }) {
   const documents = training.documents ?? [];
   const hasDocuments = hasLearnerDocuments(training, questionnaire, evaluation);
@@ -136,6 +146,7 @@ export function TrainingDetail({
   const coachingTotal = training.coaching_sessions_total ?? 0;
   const remainingSessions = coachingTotal - coachingCompleted;
   const hasCoaching = hasLearnerCoaching(training);
+  const showCoaching = hasCoaching || isLearnerCoachingAvailable(training);
 
   return (
     <Tabs defaultValue="details" className="mt-4">
