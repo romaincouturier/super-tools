@@ -2,8 +2,10 @@
 
 Aucun nouveau champ ni table.
 
+Règle générale : un onglet est visible si et seulement s'il a au moins un élément à afficher. Jamais d'onglet vide, jamais de contenu masqué.
+
 - **Coaching** : visible si `training_participants.coaching_sessions_total > 0` pour ce participant. On abandonne le test actuel `is_coached` (dérivé de `formation_formulas.coaching_sessions_count`, incomplet dans le catalogue).
-- **Documents** : visible s'il existe au moins une ligne dans `training_documents` pour la formation OU dans `participant_files` pour le participant.
+- **Documents** : visible si le périmètre exact affiché dans l'onglet n'est pas vide, soit `EXISTS(training_documents)` pour la formation OU `EXISTS(participant_files)` pour le participant OU `program_file_url IS NOT NULL` OU `supports_url IS NOT NULL` OU présence du questionnaire des besoins OU de l'évaluation.
 - **Formation** : toujours visible (cours LMS via `lms_enrollments`).
 
 Contrainte constatée : ces deux tables sont en lecture réservée au personnel (`is_staff_user()`), donc l'apprenant ne peut pas les interroger directement. Le calcul doit se faire dans la fonction serveur existante qui alimente le portail, laquelle s'exécute avec les droits élevés.
