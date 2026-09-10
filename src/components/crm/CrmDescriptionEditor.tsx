@@ -65,7 +65,7 @@ const CrmDescriptionEditor = ({
 
   const { editor, setLink, linkDialog } = useTiptapEditor({
     content,
-    onChange,
+    onChange: handleChange,
     extraExtensions: [
       Image.configure({
         inline: true,
