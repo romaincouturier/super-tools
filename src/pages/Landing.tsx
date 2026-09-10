@@ -70,7 +70,10 @@ export default function Landing() {
   // Toutes les formations gratuites publiées : celles disposant d'une
   // miniature dédiée d'abord (ordre éditorial), puis les nouvelles.
   const freeCourses = useMemo(() => {
-    const gratuit = courses.filter((course) => course.access_type === "gratuit");
+    const gratuit = courses.filter(
+      (course) => course.access_type === "gratuit" && !HIDDEN_FREE_COURSE_IDS.has(course.id),
+    );
+
     const rank = (id: string) => {
       const index = FREE_COURSE_ORDER.indexOf(id);
       return index === -1 ? FREE_COURSE_ORDER.length : index;
