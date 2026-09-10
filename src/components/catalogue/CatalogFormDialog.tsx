@@ -173,7 +173,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       codeSpecialiteNsf: string; labelSpecialiteNsf: string;
       recognitionType: string; fundingTerms: string;
       accessDelay: string; accessibilityTerms: string;
-      isActive: boolean; formulas: FormulaEdit[];
+      isActive: boolean; expertise: string; isFeatured: boolean; formulas: FormulaEdit[];
     };
 
     if (!v.formationName.trim()) return;
@@ -198,6 +198,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       access_delay: v.accessDelay.trim() || null,
       accessibility_terms: v.accessibilityTerms.trim() || null,
       is_active: v.isActive,
+      expertise: v.expertise && v.expertise !== NO_EXPERTISE ? v.expertise : null,
+      is_featured: v.isFeatured,
     };
 
     const { error } = await supabase
