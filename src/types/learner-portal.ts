@@ -42,6 +42,10 @@ export interface Training {
   documents?: TrainingDocument[] | null;
   has_documents?: boolean;
   has_coaching?: boolean;
+  /** Des séances de coaching sont réellement attribuées au participant. */
+  has_coaching_active?: boolean;
+  /** Une formule coachée existe au catalogue pour cette formation. */
+  coaching_available?: boolean;
   last_activity_at?: string | null;
 }
 

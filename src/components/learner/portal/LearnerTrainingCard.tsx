@@ -116,18 +116,28 @@ export function hasLearnerDocuments(
   );
 }
 
+/** Séances de coaching réellement attribuées au participant. */
 export function hasLearnerCoaching(training: Training): boolean {
-  return (training.coaching_sessions_total ?? 0) > 0;
+  return training.has_coaching_active ?? (training.coaching_sessions_total ?? 0) > 0;
+}
+
+/** Une formule coachée existe au catalogue : onglet verrouillé + upsell. */
+export function isLearnerCoachingAvailable(training: Training): boolean {
+  return !!training.coaching_available;
 }
 
 export function TrainingDetail({
   training,
   questionnaire,
   evaluation,
+  onRequestCoach,
+  requestingCoach,
 }: {
   training: Training;
   questionnaire: Questionnaire | undefined;
   evaluation: Questionnaire | undefined;
+  onRequestCoach: (t: Training) => void;
+  requestingCoach: string | null;
 }) {
   const documents = training.documents ?? [];
   const hasDocuments = hasLearnerDocuments(training, questionnaire, evaluation);
@@ -136,6 +146,7 @@ export function TrainingDetail({
   const coachingTotal = training.coaching_sessions_total ?? 0;
   const remainingSessions = coachingTotal - coachingCompleted;
   const hasCoaching = hasLearnerCoaching(training);
+  const showCoaching = hasCoaching || isLearnerCoachingAvailable(training);
 
   return (
     <Tabs defaultValue="details" className="mt-4">
@@ -143,7 +154,7 @@ export function TrainingDetail({
         {[
           { value: "details", label: "Formation", icon: GraduationCap },
           ...(hasDocuments ? [{ value: "documents", label: "Documents", icon: FileText }] : []),
-          ...(hasCoaching ? [{ value: "coaching", label: "Coaching", icon: Video }] : []),
+          ...(showCoaching ? [{ value: "coaching", label: "Coaching", icon: Video }] : []),
         ].map(({ value, label, icon: Icon }) => (
           <TabsTrigger
             key={value}
@@ -292,8 +303,9 @@ export function TrainingDetail({
       </TabsContent>
       )}
 
-      {hasCoaching && (
+      {showCoaching && (
       <TabsContent value="coaching">
+        {hasCoaching ? (
           <div className="space-y-4">
               <div>
                 <p className="text-sm font-medium mb-2" style={{ color: "var(--st-ink)" }}>
@@ -323,6 +335,34 @@ export function TrainingDetail({
               </p>
             ) : null}
           </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed p-6 text-center space-y-4"
+            style={{ borderColor: "rgba(16,24,32,0.12)", background: "rgba(16,24,32,0.02)" }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto"
+              style={{ background: "#EDEDED" }}>
+              <Lock size={16} style={{ color: "var(--st-ink-muted)" }} />
+            </div>
+            <div>
+              <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Coaching individuel non inclus</p>
+              <p className="text-xs mt-1" style={{ color: "var(--st-ink-muted)" }}>
+                Votre formule actuelle ne comprend pas de sessions de coaching.
+              </p>
+            </div>
+            <button
+              disabled={requestingCoach === training.training_id}
+              onClick={() => onRequestCoach(training)}
+              className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-black/5"
+              style={{ borderColor: "rgba(16,24,32,0.2)", color: "var(--st-ink)", fontFamily: "inherit" }}
+            >
+              {requestingCoach === training.training_id ? (
+                <Spinner className="mr-1" />
+              ) : (
+                <Video size={13} />
+              )}
+              Demander une formule coachée
+            </button>
+          </div>
+        )}
       </TabsContent>
       )}
     </Tabs>
@@ -334,11 +374,15 @@ export function FormationItem({
   email,
   questionnaire,
   evaluation,
+  onRequestCoach,
+  requestingCoach,
 }: {
   training: Training;
   email: string;
   questionnaire: Questionnaire | undefined;
   evaluation: Questionnaire | undefined;
+  onRequestCoach: (t: Training) => void;
+  requestingCoach: string | null;
 }) {
   const [expanded, setExpanded] = useState(false);
   const completion = training.lms_completion ?? 0;
@@ -352,9 +396,10 @@ export function FormationItem({
 
   const hasDocuments = hasLearnerDocuments(training, questionnaire, evaluation);
   const hasCoaching = hasLearnerCoaching(training);
-  const showTabs = hasDocuments || hasCoaching;
+  const showCoaching = hasCoaching || isLearnerCoachingAvailable(training);
+  const showTabs = hasDocuments || showCoaching;
 
-  const tabsLabel = ["Formation", hasDocuments ? "Documents" : null, hasCoaching ? "Coaching" : null]
+  const tabsLabel = ["Formation", hasDocuments ? "Documents" : null, showCoaching ? "Coaching" : null]
     .filter(Boolean)
     .join(" · ");
 
@@ -443,6 +488,8 @@ export function FormationItem({
                 training={training}
                 questionnaire={questionnaire}
                 evaluation={evaluation}
+                onRequestCoach={onRequestCoach}
+                requestingCoach={requestingCoach}
               />
             </div>
           )}
