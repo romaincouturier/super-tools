@@ -30,6 +30,7 @@ import {
 } from "@/lib/catalogSatisfaction";
 import { buildDisclosureText } from "@/lib/satisfactionDisclosure";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { expertiseLabel } from "@/lib/lmsCourseMeta";
 
 interface CatalogEntry {
   id: string;
@@ -52,10 +53,12 @@ interface CatalogEntry {
   formula_names: string[];
   last_session_date: string | null;
   is_permanent: boolean;
+  expertise?: string | null;
+  is_featured?: boolean | null;
   satisfaction: CatalogSatisfaction | undefined;
 }
 
-type SortColumn = "formation_name" | "duree_heures" | "training_count" | "formula_names" | "last_session_date" | "satisfaction";
+type SortColumn = "formation_name" | "duree_heures" | "training_count" | "formula_names" | "last_session_date" | "satisfaction" | "expertise";
 type SortDirection = "asc" | "desc";
 
 /**
@@ -235,6 +238,8 @@ const Catalogue = () => {
           return dir * (a.training_count - b.training_count);
         case "formula_names":
           return dir * (a.formula_names.join(", ")).localeCompare(b.formula_names.join(", "), "fr");
+        case "expertise":
+          return dir * (expertiseLabel(a.expertise) ?? "").localeCompare(expertiseLabel(b.expertise) ?? "", "fr");
         case "satisfaction": {
           const sa = statForYear(a.satisfaction, selectedYear)?.average ?? -1;
           const sb = statForYear(b.satisfaction, selectedYear)?.average ?? -1;
