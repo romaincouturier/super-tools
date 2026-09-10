@@ -40,6 +40,14 @@ import PrerequisitesEditor from "@/components/formations/PrerequisitesEditor";
 import ObjectivesEditor from "@/components/formations/ObjectivesEditor";
 import ProgramSelector from "@/components/formations/ProgramSelector";
 import type { FormationFormula } from "@/types/training";
+import { EXPERTISE_OPTIONS } from "@/lib/lmsCourseMeta";
+
+const NO_EXPERTISE = "none";
+const CATALOG_EXPERTISE_VALUES = ["facilitation_graphique", "agilite", "intelligence_collective"] as const;
+const CATALOG_EXPERTISE_OPTIONS = EXPERTISE_OPTIONS.filter((o) =>
+  (CATALOG_EXPERTISE_VALUES as readonly string[]).includes(o.value),
+);
+
 
 interface CatalogEntry {
   id: string;
