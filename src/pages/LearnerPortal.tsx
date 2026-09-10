@@ -427,6 +427,8 @@ function DashboardView({
                       email={data.email}
                       questionnaire={data.questionnaires?.find((q) => q.training_id === t.training_id)}
                       evaluation={data.evaluations?.find((e) => e.training_id === t.training_id)}
+                      onRequestCoach={onRequestCoach}
+                      requestingCoach={requestingCoach}
                     />
                   ))}
                 </div>
@@ -721,6 +723,8 @@ function FormationsView({
             email={data.email}
             questionnaire={data.questionnaires?.find((q) => q.training_id === t.training_id)}
             evaluation={data.evaluations?.find((e) => e.training_id === t.training_id)}
+            onRequestCoach={onRequestCoach}
+            requestingCoach={requestingCoach}
           />
         ))}
       </div>

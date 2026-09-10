@@ -488,6 +488,8 @@ export function FormationItem({
                 training={training}
                 questionnaire={questionnaire}
                 evaluation={evaluation}
+                onRequestCoach={onRequestCoach}
+                requestingCoach={requestingCoach}
               />
             </div>
           )}
