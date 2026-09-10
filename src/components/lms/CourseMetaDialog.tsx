@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -9,9 +10,27 @@ import { useUpdateCourse, type LmsCourse } from "@/hooks/useLms";
 import { ACCESS_OPTIONS, EXPERTISE_OPTIONS, STATUS_OPTIONS } from "@/lib/lmsCourseMeta";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { supabase } from "@/integrations/supabase/client";
 import CourseIntegrationStatus from "@/components/lms/CourseIntegrationStatus";
 
 const NO_EXPERTISE = "none";
+const NO_FORMATION = "none";
+
+function useActiveFormationConfigs() {
+  return useQuery({
+    queryKey: ["formation-configs-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("formation_configs")
+        .select("id, formation_name")
+        .eq("is_active", true)
+        .order("formation_name");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 type Props = {
   course: LmsCourse | null;
