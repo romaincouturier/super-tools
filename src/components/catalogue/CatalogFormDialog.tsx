@@ -204,7 +204,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
 
     const { error } = await supabase
       .from("formation_configs")
-      .update(payload)
+      // Colonnes expertise / is_featured ajoutées par migration : types générés en retard.
+      .update(payload as never)
       .eq("id", entryId);
     if (error) throw error;
 
