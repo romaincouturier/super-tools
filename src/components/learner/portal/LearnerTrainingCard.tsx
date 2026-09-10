@@ -240,11 +240,18 @@ export function TrainingDetail({
         </div>
       </TabsContent>
 
+      {hasDocuments && (
       <TabsContent value="documents">
-        {!hasDocuments ? (
-          <p className="text-sm py-3" style={{ color: "var(--st-ink-muted)" }}>Aucun document disponible.</p>
-        ) : (
           <div className="grid sm:grid-cols-2 gap-2">
+            {documents.map((doc, i) => (
+              <a key={`${doc.file_url}-${i}`} href={doc.file_url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
+                style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
+                <Download size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
+                <span className="truncate">{doc.file_name || "Document"}</span>
+                <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
+              </a>
+            ))}
             {training.program_file_url && (
               <a href={training.program_file_url} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
