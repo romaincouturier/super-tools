@@ -15,6 +15,7 @@ import type { Editor } from "@tiptap/react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { canonicalizeHtmlImageUrls, resolveStorageUrl, signHtmlImageUrls } from "@/lib/storageUrl";
 
 interface CrmDescriptionEditorProps {
   content: string;
@@ -43,7 +44,9 @@ const CrmDescriptionEditor = ({
         formData.append("file", file);
         const { data, error } = await supabase.functions.invoke("upload-crm-image", { body: formData });
         if (error) throw error;
-        return data?.publicUrl ?? null;
+        const url = data?.publicUrl ?? null;
+        // Le bucket CRM est privé : l'URL "public" ne s'affiche pas telle quelle.
+        return url ? await resolveStorageUrl(url) : null;
       } catch (err) {
         console.error("Image upload error:", err);
         return null;
@@ -52,11 +55,17 @@ const CrmDescriptionEditor = ({
     [cardId]
   );
 
+  // On persiste toujours l'URL canonique (sans jeton), jamais l'URL signée.
+  const handleChange = useCallback(
+    (html: string) => onChange(canonicalizeHtmlImageUrls(html)),
+    [onChange],
+  );
+
   const handlePaste = useTiptapImagePaste(cardId ? uploadImage : undefined, setImageUploading);
 
   const { editor, setLink, linkDialog } = useTiptapEditor({
     content,
-    onChange,
+    onChange: handleChange,
     extraExtensions: [
       Image.configure({
         inline: true,
@@ -85,9 +94,21 @@ const CrmDescriptionEditor = ({
   });
 
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content, { emitUpdate: false });
-    }
+    if (!editor) return;
+    if (content === canonicalizeHtmlImageUrls(editor.getHTML())) return;
+    let cancelled = false;
+    // Les images du CRM vivent dans un bucket privé : il faut une URL signée
+    // pour qu'elles s'affichent dans l'éditeur.
+    signHtmlImageUrls(content)
+      .then((html) => {
+        if (!cancelled) editor.commands.setContent(html, { emitUpdate: false });
+      })
+      .catch(() => {
+        if (!cancelled) editor.commands.setContent(content, { emitUpdate: false });
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [content, editor]);
 
   const insertStamp = useCallback((label: string) => {
