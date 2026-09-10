@@ -24,6 +24,10 @@ const FREE_COURSE_THUMBNAILS: Record<string, string> = {
 };
 const FREE_COURSE_ORDER = Object.keys(FREE_COURSE_THUMBNAILS);
 
+/** Formations gratuites à ne pas afficher sur la landing. */
+const HIDDEN_FREE_COURSE_IDS = new Set(["826c2e2c-884d-461d-be61-3bd66ae34440"]);
+
+
 const expertise = [
   { label: "Facilitation graphique", text: "Structurer une idée, la rendre visible et la partager avec des mots simples et des dessins accessibles.", mark: "01" },
   { label: "Facilitation & intelligence collective", text: "Préparer et animer des temps de travail où chacun contribue et où le groupe avance vraiment.", mark: "02" },
