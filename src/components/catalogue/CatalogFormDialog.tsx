@@ -416,6 +416,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         access_delay: accessDelay.trim() || null,
         accessibility_terms: accessibilityTerms.trim() || null,
         is_active: isActive,
+        expertise: expertise !== NO_EXPERTISE ? expertise : null,
+        is_featured: isFeatured,
       };
 
       // Insert — get max display_order
