@@ -147,6 +147,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
     supertiltLink, requiredEquipment, objectives, prerequisites,
     elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf,
     recognitionType, fundingTerms, accessDelay, accessibilityTerms, isActive,
+    expertise, isFeatured,
     formulas,
   };
 
@@ -157,6 +158,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
     supertiltLink, requiredEquipment, objectives, prerequisites,
     elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf,
     recognitionType, fundingTerms, accessDelay, accessibilityTerms, isActive,
+    expertise, isFeatured,
     fml: activeFormulas.map(f => `${f.id || ""}|${f.name}|${f.duree_heures}|${f.prix}|${f.woocommerce_product_id}|${f.learndash_course_id}|${f.supports_url}|${f.elearning_access_email_content}`),
   });
 
