@@ -57,6 +57,8 @@ interface CatalogEntry {
   is_active: boolean;
   is_permanent: boolean;
   display_order: number;
+  expertise?: string | null;
+  is_featured?: boolean | null;
 }
 
 interface FormulaEdit {
@@ -108,6 +110,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   const [accessDelay, setAccessDelay] = useState("");
   const [accessibilityTerms, setAccessibilityTerms] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [expertise, setExpertise] = useState(NO_EXPERTISE);
+  const [isFeatured, setIsFeatured] = useState(false);
   const [formulas, setFormulas] = useState<FormulaEdit[]>([]);
   const [expandedFormula, setExpandedFormula] = useState<number | null>(null);
 
