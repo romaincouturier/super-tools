@@ -98,36 +98,52 @@ export function CoachingCircles({ completed, total }: { completed: number; total
   );
 }
 
+/**
+ * Un onglet n'est visible que s'il a au moins un élément à afficher.
+ * Le périmètre "Documents" doit donc être identique au contenu rendu.
+ */
+export function hasLearnerDocuments(
+  training: Training,
+  questionnaire?: Questionnaire,
+  evaluation?: Questionnaire,
+): boolean {
+  return (
+    (training.documents?.length ?? 0) > 0 ||
+    !!training.program_file_url ||
+    !!training.supports_url ||
+    !!questionnaire ||
+    !!evaluation
+  );
+}
+
+export function hasLearnerCoaching(training: Training): boolean {
+  return (training.coaching_sessions_total ?? 0) > 0;
+}
+
 export function TrainingDetail({
   training,
-  email,
   questionnaire,
   evaluation,
-  onRequestCoach,
-  requestingCoach,
 }: {
   training: Training;
-  email: string;
   questionnaire: Questionnaire | undefined;
   evaluation: Questionnaire | undefined;
-  onRequestCoach: (t: Training) => void;
-  requestingCoach: string | null;
 }) {
-  const hasDocuments = !!(
-    training.program_file_url || training.supports_url || questionnaire || evaluation
-  );
+  const documents = training.documents ?? [];
+  const hasDocuments = hasLearnerDocuments(training, questionnaire, evaluation);
 
   const coachingCompleted = training.coaching_sessions_completed ?? 0;
   const coachingTotal = training.coaching_sessions_total ?? 0;
   const remainingSessions = coachingTotal - coachingCompleted;
+  const hasCoaching = hasLearnerCoaching(training);
 
   return (
     <Tabs defaultValue="details" className="mt-4">
       <TabsList className="mb-3 bg-transparent gap-1 p-0 h-auto">
         {[
           { value: "details", label: "Formation", icon: GraduationCap },
-          { value: "documents", label: "Documents", icon: FileText },
-          { value: "coaching", label: "Coaching", icon: Video },
+          ...(hasDocuments ? [{ value: "documents", label: "Documents", icon: FileText }] : []),
+          ...(hasCoaching ? [{ value: "coaching", label: "Coaching", icon: Video }] : []),
         ].map(({ value, label, icon: Icon }) => (
           <TabsTrigger
             key={value}
