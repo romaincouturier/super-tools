@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Spinner } from "@/components/ui/spinner";
 import AddToCalendarButton from "@/components/learner/AddToCalendarButton";
 import type { Training, Questionnaire } from "@/types/learner-portal";
+import { openStorageUrl } from "@/lib/storageUrl";
 
 export function statusBadge(status: string | null) {
   switch (status) {
