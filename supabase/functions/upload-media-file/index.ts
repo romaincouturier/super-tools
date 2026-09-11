@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
-import { resolveContentType } from "../_shared/file-utils.ts";
+import { resolveContentType, isMediaBucketMime, MEDIA_UNSUPPORTED_MESSAGE } from "../_shared/file-utils.ts";
 
 const BUCKET = "media";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
