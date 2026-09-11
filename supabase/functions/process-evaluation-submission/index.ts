@@ -29,19 +29,50 @@ const formatName = (firstName: string | null, lastName: string | null): string =
   return (firstName || lastName || "").charAt(0).toUpperCase() + (firstName || lastName || "").slice(1).toLowerCase();
 };
 
+/**
+ * Le secret peut arriver en JSON brut, en JSON doublement encodé (entre
+ * guillemets) ou en base64. On tolère les trois et on échoue avec un message
+ * explicite plutôt qu'avec un SyntaxError opaque.
+ */
+interface GoogleServiceAccount { client_email: string; private_key: string }
+
+const parseServiceAccount = (raw: string): GoogleServiceAccount => {
+  const attempt = (value: string): GoogleServiceAccount | null => {
+    try {
+      const parsed = JSON.parse(value);
+      if (typeof parsed === "string") return attempt(parsed);
+      if (parsed?.client_email && parsed?.private_key) return parsed as GoogleServiceAccount;
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const trimmed = raw.trim();
+  const direct = attempt(trimmed);
+  if (direct) return direct;
+
+  // Valeur base64 (avec ou sans retours à la ligne)
+  try {
+    const decoded = atob(trimmed.replace(/\s+/g, ""));
+    const fromBase64 = attempt(decoded);
+    if (fromBase64) return fromBase64;
+  } catch {
+    /* pas du base64 */
+  }
+
+  throw new Error(
+    "GOOGLE_SERVICE_ACCOUNT_JSON invalide : la valeur n'est ni un JSON de compte de service (client_email + private_key) ni ce JSON encodé en base64.",
+  );
+};
+
 // Helper to get Google access token from service account
 const getGoogleAccessToken = async (): Promise<string> => {
   if (!GOOGLE_SERVICE_ACCOUNT_JSON) {
     throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON not configured");
   }
 
-  // Handle potential double-encoding or extra wrapping of the JSON secret
-  let rawJson = GOOGLE_SERVICE_ACCOUNT_JSON.trim();
-  // If the value is wrapped in extra quotes (double-encoded), unwrap it
-  if (rawJson.startsWith('"') && rawJson.endsWith('"')) {
-    rawJson = JSON.parse(rawJson);
-  }
-  const serviceAccount = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson;
+  const serviceAccount = parseServiceAccount(GOOGLE_SERVICE_ACCOUNT_JSON);
   const now = Math.floor(Date.now() / 1000);
 
   // Create JWT header and claims
