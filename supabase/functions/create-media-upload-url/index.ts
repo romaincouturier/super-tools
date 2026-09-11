@@ -38,6 +38,11 @@ serve(async (req: Request): Promise<Response> => {
     if (sourceType !== "agent" && !UUID_RE.test(sourceId)) return createErrorResponse("sourceId invalide", 400);
     if (!fileName) return createErrorResponse("fileName requis", 400);
 
+    const declaredType = String(body?.contentType ?? "").trim() || mimeTypeFromFileName(fileName);
+    if (!isMediaBucketMime(declaredType)) {
+      return createErrorResponse(MEDIA_UNSUPPORTED_MESSAGE, 415);
+    }
+
     const safe = sanitizeFileName(fileName);
     const folder = sourceType === "agent" ? `agent/${user.id}` : `${sourceType}/${sourceId}`;
     const path = `${folder}/${Date.now()}_${safe}`;
