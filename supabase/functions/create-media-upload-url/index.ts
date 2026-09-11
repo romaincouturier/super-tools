@@ -5,6 +5,8 @@ import {
   handleCorsPreflightIfNeeded,
 } from "../_shared/cors.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
+import { isMediaBucketMime, MEDIA_UNSUPPORTED_MESSAGE } from "../_shared/file-utils.ts";
+import { mimeTypeFromFileName } from "../_shared/mime-types.ts";
 
 const BUCKET = "media";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -35,6 +37,11 @@ serve(async (req: Request): Promise<Response> => {
     if (!SOURCE_TYPES.has(sourceType)) return createErrorResponse("sourceType invalide", 400);
     if (sourceType !== "agent" && !UUID_RE.test(sourceId)) return createErrorResponse("sourceId invalide", 400);
     if (!fileName) return createErrorResponse("fileName requis", 400);
+
+    const declaredType = String(body?.contentType ?? "").trim() || mimeTypeFromFileName(fileName);
+    if (!isMediaBucketMime(declaredType)) {
+      return createErrorResponse(MEDIA_UNSUPPORTED_MESSAGE, 415);
+    }
 
     const safe = sanitizeFileName(fileName);
     const folder = sourceType === "agent" ? `agent/${user.id}` : `${sourceType}/${sourceId}`;

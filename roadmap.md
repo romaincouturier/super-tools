@@ -2,6 +2,8 @@
 
 - [ ] Landing publique Academy SuperTilt : refonte, parcours gratuit et sélection éditoriale
 - [ ] Mail d'attente Echo aux clients de la colonne "Reçues" (proposition rédigée, envoi à valider)
+- [x] Sentry JAVASCRIPT-REACT-P : upload .pptx dans la médiathèque — refus explicite (415) + message clair côté UI (bucket `media` limité aux images/vidéos/audio/PDF)
+- [x] Anna (annaivacheff@gmail.com) : contenus intacts (2 publications, 1 travail, 1 commentaire, 2 réactions) ; visibilité rétablie via les policies de lecture communauté
 - [x] Convocations J-7 non programmées : rattrapage via `reconcile-welcome-emails` (appelé à la mise à jour de `start_date` et par le cron `process-scheduled-emails`). Cas Agirc-ARRCO corrigé (7 convocations programmées au 01/10).
 - [x] Icône avion : `needs_survey_status = programme` affichait "Convocation envoyée" (corrigé : "Convocation programmée")
 - [x] Sentry JAVASCRIPT-REACT-F : parcours TED interrompu par un 429 (2 avis sur 58) — backoff/reprise paginée ajouté dans `walkTedPages` et `ted-sync`

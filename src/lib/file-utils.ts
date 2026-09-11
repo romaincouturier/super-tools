@@ -107,6 +107,30 @@ export function getFileType(file: File): "image" | "video" | "audio" | null {
 }
 
 /**
+ * MIME types accepted by the `media` bucket (médiathèque).
+ * Anything else is rejected by storage with an opaque 500, so we check first
+ * and surface an explicit message instead.
+ */
+export const MEDIA_BUCKET_MIME_TYPES = new Set([
+  "image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp", "image/heic", "image/heif", "image/svg+xml",
+  "video/mp4", "video/webm", "video/quicktime", "video/x-msvideo",
+  "audio/mp4", "audio/x-m4a", "audio/m4a", "audio/mpeg", "audio/wav", "audio/x-wav", "audio/aac", "audio/x-aac",
+  "audio/ogg", "audio/x-caf", "audio/flac", "audio/webm",
+  "application/pdf",
+]);
+
+/**
+ * Throws a user-facing error when the file can't be stored in the médiathèque.
+ */
+export function assertMediaFileSupported(file: File): void {
+  const mime = resolveContentType(file);
+  if (MEDIA_BUCKET_MIME_TYPES.has(mime)) return;
+  throw new Error(
+    `Ce format de fichier n'est pas accepté dans la médiathèque (${file.name}). Formats acceptés : images, vidéos, audio et PDF. Pour un PowerPoint, un Word ou un Excel, utilise les documents de la mission ou de la formation.`,
+  );
+}
+
+/**
  * Build a storage path for a file upload.
  * Format: {entityType}/{entityId}/{timestamp}_{sanitizedName}
  */
