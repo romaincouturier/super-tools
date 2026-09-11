@@ -214,6 +214,7 @@ export const useUploadEventMedia = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ file, eventId }: { file: File; eventId: string }) => {
+      assertMediaFileSupported(file);
       // Large files bypass the edge-function FormData path (which has a strict
       // body limit) and are uploaded directly to storage via a signed URL.
       if (file.size > SIGNED_UPLOAD_THRESHOLD) {
@@ -411,6 +412,7 @@ export const useUpdateMediaTranscript = () => {
 
 
 export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, sourceId: string) => {
+  assertMediaFileSupported(file);
   const resolvedContentType = resolveContentType(file);
 
   // Some browsers (notably iOS Safari) attach unsupported non-standard MIME types
