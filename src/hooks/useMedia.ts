@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient, QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveContentType } from "@/lib/file-utils";
+import { resolveContentType, assertMediaFileSupported } from "@/lib/file-utils";
 
 export type MediaSourceType = "mission" | "event" | "training" | "crm" | "content" | "lms";
 

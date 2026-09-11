@@ -39,6 +39,9 @@ Deno.serve(async (req) => {
     const folder = sourceType === "agent" ? `agent/${user.id}` : `${sourceType}/${sourceId}`;
     const path = `${folder}/${Date.now()}_${safeName}`;
     const contentType = resolveContentType(file);
+    if (!isMediaBucketMime(contentType)) {
+      return createErrorResponse(MEDIA_UNSUPPORTED_MESSAGE, 415);
+    }
 
     const { error } = await admin.storage.from(BUCKET).upload(path, file, { contentType, upsert: false });
     if (error) {
