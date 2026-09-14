@@ -3,6 +3,7 @@ import { useSearchParams, Link, useNavigate, useParams } from "react-router-dom"
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { setSentryUser, reportHandledError } from "@/lib/sentry";
 import {
   GraduationCap, FileText, Calendar,
   BookOpen, CheckCircle2,
@@ -1834,7 +1835,21 @@ export default function LearnerPortal() {
   }, [sectionFromUrl]);
 
   const email = data?.email ?? null;
-  const { data: learnerProfile } = useLearnerProfile(email);
+  const { data: learnerProfile, error: learnerProfileError } = useLearnerProfile(email);
+
+  // Observabilité : rattacher les événements Sentry au compte apprenant, et
+  // signaler explicitement un échec de lecture du profil (le portail retombe
+  // sinon silencieusement sur le nom de la fiche participant).
+  useEffect(() => {
+    setSentryUser(email);
+    return () => setSentryUser(null);
+  }, [email]);
+
+  useEffect(() => {
+    if (email && learnerProfileError) {
+      reportHandledError(learnerProfileError, { scope: "learner_profile_read", email });
+    }
+  }, [email, learnerProfileError]);
 
   useEffect(() => {
     const token = searchParams.get("token");
