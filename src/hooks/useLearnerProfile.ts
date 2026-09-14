@@ -84,12 +84,13 @@ export async function uploadLearnerPhoto(file: File, email: string): Promise<str
   if (!resp.ok) {
     const text = await resp.text().catch(() => "");
     const tooLarge = resp.status === 413 || /maximum allowed size|too large/i.test(text);
-    throw new Error(
+    const err = new Error(
       tooLarge
         ? "Cette photo est trop lourde. Choisissez une image plus légère (moins de 5 Mo)."
         : text || "Erreur lors de l'envoi de la photo",
-      { cause: text || undefined },
     );
+    (err as Error & { cause?: unknown }).cause = text || undefined;
+    throw err;
   }
   const json = await resp.json();
   return json.url as string;
