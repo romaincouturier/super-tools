@@ -203,7 +203,28 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (tok) lienSuiviPartenaire = `${appBaseUrl}/partenaire/${tok}`;
     }
     vars.lien_suivi_partenaire = lienSuiviPartenaire;
-    vars.contrat_url = (game as any).location_contract_url ?? "";
+
+    // ── Contract link for rentals: signature page > generated PDF > game-level URL ──
+    let contratUrl = "";
+    {
+      const { data: sigRow } = await (admin as any)
+        .from("location_contract_signatures")
+        .select("token, status")
+        .eq("order_item_id", order_item_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const token = (sigRow as any)?.token as string | undefined;
+      if (token && (sigRow as any)?.status !== "expired") {
+        contratUrl = `${appBaseUrl}/signature-location/${token}`;
+      } else {
+        contratUrl =
+          ((item as any).location_contract_file_url as string | null) ??
+          ((game as any).location_contract_url as string | null) ??
+          "";
+      }
+    }
+    vars.contrat_url = contratUrl;
     vars.partenaire_nom = game.partner_name ?? "";
 
     // ── Signed confirm-shipped link (dropshipping only) ─────────
@@ -299,8 +320,31 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    const rawHtml = String((tpl as any).html_content ?? "");
+
+    // Never send an email whose contract link would be dead
+    if (rawHtml.includes("{{contrat_url}}") && !vars.contrat_url) {
+      await (admin as any).from("order_items")
+        .update({
+          kanban_status: "blocked",
+          block_reason: "Contrat de location manquant : générez le contrat puis utilisez « Envoyer + signer »",
+        })
+        .eq("id", order_item_id);
+
+      return new Response(
+        JSON.stringify({
+          error: "Le contrat de location n'existe pas encore : générez-le puis utilisez « Envoyer + signer » pour que le lien de signature fonctionne.",
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const subject = processTemplate((tpl as any).subject, vars, false);
-    let html = processTemplate((tpl as any).html_content, vars, false);
+    let html = processTemplate(rawHtml, vars, false);
+
+    // Belt and braces: turn any remaining empty-href anchor into plain text
+    html = html.replace(/<a\b[^>]*href\s*=\s*(""|''|"#"|'#')[^>]*>([\s\S]*?)<\/a>/gi, "$2");
+
 
     // ── Friendly reminder for pending invoices ───────────────────
     // Only for dropshipping (the author invoices SuperTilt)
