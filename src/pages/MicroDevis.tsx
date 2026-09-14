@@ -316,11 +316,17 @@ const MicroDevis = () => {
     toast({ title: "Devis dupliqué", description: "Le formulaire a été pré-rempli avec les données du devis sélectionné." });
   };
 
-  // Prefill from previous micro-devis sent for this CRM opportunity
+  // Prefill from previous micro-devis sent for this CRM opportunity.
+  // Run once per crmCardId: `user` object identity changes on every
+  // TOKEN_REFRESHED (window focus), which would re-apply old values and
+  // wipe fields the user just edited (e.g. dates de la formation).
+  const prefilledCardRef = useRef<string | null>(null);
   useEffect(() => {
     if (searchParams.get("source") !== "crm") return;
     if (!crmCardId) return;
     if (!user) return; // wait for auth — activity_logs requires authenticated
+    if (prefilledCardRef.current === crmCardId) return;
+    prefilledCardRef.current = crmCardId;
     let cancelled = false;
     (async () => {
       // Fetch the few most recent devis for this card so we can fall back to
