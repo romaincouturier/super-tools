@@ -203,7 +203,28 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (tok) lienSuiviPartenaire = `${appBaseUrl}/partenaire/${tok}`;
     }
     vars.lien_suivi_partenaire = lienSuiviPartenaire;
-    vars.contrat_url = (game as any).location_contract_url ?? "";
+
+    // ── Contract link for rentals: signature page > generated PDF > game-level URL ──
+    let contratUrl = "";
+    {
+      const { data: sigRow } = await (admin as any)
+        .from("location_contract_signatures")
+        .select("token, status")
+        .eq("order_item_id", order_item_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const token = (sigRow as any)?.token as string | undefined;
+      if (token && (sigRow as any)?.status !== "expired") {
+        contratUrl = `${appBaseUrl}/signature-location/${token}`;
+      } else {
+        contratUrl =
+          ((item as any).location_contract_file_url as string | null) ??
+          ((game as any).location_contract_url as string | null) ??
+          "";
+      }
+    }
+    vars.contrat_url = contratUrl;
     vars.partenaire_nom = game.partner_name ?? "";
 
     // ── Signed confirm-shipped link (dropshipping only) ─────────
