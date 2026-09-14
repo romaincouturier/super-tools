@@ -95,6 +95,7 @@ const LearnerAccess = lazy(() => import("./pages/LearnerAccess"));
 const Connexion = lazy(() => import("./pages/Connexion"));
 const ConnexionMotDePasseOublie = lazy(() => import("./pages/ConnexionMotDePasseOublie"));
 const ConnexionReinitialisation = lazy(() => import("./pages/ConnexionReinitialisation"));
+const ConnexionLien = lazy(() => import("./pages/ConnexionLien"));
 const LearnerPortal = lazy(() => import("./pages/LearnerPortal"));
 const LearnerOnboarding = lazy(() => import("./pages/LearnerOnboarding"));
 const LearnerResetPassword = lazy(() => import("./pages/LearnerResetPassword"));
@@ -212,6 +213,7 @@ const App = () => {
               <Route path="/connexion" element={<Connexion />} />
               <Route path="/connexion/mot-de-passe-oublie" element={<ConnexionMotDePasseOublie />} />
               <Route path="/connexion/reinitialisation" element={<ConnexionReinitialisation />} />
+              <Route path="/connexion/lien" element={<ConnexionLien />} />
               {/* Learner portal — anciennes URL conservées et redirigées */}
               <Route path="/apprenant" element={<Navigate to="/connexion" replace />} />
               <Route path="/apprenant/acces" element={<LearnerAccess />} />

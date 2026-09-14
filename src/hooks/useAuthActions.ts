@@ -38,7 +38,12 @@ export function useAuthActions() {
     return error ? error.message : null;
   }, []);
 
-  return { signIn, updatePassword };
+  /** Enregistre côté serveur qu'un mot de passe est désormais défini. */
+  const markPasswordChanged = useCallback(async () => {
+    await supabase.rpc("mark_password_changed");
+  }, []);
+
+  return { signIn, updatePassword, markPasswordChanged };
 }
 
 /**

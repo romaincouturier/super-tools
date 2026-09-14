@@ -140,8 +140,9 @@ serve(async (req) => {
       // Access link: personal magic link to the SuperTools learner portal (valid 1 year).
       // Never a WooCommerce cart URL, never a generic page: the participant has already paid.
       const urls = await getAppUrls();
+      // Lien d'activation : 7 jours, usage unique (RG-06).
       const expiresAt = new Date();
-      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      expiresAt.setDate(expiresAt.getDate() + 7);
       const { data: magicLink, error: magicErr } = await supabase
         .from("learner_magic_links")
         .insert({
@@ -158,7 +159,7 @@ serve(async (req) => {
         continue;
       }
 
-      const accessLink = `${urls.app_url}/apprenant/connexion?token=${magicLink.token}`;
+      const accessLink = `${urls.app_url}/connexion/lien?token=${magicLink.token}`;
 
 
 

@@ -58,9 +58,13 @@ export default function Connexion() {
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  const requestLink = async () => {
+  /**
+   * Un lien demandé depuis cette page est un lien de connexion (30 minutes).
+   * Un compte encore à créer reçoit un lien d'activation (7 jours).
+   */
+  const requestLink = async (purpose: "login" | "activation" = "login") => {
     if (cooldown > 0) return;
-    await sendLink({ email: normalizedEmail });
+    await sendLink({ email: normalizedEmail, purpose });
     setCooldown(RESEND_COOLDOWN_S);
   };
 
@@ -78,7 +82,7 @@ export default function Connexion() {
     if (state === "throttled") { setStep("throttled"); return; }
     if (state === "unknown") { setStep("unknown"); return; }
 
-    await requestLink();
+    await requestLink(state === "link" ? "login" : "activation");
     setStep(state === "link" ? "link" : "activation");
   };
 
@@ -195,7 +199,7 @@ export default function Connexion() {
             <LinkFallback
               busy={sendingLink}
               cooldown={cooldown}
-              onClick={async () => { await requestLink(); setStep("link"); }}
+              onClick={async () => { await requestLink("login"); setStep("link"); }}
             />
           </>
         )}
@@ -210,7 +214,7 @@ export default function Connexion() {
             }
             busy={sendingLink}
             cooldown={cooldown}
-            onResend={requestLink}
+            onResend={() => void requestLink(step === "link" ? "login" : "activation")}
             onChangeEmail={backToEmail}
           />
         )}
@@ -282,7 +286,7 @@ export default function Connexion() {
               busy={sendingLink}
               cooldown={cooldown}
               disabled={!normalizedEmail.includes("@")}
-              onClick={async () => { await requestLink(); setStep("link"); }}
+              onClick={async () => { await requestLink("login"); setStep("link"); }}
             />
           </>
         )}

@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { email, trainingId } = await req.json();
+    const { email, trainingId, purpose } = await req.json();
     if (!email) {
       return new Response(JSON.stringify({ error: "Email requis" }), {
         status: 400,
@@ -112,9 +112,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 1-year expiry
+    // Durées du chapitre 6 de la spécification : un lien de connexion demandé
+    // depuis la page de connexion vaut 30 minutes, un lien d'activation envoyé
+    // à l'inscription vaut 7 jours. Tous à usage unique.
     const expiresAt = new Date();
-    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    if (purpose === "login") {
+      expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+    } else {
+      expiresAt.setDate(expiresAt.getDate() + 7);
+    }
 
     const insertPayload: Record<string, unknown> = {
       email: email.toLowerCase(),
@@ -131,7 +137,7 @@ Deno.serve(async (req) => {
     if (error) throw error;
 
     const urls = await getAppUrls();
-    const accessLink = `${urls.app_url}/apprenant/connexion?token=${link.token}`;
+    const accessLink = `${urls.app_url}/connexion/lien?token=${link.token}`;
     const firstName = participants?.[0]?.first_name || "";
 
     // Prefer dedicated magic-link template; fall back to the woocommerce one if not present
