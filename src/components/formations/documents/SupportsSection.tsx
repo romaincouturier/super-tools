@@ -199,14 +199,13 @@ const SupportsSection = ({
           {fileUrl ? (
             <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
               <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-              <a
-                href={fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 text-sm text-primary hover:underline truncate"
+              <button
+                type="button"
+                onClick={() => { void openStorageUrl(fileUrl); }}
+                className="flex-1 text-sm text-primary hover:underline truncate text-left"
               >
                 {fileName || "Fichier support"}
-              </a>
+              </button>
               <Button
                 variant="ghost"
                 size="icon"

@@ -119,7 +119,7 @@ const QuestionnaireFormSections = ({
               </RadioGroup>
               {training?.program_file_url && (
                 <Button variant="outline" size="sm" asChild>
-                  <a href={training.program_file_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-4 h-4 mr-2" />Consulter le programme</a>
+                  <button type="button" onClick={() => { void openStorageUrl(training.program_file_url!); }}><ExternalLink className="w-4 h-4 mr-2" />Consulter le programme</button>
                 </Button>
               )}
             </div>
