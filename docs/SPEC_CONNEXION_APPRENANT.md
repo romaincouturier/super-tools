@@ -837,8 +837,8 @@ Les trois derniers se lisent ensemble : une baisse des demandes de lien accompag
 |-----|---------|------------------------|
 | 1 | Fermeture des trajectoires S1 à S5 : jeton qui n'écrase plus de mot de passe, durées et usage unique, fonctions du portail réservées aux appelants authentifiés, identité issue de la session | Indépendant du parcours, corrige des expositions actives, ne demande aucun écran neuf |
 | 2 | Fournisseur d'état de session unique, garde de route unique, table de routage du chapitre 7 | Prérequis de tous les écrans, et corrige les boucles staff |
-| 3 | Service de résolution d'identité, drapeau `password_set`, limitation de débit | Prérequis de la page de connexion |
-| 4 | Écrans de connexion : W1 à W10, redirections des anciennes URL | Le parcours visible, une fois ses fondations posées |
+| 3 | Service de résolution d'identité, drapeau `password_set`, limitation de débit | Prérequis de la page de connexion. Livré : fonction `resolve-login-identity`, journal `identity_resolution_log`, seuils 5 par adresse et 20 par IP par heure |
+| 4 | Écrans de connexion : W1 à W10, redirections des anciennes URL | Le parcours visible, une fois ses fondations posées. Livré pour W1 à W6, W9 et W10 côté réinitialisation ; reste W5 et W10 côté lien d'accès, portés par le lot 5 |
 | 5 | Provisionnement à l'encaissement W12, refonte des emails, suppression de `elearning_access_mode` | Dépend des écrans d'activation du lot 4 |
 | 6 | W13, purge des comptes inactifs, indicateurs, politique de confidentialité | Complète le dispositif, sans bloquer la mise en service |
 

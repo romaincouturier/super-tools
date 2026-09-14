@@ -142,12 +142,7 @@ const Auth = () => {
           const passwordValidation = validatePassword(password);
           if (!passwordValidation.isValid) {
             // Set flag to force password change
-            await supabase
-              .from("user_security_metadata")
-              .upsert({
-                user_id: data.user.id,
-                must_change_password: true,
-              }, { onConflict: "user_id" });
+            await supabase.rpc("request_password_change");
 
             toast({
               title: "Mot de passe trop faible",

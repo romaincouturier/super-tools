@@ -44,7 +44,20 @@ Deno.serve(async (req) => {
       .select("id, first_name, training_id")
       .ilike("email", email);
 
+    // Un inscrit Academy n'a pas de ligne de participant : il est rattaché aux
+    // inscriptions LMS. Sans ce second référentiel, il n'avait aucun chemin de
+    // connexion (rupture D5 de la spécification).
+    let hasEnrollment = false;
     if (!participants || participants.length === 0) {
+      const { data: enrollments } = await supabase
+        .from("lms_enrollments")
+        .select("id")
+        .ilike("learner_email", email)
+        .limit(1);
+      hasEnrollment = !!enrollments && enrollments.length > 0;
+    }
+
+    if ((!participants || participants.length === 0) && !hasEnrollment) {
       return new Response(
         JSON.stringify({ success: true, message: "Si un compte existe, un lien vous a été envoyé." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -70,7 +83,7 @@ Deno.serve(async (req) => {
     } else {
       // Self-service: aggregate all trainings this participant is enrolled in
       const trainingIds = Array.from(
-        new Set(participants.map((p: any) => p.training_id).filter(Boolean))
+        new Set((participants ?? []).map((p: any) => p.training_id).filter(Boolean))
       );
       if (trainingIds.length > 0) {
         const { data: trainings } = await supabase
@@ -119,7 +132,7 @@ Deno.serve(async (req) => {
 
     const urls = await getAppUrls();
     const accessLink = `${urls.app_url}/apprenant/connexion?token=${link.token}`;
-    const firstName = participants[0].first_name || "";
+    const firstName = participants?.[0]?.first_name || "";
 
     // Prefer dedicated magic-link template; fall back to the woocommerce one if not present
     const primaryType = isTu ? "elearning_magic_link_tu" : "elearning_magic_link_vous";
