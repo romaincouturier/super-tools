@@ -320,8 +320,31 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    const rawHtml = String((tpl as any).html_content ?? "");
+
+    // Never send an email whose contract link would be dead
+    if (rawHtml.includes("{{contrat_url}}") && !vars.contrat_url) {
+      await (admin as any).from("order_items")
+        .update({
+          kanban_status: "blocked",
+          block_reason: "Contrat de location manquant : générez le contrat puis utilisez « Envoyer + signer »",
+        })
+        .eq("id", order_item_id);
+
+      return new Response(
+        JSON.stringify({
+          error: "Le contrat de location n'existe pas encore : générez-le puis utilisez « Envoyer + signer » pour que le lien de signature fonctionne.",
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const subject = processTemplate((tpl as any).subject, vars, false);
-    let html = processTemplate((tpl as any).html_content, vars, false);
+    let html = processTemplate(rawHtml, vars, false);
+
+    // Belt and braces: turn any remaining empty-href anchor into plain text
+    html = html.replace(/<a\b[^>]*href\s*=\s*(""|''|"#"|'#')[^>]*>([\s\S]*?)<\/a>/gi, "$2");
+
 
     // ── Friendly reminder for pending invoices ───────────────────
     // Only for dropshipping (the author invoices SuperTilt)
