@@ -676,10 +676,9 @@ END:VCALENDAR`;
         {(training.program_file_url || training.supports_url || training.supports_lms_course_id || reglementInterieurUrl) && (
           <section ref={sectionDocuments} id="section-documents" className="grid grid-cols-2 gap-3 scroll-mt-20">
             {training.program_file_url && (
-              <a
-                href={training.program_file_url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => { void openStorageUrl(training.program_file_url!); }}
                 className="flex flex-col items-center justify-center p-4 border rounded-xl transition-colors"
                 style={{
                   background: c.surfaceContainerLowest,
@@ -689,7 +688,7 @@ END:VCALENDAR`;
               >
                 <MIcon icon="description" className="mb-2" />
                 <span className="text-xs font-bold text-center">Consulter le programme</span>
-              </a>
+              </button>
             )}
             {training.supports_url && (
               <a
