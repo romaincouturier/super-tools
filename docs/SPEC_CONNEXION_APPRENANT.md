@@ -2,8 +2,7 @@
 
 Statut : spécification. Aucune implémentation à ce stade.
 Date : 2026-09-14.
-Arbitrages Q1, Q2, Q3, Q4, Q5 et Q7 rendus le 2026-09-14, reportés dans les règles de gestion, les workflows et le plan de bascule.
-Reste ouvert : Q6 (code à six chiffres), Q8 (référentiel d'identité unique).
+Tous les arbitrages Q1 à Q8 sont rendus au 2026-09-14, reportés dans les règles de gestion, les workflows et le plan de bascule.
 
 ## 0. Cadrage
 
@@ -578,7 +577,7 @@ Vers l'ancienne adresse, objet : L'adresse de votre compte a été modifiée
 | Q1 | Le mot de passe reste-t-il obligatoire pour un apprenant ? | **Non.** Mot de passe optionnel, proposé après la première connexion par lien, jamais imposé. | PR4, W3 étape 3, W5 étape 3. Un apprenant peut rester sans mot de passe indéfiniment et se connecter par lien à chaque fois. |
 | Q2 | Détecter le compte à la saisie de l'email, ou message neutre systématique ? | **Détecter**, avec limitation de débit et message uniforme en cas d'abus. | Chapitre 6 : contrat du service de résolution, cinq états d'aiguillage, seuils chiffrés, journalisation 30 jours. RG-12, RG-24, RG-26. |
 | Q3 | Durées de validité des liens ? | **Connexion 30 minutes, activation 7 jours, réinitialisation 1 heure. Tous à usage unique.** | RG-04, RG-06, W5, W8. Les textes annonçant un lien valable un an et réutilisable, notamment l'erratum e-learning, sont à réécrire. La reprise de formation passe par la connexion, plus par un lien longue durée. |
-| Q5 | Une porte unique ou deux portes ? | **Deux portes, et `/auth` ne bouge pas.** Formulaire, anti-brute force et changement de mot de passe conservés à l'identique. Seules les corrections du chapitre 8 s'appliquent, et elles portent sur les gardes de route et le fournisseur de session, pas sur l'écran. | Chapitre 0, chapitre 7. Une seule exception au non-changement : un apprenant qui atteint `/auth` est routé vers son espace au lieu d'être déconnecté avec "Accès réservé" (`src/pages/Auth.tsx:121-131`), sans quoi un apprenant ayant gardé ce signet reste bloqué. |
+| Q5 | Une porte unique ou deux portes ? | **Deux portes, et `/auth` ne bouge pas.** Formulaire, anti-brute force et changement de mot de passe conservés à l'identique. Seules les corrections du chapitre 8 s'appliquent, et elles portent sur les gardes de route et le fournisseur de session, pas sur l'écran. | Chapitre 0, chapitre 7. Une seule exception au non-changement, validée le 2026-09-14 : un apprenant qui atteint `/auth` est routé vers son espace au lieu d'être déconnecté avec "Accès réservé" (`src/pages/Auth.tsx:121-131`). Quatre lignes, aucun changement d'écran. |
 | Q7 | Que faire des comptes et jetons existants ? | **Invalider les jetons en circulation au basculement, communiquer par un email de reprise, conserver les comptes et les mots de passe.** | Chapitre 17 : plan de bascule, parcours de transition par population, volumétrie mesurée. |
 | Q4 | Un achat doit-il créer le compte automatiquement ? | **Oui.** Compte provisionné sans mot de passe dès l'encaissement, email d'activation immédiat. Le mode `woocommerce` disparaît comme voie d'accès. | Nouveau workflow W12, suppression du réglage `elearning_access_mode`, refonte de `send-elearning-access` en email d'activation, D7 résolu. |
 
@@ -702,7 +701,7 @@ Les deux sujets se touchent sur trois points, traités ici et seulement ici :
 
 Tout le reste relève d'une spécification d'autorisation distincte : périmètre de lecture d'un apprenant sur les cours, les dépôts, la communauté et les évaluations, règles de partage entre apprenants d'une même session, accès du commanditaire intra, accès du formateur, prévisualisation staff. Le traiter dans ce document reviendrait à mélanger deux chantiers de calendriers différents : la connexion est une refonte de parcours, l'autorisation est une reprise du modèle de données et des policies.
 
-Ordre recommandé : livrer d'abord les trois points ci-dessus, qui sont des préalables techniques, puis ouvrir la spécification d'autorisation sur la base d'un inventaire des surfaces exposées (fonctions `SECURITY DEFINER` et leurs droits d'exécution, policies `TO anon`, paramètres d'identité portés par des URL).
+Ordre recommandé : livrer d'abord les trois points ci-dessus, qui sont des préalables techniques, puis ouvrir la spécification d'autorisation. L'inventaire des surfaces exposées est fait : `docs/AUDIT_SURFACES_EXPOSEES.md`.
 
 ---
 
