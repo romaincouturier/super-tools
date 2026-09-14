@@ -74,14 +74,23 @@ export function useUpsertLearnerProfile() {
 }
 
 export async function uploadLearnerPhoto(file: File, email: string): Promise<string> {
+  const { resizeImageFile } = await import("@/lib/imageResize");
+  const optimized = await resizeImageFile(file);
   const form = new FormData();
-  form.append("file", file);
+  form.append("file", optimized);
   form.append("email", email.toLowerCase());
   const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-learner-photo`;
   const resp = await fetch(url, { method: "POST", body: form });
   if (!resp.ok) {
-    const text = await resp.text().catch(() => "Erreur inconnue");
-    throw new Error(text);
+    const text = await resp.text().catch(() => "");
+    const tooLarge = resp.status === 413 || /maximum allowed size|too large/i.test(text);
+    const err = new Error(
+      tooLarge
+        ? "Cette photo est trop lourde. Choisissez une image plus légère (moins de 5 Mo)."
+        : text || "Erreur lors de l'envoi de la photo",
+    );
+    (err as Error & { cause?: unknown }).cause = text || undefined;
+    throw err;
   }
   const json = await resp.json();
   return json.url as string;
