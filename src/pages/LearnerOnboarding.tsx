@@ -9,6 +9,7 @@ import { GraduationCap, Eye, EyeOff, CheckCircle2, AlertCircle, Lock, Mail, Shie
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useLoginAttempts } from "@/hooks/useLoginAttempts";
+import { reportHandledError } from "@/lib/sentry";
 import LoginAttemptFeedback from "@/components/LoginAttemptFeedback";
 
 type Mode = "loading" | "error" | "create" | "login" | "forgot" | "success";
@@ -100,10 +101,23 @@ export default function LearnerOnboarding() {
     );
 
     if (createErr || (created && (created as { error?: string }).error)) {
-      const errMsg =
+      let errMsg =
         (created as { error?: string } | null)?.error ||
         createErr?.message ||
         "";
+      // Un compte existant répond 409 : le motif est dans le corps de la réponse,
+      // pas dans le message de l'erreur (même convention que useAcademyAccount).
+      const response = (createErr as { context?: Response } | null)?.context;
+      if (response) {
+        try {
+          const details = await response.clone().json() as { error?: string };
+          if (details.error) errMsg = details.error;
+        } catch (parseError) {
+          reportHandledError(
+            `create-learner-account: corps d'erreur illisible (${parseError instanceof Error ? parseError.message : String(parseError)})`,
+          );
+        }
+      }
       if (errMsg === "already_exists" || errMsg.toLowerCase().includes("already")) {
         setErrorMsg("Ce compte existe déjà. Connectez-vous avec votre mot de passe.");
         setMode("login");

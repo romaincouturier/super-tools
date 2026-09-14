@@ -39,11 +39,15 @@ import type { WorkDepositConfig } from "@/types/lms-work-deposit";
 import { useConfirm } from "@/hooks/useConfirm";
 import { supabase } from "@/integrations/supabase/client";
 import CourseLoadState from "@/components/lms/CourseLoadState";
+import { useLearnerIdentity } from "@/hooks/useLearnerIdentity";
 
 export default function LmsCoursePlayer() {
   const { courseId } = useParams<{ courseId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const learnerEmail = searchParams.get("email") || "";
+  const urlEmail = searchParams.get("email") || "";
+  // La session prime sur ?email= : un apprenant connecté ne peut plus lire ni
+  // écrire la progression d'un tiers en changeant le paramètre (lot 1).
+  const { email: learnerEmail, resolved: identityResolved } = useLearnerIdentity(urlEmail);
   const isPreview = searchParams.get("preview") === "admin";
   const initialLessonId = searchParams.get("lesson");
   // Fallback pour les liens reçus sans ?email= (anciens emails) : le
@@ -359,10 +363,10 @@ export default function LmsCoursePlayer() {
     }
   };
 
-  if (!course) {
+  if (!course || !identityResolved) {
     return (
       <CourseLoadState
-        isLoading={courseLoading}
+        isLoading={courseLoading || !identityResolved}
         error={courseError}
         onRetry={() => refetchCourse()}
       />
