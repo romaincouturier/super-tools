@@ -123,3 +123,28 @@ test("le lien Se connecter de la landing mène à la page de connexion", async (
   await page.getByRole("link", { name: "Se connecter" }).first().click();
   await expect(page).toHaveURL(/\/connexion$/);
 });
+
+// ── Ouverture d'un lien reçu par email (W5, W10) ────────────────────────────
+
+test("un lien expiré propose d'en recevoir un nouveau, sans cul-de-sac", async ({ page }) => {
+  await stubEdge(page, "redeem-learner-token", { status: "expired" });
+  await page.goto("/connexion/lien?token=peu-importe");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Ce lien a expiré");
+  await expect(page.locator('input[type="email"]')).toBeVisible();
+  await expect(page.getByRole("button", { name: "Recevoir un nouveau lien" })).toBeVisible();
+});
+
+test("un lien déjà utilisé explique pourquoi et relance le parcours", async ({ page }) => {
+  await stubEdge(page, "redeem-learner-token", { status: "used", email: "apprenant@exemple.fr" });
+  await stubEdge(page, "send-learner-magic-link", { success: true });
+  await page.goto("/connexion/lien?token=deja-servi");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Ce lien a déjà servi");
+  await page.getByRole("button", { name: "Recevoir un nouveau lien" }).click();
+  await expect(page.getByText(/un nouveau lien vient de partir/)).toBeVisible();
+});
+
+test("une URL de lien sans jeton ne montre jamais d'erreur technique", async ({ page }) => {
+  await page.goto("/connexion/lien");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Ce lien n'est pas valide");
+  await expect(page.getByRole("button", { name: /J.ai un mot de passe/ })).toBeVisible();
+});

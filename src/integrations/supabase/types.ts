@@ -12028,11 +12028,36 @@ export type Database = {
         }
         Relationships: []
       }
+      identity_resolution_log: {
+        Row: {
+          email_hash: string
+          id: string
+          ip_address: string
+          resolved_at: string
+          state: string
+        }
+        Insert: {
+          email_hash: string
+          id?: string
+          ip_address?: string
+          resolved_at?: string
+          state: string
+        }
+        Update: {
+          email_hash?: string
+          id?: string
+          ip_address?: string
+          resolved_at?: string
+          state?: string
+        }
+        Relationships: []
+      }
       user_security_metadata: {
         Row: {
           created_at: string
           id: string
           must_change_password: boolean
+          password_set: boolean
           updated_at: string
           user_id: string
         }
@@ -12040,6 +12065,7 @@ export type Database = {
           created_at?: string
           id?: string
           must_change_password?: boolean
+          password_set?: boolean
           updated_at?: string
           user_id: string
         }
@@ -12047,6 +12073,7 @@ export type Database = {
           created_at?: string
           id?: string
           must_change_password?: boolean
+          password_set?: boolean
           updated_at?: string
           user_id?: string
         }

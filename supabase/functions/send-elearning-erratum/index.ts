@@ -53,8 +53,9 @@ serve(async (req) => {
     if (!training) return createErrorResponse("Formation introuvable", 404);
 
     // Lien magique vers le portail apprenant SuperTools (validité 1 an)
+    // Lien d'activation : 7 jours, usage unique (RG-06).
     const expiresAt = new Date();
-    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    expiresAt.setDate(expiresAt.getDate() + 7);
     const { data: link, error: lErr } = await supabase
       .from("learner_magic_links")
       .insert({
@@ -67,7 +68,7 @@ serve(async (req) => {
     if (lErr) return createErrorResponse(`Génération du lien magique impossible: ${lErr.message}`, 500);
 
     const urls = await getAppUrls();
-    const accessLink = `${urls.app_url}/apprenant/connexion?token=${link.token}`;
+    const accessLink = `${urls.app_url}/connexion/lien?token=${link.token}`;
 
     const firstName = participant.first_name || "";
     const trainingName = training.training_name || "";
@@ -80,7 +81,7 @@ serve(async (req) => {
       `Toute votre formation se trouve dans votre espace apprenant SuperTilt. Pour y accéder, c'est très simple :`,
       `<ol><li>Cliquez sur le bouton ci-dessous</li><li>Créez votre mot de passe (ou connectez-vous si vous avez déjà un compte)</li><li>Vous arrivez directement sur votre tableau de bord, avec votre formation</li></ol>`,
       `<p style="margin: 24px 0;"><a href="${accessLink}" style="display:inline-block;padding:12px 24px;background-color:#ffd100;color:#101820;text-decoration:none;border-radius:8px;font-weight:bold;">Accéder à ma formation</a></p>`,
-      `Ce lien est personnel, valable 1 an et réutilisable autant de fois que nécessaire pendant cette période. Au-delà, connectez-vous directement depuis votre espace apprenant.`,
+      `Ce lien est personnel, valable 7 jours et utilisable une seule fois. Passé ce délai, rendez-vous sur la page de connexion : nous vous en enverrons un nouveau en quelques secondes.`,
       `Le rythme reste totalement libre, vous avancez à votre convenance. Si le moindre point vous freine, répondez simplement à ce mail.`,
       `À très vite,`,
     ];
