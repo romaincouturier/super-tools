@@ -1922,7 +1922,7 @@ export default function LearnerPortal() {
             const { data: { user: u2 } } = await supabase.auth.getUser();
             ok = await proceedWithSession(u2 ? { user: u2 } : null);
           }
-          if (!ok) navigate("/apprenant");
+          if (!ok) navigate("/connexion");
         });
       }, 2500);
     };
@@ -1963,7 +1963,7 @@ export default function LearnerPortal() {
   const handleLogout = async () => {
     sessionStorage.removeItem("learner_email");
     await supabase.auth.signOut();
-    navigate("/apprenant");
+    navigate("/connexion");
   };
 
   const handleRequestCoach = async (training: Training) => {
@@ -2020,10 +2020,10 @@ export default function LearnerPortal() {
           style={{ background: "var(--st-white)", border: "1px solid rgba(16,24,32,0.08)" }}>
           <AlertCircle size={40} className="mx-auto" style={{ color: "#dc2626" }} />
           <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>{error}</p>
-          <Link to="/apprenant"
+          <Link to="/connexion"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold"
             style={{ background: "var(--st-ink)", color: "#fff" }}>
-            Demander un nouveau lien
+            Aller à la page de connexion
           </Link>
         </div>
       </div>

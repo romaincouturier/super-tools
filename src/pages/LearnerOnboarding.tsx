@@ -169,7 +169,7 @@ export default function LearnerOnboarding() {
     setSubmitting(true);
     setErrorMsg(null);
     await supabase.functions.invoke("send-password-reset", {
-      body: { email, redirectUrl: `${window.location.origin}/apprenant/reset-password` },
+      body: { email, redirectUrl: `${window.location.origin}/connexion/reinitialisation` },
     });
     setForgotSent(true);
     setSubmitting(false);
@@ -207,7 +207,7 @@ export default function LearnerOnboarding() {
             <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
             <p className="text-muted-foreground">{errorMsg}</p>
             <Button asChild variant="outline">
-              <Link to="/espace-apprenant">Accéder à mon espace apprenant</Link>
+              <Link to="/connexion">Aller à la page de connexion</Link>
             </Button>
           </CardContent>
         </Card>

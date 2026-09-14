@@ -119,14 +119,10 @@ const Auth = () => {
             .eq("user_id", data.user.id)
             .maybeSingle();
 
+          // Un apprenant qui a gardé /auth en signet n'est plus déconnecté avec
+          // un message d'erreur : il rejoint son espace (chapitre 7).
           if (!profileRow) {
-            await supabase.auth.signOut();
-            toast({
-              title: "Accès réservé",
-              description: "Cette connexion est réservée à l'équipe SuperTools. Les apprenants doivent utiliser leur lien d'accès envoyé par email.",
-              variant: "destructive",
-            });
-            setIsLoading(false);
+            navigate("/espace-apprenant/tableau-de-bord", { replace: true });
             return;
           }
 

@@ -16,6 +16,8 @@ import { PageViewTracker } from "@/components/PageViewTracker";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import AgentCommandDialog from "@/components/AgentCommandDialog";
 import { RequireStaff } from "@/components/RequireStaff";
+import { RequireLearner } from "@/components/RequireLearner";
+import { SessionProvider } from "@/contexts/SessionProvider";
 import "@/i18n";
 import { registerToast } from "@/lib/offlineMutationGuard";
 import { toast } from "@/hooks/use-toast";
@@ -90,6 +92,9 @@ const AcademySignup = lazy(() => import("./pages/AcademySignup"));
 const Signup = lazy(() => import("./pages/Signup"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const LearnerAccess = lazy(() => import("./pages/LearnerAccess"));
+const Connexion = lazy(() => import("./pages/Connexion"));
+const ConnexionMotDePasseOublie = lazy(() => import("./pages/ConnexionMotDePasseOublie"));
+const ConnexionReinitialisation = lazy(() => import("./pages/ConnexionReinitialisation"));
 const LearnerPortal = lazy(() => import("./pages/LearnerPortal"));
 const LearnerOnboarding = lazy(() => import("./pages/LearnerOnboarding"));
 const LearnerResetPassword = lazy(() => import("./pages/LearnerResetPassword"));
@@ -188,6 +193,7 @@ const App = () => {
       <Sonner />
       <OfflineBanner />
       <BrowserRouter>
+        <SessionProvider>
         <PageViewTracker />
         <AgentCommandDialog />
         <Suspense fallback={<PageLoader />}>
@@ -202,12 +208,19 @@ const App = () => {
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/force-password-change" element={<ForcePasswordChange />} />
               <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
-              {/* Learner portal */}
-              <Route path="/apprenant" element={<LearnerAccess />} />
+              {/* Connexion apprenant (lot 2) */}
+              <Route path="/connexion" element={<Connexion />} />
+              <Route path="/connexion/mot-de-passe-oublie" element={<ConnexionMotDePasseOublie />} />
+              <Route path="/connexion/reinitialisation" element={<ConnexionReinitialisation />} />
+              {/* Learner portal — anciennes URL conservées et redirigées */}
+              <Route path="/apprenant" element={<Navigate to="/connexion" replace />} />
+              <Route path="/apprenant/acces" element={<LearnerAccess />} />
               <Route path="/apprenant/connexion" element={<LearnerOnboarding />} />
               <Route path="/apprenant/reset-password" element={<LearnerResetPassword />} />
-              <Route path="/espace-apprenant" element={<Navigate to="/espace-apprenant/tableau-de-bord" replace />} />
-              <Route path="/espace-apprenant/:section" element={<LearnerPortal />} />
+              <Route element={<RequireLearner />}>
+                <Route path="/espace-apprenant" element={<Navigate to="/espace-apprenant/tableau-de-bord" replace />} />
+                <Route path="/espace-apprenant/:section" element={<LearnerPortal />} />
+              </Route>
               {/* LMS course player — accessible by learners and staff */}
               <Route path="/lms/:courseId/player" element={<LmsCoursePlayer />} />
               <Route path="/lms/:courseId/home" element={<LmsCourseHomePage />} />
@@ -321,6 +334,7 @@ const App = () => {
           </RouteErrorBoundary>
         </Suspense>
         <ChatbotProvider />
+        </SessionProvider>
       </BrowserRouter>
     </TooltipProvider>
     </DemoModeProvider>
