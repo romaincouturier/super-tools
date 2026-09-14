@@ -594,14 +594,13 @@ export function CatalogSummaryCard({
         {form.programFileUrl && (
           <div>
             <Label className="text-xs text-muted-foreground">Programme</Label>
-            <a
-              href={form.programFileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline block truncate"
+            <button
+              type="button"
+              onClick={() => openStorageUrl(form.programFileUrl)}
+              className="text-sm text-primary hover:underline block truncate text-left"
             >
               {form.programFileUrl.split("/").pop() || "Voir le programme"}
-            </a>
+            </button>
           </div>
         )}
         {form.objectives.length > 0 && (
