@@ -17,6 +17,7 @@ import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskAmount } from "@/lib/demoMask";
 import type { Training, Schedule, Participant } from "@/hooks/useFormationDetail";
 import type { FormationFormula } from "@/types/training";
+import { openStorageUrl } from "@/lib/storageUrl";
 
 interface Props {
   training: Training;

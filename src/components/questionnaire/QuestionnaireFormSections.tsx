@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { QuestionnaireRecord, TrainingRecord } from "@/hooks/useQuestionnaire";
+import { openStorageUrl } from "@/lib/storageUrl";
 
 interface Props {
   questionnaire: QuestionnaireRecord;
