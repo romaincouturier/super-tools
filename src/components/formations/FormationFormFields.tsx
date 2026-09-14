@@ -20,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { FormationFormHook, PREDEFINED_LOCATIONS } from "@/hooks/useFormationForm";
 import CreateCalendarEventDialog from "@/components/crm/CreateCalendarEventDialog";
+import { openStorageUrl } from "@/lib/storageUrl";
 
 const SPONSOR_MEETING_DESCRIPTION = `Bonjour,
 
