@@ -2,6 +2,7 @@
 
 Statut : spécification. Aucune implémentation à ce stade.
 Date : 2026-09-14.
+Arbitrages Q1, Q3 et Q4 rendus le 2026-09-14, reportés dans les règles de gestion et les workflows.
 
 ## 0. Cadrage
 
@@ -127,8 +128,8 @@ L'utilisateur saisit son email. Le système détermine son cas et propose l'éta
 **PR3. Un lien reçu par email ouvre une session.**
 Cliquer sur un lien d'accès connecte, point. Le mot de passe n'est jamais un préalable à l'entrée.
 
-**PR4. Le mot de passe est optionnel.**
-Il est proposé, jamais imposé. Un apprenant peut vivre tout son parcours avec des liens de connexion.
+**PR4. Le mot de passe est optionnel (arbitrage Q1 rendu).**
+Il est proposé après la première connexion par lien, jamais imposé. Un apprenant peut vivre tout son parcours avec des liens de connexion, sans jamais définir de mot de passe.
 
 **PR5. Aucun cul-de-sac.**
 Tout état d'échec, lien expiré, lien consommé, email inconnu, propose une action qui relance le parcours depuis l'écran en cours, sans renvoyer l'utilisateur sur une page d'erreur nue.
@@ -180,13 +181,15 @@ Cas d'un participant présent dans les formations ou les inscriptions LMS, sans 
 
 ### W5. Activation depuis un email (achat, intra, inter, relance, erratum)
 
-Déclencheur : réception d'un email contenant un lien d'accès.
+Déclencheur : réception d'un email contenant un lien d'accès. Pour un achat, l'email est émis par W12.
 
 1. L'apprenant clique. Le lien ouvre `/connexion/lien?token=`.
 2. Le système valide le token. Si valide : ouverture de session immédiate, consommation du token, redirection vers la destination portée par le lien, à défaut le tableau de bord.
 3. Premier accès seulement : écran d'accueil proposant de définir un mot de passe, avec une action "Plus tard" qui mène directement au contenu.
 4. Si une session est déjà ouverte pour la même personne : pas de nouvelle authentification, redirection directe vers la destination.
 5. Si une session est ouverte pour une autre personne : écran explicite "Vous êtes connecté en tant que X, ce lien concerne Y", avec deux actions : continuer en tant que X, ou changer de compte.
+
+Le lien d'activation est valable 7 jours et à usage unique. Le lien de connexion émis depuis la page de connexion est valable 30 minutes.
 
 Règles associées : RG-04, RG-05, RG-06, RG-11.
 
@@ -209,7 +212,7 @@ Déclencheur : formation gratuite depuis la landing, ou lien "Créer un compte" 
 
 1. Accessible depuis `/connexion` à l'étape mot de passe et depuis une URL directe `/connexion/mot-de-passe-oublie`.
 2. Saisie de l'email, message de confirmation neutre et identique quel que soit le cas.
-3. L'email contient un lien de réinitialisation à usage unique et de durée courte.
+3. L'email contient un lien de réinitialisation valable 1 heure, à usage unique.
 4. Le lien ouvre un écran de définition de mot de passe, avec les mêmes exigences que la création.
 5. Après validation : session ouverte, toutes les autres sessions de ce compte invalidées, redirection vers la destination mémorisée.
 6. Un apprenant sans mot de passe qui passe par ce parcours en définit un : il n'y a pas deux mécanismes distincts.
@@ -240,6 +243,20 @@ Principe : l'écran d'erreur porte l'action de reprise. Il ne renvoie jamais ver
 5. Un apprenant qui atteint une route staff est redirigé une fois vers son espace, avec un marqueur empêchant un second aller-retour.
 6. Un membre du staff qui atteint `/connexion` est redirigé vers `/dashboard`, sans déconnexion.
 
+### W12. Provisionnement automatique à l'encaissement (arbitrage Q4 rendu)
+
+Déclencheur : paiement encaissé sur une formation en ligne, quelle que soit la source (boutique SuperTilt, inscription par le staff, inscription par un commanditaire intra).
+
+1. Le compte apprenant est créé immédiatement, sans mot de passe, à partir de l'email de facturation normalisé.
+2. Si un compte existe déjà pour cet email, il est réutilisé. Aucun doublon, aucune modification de son mot de passe.
+3. L'inscription à la formation achetée est rattachée au compte dans le même mouvement.
+4. Un email d'activation est envoyé immédiatement, porteur d'un lien valable 7 jours et de la destination du cours acheté.
+5. L'apprenant clique et entre dans son cours, connecté, sans mot de passe : parcours W5.
+6. Le réglage `elearning_access_mode` disparaît. Le mode `woocommerce`, qui renvoyait vers le site marchand sans créer de compte, cesse d'être une voie d'accès.
+7. Si l'email d'activation n'est pas ouvert, la relance avant démarrage régénère un lien d'activation neuf, sans recréer le compte.
+
+Règles associées : RG-01, RG-03, RG-05, RG-06.
+
 ---
 
 ## 5. Règles de gestion
@@ -251,7 +268,7 @@ Principe : l'écran d'erreur porte l'action de reprise. Il ne renvoie jamais ver
 | RG-03 | Un email ne peut correspondre qu'à un seul compte. La détection de doublon est faite avant toute création. |
 | RG-04 | Un lien de connexion est à usage unique et consommé dès l'ouverture de session, quel que soit le mode de connexion emprunté ensuite. |
 | RG-05 | Un lien de connexion ne permet jamais de modifier le mot de passe d'un compte existant. La modification passe exclusivement par le parcours W8, sur une session déjà ouverte ou un lien de réinitialisation dédié. |
-| RG-06 | Les durées de validité sont distinctes : lien de connexion court, lien d'activation moyen, lien de réinitialisation court. Les valeurs précises sont arbitrées en Q3. |
+| RG-06 | Durées de validité, arbitrage Q3 rendu : lien de connexion 30 minutes, lien d'activation 7 jours, lien de réinitialisation 1 heure. Tous à usage unique, tous consommés à la première ouverture. |
 | RG-07 | Les messages de confirmation d'envoi sont identiques que l'adresse existe ou non, pour les parcours déclenchés par saisie libre (mot de passe oublié). |
 | RG-08 | Le nombre de demandes de lien est limité par adresse et par adresse IP sur une fenêtre glissante. Au-delà, le système répond le même message sans envoyer d'email. |
 | RG-09 | Le compteur d'échecs de mot de passe existant est conservé et s'applique aux apprenants comme au staff. |
@@ -321,27 +338,34 @@ Note : la colonne "connu comme apprenant" agrège participants aux formations, i
 
 | Email | Fonction actuelle | Évolution attendue |
 |-------|-------------------|--------------------|
-| Accès e-learning après achat | `send-elearning-access` | Devient un email d'activation pointant vers l'espace apprenant, avec la destination du cours acheté |
+| Accès e-learning après achat | `send-elearning-access` | Devient l'email d'activation émis par W12 : lien 7 jours à usage unique vers le cours acheté, sur l'espace apprenant. Le renvoi vers le site marchand disparaît |
 | Lien d'accès apprenant | `send-learner-magic-link` | Devient l'email de connexion ou d'activation, avec durée de validité annoncée et périmètre élargi aux inscrits Academy |
-| Relance avant démarrage | `process-elearning-start-reminders` | Lien d'activation aligné sur les nouvelles durées |
-| Erratum e-learning | `send-elearning-erratum` | Lien d'activation aligné, le texte annonçant une validité d'un an est à revoir |
+| Relance avant démarrage | `process-elearning-start-reminders` | Régénère un lien d'activation de 7 jours sans recréer le compte (W12 étape 7) |
+| Erratum e-learning | `send-elearning-erratum` | Lien d'activation aligné sur 7 jours ; le texte annonçant une validité d'un an réutilisable est à réécrire (arbitrage Q3) |
 | Réinitialisation de mot de passe | `send-password-reset` | Distinction du parcours apprenant et du parcours staff, destination de retour adaptée |
 | Notification communauté | `notify-practice-comment` | Lien profond porteur de la destination, exploitable après connexion |
 
 ---
 
-## 10. Décisions à arbitrer
+## 10. Arbitrages
+
+### 10.1 Décisions arrêtées le 2026-09-14
+
+| # | Question | Décision | Conséquences dans la spécification |
+|---|----------|----------|------------------------------------|
+| Q1 | Le mot de passe reste-t-il obligatoire pour un apprenant ? | **Non.** Mot de passe optionnel, proposé après la première connexion par lien, jamais imposé. | PR4, W3 étape 3, W5 étape 3. Un apprenant peut rester sans mot de passe indéfiniment et se connecter par lien à chaque fois. |
+| Q3 | Durées de validité des liens ? | **Connexion 30 minutes, activation 7 jours, réinitialisation 1 heure. Tous à usage unique.** | RG-04, RG-06, W5, W8. Les textes annonçant un lien valable un an et réutilisable, notamment l'erratum e-learning, sont à réécrire. La reprise de formation passe par la connexion, plus par un lien longue durée. |
+| Q4 | Un achat doit-il créer le compte automatiquement ? | **Oui.** Compte provisionné sans mot de passe dès l'encaissement, email d'activation immédiat. Le mode `woocommerce` disparaît comme voie d'accès. | Nouveau workflow W12, suppression du réglage `elearning_access_mode`, refonte de `send-elearning-access` en email d'activation, D7 résolu. |
+
+### 10.2 Arbitrages restants
 
 | # | Question | Recommandation | Impact si l'autre option est retenue |
 |---|----------|----------------|--------------------------------------|
-| Q1 | Le mot de passe reste-t-il obligatoire pour un apprenant ? | Non. Mot de passe optionnel, proposé après la première connexion par lien. | Si obligatoire, toute activation impose une étape supplémentaire et le taux d'abandon reste celui d'aujourd'hui. |
 | Q2 | Détecter le compte à la saisie de l'email, ou message neutre systématique ? | Détecter, avec limitation de débit et message d'erreur uniforme en cas d'abus. | Le message neutre protège de l'énumération mais ramène l'ambiguïté que cette refonte cherche à supprimer. |
-| Q3 | Durées de validité des liens ? | Connexion 30 minutes, activation 7 jours, réinitialisation 1 heure, tous à usage unique. | Les textes actuels promettent un an réutilisable. Si ce confort doit être conservé, il faut dissocier le lien authentifiant du lien de reprise de formation. |
-| Q4 | Un achat doit-il créer le compte automatiquement ? | Oui. Compte provisionné sans mot de passe dès l'encaissement, email d'activation immédiat. Le mode `woocommerce` disparaît comme voie d'accès. | Le maintien des deux modes perpétue deux parcours contradictoires pour un même événement métier. |
 | Q5 | Une porte unique ou deux portes ? | Deux portes, un seul moteur. `/auth` cesse de déconnecter un apprenant avec un message d'erreur et le route vers son espace. | Une porte unique simplifie le code mais mélange deux publics dans une même interface. |
-| Q6 | Code à six chiffres en complément du lien cliquable ? | Oui, à terme. Les filtres de sécurité des messageries d'entreprise pré-cliquent les liens et consomment les tokens à usage unique. | Sans code de secours, certains apprenants intra recevront des liens déjà consommés à l'ouverture. |
+| Q6 | Code à six chiffres en complément du lien cliquable ? | Oui, à terme. Les filtres de sécurité des messageries d'entreprise pré-cliquent les liens et consomment les tokens à usage unique. Avec un lien de connexion à 30 minutes et à usage unique (Q3), le risque de lien déjà consommé à l'ouverture devient concret pour les apprenants intra. | Sans code de secours, ces apprenants dépendront du renvoi de lien proposé par W10. |
 | Q7 | Que faire des comptes et tokens existants ? | Invalider les tokens en circulation au basculement, communiquer par un email de reprise, conserver les comptes et les mots de passe. | Laisser vivre les anciens tokens prolonge la faille S1 pendant un an. |
-| Q8 | Faut-il fusionner `training_participants`, `lms_enrollments` et les comptes en une notion unique d'apprenant ? | Oui, au moins au niveau d'une vue de résolution d'identité. | Sans cela, la règle RG-02 reste coûteuse à appliquer dans chaque parcours. |
+| Q8 | Faut-il fusionner `training_participants`, `lms_enrollments` et les comptes en une notion unique d'apprenant ? | Oui, au moins au niveau d'une vue de résolution d'identité. Q4 rend la question plus pressante : le provisionnement à l'achat écrit dans les trois référentiels à la fois. | Sans cela, la règle RG-02 reste coûteuse à appliquer dans chaque parcours. |
 
 ---
 
@@ -360,7 +384,11 @@ Note : la colonne "connu comme apprenant" agrège participants aux formations, i
 11. Les fonctions de portail ne sont plus exécutables par un appelant anonyme.
 12. Un membre du staff se connecte et atteint `/dashboard` sans aller-retour de redirection.
 13. Un compte sans rôle voit un écran explicite et n'entre jamais dans une boucle.
-14. Un achat en ligne déclenche un email d'activation pointant vers l'espace apprenant et le cours acheté.
+14. Un achat en ligne déclenche la création du compte et un email d'activation pointant vers l'espace apprenant et le cours acheté.
+15. Un apprenant qui refuse de définir un mot de passe accède à son espace et peut se reconnecter par lien autant de fois qu'il le souhaite.
+16. Un lien de connexion ouvert une seconde fois est refusé et propose l'envoi d'un nouveau lien.
+17. Un lien de connexion ouvert plus de 30 minutes après son émission est refusé de la même manière, un lien d'activation au-delà de 7 jours, un lien de réinitialisation au-delà d'une heure.
+18. Le réglage `elearning_access_mode` n'existe plus et aucun email d'accès e-learning ne renvoie vers le site marchand comme voie de connexion.
 
 ---
 
@@ -379,4 +407,4 @@ Note : la colonne "connu comme apprenant" agrège participants aux formations, i
 `learner_magic_links` (durées, usage unique, typage du lien), `preview_learner_token` et `consume_learner_token` (exposition réduite), `get_learner_portal_data` (droits et périmètre), résolution d'identité entre `training_participants`, `lms_enrollments` et les comptes.
 
 **Réglages**
-`elearning_access_mode` : suppression ou requalification selon Q4.
+`elearning_access_mode` : supprimé (arbitrage Q4). Le basculement doit prévoir le retrait du bloc de réglage dans `SettingsGeneral.tsx` et la branche correspondante de `add-training-participant`.
