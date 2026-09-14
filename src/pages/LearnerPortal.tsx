@@ -229,7 +229,7 @@ function DashboardView({
   onNav: (s: NavSection) => void;
   onOpenNotifications?: () => void;
 }) {
-  const firstName = data.trainings[0]?.first_name || "";
+  const firstName = profile?.first_name?.trim() || data.trainings[0]?.first_name || "";
 
   const lmsTrainings = data.trainings.filter((t) => t.lms_course_id);
   const mainTraining = lmsTrainings[0] ?? data.trainings[0];
