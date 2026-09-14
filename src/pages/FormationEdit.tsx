@@ -251,15 +251,30 @@ N'hésitez pas à me contacter en amont pour toute question.
       // Permanent session = no start_date
       setTrainingIsPermanent(!t.start_date);
 
-      // Fetch formulas if linked to catalog
+      // Fetch formulas + catalog pedagogical data if linked to catalog
       if (t.catalog_id) {
-        const { data: formulas } = await supabase
-          .from("formation_formulas")
-          .select("*")
-          .eq("formation_config_id", t.catalog_id)
-          .order("display_order");
+        const [{ data: formulas }, { data: catalog }] = await Promise.all([
+          supabase
+            .from("formation_formulas")
+            .select("*")
+            .eq("formation_config_id", t.catalog_id)
+            .order("display_order"),
+          supabase
+            .from("formation_configs")
+            .select("objectives, prerequisites, programme_url, supertilt_link")
+            .eq("id", t.catalog_id)
+            .maybeSingle(),
+        ]);
         form.setHasFormulas((formulas?.length ?? 0) > 0);
         setAvailableFormulas((formulas as FormationFormula[]) || []);
+
+        // La session hérite des infos catalogue quand elle n'a pas ses propres valeurs
+        if (catalog) {
+          if (!(t.objectives?.length) && catalog.objectives?.length) form.setObjectives(catalog.objectives);
+          if (!(t.prerequisites?.length) && catalog.prerequisites?.length) form.setPrerequisites(catalog.prerequisites);
+          if (!t.program_file_url && catalog.programme_url) form.setProgramFileUrl(catalog.programme_url);
+          if (!t.supertilt_link && catalog.supertilt_link) form.setSupertiltLink(catalog.supertilt_link);
+        }
       }
 
       await form.fetchSupertiltSiteUrl();
