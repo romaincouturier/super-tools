@@ -1,21 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-async function findUserByEmail(admin: ReturnType<typeof createClient>, email: string) {
-  const normalizedEmail = email.toLowerCase();
-  for (let page = 1; page <= 20; page += 1) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw error;
-    const user = data.users.find((u) => u.email?.toLowerCase() === normalizedEmail);
-    if (user) return user;
-    if (data.users.length < 1000) break;
-  }
-  return null;
-}
 
 serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
@@ -71,20 +59,10 @@ serve(async (req) => {
     if (createErr) {
       const msg = (createErr.message || "").toLowerCase();
       if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
-        const existingUser = await findUserByEmail(admin, email);
-        if (!existingUser?.id) throw createErr;
-
-        const { error: updateErr } = await admin.auth.admin.updateUserById(existingUser.id, {
-          password,
-          email_confirm: true,
-          user_metadata: { ...(existingUser.user_metadata ?? {}), role: "learner" },
-        });
-        if (updateErr) throw updateErr;
-
-        return new Response(
-          JSON.stringify({ success: true, email, user_id: existingUser.id, updated_existing: true }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+        // Lot 1 : un lien d'accès ne redéfinit jamais le mot de passe d'un compte
+        // existant. Un lien transféré ne vaut plus prise de contrôle du compte.
+        // L'appelant bascule sur le formulaire de connexion.
+        return createErrorResponse("already_exists", 409);
       }
       throw createErr;
     }

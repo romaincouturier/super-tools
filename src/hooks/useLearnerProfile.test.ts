@@ -27,7 +27,9 @@ const { mockFrom, setNextResult, mockUpsert } = vi.hoisted(() => {
     );
   }
 
-  const mockUpsert = vi.fn().mockResolvedValue({ error: null });
+  // upsert() est chaîné avec .select().maybeSingle() dans le hook : le mock doit
+  // rendre la même chaîne, sinon il résout trop tôt.
+  const mockUpsert = vi.fn(() => makeChain());
   const mockFrom = vi.fn((_table: string) => {
     // Build a chain that also exposes `upsert` for the learner_profiles table.
     const p = Promise.resolve(nextResult);
@@ -61,7 +63,6 @@ function wrapper({ children }: { children: React.ReactNode }) {
 beforeEach(() => {
   vi.clearAllMocks();
   setNextResult({ data: null, error: null });
-  mockUpsert.mockResolvedValue({ error: null });
 });
 
 // ── useLearnerProfile ─────────────────────────────────────────────────────────
@@ -102,6 +103,7 @@ describe("useLearnerProfile", () => {
 
 describe("useUpsertLearnerProfile", () => {
   it("calls upsert on learner_profiles with lowercased email", async () => {
+    setNextResult({ data: { email: "alice@example.com" }, error: null });
     const { result } = renderHook(() => useUpsertLearnerProfile(), { wrapper });
 
     await act(async () => {
@@ -120,7 +122,8 @@ describe("useUpsertLearnerProfile", () => {
   });
 
   it("throws when upsert returns an error", async () => {
-    mockUpsert.mockResolvedValueOnce({ error: { message: "RLS violation" } });
+    // L'erreur remonte par la chaîne .select().maybeSingle(), pas par upsert().
+    setNextResult({ data: null, error: { message: "RLS violation" } });
     const { result } = renderHook(() => useUpsertLearnerProfile(), { wrapper });
 
     await expect(
@@ -161,6 +164,7 @@ describe("useLearnerProfile — security invariants", () => {
   });
 
   it("upsert always lowercases the email key (consistent with RLS check on lower(email))", async () => {
+    setNextResult({ data: { email: "upper@case.com" }, error: null });
     const { result } = renderHook(() => useUpsertLearnerProfile(), { wrapper });
 
     await act(async () => {
