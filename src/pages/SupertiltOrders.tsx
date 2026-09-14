@@ -1123,7 +1123,14 @@ function GameDialog({
             />
             <p className="text-xs text-muted-foreground">Utilisé pour calculer la marge réelle dans le bilan (CA SuperTilt − prix de revient × qté − dépenses).</p>
           </div>
-          {form.game_type === "location" && (<>
+          {(form.game_type === "location" || form.location_variation_id != null) && (<>
+            <div className="col-span-2 -mb-1">
+              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Location</h4>
+              <p className="text-xs text-muted-foreground">
+                Paramètres du contrat de location. Affichés dès qu&apos;une variation location est renseignée, même si le jeu est aussi vendu.
+              </p>
+            </div>
+
             <div className="col-span-2 space-y-1">
               <Label>ID template PDF Monkey</Label>
               <Input
