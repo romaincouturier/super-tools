@@ -100,6 +100,16 @@ export function isSentryActive(): boolean {
   return initialized;
 }
 
+/**
+ * Attache l'identité courante aux événements. Indispensable côté portail
+ * apprenant : sans elle, une erreur d'accès (RLS) n'est rattachable à aucun
+ * compte et reste indistinguable d'un bug générique.
+ */
+export function setSentryUser(email: string | null): void {
+  if (!initialized) return;
+  Sentry.setUser(email ? { email } : null);
+}
+
 // Erreurs déjà capturées : un même objet Error peut transiter par plusieurs
 // points de passage (onError global React Query PUIS toastError avec cause) —
 // il ne doit produire qu'un seul événement Sentry.

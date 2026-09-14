@@ -19,7 +19,17 @@ export function useSentryInit(): void {
         .select("setting_value")
         .eq("setting_key", "sentry_dsn")
         .maybeSingle();
-      if (active) configureSentry(data?.setting_value ?? undefined);
+      let dsn = data?.setting_value as string | undefined;
+      // Learner accounts have no read access to app_settings (staff-only RLS):
+      // without this fallback, Sentry stays disabled for the whole learner
+      // portal and its errors are never reported.
+      if (!dsn) {
+        const { data: publicDsn } = await supabase.rpc("get_app_setting_public", {
+          p_key: "sentry_dsn",
+        });
+        dsn = (publicDsn as string | null) ?? undefined;
+      }
+      if (active) configureSentry(dsn);
     };
 
     load();
