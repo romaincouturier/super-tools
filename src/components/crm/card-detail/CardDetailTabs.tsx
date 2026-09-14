@@ -45,6 +45,7 @@ interface Props {
 
 const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
   const deleteComment = useDeleteComment();
   const addAttachment = useAddAttachment();
