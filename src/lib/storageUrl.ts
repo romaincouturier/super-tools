@@ -76,12 +76,30 @@ export async function signHtmlImageUrls(html: string, expiresIn = 3600): Promise
   return mapHtmlImageSrc(html, (src) => resolved.get(src) ?? src);
 }
 
-/** Open a stored file in a new tab, resolving signed URLs when needed. */
-export async function openStorageUrl(url: string) {
-  const resolved = await resolveStorageUrl(url);
+function openInNewTab(href: string) {
   const a = document.createElement("a");
-  a.href = resolved;
+  a.href = href;
   a.target = "_blank";
   a.rel = "noopener noreferrer";
   a.click();
+}
+
+/**
+ * Open a stored file in a new tab, resolving signed URLs when needed.
+ * Certains navigateurs (Brave, bloqueurs de contenu) refusent une navigation
+ * directe vers le domaine de stockage : on récupère donc le fichier via fetch
+ * puis on ouvre un blob local, avec repli sur le lien direct.
+ */
+export async function openStorageUrl(url: string) {
+  const resolved = await resolveStorageUrl(url);
+  try {
+    const res = await fetch(resolved);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    openInNewTab(blobUrl);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+  } catch {
+    openInNewTab(resolved);
+  }
 }
