@@ -114,7 +114,9 @@ export async function openResolvedUrl(resolved: string) {
     const blobUrl = URL.createObjectURL(blob);
     openInNewTab(blobUrl);
     setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
-  } catch {
+  } catch (err) {
+    // Repli sur le lien direct : le fetch a pu être bloqué (CORS, bloqueur).
+    console.warn("openResolvedUrl: fetch échoué, ouverture directe", err);
     openInNewTab(resolved);
   }
 }
