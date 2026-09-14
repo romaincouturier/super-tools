@@ -46,14 +46,26 @@ export function useUpsertLearnerProfile() {
       email_notif_live?: boolean;
       email_notif_important?: boolean;
     }) => {
+      const email = profile.email.toLowerCase();
       const client = createLearnerClient(profile.email);
-      const { error } = await client
+      // `select()` forces PostgREST to return the written row: a policy that
+      // silently filters the row out (RLS mismatch) then surfaces as an error
+      // instead of a fake success — this exact silent no-op hid the learner
+      // profile bug from Sentry.
+      const { data, error } = await client
         .from("learner_profiles")
         .upsert(
-          { ...profile, email: profile.email.toLowerCase(), updated_at: new Date().toISOString() },
+          { ...profile, email, updated_at: new Date().toISOString() },
           { onConflict: "email" },
-        );
+        )
+        .select("email")
+        .maybeSingle();
       if (error) throw error;
+      if (!data) {
+        throw new Error(
+          `Profil apprenant non enregistré (aucune ligne retournée pour ${email}) — règle d'accès en cause`,
+        );
+      }
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["learner_profile", vars.email.toLowerCase()] });
