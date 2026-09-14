@@ -13,7 +13,9 @@ import QuoteHistorySection from "@/components/quotes/QuoteHistorySection";
 import CardTranscriptsSection from "./CardTranscriptsSection";
 import type { CardDetailState, CardDetailHandlers, CardDetails } from "./types";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { getSignedUrl } from "@/lib/storageUrl";
+import { openStoragePath } from "@/lib/storageUrl";
+import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { maskEmail, maskFileName } from "@/lib/demoMask";
 
 function formatActivityType(type: string): string {
@@ -43,6 +45,7 @@ interface Props {
 
 const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
   const deleteComment = useDeleteComment();
   const addAttachment = useAddAttachment();
@@ -110,13 +113,10 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
               <button
                 className="flex items-center gap-2 hover:text-primary transition-colors text-left min-w-0"
                 onClick={async () => {
-                  const signed = await getSignedUrl("crm-attachments", att.file_path);
-                  if (signed) {
-                    const a = document.createElement("a");
-                    a.href = signed;
-                    a.target = "_blank";
-                    a.rel = "noopener noreferrer";
-                    a.click();
+                  try {
+                    await openStoragePath("crm-attachments", att.file_path);
+                  } catch (e) {
+                    toastError(toast, e instanceof Error ? e.message : "Ouverture impossible");
                   }
                 }}
               >
