@@ -45,7 +45,8 @@ export function VhdReportEvidence({ reportId, narrativeReadAt }: Props) {
     const url = await openUrl(attachment);
     if (!url) return;
     // Le lien signé expire en quelques minutes : on l'ouvre, on ne le stocke pas.
-    window.open(url, "_blank", "noopener,noreferrer");
+    // Passage par un blob local : certains bloqueurs refusent le domaine de stockage.
+    await openResolvedUrl(url);
   };
 
   const handlePick = async (file: File | undefined) => {
