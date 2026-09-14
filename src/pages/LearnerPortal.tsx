@@ -2032,8 +2032,8 @@ export default function LearnerPortal() {
 
   if (!data) return null;
 
-  const firstName = learnerProfile?.first_name || data.trainings[0]?.first_name || "";
-  const lastName = learnerProfile?.last_name || data.trainings[0]?.last_name || "";
+  const firstName = learnerProfile?.first_name?.trim() || data.trainings[0]?.first_name || "";
+  const lastName = learnerProfile?.last_name?.trim() || data.trainings[0]?.last_name || "";
   const fonction = learnerProfile?.fonction || null;
   const photoUrl = learnerProfile?.photo_url || null;
 
