@@ -36,7 +36,7 @@ const LearnerResetPassword = () => {
           description: "Le lien de réinitialisation a expiré ou est invalide. Veuillez redemander un lien.",
           variant: "destructive",
         });
-        navigate("/apprenant");
+        navigate("/connexion");
       }
       setCheckingSession(false);
     };

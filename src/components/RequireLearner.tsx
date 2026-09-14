@@ -4,11 +4,10 @@ import { useSession } from "@/hooks/useSession";
 import { buildLoginPath } from "@/lib/authRouting";
 
 /**
- * Garde des routes back-office (lot 2).
- * Seul un compte portant une ligne dans `profiles` entre. Un compte sans profil
- * n'est plus considéré comme staff par défaut : il part vers l'espace apprenant.
+ * Garde de l'espace apprenant (lot 2). Le staff y est admis : il consulte son
+ * propre espace, ou celui d'un apprenant en prévisualisation.
  */
-export function RequireStaff() {
+export function RequireLearner() {
   const { status } = useSession();
   const location = useLocation();
 
@@ -20,8 +19,7 @@ export function RequireStaff() {
     );
   }
   if (status === "anon") {
-    return <Navigate to={buildLoginPath("/auth", location.pathname + location.search)} replace />;
+    return <Navigate to={buildLoginPath("/connexion", location.pathname + location.search)} replace />;
   }
-  if (status === "learner") return <Navigate to="/espace-apprenant" replace />;
   return <Outlet />;
 }
