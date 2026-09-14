@@ -51,14 +51,9 @@ const ForcePasswordChange = () => {
 
       if (error) throw error;
 
-      // Clear must_change_password flag
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from("user_security_metadata")
-          .update({ must_change_password: false })
-          .eq("user_id", user.id);
-      }
+      // Le drapeau n'est plus écrit par l'utilisateur : la bascule passe par
+      // une fonction serveur (lot 3).
+      await supabase.rpc("mark_password_changed");
 
       toast({
         title: "Mot de passe mis à jour",

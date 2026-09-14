@@ -13145,6 +13145,8 @@ export type Database = {
         Args: { p_timestamp: string; p_token: string }
         Returns: undefined
       }
+      mark_password_changed: { Args: never; Returns: undefined }
+      request_password_change: { Args: never; Returns: undefined }
       mark_convention_opened: {
         Args: { p_timestamp: string; p_token: string }
         Returns: undefined
