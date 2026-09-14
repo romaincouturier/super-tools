@@ -229,7 +229,7 @@ function DashboardView({
   onNav: (s: NavSection) => void;
   onOpenNotifications?: () => void;
 }) {
-  const firstName = data.trainings[0]?.first_name || "";
+  const firstName = profile?.first_name?.trim() || data.trainings[0]?.first_name || "";
 
   const lmsTrainings = data.trainings.filter((t) => t.lms_course_id);
   const mainTraining = lmsTrainings[0] ?? data.trainings[0];
@@ -2032,8 +2032,8 @@ export default function LearnerPortal() {
 
   if (!data) return null;
 
-  const firstName = learnerProfile?.first_name || data.trainings[0]?.first_name || "";
-  const lastName = learnerProfile?.last_name || data.trainings[0]?.last_name || "";
+  const firstName = learnerProfile?.first_name?.trim() || data.trainings[0]?.first_name || "";
+  const lastName = learnerProfile?.last_name?.trim() || data.trainings[0]?.last_name || "";
   const fonction = learnerProfile?.fonction || null;
   const photoUrl = learnerProfile?.photo_url || null;
 
