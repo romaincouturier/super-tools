@@ -8,6 +8,7 @@ import { toastError } from "@/lib/toastError";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useVhdAttachments, type VhdAttachment } from "@/hooks/useVhdAttachments";
 import { rpc, type VhdNarrativeAccess } from "@/lib/supabase-rpc";
+import { openResolvedUrl } from "@/lib/storageUrl";
 
 /**
  * Pièces jointes et journal des consultations d'un signalement.
