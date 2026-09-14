@@ -110,13 +110,10 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
               <button
                 className="flex items-center gap-2 hover:text-primary transition-colors text-left min-w-0"
                 onClick={async () => {
-                  const signed = await getSignedUrl("crm-attachments", att.file_path);
-                  if (signed) {
-                    const a = document.createElement("a");
-                    a.href = signed;
-                    a.target = "_blank";
-                    a.rel = "noopener noreferrer";
-                    a.click();
+                  try {
+                    await openStoragePath("crm-attachments", att.file_path);
+                  } catch (e) {
+                    toastError(toast, e instanceof Error ? e.message : "Ouverture impossible");
                   }
                 }}
               >

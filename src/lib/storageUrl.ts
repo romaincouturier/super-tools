@@ -92,6 +92,17 @@ function openInNewTab(href: string) {
  */
 export async function openStorageUrl(url: string) {
   const resolved = await resolveStorageUrl(url);
+  await openResolvedUrl(resolved);
+}
+
+/** Open a private-bucket file from its bucket + path, via a signed URL. */
+export async function openStoragePath(bucket: string, path: string) {
+  const signed = await getSignedUrl(bucket, path);
+  if (!signed) throw new Error("Fichier introuvable ou accès refusé");
+  await openResolvedUrl(signed);
+}
+
+async function openResolvedUrl(resolved: string) {
   try {
     const res = await fetch(resolved);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
