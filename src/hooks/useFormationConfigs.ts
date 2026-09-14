@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { FormationConfig } from "@/types/formations";
@@ -233,4 +234,21 @@ export function useFormationConfigs(user: User | null, initialDefaultsApplied: b
     handleSetDefault,
     handleMoveFormation,
   };
+}
+
+/** Formations du catalogue actives, pour les sélecteurs de rattachement. */
+export function useActiveFormationConfigs() {
+  return useQuery({
+    queryKey: ["formation-configs-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("formation_configs")
+        .select("id, formation_name")
+        .eq("is_active", true)
+        .order("formation_name");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 }
