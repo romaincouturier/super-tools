@@ -102,7 +102,11 @@ export async function openStoragePath(bucket: string, path: string) {
   await openResolvedUrl(signed);
 }
 
-async function openResolvedUrl(resolved: string) {
+/**
+ * Ouvre une URL déjà résolue (signée ou publique) via un blob local, pour
+ * contourner les bloqueurs de contenu qui refusent le domaine de stockage.
+ */
+export async function openResolvedUrl(resolved: string) {
   try {
     const res = await fetch(resolved);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -110,7 +114,9 @@ async function openResolvedUrl(resolved: string) {
     const blobUrl = URL.createObjectURL(blob);
     openInNewTab(blobUrl);
     setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
-  } catch {
+  } catch (err) {
+    // Repli sur le lien direct : le fetch a pu être bloqué (CORS, bloqueur).
+    console.warn("openResolvedUrl: fetch échoué, ouverture directe", err);
     openInNewTab(resolved);
   }
 }

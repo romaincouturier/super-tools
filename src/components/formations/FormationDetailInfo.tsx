@@ -17,6 +17,7 @@ import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskAmount } from "@/lib/demoMask";
 import type { Training, Schedule, Participant } from "@/hooks/useFormationDetail";
 import type { FormationFormula } from "@/types/training";
+import { openStorageUrl } from "@/lib/storageUrl";
 
 interface Props {
   training: Training;
@@ -250,9 +251,9 @@ const FormationDetailInfo = ({
         <>
           <Separator />
           <div className="flex flex-wrap gap-3">
-            <a href={training.program_file_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-primary hover:underline">
+            <button type="button" onClick={() => { void openStorageUrl(training.program_file_url!); }} className="flex items-center gap-1.5 text-sm text-primary hover:underline">
               <FileText className="h-4 w-4" />Programme
-            </a>
+            </button>
           </div>
         </>
       )}
