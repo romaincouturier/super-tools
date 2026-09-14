@@ -13,7 +13,9 @@ import QuoteHistorySection from "@/components/quotes/QuoteHistorySection";
 import CardTranscriptsSection from "./CardTranscriptsSection";
 import type { CardDetailState, CardDetailHandlers, CardDetails } from "./types";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { getSignedUrl } from "@/lib/storageUrl";
+import { openStoragePath } from "@/lib/storageUrl";
+import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { maskEmail, maskFileName } from "@/lib/demoMask";
 
 function formatActivityType(type: string): string {
