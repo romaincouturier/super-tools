@@ -20,6 +20,7 @@ import {
   uploadEntityDocument,
 } from "@/hooks/useEntityDocuments";
 import { toastError } from "@/lib/toastError";
+import { openStorageUrl } from "@/lib/storageUrl";
 
 export type SupportsType = "url" | "file" | "lms";
 
