@@ -36,9 +36,12 @@ export interface ListLessonsInput {
 export interface LessonSummary {
   id: string;
   title: string;
-  description: string | null;
+  lesson_type: string;
+  module_id: string;
+  module_title: string;
+  module_position: number;
   position: number;
-  status: "draft" | "published" | "archived";
+  estimated_minutes: number | null;
   updated_at: string;
   block_count: number;
   fingerprint: string;
@@ -46,11 +49,14 @@ export interface LessonSummary {
 
 export interface LessonDetail {
   id: string;
-  course_id: string;
+  course_id: string | null;
+  module_id: string;
+  module_title: string | null;
   title: string;
-  description: string | null;
+  lesson_type: string;
   position: number;
-  status: "draft" | "published" | "archived";
+  estimated_minutes: number | null;
+  content_html: string | null;
   source_transcript_id: string | null;
   blocks: LessonBlock[];
   fingerprint: string;
