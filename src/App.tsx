@@ -91,14 +91,13 @@ const Landing = lazy(() => import("./pages/Landing"));
 const AcademySignup = lazy(() => import("./pages/AcademySignup"));
 const Signup = lazy(() => import("./pages/Signup"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
-const LearnerAccess = lazy(() => import("./pages/LearnerAccess"));
 const Connexion = lazy(() => import("./pages/Connexion"));
 const ConnexionMotDePasseOublie = lazy(() => import("./pages/ConnexionMotDePasseOublie"));
 const ConnexionReinitialisation = lazy(() => import("./pages/ConnexionReinitialisation"));
 const ConnexionLien = lazy(() => import("./pages/ConnexionLien"));
+const CompteSansAcces = lazy(() => import("./pages/CompteSansAcces"));
 const LearnerPortal = lazy(() => import("./pages/LearnerPortal"));
-const LearnerOnboarding = lazy(() => import("./pages/LearnerOnboarding"));
-const LearnerResetPassword = lazy(() => import("./pages/LearnerResetPassword"));
+const ApprenantConnexionRedirect = lazy(() => import("./pages/ApprenantConnexionRedirect"));
 const AiTools = lazy(() => import("./pages/AiTools"));
 const LmsCourses = lazy(() => import("./pages/LmsCourses"));
 const LmsCourseEntry = lazy(() => import("./pages/LmsCourseEntry"));
@@ -199,11 +198,11 @@ const App = () => {
               <Route path="/connexion/mot-de-passe-oublie" element={<ConnexionMotDePasseOublie />} />
               <Route path="/connexion/reinitialisation" element={<ConnexionReinitialisation />} />
               <Route path="/connexion/lien" element={<ConnexionLien />} />
+              <Route path="/compte-sans-acces" element={<CompteSansAcces />} />
               {/* Learner portal — anciennes URL conservées et redirigées */}
               <Route path="/apprenant" element={<Navigate to="/connexion" replace />} />
-              <Route path="/apprenant/acces" element={<LearnerAccess />} />
-              <Route path="/apprenant/connexion" element={<LearnerOnboarding />} />
-              <Route path="/apprenant/reset-password" element={<LearnerResetPassword />} />
+              <Route path="/apprenant/connexion" element={<ApprenantConnexionRedirect />} />
+              <Route path="/apprenant/reset-password" element={<Navigate to="/connexion/reinitialisation" replace />} />
               <Route element={<RequireLearner />}>
                 <Route path="/espace-apprenant" element={<Navigate to="/espace-apprenant/tableau-de-bord" replace />} />
                 <Route path="/espace-apprenant/:section" element={<LearnerPortal />} />

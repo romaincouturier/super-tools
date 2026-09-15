@@ -148,3 +148,30 @@ test("une URL de lien sans jeton ne montre jamais d'erreur technique", async ({ 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Ce lien n'est pas valide");
   await expect(page.getByRole("button", { name: /J.ai un mot de passe/ })).toBeVisible();
 });
+
+// ── Recette : critères 5, 13, 22 ────────────────────────────────────────────
+
+test("l'ancienne adresse de lien sans jeton mène à la connexion, jamais à une erreur", async ({ page }) => {
+  await page.goto("/apprenant/connexion");
+  await expect(page).toHaveURL(/\/connexion$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Se connecter");
+});
+
+test("un ancien lien reçu par email entre par la nouvelle ouverture de lien", async ({ page }) => {
+  await stubEdge(page, "redeem-learner-token", { status: "used", email: "apprenant@exemple.fr" });
+  await page.goto("/apprenant/connexion?token=ancien-jeton");
+  await expect(page).toHaveURL(/\/connexion\/lien\?token=ancien-jeton$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Ce lien a déjà servi");
+});
+
+test("l'ancienne adresse de réinitialisation mène au nouvel écran", async ({ page }) => {
+  await page.goto("/apprenant/reset-password");
+  await expect(page).toHaveURL(/\/connexion\/reinitialisation$/);
+});
+
+test("un compte sans rattachement voit un écran explicite, sans boucle", async ({ page }) => {
+  await page.goto("/compte-sans-acces");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("n'a pas encore d'accès");
+  await expect(page.getByRole("link", { name: /Écrire au support/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Me déconnecter/ })).toBeVisible();
+});

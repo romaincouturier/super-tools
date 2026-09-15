@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAccessLevel } from "@/lib/accessLevel";
 
 export type SignInOutcome = {
   ok: boolean;
   isStaff: boolean;
   mustChangePassword: boolean;
+  hasAccess: boolean;
 };
 
 /**
@@ -14,11 +16,13 @@ export type SignInOutcome = {
 export function useAuthActions() {
   const signIn = useCallback(async (email: string, password: string): Promise<SignInOutcome> => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.user) return { ok: false, isStaff: false, mustChangePassword: false };
+    if (error || !data.user) {
+      return { ok: false, isStaff: false, mustChangePassword: false, hasAccess: false };
+    }
 
     // Le routage dépend du rôle du compte, pas de la porte empruntée (RG-14).
-    const [{ data: profile }, { data: security }] = await Promise.all([
-      supabase.from("profiles").select("user_id").eq("user_id", data.user.id).maybeSingle(),
+    const [level, { data: security }] = await Promise.all([
+      fetchAccessLevel(data.user.id),
       supabase
         .from("user_security_metadata")
         .select("must_change_password")
@@ -28,8 +32,9 @@ export function useAuthActions() {
 
     return {
       ok: true,
-      isStaff: !!profile,
+      isStaff: level === "staff",
       mustChangePassword: security?.must_change_password === true,
+      hasAccess: level === "staff" || level === "learner",
     };
   }, []);
 

@@ -82,11 +82,25 @@ serve(async (req: Request) => {
       );
     }
 
+    // Destination : la formation concernée quand le jeton en porte une, sinon
+    // le tableau de bord (critères 8 et 14).
+    let next: string | null = null;
+    if (result?.training_id) {
+      const { data: training } = await admin
+        .from("trainings")
+        .select("supports_lms_course_id")
+        .eq("id", result.training_id)
+        .maybeSingle();
+      const courseId = (training as { supports_lms_course_id?: string | null } | null)?.supports_lms_course_id;
+      if (courseId) next = `/lms/${courseId}/home`;
+    }
+
     return createJsonResponse({
       status: "ok",
       email,
       token_hash: link.properties.hashed_token,
       training_id: result?.training_id ?? null,
+      next,
     });
   } catch (error) {
     return createErrorResponse(

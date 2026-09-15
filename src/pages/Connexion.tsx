@@ -45,8 +45,11 @@ export default function Connexion() {
 
   // Session déjà ouverte : le formulaire ne s'affiche jamais (W9).
   useEffect(() => {
-    if (status === "staff" || status === "learner") {
-      navigate(resolvePostLoginPath({ isStaff, mustChangePassword, next }), { replace: true });
+    if (status === "staff" || status === "learner" || status === "none") {
+      navigate(
+        resolvePostLoginPath({ isStaff, mustChangePassword, next, hasAccess: status !== "none" }),
+        { replace: true },
+      );
     }
   }, [status, isStaff, mustChangePassword, next, navigate]);
 
@@ -109,7 +112,12 @@ export default function Connexion() {
 
     void logAttempt(normalizedEmail, true);
     navigate(
-      resolvePostLoginPath({ isStaff: outcome.isStaff, mustChangePassword: outcome.mustChangePassword, next }),
+      resolvePostLoginPath({
+        isStaff: outcome.isStaff,
+        mustChangePassword: outcome.mustChangePassword,
+        hasAccess: outcome.hasAccess,
+        next,
+      }),
       { replace: true },
     );
   };

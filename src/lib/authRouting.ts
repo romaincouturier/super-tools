@@ -31,13 +31,18 @@ export function buildLoginPath(gate: string, from: string): string {
  * Destination après authentification, selon la table du chapitre 7.
  * Un apprenant n'est jamais renvoyé sur une route back-office.
  */
+export const NO_ACCESS_HOME = "/compte-sans-acces";
+
 export function resolvePostLoginPath(params: {
   isStaff: boolean;
   mustChangePassword: boolean;
   next?: string | null;
+  hasAccess?: boolean;
 }): string {
   const { isStaff, mustChangePassword } = params;
   if (mustChangePassword) return "/force-password-change";
+  // Compte authentifié sans rattachement : état terminal explicite (critère 13).
+  if (params.hasAccess === false) return NO_ACCESS_HOME;
   const next = sanitizeRedirect(params.next);
   if (next) {
     const targetsLearnerSpace = next.startsWith("/espace-apprenant") || next.startsWith("/lms/");

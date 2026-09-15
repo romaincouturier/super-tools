@@ -22,6 +22,7 @@ export function RequireStaff() {
   if (status === "anon") {
     return <Navigate to={buildLoginPath("/auth", location.pathname + location.search)} replace />;
   }
+  if (status === "none") return <Navigate to="/compte-sans-acces" replace />;
   if (status === "learner") return <Navigate to="/espace-apprenant" replace />;
   return <Outlet />;
 }
