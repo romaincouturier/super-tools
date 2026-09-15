@@ -13206,6 +13206,14 @@ export type Database = {
         Args: { _course_id: string }
         Returns: boolean
       }
+      lms_lesson_fingerprint: { Args: { p_lesson_id: string }; Returns: string }
+      lms_lesson_fingerprints: {
+        Args: { p_lesson_ids: string[] }
+        Returns: {
+          fingerprint: string
+          lesson_id: string
+        }[]
+      }
       mark_attendance_opened: {
         Args: { p_timestamp: string; p_token: string }
         Returns: undefined

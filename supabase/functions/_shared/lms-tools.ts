@@ -90,19 +90,28 @@ function pageLimit(limit?: number): number {
   return Math.min(Math.max(1, limit), PAGE_LIMIT_MAX);
 }
 
-function computeFingerprint(topLevelBlocks: { id: string; updated_at: string; position: number }[]): string {
-  const hashable = topLevelBlocks
-    .slice()
-    .sort((a, b) => a.position - b.position || a.id.localeCompare(b.id))
-    .map((b) => `${b.id}:${b.updated_at}`)
-    .join(";");
-  // simple stable hash using Deno built-in crypto
-  const bytes = new TextEncoder().encode(hashable);
-  const arr = Array.from(bytes).reduce((h, b) => {
-    h = ((h << 5) - h + b) | 0;
-    return h;
-  }, 0);
-  return (arr >>> 0).toString(16).padStart(8, "0");
+/**
+ * The fingerprint is computed by the database (public.lms_lesson_fingerprint), which is
+ * also what apply_lesson_restructure compares against. Never recompute it here: any
+ * client-side hash would differ from the SQL one and every restructure would be rejected.
+ */
+async function fetchFingerprint(lessonId: string): Promise<string> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc("lms_lesson_fingerprint", { p_lesson_id: lessonId });
+  if (error) throw new Error(`Failed to compute fingerprint: ${error.message}`);
+  return (data as string) ?? "";
+}
+
+async function fetchFingerprints(lessonIds: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (lessonIds.length === 0) return map;
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc("lms_lesson_fingerprints", { p_lesson_ids: lessonIds });
+  if (error) throw new Error(`Failed to compute fingerprints: ${error.message}`);
+  for (const row of (data ?? []) as Array<{ lesson_id: string; fingerprint: string }>) {
+    map.set(row.lesson_id, row.fingerprint ?? "");
+  }
+  return map;
 }
 
 async function requireStaffOrService() {
@@ -180,6 +189,8 @@ export async function listLmsLessons(input: ListLessonsInput): Promise<{ lessons
     blocksByLesson.get(b.lesson_id)!.push({ id: b.id, updated_at: b.updated_at, position: b.position });
   }
 
+  const fingerprints = await fetchFingerprints(lessonIds);
+
   const summaries: LessonSummary[] = rows
     .map((l) => {
       const top = blocksByLesson.get(l.id as string) ?? [];
@@ -194,7 +205,7 @@ export async function listLmsLessons(input: ListLessonsInput): Promise<{ lessons
         estimated_minutes: (l.estimated_minutes as number | null) ?? null,
         updated_at: l.updated_at as string,
         block_count: top.length,
-        fingerprint: computeFingerprint(top),
+        fingerprint: fingerprints.get(l.id as string) ?? "",
       };
     })
     .sort((a, b) => a.module_position - b.module_position || a.position - b.position);
@@ -223,8 +234,7 @@ export async function readLmsLesson(lessonId: string): Promise<LessonDetail> {
   if (blocksError) throw new Error(`Failed to read blocks: ${blocksError.message}`);
 
   const lesson = lessonRow as unknown as Record<string, any>;
-  const topLevel = (blocks ?? []).filter((b) => b.parent_block_id === null);
-  const fingerprint = computeFingerprint(topLevel.map((b) => ({ id: b.id, updated_at: b.updated_at, position: b.position })));
+  const fingerprint = await fetchFingerprint(lessonId);
 
   return {
     id: lesson.id,
