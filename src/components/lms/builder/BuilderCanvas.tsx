@@ -11,6 +11,7 @@ import {
   useMoveLessonBlock,
 } from "@/hooks/useLmsBlocks";
 import { LESSON_TEMPLATES } from "@/types/lms-templates";
+import LessonTranscriptBadge from "./LessonTranscriptBadge";
 import {
   buildBlockTree,
   rowColumnAssignments,
@@ -465,6 +466,9 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
               {moduleName}
               {sequenceNumber != null && ` · Séquence ${sequenceNumber}`}
             </Chip>
+          )}
+          {lesson.source_transcript_id && (
+            <LessonTranscriptBadge transcriptId={lesson.source_transcript_id} />
           )}
         </div>
 
