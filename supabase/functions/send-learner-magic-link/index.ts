@@ -196,7 +196,19 @@ Deno.serve(async (req) => {
       const intro = hasMultiple
         ? `Bonjour${firstName ? ` ${firstName}` : ""},\n\nVous êtes inscrit(e) aux formations suivantes :\n\n${trainingsListHtml}`
         : `Bonjour${firstName ? ` ${firstName}` : ""},\n\nVotre entreprise vient de vous inscrire à la formation e-learning ${trainingName ? `"<strong>${trainingName}</strong>"` : "votre formation"}${dateLabel}.`;
-      bodyContent = `${intro}\n\nVous pouvez accéder à votre espace apprenant en cliquant sur le bouton ci-dessous :\n\n<p style="margin: 20px 0;"><a href="${accessLink}" style="display: inline-block; padding: 12px 24px; background-color: #ffd100; color: #101820; text-decoration: none; border-radius: 8px; font-weight: bold;">🎓 Accéder à mes formations</a></p>`;
+      // Texte de référence : chapitre 11 de docs/SPEC_CONNEXION_APPRENANT.md.
+      const validity = purpose === "login"
+        ? "Ce lien est valable 30 minutes et ne fonctionne qu'une fois."
+        : "Ce lien est valable 7 jours et ne fonctionne qu'une fois.";
+      const cta = purpose === "login" ? "Me connecter" : "Activer mon accès";
+      bodyContent = [
+        intro,
+        `Votre espace apprenant est prêt, à l'adresse ${email}.`,
+        `<p style="margin: 20px 0;"><a href="${accessLink}" style="display: inline-block; padding: 12px 24px; background-color: #ffd100; color: #101820; text-decoration: none; border-radius: 8px; font-weight: bold;">${cta}</a></p>`,
+        `${validity} Passé ce délai, rendez-vous sur la page de connexion : nous vous en enverrons un nouveau en quelques secondes.`,
+        "Vous n'avez pas de mot de passe à créer, sauf si vous le souhaitez.",
+        "Vos données sont traitées par SuperTilt pour vous donner accès à votre formation. Pour demander la suppression de votre compte, écrivez à contact@supertilt.fr.",
+      ].join("\n\n");
     }
 
 

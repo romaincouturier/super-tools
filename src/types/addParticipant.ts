@@ -11,7 +11,6 @@ export interface AddParticipantResponse {
   trainerSummaryScheduled: boolean;
   attendanceCatchUp: { sentSlots: number; errors: number } | null;
   elearningAccessSent: boolean;
-  elearningMode: "magic_link" | "woocommerce" | null;
   couponGenerated: boolean;
   conventionGenerated: boolean;
   conventionEmailSent: boolean;

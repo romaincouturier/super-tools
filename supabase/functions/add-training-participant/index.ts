@@ -21,6 +21,7 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { fetchWorkingDays, subtractWorkingDays, addWorkingDays } from "../_shared/working-days.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { ensureLearnerAccount } from "../_shared/learner-account.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -134,7 +135,6 @@ export interface AddParticipantResponse {
   trainerSummaryScheduled: boolean;
   attendanceCatchUp: { sentSlots: number; errors: number } | null;
   elearningAccessSent: boolean;
-  elearningMode: "magic_link" | "woocommerce" | null;
   couponGenerated: boolean;
   conventionGenerated: boolean;
   conventionEmailSent: boolean;
@@ -297,7 +297,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .from("app_settings")
       .select("setting_key, setting_value")
       .in("setting_key", [
-        "elearning_access_mode",
         "working_days",
         "delay_needs_survey_days",
         "delay_needs_survey_reminder_days",
@@ -309,8 +308,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       ((settingsRows ?? []) as Array<{ setting_key: string; setting_value: string }>)
         .find((s) => s.setting_key === k)?.setting_value ?? "";
 
-    const elearningAccessMode =
-      (getSetting("elearning_access_mode") as "magic_link" | "woocommerce") || "magic_link";
     const workingDaysArr = await fetchWorkingDays(admin);
     const needsSurveyDelay = parseInt(getSetting("delay_needs_survey_days") || "7", 10) || 7;
     const needsSurveyReminderDelay = parseInt(getSetting("delay_needs_survey_reminder_days") || "3", 10) || 3;
@@ -599,24 +596,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const shouldSendElearningAccess = isElearning;
 
     if (shouldSendElearningAccess) {
-      if (elearningAccessMode === "magic_link") {
-        try {
-          await admin.functions.invoke("send-learner-magic-link", {
-            body: { email, trainingId, participantId },
-          });
-          elearningAccessSent = true;
-        } catch (err) {
-          console.error("[add-training-participant] send-learner-magic-link:", err);
-        }
-      } else {
-        try {
-          await admin.functions.invoke("send-elearning-access", {
-            body: { participantId, trainingId },
-          });
-          elearningAccessSent = true;
-        } catch (err) {
-          console.error("[add-training-participant] send-elearning-access:", err);
-        }
+      // Provisionnement à l'inscription (W12) : le compte existe avant même que
+      // l'apprenant clique, sans mot de passe. Puis un seul et même email
+      // d'activation, quelle que soit la source de l'inscription.
+      try {
+        await ensureLearnerAccount(admin, email);
+      } catch (err) {
+        console.error("[add-training-participant] ensureLearnerAccount:", err);
+      }
+      try {
+        await admin.functions.invoke("send-learner-magic-link", {
+          body: { email, trainingId, participantId, purpose: "activation" },
+        });
+        elearningAccessSent = true;
+      } catch (err) {
+        console.error("[add-training-participant] send-learner-magic-link:", err);
       }
     }
 
@@ -715,7 +709,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       trainerSummaryScheduled,
       attendanceCatchUp,
       elearningAccessSent,
-      elearningMode: isElearning ? elearningAccessMode : null,
       couponGenerated,
       conventionGenerated,
       conventionEmailSent,
