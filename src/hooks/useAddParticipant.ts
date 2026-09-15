@@ -117,11 +117,7 @@ export function useAddParticipant({
       if (result.formatFormation === "e_learning" && result.paymentMode !== "online") {
         const parts = [];
         if (result.formulaName) parts.push(`Formule ${result.formulaName}`);
-        if (result.elearningMode === "magic_link") {
-          parts.push("lien magique d'accès envoyé");
-        } else {
-          parts.push("email d'accès envoyé");
-        }
+        parts.push("email d'activation envoyé");
         statusMessage = parts.join(", ") + ".";
       } else if (result.ongoing) {
         const parts: string[] = [];

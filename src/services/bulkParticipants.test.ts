@@ -143,13 +143,13 @@ describe("sendElearningAccessToBatch", () => {
     { id: "p1", email: "a@b.com", first_name: null, last_name: null, company: null, needs_survey_token: "t", sponsor_email: null },
   ];
 
-  it("sends e-learning access email without coupon", async () => {
+  it("envoie l'email d'activation, comme l'ajout unitaire", async () => {
     mockInvoke.mockResolvedValueOnce({ data: null, error: null });
 
     await sendElearningAccessToBatch(batch, "t1");
     expect(mockInvoke).toHaveBeenCalledTimes(1);
-    expect(mockInvoke).toHaveBeenNthCalledWith(1, "send-elearning-access", {
-      body: { participantId: "p1", trainingId: "t1", couponCode: undefined },
+    expect(mockInvoke).toHaveBeenNthCalledWith(1, "send-learner-magic-link", {
+      body: { email: "a@b.com", trainingId: "t1", participantId: "p1", purpose: "activation" },
     });
   });
 });
