@@ -13172,6 +13172,15 @@ export type Database = {
         Args: { p_timestamp: string; p_token: string }
         Returns: undefined
       }
+      change_learner_email: {
+        Args: { p_new_email: string; p_old_email: string; p_user_id?: string }
+        Returns: Json
+      }
+      connexion_indicators: { Args: { p_days?: number }; Returns: Json }
+      list_dormant_learner_accounts: {
+        Args: { p_years?: number }
+        Returns: { created_at: string; email: string; last_sign_in_at: string }[]
+      }
       mark_password_changed: { Args: never; Returns: undefined }
       request_password_change: { Args: never; Returns: undefined }
       mark_convention_opened: {

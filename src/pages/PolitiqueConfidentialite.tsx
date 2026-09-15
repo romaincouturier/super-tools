@@ -58,6 +58,24 @@ const PolitiqueConfidentialite = () => {
                 <li>Validation des prérequis</li>
                 <li>Contraintes organisationnelles</li>
               </ul>
+              <p className="text-muted-foreground">
+                Pour l'accès à votre espace apprenant, nous traitons également :
+              </p>
+              <ul className="list-disc pl-6 text-muted-foreground space-y-1">
+                <li>Votre adresse email, qui sert d'identifiant de connexion</li>
+                <li>Un mot de passe, uniquement si vous choisissez d'en définir un : il est facultatif</li>
+                <li>
+                  Les traces techniques de connexion : date et heure des tentatives, adresse IP, et
+                  empreinte de l'adresse saisie sur la page de connexion. Ces traces servent à
+                  détecter les tentatives d'accès abusives
+                </li>
+              </ul>
+              <p className="text-muted-foreground">
+                Lorsque vous achetez une formation en ligne, ou qu'un tiers vous inscrit à une
+                formation, un espace apprenant est créé automatiquement avec votre adresse email,
+                afin de vous donner accès à votre formation. Vous en êtes informé par l'email
+                d'activation qui vous est adressé.
+              </p>
             </section>
 
             <section>
@@ -82,8 +100,26 @@ const PolitiqueConfidentialite = () => {
             <section>
               <h2 className="text-lg font-semibold">5. Durée de conservation</h2>
               <p className="text-muted-foreground">
-                Conformément aux exigences de la certification Qualiopi, vos données sont conservées pendant une
-                durée de <strong>3 ans</strong> à compter de la date de la formation.
+                Conformément aux exigences de la certification Qualiopi, vos données de formation sont conservées
+                pendant une durée de <strong>3 ans</strong> à compter de la date de la formation.
+              </p>
+              <ul className="list-disc pl-6 text-muted-foreground space-y-1">
+                <li>
+                  Liens de connexion et d'activation : effacés dès leur utilisation ou à leur
+                  expiration, au plus tard sous 7 jours
+                </li>
+                <li>
+                  Traces techniques de connexion : <strong>30 jours</strong>
+                </li>
+                <li>
+                  Espace apprenant sans connexion ni formation active depuis <strong>3 ans</strong> :
+                  signalé pour suppression
+                </li>
+              </ul>
+              <p className="text-muted-foreground">
+                La suppression de votre espace apprenant n'entraîne pas celle de vos données de
+                formation, que nous sommes tenus de conserver au titre de la certification Qualiopi.
+                Toute demande de suppression est traitée sous 30 jours et confirmée par email.
               </p>
             </section>
 
