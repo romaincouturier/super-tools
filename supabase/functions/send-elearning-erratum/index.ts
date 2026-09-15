@@ -9,6 +9,7 @@ import {
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
+import { linkExpiresAt } from "../_shared/learner-links.ts";
 
 // Erratum: annule et remplace le lien erroné (panier WooCommerce) envoyé dans
 // la relance `elearning_start_reminder`. Envoi unitaire par participant,
@@ -53,9 +54,8 @@ serve(async (req) => {
     if (!training) return createErrorResponse("Formation introuvable", 404);
 
     // Lien magique vers le portail apprenant SuperTools (validité 1 an)
-    // Lien d'activation : 7 jours, usage unique (RG-06).
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    // Lien d'activation : durée tenue par _shared/learner-links.ts (RG-06).
+    const expiresAt = linkExpiresAt("activation");
     const { data: link, error: lErr } = await supabase
       .from("learner_magic_links")
       .insert({

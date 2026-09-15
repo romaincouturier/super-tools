@@ -11,6 +11,7 @@ import {
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
+import { linkExpiresAt } from "../_shared/learner-links.ts";
 
 // Send a friendly J+5 reminder to paying e-learning participants who haven't started (0% progress).
 // Idempotent: skip if elearning_start_reminder already logged for this participant.
@@ -140,9 +141,8 @@ serve(async (req) => {
       // Access link: personal magic link to the SuperTools learner portal (valid 1 year).
       // Never a WooCommerce cart URL, never a generic page: the participant has already paid.
       const urls = await getAppUrls();
-      // Lien d'activation : 7 jours, usage unique (RG-06).
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
+      // Lien d'activation : durée tenue par _shared/learner-links.ts (RG-06).
+      const expiresAt = linkExpiresAt("activation");
       const { data: magicLink, error: magicErr } = await supabase
         .from("learner_magic_links")
         .insert({
