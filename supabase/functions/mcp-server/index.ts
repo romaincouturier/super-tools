@@ -638,15 +638,31 @@ const MCP_TOOLS = [
   {
     name: "update_lms_block",
     description:
-      "Update the textual/HTML fields of a single LMS content block. Only the fields defined for the block's type are kept (e.g. html for a 'text' block, body_html/title/color/level for a 'callout' block).",
+      "Update the textual/HTML fields of a single LMS content block. Only the fields defined for the block's type are kept (e.g. html for a 'text' block, body_html/title/color/level for a 'callout' block). This tool CANNOT change a block's type: the `type` argument must match the block's current type, otherwise the call is rejected. To convert a block to another type, use apply_lesson_restructure.",
     inputSchema: {
       type: "object",
       properties: {
         block_id: { type: "string", description: "UUID of the block" },
-        type: { type: "string", description: "Block type (must match the catalog)" },
+        type: { type: "string", description: "Current block type of this block (must match exactly)" },
         patch: { type: "object", description: "Object with the fields to update" },
       },
       required: ["block_id", "type", "patch"],
+    },
+  },
+  {
+    name: "create_lms_lesson",
+    description:
+      "Create a new empty lesson in an LMS module. Returns the created lesson with its fingerprint, so blocks can then be added with apply_lesson_restructure. Only additive: never modifies existing lessons.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        module_id: { type: "string", description: "UUID of the module (from list_lms_lessons or the course structure)" },
+        title: { type: "string", description: "Lesson title" },
+        lesson_type: { type: "string", enum: ["text", "content", "image", "file"], description: "Default 'text'" },
+        position: { type: "number", description: "Optional position inside the module; appended at the end by default" },
+        estimated_minutes: { type: "number", description: "Optional estimated duration in minutes" },
+      },
+      required: ["module_id", "title"],
     },
   },
   {
