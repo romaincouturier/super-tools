@@ -466,9 +466,9 @@ const BesoinsParticipants = () => {
                               </div>
                             </TableCell>
                           </TableRow>
-                        </CollapsibleContent>
+                        )}
                       </>
-                    </Collapsible>
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>
