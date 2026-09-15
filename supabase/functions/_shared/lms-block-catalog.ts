@@ -91,14 +91,6 @@ const ALLOWED_TAGS = new Set([
 
 const ALLOWED_ATTRS = new Set(["href", "title", "target", "src", "alt", "class"]);
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function escapeAttr(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
