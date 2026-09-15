@@ -654,12 +654,13 @@ export function sanitizeNewBlock(type: string, content: Record<string, unknown>)
 }
 
 export function sanitizeRestructureBlocks(blocks: unknown[]): { type: string; content: Record<string, unknown>; hidden?: boolean }[] {
-  return blocks.map((b) => {
+  return blocks.flatMap((b) => {
     const obj = isPlainObject(b) ? b : {};
     const type = String(obj.type || "");
+    if (!isEditableBlockType(type)) return [];
     const content = isPlainObject(obj.content) ? obj.content : {};
     const hidden = obj.hidden === true;
     const sanitized = sanitizeNewBlock(type, content);
-    return hidden ? { ...sanitized, hidden } : sanitized;
+    return hidden ? [{ ...sanitized, hidden }] : [sanitized];
   });
 }
