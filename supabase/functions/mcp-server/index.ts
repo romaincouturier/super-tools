@@ -606,7 +606,7 @@ const MCP_TOOLS = [
   {
     name: "list_lms_lessons",
     description:
-      "List the lessons of an LMS course, with title, position, status, block count, and fingerprint. A lesson's fingerprint represents its top-level content blocks; pass it to apply_lesson_restructure to avoid concurrent-change conflicts.",
+      "List the lessons of an LMS course (through its modules), with title, lesson_type, module, position, block count, and fingerprint. A lesson's fingerprint represents its top-level content blocks; pass it to apply_lesson_restructure to avoid concurrent-change conflicts.",
     inputSchema: {
       type: "object",
       properties: {
