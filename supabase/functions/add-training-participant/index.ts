@@ -45,8 +45,7 @@ function capitalizeName(name: string | null | undefined): string | null {
  * │ Déjà commencée (> 0 j)  │ non_envoye       │ false*               │
  * │ Démarre aujourd'hui     │ non_envoye       │ false* (voir ongoing)│
  * │ < 2 j                   │ manuel           │ false                │
- * │ 2–7 j                   │ accueil_envoye   │ true                 │
- * │ > 7 j                   │ programme        │ false (cron J-7)     │
+ * │ >= 2 j                  │ accueil_envoye   │ true (immédiat)      │
  * └─────────────────────────┴──────────────────┴──────────────────────┘
  * * Pour une formation "en cours" (start ≤ today ≤ end), un ajout
  *   mid-session doit quand même recevoir la convocation : l'appelant
