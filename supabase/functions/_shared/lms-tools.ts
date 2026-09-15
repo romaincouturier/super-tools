@@ -419,3 +419,56 @@ export function getLmsBlockCatalog(): CatalogOutput {
     .map(({ type, kind, labelFr, guidance }) => ({ type, kind, labelFr, guidance }));
   return { editableTypes: editable, nonEditableTypes: nonEditable };
 }
+
+const CREATABLE_LESSON_TYPES = new Set(["text", "content", "image", "file"]);
+
+export interface CreateLessonInput {
+  moduleId: string;
+  title: string;
+  lessonType?: string;
+  position?: number;
+  estimatedMinutes?: number | null;
+}
+
+export async function createLmsLesson(input: CreateLessonInput): Promise<{ lesson: LessonDetail }> {
+  const { moduleId, title, lessonType = "text", position, estimatedMinutes } = input;
+  if (!isValidUuid(moduleId)) throw new Error("Invalid module_id");
+  const cleanTitle = sanitizePlainText(String(title ?? "")).trim();
+  if (!cleanTitle) throw new Error("title is required");
+  if (!CREATABLE_LESSON_TYPES.has(lessonType)) {
+    throw new Error(`lesson_type "${lessonType}" is not allowed. Use one of: ${[...CREATABLE_LESSON_TYPES].join(", ")}`);
+  }
+  await requireStaffOrService();
+
+  const supabase = getSupabaseClient();
+  const { data: mod } = await supabase.from("lms_modules").select("id").eq("id", moduleId).maybeSingle();
+  if (!mod) throw new Error(`Module ${moduleId} not found`);
+
+  let finalPosition = position;
+  if (finalPosition === undefined || finalPosition === null) {
+    const { data: last } = await supabase
+      .from("lms_lessons")
+      .select("position")
+      .eq("module_id", moduleId)
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    finalPosition = ((last?.position as number | undefined) ?? -1) + 1;
+  }
+
+  const { data, error } = await supabase
+    .from("lms_lessons")
+    .insert({
+      module_id: moduleId,
+      title: cleanTitle,
+      lesson_type: lessonType,
+      position: finalPosition,
+      estimated_minutes: estimatedMinutes ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) throw new Error(`Failed to create lesson: ${error?.message ?? "unknown error"}`);
+
+  return { lesson: await readLmsLesson(data.id) };
+}
