@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { createLearnerClient } from "@/integrations/supabase/learner-client";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -195,7 +194,7 @@ export function useRegisterForMatching(postId: string, learnerEmail: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const c = createLearnerClient(learnerEmail);
+      const c = supabase;
       const { error } = await (c as any)
         .from("group_matching_registrations")
         .insert({ post_id: postId, learner_email: learnerEmail, status: "pending" });
@@ -213,7 +212,7 @@ export function useUnregisterFromMatching(postId: string, learnerEmail: string) 
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const c = createLearnerClient(learnerEmail);
+      const c = supabase;
       const { error } = await (c as any)
         .from("group_matching_registrations")
         .delete()

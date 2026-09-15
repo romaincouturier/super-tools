@@ -49,7 +49,6 @@ vi.mock("@/integrations/supabase/learner-client", () => ({
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: mockFrom },
-  createLearnerClient: vi.fn(() => ({ from: mockFrom })),
 }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

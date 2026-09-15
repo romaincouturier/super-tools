@@ -49,7 +49,6 @@ vi.mock("@/integrations/supabase/learner-client", () => ({
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: mockFrom, rpc: mockRpc },
-  createLearnerClient: vi.fn(() => ({ from: mockFrom, rpc: mockRpc })),
 }));
 
 function wrapper({ children }: { children: React.ReactNode }) {

@@ -54,7 +54,6 @@ vi.mock("@/integrations/supabase/learner-client", () => ({
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: mockFrom, rpc: mockRpc },
-  createLearnerClient: vi.fn(() => ({ from: mockFrom, rpc: mockRpc })),
 }));
 
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -263,7 +262,7 @@ describe("useLearnerProgress", () => {
     expect(result.current.fetchStatus).toBe("idle");
   });
 
-  it("uses createLearnerClient and returns progress", async () => {
+  it("returns learner progress", async () => {
     const progress = [{ id: "p1", course_id: "c1", lesson_id: "l1", status: "completed" }];
     setTableResult("lms_progress", { data: progress, error: null });
     const { result } = renderHook(() => useLearnerProgress("c1", "alice@x.com"), { wrapper });
@@ -313,7 +312,7 @@ describe("useLessonComments", () => {
     expect(result.current.data).toHaveLength(1);
   });
 
-  it("fetches comments with learner auth (createLearnerClient)", async () => {
+  it("fetches comments with the learner session", async () => {
     const comments = [{ id: "cm2", content: "Question", lesson_id: "l1" }];
     setTableResult("lms_lesson_comments", { data: comments, error: null });
     const { result } = renderHook(() => useLessonComments("l1", "alice@x.com"), { wrapper });

@@ -1,9 +1,21 @@
 # Inventaire des surfaces exposées, préalable à la spécification d'autorisation
 
-Date : 2026-09-14. Périmètre : accès aux données apprenant hors back-office staff.
-Ce document ne propose pas de correctif. Il établit ce qui est exposé, par quel mécanisme, et ce que cela permet.
+Date : 2026-09-14, mis à jour le 2026-09-15. Périmètre : accès aux données apprenant hors back-office staff.
+Ce document établit ce qui est exposé, par quel mécanisme, et ce que cela permet.
+
+**État au 2026-09-15.** Les chantiers 1 et 2 de la méthode du chapitre 7 sont faits :
+`get_learner_email()` ne lit plus que le jeton d'authentification, les fonctions de portail
+ne sont plus exécutables anonymement, et l'identité ne circule plus par l'URL ni par un
+en-tête. Le chantier 3, le périmètre du contenu public, reste ouvert : c'est une décision
+métier, et il appelle la spécification d'autorisation. Les constats ci-dessous décrivent
+l'état d'origine, conservé pour mémoire, chaque section indiquant ce qui a changé.
 
 ## 1. Le constat central : l'identité apprenant est déclarée par le client
+
+> **Refermé le 2026-09-15** (migration `20260915120000`). `get_learner_email()` lit
+> exclusivement `auth.jwt()`. L'en-tête `x-learner-email` n'est plus consulté, et
+> `createLearnerClient` a été retiré du front. Les 22 tables et 121 policies n'ont pas
+> bougé : elles s'appuient désormais sur une identité vérifiée.
 
 `get_learner_email()` est la fonction d'identité de tout le portail apprenant. Version en vigueur : `supabase/migrations/20260904081727_58e5c860-ce3a-4e89-8eeb-3011da08e00e.sql:4-34`.
 
@@ -37,7 +49,10 @@ Historique utile : ces policies remplacent, depuis `20260321130000_fix_rls_anon_
 `get_public_contact`, `get_staff_public_profiles`, `get_active_vhd_procedure`, `get_training_public_info`, `get_participant_public_info`, `get_training_schedule_for_date`, `get_course_live_meetings`, `practice_popular_hashtags`, `is_signup_allowed`.
 À vérifier au cas par cas : `get_participant_public_info` prend un identifiant de participant, `get_training_public_info` un identifiant de formation. Un identifiant n'est pas un secret.
 
-**Groupe C, à fermer, identité passée en paramètre.**
+**Groupe C, identité passée en paramètre.** Refermé le 2026-09-14 (migration
+`20260914150000`) : `get_learner_portal_data` n'accepte que l'adresse de l'appelant, le
+staff conservant la prévisualisation, et l'exécution anonyme a été retirée pour elle comme
+pour `get_learner_portal_training_details`.
 - `get_learner_portal_data(text)` : renvoie formations, questionnaires et évaluations d'une adresse. Exécutable par `anon`. Connaître une adresse suffit.
 - `get_learner_portal_training_details(text)` : même principe.
 - `learner_evaluation_course_id(text, uuid)` : même principe.
@@ -58,6 +73,10 @@ Point à trancher dans la spec d'autorisation : un cours publié doit-il rester 
 
 ## 4. Identités portées par l'URL
 
+> **Refermé le 2026-09-14 et le 2026-09-15.** Le player prend l'identité de la session
+> (`useLearnerIdentity`) et n'invite plus à saisir une adresse : il propose de se connecter.
+> `sessionStorage.learner_email` ne sert plus que d'indice de prévisualisation staff.
+
 | Emplacement | Paramètre | Effet |
 |-------------|-----------|-------|
 | `src/pages/LmsCoursePlayer.tsx:46` | `?email=` | Identité de l'apprenant pour la lecture et l'écriture de progression |
@@ -66,7 +85,7 @@ Point à trancher dans la spec d'autorisation : un cours publié doit-il rester 
 
 `sessionStorage.learner_email` est écrit côté navigateur et relu comme source d'identité. Il est modifiable par l'utilisateur.
 
-## 5. Ce que cela permet, concrètement
+## 5. Ce que cela permettait, avant les lots 1 à 6
 
 Avec la seule connaissance d'une adresse email d'apprenant, sans compte :
 
@@ -89,8 +108,11 @@ Ces trois trajectoires sont indépendantes. Fermer l'une ne ferme pas les autres
 
 Le travail ne se découpe pas par table mais par source d'identité. Trois chantiers, dans cet ordre :
 
-1. **Rendre l'identité vérifiable.** Le compte authentifié devient la seule source. `get_learner_email()` cesse de lire l'en-tête et se limite au jeton. Cette seule modification referme la trajectoire 2, sans toucher aux 121 policies. Prérequis : que tout apprenant ait un compte, ce que le lot 1 de la spécification de connexion garantit.
-2. **Fermer les fonctions de portail au rôle anonyme**, trajectoire 1. Elles prennent l'identité du jeton au lieu d'un paramètre.
-3. **Reprendre le contenu public**, trajectoire 3, qui est une décision métier avant d'être technique.
-
-Les deux premiers chantiers sont mécaniques et mesurables. Le troisième demande un arbitrage.
+1. **Rendre l'identité vérifiable.** Fait. Le compte authentifié est la seule source.
+   La fonction `backfill-learner-accounts` provisionne les apprenants qui n'avaient pas
+   encore de compte, et l'inscription en crée un d'office.
+2. **Fermer les fonctions de portail au rôle anonyme.** Fait.
+3. **Reprendre le contenu public**, trajectoire 3. Ouvert : un cours publié reste lisible
+   sans compte, et les fichiers des buckets `lms-content` et `training-supports` sont
+   publics. C'est une décision métier avant d'être technique, et elle appartient à la
+   spécification d'autorisation.

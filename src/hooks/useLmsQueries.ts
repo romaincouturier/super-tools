@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { createLearnerClient } from "@/integrations/supabase/learner-client";
 import type { Database } from "@/integrations/supabase/types";
 
 type Tables = Database["public"]["Tables"];
@@ -439,7 +438,7 @@ export function useLearnerProgress(courseId: string | undefined, email: string |
     queryKey: ["lms-progress", courseId, email],
     enabled: !!courseId && !!email,
     queryFn: async () => {
-      const client = createLearnerClient(email!);
+      const client = supabase;
       const { data, error } = await client
         .from("lms_progress")
         .select("*")
@@ -510,7 +509,7 @@ export function useLearnerSubmissions(lessonId: string | undefined, email: strin
     queryKey: ["lms-assignment-submissions", lessonId, email],
     enabled: !!lessonId && !!email,
     queryFn: async () => {
-      const client = createLearnerClient(email!);
+      const client = supabase;
       const { data, error } = await client
         .from("lms_assignment_submissions")
         .select("*")
@@ -530,7 +529,7 @@ export function useLearnerBadges(email: string | undefined) {
     queryKey: ["lms-badge-awards", email],
     enabled: !!email,
     queryFn: async () => {
-      const client = createLearnerClient(email!);
+      const client = supabase;
       const { data, error } = await client
         .from("lms_badge_awards")
         .select("*")
@@ -634,7 +633,7 @@ export function useLessonComments(lessonId: string | undefined, learnerEmail?: s
     enabled: !!lessonId,
     queryFn: async () => {
       if (!lessonId) return [];
-      const client = learnerEmail ? createLearnerClient(learnerEmail) : supabase;
+      const client = supabase;
       const { data, error } = await client
         .from("lms_lesson_comments")
         .select("*")
