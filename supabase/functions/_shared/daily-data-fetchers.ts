@@ -947,15 +947,27 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
     if (!entityIds.length) return map;
     const { data } = await supabase
       .from("logistics_checklist_items")
-      .select("entity_id, label, legacy_field, is_done, position")
+      .select("entity_id, label, legacy_field, is_done, position, due_date, notify_days_before")
       .eq("entity_type", entityType)
       .in("entity_id", entityIds)
       .order("position", { ascending: true });
+    const todayMs = new Date(today).getTime();
     for (const it of (data || []) as any[]) {
       if (it.is_done) {
         // ensure entity is registered (so we can tell "has checklist" later)
         if (!map.has(it.entity_id)) map.set(it.entity_id, []);
         continue;
+      }
+      // Un item avec un rappel programmé (échéance + délai d'alerte) est piloté
+      // par fetchLogisticsReminders : on ne l'affiche pas dans les réservations
+      // à 60 jours avant l'ouverture de sa fenêtre de rappel, sinon la formation
+      // apparaît chaque jour alors que l'échéance est encore lointaine.
+      if (it.due_date && it.notify_days_before !== null && it.notify_days_before !== undefined) {
+        const threshold = new Date(it.due_date).getTime() - it.notify_days_before * 24 * 60 * 60 * 1000;
+        if (todayMs < threshold) {
+          if (!map.has(it.entity_id)) map.set(it.entity_id, []);
+          continue;
+        }
       }
       const arr = map.get(it.entity_id) || [];
       arr.push(`${emojiForChecklistItem(it.label, it.legacy_field)} ${it.label}`);
