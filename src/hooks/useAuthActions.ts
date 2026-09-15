@@ -40,7 +40,10 @@ export function useAuthActions() {
 
   const updatePassword = useCallback(async (password: string): Promise<string | null> => {
     const { error } = await supabase.auth.updateUser({ password });
-    return error ? error.message : null;
+    if (error) return error.message;
+    // W8.5 : les sessions ouvertes ailleurs tombent, la courante est épargnée.
+    await supabase.rpc("revoke_other_sessions");
+    return null;
   }, []);
 
   /** Enregistre côté serveur qu'un mot de passe est désormais défini. */

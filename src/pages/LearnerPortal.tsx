@@ -1961,9 +1961,11 @@ export default function LearnerPortal() {
   };
 
   const handleLogout = async () => {
+    // W9.3 : retour à l'accueil, pas sur un écran de connexion. RG-13 : l'état
+    // local de navigation est purgé avec la session.
     sessionStorage.removeItem("learner_email");
     await supabase.auth.signOut();
-    navigate("/connexion");
+    navigate("/");
   };
 
   const handleRequestCoach = async (training: Training) => {

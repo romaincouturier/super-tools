@@ -36,10 +36,11 @@ export default function ConnexionLien() {
     silentOnError: true,
   });
 
+  // Sans jeton, inutile d'attendre une action : l'écran de reprise s'affiche.
   useEffect(() => {
-    if (started.current) return;
+    if (started.current || token) return;
     started.current = true;
-    void redeem(token);
+    void redeem("");
   }, [token, redeem]);
 
   // Destination : celle portée par l'URL, sinon celle rendue par le lien,
@@ -77,6 +78,28 @@ export default function ConnexionLien() {
     await markPasswordChanged();
     goToSpace();
   };
+
+  if (stage === "confirm") {
+    return (
+      <AuthShell backLabel="Aller à la connexion" onBack={() => navigate("/connexion")}>
+        <AuthCard>
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[#fdf6e4]">
+            <KeyRound className="h-7 w-7 text-[#1a2230]" />
+          </div>
+          <h1 className="mb-2.5 text-[26px] font-semibold leading-tight tracking-[-0.7px] sm:text-[31px]">
+            Accéder à mon espace
+          </h1>
+          <p className="mb-8 text-base text-[#6b7686]">
+            Cliquez pour ouvrir votre espace apprenant. Votre lien reste valable tant que vous ne
+            l'avez pas utilisé, même si votre messagerie l'a ouvert avant vous.
+          </p>
+          <AuthButton type="button" onClick={() => { started.current = true; void redeem(token); }}>
+            Ouvrir mon espace
+          </AuthButton>
+        </AuthCard>
+      </AuthShell>
+    );
+  }
 
   if (stage === "redeeming" || stage === "connected") {
     return (

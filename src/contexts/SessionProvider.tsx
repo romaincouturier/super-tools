@@ -2,6 +2,7 @@ import { createContext, useCallback, useEffect, useMemo, useRef, useState, type 
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAccessLevel } from "@/lib/accessLevel";
+import { reportHandledError } from "@/lib/sentry";
 
 /**
  * Fournisseur unique de l'état de session (lot 2 de la refonte de connexion,
@@ -109,6 +110,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    // RG-13 : rien de l'apprenant ne survit à la déconnexion.
+    try {
+      sessionStorage.removeItem("learner_email");
+    } catch (error) {
+      reportHandledError(`signOut: sessionStorage indisponible (${String(error)})`);
+    }
     await resolve(null);
   }, [resolve]);
 

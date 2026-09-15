@@ -4,6 +4,7 @@ import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 
 /** Étapes de l'ouverture d'un lien reçu par email (W5, W10). */
 export type RedemptionStage =
+  | "confirm"
   | "redeeming"
   | "connected"
   | "password-offer"
@@ -29,7 +30,7 @@ export function stageFromResponse(payload: RedeemResponse | null): RedemptionSta
 }
 
 export function useLearnerTokenRedemption() {
-  const [stage, setStage] = useState<RedemptionStage>("redeeming");
+  const [stage, setStage] = useState<RedemptionStage>("confirm");
   const [email, setEmail] = useState("");
   const [sessionEmail, setSessionEmail] = useState("");
   const [destination, setDestination] = useState<string | null>(null);
@@ -72,11 +73,17 @@ export function useLearnerTokenRedemption() {
     await openSession(pending.token, pending.tokenHash);
   }, [pending, openSession]);
 
+  /**
+   * RG-21 : rien ne part au chargement de la page. Les passerelles de sécurité
+   * des messageries d'entreprise ouvrent les liens avant l'utilisateur ; un
+   * jeton consommé par un robot arriverait déjà mort chez l'apprenant.
+   */
   const redeem = useCallback(async (token: string) => {
     if (!token) {
       setStage("invalid");
       return;
     }
+    setStage("redeeming");
 
     const payload = await invoke({ token });
     if (payload?.email) setEmail(payload.email);

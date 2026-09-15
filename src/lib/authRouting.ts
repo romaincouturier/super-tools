@@ -40,7 +40,13 @@ export function resolvePostLoginPath(params: {
   hasAccess?: boolean;
 }): string {
   const { isStaff, mustChangePassword } = params;
-  if (mustChangePassword) return "/force-password-change";
+  if (mustChangePassword) {
+    // La destination survit à l'écran de changement obligatoire (chapitre 7).
+    const kept = sanitizeRedirect(params.next);
+    return kept
+      ? `/force-password-change?${REDIRECT_PARAM}=${encodeURIComponent(kept)}`
+      : "/force-password-change";
+  }
   // Compte authentifié sans rattachement : état terminal explicite (critère 13).
   if (params.hasAccess === false) return NO_ACCESS_HOME;
   const next = sanitizeRedirect(params.next);
