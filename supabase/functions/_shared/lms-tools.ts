@@ -36,9 +36,12 @@ export interface ListLessonsInput {
 export interface LessonSummary {
   id: string;
   title: string;
-  description: string | null;
+  lesson_type: string;
+  module_id: string;
+  module_title: string;
+  module_position: number;
   position: number;
-  status: "draft" | "published" | "archived";
+  estimated_minutes: number | null;
   updated_at: string;
   block_count: number;
   fingerprint: string;
@@ -46,11 +49,14 @@ export interface LessonSummary {
 
 export interface LessonDetail {
   id: string;
-  course_id: string;
+  course_id: string | null;
+  module_id: string;
+  module_title: string | null;
   title: string;
-  description: string | null;
+  lesson_type: string;
   position: number;
-  status: "draft" | "published" | "archived";
+  estimated_minutes: number | null;
+  content_html: string | null;
   source_transcript_id: string | null;
   blocks: LessonBlock[];
   fingerprint: string;
@@ -144,41 +150,54 @@ export async function listLmsLessons(input: ListLessonsInput): Promise<{ lessons
   const limit = pageLimit(input.limit);
   const offset = ((input.page ?? 1) - 1) * limit;
 
+  // lms_lessons has no course_id: the course is reached through lms_modules.
   const { data: lessons, error: lessonsError, count } = await supabase
     .from("lms_lessons")
-    .select("id, title, description, position, status, updated_at", { count: "exact" })
-    .eq("course_id", courseId)
+    .select(
+      "id, title, lesson_type, position, estimated_minutes, updated_at, module_id, lms_modules!inner(id, title, position, course_id)",
+      { count: "exact" },
+    )
+    .eq("lms_modules.course_id", courseId)
     .order("position", { ascending: true })
     .order("id", { ascending: true })
     .range(offset, offset + limit - 1);
 
   if (lessonsError) throw new Error(`Failed to list lessons: ${lessonsError.message}`);
 
-  const lessonIds = (lessons ?? []).map((l) => l.id);
-  const { data: counts } = await supabase
-    .from("lms_lesson_blocks")
-    .select("lesson_id, id, updated_at, position")
-    .in("lesson_id", lessonIds);
+  const rows = (lessons ?? []) as unknown as Array<Record<string, any>>;
+  const lessonIds = rows.map((l) => l.id as string);
+  const { data: counts } = lessonIds.length
+    ? await supabase
+        .from("lms_lesson_blocks")
+        .select("lesson_id, id, updated_at, position, parent_block_id")
+        .in("lesson_id", lessonIds)
+    : { data: [] as any[] };
 
   const blocksByLesson = new Map<string, { id: string; updated_at: string; position: number }[]>();
-  for (const b of counts ?? []) {
+  for (const b of (counts ?? []) as any[]) {
+    if (b.parent_block_id !== null) continue;
     if (!blocksByLesson.has(b.lesson_id)) blocksByLesson.set(b.lesson_id, []);
-    blocksByLesson.get(b.lesson_id)!.push(b);
+    blocksByLesson.get(b.lesson_id)!.push({ id: b.id, updated_at: b.updated_at, position: b.position });
   }
 
-  const summaries: LessonSummary[] = (lessons ?? []).map((l) => {
-    const top = blocksByLesson.get(l.id) ?? [];
-    return {
-      id: l.id,
-      title: l.title,
-      description: l.description,
-      position: l.position,
-      status: l.status,
-      updated_at: l.updated_at,
-      block_count: top.length,
-      fingerprint: computeFingerprint(top),
-    };
-  });
+  const summaries: LessonSummary[] = rows
+    .map((l) => {
+      const top = blocksByLesson.get(l.id as string) ?? [];
+      return {
+        id: l.id as string,
+        title: l.title as string,
+        lesson_type: l.lesson_type as string,
+        module_id: l.module_id as string,
+        module_title: (l.lms_modules?.title as string) ?? "",
+        module_position: (l.lms_modules?.position as number) ?? 0,
+        position: (l.position as number) ?? 0,
+        estimated_minutes: (l.estimated_minutes as number | null) ?? null,
+        updated_at: l.updated_at as string,
+        block_count: top.length,
+        fingerprint: computeFingerprint(top),
+      };
+    })
+    .sort((a, b) => a.module_position - b.module_position || a.position - b.position);
 
   return { lessons: summaries, count: count ?? 0 };
 }
@@ -188,24 +207,35 @@ export async function readLmsLesson(lessonId: string): Promise<LessonDetail> {
   await requireStaffOrService();
 
   const supabase = getSupabaseClient();
-  const [{ data: lesson, error: lessonError }, { data: blocks, error: blocksError }] = await Promise.all([
-    supabase.from("lms_lessons").select("id, course_id, title, description, position, status, source_transcript_id, updated_at").eq("id", lessonId).single(),
+  // The course is reached through lms_modules — lms_lessons has no course_id column.
+  const [{ data: lessonRow, error: lessonError }, { data: blocks, error: blocksError }] = await Promise.all([
+    supabase
+      .from("lms_lessons")
+      .select(
+        "id, title, lesson_type, position, estimated_minutes, content_html, source_transcript_id, updated_at, module_id, lms_modules(id, title, course_id)",
+      )
+      .eq("id", lessonId)
+      .single(),
     supabase.from("lms_lesson_blocks").select("id, type, kind, parent_block_id, position, hidden, content, updated_at").eq("lesson_id", lessonId).order("position", { ascending: true }).order("id", { ascending: true }),
   ]);
 
   if (lessonError) throw new Error(`Failed to read lesson: ${lessonError.message}`);
   if (blocksError) throw new Error(`Failed to read blocks: ${blocksError.message}`);
 
+  const lesson = lessonRow as unknown as Record<string, any>;
   const topLevel = (blocks ?? []).filter((b) => b.parent_block_id === null);
   const fingerprint = computeFingerprint(topLevel.map((b) => ({ id: b.id, updated_at: b.updated_at, position: b.position })));
 
   return {
     id: lesson.id,
-    course_id: lesson.course_id,
+    course_id: lesson.lms_modules?.course_id ?? null,
+    module_id: lesson.module_id,
+    module_title: lesson.lms_modules?.title ?? null,
     title: lesson.title,
-    description: lesson.description,
+    lesson_type: lesson.lesson_type,
     position: lesson.position,
-    status: lesson.status,
+    estimated_minutes: lesson.estimated_minutes ?? null,
+    content_html: lesson.content_html ?? null,
     source_transcript_id: lesson.source_transcript_id,
     blocks: (blocks ?? []).map((b) => ({
       id: b.id,
@@ -259,8 +289,15 @@ export async function updateLmsBlock(input: UpdateBlockInput): Promise<LessonBlo
   }
 
   const supabase = getSupabaseClient();
-  const { data: existing } = await supabase.from("lms_lesson_blocks").select("id").eq("id", blockId).maybeSingle();
+  const { data: existing } = await supabase.from("lms_lesson_blocks").select("id, type").eq("id", blockId).maybeSingle();
   if (!existing) throw new Error(`Block ${blockId} not found`);
+  // Type changes are NOT supported here: writing another type's content shape under the
+  // existing type would silently corrupt the block. Use apply_lesson_restructure instead.
+  if (existing.type !== type) {
+    throw new Error(
+      `Block ${blockId} has type "${existing.type}", not "${type}". update_lms_block cannot change a block type; use apply_lesson_restructure (with a fingerprint and explicit human validation) to convert a block to another type.`,
+    );
+  }
 
   const { data, error } = await supabase
     .from("lms_lesson_blocks")
@@ -381,4 +418,57 @@ export function getLmsBlockCatalog(): CatalogOutput {
     .filter((e) => !e.editableViaMcp)
     .map(({ type, kind, labelFr, guidance }) => ({ type, kind, labelFr, guidance }));
   return { editableTypes: editable, nonEditableTypes: nonEditable };
+}
+
+const CREATABLE_LESSON_TYPES = new Set(["text", "content", "image", "file"]);
+
+export interface CreateLessonInput {
+  moduleId: string;
+  title: string;
+  lessonType?: string;
+  position?: number;
+  estimatedMinutes?: number | null;
+}
+
+export async function createLmsLesson(input: CreateLessonInput): Promise<{ lesson: LessonDetail }> {
+  const { moduleId, title, lessonType = "text", position, estimatedMinutes } = input;
+  if (!isValidUuid(moduleId)) throw new Error("Invalid module_id");
+  const cleanTitle = sanitizePlainText(String(title ?? "")).trim();
+  if (!cleanTitle) throw new Error("title is required");
+  if (!CREATABLE_LESSON_TYPES.has(lessonType)) {
+    throw new Error(`lesson_type "${lessonType}" is not allowed. Use one of: ${[...CREATABLE_LESSON_TYPES].join(", ")}`);
+  }
+  await requireStaffOrService();
+
+  const supabase = getSupabaseClient();
+  const { data: mod } = await supabase.from("lms_modules").select("id").eq("id", moduleId).maybeSingle();
+  if (!mod) throw new Error(`Module ${moduleId} not found`);
+
+  let finalPosition = position;
+  if (finalPosition === undefined || finalPosition === null) {
+    const { data: last } = await supabase
+      .from("lms_lessons")
+      .select("position")
+      .eq("module_id", moduleId)
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    finalPosition = ((last?.position as number | undefined) ?? -1) + 1;
+  }
+
+  const { data, error } = await supabase
+    .from("lms_lessons")
+    .insert({
+      module_id: moduleId,
+      title: cleanTitle,
+      lesson_type: lessonType,
+      position: finalPosition,
+      estimated_minutes: estimatedMinutes ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) throw new Error(`Failed to create lesson: ${error?.message ?? "unknown error"}`);
+
+  return { lesson: await readLmsLesson(data.id) };
 }

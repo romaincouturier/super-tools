@@ -38,8 +38,10 @@ import {
 } from "../_shared/mission-tools.ts";
 import {
   applyLessonRestructure,
+  createLmsLesson,
   getLmsBlockCatalog,
   listLessonVersions,
+  listLmsCourses,
   listLmsLessons,
   readLmsLesson,
   restoreLessonVersion,
@@ -246,7 +248,7 @@ QUEL OUTIL POUR QUELLE QUESTION
 - Newsletter, point éditorial, arbitrage de sommaire : get_editorial_brief d'abord, puis get_content_performance pour justifier les choix.
 - Client, mission, formation, devis, évaluation : get_client_dossier, get_mission_dossier, read_mission_documents, search_content.
 - Conférence, salon, CFP, réécriture d'un pitch déjà soumis : get_event_history. Il rend le pitch (description), les notes de préparation, le bilan (summary_notes) et l'issue déduite. Ne jamais annoncer qu'un événement a été « accepté » : le modèle ne stocke que held / not_selected / cancelled / upcoming, et le refus se lit sur cancellation_reason.
-- LMS (cours en ligne) : list_lms_courses donne les cours ; list_lms_lessons les leçons d'un cours ; read_lms_lesson renvoie les blocs avec leur empreinte ; list_lms_block_types catalogue les types de blocs pédagogiques et leur pertinence ; update_lms_block modifie un seul bloc texte/HTML ; apply_lesson_restructure remplace les blocs de contenu d'une leçon après validation humaine ; list_lesson_versions et restore_lesson_version gèrent l'historique. Utiliser read_lms_lesson avant toute proposition de restructuration pour obtenir l'empreinte (fingerprint) exacte.
+- LMS (cours en ligne) : list_lms_courses donne les cours ; list_lms_lessons les leçons d'un cours (avec leur module) ; read_lms_lesson renvoie les blocs avec leur empreinte ; list_lms_block_types catalogue les types de blocs pédagogiques et leur pertinence ; create_lms_lesson crée une leçon vide dans un module ; update_lms_block modifie un seul bloc texte/HTML sans changer son type ; apply_lesson_restructure remplace les blocs de contenu d'une leçon après validation humaine ; list_lesson_versions et restore_lesson_version gèrent l'historique. Utiliser read_lms_lesson avant toute proposition de restructuration pour obtenir l'empreinte (fingerprint) exacte.
 - query_database reste disponible pour tout le reste (SELECT, allowlist de tables) mais les outils agrégés ci-dessus sont plus fiables que du SQL improvisé.
 
 MÉTHODE ATTENDUE
@@ -260,7 +262,8 @@ MÉTHODE ATTENDUE
 Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou soumises à validation explicite ; aucune ne supprime ni n'écrase silencieusement des données existantes.
 - save_mission_note : crée ou met à jour une page de mission, pour capitaliser un travail long hors de la conversation. HTML simple, <svg> accepté pour incruster un schéma vectoriel.
 - save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
-- update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.).
+- update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre « type » doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
+- create_lms_lesson : crée une leçon vide dans un module (écriture purement additive), puis remplir ses blocs avec apply_lesson_restructure.
 - apply_lesson_restructure : remplace les blocs de contenu de premier niveau d'une leçon par une nouvelle structure proposée. EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
 Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress n'est possible depuis ici.
 
@@ -606,7 +609,7 @@ const MCP_TOOLS = [
   {
     name: "list_lms_lessons",
     description:
-      "List the lessons of an LMS course, with title, position, status, block count, and fingerprint. A lesson's fingerprint represents its top-level content blocks; pass it to apply_lesson_restructure to avoid concurrent-change conflicts.",
+      "List the lessons of an LMS course (through its modules), with title, lesson_type, module, position, block count, and fingerprint. A lesson's fingerprint represents its top-level content blocks; pass it to apply_lesson_restructure to avoid concurrent-change conflicts.",
     inputSchema: {
       type: "object",
       properties: {
@@ -638,15 +641,31 @@ const MCP_TOOLS = [
   {
     name: "update_lms_block",
     description:
-      "Update the textual/HTML fields of a single LMS content block. Only the fields defined for the block's type are kept (e.g. html for a 'text' block, body_html/title/color/level for a 'callout' block).",
+      "Update the textual/HTML fields of a single LMS content block. Only the fields defined for the block's type are kept (e.g. html for a 'text' block, body_html/title/color/level for a 'callout' block). This tool CANNOT change a block's type: the `type` argument must match the block's current type, otherwise the call is rejected. To convert a block to another type, use apply_lesson_restructure.",
     inputSchema: {
       type: "object",
       properties: {
         block_id: { type: "string", description: "UUID of the block" },
-        type: { type: "string", description: "Block type (must match the catalog)" },
+        type: { type: "string", description: "Current block type of this block (must match exactly)" },
         patch: { type: "object", description: "Object with the fields to update" },
       },
       required: ["block_id", "type", "patch"],
+    },
+  },
+  {
+    name: "create_lms_lesson",
+    description:
+      "Create a new empty lesson in an LMS module. Returns the created lesson with its fingerprint, so blocks can then be added with apply_lesson_restructure. Only additive: never modifies existing lessons.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        module_id: { type: "string", description: "UUID of the module (from list_lms_lessons or the course structure)" },
+        title: { type: "string", description: "Lesson title" },
+        lesson_type: { type: "string", enum: ["text", "content", "image", "file"], description: "Default 'text'" },
+        position: { type: "number", description: "Optional position inside the module; appended at the end by default" },
+        estimated_minutes: { type: "number", description: "Optional estimated duration in minutes" },
+      },
+      required: ["module_id", "title"],
     },
   },
   {
@@ -1031,6 +1050,21 @@ async function callTool(
         return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "create_lms_lesson": {
+      try {
+        await log("create_lms_lesson");
+        const result = await createLmsLesson({
+          moduleId: (args.module_id as string) || "",
+          title: (args.title as string) || "",
+          lessonType: (args.lesson_type as string) || "text",
+          position: args.position as number | undefined,
+          estimatedMinutes: args.estimated_minutes as number | undefined,
+        });
+        return textResult(JSON.stringify(result));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "apply_lesson_restructure": {
       try {
         await log("apply_lesson_restructure");
@@ -1129,7 +1163,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.3.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.3.1" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }
