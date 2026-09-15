@@ -91,14 +91,6 @@ const ALLOWED_TAGS = new Set([
 
 const ALLOWED_ATTRS = new Set(["href", "title", "target", "src", "alt", "class"]);
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function escapeAttr(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
@@ -147,8 +139,29 @@ export function sanitizeHtml(value: string): string {
   });
 }
 
+/**
+ * Plain-text fields (titles, labels, list items) are rendered as text by the
+ * frontend, which escapes them itself. Escaping here too produced visible
+ * entities like "&#39;" in the lessons, so we only strip markup and decode any
+ * entity that a client may have sent pre-escaped.
+ */
 export function sanitizePlainText(value: string): string {
-  return escapeHtml(value);
+  return decodeHtmlEntities(
+    value
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+      .replace(/<\/?[^>]+>/g, ""),
+  );
+}
+
+export function decodeHtmlEntities(value: string): string {
+  return value
+    .replace(/&#0*39;|&apos;|&#x0*27;/gi, "'")
+    .replace(/&quot;|&#0*34;/gi, '"')
+    .replace(/&lt;|&#0*60;/gi, "<")
+    .replace(/&gt;|&#0*62;/gi, ">")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&");
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
