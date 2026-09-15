@@ -207,24 +207,35 @@ export async function readLmsLesson(lessonId: string): Promise<LessonDetail> {
   await requireStaffOrService();
 
   const supabase = getSupabaseClient();
-  const [{ data: lesson, error: lessonError }, { data: blocks, error: blocksError }] = await Promise.all([
-    supabase.from("lms_lessons").select("id, course_id, title, description, position, status, source_transcript_id, updated_at").eq("id", lessonId).single(),
+  // The course is reached through lms_modules — lms_lessons has no course_id column.
+  const [{ data: lessonRow, error: lessonError }, { data: blocks, error: blocksError }] = await Promise.all([
+    supabase
+      .from("lms_lessons")
+      .select(
+        "id, title, lesson_type, position, estimated_minutes, content_html, source_transcript_id, updated_at, module_id, lms_modules(id, title, course_id)",
+      )
+      .eq("id", lessonId)
+      .single(),
     supabase.from("lms_lesson_blocks").select("id, type, kind, parent_block_id, position, hidden, content, updated_at").eq("lesson_id", lessonId).order("position", { ascending: true }).order("id", { ascending: true }),
   ]);
 
   if (lessonError) throw new Error(`Failed to read lesson: ${lessonError.message}`);
   if (blocksError) throw new Error(`Failed to read blocks: ${blocksError.message}`);
 
+  const lesson = lessonRow as unknown as Record<string, any>;
   const topLevel = (blocks ?? []).filter((b) => b.parent_block_id === null);
   const fingerprint = computeFingerprint(topLevel.map((b) => ({ id: b.id, updated_at: b.updated_at, position: b.position })));
 
   return {
     id: lesson.id,
-    course_id: lesson.course_id,
+    course_id: lesson.lms_modules?.course_id ?? null,
+    module_id: lesson.module_id,
+    module_title: lesson.lms_modules?.title ?? null,
     title: lesson.title,
-    description: lesson.description,
+    lesson_type: lesson.lesson_type,
     position: lesson.position,
-    status: lesson.status,
+    estimated_minutes: lesson.estimated_minutes ?? null,
+    content_html: lesson.content_html ?? null,
     source_transcript_id: lesson.source_transcript_id,
     blocks: (blocks ?? []).map((b) => ({
       id: b.id,
