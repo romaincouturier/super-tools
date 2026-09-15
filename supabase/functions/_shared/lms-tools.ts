@@ -289,8 +289,15 @@ export async function updateLmsBlock(input: UpdateBlockInput): Promise<LessonBlo
   }
 
   const supabase = getSupabaseClient();
-  const { data: existing } = await supabase.from("lms_lesson_blocks").select("id").eq("id", blockId).maybeSingle();
+  const { data: existing } = await supabase.from("lms_lesson_blocks").select("id, type").eq("id", blockId).maybeSingle();
   if (!existing) throw new Error(`Block ${blockId} not found`);
+  // Type changes are NOT supported here: writing another type's content shape under the
+  // existing type would silently corrupt the block. Use apply_lesson_restructure instead.
+  if (existing.type !== type) {
+    throw new Error(
+      `Block ${blockId} has type "${existing.type}", not "${type}". update_lms_block cannot change a block type; use apply_lesson_restructure (with a fingerprint and explicit human validation) to convert a block to another type.`,
+    );
+  }
 
   const { data, error } = await supabase
     .from("lms_lesson_blocks")
