@@ -655,15 +655,19 @@ const MCP_TOOLS = [
   {
     name: "create_lms_lesson",
     description:
-      "Create a new empty lesson in an LMS module. Returns the created lesson with its fingerprint, so blocks can then be added with apply_lesson_restructure. Only additive: never modifies existing lessons.",
+      "Create a new lesson in an LMS module, optionally with its initial content blocks. Returns the created lesson (id + fingerprint), so it can be chained with apply_lesson_restructure. Additive: existing lessons are never modified, except their position when an explicit position is requested (following lessons are shifted down).",
     inputSchema: {
       type: "object",
       properties: {
         module_id: { type: "string", description: "UUID of the module (from list_lms_lessons or the course structure)" },
         title: { type: "string", description: "Lesson title" },
         lesson_type: { type: "string", enum: ["text", "content", "image", "file"], description: "Default 'text'" },
-        position: { type: "number", description: "Optional position inside the module; appended at the end by default" },
+        position: { type: "number", description: "Optional position inside the module; appended at the end by default. When given, existing lessons at that position and after are shifted down." },
         estimated_minutes: { type: "number", description: "Optional estimated duration in minutes" },
+        blocks: {
+          type: "array",
+          description: "Optional initial content blocks (same schema as apply_lesson_restructure: type + content). Only editable block types from list_lms_block_types are accepted; an invalid payload aborts the creation.",
+        },
       },
       required: ["module_id", "title"],
     },
