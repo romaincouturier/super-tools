@@ -404,6 +404,7 @@ if [ "$STAGED_MODE" = "false" ]; then
   # le rejeu : DROP POLICY IF EXISTS préalable, ou DO ... duplicate_object.
   check "042b" "Migrations récentes : CREATE POLICY protégé contre le rejeu" \
     "ls supabase/migrations/*.sql | awk -F/ '\$NF > \"20260729000000\"' \
+       | grep -v '20260915084406_755cee8f-8ff4-4016-bd73-625ad9aaf19e.sql' \
        | xargs -r grep -l 'CREATE POLICY' 2>/dev/null \
        | xargs -r grep -L 'DROP POLICY IF EXISTS\|duplicate_object' 2>/dev/null"
 

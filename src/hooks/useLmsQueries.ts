@@ -662,3 +662,34 @@ export function useAllCourseComments(courseId: string | undefined) {
   });
 }
 
+// ---- Lesson version snapshots ----
+
+export interface LmsLessonSnapshot {
+  id: string;
+  created_at: string;
+  source: string;
+  block_count: number;
+}
+
+export function useLessonSnapshots(lessonId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ["lms-lesson-versions", lessonId],
+    enabled: enabled && !!lessonId,
+    queryFn: async () => {
+      if (!lessonId) return [];
+      const { data, error } = await supabase
+        .from("lms_lesson_snapshots")
+        .select("id, created_at, source, blocks")
+        .eq("lesson_id", lessonId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((row): LmsLessonSnapshot => ({
+        id: row.id,
+        created_at: row.created_at,
+        source: row.source ?? "app",
+        block_count: Array.isArray(row.blocks) ? row.blocks.length : 0,
+      }));
+    },
+  });
+}
+

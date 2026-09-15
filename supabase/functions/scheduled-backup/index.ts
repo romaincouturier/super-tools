@@ -59,7 +59,7 @@ const TABLES_TO_BACKUP = [
   "lms_assignment_submissions", "lms_assignments", "lms_badge_awards", "lms_badges",
   "lms_course_folders", "lms_courses", "lms_deposit_comments", "lms_deposit_feedback", "lms_deposit_reactions",
   "lms_enrollments", "lms_forum_posts", "lms_forums",
-  "lms_lesson_blocks", "lms_lesson_comments", "lms_lessons",
+  "lms_lesson_blocks", "lms_lesson_comments", "lms_lesson_snapshots", "lms_lessons",
   "lms_messages", "lms_modules", "lms_page_views", "lms_progress",
   "lms_quiz_attempts", "lms_quiz_questions", "lms_quizzes",
   "lms_submissions", "lms_user_badges", "lms_work_deposits",

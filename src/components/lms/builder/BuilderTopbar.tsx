@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Menu, ArrowLeft, Eye, ImageIcon, Mic, FileText } from "lucide-react";
+import { Menu, ArrowLeft, Eye, ImageIcon, Mic, FileText, History } from "lucide-react";
 import { LmsLesson, useCourse, useUpdateCourse } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -9,6 +9,7 @@ import { fetchEmptyLessonsForCourse, deleteLessonsByIds } from "@/services/lms-b
 import BulkImageUploadDialog from "./BulkImageUploadDialog";
 import BulkAudioUploadDialog from "./BulkAudioUploadDialog";
 import TranscriptImportDialog from "./TranscriptImportDialog";
+import LessonVersionsDialog from "./LessonVersionsDialog";
 
 interface Props {
   lesson?: LmsLesson;
@@ -29,6 +30,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [audioDialogOpen, setAudioDialogOpen] = useState(false);
   const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
+  const [versionsDialogOpen, setVersionsDialogOpen] = useState(false);
 
   const status = course?.status ?? "draft";
   const isPublished = status === "published";
@@ -196,6 +198,16 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
         >
           <FileText size={16} />
         </button>
+        <button
+          type="button"
+          title="Historique des versions de la leçon"
+          onClick={() => setVersionsDialogOpen(true)}
+          disabled={!lesson}
+          className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5 disabled:opacity-40"
+          style={{ color: "var(--st-ink)" }}
+        >
+          <History size={16} />
+        </button>
 
         {/* Preview */}
         <a
@@ -232,6 +244,13 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
         onClose={() => setTranscriptDialogOpen(false)}
         courseId={courseId}
       />
+      {lesson && (
+        <LessonVersionsDialog
+          open={versionsDialogOpen}
+          onClose={() => setVersionsDialogOpen(false)}
+          lessonId={lesson.id}
+        />
+      )}
       <ConfirmDialog />
     </header>
   );
