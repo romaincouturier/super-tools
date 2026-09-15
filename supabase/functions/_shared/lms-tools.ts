@@ -150,41 +150,54 @@ export async function listLmsLessons(input: ListLessonsInput): Promise<{ lessons
   const limit = pageLimit(input.limit);
   const offset = ((input.page ?? 1) - 1) * limit;
 
+  // lms_lessons has no course_id: the course is reached through lms_modules.
   const { data: lessons, error: lessonsError, count } = await supabase
     .from("lms_lessons")
-    .select("id, title, description, position, status, updated_at", { count: "exact" })
-    .eq("course_id", courseId)
+    .select(
+      "id, title, lesson_type, position, estimated_minutes, updated_at, module_id, lms_modules!inner(id, title, position, course_id)",
+      { count: "exact" },
+    )
+    .eq("lms_modules.course_id", courseId)
     .order("position", { ascending: true })
     .order("id", { ascending: true })
     .range(offset, offset + limit - 1);
 
   if (lessonsError) throw new Error(`Failed to list lessons: ${lessonsError.message}`);
 
-  const lessonIds = (lessons ?? []).map((l) => l.id);
-  const { data: counts } = await supabase
-    .from("lms_lesson_blocks")
-    .select("lesson_id, id, updated_at, position")
-    .in("lesson_id", lessonIds);
+  const rows = (lessons ?? []) as unknown as Array<Record<string, any>>;
+  const lessonIds = rows.map((l) => l.id as string);
+  const { data: counts } = lessonIds.length
+    ? await supabase
+        .from("lms_lesson_blocks")
+        .select("lesson_id, id, updated_at, position, parent_block_id")
+        .in("lesson_id", lessonIds)
+    : { data: [] as any[] };
 
   const blocksByLesson = new Map<string, { id: string; updated_at: string; position: number }[]>();
-  for (const b of counts ?? []) {
+  for (const b of (counts ?? []) as any[]) {
+    if (b.parent_block_id !== null) continue;
     if (!blocksByLesson.has(b.lesson_id)) blocksByLesson.set(b.lesson_id, []);
-    blocksByLesson.get(b.lesson_id)!.push(b);
+    blocksByLesson.get(b.lesson_id)!.push({ id: b.id, updated_at: b.updated_at, position: b.position });
   }
 
-  const summaries: LessonSummary[] = (lessons ?? []).map((l) => {
-    const top = blocksByLesson.get(l.id) ?? [];
-    return {
-      id: l.id,
-      title: l.title,
-      description: l.description,
-      position: l.position,
-      status: l.status,
-      updated_at: l.updated_at,
-      block_count: top.length,
-      fingerprint: computeFingerprint(top),
-    };
-  });
+  const summaries: LessonSummary[] = rows
+    .map((l) => {
+      const top = blocksByLesson.get(l.id as string) ?? [];
+      return {
+        id: l.id as string,
+        title: l.title as string,
+        lesson_type: l.lesson_type as string,
+        module_id: l.module_id as string,
+        module_title: (l.lms_modules?.title as string) ?? "",
+        module_position: (l.lms_modules?.position as number) ?? 0,
+        position: (l.position as number) ?? 0,
+        estimated_minutes: (l.estimated_minutes as number | null) ?? null,
+        updated_at: l.updated_at as string,
+        block_count: top.length,
+        fingerprint: computeFingerprint(top),
+      };
+    })
+    .sort((a, b) => a.module_position - b.module_position || a.position - b.position);
 
   return { lessons: summaries, count: count ?? 0 };
 }
