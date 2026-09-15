@@ -11,3 +11,5 @@
 - [x] Monitoring : prévisualisation email alignée sur le rendu réel par type de modèle (escaped / puces / HTML brut)
 - [x] Suppression d'un compte apprenant : déjà disponible sur /lms/apprenants (edge `manage-learner-account`, admin uniquement)
 - [x] Dette technique : 4 ratchets ramenés à la baseline + `CREATE POLICY` rendu idempotent → check-rules 65/65
+- [x] MCP LMS : empreinte de version unifiée (fonction SQL `lms_lesson_fingerprint`) — apply_lesson_restructure ne rejette plus les empreintes valides
+- [ ] AI4Product : deux liens Meet différents (lives vs lieu de la formation) — attente du lien de référence
