@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { normalizeLearnerEmail, isUsableLearnerEmail } from "./learner-email.ts";
 
 /**
  * Provisionne le compte apprenant d'une adresse, sans mot de passe (W12).
@@ -11,8 +12,10 @@ export async function ensureLearnerAccount(
   admin: SupabaseClient,
   email: string,
 ): Promise<{ created: boolean; userId: string | null }> {
-  const normalized = email.trim().toLowerCase();
-  if (!normalized.includes("@")) return { created: false, userId: null };
+  // RG-01 et RG-18 : une seule règle de normalisation, une seule règle de
+  // validité, partagées par toutes les fonctions qui provisionnent un compte.
+  const normalized = normalizeLearnerEmail(email);
+  if (!isUsableLearnerEmail(normalized)) return { created: false, userId: null };
 
   const { data: created, error } = await admin.auth.admin.createUser({
     email: normalized,

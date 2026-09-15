@@ -10,6 +10,7 @@ import {
 import { getBccList } from "../_shared/email-settings.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
+import { linkExpiresAt, linkValidityLabel } from "../_shared/learner-links.ts";
 
 /** Empreinte de l'adresse : le journal ne stocke jamais l'adresse en clair. */
 async function sha256Hex(value: string): Promise<string> {
@@ -137,15 +138,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Durées du chapitre 6 de la spécification : un lien de connexion demandé
-    // depuis la page de connexion vaut 30 minutes, un lien d'activation envoyé
-    // à l'inscription vaut 7 jours. Tous à usage unique.
-    const expiresAt = new Date();
-    if (purpose === "login") {
-      expiresAt.setMinutes(expiresAt.getMinutes() + 30);
-    } else {
-      expiresAt.setDate(expiresAt.getDate() + 7);
-    }
+    // Durées du chapitre 6, tenues par _shared/learner-links.ts (RG-06).
+    const expiresAt = linkExpiresAt(purpose);
 
     const insertPayload: Record<string, unknown> = {
       email: email.toLowerCase(),
@@ -228,9 +222,7 @@ Deno.serve(async (req) => {
         ? `Bonjour${firstName ? ` ${firstName}` : ""},\n\nVous êtes inscrit(e) aux formations suivantes :\n\n${trainingsListHtml}`
         : `Bonjour${firstName ? ` ${firstName}` : ""},\n\nVotre entreprise vient de vous inscrire à la formation e-learning ${trainingName ? `"<strong>${trainingName}</strong>"` : "votre formation"}${dateLabel}.`;
       // Texte de référence : chapitre 11 de docs/SPEC_CONNEXION_APPRENANT.md.
-      const validity = purpose === "login"
-        ? "Ce lien est valable 30 minutes et ne fonctionne qu'une fois."
-        : "Ce lien est valable 7 jours et ne fonctionne qu'une fois.";
+      const validity = linkValidityLabel(purpose);
       const cta = purpose === "login" ? "Me connecter" : "Activer mon accès";
       bodyContent = [
         intro,
