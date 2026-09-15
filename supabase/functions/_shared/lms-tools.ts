@@ -234,8 +234,7 @@ export async function readLmsLesson(lessonId: string): Promise<LessonDetail> {
   if (blocksError) throw new Error(`Failed to read blocks: ${blocksError.message}`);
 
   const lesson = lessonRow as unknown as Record<string, any>;
-  const topLevel = (blocks ?? []).filter((b) => b.parent_block_id === null);
-  const fingerprint = computeFingerprint(topLevel.map((b) => ({ id: b.id, updated_at: b.updated_at, position: b.position })));
+  const fingerprint = await fetchFingerprint(lessonId);
 
   return {
     id: lesson.id,
