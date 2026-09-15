@@ -181,6 +181,20 @@ serve(async (req) => {
         }
 
         const formattedDate = formatScheduleDisplayDate(scheduleDate);
+
+        // Les lives sont la source de vérité pour le lien de visio : si un live
+        // existe ce jour-là, on affiche son lien plutôt que le lieu de la formation
+        // (qui peut contenir un ancien lien Meet).
+        let displayLocation = training.location as string;
+        const { data: dayLives } = await supabase
+          .from("training_live_meetings")
+          .select("meeting_url, scheduled_at")
+          .eq("training_id", trainingId)
+          .neq("status", "cancelled")
+          .gte("scheduled_at", `${scheduleDate}T00:00:00+00:00`)
+          .lte("scheduled_at", `${scheduleDate}T23:59:59+00:00`);
+        const liveUrl = (dayLives ?? []).find((l: { meeting_url: string | null }) => !!l.meeting_url)?.meeting_url;
+        if (liveUrl) displayLocation = liveUrl;
         const periodLabel = period === "AM" ? "Matin" : "Après-midi";
         const timeRange = buildScheduleTimeRange(schedule.start_time, schedule.end_time, period);
 
