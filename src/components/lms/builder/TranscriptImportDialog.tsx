@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FileText, Loader2, AlertCircle, ChevronDown, ChevronRight, Search } from "lucide-react";
+import { FileText, AlertCircle, ChevronDown, ChevronRight, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
+import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -16,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { toastError } from "@/lib/toastError";
 import { useCourseModules, useCourseLessons, useCreateLesson } from "@/hooks/useLms";
 import { useTranscriptsPage } from "@/hooks/useTranscripts";
@@ -48,6 +50,7 @@ const PAGE_SIZE = 20;
 
 export default function TranscriptImportDialog({ open, onClose, courseId }: Props) {
   const { toast } = useToast();
+  const { copy: copyError } = useCopyToClipboard({ defaultToastTitle: "Erreur copiée" });
   const { data: modules = [] } = useCourseModules(courseId);
   const { data: courseLessons = [] } = useCourseLessons(courseId);
   const createLesson = useCreateLesson();
@@ -256,7 +259,7 @@ export default function TranscriptImportDialog({ open, onClose, courseId }: Prop
           <div className="mb-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3 flex items-start gap-2">
             <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
             <p className="text-xs text-destructive/90 whitespace-pre-wrap break-words flex-1">{error}</p>
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => navigator.clipboard.writeText(error)}>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => copyError(error)}>
               Copier
             </Button>
           </div>
@@ -349,7 +352,7 @@ export default function TranscriptImportDialog({ open, onClose, courseId }: Prop
 
         {step === "analyzing" && (
           <div className="py-10 space-y-4 text-center">
-            <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+            <Spinner className="mx-auto" />
             <p className="text-sm text-muted-foreground">
               Découpage du transcript en leçons… cela peut prendre une à deux minutes.
             </p>
