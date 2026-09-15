@@ -262,7 +262,8 @@ MÉTHODE ATTENDUE
 Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou soumises à validation explicite ; aucune ne supprime ni n'écrase silencieusement des données existantes.
 - save_mission_note : crée ou met à jour une page de mission, pour capitaliser un travail long hors de la conversation. HTML simple, <svg> accepté pour incruster un schéma vectoriel.
 - save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
-- update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.).
+- update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre `type` doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
+- create_lms_lesson : crée une leçon vide dans un module (écriture purement additive), puis remplir ses blocs avec apply_lesson_restructure.
 - apply_lesson_restructure : remplace les blocs de contenu de premier niveau d'une leçon par une nouvelle structure proposée. EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
 Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress n'est possible depuis ici.
 
