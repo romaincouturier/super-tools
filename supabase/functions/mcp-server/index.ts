@@ -263,7 +263,7 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - save_mission_note : crée ou met à jour une page de mission, pour capitaliser un travail long hors de la conversation. HTML simple, <svg> accepté pour incruster un schéma vectoriel.
 - save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
 - update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre « type » doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
-- create_lms_lesson : crée une leçon vide dans un module (écriture purement additive), puis remplir ses blocs avec apply_lesson_restructure.
+- create_lms_lesson : crée une leçon dans un module, avec éventuellement ses blocs de contenu initiaux (paramètre « blocks », même schéma que apply_lesson_restructure). Position facultative : si elle est fournie, les leçons suivantes du module sont décalées d'un rang. Écriture additive : aucune leçon existante n'est modifiée dans son contenu. Retourne l'id et l'empreinte de la leçon créée.
 - apply_lesson_restructure : remplace les blocs de contenu de premier niveau d'une leçon par une nouvelle structure proposée. EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
 Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress n'est possible depuis ici.
 
@@ -655,15 +655,19 @@ const MCP_TOOLS = [
   {
     name: "create_lms_lesson",
     description:
-      "Create a new empty lesson in an LMS module. Returns the created lesson with its fingerprint, so blocks can then be added with apply_lesson_restructure. Only additive: never modifies existing lessons.",
+      "Create a new lesson in an LMS module, optionally with its initial content blocks. Returns the created lesson (id + fingerprint), so it can be chained with apply_lesson_restructure. Additive: existing lessons are never modified, except their position when an explicit position is requested (following lessons are shifted down).",
     inputSchema: {
       type: "object",
       properties: {
         module_id: { type: "string", description: "UUID of the module (from list_lms_lessons or the course structure)" },
         title: { type: "string", description: "Lesson title" },
         lesson_type: { type: "string", enum: ["text", "content", "image", "file"], description: "Default 'text'" },
-        position: { type: "number", description: "Optional position inside the module; appended at the end by default" },
+        position: { type: "number", description: "Optional position inside the module; appended at the end by default. When given, existing lessons at that position and after are shifted down." },
         estimated_minutes: { type: "number", description: "Optional estimated duration in minutes" },
+        blocks: {
+          type: "array",
+          description: "Optional initial content blocks (same schema as apply_lesson_restructure: type + content). Only editable block types from list_lms_block_types are accepted; an invalid payload aborts the creation.",
+        },
       },
       required: ["module_id", "title"],
     },
@@ -1059,6 +1063,7 @@ async function callTool(
           lessonType: (args.lesson_type as string) || "text",
           position: args.position as number | undefined,
           estimatedMinutes: args.estimated_minutes as number | undefined,
+          blocks: Array.isArray(args.blocks) ? args.blocks : undefined,
         });
         return textResult(JSON.stringify(result));
       } catch (e) {
