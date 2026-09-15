@@ -1047,6 +1047,21 @@ async function callTool(
         return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "create_lms_lesson": {
+      try {
+        await log("create_lms_lesson");
+        const result = await createLmsLesson({
+          moduleId: (args.module_id as string) || "",
+          title: (args.title as string) || "",
+          lessonType: (args.lesson_type as string) || "text",
+          position: args.position as number | undefined,
+          estimatedMinutes: args.estimated_minutes as number | undefined,
+        });
+        return textResult(JSON.stringify(result));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "apply_lesson_restructure": {
       try {
         await log("apply_lesson_restructure");
