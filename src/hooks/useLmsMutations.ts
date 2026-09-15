@@ -526,3 +526,53 @@ export function usePostLessonComment() {
   });
 }
 
+// ---- Lesson version snapshots ----
+
+export function useDeleteLessonSnapshot() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (snapshotId: string) => {
+      const { error } = await supabase.from("lms_lesson_snapshots").delete().eq("id", snapshotId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lms-lesson-versions"] });
+      toast({ title: "Version supprimée" });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Suppression impossible",
+        description: err?.message || "Erreur inconnue",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useRestoreLessonVersion() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (snapshotId: string) => {
+      const { data, error } = await supabase.rpc("restore_lesson_version", { p_snapshot_id: snapshotId });
+      if (error) throw error;
+      return data as { lesson_id: string; fingerprint: string } | null;
+    },
+    onSuccess: (result) => {
+      if (result?.lesson_id) {
+        qc.invalidateQueries({ queryKey: ["lms-lesson-blocks", result.lesson_id] });
+        qc.invalidateQueries({ queryKey: ["lms-lesson-versions", result.lesson_id] });
+      }
+      toast({ title: "Version restaurée" });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Restauration impossible",
+        description: err?.message || "Erreur inconnue",
+        variant: "destructive",
+      });
+    },
+  });
+}
+

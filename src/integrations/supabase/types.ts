@@ -5394,6 +5394,41 @@ export type Database = {
           },
         ]
       }
+      lms_lesson_snapshots: {
+        Row: {
+          blocks: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          lesson_id: string
+          source: string
+        }
+        Insert: {
+          blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lesson_id: string
+          source?: string
+        }
+        Update: {
+          blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lesson_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_lesson_snapshots_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lms_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_lessons: {
         Row: {
           assignment_id: string | null
@@ -12778,6 +12813,15 @@ export type Database = {
             }
             Returns: Json
           }
+      apply_lesson_restructure: {
+        Args: {
+          p_blocks: Json
+          p_fingerprint: string
+          p_lesson_id: string
+          p_source?: string
+        }
+        Returns: undefined
+      }
       check_formulaire_rate_limit: {
         Args: {
           p_ip_address: string
@@ -13146,6 +13190,7 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_feature_enabled: { Args: { _flag: string }; Returns: boolean }
+      is_service_role: { Args: never; Returns: boolean }
       is_signup_allowed: { Args: { p_email: string }; Returns: boolean }
       is_staff_user: { Args: never; Returns: boolean }
       learner_accounts_for_emails: {
@@ -13333,6 +13378,10 @@ export type Database = {
       resolve_formulaire_token: {
         Args: { p_course_id: number; p_email: string; p_form_type: string }
         Returns: Json
+      }
+      restore_lesson_version: {
+        Args: { p_snapshot_id: string }
+        Returns: undefined
       }
       seo_cannibalisation: {
         Args: {

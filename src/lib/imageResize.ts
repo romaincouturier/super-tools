@@ -1,3 +1,5 @@
+import { resolveContentType } from "./file-utils";
+
 /**
  * Downscale an image file in the browser before upload.
  * Avoids storage "object exceeded the maximum allowed size" errors on avatars.
@@ -7,7 +9,8 @@ export async function resizeImageFile(
   maxSize = 800,
   quality = 0.85,
 ): Promise<File> {
-  if (!file.type.startsWith("image/") || file.type === "image/svg+xml") return file;
+  const contentType = resolveContentType(file);
+  if (!contentType.startsWith("image/") || contentType === "image/svg+xml") return file;
 
   const bitmap = await createImageBitmap(file).catch(() => null);
   if (!bitmap) return file;

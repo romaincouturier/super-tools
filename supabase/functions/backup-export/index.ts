@@ -114,6 +114,7 @@ const TABLES_TO_BACKUP = [
   "lms_forums",
   "lms_lesson_blocks",
   "lms_lesson_comments",
+  "lms_lesson_snapshots",
   "lms_lessons",
   "lms_messages",
   "lms_modules",

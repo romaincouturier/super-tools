@@ -36,6 +36,15 @@ import {
   type AuditFn,
   type ExtractedPart,
 } from "../_shared/mission-tools.ts";
+import {
+  applyLessonRestructure,
+  getLmsBlockCatalog,
+  listLessonVersions,
+  listLmsLessons,
+  readLmsLesson,
+  restoreLessonVersion,
+  updateLmsBlock,
+} from "../_shared/lms-tools.ts";
 
 /**
  * Serveur MCP SuperTools — lecture seule, mono-utilisateur.
@@ -237,6 +246,7 @@ QUEL OUTIL POUR QUELLE QUESTION
 - Newsletter, point éditorial, arbitrage de sommaire : get_editorial_brief d'abord, puis get_content_performance pour justifier les choix.
 - Client, mission, formation, devis, évaluation : get_client_dossier, get_mission_dossier, read_mission_documents, search_content.
 - Conférence, salon, CFP, réécriture d'un pitch déjà soumis : get_event_history. Il rend le pitch (description), les notes de préparation, le bilan (summary_notes) et l'issue déduite. Ne jamais annoncer qu'un événement a été « accepté » : le modèle ne stocke que held / not_selected / cancelled / upcoming, et le refus se lit sur cancellation_reason.
+- LMS (cours en ligne) : list_lms_courses donne les cours ; list_lms_lessons les leçons d'un cours ; read_lms_lesson renvoie les blocs avec leur empreinte ; list_lms_block_types catalogue les types de blocs pédagogiques et leur pertinence ; update_lms_block modifie un seul bloc texte/HTML ; apply_lesson_restructure remplace les blocs de contenu d'une leçon après validation humaine ; list_lesson_versions et restore_lesson_version gèrent l'historique. Utiliser read_lms_lesson avant toute proposition de restructuration pour obtenir l'empreinte (fingerprint) exacte.
 - query_database reste disponible pour tout le reste (SELECT, allowlist de tables) mais les outils agrégés ci-dessus sont plus fiables que du SQL improvisé.
 
 MÉTHODE ATTENDUE
@@ -247,10 +257,18 @@ MÉTHODE ATTENDUE
 - GEO (visibilité dans les moteurs génératifs) : aucune API ne mesure les citations. Les seuls faits disponibles sont les référents IA (geo_referrals), les apparences dans les résultats et l'état d'indexation. Toute autre affirmation sur le GEO relève de la recommandation, pas de la mesure : le préciser.
 
 ÉCRITURE
-Le serveur est en lecture seule, à deux exceptions près, toutes deux ADDITIVES : elles ne peuvent qu'ajouter, jamais supprimer ni écraser quoi que ce soit d'existant.
+Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou soumises à validation explicite ; aucune ne supprime ni n'écrase silencieusement des données existantes.
 - save_mission_note : crée ou met à jour une page de mission, pour capitaliser un travail long hors de la conversation. HTML simple, <svg> accepté pour incruster un schéma vectoriel.
 - save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
-Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress ou des formations n'est possible depuis ici.
+- update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.).
+- apply_lesson_restructure : remplace les blocs de contenu de premier niveau d'une leçon par une nouvelle structure proposée. EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
+Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress n'est possible depuis ici.
+
+RESTRUCTURATION PÉDAGOGIQUE (LMS)
+- Lire la leçon avec read_lms_lesson pour connaître les blocs existants et leur empreinte (fingerprint).
+- Proposer une restructuration en utilisant uniquement les types listés par list_lms_block_types comme éditables via MCP. Les quiz, devoirs, blocs de mise en page, HTML libre et médias ne sont pas modifiables ici.
+- Recevoir un accord explicite de l'utilisateur (par exemple « Oui, applique cette version ») avant d'appeler apply_lesson_restructure.
+- L'outil créera une version de sauvegarde ; l'utilisateur pourra restaurer via restore_lesson_version ou depuis l'interface SuperTools.
 
 MARCHÉS PUBLICS — QUALIFICATION GO / NO GO
 - list_pending_tenders liste les avis en attente de décision (BOAMP, TED, PLACE, AWS), le plus urgent d'abord, avec ce qui fait basculer une décision : titulaire sortant et montant du marché précédent, pondération des critères, allotissement, durée et reconductions, historique CRM avec cet acheteur, date limite.
@@ -572,6 +590,109 @@ const MCP_TOOLS = [
       required: ["tender_id", "decision"],
     },
   },
+  {
+    name: "list_lms_courses",
+    description:
+      "List the LMS courses the current staff member can access, with id, title, status, and updated_at. Use this as the entry point before listing lessons.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: ["draft", "published", "archived"], description: "Optional filter" },
+        page: { type: "number", description: "Page number (default 1)" },
+        limit: { type: "number", description: "Page size (default 25, max 100)" },
+      },
+    },
+  },
+  {
+    name: "list_lms_lessons",
+    description:
+      "List the lessons of an LMS course, with title, position, status, block count, and fingerprint. A lesson's fingerprint represents its top-level content blocks; pass it to apply_lesson_restructure to avoid concurrent-change conflicts.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        course_id: { type: "string", description: "UUID of the course" },
+        page: { type: "number", description: "Page number (default 1)" },
+        limit: { type: "number", description: "Page size (default 25, max 100)" },
+      },
+      required: ["course_id"],
+    },
+  },
+  {
+    name: "read_lms_lesson",
+    description:
+      "Return the full content of an LMS lesson: metadata and every block (id, type, kind, parent, position, hidden, content, updated_at), plus the fingerprint needed for apply_lesson_restructure.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        lesson_id: { type: "string", description: "UUID of the lesson" },
+      },
+      required: ["lesson_id"],
+    },
+  },
+  {
+    name: "list_lms_block_types",
+    description:
+      "Return the catalog of LMS block types: which are editable via MCP, their required fields, pedagogical guidance (when to use / when not), and which types are out of scope (layout, quiz, assignment, media, embed). Use before proposing a restructure.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "update_lms_block",
+    description:
+      "Update the textual/HTML fields of a single LMS content block. Only the fields defined for the block's type are kept (e.g. html for a 'text' block, body_html/title/color/level for a 'callout' block).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        block_id: { type: "string", description: "UUID of the block" },
+        type: { type: "string", description: "Block type (must match the catalog)" },
+        patch: { type: "object", description: "Object with the fields to update" },
+      },
+      required: ["block_id", "type", "patch"],
+    },
+  },
+  {
+    name: "apply_lesson_restructure",
+    description:
+      "Replace the top-level content blocks of an LMS lesson with a new structure. Requires the exact lesson fingerprint from read_lms_lesson. A snapshot is created automatically before writing; the previous version can be restored. MUST only be called after the user has explicitly approved the proposed structure in the conversation.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        lesson_id: { type: "string", description: "UUID of the lesson" },
+        fingerprint: { type: "string", description: "Fingerprint from read_lms_lesson" },
+        blocks: {
+          type: "array",
+          description: "Array of new top-level content blocks (type + content). Only editable block types are accepted.",
+        },
+        source: { type: "string", description: "Source label, default 'mcp'" },
+      },
+      required: ["lesson_id", "fingerprint", "blocks"],
+    },
+  },
+  {
+    name: "list_lesson_versions",
+    description:
+      "List the saved snapshots of a lesson (most recent first). Each snapshot contains a full copy of the blocks at the time it was created. Use restore_lesson_version to roll back to one of them.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        lesson_id: { type: "string", description: "UUID of the lesson" },
+        page: { type: "number", description: "Page number (default 1)" },
+        limit: { type: "number", description: "Page size (default 25, max 100)" },
+      },
+      required: ["lesson_id"],
+    },
+  },
+  {
+    name: "restore_lesson_version",
+    description:
+      "Restore a lesson from a snapshot created earlier (by apply_lesson_restructure or a manual save). Another snapshot of the current state is created first, so the operation is reversible.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        snapshot_id: { type: "string", description: "UUID of the snapshot" },
+      },
+      required: ["snapshot_id"],
+    },
+  },
 ];
 
 // ── Dossiers agrégés (lecture seule, journalisés) ────────────
@@ -857,6 +978,95 @@ async function callTool(
         return textResult(`Tender decision error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "list_lms_courses": {
+      try {
+        await log("list_lms_courses");
+        return textResult(JSON.stringify(await listLmsCourses({
+          status: args.status as "draft" | "published" | "archived" | undefined,
+          page: args.page as number | undefined,
+          limit: args.limit as number | undefined,
+        })));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "list_lms_lessons": {
+      try {
+        await log("list_lms_lessons");
+        return textResult(JSON.stringify(await listLmsLessons({
+          courseId: (args.course_id as string) || "",
+          page: args.page as number | undefined,
+          limit: args.limit as number | undefined,
+        })));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "read_lms_lesson": {
+      try {
+        await log("read_lms_lesson");
+        return textResult(JSON.stringify(await readLmsLesson((args.lesson_id as string) || "")));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "list_lms_block_types": {
+      try {
+        await log("list_lms_block_types");
+        return textResult(JSON.stringify(getLmsBlockCatalog()));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_lms_block": {
+      try {
+        await log("update_lms_block");
+        const result = await updateLmsBlock({
+          blockId: (args.block_id as string) || "",
+          type: (args.type as string) || "",
+          patch: (args.patch as Record<string, unknown>) || {},
+        });
+        return textResult(JSON.stringify(result));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "apply_lesson_restructure": {
+      try {
+        await log("apply_lesson_restructure");
+        const result = await applyLessonRestructure({
+          lessonId: (args.lesson_id as string) || "",
+          fingerprint: (args.fingerprint as string) || "",
+          blocks: Array.isArray(args.blocks) ? args.blocks : [],
+          source: (args.source as string) || "mcp",
+        });
+        return textResult(JSON.stringify(result));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "list_lesson_versions": {
+      try {
+        await log("list_lesson_versions");
+        const result = await listLessonVersions(
+          (args.lesson_id as string) || "",
+          (args.page as number) || 1,
+          args.limit as number | undefined,
+        );
+        return textResult(JSON.stringify(result));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "restore_lesson_version": {
+      try {
+        await log("restore_lesson_version");
+        const result = await restoreLessonVersion((args.snapshot_id as string) || "");
+        return textResult(JSON.stringify(result));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     default:
       return textResult(`Unknown tool: ${name}`, true);
   }
@@ -919,7 +1129,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.2.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.3.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }
@@ -1032,7 +1242,7 @@ function authorizePage(params: URLSearchParams, errorMsg?: string): Response {
     <h2>En résumé — ce qu'il faut savoir avant de connecter</h2>
     <ul>
       <li>Le MCP SuperTools connecte vos données SuperTools à l'assistant IA de votre choix (Claude, ChatGPT, Cursor…). SuperTilt fournit le connecteur, pas l'assistant IA.</li>
-      <li>Lecture seule : votre assistant IA peut consulter vos données SuperTools (CRM, formations, missions, évaluations, audience, contenus) selon vos instructions, mais ne peut ni les modifier ni les supprimer. Seules deux actions d'écriture existent, toutes deux additives : créer une page de mission et y attacher un fichier.</li>
+      <li>En lecture seule, votre assistant IA peut consulter vos données SuperTools (CRM, formations, missions, évaluations, audience, contenus, LMS) selon vos instructions. Les seules écritures possibles sont : créer une page ou attacher un fichier à une mission ; modifier un bloc texte d'une leçon ; et, après votre validation explicite, restructurer les blocs pédagogiques d'une leçon (un snapshot est conservé pour revenir en arrière).</li>
       <li>Vos données quittent SuperTools : elles sont transmises à votre assistant IA, tiers indépendant de SuperTilt. Une fois transmises, SuperTilt ne les contrôle plus.</li>
       <li>Vérifiez les conditions de votre assistant IA : confidentialité, localisation des données, réutilisation à des fins d'entraînement. SuperTilt n'en est pas responsable.</li>
       <li>Les réponses IA ne sont pas vérifiées par SuperTilt et ne constituent pas un conseil professionnel. Toujours vérifier avant d'agir.</li>
