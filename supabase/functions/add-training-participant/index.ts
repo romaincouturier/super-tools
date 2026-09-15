@@ -74,8 +74,7 @@ function computeEmailMode(
 
   if (daysUntilStart <= 0) return { status: "non_envoye", sendWelcomeNow: false, ongoing };
   if (daysUntilStart < 2)  return { status: "manuel",         sendWelcomeNow: false, ongoing };
-  if (daysUntilStart <= 7) return { status: "accueil_envoye", sendWelcomeNow: true,  ongoing };
-  return { status: "programme", sendWelcomeNow: false, ongoing };
+  return { status: "accueil_envoye", sendWelcomeNow: true, ongoing };
 }
 
 // ── Request / Response types ──────────────────────────────────────────────────
