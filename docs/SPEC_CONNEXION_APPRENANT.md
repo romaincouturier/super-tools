@@ -840,7 +840,7 @@ Les trois derniers se lisent ensemble : une baisse des demandes de lien accompag
 | 3 | Service de résolution d'identité, drapeau `password_set`, limitation de débit | Prérequis de la page de connexion. Livré : fonction `resolve-login-identity`, journal `identity_resolution_log`, seuils 5 par adresse et 20 par IP par heure |
 | 4 | Écrans de connexion : W1 à W10, redirections des anciennes URL | Livré. W5 ouvre une vraie session depuis le lien, W10 porte l'action de reprise dans chaque état d'échec, les durées de 30 minutes et 7 jours s'appliquent aux liens émis |
 | 5 | Provisionnement à l'encaissement W12, refonte des emails, suppression de `elearning_access_mode` | Livré côté code : le compte est provisionné à l'inscription, l'email d'activation est unique quelle que soit la source, le réglage a disparu. La bascule elle-même reste une opération manuelle, `scripts/bascule-connexion.sql` |
-| 6 | W13, purge des comptes inactifs, indicateurs, politique de confidentialité | Complète le dispositif, sans bloquer la mise en service |
+| 6 | W13, purge des comptes inactifs, indicateurs, politique de confidentialité | Livré. Changement d'adresse atomique sur 26 tables, comptes dormants signalés, indicateurs dans Monitoring, politique de confidentialité à jour |
 
 Transverse à tous les lots : les tests du chapitre 14 sont écrits avec le lot qu'ils couvrent, jamais après. Les textes du chapitre 10 et les emails du chapitre 11 sont validés avant le développement du lot 4, les maquettes servant de support à cette validation.
 

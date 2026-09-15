@@ -1,4 +1,4 @@
-import { Database, Clock, Zap, MousePointerClick, CircleDollarSign } from "lucide-react";
+import { Database, Clock, Zap, MousePointerClick, CircleDollarSign, LogIn } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +8,7 @@ import CronJobsTab from "@/components/monitoring/CronJobsTab";
 import EdgeFunctionsTab from "@/components/monitoring/EdgeFunctionsTab";
 import FeatureUsageTab from "@/components/monitoring/FeatureUsageTab";
 import ApiUsageTab from "@/components/monitoring/ApiUsageTab";
+import ConnexionTab from "@/components/monitoring/ConnexionTab";
 import { useEdgeFunctionsAlert } from "@/hooks/useEdgeFunctionsAlert";
 
 const Monitoring = () => {
@@ -40,6 +41,10 @@ const Monitoring = () => {
               <CircleDollarSign className="h-4 w-4" />
               Coûts API
             </TabsTrigger>
+            <TabsTrigger value="connexion" className="gap-2">
+              <LogIn className="h-4 w-4" />
+              Connexion
+            </TabsTrigger>
             <TabsTrigger value="features" className="gap-2">
               <MousePointerClick className="h-4 w-4" />
               Usage produit
@@ -60,6 +65,10 @@ const Monitoring = () => {
 
           <TabsContent value="usage">
             <ApiUsageTab />
+          </TabsContent>
+
+          <TabsContent value="connexion">
+            <ConnexionTab />
           </TabsContent>
 
           <TabsContent value="features">
