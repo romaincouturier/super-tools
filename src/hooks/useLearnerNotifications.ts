@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createLearnerClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface LearnerNotification {
   id: string;
@@ -20,7 +20,7 @@ export function useLearnerNotifications(email: string | null) {
     queryKey: [KEY, email],
     queryFn: async () => {
       if (!email) return [] as LearnerNotification[];
-      const c = createLearnerClient(email) as any;
+      const c = supabase as any;
       const { data, error } = await c
         .from("learner_notifications")
         .select("*")
@@ -40,7 +40,7 @@ export function useMarkLearnerNotificationsRead(email: string | null) {
   return useMutation({
     mutationFn: async (ids: string[]) => {
       if (!email || ids.length === 0) return;
-      const c = createLearnerClient(email) as any;
+      const c = supabase as any;
       const { error } = await c
         .from("learner_notifications")
         .update({ is_read: true })

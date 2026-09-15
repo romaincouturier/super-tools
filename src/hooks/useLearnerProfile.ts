@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, createLearnerClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface LearnerProfile {
   email: string;
@@ -19,7 +19,7 @@ export function useLearnerProfile(email: string | null) {
     queryKey: ["learner_profile", email?.toLowerCase()],
     queryFn: async () => {
       if (!email) return null;
-      const client = createLearnerClient(email);
+      const client = supabase;
       const { data, error } = await client
         .from("learner_profiles")
         .select("*")
@@ -47,7 +47,7 @@ export function useUpsertLearnerProfile() {
       email_notif_important?: boolean;
     }) => {
       const email = profile.email.toLowerCase();
-      const client = createLearnerClient(profile.email);
+      const client = supabase;
       // `select()` forces PostgREST to return the written row: a policy that
       // silently filters the row out (RLS mismatch) then surfaces as an error
       // instead of a fake success — this exact silent no-op hid the learner

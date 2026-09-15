@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, createLearnerClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { resolveContentType } from "@/lib/file-utils";
 import { todayAsISO } from "@/lib/dateFormatters";
 
@@ -77,7 +77,7 @@ const db = supabase as any;
 
 function clientFor(email?: string | null, asAdmin = false) {
   if (asAdmin) return supabase;
-  return email ? createLearnerClient(email) : supabase;
+  return supabase;
 }
 
 /**

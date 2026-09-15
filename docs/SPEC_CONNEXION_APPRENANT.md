@@ -693,9 +693,9 @@ Les redirections et les boucles se vérifient en comptant les entrées d'histori
 
 Cette spécification traite de l'authentification : qui entre, par quelle porte, avec quelle preuve. Elle ne traite pas de l'autorisation : une fois entré, qui a le droit de lire et d'écrire quoi.
 
-Les deux sujets se touchent sur trois points, traités ici et seulement ici :
+Les deux sujets se touchent sur trois points, traités ici et seulement ici. Les trois sont livrés au 2026-09-15 :
 
-1. L'identité applicative provient de la session et jamais de l'URL (PR7, RG-11).
+1. L'identité applicative provient de la session et jamais de l'URL ni d'un en-tête (PR7, RG-11).
 2. Les fonctions du portail cessent d'être exécutables par un appelant anonyme (S4).
 3. Le player LMS cesse d'accepter une adresse en paramètre (S5).
 

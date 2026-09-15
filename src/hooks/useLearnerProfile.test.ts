@@ -52,7 +52,6 @@ const { mockFrom, setNextResult, mockUpsert } = vi.hoisted(() => {
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: mockFrom },
-  createLearnerClient: vi.fn(() => ({ from: mockFrom })),
 }));
 
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -136,21 +135,11 @@ describe("useUpsertLearnerProfile", () => {
 
 // ── Security: own-row restriction ────────────────────────────────────────────
 //
-// The RLS policy now uses get_learner_email() which reads x-learner-email from
-// the request header. The hook must always pass the email to createLearnerClient
-// so that the header is set, and the .eq("email", ...) call restricts the query
-// to the learner's own row at the application level too.
+// L'identité vient de la session : get_learner_email() lit le jeton et plus
+// aucun en-tête. Le hook doit malgré tout filtrer sur l'adresse de l'apprenant,
+// pour que la requête reste bornée à sa propre ligne côté application.
 
 describe("useLearnerProfile — security invariants", () => {
-  it("uses createLearnerClient with the exact email (sets x-learner-email header)", async () => {
-    const { createLearnerClient } = await import("@/integrations/supabase/client");
-    setNextResult({ data: null, error: null });
-
-    renderHook(() => useLearnerProfile("test@example.com"), { wrapper });
-    await waitFor(() => {});
-
-    expect(createLearnerClient).toHaveBeenCalledWith("test@example.com");
-  });
 
   it("filters by the learner's email before hitting the DB (own-row)", async () => {
     // The hook calls .eq("email", email.toLowerCase()) which means even if RLS

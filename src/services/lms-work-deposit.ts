@@ -1,15 +1,14 @@
 /**
  * Service layer for the "Dépôt de travail" feature (ST-2026-0043).
  *
- * Anonymous learners go through createLearnerClient(email) so the
- * x-learner-email header is set and RLS can match get_learner_email().
- * Authenticated SuperTilt uses the regular `supabase` client.
+ * Apprenants et staff passent par le même client : l'identité vient de la
+ * session, que get_learner_email() lit dans le jeton.
  *
  * The new tables (lms_work_deposits, lms_deposit_comments,
  * lms_deposit_feedback) are not yet in the generated Database type, so
  * the from() calls are cast at this boundary.
  */
-import { supabase, createLearnerClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { resolveContentType } from "@/lib/file-utils";
 import type {
   WorkDeposit,
@@ -22,7 +21,7 @@ import type {
 
 /** Pick the right client given the learner context (anon learner vs authenticated SuperTilt). */
 function clientFor(learnerEmail?: string | null) {
-  if (learnerEmail) return createLearnerClient(learnerEmail);
+  if (learnerEmail) return supabase;
   return supabase;
 }
 

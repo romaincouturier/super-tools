@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, createLearnerClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { invokeEdge } from "@/lib/invokeEdge";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
@@ -366,7 +366,7 @@ export function useSubmitQuizAttempt() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: Partial<LmsQuizAttempt> & { quiz_id: string; learner_email: string }) => {
-      const client = createLearnerClient(input.learner_email);
+      const client = supabase;
       const { data, error } = await client
         .from("lms_quiz_attempts")
         .insert(input as LmsQuizAttemptInsert)
@@ -387,7 +387,7 @@ export function useMarkLessonComplete() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { course_id: string; lesson_id: string; learner_email: string }) => {
-      const client = createLearnerClient(input.learner_email);
+      const client = supabase;
       const { data, error } = await client
         .from("lms_progress")
         .upsert(
@@ -418,7 +418,7 @@ export function useEnrollLearner() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { course_id: string; learner_email: string }) => {
-      const client = createLearnerClient(input.learner_email);
+      const client = supabase;
       const { data, error } = await client
         .from("lms_enrollments")
         .upsert(input as LmsEnrollmentInsert, { onConflict: "course_id,learner_email" })
@@ -439,7 +439,7 @@ export function useSubmitAssignment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { lesson_id: string; learner_email: string; comment?: string; file_url?: string; file_name?: string; file_size?: number }) => {
-      const client = createLearnerClient(input.learner_email);
+      const client = supabase;
       const { data, error } = await client
         .from("lms_assignment_submissions")
         .insert(input as LmsAssignmentSubmissionInsert)
@@ -460,7 +460,7 @@ export function useCreateForumPost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: Partial<LmsForumPost> & { forum_id: string; author_email: string; content_html: string; file_url?: string | null; file_name?: string | null }) => {
-      const client = createLearnerClient(input.author_email);
+      const client = supabase;
       const { data, error } = await client
         .from("lms_forum_posts")
         .insert(input as LmsForumPostInsert)
@@ -480,7 +480,7 @@ export function useCreateForumPost() {
 export function useTrackPageView() {
   return useMutation({
     mutationFn: async ({ courseId, lessonId, learnerEmail }: { courseId: string; lessonId: string; learnerEmail: string }) => {
-      const client = learnerEmail ? createLearnerClient(learnerEmail) : supabase;
+      const client = supabase;
       const { error } = await client
         .from("lms_page_views")
         .insert({ course_id: courseId, lesson_id: lessonId, learner_email: learnerEmail || "admin-preview" } as any);
@@ -495,7 +495,7 @@ export function usePostLessonComment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { courseId: string; lessonId: string; learnerEmail: string; learnerName: string; content: string }) => {
-      const client = createLearnerClient(input.learnerEmail);
+      const client = supabase;
       const { error } = await client
         .from("lms_lesson_comments")
         .insert({

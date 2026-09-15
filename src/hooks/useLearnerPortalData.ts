@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, createLearnerClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { uploadDepositFile, createDeposit } from "@/services/lms-work-deposit";
 
 // Dépôts de travaux de l'apprenant
@@ -8,7 +8,7 @@ export function useLearnerWorkDeposits(email: string | null) {
     queryKey: ["learner_work_deposits", email],
     queryFn: async () => {
       if (!email) return [];
-      const c = createLearnerClient(email) as any;
+      const c = supabase as any;
       const { data, error } = await c
         .from("lms_work_deposits")
         .select(`
@@ -67,7 +67,7 @@ export function usePracticeDeposits(courseIds: string[], learnerEmail?: string |
     queryKey: ["practice_deposits", courseIds, learnerEmail ?? null],
     queryFn: async () => {
       if (!courseIds.length) return [];
-      const c = (learnerEmail ? createLearnerClient(learnerEmail) : supabase) as any;
+      const c = (supabase) as any;
       const { data, error } = await c
         .from("lms_work_deposits")
         .select("id, lesson_id, course_id, learner_email, file_name, file_url, file_mime, file_rotation, comment, created_at")
@@ -120,8 +120,7 @@ export function useToggleDepositReaction(learnerEmail: string | null) {
   return useMutation({
     mutationFn: async ({ depositId, iReacted }: { depositId: string; iReacted: boolean }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
-      const { createLearnerClient } = await import("@/integrations/supabase/client");
-      const c = createLearnerClient(learnerEmail) as any;
+      const c = supabase as any;
       if (iReacted) {
         const { error } = await c.from("lms_deposit_reactions")
           .delete().eq("deposit_id", depositId).eq("author_email", learnerEmail);
@@ -151,7 +150,7 @@ export function useLearnerReceivedFeedback(email: string | null) {
     queryKey: ["learner_received_feedback", email],
     queryFn: async () => {
       if (!email) return [];
-      const c = createLearnerClient(email) as any;
+      const c = supabase as any;
 
       const { data: deposits, error: depErr } = await c
         .from("lms_work_deposits")

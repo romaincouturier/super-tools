@@ -45,7 +45,6 @@ const { mockFrom, setNextResult } = vi.hoisted(() => {
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: mockFrom },
-  createLearnerClient: vi.fn(() => ({ from: mockFrom })),
 }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
