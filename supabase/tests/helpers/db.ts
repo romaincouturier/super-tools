@@ -42,6 +42,10 @@ $stub$;
 CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $stub$
   SELECT COALESCE(NULLIF(current_setting('test.jwt', true), '')::jsonb, '{}'::jsonb)
 $stub$;
+
+-- La plateforme expose les en-têtes de la requête sous ce réglage. Le test
+-- doit pouvoir en poser un : c'est la seule façon de vérifier qu'une fonction
+-- ne les lit plus.
 `;
 
 /** Schéma métier réduit aux colonnes que les règles de connexion touchent. */
@@ -193,15 +197,25 @@ export async function loadFunctions(
   }
 }
 
-/** Règle l'identité de l'appelant pour les appels qui suivent. */
+/**
+ * Règle l'identité de l'appelant pour les appels qui suivent.
+ *
+ * `declaredEmail` pose l'en-tête `x-learner-email` que le navigateur peut
+ * envoyer. Il sert à vérifier qu'une fonction ne s'y fie plus : sans ce
+ * réglage, un test sur l'en-tête ne prouverait rien.
+ */
 export async function actAs(
   db: TestDb,
-  identity: { uid?: string | null; email?: string | null } | null,
+  identity: { uid?: string | null; email?: string | null; declaredEmail?: string | null } | null,
 ): Promise<void> {
   const uid = identity?.uid ?? "";
   const jwt = identity?.email ? JSON.stringify({ email: identity.email }) : "";
+  const headers = identity?.declaredEmail
+    ? JSON.stringify({ "x-learner-email": identity.declaredEmail })
+    : "";
   await db.query("SELECT set_config('test.uid', $1, false)", [uid]);
   await db.query("SELECT set_config('test.jwt', $1, false)", [jwt]);
+  await db.query("SELECT set_config('request.headers', $1, false)", [headers]);
 }
 
 /** Crée un compte d'authentification et rend son identifiant. */
