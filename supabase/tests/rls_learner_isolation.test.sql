@@ -6,7 +6,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(6);
+select plan(9);
 
 -- Les privilèges de table relèvent de la plateforme, pas de l'historique de
 -- migrations : sur une instance neuve, `authenticated` se voit refuser la
@@ -15,6 +15,7 @@ select plan(6);
 -- de fichier.
 grant usage on schema public to anon, authenticated;
 grant select on all tables in schema public to anon, authenticated;
+grant insert, update on public.learner_profiles to anon, authenticated;
 
 -- ── Seed (en tant que postgres, bypass RLS) ────────────────────────────────
 insert into auth.users (id, email, raw_user_meta_data)
@@ -71,6 +72,32 @@ select set_config('request.jwt.claims',
   true);
 
 select ok(not public.is_staff_user(), 'is_staff_user() est false pour un apprenant');
+
+select is(
+  public.get_learner_email(),
+  'learner-rls-test@supertilt.fr',
+  'un compte apprenant authentifié est identifié par son JWT même sans inscription'
+);
+
+select set_config('request.headers',
+  '{"x-learner-email": "other-learner@supertilt.fr"}',
+  true);
+
+select is(
+  public.get_learner_email(),
+  'learner-rls-test@supertilt.fr',
+  'un en-tête ne peut pas remplacer l identité du compte authentifié'
+);
+
+insert into public.learner_profiles (email, first_name)
+values ('LEARNER-RLS-TEST@SUPERTILT.FR', 'Learner');
+
+select is(
+  (select first_name from public.learner_profiles
+   where lower(email) = 'learner-rls-test@supertilt.fr'),
+  'Learner',
+  'un compte apprenant peut créer sa propre fiche profil'
+);
 
 select is(
   (select count(*)::int from public.crm_columns),
