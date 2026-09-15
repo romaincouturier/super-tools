@@ -122,6 +122,8 @@ export interface LmsLesson {
   /** Work-deposit feature (ST-2026-0043) — set by lesson editor in BO. */
   work_deposit_enabled?: boolean;
   work_deposit_config?: Record<string, unknown> | null;
+  /** Transcript d'origine quand la leçon a été générée depuis un transcript. */
+  source_transcript_id?: string | null;
   created_at: string;
   updated_at: string;
 }

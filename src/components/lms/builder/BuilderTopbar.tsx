@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Menu, ArrowLeft, Eye, ImageIcon, Mic } from "lucide-react";
+import { Menu, ArrowLeft, Eye, ImageIcon, Mic, FileText } from "lucide-react";
 import { LmsLesson, useCourse, useUpdateCourse } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/useConfirm";
 import { fetchEmptyLessonsForCourse, deleteLessonsByIds } from "@/services/lms-blocks";
 import BulkImageUploadDialog from "./BulkImageUploadDialog";
 import BulkAudioUploadDialog from "./BulkAudioUploadDialog";
+import TranscriptImportDialog from "./TranscriptImportDialog";
 
 interface Props {
   lesson?: LmsLesson;
@@ -27,6 +28,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
   const qc = useQueryClient();
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [audioDialogOpen, setAudioDialogOpen] = useState(false);
+  const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
 
   const status = course?.status ?? "draft";
   const isPublished = status === "published";
@@ -185,6 +187,15 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
         >
           <Mic size={16} />
         </button>
+        <button
+          type="button"
+          title="Construire des leçons à partir d'un transcript"
+          onClick={() => setTranscriptDialogOpen(true)}
+          className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5"
+          style={{ color: "var(--st-ink)" }}
+        >
+          <FileText size={16} />
+        </button>
 
         {/* Preview */}
         <a
@@ -214,6 +225,11 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
       <BulkAudioUploadDialog
         open={audioDialogOpen}
         onClose={() => setAudioDialogOpen(false)}
+        courseId={courseId}
+      />
+      <TranscriptImportDialog
+        open={transcriptDialogOpen}
+        onClose={() => setTranscriptDialogOpen(false)}
         courseId={courseId}
       />
       <ConfirmDialog />

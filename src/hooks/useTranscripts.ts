@@ -187,6 +187,23 @@ export function useTranscript(id: string | null) {
   });
 }
 
+/** Titre seul d'un transcript (badge de provenance) : `raw_text` jamais chargé. */
+export function useTranscriptTitle(id: string | null) {
+  return useQuery({
+    queryKey: ["transcript-title", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transcripts")
+        .select("id, title, ai_title")
+        .eq("id", id!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: string; title: string | null; ai_title: string | null } | null;
+    },
+  });
+}
+
 export function useTrashTranscript() {
   const qc = useQueryClient();
   return useMutation({

@@ -5295,6 +5295,7 @@ export type Database = {
           lesson_id: string
           parent_block_id: string | null
           position: number
+          source_transcript_id: string | null
           type: string
           updated_at: string
         }
@@ -5307,6 +5308,7 @@ export type Database = {
           lesson_id: string
           parent_block_id?: string | null
           position?: number
+          source_transcript_id?: string | null
           type: string
           updated_at?: string
         }
@@ -5319,6 +5321,7 @@ export type Database = {
           lesson_id?: string
           parent_block_id?: string | null
           position?: number
+          source_transcript_id?: string | null
           type?: string
           updated_at?: string
         }
@@ -5335,6 +5338,13 @@ export type Database = {
             columns: ["parent_block_id"]
             isOneToOne: false
             referencedRelation: "lms_lesson_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_lesson_blocks_source_transcript_id_fkey"
+            columns: ["source_transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
             referencedColumns: ["id"]
           },
         ]
@@ -5400,6 +5410,7 @@ export type Database = {
           module_id: string
           position: number
           quiz_id: string | null
+          source_transcript_id: string | null
           title: string
           updated_at: string
           video_duration_seconds: number | null
@@ -5422,6 +5433,7 @@ export type Database = {
           module_id: string
           position?: number
           quiz_id?: string | null
+          source_transcript_id?: string | null
           title: string
           updated_at?: string
           video_duration_seconds?: number | null
@@ -5444,6 +5456,7 @@ export type Database = {
           module_id?: string
           position?: number
           quiz_id?: string | null
+          source_transcript_id?: string | null
           title?: string
           updated_at?: string
           video_duration_seconds?: number | null
@@ -5471,6 +5484,13 @@ export type Database = {
             columns: ["quiz_id"]
             isOneToOne: false
             referencedRelation: "lms_quizzes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_lessons_source_transcript_id_fkey"
+            columns: ["source_transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
             referencedColumns: ["id"]
           },
         ]
