@@ -1063,6 +1063,7 @@ async function callTool(
           lessonType: (args.lesson_type as string) || "text",
           position: args.position as number | undefined,
           estimatedMinutes: args.estimated_minutes as number | undefined,
+          blocks: Array.isArray(args.blocks) ? args.blocks : undefined,
         });
         return textResult(JSON.stringify(result));
       } catch (e) {
