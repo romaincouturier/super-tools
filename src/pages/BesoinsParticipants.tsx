@@ -290,22 +290,29 @@ const BesoinsParticipants = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredSurveys.map((survey) => (
-                    <Collapsible key={survey.id} asChild>
+                    <Fragment key={survey.id}>
                       <>
                         <TableRow 
                           className="cursor-pointer hover:bg-muted/50"
                           onClick={() => toggleRow(survey.id)}
                         >
                           <TableCell>
-                            <CollapsibleTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6">
-                                {expandedRows.has(survey.id) ? (
-                                  <ChevronUp className="h-4 w-4" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </CollapsibleTrigger>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleRow(survey.id);
+                              }}
+                              aria-expanded={expandedRows.has(survey.id)}
+                            >
+                              {expandedRows.has(survey.id) ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </Button>
                           </TableCell>
                           <TableCell>
                             <div className="font-medium">
