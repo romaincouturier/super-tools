@@ -11,6 +11,15 @@ import { getBccList } from "../_shared/email-settings.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 
+/** Empreinte de l'adresse : le journal ne stocke jamais l'adresse en clair. */
+async function sha256Hex(value: string): Promise<string> {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 // Same helper used in send-elearning-access
 function formatContentToHtml(content: string): string {
   const blocks = content.split(/\n\n+/);
@@ -37,6 +46,22 @@ Deno.serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
+
+    // RG-08 : quota d'envoi tenu côté serveur. Au-delà, la réponse est la même,
+    // mais aucun email ne part.
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      || req.headers.get("x-real-ip") || "unknown";
+    const emailHash = await sha256Hex(email.trim().toLowerCase());
+    const { data: allowed } = await supabase.rpc("check_link_quota", {
+      p_email_hash: emailHash,
+      p_ip: ip,
+    });
+    if (allowed === false) {
+      return new Response(
+        JSON.stringify({ success: true, message: "Si un compte existe, un lien vous a été envoyé." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Check participant exists (silent fail for security)
     const { data: participants } = await supabase
@@ -169,6 +194,12 @@ Deno.serve(async (req) => {
 
     const hasMultiple = !!trainingsListHtml;
     const displayName = trainingName ?? (hasMultiple ? "vos formations" : "votre formation");
+
+    if (purpose === "login") {
+      // Le modèle d'activation annonce 7 jours : il ne convient pas à un lien
+      // de connexion de 30 minutes (RG-15). On rend le texte dédié.
+      template = null;
+    }
 
     if (template && !hasMultiple) {
       // Single training — use DB template

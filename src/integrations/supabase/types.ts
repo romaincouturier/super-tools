@@ -13178,6 +13178,7 @@ export type Database = {
       }
       connexion_indicators: { Args: { p_days?: number }; Returns: Json }
       current_user_access_level: { Args: never; Returns: string }
+      revoke_other_sessions: { Args: never; Returns: number }
       list_dormant_learner_accounts: {
         Args: { p_years?: number }
         Returns: { created_at: string; email: string; last_sign_in_at: string }[]

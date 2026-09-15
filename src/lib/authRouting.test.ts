@@ -59,8 +59,13 @@ describe("resolvePostLoginPath", () => {
     })).toBe("/compte-sans-acces");
   });
 
-  it("fait passer le changement de mot de passe obligatoire avant tout", () => {
+  it("fait passer le changement de mot de passe obligatoire avant tout, sans perdre la destination", () => {
     expect(resolvePostLoginPath({ isStaff: true, mustChangePassword: true, next: "/crm" }))
+      .toBe("/force-password-change?next=%2Fcrm");
+  });
+
+  it("n'ajoute pas de destination quand il n'y en a pas", () => {
+    expect(resolvePostLoginPath({ isStaff: true, mustChangePassword: true }))
       .toBe("/force-password-change");
   });
 });

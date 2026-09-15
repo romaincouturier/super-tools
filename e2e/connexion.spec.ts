@@ -129,6 +129,9 @@ test("le lien Se connecter de la landing mène à la page de connexion", async (
 test("un lien expiré propose d'en recevoir un nouveau, sans cul-de-sac", async ({ page }) => {
   await stubEdge(page, "redeem-learner-token", { status: "expired" });
   await page.goto("/connexion/lien?token=peu-importe");
+  // RG-21 : rien ne se consomme au chargement, l'apprenant agit d'abord.
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Accéder à mon espace");
+  await page.getByRole("button", { name: "Ouvrir mon espace" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Ce lien a expiré");
   await expect(page.locator('input[type="email"]')).toBeVisible();
   await expect(page.getByRole("button", { name: "Recevoir un nouveau lien" })).toBeVisible();
@@ -138,6 +141,7 @@ test("un lien déjà utilisé explique pourquoi et relance le parcours", async (
   await stubEdge(page, "redeem-learner-token", { status: "used", email: "apprenant@exemple.fr" });
   await stubEdge(page, "send-learner-magic-link", { success: true });
   await page.goto("/connexion/lien?token=deja-servi");
+  await page.getByRole("button", { name: "Ouvrir mon espace" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Ce lien a déjà servi");
   await page.getByRole("button", { name: "Recevoir un nouveau lien" }).click();
   await expect(page.getByText(/un nouveau lien vient de partir/)).toBeVisible();
@@ -161,6 +165,7 @@ test("un ancien lien reçu par email entre par la nouvelle ouverture de lien", a
   await stubEdge(page, "redeem-learner-token", { status: "used", email: "apprenant@exemple.fr" });
   await page.goto("/apprenant/connexion?token=ancien-jeton");
   await expect(page).toHaveURL(/\/connexion\/lien\?token=ancien-jeton$/);
+  await page.getByRole("button", { name: "Ouvrir mon espace" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Ce lien a déjà servi");
 });
 
@@ -174,4 +179,25 @@ test("un compte sans rattachement voit un écran explicite, sans boucle", async 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("n'a pas encore d'accès");
   await expect(page.getByRole("link", { name: /Écrire au support/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Me déconnecter/ })).toBeVisible();
+});
+
+test("un lien pré-cliqué par un robot de messagerie reste utilisable", async ({ page }) => {
+  let calls = 0;
+  await page.route("**/functions/v1/redeem-learner-token", async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: CORS });
+      return;
+    }
+    calls += 1;
+    await route.fulfill({
+      status: 200,
+      headers: { ...CORS, "content-type": "application/json" },
+      body: JSON.stringify({ status: "expired" }),
+    });
+  });
+
+  // Simule l'ouverture automatique : la page se charge, rien n'est consommé.
+  await page.goto("/connexion/lien?token=pre-clique");
+  await expect(page.getByRole("button", { name: "Ouvrir mon espace" })).toBeVisible();
+  expect(calls).toBe(0);
 });

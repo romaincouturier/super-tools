@@ -77,3 +77,37 @@ Chaque correction est couverte par un test qui échouerait si elle disparaissait
 - **Ordre de déploiement.** Le front sait se passer de la fonction de niveau
   d'accès tant que la migration n'est pas appliquée : il retombe sur la règle
   précédente plutôt que de déclarer tout le monde sans accès.
+
+---
+
+## Passe 4 : recette élargie à toute la spécification
+
+La passe 1 ne couvrait que les 28 critères d'acceptation. Le reste de la
+spécification porte autant d'exigences : 9 principes directeurs, 13 workflows,
+26 règles de gestion, le contrat du service de résolution, la table de routage
+et les règles anti-boucle. Passe jouée le 2026-09-15 sur ces exigences.
+
+### Écarts trouvés et corrigés
+
+| Exigence | Scénario métier | Constat | Correction |
+|----------|-----------------|---------|------------|
+| RG-21 | La sécurité de ma messagerie d'entreprise ouvre les liens avant moi. Quand je clique à mon tour, mon lien doit encore marcher. | **Échec.** L'ouverture du lien consommait le jeton dès le chargement de la page : un robot suffisait à le brûler. C'était précisément le risque que la règle décrivait. | La page d'arrivée ne consomme plus rien toute seule : elle affiche "Ouvrir mon espace", et le jeton n'est dépensé qu'après ce clic. |
+| RG-08 | Je demande vingt liens d'affilée pour l'adresse de quelqu'un d'autre. | **Échec.** Seul un délai de 60 secondes existait, dans le navigateur, donc contournable. Aucun quota côté serveur. | Quota serveur : 3 envois par adresse et 10 par adresse IP sur une heure glissante. Au-delà, même message, aucun email. |
+| RG-24 | Les traces de connexion ne doivent pas s'accumuler au-delà de 30 jours. | **Échec.** La fonction de purge existait mais n'était jamais appelée. | Purge quotidienne planifiée. |
+| RG-15 | Le lien que je reçois annonce la bonne durée. | **Échec.** Un lien de connexion de 30 minutes empruntait le modèle d'activation, qui promet 7 jours. | Un lien de connexion rend son propre texte, avec sa durée. |
+| W8.5 | Je change mon mot de passe parce que je me crois compromis : les sessions ouvertes ailleurs doivent tomber. | **Échec.** Aucune session n'était fermée. | Les autres sessions du compte sont révoquées, la courante est épargnée. |
+| W9.3 | Je me déconnecte : je retourne à l'accueil, pas sur un écran qui me redemande de me connecter. | **Échec.** Le portail renvoyait sur la page de connexion. | Retour à l'accueil. |
+| RG-13 | Ma déconnexion ne laisse rien derrière elle sur le poste. | **Partiel.** Seul le portail purgeait l'état local. | La déconnexion générale le purge aussi. |
+| Chapitre 7 | On m'impose un changement de mot de passe alors que je visais une page précise : j'y arrive après. | **Échec.** La destination était perdue. | Elle traverse l'écran de changement obligatoire. |
+| Chapitre 8 | La contrainte de mot de passe est levée : l'écran ne doit plus me retenir. | **Échec.** L'écran ne relisait pas la contrainte et renvoyait en dur au back-office. | Il la relit, libère vers la destination, et renvoie un visiteur non connecté vers la connexion. |
+
+### Exigences vérifiées sans écart
+
+Principes PR1 à PR9. Workflows W1 à W4, W6, W7, W10 à W13. Règles RG-01 à RG-07,
+RG-09 à RG-12, RG-14, RG-16 à RG-20, RG-22, RG-23, RG-25, RG-26. Contrat du
+service de résolution, cinq états et seuils. Table de routage, huit lignes.
+
+### Limite restée ouverte
+
+- **RG-25, suppression sous 30 jours.** C'est un engagement de traitement, tenu
+  par le support, pas par le code. La politique de confidentialité le porte.
