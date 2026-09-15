@@ -189,6 +189,8 @@ export async function listLmsLessons(input: ListLessonsInput): Promise<{ lessons
     blocksByLesson.get(b.lesson_id)!.push({ id: b.id, updated_at: b.updated_at, position: b.position });
   }
 
+  const fingerprints = await fetchFingerprints(lessonIds);
+
   const summaries: LessonSummary[] = rows
     .map((l) => {
       const top = blocksByLesson.get(l.id as string) ?? [];
@@ -203,7 +205,7 @@ export async function listLmsLessons(input: ListLessonsInput): Promise<{ lessons
         estimated_minutes: (l.estimated_minutes as number | null) ?? null,
         updated_at: l.updated_at as string,
         block_count: top.length,
-        fingerprint: computeFingerprint(top),
+        fingerprint: fingerprints.get(l.id as string) ?? "",
       };
     })
     .sort((a, b) => a.module_position - b.module_position || a.position - b.position);
