@@ -39,10 +39,24 @@ describe("get_learner_email", () => {
     expect(await learnerEmail()).toBe("alice@exemple.fr");
   });
 
-  it("ne rend rien sans session : l'en-tête déclaré ne vaut plus identité", async () => {
+  it("ne rend rien sans session, même avec l'en-tête déclaré par le navigateur", async () => {
     await db.query("INSERT INTO training_participants (email) VALUES ($1)", ["alice@exemple.fr"]);
-    await actAs(db, null);
+    // L'appelant pose l'en-tête, comme le faisait l'ancien client : il ne vaut
+    // plus identité (faille S1 de docs/AUDIT_SURFACES_EXPOSEES.md).
+    await actAs(db, { declaredEmail: "alice@exemple.fr" });
     expect(await learnerEmail()).toBeNull();
+  });
+
+  it("ne laisse pas un apprenant connecté se faire passer pour un autre par l'en-tête", async () => {
+    await db.query("INSERT INTO training_participants (email) VALUES ($1), ($2)", [
+      "alice@exemple.fr", "victime@exemple.fr",
+    ]);
+    await actAs(db, {
+      uid: "44444444-4444-4444-4444-444444444444",
+      email: "alice@exemple.fr",
+      declaredEmail: "victime@exemple.fr",
+    });
+    expect(await learnerEmail()).toBe("alice@exemple.fr");
   });
 
   it("ne rend rien pour une adresse authentifiée mais inconnue des référentiels", async () => {
