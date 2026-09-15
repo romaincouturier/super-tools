@@ -261,7 +261,7 @@ serve(async (req) => {
               <p>${greeting}</p>
               <p>Merci de bien vouloir signer ta présence pour la formation <strong>"${training.training_name}"</strong>.</p>
               <ul style="list-style: none; padding: 0; margin: 20px 0;">
-                <li>📍 <strong>Lieu :</strong> ${training.location}</li>
+                <li>📍 <strong>Lieu :</strong> ${displayLocation}</li>
                 <li>📅 <strong>Date :</strong> ${formattedDate}</li>
                 <li>🕐 <strong>Horaire :</strong> ${periodLabel} (${timeRange})</li>
               </ul>
@@ -316,7 +316,7 @@ serve(async (req) => {
               <p>Bonjour ${trainerFirstName},</p>
               <p>La session <strong>${periodLabel}</strong> de la formation <strong>"${training.training_name}"</strong> vient de démarrer.</p>
               <ul style="list-style: none; padding: 0; margin: 20px 0;">
-                <li>📍 <strong>Lieu :</strong> ${training.location}</li>
+                <li>📍 <strong>Lieu :</strong> ${displayLocation}</li>
                 <li>📅 <strong>Date :</strong> ${formattedDate}</li>
                 <li>🕐 <strong>Horaire :</strong> ${periodLabel} (${timeRange})</li>
                 <li>👥 <strong>Participants :</strong> ${signaturesSent} demande(s) d'émargement envoyée(s)</li>
