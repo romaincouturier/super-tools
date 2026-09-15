@@ -34,6 +34,11 @@ type SurveyPayload = {
     last_name: string | null;
     email: string;
   };
+  trainer: {
+    first_name: string;
+    last_name: string;
+    email: string;
+  } | null;
   questions: Question[];
   has_responded: boolean;
   previous_answers: { question_id: string; value: string | null; values: string[] | null }[];
@@ -228,6 +233,19 @@ export default function TrainingSurveyResponse() {
                 onChange={(v) => setAnswer(currentQuestion.id, { value: v })}
                 onMultiChange={(v) => setAnswer(currentQuestion.id, { values: v })}
               />
+
+              {data.trainer && (
+                <p className="text-sm text-muted-foreground">
+                  En cas de problème ou de question, contactez le formateur{" "}
+                  <span className="font-medium text-foreground">
+                    {[data.trainer.first_name, data.trainer.last_name].filter(Boolean).join(" ")}
+                  </span>{" "}
+                  à l’adresse{" "}
+                  <a className="font-medium text-primary underline underline-offset-2" href={`mailto:${data.trainer.email}`}>
+                    {data.trainer.email}
+                  </a>.
+                </p>
+              )}
 
               {error && <p className="text-sm text-destructive">{error}</p>}
 
