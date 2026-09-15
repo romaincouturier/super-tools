@@ -38,8 +38,10 @@ import {
 } from "../_shared/mission-tools.ts";
 import {
   applyLessonRestructure,
+  createLmsLesson,
   getLmsBlockCatalog,
   listLessonVersions,
+  listLmsCourses,
   listLmsLessons,
   readLmsLesson,
   restoreLessonVersion,
