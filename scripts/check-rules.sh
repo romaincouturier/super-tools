@@ -467,6 +467,13 @@ if [ "$STAGED_MODE" = "false" ]; then
   # [039] RLS LMS — chaque table de contenu apprenant doit avoir au moins une policy
   # FOR SELECT TO authenticated dans les migrations (sinon les apprenants voient la
   # structure mais pas le contenu — régression du 15/07/2026 sur lms_lesson_blocks).
+  # [058] Toute fonction SQL sensible est jouée par un test de supabase/tests/,
+  # chargé depuis sa migration. Une relecture ne garde aucune régression.
+  check "058" "Fonctions SQL sensibles couvertes par un test (supabase/tests)" \
+    "grep -v '^#' scripts/sql-tested-functions.txt | grep -v '^$' | while read -r fn; do \
+       grep -rqs \"\$fn\" supabase/tests/ || echo \"VIOLATION [058]: \$fn n'est joué par aucun test de supabase/tests/\"; \
+     done"
+
   check "039" "Tables LMS ont une policy SELECT TO authenticated" \
     "for t in lms_courses lms_modules lms_lessons lms_lesson_blocks lms_quizzes lms_quiz_questions; do \
        grep -rlE \"ON (public\\.)?\$t\" supabase/migrations/ --include='*.sql' 2>/dev/null \
