@@ -348,7 +348,7 @@ const BesoinsParticipants = () => {
                             </Button>
                           </TableCell>
                         </TableRow>
-                        <CollapsibleContent asChild>
+                        {expandedRows.has(survey.id) && (
                           <TableRow className="bg-muted/30">
                             <TableCell colSpan={7} className="p-4">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
