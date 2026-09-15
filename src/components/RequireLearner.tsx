@@ -21,5 +21,6 @@ export function RequireLearner() {
   if (status === "anon") {
     return <Navigate to={buildLoginPath("/connexion", location.pathname + location.search)} replace />;
   }
+  if (status === "none") return <Navigate to="/compte-sans-acces" replace />;
   return <Outlet />;
 }

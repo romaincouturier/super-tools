@@ -16,6 +16,7 @@ export type RedeemResponse = {
   status?: string;
   email?: string;
   token_hash?: string;
+  next?: string | null;
 };
 
 /** Traduit la réponse du serveur en étape d'écran. */
@@ -31,6 +32,7 @@ export function useLearnerTokenRedemption() {
   const [stage, setStage] = useState<RedemptionStage>("redeeming");
   const [email, setEmail] = useState("");
   const [sessionEmail, setSessionEmail] = useState("");
+  const [destination, setDestination] = useState<string | null>(null);
   const [pending, setPending] = useState<{ token: string; tokenHash: string } | null>(null);
   const { invoke } = useEdgeFunction<RedeemResponse>("redeem-learner-token", { silentOnError: true });
 
@@ -78,6 +80,7 @@ export function useLearnerTokenRedemption() {
 
     const payload = await invoke({ token });
     if (payload?.email) setEmail(payload.email);
+    if (payload?.next) setDestination(payload.next);
 
     const next = stageFromResponse(payload);
     if (next !== "connected") {
@@ -107,5 +110,5 @@ export function useLearnerTokenRedemption() {
     await openSession(token, payload!.token_hash!);
   }, [openSession, invoke]);
 
-  return { stage, email, sessionEmail, redeem, keepCurrentSession, switchAccount };
+  return { stage, email, sessionEmail, destination, redeem, keepCurrentSession, switchAccount };
 }

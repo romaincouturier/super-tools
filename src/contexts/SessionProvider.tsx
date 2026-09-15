@@ -1,6 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAccessLevel } from "@/lib/accessLevel";
 
 /**
  * Fournisseur unique de l'état de session (lot 2 de la refonte de connexion,
@@ -13,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
  * - tant que le statut vaut "loading", aucune garde ne décide ;
  * - un rafraîchissement de jeton n'est pas une déconnexion.
  */
-export type SessionStatus = "loading" | "anon" | "learner" | "staff";
+export type SessionStatus = "loading" | "anon" | "learner" | "staff" | "none";
 
 export type SessionState = {
   status: SessionStatus;
@@ -51,8 +52,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // relancer les effets qui en dépendent à chaque rafraîchissement de jeton.
     setUser((prev) => (prev && prev.id === nextUser.id ? prev : nextUser));
 
-    const [{ data: profile }, { data: security }] = await Promise.all([
-      supabase.from("profiles").select("user_id").eq("user_id", nextUser.id).maybeSingle(),
+    // Le niveau d'accès est résolu côté serveur : un compte authentifié qui
+    // n'est rattaché à rien est un état explicite, pas un apprenant par défaut.
+    const [level, { data: security }] = await Promise.all([
+      fetchAccessLevel(nextUser.id),
       supabase
         .from("user_security_metadata")
         .select("must_change_password")
@@ -61,9 +64,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     ]);
 
     if (!mounted.current) return;
-    setIsStaff(!!profile);
+    const resolved = level;
+    setIsStaff(resolved === "staff");
     setMustChangePassword(security?.must_change_password === true);
-    setStatus(profile ? "staff" : "learner");
+    setStatus(resolved);
   }, []);
 
   useEffect(() => {

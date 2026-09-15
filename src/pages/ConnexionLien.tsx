@@ -10,7 +10,7 @@ import { validatePassword } from "@/lib/passwordValidation";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { useLearnerTokenRedemption } from "@/hooks/useLearnerTokenRedemption";
 import { useAuthActions } from "@/hooks/useAuthActions";
-import { LEARNER_HOME } from "@/lib/authRouting";
+import { LEARNER_HOME, sanitizeRedirect, REDIRECT_PARAM } from "@/lib/authRouting";
 
 /**
  * Ouverture d'un lien reçu par email (W5 et W10).
@@ -21,7 +21,7 @@ export default function ConnexionLien() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get("token") ?? "";
-  const { stage, email, sessionEmail, redeem, keepCurrentSession, switchAccount } = useLearnerTokenRedemption();
+  const { stage, email, sessionEmail, destination, redeem, keepCurrentSession, switchAccount } = useLearnerTokenRedemption();
   const started = useRef(false);
 
   const [password, setPassword] = useState("");
@@ -42,7 +42,11 @@ export default function ConnexionLien() {
     void redeem(token);
   }, [token, redeem]);
 
-  const goToSpace = useCallback(() => navigate(LEARNER_HOME, { replace: true }), [navigate]);
+  // Destination : celle portée par l'URL, sinon celle rendue par le lien,
+  // sinon le tableau de bord (critères 8 et 14).
+  const target =
+    sanitizeRedirect(searchParams.get(REDIRECT_PARAM)) ?? sanitizeRedirect(destination) ?? LEARNER_HOME;
+  const goToSpace = useCallback(() => navigate(target, { replace: true }), [navigate, target]);
 
   useEffect(() => {
     if (stage === "connected") goToSpace();

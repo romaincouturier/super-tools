@@ -48,6 +48,17 @@ describe("resolvePostLoginPath", () => {
   it("laisse le staff rejoindre la destination mémorisée", () => {
     expect(resolvePostLoginPath({ isStaff: true, mustChangePassword: false, next: "/crm" })).toBe("/crm");
   });
+  it("envoie un compte sans rattachement sur son écran dédié", () => {
+    expect(resolvePostLoginPath({ isStaff: false, mustChangePassword: false, hasAccess: false }))
+      .toBe("/compte-sans-acces");
+  });
+
+  it("ne renvoie pas un compte sans rattachement vers une destination mémorisée", () => {
+    expect(resolvePostLoginPath({
+      isStaff: false, mustChangePassword: false, hasAccess: false, next: "/espace-apprenant/pratique",
+    })).toBe("/compte-sans-acces");
+  });
+
   it("fait passer le changement de mot de passe obligatoire avant tout", () => {
     expect(resolvePostLoginPath({ isStaff: true, mustChangePassword: true, next: "/crm" }))
       .toBe("/force-password-change");
