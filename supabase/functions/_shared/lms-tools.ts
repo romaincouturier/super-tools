@@ -438,32 +438,47 @@ export interface CreateLessonInput {
   lessonType?: string;
   position?: number;
   estimatedMinutes?: number | null;
+  blocks?: unknown[];
 }
 
 export async function createLmsLesson(input: CreateLessonInput): Promise<{ lesson: LessonDetail }> {
-  const { moduleId, title, lessonType = "text", position, estimatedMinutes } = input;
+  const { moduleId, title, lessonType = "text", position, estimatedMinutes, blocks } = input;
   if (!isValidUuid(moduleId)) throw new Error("Invalid module_id");
   const cleanTitle = sanitizePlainText(String(title ?? "")).trim();
   if (!cleanTitle) throw new Error("title is required");
   if (!CREATABLE_LESSON_TYPES.has(lessonType)) {
     throw new Error(`lesson_type "${lessonType}" is not allowed. Use one of: ${[...CREATABLE_LESSON_TYPES].join(", ")}`);
   }
+  if (blocks !== undefined && !Array.isArray(blocks)) throw new Error("blocks must be an array");
   await requireStaffOrService();
 
   const supabase = getSupabaseClient();
   const { data: mod } = await supabase.from("lms_modules").select("id").eq("id", moduleId).maybeSingle();
   if (!mod) throw new Error(`Module ${moduleId} not found`);
 
-  let finalPosition = position;
-  if (finalPosition === undefined || finalPosition === null) {
-    const { data: last } = await supabase
-      .from("lms_lessons")
-      .select("position")
-      .eq("module_id", moduleId)
-      .order("position", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    finalPosition = ((last?.position as number | undefined) ?? -1) + 1;
+  // Validate blocks BEFORE inserting the lesson, so a bad payload never leaves an empty lesson behind.
+  const sanitizedBlocks = blocks && blocks.length > 0 ? sanitizeRestructureBlocks(blocks) : [];
+
+  const { data: siblings } = await supabase
+    .from("lms_lessons")
+    .select("id, position")
+    .eq("module_id", moduleId)
+    .order("position", { ascending: true });
+
+  const existing = (siblings ?? []) as { id: string; position: number }[];
+  const maxPosition = existing.length > 0 ? existing[existing.length - 1].position : -1;
+  const finalPosition = position === undefined || position === null ? maxPosition + 1 : Math.max(0, Math.trunc(position));
+
+  // Insert at an explicit position: shift the following lessons to keep positions unique and ordered.
+  if (position !== undefined && position !== null) {
+    const toShift = existing.filter((l) => l.position >= finalPosition).sort((a, b) => b.position - a.position);
+    for (const l of toShift) {
+      const { error: shiftError } = await supabase
+        .from("lms_lessons")
+        .update({ position: l.position + 1 })
+        .eq("id", l.id);
+      if (shiftError) throw new Error(`Failed to shift lesson positions: ${shiftError.message}`);
+    }
   }
 
   const { data, error } = await supabase
@@ -479,6 +494,16 @@ export async function createLmsLesson(input: CreateLessonInput): Promise<{ lesso
     .single();
 
   if (error || !data) throw new Error(`Failed to create lesson: ${error?.message ?? "unknown error"}`);
+
+  if (sanitizedBlocks.length > 0) {
+    const fingerprint = await fetchFingerprint(data.id);
+    await applyLessonRestructure({
+      lessonId: data.id,
+      fingerprint,
+      blocks: sanitizedBlocks,
+      source: "mcp:create_lms_lesson",
+    });
+  }
 
   return { lesson: await readLmsLesson(data.id) };
 }
