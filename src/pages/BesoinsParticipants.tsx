@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,11 +21,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -290,22 +285,29 @@ const BesoinsParticipants = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredSurveys.map((survey) => (
-                    <Collapsible key={survey.id} asChild>
+                    <Fragment key={survey.id}>
                       <>
                         <TableRow 
                           className="cursor-pointer hover:bg-muted/50"
                           onClick={() => toggleRow(survey.id)}
                         >
                           <TableCell>
-                            <CollapsibleTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6">
-                                {expandedRows.has(survey.id) ? (
-                                  <ChevronUp className="h-4 w-4" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </CollapsibleTrigger>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleRow(survey.id);
+                              }}
+                              aria-expanded={expandedRows.has(survey.id)}
+                            >
+                              {expandedRows.has(survey.id) ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </Button>
                           </TableCell>
                           <TableCell>
                             <div className="font-medium">
@@ -341,7 +343,7 @@ const BesoinsParticipants = () => {
                             </Button>
                           </TableCell>
                         </TableRow>
-                        <CollapsibleContent asChild>
+                        {expandedRows.has(survey.id) && (
                           <TableRow className="bg-muted/30">
                             <TableCell colSpan={7} className="p-4">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -459,9 +461,9 @@ const BesoinsParticipants = () => {
                               </div>
                             </TableCell>
                           </TableRow>
-                        </CollapsibleContent>
+                        )}
                       </>
-                    </Collapsible>
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>
