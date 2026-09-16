@@ -133,16 +133,26 @@ const SupertiltConfirmationEnvoi = lazy(() => import("./pages/SupertiltConfirmat
 
 // In-memory query client only — no IndexedDB persistence.
 // Persisting the cache caused stale UIs ("vieille interface") on returning visits.
+// Erreurs transitoires PostgREST (schema cache pas encore chargé) : on retente
+// silencieusement au lieu de remonter une erreur à l'utilisateur / Sentry.
+const isTransientSchemaCacheError = (error: unknown): boolean => {
+  const e = error as { code?: string; message?: string } | null;
+  if (!e) return false;
+  return e.code === "PGRST002" || (e.message ?? "").includes("schema cache");
+};
+
 const queryClient = new QueryClient({
   // Règle [037] : toute erreur de query/mutation remonte à Sentry, même si
   // elle est ensuite absorbée par un toast local.
   queryCache: new QueryCache({
     onError: (error, query) => {
+      if (isTransientSchemaCacheError(error)) return;
       reportHandledError(error, { queryKey: query.queryKey });
     },
   }),
   mutationCache: new MutationCache({
     onError: (error, _variables, _context, mutation) => {
+      if (isTransientSchemaCacheError(error)) return;
       reportHandledError(error, { mutationKey: mutation.options.mutationKey });
     },
   }),
@@ -151,9 +161,14 @@ const queryClient = new QueryClient({
       staleTime: 1000 * 60 * 5, // 5 minutes
       gcTime: 1000 * 60 * 30, // 30 minutes
       refetchOnWindowFocus: false,
+      retry: (failureCount, error) =>
+        isTransientSchemaCacheError(error) ? failureCount < 5 : failureCount < 3,
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
     },
   },
 });
+
+
 
 // Loading fallback component
 const PageLoader = () => (
