@@ -264,12 +264,14 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
 - update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre « type » doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
 - create_lms_lesson : crée une leçon dans un module, avec éventuellement ses blocs de contenu initiaux (paramètre « blocks », même schéma que apply_lesson_restructure). Position facultative : si elle est fournie, les leçons suivantes du module sont décalées d'un rang. Écriture additive : aucune leçon existante n'est modifiée dans son contenu. Retourne l'id et l'empreinte de la leçon créée.
-- apply_lesson_restructure : remplace les blocs de contenu de premier niveau d'une leçon par une nouvelle structure proposée. EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
+- apply_lesson_restructure : remplace TOUS les blocs de premier niveau d'une leçon par une nouvelle structure proposée. Tous les types du menu « Ajouter un bloc » sont acceptés : blocs de contenu (texte, tableau, encadré, points clés, liste, checklist, synthèse, accordéon, frise, cartes à retourner, code, exercice, auto-évaluation, texte à trous, mots à glisser, quiz, devoir, dépôt de travail, vidéo, image, galerie, fichier, image interactive, avant/après, bouton, CTA, intégration HTML, shortcode) et blocs de mise en page (section, colonnes, conteneur, contenu progressif, séparateur, espace) qui peuvent porter un tableau « children » de blocs de contenu (un seul niveau d'imbrication). EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
 Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress n'est possible depuis ici.
 
 RESTRUCTURATION PÉDAGOGIQUE (LMS)
 - Lire la leçon avec read_lms_lesson pour connaître les blocs existants et leur empreinte (fingerprint).
-- Proposer une restructuration en utilisant uniquement les types listés par list_lms_block_types comme éditables via MCP. Les quiz, devoirs, blocs de mise en page, HTML libre et médias ne sont pas modifiables ici.
+- Appeler list_lms_block_types pour connaître les champs exacts de chaque type, son genre (contenu ou mise en page) et s'il accepte des enfants. Ne jamais inventer de nom de champ.
+- Le payload de apply_lesson_restructure décrit l'intégralité du corps de la leçon : tout bloc omis est supprimé. Reprendre donc les blocs à conserver tels quels.
+- Les blocs quiz/devoir/dépôt de travail référencent des ressources existantes (quiz_id, assignment_id) : ne pas en créer de nouvelles depuis le MCP.
 - Recevoir un accord explicite de l'utilisateur (par exemple « Oui, applique cette version ») avant d'appeler apply_lesson_restructure.
 - L'outil créera une version de sauvegarde ; l'utilisateur pourra restaurer via restore_lesson_version ou depuis l'interface SuperTools.
 
@@ -635,7 +637,7 @@ const MCP_TOOLS = [
   {
     name: "list_lms_block_types",
     description:
-      "Return the catalog of LMS block types: which are editable via MCP, their required fields, pedagogical guidance (when to use / when not), and which types are out of scope (layout, quiz, assignment, media, embed). Use before proposing a restructure.",
+      "Return the catalog of every LMS block type available in the editor's 'Ajouter un bloc' menu: block kind (content or layout), whether it accepts children, its fields with their kind (html, text, url, number, boolean, enum, items, raw, embed_html) and requiredness, and pedagogical guidance (when to use / when not). Use before proposing a restructure or creating a lesson.",
     inputSchema: { type: "object", properties: {} },
   },
   {
@@ -675,7 +677,7 @@ const MCP_TOOLS = [
   {
     name: "apply_lesson_restructure",
     description:
-      "Replace the top-level content blocks of an LMS lesson with a new structure. Requires the exact lesson fingerprint from read_lms_lesson. A snapshot is created automatically before writing; the previous version can be restored. MUST only be called after the user has explicitly approved the proposed structure in the conversation.",
+      "Replace ALL top-level blocks of an LMS lesson with a new structure. Requires the exact lesson fingerprint from read_lms_lesson. Every block type offered by the editor's 'Ajouter un bloc' menu is accepted: content blocks (text, table, callout, key_points, bullet_list, checklist, summary, accordion, timeline, flip_cards, code, exercise, self_assessment, fill_blanks, drag_words, quiz, assignment, work_deposit, video, image, gallery, file, image_hotspot, before_after, button, cta, html_embed, shortcode) and layout blocks (section, row, container, reveal, divider, spacer) which may carry a `children` array of content blocks (one nesting level). The payload describes the whole lesson body: blocks absent from it are removed. A snapshot is created automatically before writing. MUST only be called after the user has explicitly approved the proposed structure in the conversation.",
     inputSchema: {
       type: "object",
       properties: {
@@ -683,8 +685,10 @@ const MCP_TOOLS = [
         fingerprint: { type: "string", description: "Fingerprint from read_lms_lesson" },
         blocks: {
           type: "array",
-          description: "Array of new top-level content blocks (type + content). Only editable block types are accepted.",
+          description:
+            "Array of new top-level blocks: { type, content, hidden?, children? }. Field names and required fields per type come from list_lms_block_types. `children` is only allowed on section/row/container/reveal and may contain content blocks only.",
         },
+
         source: { type: "string", description: "Source label, default 'mcp'" },
       },
       required: ["lesson_id", "fingerprint", "blocks"],
@@ -1168,7 +1172,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.3.1" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.4.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }

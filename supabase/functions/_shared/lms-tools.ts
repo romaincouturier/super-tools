@@ -7,8 +7,11 @@ import {
   sanitizeHtml,
   sanitizePlainText,
   sanitizeRestructureBlocks,
+  sanitizeUpdatePatch,
   type CatalogEntry,
+  type SanitizedBlock,
 } from "./lms-block-catalog.ts";
+
 
 const PAGE_LIMIT_DEFAULT = 25;
 const PAGE_LIMIT_MAX = 100;
@@ -276,30 +279,19 @@ export async function updateLmsBlock(input: UpdateBlockInput): Promise<LessonBlo
   const entry = getCatalogEntry(type);
   if (!entry) throw new Error(`Unknown block type "${type}"`);
 
-  // Only allow textual/HTML fields defined in the catalog.
-  const allowedFields = new Set(entry.fields.map((f) => f.name));
-  const sanitizedContent: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(patch)) {
-    if (!allowedFields.has(key)) continue;
-    const field = entry.fields.find((f) => f.name === key)!;
-    if (value === null || value === undefined) {
-      sanitizedContent[key] = null;
-    } else if (field.type === "html") {
-      sanitizedContent[key] = sanitizeHtml(String(value));
-    } else if (field.type === "plain" || field.type === "string" || field.type === "enum") {
-      sanitizedContent[key] = sanitizePlainText(String(value));
-    } else if (field.type === "string[]") {
-      sanitizedContent[key] = (Array.isArray(value) ? value : [value]).map((v) => (typeof v === "string" ? sanitizePlainText(v) : ""));
-    } else if (field.type === "boolean") {
-      sanitizedContent[key] = Boolean(value);
-    } else if (field.type === "number") {
-      const n = Number(value);
-      sanitizedContent[key] = Number.isNaN(n) ? 0 : n;
-    }
+  // Only allow fields defined in the catalog for this type.
+  const sanitizedPatch = sanitizeUpdatePatch(type, patch);
+  if (Object.keys(sanitizedPatch).length === 0) {
+    throw new Error(`No editable field provided for block type "${type}"`);
   }
 
+
   const supabase = getSupabaseClient();
-  const { data: existing } = await supabase.from("lms_lesson_blocks").select("id, type").eq("id", blockId).maybeSingle();
+  const { data: existing } = await supabase
+    .from("lms_lesson_blocks")
+    .select("id, type, content")
+    .eq("id", blockId)
+    .maybeSingle();
   if (!existing) throw new Error(`Block ${blockId} not found`);
   // Type changes are NOT supported here: writing another type's content shape under the
   // existing type would silently corrupt the block. Use apply_lesson_restructure instead.
@@ -309,12 +301,17 @@ export async function updateLmsBlock(input: UpdateBlockInput): Promise<LessonBlo
     );
   }
 
+  // Merge into the existing content so untouched fields (styles, medias) survive.
+  const currentContent = (existing.content ?? {}) as Record<string, unknown>;
+  const sanitizedContent = { ...currentContent, ...sanitizedPatch };
+
   const { data, error } = await supabase
     .from("lms_lesson_blocks")
     .update({ content: sanitizedContent, updated_at: new Date().toISOString() })
     .eq("id", blockId)
     .select("id, type, kind, parent_block_id, position, hidden, content, updated_at")
     .single();
+
 
   if (error || !data) throw new Error(error?.message ?? "Failed to update block");
 
@@ -343,13 +340,17 @@ export async function applyLessonRestructure(input: ApplyRestructureInput): Prom
   if (!Array.isArray(blocks)) throw new Error("blocks must be an array");
   await requireStaffOrService();
 
-  // Sanitize and validate all blocks before sending to DB.
+  // Sanitize and validate all blocks (including layout children) before sending to DB.
   const sanitized = sanitizeRestructureBlocks(blocks);
-  const asJsonb = sanitized.map(({ type, content, hidden }) => ({
-    type,
-    content,
-    hidden: hidden ?? false,
-  }));
+  const toJsonb = (b: SanitizedBlock): Record<string, unknown> => ({
+    type: b.type,
+    kind: b.kind,
+    content: b.content,
+    hidden: b.hidden ?? false,
+    ...(b.children ? { children: b.children.map(toJsonb) } : {}),
+  });
+  const asJsonb = sanitized.map(toJsonb);
+
 
   const supabase = getSupabaseClient();
   const { error } = await supabase.rpc("apply_lesson_restructure", {
@@ -411,16 +412,18 @@ export async function restoreLessonVersion(snapshotId: string): Promise<{ lesson
 }
 
 export interface CatalogOutput {
-  editableTypes: Pick<CatalogEntry, "type" | "kind" | "labelFr" | "fields" | "guidance">[];
+  editableTypes: Pick<CatalogEntry, "type" | "kind" | "blockKind" | "labelFr" | "acceptsChildren" | "fields" | "guidance">[];
   nonEditableTypes: Pick<CatalogEntry, "type" | "kind" | "labelFr" | "guidance">[];
 }
 
 export function getLmsBlockCatalog(): CatalogOutput {
   const all = getBlockCatalog();
-  const editable = getEditableCatalog().map(({ type, kind, labelFr, fields, guidance }) => ({
+  const editable = getEditableCatalog().map(({ type, kind, blockKind, labelFr, acceptsChildren, fields, guidance }) => ({
     type,
     kind,
+    blockKind,
     labelFr,
+    ...(acceptsChildren ? { acceptsChildren } : {}),
     fields,
     guidance,
   }));
@@ -429,6 +432,7 @@ export function getLmsBlockCatalog(): CatalogOutput {
     .map(({ type, kind, labelFr, guidance }) => ({ type, kind, labelFr, guidance }));
   return { editableTypes: editable, nonEditableTypes: nonEditable };
 }
+
 
 const CREATABLE_LESSON_TYPES = new Set(["text", "content", "image", "file"]);
 
