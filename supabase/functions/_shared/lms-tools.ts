@@ -284,7 +284,11 @@ export async function updateLmsBlock(input: UpdateBlockInput): Promise<LessonBlo
 
 
   const supabase = getSupabaseClient();
-  const { data: existing } = await supabase.from("lms_lesson_blocks").select("id, type").eq("id", blockId).maybeSingle();
+  const { data: existing } = await supabase
+    .from("lms_lesson_blocks")
+    .select("id, type, content")
+    .eq("id", blockId)
+    .maybeSingle();
   if (!existing) throw new Error(`Block ${blockId} not found`);
   // Type changes are NOT supported here: writing another type's content shape under the
   // existing type would silently corrupt the block. Use apply_lesson_restructure instead.
@@ -294,12 +298,17 @@ export async function updateLmsBlock(input: UpdateBlockInput): Promise<LessonBlo
     );
   }
 
+  // Merge into the existing content so untouched fields (styles, medias) survive.
+  const currentContent = (existing.content ?? {}) as Record<string, unknown>;
+  const sanitizedContent = { ...currentContent, ...sanitizedPatch };
+
   const { data, error } = await supabase
     .from("lms_lesson_blocks")
     .update({ content: sanitizedContent, updated_at: new Date().toISOString() })
     .eq("id", blockId)
     .select("id, type, kind, parent_block_id, position, hidden, content, updated_at")
     .single();
+
 
   if (error || !data) throw new Error(error?.message ?? "Failed to update block");
 
