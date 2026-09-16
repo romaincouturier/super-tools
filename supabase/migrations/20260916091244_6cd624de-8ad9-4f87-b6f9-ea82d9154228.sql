@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.lms_learner_is_enrolled(uuid) TO anon;
