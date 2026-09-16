@@ -276,27 +276,12 @@ export async function updateLmsBlock(input: UpdateBlockInput): Promise<LessonBlo
   const entry = getCatalogEntry(type);
   if (!entry) throw new Error(`Unknown block type "${type}"`);
 
-  // Only allow textual/HTML fields defined in the catalog.
-  const allowedFields = new Set(entry.fields.map((f) => f.name));
-  const sanitizedContent: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(patch)) {
-    if (!allowedFields.has(key)) continue;
-    const field = entry.fields.find((f) => f.name === key)!;
-    if (value === null || value === undefined) {
-      sanitizedContent[key] = null;
-    } else if (field.type === "html") {
-      sanitizedContent[key] = sanitizeHtml(String(value));
-    } else if (field.type === "plain" || field.type === "string" || field.type === "enum") {
-      sanitizedContent[key] = sanitizePlainText(String(value));
-    } else if (field.type === "string[]") {
-      sanitizedContent[key] = (Array.isArray(value) ? value : [value]).map((v) => (typeof v === "string" ? sanitizePlainText(v) : ""));
-    } else if (field.type === "boolean") {
-      sanitizedContent[key] = Boolean(value);
-    } else if (field.type === "number") {
-      const n = Number(value);
-      sanitizedContent[key] = Number.isNaN(n) ? 0 : n;
-    }
+  // Only allow fields defined in the catalog for this type.
+  const sanitizedPatch = sanitizeUpdatePatch(type, patch);
+  if (Object.keys(sanitizedPatch).length === 0) {
+    throw new Error(`No editable field provided for block type "${type}"`);
   }
+
 
   const supabase = getSupabaseClient();
   const { data: existing } = await supabase.from("lms_lesson_blocks").select("id, type").eq("id", blockId).maybeSingle();
