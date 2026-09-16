@@ -21,7 +21,7 @@ import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { toastError } from "@/lib/toastError";
 import { useCourseModules, useCourseLessons, useCreateLesson } from "@/hooks/useLms";
 import { useTranscriptsPage } from "@/hooks/useTranscripts";
-import { createLessonBlock } from "@/services/lms-blocks";
+import { createLessonBlock, getMaxBlockPosition } from "@/services/lms-blocks";
 import {
   analyzeTranscriptsForLessons,
   buildLessonBlockContents,
@@ -219,13 +219,14 @@ export default function TranscriptImportDialog({ open, onClose, courseId }: Prop
           lessonsCreated++;
         }
 
-        for (const content of contents) {
+        const basePosition = await getMaxBlockPosition(lessonId, null);
+        for (const [i, content] of contents.entries()) {
           await createLessonBlock({
             lesson_id: lessonId,
             type: "text",
             kind: "content",
             parent_block_id: null,
-            position: 9999,
+            position: basePosition + 1 + i,
             content,
             ...(draft.transcriptId ? { source_transcript_id: draft.transcriptId } : {}),
           } as Parameters<typeof createLessonBlock>[0]);
