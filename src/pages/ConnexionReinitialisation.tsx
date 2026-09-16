@@ -2,9 +2,7 @@ import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { KeyRound, Lock, ShieldCheck, CheckCircle2, Circle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  AuthShell, AuthSplitCard, AuthBadge, AuthInfoPanel, AuthSupportLine,
-} from "@/components/auth/AuthShell";
+import { AuthBadge, AuthInfoPanel, AuthShell, AuthSplitCard, AuthSupportLine, AuthTitle } from "@/components/auth/AuthShell";
 import { AuthField, AuthButton } from "@/components/auth/AuthField";
 import { validatePassword } from "@/lib/passwordValidation";
 import { useAuthActions, usePasswordRecoverySession } from "@/hooks/useAuthActions";
@@ -60,9 +58,9 @@ export default function ConnexionReinitialisation() {
           left={
             <>
               <AuthBadge><KeyRound className="h-6 w-6" /></AuthBadge>
-              <h1 className="mb-3 text-[27px] font-semibold leading-tight tracking-[-0.9px] sm:text-[33px]">
+              <AuthTitle>
                 Ce lien a expiré
-              </h1>
+              </AuthTitle>
               <p className="mb-7 max-w-[42ch] text-[15.5px] text-[#6b7686]">
                 Les liens de réinitialisation sont valables 1 heure et ne fonctionnent qu'une fois.
                 Demandez-en un nouveau, nous vous l'envoyons tout de suite.
@@ -93,9 +91,9 @@ export default function ConnexionReinitialisation() {
         left={
           <>
             <AuthBadge><KeyRound className="h-6 w-6" /></AuthBadge>
-            <h1 className="mb-2 text-[26px] font-semibold leading-tight tracking-[-0.9px] sm:text-[30px]">
+            <AuthTitle>
               Nouveau mot de passe
-            </h1>
+            </AuthTitle>
             <p className="mb-5 max-w-[42ch] text-[15.5px] text-[#6b7686]">
               Choisissez un nouveau mot de passe pour sécuriser votre compte.
             </p>

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { UserX } from "lucide-react";
-import { AuthShell, AuthCard } from "@/components/auth/AuthShell";
+import { AuthCard, AuthShell, AuthTitle } from "@/components/auth/AuthShell";
 import { AuthButton } from "@/components/auth/AuthField";
 import { useSession } from "@/hooks/useSession";
 
@@ -19,9 +19,9 @@ export default function CompteSansAcces() {
         <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[#fdf6e4]">
           <UserX className="h-7 w-7 text-[#1a2230]" />
         </div>
-        <h1 className="mb-2.5 text-[26px] font-semibold leading-tight tracking-[-0.7px] sm:text-[31px]">
+        <AuthTitle>
           Votre compte n'a pas encore d'accès
-        </h1>
+        </AuthTitle>
         <p className="mb-8 text-base text-[#6b7686]">
           Votre compte {email ? <strong>{email}</strong> : null} existe bien, mais aucune formation
           ni aucun espace ne lui est rattaché. Écrivez-nous, nous réglons cela rapidement.

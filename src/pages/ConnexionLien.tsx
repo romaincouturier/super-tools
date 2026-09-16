@@ -2,9 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { KeyRound, Lock, CheckCircle2, Circle, ShieldCheck, Mail } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  AuthShell, AuthCard, AuthSplitCard, AuthBadge, AuthInfoPanel, AuthSupportLine,
-} from "@/components/auth/AuthShell";
+import { AuthBadge, AuthCard, AuthInfoPanel, AuthShell, AuthSplitCard, AuthSupportLine, AuthTitle } from "@/components/auth/AuthShell";
 import { AuthField, AuthButton } from "@/components/auth/AuthField";
 import { validatePassword } from "@/lib/passwordValidation";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
@@ -86,9 +84,9 @@ export default function ConnexionLien() {
           <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[#fdf6e4]">
             <KeyRound className="h-7 w-7 text-[#1a2230]" />
           </div>
-          <h1 className="mb-2.5 text-[26px] font-semibold leading-tight tracking-[-0.7px] sm:text-[31px]">
+          <AuthTitle>
             Accéder à mon espace
-          </h1>
+          </AuthTitle>
           <p className="mb-8 text-base text-[#6b7686]">
             Cliquez pour ouvrir votre espace apprenant. Votre lien reste valable tant que vous ne
             l'avez pas utilisé, même si votre messagerie l'a ouvert avant vous.
@@ -114,9 +112,9 @@ export default function ConnexionLien() {
     return (
       <AuthShell backLabel="Aller à la connexion" onBack={() => navigate("/connexion")}>
         <AuthCard>
-          <h1 className="mb-2.5 text-[26px] font-semibold leading-tight tracking-[-0.7px] sm:text-[31px]">
+          <AuthTitle>
             Vous êtes déjà connecté
-          </h1>
+          </AuthTitle>
           <p className="mb-8 text-base text-[#6b7686]">
             Vous êtes connecté en tant que {sessionEmail}. Ce lien concerne {email}.
           </p>
@@ -144,9 +142,9 @@ export default function ConnexionLien() {
           left={
             <>
               <AuthBadge><KeyRound className="h-6 w-6" /></AuthBadge>
-              <h1 className="mb-2 text-[26px] font-semibold leading-tight tracking-[-0.9px] sm:text-[30px]">
+              <AuthTitle>
                 Vous y êtes
-              </h1>
+              </AuthTitle>
               <p className="mb-5 max-w-[42ch] text-[15.5px] text-[#6b7686]">
                 Souhaitez-vous définir un mot de passe ? Vous pourrez vous connecter directement,
                 sans passer par votre boîte mail.
@@ -219,9 +217,9 @@ export default function ConnexionLien() {
     return (
       <AuthShell backLabel="Aller à la connexion" onBack={() => navigate("/connexion")}>
         <AuthCard>
-          <h1 className="mb-2.5 text-[26px] font-semibold leading-tight tracking-[-0.7px] sm:text-[31px]">
+          <AuthTitle>
             Nous n'arrivons pas à ouvrir votre espace
-          </h1>
+          </AuthTitle>
           <p className="mb-8 text-base text-[#6b7686]">
             Votre lien est bon, c'est de notre côté que quelque chose coince. Réessayez dans un
             instant. Si vous avez un mot de passe, la page de connexion reste ouverte.
@@ -263,9 +261,9 @@ export default function ConnexionLien() {
   return (
     <AuthShell backLabel="Aller à la connexion" onBack={() => navigate("/connexion")}>
       <AuthCard>
-        <h1 className="mb-2.5 text-[26px] font-semibold leading-tight tracking-[-0.7px] sm:text-[31px]">
+        <AuthTitle>
           {message.title}
-        </h1>
+        </AuthTitle>
         <p className="mb-8 text-base text-[#6b7686]">{message.body}</p>
 
         {resent ? (

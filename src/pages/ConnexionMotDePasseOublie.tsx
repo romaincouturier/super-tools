@@ -2,9 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, CheckCircle2, ShieldCheck } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  AuthShell, AuthSplitCard, AuthBadge, AuthInfoPanel, AuthSupportLine,
-} from "@/components/auth/AuthShell";
+import { AuthBadge, AuthInfoPanel, AuthShell, AuthSplitCard, AuthSupportLine, AuthTitle } from "@/components/auth/AuthShell";
 import { AuthField, AuthButton } from "@/components/auth/AuthField";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 
@@ -40,9 +38,9 @@ export default function ConnexionMotDePasseOublie() {
             <AuthBadge>
               <Lock className="h-6 w-6" />
             </AuthBadge>
-            <h1 className="mb-3 text-[27px] font-semibold leading-tight tracking-[-0.9px] sm:text-[33px]">
+            <AuthTitle>
               Mot de passe oublié
-            </h1>
+            </AuthTitle>
             <p className="mb-7 max-w-[42ch] text-[15.5px] text-[#6b7686]">
               Indiquez l'adresse e-mail utilisée pour votre compte. Nous vous enverrons un lien
               pour définir un nouveau mot de passe.

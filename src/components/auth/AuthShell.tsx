@@ -107,6 +107,19 @@ export function AuthInfoPanel({
   );
 }
 
+/**
+ * Titre d'écran de connexion. Un seul jeu de classes : les dix titres du
+ * parcours avaient dérivé sur trois variantes à un ou deux pixels d'écart,
+ * y compris entre deux écrans du même fichier.
+ */
+export function AuthTitle({ children }: { children: ReactNode }) {
+  return (
+    <h1 className="mb-2.5 text-[26px] font-semibold leading-tight tracking-[-0.7px] sm:text-[31px]">
+      {children}
+    </h1>
+  );
+}
+
 /** Pied d'écran : contact support, présent sur tous les écrans de connexion. */
 export function AuthSupportLine() {
   return (

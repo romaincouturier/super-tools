@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Mail, Lock, ShieldCheck, CheckCircle2, ArrowLeft } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { AuthShell, AuthCard } from "@/components/auth/AuthShell";
+import { AuthCard, AuthShell, AuthTitle } from "@/components/auth/AuthShell";
 import { AuthField, AuthButton } from "@/components/auth/AuthField";
 import LoginAttemptFeedback from "@/components/LoginAttemptFeedback";
 import { useLoginAttempts } from "@/hooks/useLoginAttempts";
@@ -310,9 +310,9 @@ export default function Connexion() {
 
 function Title({ children }: { children: React.ReactNode }) {
   return (
-    <h1 className="mb-2.5 text-[26px] font-semibold leading-tight tracking-[-0.7px] sm:text-[31px]">
+    <AuthTitle>
       {children}
-    </h1>
+    </AuthTitle>
   );
 }
 
