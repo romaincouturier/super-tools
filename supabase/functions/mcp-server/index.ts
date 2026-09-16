@@ -675,7 +675,7 @@ const MCP_TOOLS = [
   {
     name: "apply_lesson_restructure",
     description:
-      "Replace the top-level content blocks of an LMS lesson with a new structure. Requires the exact lesson fingerprint from read_lms_lesson. A snapshot is created automatically before writing; the previous version can be restored. MUST only be called after the user has explicitly approved the proposed structure in the conversation.",
+      "Replace ALL top-level blocks of an LMS lesson with a new structure. Requires the exact lesson fingerprint from read_lms_lesson. Every block type offered by the editor's 'Ajouter un bloc' menu is accepted: content blocks (text, table, callout, key_points, bullet_list, checklist, summary, accordion, timeline, flip_cards, code, exercise, self_assessment, fill_blanks, drag_words, quiz, assignment, work_deposit, video, image, gallery, file, image_hotspot, before_after, button, cta, html_embed, shortcode) and layout blocks (section, row, container, reveal, divider, spacer) which may carry a `children` array of content blocks (one nesting level). The payload describes the whole lesson body: blocks absent from it are removed. A snapshot is created automatically before writing. MUST only be called after the user has explicitly approved the proposed structure in the conversation.",
     inputSchema: {
       type: "object",
       properties: {
@@ -683,8 +683,10 @@ const MCP_TOOLS = [
         fingerprint: { type: "string", description: "Fingerprint from read_lms_lesson" },
         blocks: {
           type: "array",
-          description: "Array of new top-level content blocks (type + content). Only editable block types are accepted.",
+          description:
+            "Array of new top-level blocks: { type, content, hidden?, children? }. Field names and required fields per type come from list_lms_block_types. `children` is only allowed on section/row/container/reveal and may contain content blocks only.",
         },
+
         source: { type: "string", description: "Source label, default 'mcp'" },
       },
       required: ["lesson_id", "fingerprint", "blocks"],
