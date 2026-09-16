@@ -168,7 +168,7 @@ const queryClient = new QueryClient({
   },
 });
 
-});
+
 
 // Loading fallback component
 const PageLoader = () => (
