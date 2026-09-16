@@ -821,7 +821,19 @@ function sanitizeScalar(field: CatalogField, value: unknown): unknown {
       return Number.isNaN(n) ? 0 : n;
     }
     case "string[]":
-      return coerceToArray(value).map((v) => (typeof v === "string" ? sanitizePlainText(v) : ""));
+      // Tolère { text }/{ label }/{ value } : un assistant envoie souvent des objets
+      // là où le bloc attend des chaînes. Ne jamais silencieusement vider l'entrée.
+      return coerceToArray(value)
+        .map((v) => {
+          if (typeof v === "string") return sanitizePlainText(v);
+          if (typeof v === "number" || typeof v === "boolean") return String(v);
+          if (isPlainObject(v)) {
+            const candidate = v.text ?? v.label ?? v.value ?? v.title;
+            if (typeof candidate === "string") return sanitizePlainText(candidate);
+          }
+          throw new Error(`Invalid item in text list: expected a string, got ${JSON.stringify(v)}`);
+        })
+        .filter((s) => s.length > 0);
     default:
       return undefined;
   }
