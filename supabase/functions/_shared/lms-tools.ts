@@ -412,16 +412,18 @@ export async function restoreLessonVersion(snapshotId: string): Promise<{ lesson
 }
 
 export interface CatalogOutput {
-  editableTypes: Pick<CatalogEntry, "type" | "kind" | "labelFr" | "fields" | "guidance">[];
+  editableTypes: Pick<CatalogEntry, "type" | "kind" | "blockKind" | "labelFr" | "acceptsChildren" | "fields" | "guidance">[];
   nonEditableTypes: Pick<CatalogEntry, "type" | "kind" | "labelFr" | "guidance">[];
 }
 
 export function getLmsBlockCatalog(): CatalogOutput {
   const all = getBlockCatalog();
-  const editable = getEditableCatalog().map(({ type, kind, labelFr, fields, guidance }) => ({
+  const editable = getEditableCatalog().map(({ type, kind, blockKind, labelFr, acceptsChildren, fields, guidance }) => ({
     type,
     kind,
+    blockKind,
     labelFr,
+    ...(acceptsChildren ? { acceptsChildren } : {}),
     fields,
     guidance,
   }));
@@ -430,6 +432,7 @@ export function getLmsBlockCatalog(): CatalogOutput {
     .map(({ type, kind, labelFr, guidance }) => ({ type, kind, labelFr, guidance }));
   return { editableTypes: editable, nonEditableTypes: nonEditable };
 }
+
 
 const CREATABLE_LESSON_TYPES = new Set(["text", "content", "image", "file"]);
 
