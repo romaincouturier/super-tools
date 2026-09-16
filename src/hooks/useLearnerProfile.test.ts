@@ -250,6 +250,6 @@ describe("uploadLearnerPhoto", () => {
       }),
     );
 
-    await expect(uploadLearnerPhoto(testFile, testEmail)).rejects.toThrow("Erreur inconnue");
+    await expect(uploadLearnerPhoto(testFile, testEmail)).rejects.toThrow("Erreur lors de l'envoi de la photo");
   });
 });
