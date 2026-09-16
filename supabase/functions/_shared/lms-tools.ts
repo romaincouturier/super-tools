@@ -337,13 +337,17 @@ export async function applyLessonRestructure(input: ApplyRestructureInput): Prom
   if (!Array.isArray(blocks)) throw new Error("blocks must be an array");
   await requireStaffOrService();
 
-  // Sanitize and validate all blocks before sending to DB.
+  // Sanitize and validate all blocks (including layout children) before sending to DB.
   const sanitized = sanitizeRestructureBlocks(blocks);
-  const asJsonb = sanitized.map(({ type, content, hidden }) => ({
-    type,
-    content,
-    hidden: hidden ?? false,
-  }));
+  const toJsonb = (b: SanitizedBlock): Record<string, unknown> => ({
+    type: b.type,
+    kind: b.kind,
+    content: b.content,
+    hidden: b.hidden ?? false,
+    ...(b.children ? { children: b.children.map(toJsonb) } : {}),
+  });
+  const asJsonb = sanitized.map(toJsonb);
+
 
   const supabase = getSupabaseClient();
   const { error } = await supabase.rpc("apply_lesson_restructure", {
