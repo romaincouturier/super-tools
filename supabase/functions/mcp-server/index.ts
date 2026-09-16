@@ -635,7 +635,7 @@ const MCP_TOOLS = [
   {
     name: "list_lms_block_types",
     description:
-      "Return the catalog of LMS block types: which are editable via MCP, their required fields, pedagogical guidance (when to use / when not), and which types are out of scope (layout, quiz, assignment, media, embed). Use before proposing a restructure.",
+      "Return the catalog of every LMS block type available in the editor's 'Ajouter un bloc' menu: block kind (content or layout), whether it accepts children, its fields with their kind (html, text, url, number, boolean, enum, items, raw, embed_html) and requiredness, and pedagogical guidance (when to use / when not). Use before proposing a restructure or creating a lesson.",
     inputSchema: { type: "object", properties: {} },
   },
   {
