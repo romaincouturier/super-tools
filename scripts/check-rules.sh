@@ -475,6 +475,15 @@ if [ "$STAGED_MODE" = "false" ]; then
        | grep -v 'searchParams.set(' \
        | sed 's/^/VIOLATION [059]: adresse email prise brute dans l URL — /'"
 
+  # [059b] Le front et les edge functions ont chacun leur normaliseur : ils ne
+  # peuvent pas partager de module (alias Vite d'un côté, imports Deno de
+  # l'autre). Si l'un cesse de couper les espaces ou de passer en minuscules,
+  # une adresse écrite par une edge function n'est plus relue par le front.
+  check "059b" "Les deux normaliseurs d'email appliquent le même contrat" \
+    "for f in src/lib/stringUtils.ts supabase/functions/_shared/learner-email.ts; do \
+       grep -q 'trim()\\.toLowerCase()' \"\$f\" || echo \"VIOLATION [059b]: \$f ne normalise plus par trim().toLowerCase()\"; \
+     done"
+
 
   # [039] RLS LMS — chaque table de contenu apprenant doit avoir au moins une policy
   # FOR SELECT TO authenticated dans les migrations (sinon les apprenants voient la
