@@ -7,8 +7,11 @@ import {
   sanitizeHtml,
   sanitizePlainText,
   sanitizeRestructureBlocks,
+  sanitizeUpdatePatch,
   type CatalogEntry,
+  type SanitizedBlock,
 } from "./lms-block-catalog.ts";
+
 
 const PAGE_LIMIT_DEFAULT = 25;
 const PAGE_LIMIT_MAX = 100;
