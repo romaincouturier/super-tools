@@ -69,7 +69,7 @@ export default function BuilderBlockWrapper({
       className="relative group"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+        if (e.relatedTarget instanceof Node && !e.currentTarget.contains(e.relatedTarget)) {
           setHovered(false);
           if (!insertOpen) setInsertOpen(false);
         }
