@@ -219,13 +219,13 @@ export default function TranscriptImportDialog({ open, onClose, courseId }: Prop
           lessonsCreated++;
         }
 
-        for (const content of contents) {
+        for (const [i, content] of contents.entries()) {
           await createLessonBlock({
             lesson_id: lessonId,
             type: "text",
             kind: "content",
             parent_block_id: null,
-            position: 9999,
+            position: 9999 + i,
             content,
             ...(draft.transcriptId ? { source_transcript_id: draft.transcriptId } : {}),
           } as Parameters<typeof createLessonBlock>[0]);
