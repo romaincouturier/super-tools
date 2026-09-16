@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeEmail } from "@/lib/stringUtils";
 
 /**
  * Identité de l'apprenant pour les écrans LMS.
@@ -31,7 +32,7 @@ export function useLearnerIdentity(urlEmail: string) {
     let cancelled = false;
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      const sessionEmail = session?.user?.email?.toLowerCase() ?? null;
+      const sessionEmail = normalizeEmail(session?.user?.email);
       let isStaff = false;
       if (session?.user) {
         const { data } = await supabase
@@ -43,7 +44,7 @@ export function useLearnerIdentity(urlEmail: string) {
       }
       if (cancelled) return;
       setState({
-        email: resolveLearnerEmail({ sessionEmail, urlEmail: urlEmail.toLowerCase(), isStaff }),
+        email: resolveLearnerEmail({ sessionEmail, urlEmail: normalizeEmail(urlEmail) ?? "", isStaff }),
         resolved: true,
       });
     })();

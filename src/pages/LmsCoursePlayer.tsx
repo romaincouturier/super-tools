@@ -1,4 +1,5 @@
 import DOMPurify from "dompurify";
+import { normalizeEmail } from "@/lib/stringUtils";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { Link, useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -44,7 +45,7 @@ import { useLearnerIdentity } from "@/hooks/useLearnerIdentity";
 export default function LmsCoursePlayer() {
   const { courseId } = useParams<{ courseId: string }>();
   const [searchParams] = useSearchParams();
-  const urlEmail = searchParams.get("email") || "";
+  const urlEmail = normalizeEmail(searchParams.get("email")) ?? "";
   // La session prime sur ?email= : un apprenant connecté ne peut plus lire ni
   // écrire la progression d'un tiers en changeant le paramètre (lot 1).
   const { email: learnerEmail, resolved: identityResolved } = useLearnerIdentity(urlEmail);

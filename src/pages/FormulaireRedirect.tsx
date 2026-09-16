@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { normalizeEmail } from "@/lib/stringUtils";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, UserPlus } from "lucide-react";
@@ -39,7 +40,7 @@ const FormulaireRedirect = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
 
-  const email = searchParams.get("email");
+  const email = normalizeEmail(searchParams.get("email"));
   const courseId = searchParams.get("course_id");
   const formType = location.pathname.includes("besoins") ? "besoins" : "evaluation";
 

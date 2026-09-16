@@ -464,6 +464,17 @@ if [ "$STAGED_MODE" = "false" ]; then
   check "044" "Aucun CREATE POLICY lisant auth.users dans les migrations récentes" \
     "bash scripts/check-policy-auth-users.sh"
 
+  # [059] Une adresse email sert de clef de jointure sur des colonnes en texte
+  # libre, et la lecture est une égalité stricte. Une adresse prise brute dans
+  # l'URL peut donc ranger une progression sous une clef que personne ne relit.
+  # Toute adresse venue de l'extérieur passe par normalizeEmail().
+  check "059" "Adresses email d'URL normalisées par normalizeEmail()" \
+    "grep -rnE 'searchParams\\.get\\(\"(email|preview_email|learner_email)\"\\)' --include='*.ts' --include='*.tsx' src/ \
+       | grep -v '\\.test\\.' \
+       | grep -v 'normalizeEmail(' \
+       | grep -v 'searchParams.set(' \
+       | sed 's/^/VIOLATION [059]: adresse email prise brute dans l URL — /'"
+
 
   # [039] RLS LMS — chaque table de contenu apprenant doit avoir au moins une policy
   # FOR SELECT TO authenticated dans les migrations (sinon les apprenants voient la
