@@ -155,6 +155,16 @@ test("une URL de lien sans jeton ne montre jamais d'erreur technique", async ({ 
 
 // ── Recette : critères 5, 13, 22 ────────────────────────────────────────────
 
+test("un service d'ouverture en panne n'accuse pas le lien de l'apprenant", async ({ page }) => {
+  await stubEdge(page, "redeem-learner-token", null);
+  await page.goto("/connexion/lien?token=service-en-panne");
+  await page.getByRole("button", { name: "Ouvrir mon espace" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Nous n'arrivons pas à ouvrir");
+  // Une porte de sortie qui ne dépend pas de la chaîne en panne.
+  await page.getByRole("button", { name: /Me connecter avec mon mot de passe/ }).click();
+  await expect(page).toHaveURL(/\/connexion$/);
+});
+
 test("l'ancienne adresse de lien sans jeton mène à la connexion, jamais à une erreur", async ({ page }) => {
   await page.goto("/apprenant/connexion");
   await expect(page).toHaveURL(/\/connexion$/);

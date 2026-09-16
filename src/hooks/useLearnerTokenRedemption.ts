@@ -5,6 +5,7 @@ import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 /** Étapes de l'ouverture d'un lien reçu par email (W5, W10). */
 export type RedemptionStage =
   | "confirm"
+  | "unavailable"
   | "redeeming"
   | "connected"
   | "password-offer"
@@ -20,12 +21,19 @@ export type RedeemResponse = {
   next?: string | null;
 };
 
-/** Traduit la réponse du serveur en étape d'écran. */
+/**
+ * Traduit la réponse du serveur en étape d'écran.
+ *
+ * Une absence de réponse n'est pas un lien invalide : c'est un service qui ne
+ * répond pas. Confondre les deux ferait accuser le lien de l'apprenant d'un
+ * défaut qui n'est pas le sien, et l'enverrait en redemander un autre pour rien.
+ */
 export function stageFromResponse(payload: RedeemResponse | null): RedemptionStage {
-  const status = payload?.status;
+  if (payload === null || payload === undefined) return "unavailable";
+  const status = payload.status;
   if (status === "expired") return "expired";
   if (status === "used") return "used";
-  if (status === "ok" && payload?.token_hash) return "connected";
+  if (status === "ok" && payload.token_hash) return "connected";
   return "invalid";
 }
 

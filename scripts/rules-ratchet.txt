@@ -4,7 +4,7 @@
 # 017 : <Loader2 animate-spin> inline (cible : 0, puis basculer la règle en audit complet)
 # 020 : supabase.functions.invoke() hors services/lib/useEdgeFunction (cible : quelques cas justifiés)
 017=125
-020=115
+020=113
 # 037a : catch {} sans binding dans src (erreur avalée, invisible pour Sentry)
 #   233 depuis `src/lib/pictoWord.ts` (main) : `decodeURIComponent` lève sur une
 #   séquence % malformée, ce qui est une entrée attendue et non une panne. Le

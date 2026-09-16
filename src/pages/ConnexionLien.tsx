@@ -215,6 +215,35 @@ export default function ConnexionLien() {
     );
   }
 
+  if (stage === "unavailable") {
+    return (
+      <AuthShell backLabel="Aller à la connexion" onBack={() => navigate("/connexion")}>
+        <AuthCard>
+          <h1 className="mb-2.5 text-[26px] font-semibold leading-tight tracking-[-0.7px] sm:text-[31px]">
+            Nous n'arrivons pas à ouvrir votre espace
+          </h1>
+          <p className="mb-8 text-base text-[#6b7686]">
+            Votre lien est bon, c'est de notre côté que quelque chose coince. Réessayez dans un
+            instant. Si vous avez un mot de passe, la page de connexion reste ouverte.
+          </p>
+          <div className="flex flex-col gap-3">
+            <AuthButton type="button" onClick={() => void redeem(token)}>
+              Réessayer
+            </AuthButton>
+            <button
+              type="button"
+              onClick={() => navigate("/connexion")}
+              className="text-[15px] font-bold underline underline-offset-[3px]"
+            >
+              Me connecter avec mon mot de passe
+            </button>
+          </div>
+          <AuthSupportLine />
+        </AuthCard>
+      </AuthShell>
+    );
+  }
+
   const messages: Record<string, { title: string; body: string }> = {
     expired: {
       title: "Ce lien a expiré",

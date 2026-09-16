@@ -18,7 +18,11 @@ describe("stageFromResponse", () => {
     expect(stageFromResponse({ status: "ok" })).toBe("invalid");
   });
 
-  it("traite une réponse vide comme invalide", () => {
-    expect(stageFromResponse(null)).toBe("invalid");
+  it("distingue un service qui ne répond pas d'un lien invalide", () => {
+    expect(stageFromResponse(null)).toBe("unavailable");
+  });
+
+  it("traite une réponse sans statut comme un lien invalide", () => {
+    expect(stageFromResponse({})).toBe("invalid");
   });
 });
