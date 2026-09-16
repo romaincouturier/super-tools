@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.resolve(here, "../../migrations");
+/** Migrations différées après la publication du front : voir leur README. */
+const DEFERRED_DIR = path.resolve(here, "../../migrations-apres-front");
 
 /**
  * Harnais SQL des règles de connexion.
@@ -167,7 +169,15 @@ CREATE TABLE coaching_bookings (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), p
  * plateforme n'existent pas ici.
  */
 export function readFunctionSql(migrationFile: string, functionName: string): string {
-  const source = fs.readFileSync(path.join(MIGRATIONS_DIR, migrationFile), "utf8");
+  const candidates = [
+    path.join(MIGRATIONS_DIR, migrationFile),
+    path.join(DEFERRED_DIR, migrationFile),
+  ];
+  const found = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!found) {
+    throw new Error(`Migration ${migrationFile} introuvable`);
+  }
+  const source = fs.readFileSync(found, "utf8");
   const pattern = new RegExp(
     `CREATE OR REPLACE FUNCTION public\\.${functionName}\\s*\\(([\\s\\S]*?)AS (\\$[a-z_]*\\$)([\\s\\S]*?)\\2\\s*;`,
     "i",

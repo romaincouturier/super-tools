@@ -15,8 +15,9 @@ ALTER TABLE public.user_security_metadata
 COMMENT ON COLUMN public.user_security_metadata.password_set IS
   'Vrai si le compte a un mot de passe utilisable. Écrit uniquement côté serveur.';
 
--- L'utilisateur n'écrit plus lui-même sa ligne : il passerait outre le drapeau.
-DROP POLICY IF EXISTS "Users can update their own security metadata" ON public.user_security_metadata;
+-- Le retrait de l'écriture directe par l'utilisateur attend la publication du
+-- front : deux écrans encore en ligne s'en servent. Voir
+-- supabase/migrations-apres-front/20260915115000_apres_front_retrait_policy_securite.sql
 
 -- ── 2. Les deux transitions légitimes, par fonction ─────────────────────────
 CREATE OR REPLACE FUNCTION public.mark_password_changed()

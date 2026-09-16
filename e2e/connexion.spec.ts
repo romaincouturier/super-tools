@@ -201,3 +201,42 @@ test("un lien pré-cliqué par un robot de messagerie reste utilisable", async (
   await expect(page.getByRole("button", { name: "Ouvrir mon espace" })).toBeVisible();
   expect(calls).toBe(0);
 });
+
+// ── Bandeau d'information pendant la migration ──────────────────────────────
+
+async function stubSetting(page: Page, values: Record<string, string | null>) {
+  await page.route("**/rest/v1/rpc/get_app_setting_public", async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: CORS });
+      return;
+    }
+    const body = route.request().postDataJSON() as { p_key?: string };
+    await route.fulfill({
+      status: 200,
+      headers: { ...CORS, "content-type": "application/json" },
+      body: JSON.stringify(values[body?.p_key ?? ""] ?? null),
+    });
+  });
+}
+
+test("le bandeau d'information s'affiche sur la connexion quand il est activé", async ({ page }) => {
+  await stubSetting(page, {
+    maintenance_banner_enabled: "true",
+    maintenance_banner_message: "Quelques difficultés d'accès sont possibles.",
+  });
+  await page.goto("/connexion");
+  await expect(page.getByText("On fait quelques travaux sur SuperTools")).toBeVisible();
+  await expect(page.getByText("Quelques difficultés d'accès sont possibles.")).toBeVisible();
+});
+
+test("le bandeau reste absent quand il n'est pas activé", async ({ page }) => {
+  await stubSetting(page, { maintenance_banner_enabled: "false" });
+  await page.goto("/connexion");
+  await expect(page.getByText("On fait quelques travaux sur SuperTools")).toHaveCount(0);
+});
+
+test("le bandeau accompagne aussi le mot de passe oublié", async ({ page }) => {
+  await stubSetting(page, { maintenance_banner_enabled: "true" });
+  await page.goto("/connexion/mot-de-passe-oublie");
+  await expect(page.getByText("On fait quelques travaux sur SuperTools")).toBeVisible();
+});

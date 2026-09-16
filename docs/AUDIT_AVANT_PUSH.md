@@ -7,6 +7,14 @@ Pendant ce délai, l'application de `origin/main` interroge une base migrée.
 **Verdict : partir sous conditions.** Un écart bloquant, un écart majeur, deux
 écarts mineurs assumables. Les conditions sont au chapitre 5.
 
+**Suite donnée le 2026-09-16 : les trois conditions sont appliquées.** Les
+migrations concernées sont sorties de `supabase/migrations/` et rangées dans
+`supabase/migrations-apres-front/`, qui n'est pas appliqué au push. Renuméroter
+n'aurait rien retenu : la plateforme applique tout ce que contient le dossier
+des migrations. Un bandeau d'information, activable depuis les paramètres
+généraux, prévient les apprenants sur l'écran de connexion pendant la fenêtre,
+sans écrire à toute la base.
+
 ---
 
 ## 1. Compatibilité ascendante, objet par objet
@@ -201,17 +209,15 @@ Ce que voit un utilisateur entre le push et la publication du front :
 
 **Partir sous conditions.** Trois, par ordre d'importance.
 
-1. **Sortir le retrait de la policy de la migration du lot 3** et le porter dans
-   une migration jouée avec le front. C'est une ligne à déplacer. Sans cela, un
-   membre de l'équipe peut se retrouver bloqué, et la panne est silencieuse.
-   Si le décompte des comptes concernés est nul, la condition tombe.
-2. **Retenir les deux migrations d'emails** jusqu'à la publication du front.
-   Rien n'oblige à les jouer maintenant, et les jouer trop tôt fait mentir les
-   messages envoyés aux apprenants.
-3. **Retenir `20260915120000`** jusqu'à la publication du front, pour éviter de
-   casser la prévisualisation de l'équipe pendant la fenêtre. C'est du confort,
-   pas de la sécurité : l'en-tête reste sans effet pour tout ce qui compte dès
-   le lot 1, qui fait primer le jeton.
+1. **Sortir le retrait de la policy de la migration du lot 3.** Fait : la ligne
+   vit dans `migrations-apres-front/20260915115000_apres_front_retrait_policy_securite.sql`.
+   Le décompte des comptes concernés reste à faire avant de la jouer ; s'il est
+   nul, elle peut partir avec le reste.
+2. **Retenir les deux migrations d'emails.** Fait : `20260915110000` et la
+   partie « mentions » de `20260915130000`, séparée dans
+   `20260915135000_apres_front_mentions_modeles.sql`.
+3. **Retenir la fermeture de l'en-tête.** Fait : `20260915120000` est dans le
+   même dossier.
 
 Les écarts A4 et A5 sont assumables en l'état.
 

@@ -1,0 +1,17 @@
+-- À NE PAS APPLIQUER AVANT LA PUBLICATION DU FRONT.
+-- Référence : docs/AUDIT_AVANT_PUSH.md, écart A1.
+--
+-- Retire la permission qui laisse un utilisateur écrire sa propre ligne de
+-- métadonnées de sécurité. Sans elle, personne ne peut plus se déclarer
+-- pourvu d'un mot de passe : les deux transitions légitimes passent par
+-- mark_password_changed() et request_password_change().
+--
+-- Pourquoi ce fichier attend : les écrans ForcePasswordChange et ResetPassword
+-- du front actuellement en ligne écrivent encore directement dans cette table
+-- pour lever la contrainte de changement de mot de passe. Appliquée trop tôt,
+-- cette migration fait échouer l'écriture sans erreur visible, le drapeau reste
+-- posé, et l'utilisateur revient indéfiniment sur l'écran de changement.
+--
+-- Avant de l'appliquer, mesurer la population concernée :
+--   SELECT count(*) FROM user_security_metadata WHERE must_change_password;
+DROP POLICY IF EXISTS "Users can update their own security metadata" ON public.user_security_metadata;

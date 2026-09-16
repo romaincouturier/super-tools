@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
+import MaintenanceBanner from "@/components/auth/MaintenanceBanner";
 
 /**
  * Coquille commune aux écrans de connexion (maquette SuperTilt).
@@ -40,6 +41,7 @@ export function AuthShell({
           </a>
         )}
       </header>
+      <MaintenanceBanner />
       <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4 pb-14 pt-11 sm:px-6">
         <Blobs />
         {children}

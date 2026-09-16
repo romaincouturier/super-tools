@@ -1410,6 +1410,8 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   elearning_default_duration: { default: "7", description: "Durée par défaut en jours pour les formations e-learning" },
   elearning_horaires_text: { default: "Formation accessible en ligne à votre rythme", description: "Texte horaires affiché sur les conventions e-learning" },
   elearning_lieu_text: { default: "En ligne (plateforme e-learning)", description: "Texte lieu affiché sur les conventions e-learning" },
+  maintenance_banner_enabled: { default: "false", description: "Affiche un bandeau d'information sur les écrans de connexion" },
+  maintenance_banner_message: { default: "Nous faisons évoluer notre plateforme. Pendant cette phase de tests et de migration, vous pourriez rencontrer ponctuellement quelques difficultés d'accès. Nous faisons au mieux pour que cette période soit la plus courte et la plus discrète possible. Merci pour votre patience et votre compréhension.", description: "Texte du bandeau affiché sur les écrans de connexion" },
   convention_default_horaires: { default: "9h00-17h00", description: "Horaires par défaut si aucun planning n'est défini" },
   convention_moyen_pedagogique: { default: "SuperTilt", description: "Moyen pédagogique affiché sur la convention" },
   convention_frais_default: { default: "0", description: "Montant des frais par défaut sur la convention" },

@@ -194,6 +194,30 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
               <div className="space-y-2"><Label htmlFor="elearning-horaires-text">Texte horaires e-learning</Label><Input id="elearning-horaires-text" value={settings.elearning_horaires_text} onChange={(e) => updateSetting("elearning_horaires_text", e.target.value)} placeholder="Formation accessible en ligne à votre rythme" /></div>
               <div className="space-y-2"><Label htmlFor="elearning-lieu-text">Texte lieu e-learning</Label><Input id="elearning-lieu-text" value={settings.elearning_lieu_text} onChange={(e) => updateSetting("elearning_lieu_text", e.target.value)} placeholder="En ligne (plateforme e-learning)" /></div>
             </div>
+<div className="max-w-2xl space-y-3 p-4 rounded-lg border bg-muted/30">
+  <div className="flex items-start justify-between gap-4">
+    <div>
+      <Label className="font-medium" htmlFor="maintenance-banner-enabled">Bandeau d'information sur la connexion</Label>
+      <p className="text-xs text-muted-foreground">Affiché sur les écrans de connexion des apprenants. À activer pendant une migration ou une opération de maintenance, plutôt que d'écrire à toute la base.</p>
+    </div>
+    <Switch
+      id="maintenance-banner-enabled"
+      checked={settings.maintenance_banner_enabled === "true"}
+      onCheckedChange={(checked) => updateSetting("maintenance_banner_enabled", checked ? "true" : "false")}
+    />
+  </div>
+  <div className="space-y-2">
+    <Label htmlFor="maintenance-banner-message">Texte du bandeau</Label>
+    <Textarea
+      id="maintenance-banner-message"
+      value={settings.maintenance_banner_message}
+      onChange={(e) => updateSetting("maintenance_banner_message", e.target.value)}
+      rows={4}
+    />
+    <p className="text-xs text-muted-foreground">Le titre « On fait quelques travaux sur SuperTools » est fixe. Ce texte est la suite du message.</p>
+  </div>
+</div>
+
           </div>
 
           <Separator />
