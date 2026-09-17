@@ -9,7 +9,9 @@ const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 interface Body {
   transcript_id: string;
   kind: "blog_article" | "linkedin_post";
+  force?: boolean;
 }
+
 
 function applyTemplate(tpl: string, vars: Record<string, string>): string {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
