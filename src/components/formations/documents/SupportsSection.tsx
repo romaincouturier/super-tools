@@ -21,6 +21,7 @@ import {
 } from "@/hooks/useEntityDocuments";
 import { toastError } from "@/lib/toastError";
 import { openStorageUrl } from "@/lib/storageUrl";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 
 export type SupportsType = "url" | "file" | "lms";
 
