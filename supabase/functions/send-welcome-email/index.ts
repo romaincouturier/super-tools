@@ -203,6 +203,7 @@ serve(async (req) => {
       training_schedule: scheduleStr,
       client_name: training.client_name,
       training_summary_url: trainingSummaryUrl,
+      supports_url: supportsUrl,
     };
 
     let subject: string;
