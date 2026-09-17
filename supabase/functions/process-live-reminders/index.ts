@@ -211,6 +211,7 @@ serve(async (req) => {
             ${customBody}
             ${meetingUrlSection}
             ${emailButton("Infos & documents de la formation", summaryUrl)}
+            ${customBody.includes(supportsUrl) && supportsUrl ? "" : elearningLink}
             ${signatureHtml}
           `;
         } else {
