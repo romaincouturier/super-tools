@@ -30,7 +30,7 @@ serve(async (req) => {
       });
     }
 
-    const { transcript_id, kind } = (await req.json()) as Body;
+    const { transcript_id, kind, force } = (await req.json()) as Body;
     if (!transcript_id || !["blog_article", "linkedin_post"].includes(kind)) {
       return new Response(JSON.stringify({ error: "Invalid payload" }), {
         status: 400,
