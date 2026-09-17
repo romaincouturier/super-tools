@@ -216,7 +216,9 @@ serve(async (req) => {
       subject = templateSubject.toLowerCase().includes('convocation')
         ? templateSubject
         : `Convocation - ${templateSubject}`;
-      htmlContent = replaceVariables(template.html_content, variables) + signature;
+      const templateBody = replaceVariables(template.html_content, variables);
+      const needsElearning = supportsBase && !templateBody.includes(supportsBase);
+      htmlContent = templateBody + (needsElearning ? elearningLink : "") + signature;
     } else {
       // Fallback default content - warm welcome email with convocation mention
       const greeting = participant.first_name ? `Bonjour ${escapeHtml(participant.first_name)},` : 'Bonjour,';
