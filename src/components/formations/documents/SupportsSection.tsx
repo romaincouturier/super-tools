@@ -154,6 +154,15 @@ const SupportsSection = ({
           title: "Cours LMS lié",
           description: "Les participants (actuels et futurs) seront inscrits automatiquement.",
         });
+        const notified = await notifyElearning.invoke({ trainingId });
+        if (notified) {
+          toast({
+            title: notified.sent > 0 ? "Participants prévenus" : "Personne à prévenir",
+            description: notified.sent > 0
+              ? `${notified.sent} email(s) d'information envoyé(s) (participants et formateur).`
+              : "Tout le monde avait déjà été informé de ce contenu en ligne.",
+          });
+        }
       }
     } catch (error: unknown) {
       console.error("Supports LMS course save error:", error);
