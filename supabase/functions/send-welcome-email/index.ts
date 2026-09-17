@@ -183,6 +183,14 @@ serve(async (req) => {
     // Build training summary page URL
     const trainingSummaryUrl = `${appUrl}/formation-info/${trainingId}`;
 
+    // Lien e-learning / supports de la formation (si renseigné), personnalisé
+    // par participant car le player LMS identifie l'apprenant par ?email=.
+    const supportsBase = await resolveSupportsUrlBase(supabase, training, trainingId, appUrl);
+    const supportsUrl = appendEmailParam(supportsBase, participant.email);
+    const elearningLink = supportsUrl
+      ? emailSecondaryLink("Accéder au e-learning de la formation", supportsUrl)
+      : "";
+
     // Template variables
     const variables: Record<string, string> = {
       participant_first_name: participant.first_name || '',
