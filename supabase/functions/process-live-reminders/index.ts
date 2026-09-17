@@ -57,7 +57,8 @@ serve(async (req) => {
           training_name,
           participants_formal_address,
           trainer_id,
-          supports_url
+          supports_url,
+          supports_lms_course_id
         )
       `)
       .gte("scheduled_at", parisDate + "T00:00:00+00:00")
