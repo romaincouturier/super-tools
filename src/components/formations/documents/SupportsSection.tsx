@@ -21,6 +21,7 @@ import {
 } from "@/hooks/useEntityDocuments";
 import { toastError } from "@/lib/toastError";
 import { openStorageUrl } from "@/lib/storageUrl";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 
 export type SupportsType = "url" | "file" | "lms";
 
@@ -51,6 +52,12 @@ const SupportsSection = ({
 }: SupportsSectionProps) => {
   const { toast } = useToast();
   const { data: courses = [], isLoading: loadingCourses } = useCourses();
+  // Notification automatique des participants et du formateur (idempotente
+  // côté serveur : une seule fois par personne et par contenu rattaché).
+  const notifyElearning = useEdgeFunction<{ sent: number; already_sent: number }>(
+    "send-elearning-available",
+    { silentOnError: true },
+  );
 
   const [type, setType] = useState<SupportsType>(initialType);
   const [url, setUrl] = useState(initialUrl || "");
@@ -147,6 +154,15 @@ const SupportsSection = ({
           title: "Cours LMS lié",
           description: "Les participants (actuels et futurs) seront inscrits automatiquement.",
         });
+        const notified = await notifyElearning.invoke({ trainingId });
+        if (notified) {
+          toast({
+            title: notified.sent > 0 ? "Participants prévenus" : "Personne à prévenir",
+            description: notified.sent > 0
+              ? `${notified.sent} email(s) d'information envoyé(s) (participants et formateur).`
+              : "Tout le monde avait déjà été informé de ce contenu en ligne.",
+          });
+        }
       }
     } catch (error: unknown) {
       console.error("Supports LMS course save error:", error);

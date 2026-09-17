@@ -776,6 +776,40 @@ Bonne formation !`,
     },
     variables: ["first_name", "training_name", "access_link", "start_date", "end_date"],
   },
+  elearning_available: {
+    name: "Contenu e-learning ajouté à une formation",
+    timing: "before",
+    sendingInfo: "📤 Envoyé automatiquement aux participants et au formateur dès qu'un contenu e-learning est rattaché aux supports de la formation (une seule fois par personne et par contenu)",
+    subject: {
+      tu: "Un contenu en ligne est disponible pour \"{{training_name}}\"",
+      vous: "Un contenu en ligne est disponible pour \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Bonne nouvelle : un contenu en ligne vient d'être ajouté à la formation "{{training_name}}".
+
+Tu peux le consulter dès maintenant, à ton rythme, avant, pendant et après la formation.
+
+{{elearning_button}}
+
+Ce lien est personnel : conserve-le, il reste valable pendant toute la durée de la formation.
+
+Bonne exploration !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Bonne nouvelle : un contenu en ligne vient d'être ajouté à la formation "{{training_name}}".
+
+Vous pouvez le consulter dès maintenant, à votre rythme, avant, pendant et après la formation.
+
+{{elearning_button}}
+
+Ce lien est personnel : conservez-le, il reste valable pendant toute la durée de la formation.
+
+Bonne exploration !`,
+    },
+    variables: ["first_name", "training_name", "elearning_url", "elearning_button"],
+  },
   elearning_magic_link: {
     name: "Email d'accès e-learning (lien magique)",
     timing: "manual",

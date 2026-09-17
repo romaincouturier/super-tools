@@ -190,6 +190,9 @@ verify_jwt = false
 [functions.send-elearning-erratum]
 verify_jwt = false
 
+[functions.send-elearning-available]
+verify_jwt = false
+
 
 
 [functions.send-certificate-email]
