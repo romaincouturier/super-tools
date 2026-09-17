@@ -44,8 +44,9 @@ export function useGenerateTranscriptContent() {
   return useMutation({
     mutationFn: async (vars: { transcript_id: string; kind: GenerationKind }) => {
       const res = await supabase.functions.invoke("generate-transcript-content", {
-        body: vars,
+        body: { ...vars, force: true },
       });
+
       if (res.error) throw new Error(res.error.message ?? "Erreur génération");
       return res.data?.generation as TranscriptGeneration;
     },

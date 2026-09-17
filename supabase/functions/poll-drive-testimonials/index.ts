@@ -78,12 +78,27 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const enqueueTranscript = async (fileId: string, fileName: string) => {
       const { data: existingTranscript } = await (admin as any)
         .from("transcripts")
-        .select("id")
+        .select("id, status, assemblyai_id")
         .eq("source", "google_drive")
         .eq("external_id", fileId)
         .maybeSingle();
 
-      let transcriptId = (existingTranscript as { id?: string } | null)?.id ?? null;
+      const existing = existingTranscript as
+        | { id: string; status: string; assemblyai_id: string | null }
+        | null;
+
+      // Already transcribed (or in flight): never re-submit — a re-submit means
+      // paying AssemblyAI + article/LinkedIn generation again on every poll.
+      if (
+        existing &&
+        (existing.status === "ready" ||
+          existing.status === "trashed" ||
+          (existing.status === "processing" && existing.assemblyai_id))
+      ) {
+        return true;
+      }
+
+      let transcriptId = existing?.id ?? null;
       if (!transcriptId) {
         const { data: inserted, error } = await (admin as any)
           .from("transcripts")
@@ -101,6 +116,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           .update({ title: fileName, status: "processing", error_message: null, assemblyai_id: null })
           .eq("id", transcriptId);
       }
+
 
       fetch(`${SUPABASE_URL}/functions/v1/submit-drive-transcript`, {
         method: "POST",

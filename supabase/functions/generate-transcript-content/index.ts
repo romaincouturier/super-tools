@@ -9,7 +9,9 @@ const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 interface Body {
   transcript_id: string;
   kind: "blog_article" | "linkedin_post";
+  force?: boolean;
 }
+
 
 function applyTemplate(tpl: string, vars: Record<string, string>): string {
   return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
@@ -28,7 +30,7 @@ serve(async (req) => {
       });
     }
 
-    const { transcript_id, kind } = (await req.json()) as Body;
+    const { transcript_id, kind, force } = (await req.json()) as Body;
     if (!transcript_id || !["blog_article", "linkedin_post"].includes(kind)) {
       return new Response(JSON.stringify({ error: "Invalid payload" }), {
         status: 400,
@@ -60,6 +62,27 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Garde anti-doublon : une génération existante n'est jamais refaite sans
+    // demande explicite (`force`). Évite de repayer article + LinkedIn si le
+    // transcript est re-soumis par un poller.
+    if (!force) {
+      const { data: alreadyGenerated } = await (supabase as any)
+        .from("transcript_generations")
+        .select("id")
+        .eq("transcript_id", transcript_id)
+        .eq("kind", kind)
+        .limit(1)
+        .maybeSingle();
+      if (alreadyGenerated) {
+        return new Response(JSON.stringify({ skipped: true, reason: "already_generated" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+
 
     // Fetch prompt config
     const { data: promptCfg, error: pErr } = await supabase
