@@ -314,6 +314,9 @@ serve(async (req) => {
           const trainerHtml = personalizeSupportsLinks(
             templateTextToHtml(trainerBody)
               + "\n" + emailButton("Infos & documents de la formation", trainerSummaryUrl)
+              + (supportsUrl && !trainerBody.includes(supportsUrl)
+                  ? "\n" + emailSecondaryLink("Accéder au e-learning de la formation", appendEmailParam(supportsUrl, trainer.email))
+                  : "")
               + "\n" + signatureHtml,
             trainer.email,
           );
