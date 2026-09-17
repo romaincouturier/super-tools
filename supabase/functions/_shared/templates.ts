@@ -82,6 +82,12 @@ export function textToHtml(text: string): string {
   return processed
     .split(/\n\n+/)
     .map((paragraph) => {
+      const trimmed = paragraph.trim();
+      // Blocs HTML injectés par les variables de template (boutons, encarts,
+      // liens secondaires) : ils sont déjà du HTML sûr, ne pas les échapper.
+      if (/^<(p|a|div|table|ul|ol|h[1-6]|span|img|br)\b/i.test(trimmed) && trimmed.endsWith(">")) {
+        return trimmed;
+      }
       const lines = paragraph.split(/\n/).map((line) => escapeHtml(line.trim()));
       return `<p>${lines.join("<br>")}</p>`;
     })
