@@ -217,6 +217,12 @@ serve(async (req) => {
         if (!retry.ok) return null;
         parsed = parseAiJson<{ proposals: Proposal[] }>(retry.text);
         if (!parsed || !Array.isArray(parsed.proposals)) {
+          // Dernier recours : réponse coupée par max_tokens, on garde les
+          // leçons complètes déjà générées plutôt que de tout perdre.
+          parsed = parseTruncatedAiJson<{ proposals: Proposal[] }>(retry.text)
+            ?? parseTruncatedAiJson<{ proposals: Proposal[] }>(attempt.text);
+        }
+        if (!parsed || !Array.isArray(parsed.proposals)) {
           console.error(
             "[lms-analyze-transcript] retry also unparseable (stop_reason:",
             retry.stopReason,
