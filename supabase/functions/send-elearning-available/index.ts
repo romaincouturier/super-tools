@@ -65,7 +65,11 @@ serve(async (req) => {
     if (!training) return createErrorResponse("Formation introuvable", 404);
 
     const urls = await getAppUrls();
-    const supportsBase = await resolveSupportsUrlBase(
+    // Lien e-learning explicite (envoi manuel/rattrapage) sinon résolution habituelle.
+    const overrideUrl = typeof body.elearningUrl === "string" && /^https:\/\//.test(body.elearningUrl)
+      ? body.elearningUrl
+      : null;
+    const supportsBase = overrideUrl ?? await resolveSupportsUrlBase(
       supabase,
       training,
       trainingId,
@@ -76,7 +80,8 @@ serve(async (req) => {
     }
 
     // Clé d'idempotence : change si le cours rattaché change.
-    const supportKey = training.supports_lms_course_id || supportsBase;
+    const supportKey = overrideUrl || training.supports_lms_course_id || supportsBase;
+
 
     const { data: participants, error: pErr } = await supabase
       .from("training_participants")
