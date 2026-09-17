@@ -268,9 +268,12 @@ serve(async (req) => {
 
       let sentCount = 0;
 
-      for (let i = 0; i < participants.length; i++) {
+      // Séance en direct aujourd'hui : le rappel de live (process-live-reminders)
+      // fait déjà office de rappel du jour pour les participants → pas de doublon.
+      for (let i = 0; hasLiveToday ? false : i < participants.length; i++) {
         const p = participants[i];
         if (!p.email) continue;
+
 
         const participantLogKey = `${trainingId}:${p.id}`;
         if (alreadySentParticipants.has(participantLogKey)) {
