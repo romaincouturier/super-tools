@@ -12,7 +12,12 @@ import {
   escapeHtml,
   emailButton,
 } from "../_shared/mod.ts";
-import { processTemplate } from "../_shared/templates.ts";
+import { processTemplate, emailSecondaryLink } from "../_shared/templates.ts";
+import {
+  appendEmailParam,
+  personalizeSupportsLinks,
+  resolveSupportsUrlBase,
+} from "../_shared/supports-url.ts";
 import { formatSessionDateFr } from "../_shared/training-date.ts";
 
 // Send notification to sponsor (intra-enterprise)
@@ -178,6 +183,14 @@ serve(async (req) => {
     // Build training summary page URL
     const trainingSummaryUrl = `${appUrl}/formation-info/${trainingId}`;
 
+    // Lien e-learning / supports de la formation (si renseigné), personnalisé
+    // par participant car le player LMS identifie l'apprenant par ?email=.
+    const supportsBase = await resolveSupportsUrlBase(supabase, training, trainingId, appUrl);
+    const supportsUrl = appendEmailParam(supportsBase, participant.email);
+    const elearningLink = supportsUrl
+      ? emailSecondaryLink("Accéder au e-learning de la formation", supportsUrl)
+      : "";
+
     // Template variables
     const variables: Record<string, string> = {
       participant_first_name: participant.first_name || '',
@@ -190,6 +203,7 @@ serve(async (req) => {
       training_schedule: scheduleStr,
       client_name: training.client_name,
       training_summary_url: trainingSummaryUrl,
+      supports_url: supportsUrl,
     };
 
     let subject: string;
@@ -202,7 +216,9 @@ serve(async (req) => {
       subject = templateSubject.toLowerCase().includes('convocation')
         ? templateSubject
         : `Convocation - ${templateSubject}`;
-      htmlContent = replaceVariables(template.html_content, variables) + signature;
+      const templateBody = replaceVariables(template.html_content, variables);
+      const needsElearning = supportsBase && !templateBody.includes(supportsBase);
+      htmlContent = templateBody + (needsElearning ? elearningLink : "") + signature;
     } else {
       // Fallback default content - warm welcome email with convocation mention
       const greeting = participant.first_name ? `Bonjour ${escapeHtml(participant.first_name)},` : 'Bonjour,';
@@ -231,12 +247,16 @@ serve(async (req) => {
         <p><strong>📍 Retrouvez toutes les informations pratiques :</strong></p>
         <p>En attendant, vous pouvez consulter l'ensemble des informations de la formation (programme, accès, contact du formateur) sur cette page :</p>
         ${emailButton("Voir les informations de la formation", trainingSummaryUrl)}
+        ${elearningLink}
 
         <p>Nous restons à votre disposition pour toute question.</p>
         <p>À très bientôt ! 🙂</p>
         ${signature}
       `;
     }
+
+    // Le player LMS exige ?email= sur les liens supports/e-learning.
+    htmlContent = personalizeSupportsLinks(htmlContent, participant.email);
 
     console.log("Sending welcome email to:", participant.email);
     console.log("Subject:", subject);

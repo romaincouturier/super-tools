@@ -7,7 +7,8 @@ import { getAppUrls } from "../_shared/app-urls.ts";
 import { processTemplate, emailButton, templateTextToHtml } from "../_shared/templates.ts";
 import { tuVousSuffix, fetchTemplateOrDefault, logEmailActivity } from "../_shared/email-helpers.ts";
 import { learnerHasNotifEnabled } from "../_shared/learner-prefs.ts";
-import { appendEmailParam, personalizeSupportsLinks } from "../_shared/supports-url.ts";
+import { appendEmailParam, personalizeSupportsLinks, resolveSupportsUrlBase } from "../_shared/supports-url.ts";
+import { emailSecondaryLink } from "../_shared/templates.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
@@ -56,7 +57,8 @@ serve(async (req) => {
           training_name,
           participants_formal_address,
           trainer_id,
-          supports_url
+          supports_url,
+          supports_lms_course_id
         )
       `)
       .gte("scheduled_at", parisDate + "T00:00:00+00:00")
@@ -153,7 +155,9 @@ serve(async (req) => {
       const liveMeetingUrl = live.meeting_url || "";
       const liveEmailContent = live.email_content || "";
       const liveTitle = live.title || "Live collectif";
-      const supportsUrl = training.supports_url || "";
+      // Support / e-learning de la formation : supports_url explicite, sinon
+      // page /formation-support/<id> si un cours LMS est rattaché.
+      const supportsUrl = await resolveSupportsUrlBase(supabase, training, trainingId, APP_URL);
 
       let sentCount = 0;
       let skippedAlreadySent = 0;
@@ -187,6 +191,13 @@ serve(async (req) => {
         let htmlContent: string;
 
         const summaryUrl = `${APP_URL}/formation-info/${trainingId}`;
+        // Lien secondaire (jamais le CTA principal) vers le e-learning.
+        const elearningLink = supportsUrl
+          ? emailSecondaryLink(
+              "Accéder au e-learning de la formation",
+              appendEmailParam(supportsUrl, p.email),
+            )
+          : "";
 
         // If custom email content was set on the live meeting, use it directly
         if (liveEmailContent) {
@@ -200,6 +211,7 @@ serve(async (req) => {
             ${customBody}
             ${meetingUrlSection}
             ${emailButton("Infos & documents de la formation", summaryUrl)}
+            ${customBody.includes(supportsUrl) && supportsUrl ? "" : elearningLink}
             ${signatureHtml}
           `;
         } else {
@@ -225,6 +237,7 @@ serve(async (req) => {
           const body = processTemplate(template.content, variables, false);
           htmlContent = templateTextToHtml(body)
             + "\n" + emailButton("Infos & documents de la formation", summaryUrl)
+            + (supportsUrl && !body.includes(supportsUrl) ? "\n" + elearningLink : "")
             + "\n" + signatureHtml;
         }
 
@@ -301,6 +314,9 @@ serve(async (req) => {
           const trainerHtml = personalizeSupportsLinks(
             templateTextToHtml(trainerBody)
               + "\n" + emailButton("Infos & documents de la formation", trainerSummaryUrl)
+              + (supportsUrl && !trainerBody.includes(supportsUrl)
+                  ? "\n" + emailSecondaryLink("Accéder au e-learning de la formation", appendEmailParam(supportsUrl, trainer.email))
+                  : "")
               + "\n" + signatureHtml,
             trainer.email,
           );
