@@ -52,6 +52,12 @@ const SupportsSection = ({
 }: SupportsSectionProps) => {
   const { toast } = useToast();
   const { data: courses = [], isLoading: loadingCourses } = useCourses();
+  // Notification automatique des participants et du formateur (idempotente
+  // côté serveur : une seule fois par personne et par contenu rattaché).
+  const notifyElearning = useEdgeFunction<{ sent: number; already_sent: number }>(
+    "send-elearning-available",
+    { silentOnError: true },
+  );
 
   const [type, setType] = useState<SupportsType>(initialType);
   const [url, setUrl] = useState(initialUrl || "");
