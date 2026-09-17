@@ -13,3 +13,5 @@
 - [x] Dette technique : 4 ratchets ramenés à la baseline + `CREATE POLICY` rendu idempotent → check-rules 65/65
 - [x] MCP LMS : empreinte de version unifiée (fonction SQL `lms_lesson_fingerprint`) — apply_lesson_restructure ne rejette plus les empreintes valides
 - [ ] AI4Product : deux liens Meet différents (lives vs lieu de la formation) — attente du lien de référence
+- [ ] AI4Product : envoyer le mail "contenu e-learning disponible" avec le lien e-learning (ai4product.supertilt.fr), pas le lien Notion des supports
+- [ ] Alléger les coûts IA : espacer l'analyse éditoriale (cron 10 min) et réduire le contexte relu
