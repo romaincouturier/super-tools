@@ -61,6 +61,27 @@ serve(async (req) => {
       });
     }
 
+    // Garde anti-doublon : une génération existante n'est jamais refaite sans
+    // demande explicite (`force`). Évite de repayer article + LinkedIn si le
+    // transcript est re-soumis par un poller.
+    if (!force) {
+      const { data: alreadyGenerated } = await (supabase as any)
+        .from("transcript_generations")
+        .select("id")
+        .eq("transcript_id", transcript_id)
+        .eq("kind", kind)
+        .limit(1)
+        .maybeSingle();
+      if (alreadyGenerated) {
+        return new Response(JSON.stringify({ skipped: true, reason: "already_generated" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+
+
     // Fetch prompt config
     const { data: promptCfg, error: pErr } = await supabase
       .from("transcript_ai_prompts")
