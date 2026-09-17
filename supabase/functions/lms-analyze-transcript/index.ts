@@ -8,7 +8,12 @@ import {
 } from "../_shared/mod.ts";
 import { CLAUDE_ADVANCED } from "../_shared/claude-models.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
-import { parseAiJson, truncateForLog, STRICT_JSON_INSTRUCTION } from "../_shared/ai-json.ts";
+import {
+  parseAiJson,
+  parseTruncatedAiJson,
+  truncateForLog,
+  STRICT_JSON_INSTRUCTION,
+} from "../_shared/ai-json.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const SETTING_KEY = "lms_transcript_lesson_prompt";
