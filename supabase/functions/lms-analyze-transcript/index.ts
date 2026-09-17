@@ -163,6 +163,10 @@ serve(async (req) => {
         body: JSON.stringify({
           model: CLAUDE_ADVANCED,
           max_tokens: 16000,
+          // Sans cela, Sonnet 5 raisonne par défaut et consomme tout le budget
+          // de tokens en « thinking » : la réponse ne contient alors aucun texte
+          // JSON et l'analyse échoue systématiquement en 422.
+          thinking: { type: "disabled" },
           messages: [{ role: "user", content: userContent }],
         }),
       });
