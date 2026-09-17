@@ -135,6 +135,17 @@ export function emailButton(label: string, url: string): string {
 }
 
 /**
+ * Lien secondaire discret (jamais le CTA principal d'un email).
+ * Utilisé notamment pour rappeler l'accès au e-learning dans les
+ * rappels de live, où le CTA principal reste "Rejoindre le live".
+ */
+export function emailSecondaryLink(label: string, url: string): string {
+  return `<p style="margin: 12px 0; font-size: 13px; color: #555;">
+  <a href="${url}" style="color: #555; text-decoration: underline;">${label}</a>
+</p>`;
+}
+
+/**
  * Generate a highlighted info box for emails.
  */
 export function emailInfoBox(content: string): string {
