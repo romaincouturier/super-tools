@@ -206,9 +206,12 @@ serve(async (req) => {
       const firstDate = allSchedules && allSchedules.length > 0 ? allSchedules[0].day_date : today;
       const isFirstDay = today === firstDate;
 
-      // For virtual trainings, fetch the meeting URL from live meetings scheduled today
+      // Live meeting scheduled today (any format): source of truth for the meet link
+      // and marker used to avoid duplicating the live reminder sent by
+      // process-live-reminders (see hasLiveToday below).
       let meetingUrl = "";
-      if (isClasseVirtuelle || isElearning) {
+      let hasLiveToday = false;
+      {
         const { data: liveMeetings } = await supabase
           .from("training_live_meetings")
           .select("meeting_url")
@@ -218,14 +221,16 @@ serve(async (req) => {
           .neq("status", "cancelled")
           .limit(1);
 
-        if (liveMeetings && liveMeetings.length > 0 && liveMeetings[0].meeting_url) {
-          meetingUrl = liveMeetings[0].meeting_url;
+        if (liveMeetings && liveMeetings.length > 0) {
+          hasLiveToday = true;
+          if (liveMeetings[0].meeting_url) meetingUrl = liveMeetings[0].meeting_url;
         }
         // Fallback: if location looks like a URL, use it as meeting URL
-        if (!meetingUrl && training.location && /^https?:\/\//i.test(training.location)) {
+        if (!meetingUrl && (isClasseVirtuelle || isElearning) && training.location && /^https?:\/\//i.test(training.location)) {
           meetingUrl = training.location;
         }
       }
+
 
       // Determine tu/vous using shared helper
       const templateKey = `today_reminder_${tuVousSuffix(!!training.participants_formal_address)}`;
