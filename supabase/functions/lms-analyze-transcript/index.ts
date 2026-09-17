@@ -8,7 +8,12 @@ import {
 } from "../_shared/mod.ts";
 import { CLAUDE_ADVANCED } from "../_shared/claude-models.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
-import { parseAiJson, truncateForLog, STRICT_JSON_INSTRUCTION } from "../_shared/ai-json.ts";
+import {
+  parseAiJson,
+  parseTruncatedAiJson,
+  truncateForLog,
+  STRICT_JSON_INSTRUCTION,
+} from "../_shared/ai-json.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const SETTING_KEY = "lms_transcript_lesson_prompt";
@@ -158,6 +163,10 @@ serve(async (req) => {
         body: JSON.stringify({
           model: CLAUDE_ADVANCED,
           max_tokens: 16000,
+          // Sans cela, Sonnet 5 raisonne par défaut et consomme tout le budget
+          // de tokens en « thinking » : la réponse ne contient alors aucun texte
+          // JSON et l'analyse échoue systématiquement en 422.
+          thinking: { type: "disabled" },
           messages: [{ role: "user", content: userContent }],
         }),
       });
@@ -207,6 +216,12 @@ serve(async (req) => {
         const retry = await callAi(`${prompt}\n\n${STRICT_JSON_INSTRUCTION}`);
         if (!retry.ok) return null;
         parsed = parseAiJson<{ proposals: Proposal[] }>(retry.text);
+        if (!parsed || !Array.isArray(parsed.proposals)) {
+          // Dernier recours : réponse coupée par max_tokens, on garde les
+          // leçons complètes déjà générées plutôt que de tout perdre.
+          parsed = parseTruncatedAiJson<{ proposals: Proposal[] }>(retry.text)
+            ?? parseTruncatedAiJson<{ proposals: Proposal[] }>(attempt.text);
+        }
         if (!parsed || !Array.isArray(parsed.proposals)) {
           console.error(
             "[lms-analyze-transcript] retry also unparseable (stop_reason:",
