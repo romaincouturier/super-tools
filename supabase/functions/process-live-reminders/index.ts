@@ -155,7 +155,9 @@ serve(async (req) => {
       const liveMeetingUrl = live.meeting_url || "";
       const liveEmailContent = live.email_content || "";
       const liveTitle = live.title || "Live collectif";
-      const supportsUrl = training.supports_url || "";
+      // Support / e-learning de la formation : supports_url explicite, sinon
+      // page /formation-support/<id> si un cours LMS est rattaché.
+      const supportsUrl = await resolveSupportsUrlBase(supabase, training, trainingId, APP_URL);
 
       let sentCount = 0;
       let skippedAlreadySent = 0;
