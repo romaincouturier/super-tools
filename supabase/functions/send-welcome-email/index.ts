@@ -12,7 +12,12 @@ import {
   escapeHtml,
   emailButton,
 } from "../_shared/mod.ts";
-import { processTemplate } from "../_shared/templates.ts";
+import { processTemplate, emailSecondaryLink } from "../_shared/templates.ts";
+import {
+  appendEmailParam,
+  personalizeSupportsLinks,
+  resolveSupportsUrlBase,
+} from "../_shared/supports-url.ts";
 import { formatSessionDateFr } from "../_shared/training-date.ts";
 
 // Send notification to sponsor (intra-enterprise)
