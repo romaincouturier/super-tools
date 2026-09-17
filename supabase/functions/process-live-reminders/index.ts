@@ -191,6 +191,13 @@ serve(async (req) => {
         let htmlContent: string;
 
         const summaryUrl = `${APP_URL}/formation-info/${trainingId}`;
+        // Lien secondaire (jamais le CTA principal) vers le e-learning.
+        const elearningLink = supportsUrl
+          ? emailSecondaryLink(
+              "Accéder au e-learning de la formation",
+              appendEmailParam(supportsUrl, p.email),
+            )
+          : "";
 
         // If custom email content was set on the live meeting, use it directly
         if (liveEmailContent) {
