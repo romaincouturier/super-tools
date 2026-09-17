@@ -9,10 +9,11 @@ Trois niveaux de preuve, nommés sans ambiguïté :
 - **L** : vérification par lecture du code, avec la référence. Aucun test ne la garde.
 - **M** : vérification manuelle ou opératoire, hors portée d'un test automatisé.
 
-Exécution du 2026-09-15 : 1980 tests unitaires, 23 parcours Playwright, tous verts.
+Exécution du 2026-09-17 : 2019 tests unitaires dont 70 SQL, 24 parcours Playwright,
+tous verts. (Relevé initial du 2026-09-15 : 1980 tests, 23 parcours.)
 Depuis cette revue, les règles portées par du SQL sont jouées sur un vrai
 Postgres : `supabase/tests/` charge les fonctions telles que leur migration les
-livre et les exerce. 61 tests SQL.
+livre et les exerce. 70 tests SQL sur 8 suites.
 
 ---
 
@@ -146,5 +147,9 @@ migration change donc le résultat du test.
 | `comptes-et-indicateurs` | Les drapeaux du compte, la fermeture des autres sessions, les comptes dormants, les indicateurs |
 | `portail-donnees` | L'interdiction de lire l'espace d'un tiers, la prévisualisation de l'équipe |
 
-Ce qui reste hors du harnais : les policies de niveau ligne, qui demandent des
-rôles Postgres que ce schéma de test ne reproduit pas.
+Ce qui reste hors du harnais : les policies de niveau ligne. **Correction du
+2026-09-17** : la raison donnée ici, l'absence de rôles Postgres, était fausse.
+PGlite crée des rôles, honore `SET ROLE` et applique réellement les policies, et
+`auth.uid()` comme `auth.jwt()` sont déjà stubbés dans `helpers/db.ts`. Ce sont
+donc des tests qui restent à écrire, pas des tests impossibles. 96 policies sur
+53 tables s'appuient sur `get_learner_email()`.
