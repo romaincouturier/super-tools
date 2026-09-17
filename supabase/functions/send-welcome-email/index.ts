@@ -247,6 +247,7 @@ serve(async (req) => {
         <p><strong>📍 Retrouvez toutes les informations pratiques :</strong></p>
         <p>En attendant, vous pouvez consulter l'ensemble des informations de la formation (programme, accès, contact du formateur) sur cette page :</p>
         ${emailButton("Voir les informations de la formation", trainingSummaryUrl)}
+        ${elearningLink}
 
         <p>Nous restons à votre disposition pour toute question.</p>
         <p>À très bientôt ! 🙂</p>
