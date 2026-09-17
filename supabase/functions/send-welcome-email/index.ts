@@ -255,6 +255,9 @@ serve(async (req) => {
       `;
     }
 
+    // Le player LMS exige ?email= sur les liens supports/e-learning.
+    htmlContent = personalizeSupportsLinks(htmlContent, participant.email);
+
     console.log("Sending welcome email to:", participant.email);
     console.log("Subject:", subject);
     console.log("Is inter-entreprise:", isInterEntreprise);
