@@ -237,6 +237,7 @@ serve(async (req) => {
           const body = processTemplate(template.content, variables, false);
           htmlContent = templateTextToHtml(body)
             + "\n" + emailButton("Infos & documents de la formation", summaryUrl)
+            + (supportsUrl && !body.includes(supportsUrl) ? "\n" + elearningLink : "")
             + "\n" + signatureHtml;
         }
 
