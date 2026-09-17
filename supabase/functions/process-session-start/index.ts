@@ -493,8 +493,11 @@ serve(async (req) => {
           )
         `)
         .eq("day_date", today)
+        // Only real full-day sessions: a morning part AND a genuine afternoon part.
+        // A session ending at/before 14:00 (e.g. 12:30-13:30) has no PM period,
+        // so it must not receive a second attendance request at ~13:45.
         .lt("start_time", "13:00:00")
-        .gt("end_time", "13:00:00")
+        .gt("end_time", "14:00:00")
         .not("trainings.format_formation", "eq", "e_learning");
 
       if (fullDaySchedules && fullDaySchedules.length > 0) {
