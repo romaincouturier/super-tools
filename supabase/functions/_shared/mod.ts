@@ -61,6 +61,7 @@ export {
   wrapEmailHtml,
   emailButton,
   emailInfoBox,
+  emailSecondaryLink,
   templateTextToHtml,
   emailSuccessBox,
   type TemplateVariables,
