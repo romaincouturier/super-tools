@@ -7,7 +7,8 @@ import { getAppUrls } from "../_shared/app-urls.ts";
 import { processTemplate, emailButton, templateTextToHtml } from "../_shared/templates.ts";
 import { tuVousSuffix, fetchTemplateOrDefault, logEmailActivity } from "../_shared/email-helpers.ts";
 import { learnerHasNotifEnabled } from "../_shared/learner-prefs.ts";
-import { appendEmailParam, personalizeSupportsLinks } from "../_shared/supports-url.ts";
+import { appendEmailParam, personalizeSupportsLinks, resolveSupportsUrlBase } from "../_shared/supports-url.ts";
+import { emailSecondaryLink } from "../_shared/templates.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
