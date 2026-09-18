@@ -765,7 +765,7 @@ END:VCALENDAR`;
 
         {/* ═══ Fenêtre: Prévention des violences et discriminations ═══ */}
         <Dialog open={vhdOpen} onOpenChange={setVhdOpen}>
-          <DialogContent id="section-prevention" className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogContent id="section-prevention" className="w-full max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <MIcon icon="shield_person" />

@@ -12,3 +12,4 @@ request_password_change
 revoke_other_sessions
 list_dormant_learner_accounts
 connexion_indicators
+learner_password_set

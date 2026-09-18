@@ -17,9 +17,10 @@ export interface Training {
   end_date: string | null;
   location: string | null;
   format: string | null;
-  participant_id: string;
-  first_name: string;
-  last_name: string;
+  /** Absent pour une formation e-learning rejointe en autonomie (lms_enrollments sans training_participants). */
+  participant_id: string | null;
+  first_name: string | null;
+  last_name: string | null;
   needs_survey_status: string | null;
   evaluation_status: string | null;
   program_file_url?: string | null;
