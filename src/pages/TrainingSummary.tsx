@@ -763,39 +763,35 @@ END:VCALENDAR`;
           </section>
         )}
 
-        {/* ═══ SECTION: Prévention des violences et discriminations ═══ */}
-        {vhdProcedure && (
-          <section
-            id="section-prevention"
-            className="p-5 rounded-2xl border scroll-mt-20"
-            style={{
-              background: c.surfaceContainerLowest,
-              borderColor: `${c.outlineVariant}30`,
-              color: c.onSurface,
-            }}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <MIcon icon="shield_person" style={{ color: c.primary }} />
-              <h2 className="text-base font-bold">
+        {/* ═══ Fenêtre: Prévention des violences et discriminations ═══ */}
+        <Dialog open={vhdOpen} onOpenChange={setVhdOpen}>
+          <DialogContent id="section-prevention" className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <MIcon icon="shield_person" />
                 Violences, harcèlement et discriminations
-              </h2>
-            </div>
-            <p className="text-sm whitespace-pre-wrap" style={{ color: c.onSurfaceVariant }}>
-              {vhdProcedure.content}
-            </p>
-            {(vhdProcedure.contact_name || vhdProcedure.contact_email) && (
-              <p className="text-sm mt-3 font-medium">
-                Interlocuteur : {vhdProcedure.contact_name}
-                {vhdProcedure.contact_name && vhdProcedure.contact_email ? " — " : ""}
-                {vhdProcedure.contact_email && (
-                  <a href={`mailto:${vhdProcedure.contact_email}`} style={{ color: c.primary }}>
-                    {vhdProcedure.contact_email}
-                  </a>
+              </DialogTitle>
+            </DialogHeader>
+            {vhdProcedure && (
+              <div>
+                <p className="text-sm whitespace-pre-wrap text-muted-foreground">
+                  {vhdProcedure.content}
+                </p>
+                {(vhdProcedure.contact_name || vhdProcedure.contact_email) && (
+                  <p className="text-sm mt-3 font-medium">
+                    Interlocuteur : {vhdProcedure.contact_name}
+                    {vhdProcedure.contact_name && vhdProcedure.contact_email ? " — " : ""}
+                    {vhdProcedure.contact_email && (
+                      <a href={`mailto:${vhdProcedure.contact_email}`} className="text-primary">
+                        {vhdProcedure.contact_email}
+                      </a>
+                    )}
+                  </p>
                 )}
-              </p>
+              </div>
             )}
-          </section>
-        )}
+          </DialogContent>
+        </Dialog>
 
         {/* ═══ SECTION: Support de formation ═══ */}
         <div id="support" className="scroll-mt-20">
