@@ -149,8 +149,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   // Allow internal server-to-server calls (e.g. supertilt-webhook) that carry
   // the service role key, and authenticated frontend calls (user JWT).
+  // Certaines versions du SDK n'envoient la clé que dans l'en-tête `apikey` :
+  // les deux en-têtes sont acceptés pour ne jamais bloquer un appel interne.
   const authHeader = req.headers.get("Authorization") ?? "";
-  const isServiceRole = authHeader === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+  const apiKeyHeader = req.headers.get("apikey") ?? "";
+  const isServiceRole = authHeader === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+    || apiKeyHeader === SUPABASE_SERVICE_ROLE_KEY;
   if (!isServiceRole) {
     const user = await verifyAuth(authHeader);
     if (!user) {
