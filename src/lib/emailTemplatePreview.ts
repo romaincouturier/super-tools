@@ -112,9 +112,9 @@ export function bulletTextToHtml(text: string): string {
 }
 
 /**
- * Mirror of the local formatContentToHtml used by send-elearning-access and
- * send-learner-magic-link: blocks already starting with a block-level tag pass
- * through untouched, everything else becomes a <p>. No escaping.
+ * Mirror of the local formatContentToHtml used by send-elearning-access:
+ * blocks already starting with a block-level tag pass through untouched,
+ * everything else becomes a <p>. No escaping.
  */
 export function rawBlocksTextToHtml(text: string): string {
   if (!text) return "";

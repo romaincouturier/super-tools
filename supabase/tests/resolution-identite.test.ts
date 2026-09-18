@@ -23,12 +23,12 @@ beforeAll(async () => {
   await loadFunctions(db, [
     // La fonction est réécrite (CREATE OR REPLACE) dans une migration plus
     // récente : c'est elle qui porte le comportement réellement déployé.
-    { migration: "20260918110000_seuil_resolution_identite.sql", name: "resolve_login_identity" },
+    { migration: "20260918160000_demolition_lien_magique.sql", name: "resolve_login_identity" },
   ]);
 });
 
 beforeEach(async () => {
-  await db.exec("TRUNCATE identity_resolution_log, learner_magic_links, lms_enrollments, training_participants, user_security_metadata; DELETE FROM auth.users;");
+  await db.exec("TRUNCATE identity_resolution_log, lms_enrollments, training_participants, user_security_metadata; DELETE FROM auth.users;");
 });
 
 describe("resolve_login_identity", () => {
@@ -37,9 +37,9 @@ describe("resolve_login_identity", () => {
     expect(await resolve("alice@exemple.fr")).toBe("password");
   });
 
-  it("aiguille vers le lien quand le compte n'a pas de mot de passe", async () => {
+  it("aiguille aussi vers le mot de passe quand le compte n'en a pas encore (mot de passe oublié reste l'unique recours, plus de lien magique)", async () => {
     await createAuthUser(db, "bob@exemple.fr", { passwordSet: false });
-    expect(await resolve("bob@exemple.fr")).toBe("link");
+    expect(await resolve("bob@exemple.fr")).toBe("password");
   });
 
   it("considère qu'un compte antérieur au drapeau a un mot de passe", async () => {
@@ -47,14 +47,14 @@ describe("resolve_login_identity", () => {
     expect(await resolve("ancien@exemple.fr")).toBe("password");
   });
 
-  it("propose l'activation à un participant connu sans compte", async () => {
+  it("ne connaît pas un participant sans compte (plus de lien d'activation séparé)", async () => {
     await db.query("INSERT INTO training_participants (email) VALUES ($1)", ["claire@exemple.fr"]);
-    expect(await resolve("claire@exemple.fr")).toBe("activation");
+    expect(await resolve("claire@exemple.fr")).toBe("unknown");
   });
 
-  it("propose l'activation à un inscrit Academy sans compte", async () => {
+  it("ne connaît pas un inscrit Academy sans compte (plus de lien d'activation séparé)", async () => {
     await db.query("INSERT INTO lms_enrollments (learner_email) VALUES ($1)", ["david@exemple.fr"]);
-    expect(await resolve("david@exemple.fr")).toBe("activation");
+    expect(await resolve("david@exemple.fr")).toBe("unknown");
   });
 
   it("ne connaît pas une adresse absente de tous les référentiels", async () => {
@@ -116,7 +116,7 @@ describe("resolve_login_identity", () => {
       "alice@exemple.fr", HASH_A, "10.0.0.1",
     ]);
     expect(Object.keys(res.rows[0] as object)).toEqual(["state"]);
-    expect(["password", "link", "activation", "unknown", "throttled"]).toContain(
+    expect(["password", "unknown", "throttled"]).toContain(
       (res.rows[0] as { state: string }).state,
     );
   });

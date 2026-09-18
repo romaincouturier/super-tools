@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Mail, Lock, ShieldCheck, CheckCircle2, ArrowLeft } from "lucide-react";
+import { Mail, Lock, ShieldCheck, ArrowLeft } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { AuthCard, AuthShell, AuthTitle } from "@/components/auth/AuthShell";
 import { AuthField, AuthButton } from "@/components/auth/AuthField";
 import LoginAttemptFeedback from "@/components/LoginAttemptFeedback";
 import { useLoginAttempts } from "@/hooks/useLoginAttempts";
-import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { useAuthActions } from "@/hooks/useAuthActions";
 import { useIdentityResolution } from "@/hooks/useIdentityResolution";
 import { useSession } from "@/hooks/useSession";
@@ -17,11 +16,10 @@ import { normalizeEmail } from "@/lib/stringUtils";
  * Porte de connexion apprenant (W1 à W6, W9).
  * Identifiant d'abord : l'adresse décide de l'étape suivante. Si le service de
  * résolution ne répond pas, l'écran bascule en mode dégradé (chapitre 6.4).
+ * Aucune étape n'ouvre de session sans mot de passe saisi : plus de lien
+ * magique.
  */
-type Step = "email" | "password" | "link" | "activation" | "unknown" | "throttled" | "degraded";
-
-/** Délai avant de pouvoir redemander un lien. */
-const RESEND_COOLDOWN_S = 60;
+type Step = "email" | "password" | "unknown" | "throttled" | "degraded";
 
 export default function Connexion() {
   const [searchParams] = useSearchParams();
@@ -35,14 +33,10 @@ export default function Connexion() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showAttemptFeedback, setShowAttemptFeedback] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
 
   const { status: attempts, countdown, checkAttempt, logAttempt, formatTimeRemaining } = useLoginAttempts();
   const { signIn } = useAuthActions();
   const { resolve, resolving } = useIdentityResolution();
-  const { loading: sendingLink, invoke: sendLink } = useEdgeFunction("send-learner-magic-link", {
-    silentOnError: true,
-  });
 
   // Session déjà ouverte : le formulaire ne s'affiche jamais (W9).
   useEffect(() => {
@@ -54,37 +48,15 @@ export default function Connexion() {
     }
   }, [status, isStaff, mustChangePassword, next, navigate]);
 
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = window.setInterval(() => setCooldown((c) => (c > 0 ? c - 1 : 0)), 1000);
-    return () => window.clearInterval(timer);
-  }, [cooldown]);
-
   const normalizedEmail = email.trim().toLowerCase();
-
-  /**
-   * Un lien demandé depuis cette page est un lien de connexion (30 minutes).
-   * Un compte encore à créer reçoit un lien d'activation (7 jours).
-   */
-  const requestLink = async (targetEmail: string, purpose: "login" | "activation" = "login") => {
-    if (cooldown > 0) return;
-    await sendLink({ email: targetEmail, purpose });
-    setCooldown(RESEND_COOLDOWN_S);
-  };
 
   const resolveAndRoute = async (target: string) => {
     setErrorMsg(null);
     const state = await resolve(target);
-    if (state === null) {
-      setStep("degraded");
-      return;
-    }
-    if (state === "password") { setStep("password"); return; }
+    if (state === null) { setStep("degraded"); return; }
     if (state === "throttled") { setStep("throttled"); return; }
     if (state === "unknown") { setStep("unknown"); return; }
-
-    await requestLink(target, state === "link" ? "login" : "activation");
-    setStep(state === "link" ? "link" : "activation");
+    setStep("password");
   };
 
   const handleEmailStep = async (e: React.FormEvent) => {
@@ -224,21 +196,6 @@ export default function Connexion() {
           </>
         )}
 
-        {(step === "link" || step === "activation") && (
-          <Confirmation
-            title={step === "link" ? "Vérifiez votre boîte mail" : "Votre accès est prêt"}
-            body={
-              step === "link"
-                ? `Nous venons d'envoyer un lien de connexion à ${normalizedEmail}. Il est valable 30 minutes. Pensez à regarder vos courriers indésirables.`
-                : `Vous êtes bien inscrit. Nous venons d'envoyer à ${normalizedEmail} un lien pour activer votre accès. Il est valable 7 jours.`
-            }
-            busy={sendingLink}
-            cooldown={cooldown}
-            onResend={() => void requestLink(normalizedEmail, step === "link" ? "login" : "activation")}
-            onChangeEmail={backToEmail}
-          />
-        )}
-
         {step === "unknown" && (
           <>
             <Title>Nous n'avons pas trouvé de compte</Title>
@@ -281,8 +238,8 @@ export default function Connexion() {
           <>
             <Title>Se connecter</Title>
             <Subtitle>
-              Nous n'avons pas pu identifier votre compte pour l'instant. Saisissez votre mot de
-              passe, ou demandez un lien de connexion.
+              Nous n'avons pas pu identifier votre compte pour l'instant. Saisissez votre adresse et
+              votre mot de passe.
             </Subtitle>
             <form onSubmit={handlePasswordStep}>
               <EmailField value={email} onChange={setEmail} />
@@ -307,12 +264,6 @@ export default function Connexion() {
                 {submitting ? <Spinner /> : "Me connecter"}
               </AuthButton>
             </form>
-            <LinkFallback
-              busy={sendingLink}
-              cooldown={cooldown}
-              disabled={!normalizedEmail.includes("@")}
-              onClick={async () => { await requestLink(normalizedEmail, "login"); setStep("link"); }}
-            />
           </>
         )}
 
@@ -354,57 +305,5 @@ function EmailField({
       readOnly={readOnly}
       required
     />
-  );
-}
-
-function LinkFallback({
-  busy, cooldown, onClick, disabled,
-}: { busy: boolean; cooldown: number; onClick: () => void; disabled?: boolean }) {
-  return (
-    <div className="mt-5 text-[15px] text-[#6b7686]">
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={busy || cooldown > 0 || disabled}
-        className="font-bold underline underline-offset-[3px] disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {busy
-          ? "Envoi en cours…"
-          : cooldown > 0
-            ? `Renvoyer un lien dans ${cooldown}s`
-            : "Recevoir un lien de connexion par email"}
-      </button>
-    </div>
-  );
-}
-
-function Confirmation({
-  title, body, busy, cooldown, onResend, onChangeEmail,
-}: {
-  title: string;
-  body: string;
-  busy: boolean;
-  cooldown: number;
-  onResend: () => void;
-  onChangeEmail: () => void;
-}) {
-  return (
-    <>
-      <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[#eaf6ee]">
-        <CheckCircle2 className="h-7 w-7 text-[#3f9c62]" />
-      </div>
-      <Title>{title}</Title>
-      <Subtitle>{body}</Subtitle>
-      <AuthButton type="button" onClick={onResend} disabled={busy || cooldown > 0}>
-        {busy ? <Spinner /> : cooldown > 0 ? `Renvoyer dans ${cooldown}s` : "Renvoyer le lien"}
-      </AuthButton>
-      <button
-        type="button"
-        onClick={onChangeEmail}
-        className="mt-4 text-[15px] underline underline-offset-[3px] text-[#6b7686]"
-      >
-        Utiliser une autre adresse
-      </button>
-    </>
   );
 }

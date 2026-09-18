@@ -2,12 +2,12 @@ import { useCallback, useState } from "react";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 
 /** États d'aiguillage renvoyés par le service de résolution (chapitre 6.1). */
-export type IdentityState = "password" | "link" | "activation" | "unknown" | "throttled";
+export type IdentityState = "password" | "unknown" | "throttled";
 
 /** Repli si le service ne répond pas dans ce délai (chapitre 6.4). */
 export const RESOLUTION_TIMEOUT_MS = 3000;
 
-const KNOWN_STATES: IdentityState[] = ["password", "link", "activation", "unknown", "throttled"];
+const KNOWN_STATES: IdentityState[] = ["password", "unknown", "throttled"];
 
 /** Un état inconnu ou absent vaut panne : l'écran bascule en mode dégradé. */
 export function parseIdentityState(payload: unknown): IdentityState | null {

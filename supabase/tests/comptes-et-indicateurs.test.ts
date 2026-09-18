@@ -12,17 +12,20 @@ const STAFF = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 beforeAll(async () => {
   db = await createTestDb();
   await loadFunctions(db, [
-    { migration: "20260914170000_lot3_resolution_identite.sql", name: "mark_password_changed" },
-    { migration: "20260914170000_lot3_resolution_identite.sql", name: "request_password_change" },
-    { migration: "20260915140000_recette_p4_quota_purge_sessions.sql", name: "revoke_other_sessions" },
-    { migration: "20260915100000_lot6_adresse_indicateurs.sql", name: "list_dormant_learner_accounts" },
-    { migration: "20260915100000_lot6_adresse_indicateurs.sql", name: "connexion_indicators" },
+    // Repointé vers la migration qui porte réellement chaque fonction en
+    // production (repris à l'identique par 093744/093920, jamais mis à jour
+    // ici jusqu'ici).
+    { migration: "20260918093744_74edf311-4768-484c-9744-4a7c2a2bbb53.sql", name: "mark_password_changed" },
+    { migration: "20260918093744_74edf311-4768-484c-9744-4a7c2a2bbb53.sql", name: "request_password_change" },
+    { migration: "20260918093920_2c7273dc-9e82-43f1-85cb-a3ab3baa6db7.sql", name: "revoke_other_sessions" },
+    { migration: "20260918093920_2c7273dc-9e82-43f1-85cb-a3ab3baa6db7.sql", name: "list_dormant_learner_accounts" },
+    { migration: "20260918160000_demolition_lien_magique.sql", name: "connexion_indicators" },
   ]);
 });
 
 beforeEach(async () => {
   await db.exec(`TRUNCATE profiles, user_security_metadata, training_participants, lms_progress,
-    learner_magic_links, login_attempts, identity_resolution_log;
+    login_attempts, identity_resolution_log;
     DELETE FROM auth.sessions; DELETE FROM auth.users;`);
   await db.query("INSERT INTO profiles (user_id, email) VALUES ($1, $2)", [STAFF, "staff@supertilt.fr"]);
 });
@@ -154,19 +157,6 @@ describe("connexion_indicators", () => {
     expect(ind.provisioned_accounts).toBe(2);
     expect(ind.activated_accounts).toBe(1);
     expect(Number(ind.activation_rate)).toBe(50);
-  });
-
-  it("compte les liens expirés sans usage", async () => {
-    await db.query(
-      `INSERT INTO learner_magic_links (email, expires_at) VALUES
-        ('a@exemple.fr', now() - interval '1 day'),
-        ('b@exemple.fr', now() + interval '1 day')`,
-    );
-    const res = await db.query<{ connexion_indicators: Record<string, number> }>(
-      "SELECT public.connexion_indicators(30)",
-    );
-    expect(res.rows[0].connexion_indicators.links_sent).toBe(2);
-    expect(res.rows[0].connexion_indicators.links_expired_unused).toBe(1);
   });
 
   it("est réservé à l'équipe", async () => {
