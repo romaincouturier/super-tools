@@ -116,7 +116,7 @@ function makeAccessAdmin(opts: {
   });
   const generateLink = vi.fn().mockResolvedValue(
     opts.generateLink ?? {
-      data: { properties: { action_link: "https://app.example.com/recovery-token" } },
+      data: { properties: { hashed_token: "abc123" } },
       error: null,
     },
   );
@@ -160,12 +160,16 @@ describe("sendLearnerAccessEmail", () => {
     expect(generateLink).toHaveBeenCalledWith({
       type: "recovery",
       email: "nouveau@example.com",
-      options: { redirectTo: "https://app.example.com/connexion/reinitialisation?mode=activation" },
+      options: { redirectTo: "https://app.example.com/connexion/reinitialisation" },
     });
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
     const call = sendEmailMock.mock.calls[0][0];
     expect(call.subject).toBe("Créez votre mot de passe SuperTools");
-    expect(call.html).toContain("https://app.example.com/recovery-token");
+    // RG-21 : jamais l'action_link Supabase (auth/v1/verify), qui consommerait
+    // le jeton dès la requête GET — seulement notre propre URL avec le
+    // token_hash, consommé au clic sur ConnexionReinitialisation.tsx.
+    expect(call.html).toContain("https://app.example.com/connexion/reinitialisation?token_hash=abc123&type=recovery");
+    expect(call.html).not.toContain("auth/v1/verify");
     expect(call.html).toContain("Créer mon mot de passe");
   });
 
@@ -179,7 +183,7 @@ describe("sendLearnerAccessEmail", () => {
     const call = sendEmailMock.mock.calls[0][0];
     expect(call.subject).toBe("Accéder à votre espace SuperTools");
     expect(call.html).toContain("https://app.example.com/connexion?email=connu%40example.com");
-    expect(call.html).not.toContain("recovery-token");
+    expect(call.html).not.toContain("token_hash");
   });
 
   it("rend sent à faux si Supabase échoue à générer le lien recovery", async () => {
@@ -205,17 +209,17 @@ describe("learnerAccessLink", () => {
     await expect(learnerAccessLink(admin, "inconnu@example.com")).resolves.toBeNull();
   });
 
-  it("compte sans mot de passe : lien recovery vers l'écran de création", async () => {
+  it("compte sans mot de passe : lien token_hash vers l'écran de création, jamais action_link (RG-21)", async () => {
     const { admin, generateLink } = makeAccessAdmin({ passwordSet: false });
 
     await expect(learnerAccessLink(admin, "nouveau@example.com")).resolves.toEqual({
-      actionLink: "https://app.example.com/recovery-token",
+      actionLink: "https://app.example.com/connexion/reinitialisation?token_hash=abc123&type=recovery",
       passwordSet: false,
     });
     expect(generateLink).toHaveBeenCalledWith({
       type: "recovery",
       email: "nouveau@example.com",
-      options: { redirectTo: "https://app.example.com/connexion/reinitialisation?mode=activation" },
+      options: { redirectTo: "https://app.example.com/connexion/reinitialisation" },
     });
   });
 
@@ -233,6 +237,14 @@ describe("learnerAccessLink", () => {
     const { admin } = makeAccessAdmin({
       passwordSet: false,
       generateLink: { data: null, error: { message: "boom" } },
+    });
+    await expect(learnerAccessLink(admin, "panne@example.com")).resolves.toBeNull();
+  });
+
+  it("renvoie null si Supabase ne renvoie pas de hashed_token, même sans erreur", async () => {
+    const { admin } = makeAccessAdmin({
+      passwordSet: false,
+      generateLink: { data: { properties: {} }, error: null },
     });
     await expect(learnerAccessLink(admin, "panne@example.com")).resolves.toBeNull();
   });

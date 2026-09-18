@@ -120,7 +120,7 @@ export default function Connexion() {
 
   if (status === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f5f6f7]">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Spinner size="lg" className="text-primary" />
       </div>
     );
@@ -139,9 +139,9 @@ export default function Connexion() {
                 {resolving ? <Spinner /> : "Continuer"}
               </AuthButton>
             </form>
-            <p className="mt-5 text-[15px] text-[#6b7686]">
+            <p className="mt-5 text-[15px] text-muted-foreground">
               Vous n'avez pas encore de compte&nbsp;?{" "}
-              <Link to="/academy/inscription" className="font-bold text-[#1a2230] underline underline-offset-[3px]">
+              <Link to="/academy/inscription" className="font-bold text-foreground underline underline-offset-[3px]">
                 Créer un compte gratuitement
               </Link>
             </p>
@@ -170,7 +170,7 @@ export default function Connexion() {
               />
 
               <div className="mb-6 flex flex-wrap items-center justify-between gap-4 text-[15px]">
-                <button type="button" onClick={backToEmail} className="flex items-center gap-2 text-[#6b7686] hover:text-[#1a2230]">
+                <button type="button" onClick={backToEmail} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="h-4 w-4" /> Revenir à la page de connexion
                 </button>
                 <Link to="/connexion/mot-de-passe-oublie" className="underline underline-offset-[3px]">
@@ -207,16 +207,16 @@ export default function Connexion() {
             <div className="flex flex-col gap-3">
               <Link
                 to="/academy/inscription"
-                className="flex h-14 w-full items-center justify-center rounded-[11px] bg-[#fdc500] text-base font-semibold text-[#1a2230] transition-colors hover:bg-[#ffd100] active:translate-y-px"
+                className="flex h-14 w-full items-center justify-center rounded-[11px] bg-primary text-base font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:translate-y-px"
               >
                 Créer un compte gratuitement
               </Link>
-              <button type="button" onClick={backToEmail} className="text-[15px] underline underline-offset-[3px] text-[#6b7686]">
+              <button type="button" onClick={backToEmail} className="text-[15px] underline underline-offset-[3px] text-muted-foreground">
                 Essayer une autre adresse
               </button>
               <a
                 href={`mailto:contact@supertilt.fr?subject=${encodeURIComponent("Accès à mon espace apprenant")}&body=${encodeURIComponent(`Bonjour,\n\nJe n'arrive pas à accéder à mon espace apprenant avec l'adresse ${normalizedEmail}.\n\nMerci de votre aide.`)}`}
-                className="text-[15px] underline underline-offset-[3px] text-[#6b7686]"
+                className="text-[15px] underline underline-offset-[3px] text-muted-foreground"
               >
                 Écrire au support
               </a>
@@ -267,7 +267,7 @@ export default function Connexion() {
           </>
         )}
 
-        <div className="mt-6 flex items-center justify-center gap-2.5 border-t border-[#eceef1] pt-6 text-[14.5px] text-[#9aa3b0]">
+        <div className="mt-6 flex items-center justify-center gap-2.5 border-t pt-6 text-[14.5px] text-muted-foreground">
           <ShieldCheck className="h-[18px] w-[18px]" />
           Connexion sécurisée
         </div>
@@ -285,7 +285,7 @@ function Title({ children }: { children: React.ReactNode }) {
 }
 
 function Subtitle({ children }: { children: React.ReactNode }) {
-  return <p className="mb-8 text-base text-[#6b7686]">{children}</p>;
+  return <p className="mb-8 text-base text-muted-foreground">{children}</p>;
 }
 
 function EmailField({

@@ -51,9 +51,10 @@ export async function ensureLearnerAccount(
  * Construit le lien d'accès à l'espace apprenant, sans jamais ouvrir de
  * session automatiquement (plus de lien magique). Le lien varie selon l'état
  * du compte, lu via learner_password_set (RPC) :
- *  - password_set = false  : lien "recovery" natif Supabase, mène à la
- *    création d'un vrai mot de passe (réutilise le circuit de
- *    ConnexionReinitialisation.tsx, déjà en place pour "mot de passe oublié").
+ *  - password_set = false  : lien vers ConnexionReinitialisation.tsx, porteur
+ *    du token_hash Supabase (RG-21 : jamais l'action_link, qui consommerait
+ *    le jeton dès la requête GET vers auth/v1/verify — voir verifyOtp côté
+ *    frontend, déclenché seulement par le clic de l'apprenant).
  *  - password_set = true   : lien qui préremplit seulement l'adresse sur
  *    /connexion, aucune authentification automatique.
  * Renvoie null si l'adresse ne correspond à aucun compte, pour ne rien
@@ -74,10 +75,14 @@ export async function learnerAccessLink(
     const { data, error } = await admin.auth.admin.generateLink({
       type: "recovery",
       email: normalized,
-      options: { redirectTo: `${urls.app_url}/connexion/reinitialisation?mode=activation` },
+      options: { redirectTo: `${urls.app_url}/connexion/reinitialisation` },
     });
-    if (error || !data?.properties?.action_link) return null;
-    return { actionLink: data.properties.action_link, passwordSet: false };
+    if (error || !data?.properties?.hashed_token) return null;
+    const tokenHash = encodeURIComponent(data.properties.hashed_token);
+    return {
+      actionLink: `${urls.app_url}/connexion/reinitialisation?token_hash=${tokenHash}&type=recovery`,
+      passwordSet: false,
+    };
   }
 
   return {

@@ -41,7 +41,7 @@ export default function ConnexionMotDePasseOublie() {
             <AuthTitle>
               Mot de passe oublié
             </AuthTitle>
-            <p className="mb-7 max-w-[42ch] text-[15.5px] text-[#6b7686]">
+            <p className="mb-7 max-w-[42ch] text-[15.5px] text-muted-foreground">
               Indiquez l'adresse e-mail utilisée pour votre compte. Nous vous enverrons un lien
               pour définir un nouveau mot de passe.
             </p>
@@ -72,8 +72,8 @@ export default function ConnexionMotDePasseOublie() {
             </Link>
 
             {sent && (
-              <div className="mt-6 flex items-center gap-3 rounded-[11px] bg-[#eaf6ee] px-4 py-3.5 text-[14.5px] text-[#1a2230]">
-                <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-[#3f9c62]" />
+              <div className="mt-6 flex items-center gap-3 rounded-[11px] bg-primary/10 px-4 py-3.5 text-[14.5px] text-foreground">
+                <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-primary" />
                 Si un compte existe pour cette adresse, un e-mail vient d'être envoyé.
                 Le lien est valable 1 heure.
               </div>

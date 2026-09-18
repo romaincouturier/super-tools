@@ -14,13 +14,13 @@ export default function MaintenanceBanner() {
   return (
     <div
       role="status"
-      className="border-b border-[#f2dca0] bg-[#fdf6e4] px-5 py-3.5 sm:px-10"
+      className="border-b border-primary/30 bg-primary/10 px-5 py-3.5 sm:px-10"
     >
       <div className="mx-auto flex max-w-3xl items-start gap-3">
-        <Wrench className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[#1a2230]" />
-        <div className="text-[14.5px] leading-6 text-[#1a2230]">
+        <Wrench className="mt-0.5 h-[18px] w-[18px] shrink-0 text-foreground" />
+        <div className="text-[14.5px] leading-6 text-foreground">
           <p className="font-semibold">On fait quelques travaux sur SuperTools</p>
-          <p className="mt-0.5 text-[#6b7686]">{data.message}</p>
+          <p className="mt-0.5 text-muted-foreground">{data.message}</p>
         </div>
       </div>
     </div>
