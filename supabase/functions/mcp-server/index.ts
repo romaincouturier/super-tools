@@ -74,6 +74,10 @@ import {
  *                           par l'agent (PNG, SVG, HTML, MD, PDF) aux
  *                           documents de la mission. Création seule : jamais
  *                           d'écrasement ni de suppression
+ *   - save_mission_activity : écriture additive — ajoute une activité au
+ *                           journal d'une mission
+ *   - update_mission_activity : met à jour les champs fournis d'une activité
+ *                           existante ; aucune suppression possible
  *   - get_seo_performance    : Search Console historisé, avec comparaison de
  *                           période (totaux, série journalière, détail par
  *                           requête / page / pays / appareil / apparence)
