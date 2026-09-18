@@ -12083,11 +12083,36 @@ export type Database = {
         }
         Relationships: []
       }
+      identity_resolution_log: {
+        Row: {
+          email_hash: string
+          id: string
+          ip_address: string
+          resolved_at: string
+          state: string
+        }
+        Insert: {
+          email_hash: string
+          id?: string
+          ip_address?: string
+          resolved_at?: string
+          state: string
+        }
+        Update: {
+          email_hash?: string
+          id?: string
+          ip_address?: string
+          resolved_at?: string
+          state?: string
+        }
+        Relationships: []
+      }
       user_security_metadata: {
         Row: {
           created_at: string
           id: string
           must_change_password: boolean
+          password_set: boolean
           updated_at: string
           user_id: string
         }
@@ -12095,6 +12120,7 @@ export type Database = {
           created_at?: string
           id?: string
           must_change_password?: boolean
+          password_set?: boolean
           updated_at?: string
           user_id: string
         }
@@ -12102,6 +12128,7 @@ export type Database = {
           created_at?: string
           id?: string
           must_change_password?: boolean
+          password_set?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -13218,6 +13245,19 @@ export type Database = {
         Args: { p_timestamp: string; p_token: string }
         Returns: undefined
       }
+      change_learner_email: {
+        Args: { p_new_email: string; p_old_email: string; p_user_id?: string }
+        Returns: Json
+      }
+      connexion_indicators: { Args: { p_days?: number }; Returns: Json }
+      current_user_access_level: { Args: never; Returns: string }
+      revoke_other_sessions: { Args: never; Returns: number }
+      list_dormant_learner_accounts: {
+        Args: { p_years?: number }
+        Returns: { created_at: string; email: string; last_sign_in_at: string }[]
+      }
+      mark_password_changed: { Args: never; Returns: undefined }
+      request_password_change: { Args: never; Returns: undefined }
       mark_convention_opened: {
         Args: { p_timestamp: string; p_token: string }
         Returns: undefined

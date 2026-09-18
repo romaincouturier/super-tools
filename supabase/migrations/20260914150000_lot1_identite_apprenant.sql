@@ -199,7 +199,10 @@ $function$;
 -- 3. Retrait de l'exécution anonyme sur les fonctions qui prennent l'identité
 --    en paramètre. Les fonctions de jeton restent ouvertes : elles sont appelées
 --    avant toute session.
-REVOKE EXECUTE ON FUNCTION public.get_learner_portal_data(text) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.get_learner_portal_training_details(text) FROM anon;
+-- Le retrait de l'accès anonyme à ces deux fonctions est déplacé dans
+-- supabase/migrations-apres-front/20260918100000_apres_front_fermeture_portail_anon.sql :
+-- le front actuellement publié les appelle encore en anonyme, via le client
+-- porteur de l'en-tête. Les révoquer avant la publication casse l'espace
+-- apprenant en ligne.
 GRANT EXECUTE ON FUNCTION public.get_learner_portal_data(text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_learner_portal_training_details(text) TO authenticated;

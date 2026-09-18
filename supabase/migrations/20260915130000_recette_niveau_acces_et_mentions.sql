@@ -41,7 +41,8 @@ REVOKE EXECUTE ON FUNCTION public.current_user_access_level() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.current_user_access_level() TO authenticated;
 
 -- ── Critère 11. Plus d'identité en paramètre pour un appelant anonyme ───────
-REVOKE EXECUTE ON FUNCTION public.learner_evaluation_course_id(text, uuid) FROM anon;
+-- Retrait déplacé dans supabase/migrations-apres-front/ : le lecteur LMS
+-- actuellement publié appelle cette fonction en anonyme.
 
 -- ── Critère 23. Mention de la création de compte ────────────────────────────
 -- Les mises à jour de modèles d'email attendent la publication du front :
