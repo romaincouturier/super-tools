@@ -931,6 +931,34 @@ async function callTool(
         return textResult(`Save error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "save_mission_activity": {
+      try {
+        return textResult(
+          await saveMissionActivity(
+            supabase,
+            (args.mission_id as string) || "",
+            activityInputFromArgs(args),
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Save error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_mission_activity": {
+      try {
+        return textResult(
+          await updateMissionActivity(
+            supabase,
+            (args.activity_id as string) || "",
+            activityInputFromArgs(args),
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "get_seo_performance": {
       try {
         await log("get_seo_performance");
