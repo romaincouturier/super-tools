@@ -89,6 +89,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Landing = lazy(() => import("./pages/Landing"));
 const AcademySignup = lazy(() => import("./pages/AcademySignup"));
+const AcademyCourseSelection = lazy(() => import("./pages/AcademyCourseSelection"));
 const Signup = lazy(() => import("./pages/Signup"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Connexion = lazy(() => import("./pages/Connexion"));
@@ -203,6 +204,7 @@ const App = () => {
               {/* Public routes — no auth required */}
               <Route path="/" element={<Landing />} />
               <Route path="/academy/inscription" element={<AcademySignup />} />
+              <Route path="/academy/choisir-mes-formations" element={<AcademyCourseSelection />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/onboarding" element={<Onboarding />} />

@@ -25,7 +25,6 @@ type LmsQuizInsert = Tables["lms_quizzes"]["Insert"];
 type LmsQuizQuestionInsert = Tables["lms_quiz_questions"]["Insert"];
 type LmsQuizAttemptInsert = Tables["lms_quiz_attempts"]["Insert"];
 type LmsProgressInsert = Tables["lms_progress"]["Insert"];
-type LmsEnrollmentInsert = Tables["lms_enrollments"]["Insert"];
 type LmsAssignmentSubmissionInsert = Tables["lms_assignment_submissions"]["Insert"];
 type LmsForumPostInsert = Tables["lms_forum_posts"]["Insert"];
 
@@ -408,27 +407,6 @@ export function useMarkLessonComplete() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lms-progress"] });
-    },
-  });
-}
-
-// ---- Enrollment mutations ----
-
-export function useEnrollLearner() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: { course_id: string; learner_email: string }) => {
-      const client = supabase;
-      const { data, error } = await client
-        .from("lms_enrollments")
-        .upsert(input as LmsEnrollmentInsert, { onConflict: "course_id,learner_email" })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (_, vars) => {
-      qc.invalidateQueries({ queryKey: ["lms-enrollments", vars.course_id] });
     },
   });
 }

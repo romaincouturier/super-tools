@@ -291,6 +291,9 @@ verify_jwt = false
 [functions.create-academy-account]
 verify_jwt = false
 
+[functions.enroll-academy-courses]
+verify_jwt = true
+
 [functions.get-academy-catalog]
 verify_jwt = false
 

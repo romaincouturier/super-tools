@@ -2,7 +2,6 @@ import { useMutation } from "@tanstack/react-query";
 import { invokeEdge } from "@/lib/invokeEdge";
 
 export type CreateAcademyAccountInput = {
-  courseId: string;
   email: string;
   password: string;
   fullName: string;
@@ -11,7 +10,6 @@ export type CreateAcademyAccountInput = {
 type CreateAcademyAccountResponse = {
   success: boolean;
   email: string;
-  courseId: string;
 };
 
 export function useAcademyAccount() {
