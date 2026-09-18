@@ -19,12 +19,14 @@ async function portal(email: string) {
 beforeAll(async () => {
   db = await createTestDb();
   await loadFunctions(db, [
-    { migration: "20260914150000_lot1_identite_apprenant.sql", name: "get_learner_portal_data" },
+    { migration: "20260918140000_academie_formations_dans_portail.sql", name: "get_learner_portal_data" },
   ]);
 });
 
 beforeEach(async () => {
-  await db.exec("TRUNCATE profiles, training_participants; DELETE FROM auth.users;");
+  await db.exec(
+    "TRUNCATE profiles, training_participants, trainings, lms_enrollments, lms_courses; DELETE FROM auth.users;",
+  );
   await db.query("INSERT INTO profiles (user_id, email) VALUES ($1, $2)", [STAFF, "staff@supertilt.fr"]);
 });
 
@@ -58,5 +60,55 @@ describe("get_learner_portal_data", () => {
     await actAs(db, { uid: STAFF, email: "staff@supertilt.fr" });
     const data = await portal("alice@exemple.fr");
     expect(data.email).toBe("alice@exemple.fr");
+  });
+
+  it("affiche une formation gratuite rejointe en autonomie, sans ligne training_participants", async () => {
+    const id = await createAuthUser(db, "carla@exemple.fr");
+    await actAs(db, { uid: id, email: "carla@exemple.fr" });
+    const course = await db.query<{ id: string }>(
+      "INSERT INTO lms_courses (title, status) VALUES ($1, 'published') RETURNING id",
+      ["Sketchnoting débutant"],
+    );
+    const courseId = course.rows[0].id;
+    await db.query(
+      "INSERT INTO lms_enrollments (course_id, learner_email, completion_percentage) VALUES ($1, $2, $3)",
+      [courseId, "carla@exemple.fr", 42],
+    );
+
+    const data = await portal("carla@exemple.fr");
+    expect(data.trainings).toHaveLength(1);
+    expect(data.trainings[0]).toMatchObject({
+      training_name: "Sketchnoting débutant",
+      lms_course_id: courseId,
+      lms_completion: 42,
+      participant_id: null,
+      is_permanent: true,
+    });
+  });
+
+  it("ne duplique pas une formation déjà comptée via training_participants", async () => {
+    const id = await createAuthUser(db, "dan@exemple.fr");
+    await actAs(db, { uid: id, email: "dan@exemple.fr" });
+    const course = await db.query<{ id: string }>(
+      "INSERT INTO lms_courses (title, status) VALUES ($1, 'published') RETURNING id",
+      ["IA appliquée"],
+    );
+    const courseId = course.rows[0].id;
+    const training = await db.query<{ id: string }>(
+      "INSERT INTO trainings (training_name, supports_lms_course_id) VALUES ($1, $2) RETURNING id",
+      ["IA appliquée — session", courseId],
+    );
+    await db.query(
+      "INSERT INTO training_participants (training_id, email) VALUES ($1, $2)",
+      [training.rows[0].id, "dan@exemple.fr"],
+    );
+    await db.query(
+      "INSERT INTO lms_enrollments (course_id, learner_email) VALUES ($1, $2)",
+      [courseId, "dan@exemple.fr"],
+    );
+
+    const data = await portal("dan@exemple.fr");
+    expect(data.trainings).toHaveLength(1);
+    expect(data.trainings[0].participant_id).not.toBeNull();
   });
 });
