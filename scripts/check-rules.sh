@@ -479,6 +479,14 @@ if [ "$STAGED_MODE" = "false" ]; then
   # peuvent pas partager de module (alias Vite d'un côté, imports Deno de
   # l'autre). Si l'un cesse de couper les espaces ou de passer en minuscules,
   # une adresse écrite par une edge function n'est plus relue par le front.
+  # [060] Un rebase peut perdre une suppression de fichier sans que le diff, le
+  # typecheck, les tests ni le lint ne le voient. L'étape de vérification doit
+  # rester dans la procédure : si la skill cesse de la prescrire, elle disparaît
+  # sans que personne le remarque.
+  check "060" "La skill sync-and-pr prescrit toujours verif-rebase.sh" \
+    "test -x scripts/verif-rebase.sh || echo 'VIOLATION [060]: scripts/verif-rebase.sh absent ou non exécutable'; \
+     grep -q 'verif-rebase.sh' .claude/skills/sync-and-pr/SKILL.md || echo 'VIOLATION [060]: la skill sync-and-pr ne prescrit plus verif-rebase.sh'"
+
   check "059b" "Les deux normaliseurs d'email appliquent le même contrat" \
     "for f in src/lib/stringUtils.ts supabase/functions/_shared/learner-email.ts; do \
        grep -q 'trim()\\.toLowerCase()' \"\$f\" || echo \"VIOLATION [059b]: \$f ne normalise plus par trim().toLowerCase()\"; \

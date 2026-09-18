@@ -529,6 +529,15 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## DX
 
+### [060] Rebase — comparer les inventaires de fichiers, jamais se fier au diff
+- **Constat** : 18/09/2026, rebase de la refonte de connexion sur 45 commits de `main`, neuf conflits d'import résolus. Après coup, `src/integrations/supabase/learner-client.ts` était présent dans l'arbre alors que la branche le supprime. Ni le diff, ni `typecheck`, ni les 2019 tests, ni le lint ne l'ont signalé : le module compile et plus personne ne l'importe. Livré tel quel, le client qui pose l'en-tête `x-learner-email` restait dans le code, ce qui vide de son sens tout le passage de l'identité au jeton. Premier diagnostic posé, et faux : « suppression perdue au rebase ». La comparaison d'inventaire a montré autre chose — `main` avait **recréé** le fichier la veille (commit `a9fded1`) pour mémoïser le client et arrêter un `429 over_request_rate_limit`. Ce n'était donc pas un accident de rebase mais un désaccord d'intention : la base corrigeait ce que la branche retire.
+- **Règle** : après tout rebase, comparer l'inventaire des fichiers d'avant et d'après, et non le diff. Trois anomalies à distinguer : un fichier de la branche qui a disparu, une suppression de la branche qui est revenue, et une suppression de la branche portant sur un fichier que la base vient de modifier. Les deux premières se rétablissent. La troisième se tranche, et la décision se motive dans la PR : la base et la branche ne peuvent pas avoir raison toutes les deux.
+- **Vérification** : `bash scripts/verif-rebase.sh [ref-avant-rebase] [base]` — sans argument, `ORIG_HEAD` et `origin/main`. Sortie vide = aucune anomalie, code 1 sinon. Check [060] de `check-rules.sh` : la skill `sync-and-pr` doit continuer de prescrire ce script, sinon l'étape disparaît de la procédure sans que personne le voie.
+- **Fichiers de référence** : `scripts/verif-rebase.sh`, `.claude/skills/sync-and-pr/SKILL.md` (étape 3ter)
+- **Origine** : rebase du 18/09/2026, suppression de `createLearnerClient` contredite par une recréation côté `main`
+- **Date** : 2026-09-18
+
+
 ### [012] Lovable scaffolding — auditer et supprimer le code mort après chaque génération
 - **Constat** : Lovable génère systématiquement du code scaffolding jamais utilisé : 13 composants UI Radix (hover-card, sidebar, menubar…), des wrappers à 1 import (ReviewSection.tsx), du CSS legacy (App.css), et des imports inutilisés (useTranslation dans Landing.tsx). Au total 1947 lignes mortes accumulées en quelques semaines de génération.
 - **Règle** : Après chaque session Lovable, vérifier les fichiers générés/modifiés. Supprimer tout composant UI avec 0 imports, tout wrapper qui ne fait que passer des props à un enfant unique, tout fichier CSS non importé, et tout import non utilisé. Ne jamais laisser du code mort "au cas où".
