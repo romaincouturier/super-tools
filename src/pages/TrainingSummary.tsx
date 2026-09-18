@@ -16,6 +16,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { openStorageUrl } from "@/lib/storageUrl";
@@ -119,6 +125,7 @@ const TrainingSummary = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeNav, setActiveNav] = useState("infos");
+  const [vhdOpen, setVhdOpen] = useState(false);
 
   // Section refs for bottom nav scroll
   const sectionInfos = useRef<HTMLElement>(null);
