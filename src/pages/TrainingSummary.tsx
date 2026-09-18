@@ -16,6 +16,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { openStorageUrl } from "@/lib/storageUrl";
@@ -119,6 +125,7 @@ const TrainingSummary = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeNav, setActiveNav] = useState("infos");
+  const [vhdOpen, setVhdOpen] = useState(false);
 
   // Section refs for bottom nav scroll
   const sectionInfos = useRef<HTMLElement>(null);
@@ -673,7 +680,7 @@ END:VCALENDAR`;
         )}
 
         {/* ═══ SECTION: Documents ═══ */}
-        {(training.program_file_url || training.supports_url || training.supports_lms_course_id || reglementInterieurUrl) && (
+        {(training.program_file_url || training.supports_url || training.supports_lms_course_id || reglementInterieurUrl || vhdProcedure) && (
           <section ref={sectionDocuments} id="section-documents" className="grid grid-cols-2 gap-3 scroll-mt-20">
             {training.program_file_url && (
               <button
@@ -738,42 +745,53 @@ END:VCALENDAR`;
                 <span className="text-xs font-bold text-center">Règlement intérieur</span>
               </a>
             )}
-          </section>
-        )}
-
-        {/* ═══ SECTION: Prévention des violences et discriminations ═══ */}
-        {vhdProcedure && (
-          <section
-            id="section-prevention"
-            className="p-5 rounded-2xl border scroll-mt-20"
-            style={{
-              background: c.surfaceContainerLowest,
-              borderColor: `${c.outlineVariant}30`,
-              color: c.onSurface,
-            }}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <MIcon icon="shield_person" style={{ color: c.primary }} />
-              <h2 className="text-base font-bold">
-                Violences, harcèlement et discriminations
-              </h2>
-            </div>
-            <p className="text-sm whitespace-pre-wrap" style={{ color: c.onSurfaceVariant }}>
-              {vhdProcedure.content}
-            </p>
-            {(vhdProcedure.contact_name || vhdProcedure.contact_email) && (
-              <p className="text-sm mt-3 font-medium">
-                Interlocuteur : {vhdProcedure.contact_name}
-                {vhdProcedure.contact_name && vhdProcedure.contact_email ? " — " : ""}
-                {vhdProcedure.contact_email && (
-                  <a href={`mailto:${vhdProcedure.contact_email}`} style={{ color: c.primary }}>
-                    {vhdProcedure.contact_email}
-                  </a>
-                )}
-              </p>
+            {vhdProcedure && (
+              <button
+                type="button"
+                onClick={() => setVhdOpen(true)}
+                className="flex flex-col items-center justify-center p-4 border rounded-xl transition-colors"
+                style={{
+                  background: c.surfaceContainerLowest,
+                  borderColor: `${c.outlineVariant}30`,
+                  color: c.onSurface,
+                }}
+              >
+                <MIcon icon="shield_person" className="mb-2" />
+                <span className="text-xs font-bold text-center">Violences & discriminations</span>
+              </button>
             )}
           </section>
         )}
+
+        {/* ═══ Fenêtre: Prévention des violences et discriminations ═══ */}
+        <Dialog open={vhdOpen} onOpenChange={setVhdOpen}>
+          <DialogContent id="section-prevention" className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <MIcon icon="shield_person" />
+                Violences, harcèlement et discriminations
+              </DialogTitle>
+            </DialogHeader>
+            {vhdProcedure && (
+              <div>
+                <p className="text-sm whitespace-pre-wrap text-muted-foreground">
+                  {vhdProcedure.content}
+                </p>
+                {(vhdProcedure.contact_name || vhdProcedure.contact_email) && (
+                  <p className="text-sm mt-3 font-medium">
+                    Interlocuteur : {vhdProcedure.contact_name}
+                    {vhdProcedure.contact_name && vhdProcedure.contact_email ? " — " : ""}
+                    {vhdProcedure.contact_email && (
+                      <a href={`mailto:${vhdProcedure.contact_email}`} className="text-primary">
+                        {vhdProcedure.contact_email}
+                      </a>
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* ═══ SECTION: Support de formation ═══ */}
         <div id="support" className="scroll-mt-20">
