@@ -12849,6 +12849,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      change_learner_email: {
+        Args: { p_new_email: string; p_old_email: string; p_user_id?: string }
+        Returns: Json
+      }
       check_formulaire_rate_limit: {
         Args: {
           p_ip_address: string
@@ -12857,8 +12861,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_link_quota: {
+        Args: { p_email_hash: string; p_ip: string }
+        Returns: boolean
+      }
       cleanup_agent_embedding_cache: { Args: never; Returns: number }
+      connexion_indicators: { Args: { p_days?: number }; Returns: Json }
       consume_learner_token: { Args: { p_token: string }; Returns: undefined }
+      current_user_access_level: { Args: never; Returns: string }
       decay_watch_relevance: { Args: never; Returns: undefined }
       decrypt_token: {
         Args: { encrypted_token: string; encryption_key: string }
@@ -13229,6 +13239,14 @@ export type Database = {
         Returns: number
       }
       link_tender_duplicates: { Args: never; Returns: number }
+      list_dormant_learner_accounts: {
+        Args: { p_years?: number }
+        Returns: {
+          created_at: string
+          email: string
+          last_sign_in_at: string
+        }[]
+      }
       lms_learner_is_enrolled: {
         Args: { _course_id: string }
         Returns: boolean
@@ -13425,6 +13443,7 @@ export type Database = {
         Args: { p_snapshot_id: string }
         Returns: undefined
       }
+      revoke_other_sessions: { Args: never; Returns: number }
       seo_cannibalisation: {
         Args: {
           p_from: string
