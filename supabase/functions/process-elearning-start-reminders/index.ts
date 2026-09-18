@@ -8,10 +8,10 @@ import {
   replaceVariables,
   getSupabaseClient,
   sendEmail,
+  todayAsISO,
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
-import { getAppUrls } from "../_shared/app-urls.ts";
-import { linkExpiresAt } from "../_shared/learner-links.ts";
+import { learnerAccessLink } from "../_shared/learner-account.ts";
 
 // Send a friendly J+5 reminder to paying e-learning participants who haven't started (0% progress).
 // Idempotent: skip if elearning_start_reminder already logged for this participant.
@@ -37,7 +37,7 @@ serve(async (req) => {
 
     // Only sessions that have actually started (start_date <= today) or permanent sessions (no start_date).
     // A learner enrolled in a session starting in November must not be nudged to "start now".
-    const todayIso = new Date().toISOString().slice(0, 10);
+    const todayIso = todayAsISO();
     const trainings = (allTrainings || []).filter(
       (t: any) => !t.is_cancelled && (!t.start_date || t.start_date <= todayIso),
     );
@@ -47,7 +47,7 @@ serve(async (req) => {
     }
 
 
-    // Access link = personal magic link to the SuperTools learner portal (built per participant below).
+    // Access link = personal link to the SuperTools learner portal (built per participant below).
 
 
 
@@ -138,28 +138,16 @@ serve(async (req) => {
       const template = pickTemplate(isTu ? "elearning_start_reminder_tu" : "elearning_start_reminder_vous");
       if (!template) { skipped++; continue; }
 
-      // Access link: personal magic link to the SuperTools learner portal (valid 1 year).
-      // Never a WooCommerce cart URL, never a generic page: the participant has already paid.
-      const urls = await getAppUrls();
-      // Lien d'activation : durée tenue par _shared/learner-links.ts (RG-06).
-      const expiresAt = linkExpiresAt("activation");
-      const { data: magicLink, error: magicErr } = await supabase
-        .from("learner_magic_links")
-        .insert({
-          email: learnerEmail,
-          training_id: training.id,
-          expires_at: expiresAt.toISOString(),
-        })
-        .select("token")
-        .single();
-
-      if (magicErr || !magicLink) {
-        console.error(`Magic link generation failed for ${p.email}:`, magicErr?.message);
+      // Lien d'accès : jamais une URL de panier WooCommerce, jamais une page
+      // générique — mais jamais non plus une ouverture de session automatique.
+      const link = await learnerAccessLink(supabase, learnerEmail);
+      if (!link) {
+        console.error(`Access link generation failed for ${p.email}`);
         skipped++;
         continue;
       }
 
-      const accessLink = `${urls.app_url}/connexion/lien?token=${magicLink.token}`;
+      const accessLink = link.actionLink;
 
 
 

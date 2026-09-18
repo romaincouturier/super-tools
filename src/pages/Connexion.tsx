@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Mail, Lock, ShieldCheck, CheckCircle2, ArrowLeft } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -11,6 +11,7 @@ import { useAuthActions } from "@/hooks/useAuthActions";
 import { useIdentityResolution } from "@/hooks/useIdentityResolution";
 import { useSession } from "@/hooks/useSession";
 import { resolvePostLoginPath, REDIRECT_PARAM } from "@/lib/authRouting";
+import { normalizeEmail } from "@/lib/stringUtils";
 
 /**
  * Porte de connexion apprenant (W1 à W6, W9).
@@ -65,18 +66,15 @@ export default function Connexion() {
    * Un lien demandé depuis cette page est un lien de connexion (30 minutes).
    * Un compte encore à créer reçoit un lien d'activation (7 jours).
    */
-  const requestLink = async (purpose: "login" | "activation" = "login") => {
+  const requestLink = async (targetEmail: string, purpose: "login" | "activation" = "login") => {
     if (cooldown > 0) return;
-    await sendLink({ email: normalizedEmail, purpose });
+    await sendLink({ email: targetEmail, purpose });
     setCooldown(RESEND_COOLDOWN_S);
   };
 
-  const handleEmailStep = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!normalizedEmail.includes("@")) return;
+  const resolveAndRoute = async (target: string) => {
     setErrorMsg(null);
-
-    const state = await resolve(normalizedEmail);
+    const state = await resolve(target);
     if (state === null) {
       setStep("degraded");
       return;
@@ -85,9 +83,28 @@ export default function Connexion() {
     if (state === "throttled") { setStep("throttled"); return; }
     if (state === "unknown") { setStep("unknown"); return; }
 
-    await requestLink(state === "link" ? "login" : "activation");
+    await requestLink(target, state === "link" ? "login" : "activation");
     setStep(state === "link" ? "link" : "activation");
   };
+
+  const handleEmailStep = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!normalizedEmail.includes("@")) return;
+    await resolveAndRoute(normalizedEmail);
+  };
+
+  // Lien reçu par email (Flux A, W12) : préremplit seulement l'adresse et
+  // enchaîne sur la résolution d'identité habituelle. N'ouvre jamais de
+  // session automatiquement — contrairement à l'ancien lien magique.
+  const emailPrefillHandled = useRef(false);
+  useEffect(() => {
+    if (emailPrefillHandled.current) return;
+    const prefill = normalizeEmail(searchParams.get("email"));
+    if (!prefill || !prefill.includes("@")) return;
+    emailPrefillHandled.current = true;
+    setEmail(prefill);
+    void resolveAndRoute(prefill);
+  }, [searchParams]);
 
   const handlePasswordStep = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,7 +234,7 @@ export default function Connexion() {
             }
             busy={sendingLink}
             cooldown={cooldown}
-            onResend={() => void requestLink(step === "link" ? "login" : "activation")}
+            onResend={() => void requestLink(normalizedEmail, step === "link" ? "login" : "activation")}
             onChangeEmail={backToEmail}
           />
         )}
@@ -294,7 +311,7 @@ export default function Connexion() {
               busy={sendingLink}
               cooldown={cooldown}
               disabled={!normalizedEmail.includes("@")}
-              onClick={async () => { await requestLink("login"); setStep("link"); }}
+              onClick={async () => { await requestLink(normalizedEmail, "login"); setStep("link"); }}
             />
           </>
         )}

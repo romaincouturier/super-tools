@@ -282,6 +282,9 @@ verify_jwt = false
 [functions.send-learner-magic-link]
 verify_jwt = false
 
+[functions.send-learner-access-email]
+verify_jwt = false
+
 [functions.create-learner-account]
 verify_jwt = false
 

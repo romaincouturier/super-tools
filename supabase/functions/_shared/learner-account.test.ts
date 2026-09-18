@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ensureLearnerAccount, sendLearnerAccessEmail } from "./learner-account.ts";
+import { ensureLearnerAccount, sendLearnerAccessEmail, learnerAccessLink } from "./learner-account.ts";
 
 vi.mock("./app-urls.ts", () => ({
   getAppUrls: vi.fn().mockResolvedValue({ app_url: "https://app.example.com" }),
@@ -190,5 +190,50 @@ describe("sendLearnerAccessEmail", () => {
 
     await expect(sendLearnerAccessEmail(admin, "panne@example.com")).resolves.toEqual({ sent: false });
     expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("learnerAccessLink", () => {
+  it("renvoie null pour une adresse inutilisable", async () => {
+    const { admin, rpc } = makeAccessAdmin({ passwordSet: true });
+    await expect(learnerAccessLink(admin, "  ")).resolves.toBeNull();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("renvoie null si l'adresse ne correspond à aucun compte", async () => {
+    const { admin } = makeAccessAdmin({ passwordSet: null });
+    await expect(learnerAccessLink(admin, "inconnu@example.com")).resolves.toBeNull();
+  });
+
+  it("compte sans mot de passe : lien recovery vers l'écran de création", async () => {
+    const { admin, generateLink } = makeAccessAdmin({ passwordSet: false });
+
+    await expect(learnerAccessLink(admin, "nouveau@example.com")).resolves.toEqual({
+      actionLink: "https://app.example.com/recovery-token",
+      passwordSet: false,
+    });
+    expect(generateLink).toHaveBeenCalledWith({
+      type: "recovery",
+      email: "nouveau@example.com",
+      options: { redirectTo: "https://app.example.com/connexion/reinitialisation?mode=activation" },
+    });
+  });
+
+  it("compte avec mot de passe : lien qui préremplit /connexion, sans generateLink", async () => {
+    const { admin, generateLink } = makeAccessAdmin({ passwordSet: true });
+
+    await expect(learnerAccessLink(admin, "Connu@Example.com")).resolves.toEqual({
+      actionLink: "https://app.example.com/connexion?email=connu%40example.com",
+      passwordSet: true,
+    });
+    expect(generateLink).not.toHaveBeenCalled();
+  });
+
+  it("renvoie null si Supabase échoue à générer le lien recovery", async () => {
+    const { admin } = makeAccessAdmin({
+      passwordSet: false,
+      generateLink: { data: null, error: { message: "boom" } },
+    });
+    await expect(learnerAccessLink(admin, "panne@example.com")).resolves.toBeNull();
   });
 });

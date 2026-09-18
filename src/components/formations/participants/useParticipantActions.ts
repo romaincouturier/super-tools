@@ -40,7 +40,7 @@ export function useParticipantActions({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [remindingId, setRemindingId] = useState<string | null>(null);
-  const [sendingMagicLinkId, setSendingMagicLinkId] = useState<string | null>(null);
+  const [sendingAccessEmailId, setSendingAccessEmailId] = useState<string | null>(null);
   const [resendingWelcomeId, setResendingWelcomeId] = useState<string | null>(null);
   const { invoke: invokeSendSurvey } = useEdgeFunction(
     "send-needs-survey",
@@ -50,9 +50,13 @@ export function useParticipantActions({
     "send-needs-survey-reminder",
     { errorMessage: "Erreur" },
   );
-  const { invoke: invokeSendMagicLink } = useEdgeFunction(
-    "send-learner-magic-link",
-    { errorMessage: "Erreur lors de l'envoi du lien magique" },
+  const { invoke: invokeSendAccessEmail } = useEdgeFunction(
+    "send-learner-access-email",
+    { errorMessage: "Erreur lors de l'envoi de l'email d'accès" },
+  );
+  const { invoke: invokeResendWelcome } = useEdgeFunction(
+    "send-welcome-email",
+    { errorMessage: "Erreur lors du renvoi de la convocation" },
   );
 
   const documentActions = useDocumentActions({
@@ -140,43 +144,35 @@ export function useParticipantActions({
     }
   };
 
-  const handleSendMagicLink = async (participant: Participant) => {
-    setSendingMagicLinkId(participant.id);
+  const handleSendAccessEmail = async (participant: Participant) => {
+    setSendingAccessEmailId(participant.id);
     try {
-      const result = await invokeSendMagicLink({
+      const result = await invokeSendAccessEmail({
         email: participant.email,
         trainingId,
-        participantId: participant.id,
       });
       if (result !== null) {
         toast({
-          title: "Lien magique envoyé",
-          description: `Un lien d'accès à la formation a été renvoyé à ${participant.email}.`,
+          title: "Email d'accès envoyé",
+          description: `Un email d'accès à la formation a été renvoyé à ${participant.email}.`,
         });
       }
     } finally {
-      setSendingMagicLinkId(null);
+      setSendingAccessEmailId(null);
     }
   };
 
   const handleResendWelcome = async (participant: Participant) => {
     setResendingWelcomeId(participant.id);
     try {
-      const { error } = await supabase.functions.invoke("send-welcome-email", {
-        body: { participantId: participant.id, trainingId },
-      });
-      if (error) throw error;
-      toast({
-        title: "Convocation renvoyée",
-        description: `La convocation a été renvoyée à ${participant.email}.`,
-      });
-      onParticipantUpdated();
-    } catch (error: unknown) {
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur inconnue",
-        variant: "destructive",
-      });
+      const result = await invokeResendWelcome({ participantId: participant.id, trainingId });
+      if (result !== null) {
+        toast({
+          title: "Convocation renvoyée",
+          description: `La convocation a été renvoyée à ${participant.email}.`,
+        });
+        onParticipantUpdated();
+      }
     } finally {
       setResendingWelcomeId(null);
     }
@@ -231,13 +227,13 @@ export function useParticipantActions({
     deletingId,
     sendingId,
     remindingId,
-    sendingMagicLinkId,
+    sendingAccessEmailId,
     resendingWelcomeId,
     ...documentActions,
     handleDelete,
     handleSendSurvey,
     handleSendReminder,
-    handleSendMagicLink,
+    handleSendAccessEmail,
     handleResendWelcome,
     handleToggleCoachingSession,
     handleUncheckCoachingSession,

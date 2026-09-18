@@ -48,16 +48,49 @@ export async function ensureLearnerAccount(
 }
 
 /**
- * Envoie l'email d'accès à l'espace apprenant, sans jamais ouvrir de session
- * automatiquement (plus de lien magique). Le lien varie selon l'état du
- * compte, lu via learner_password_set (RPC) :
+ * Construit le lien d'accès à l'espace apprenant, sans jamais ouvrir de
+ * session automatiquement (plus de lien magique). Le lien varie selon l'état
+ * du compte, lu via learner_password_set (RPC) :
  *  - password_set = false  : lien "recovery" natif Supabase, mène à la
  *    création d'un vrai mot de passe (réutilise le circuit de
  *    ConnexionReinitialisation.tsx, déjà en place pour "mot de passe oublié").
  *  - password_set = true   : lien qui préremplit seulement l'adresse sur
  *    /connexion, aucune authentification automatique.
- * Silencieux si l'adresse ne correspond à aucun compte ou dépasse le quota
- * RG-08 (mêmes règles que send-password-reset), pour ne rien révéler.
+ * Renvoie null si l'adresse ne correspond à aucun compte, pour ne rien
+ * révéler à l'appelant.
+ */
+export async function learnerAccessLink(
+  admin: SupabaseClient,
+  email: string,
+): Promise<{ actionLink: string; passwordSet: boolean } | null> {
+  const normalized = normalizeLearnerEmail(email);
+  if (!isUsableLearnerEmail(normalized)) return null;
+
+  const { data: passwordSet } = await admin.rpc("learner_password_set", { p_email: normalized });
+  if (passwordSet === null) return null;
+
+  const urls = await getAppUrls();
+  if (passwordSet === false) {
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: "recovery",
+      email: normalized,
+      options: { redirectTo: `${urls.app_url}/connexion/reinitialisation?mode=activation` },
+    });
+    if (error || !data?.properties?.action_link) return null;
+    return { actionLink: data.properties.action_link, passwordSet: false };
+  }
+
+  return {
+    actionLink: `${urls.app_url}/connexion?email=${encodeURIComponent(normalized)}`,
+    passwordSet: true,
+  };
+}
+
+/**
+ * Envoie l'email générique d'accès à l'espace apprenant (RG-08 : même quota
+ * que send-password-reset). Pour un email au contenu spécifique (relance,
+ * erratum...) qui a seulement besoin du lien, utiliser learnerAccessLink
+ * directement plutôt que cette fonction.
  */
 export async function sendLearnerAccessEmail(
   admin: SupabaseClient,
@@ -74,37 +107,19 @@ export async function sendLearnerAccessEmail(
   });
   if (allowed === false) return { sent: false };
 
-  const { data: passwordSet } = await admin.rpc("learner_password_set", { p_email: normalized });
-  if (passwordSet === null) return { sent: false };
+  const link = await learnerAccessLink(admin, normalized);
+  if (!link) return { sent: false };
 
-  const urls = await getAppUrls();
   const trainingLabel = opts.trainingName ? ` pour la formation « ${opts.trainingName} »` : "";
-  let actionLink: string;
-  let cta: string;
-  let subject: string;
-  let intro: string;
-
-  if (passwordSet === false) {
-    const { data, error } = await admin.auth.admin.generateLink({
-      type: "recovery",
-      email: normalized,
-      options: { redirectTo: `${urls.app_url}/connexion/reinitialisation?mode=activation` },
-    });
-    if (error || !data?.properties?.action_link) return { sent: false };
-    actionLink = data.properties.action_link;
-    cta = "Créer mon mot de passe";
-    subject = "Créez votre mot de passe SuperTools";
-    intro = `Bonjour,</p><p>Votre espace apprenant${trainingLabel} est prêt. Créez votre mot de passe pour y accéder.`;
-  } else {
-    actionLink = `${urls.app_url}/connexion?email=${encodeURIComponent(normalized)}`;
-    cta = "Accéder à mon espace";
-    subject = "Accéder à votre espace SuperTools";
-    intro = `Bonjour,</p><p>Votre espace apprenant${trainingLabel} est prêt. Connectez-vous avec votre adresse et votre mot de passe.`;
-  }
+  const cta = link.passwordSet ? "Accéder à mon espace" : "Créer mon mot de passe";
+  const subject = link.passwordSet ? "Accéder à votre espace SuperTools" : "Créez votre mot de passe SuperTools";
+  const intro = link.passwordSet
+    ? `Bonjour,</p><p>Votre espace apprenant${trainingLabel} est prêt. Connectez-vous avec votre adresse et votre mot de passe.`
+    : `Bonjour,</p><p>Votre espace apprenant${trainingLabel} est prêt. Créez votre mot de passe pour y accéder.`;
 
   const signature = await getSigniticSignature();
   const html = wrapEmailHtml(
-    [`<p>${intro}</p>`, emailButton(cta, actionLink)].join("\n"),
+    [`<p>${intro}</p>`, emailButton(cta, link.actionLink)].join("\n"),
     signature,
   );
 
