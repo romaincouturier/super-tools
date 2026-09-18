@@ -105,7 +105,11 @@ export async function getMissionDossier(
       .order("position", { ascending: true }),
     supabase
       .from("mission_activities")
-      .select("activity_date, description, duration, duration_type, is_billed, notes", exact)
+      // `id` est indispensable pour update_mission_activity.
+      .select(
+        "id, activity_date, description, duration, duration_type, billable_amount, is_billed, invoice_number, notes",
+        exact,
+      )
       .eq("mission_id", mission.id)
       .order("activity_date", { ascending: true })
       .limit(DOSSIER_ROWS_MAX),
