@@ -4438,6 +4438,30 @@ export type Database = {
           },
         ]
       }
+      identity_resolution_log: {
+        Row: {
+          email_hash: string
+          id: string
+          ip_address: string
+          resolved_at: string
+          state: string
+        }
+        Insert: {
+          email_hash: string
+          id?: string
+          ip_address?: string
+          resolved_at?: string
+          state: string
+        }
+        Update: {
+          email_hash?: string
+          id?: string
+          ip_address?: string
+          resolved_at?: string
+          state?: string
+        }
+        Relationships: []
+      }
       improvements: {
         Row: {
           category: string
@@ -12088,6 +12112,7 @@ export type Database = {
           created_at: string
           id: string
           must_change_password: boolean
+          password_set: boolean
           updated_at: string
           user_id: string
         }
@@ -12095,6 +12120,7 @@ export type Database = {
           created_at?: string
           id?: string
           must_change_password?: boolean
+          password_set?: boolean
           updated_at?: string
           user_id: string
         }
@@ -12102,6 +12128,7 @@ export type Database = {
           created_at?: string
           id?: string
           must_change_password?: boolean
+          password_set?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -13230,6 +13257,7 @@ export type Database = {
         Args: { p_opened_at: string; p_token: string }
         Returns: undefined
       }
+      mark_password_changed: { Args: never; Returns: undefined }
       match_documents: {
         Args: {
           filter_source_types?: string[]
@@ -13361,6 +13389,7 @@ export type Database = {
       }
       preview_learner_token: { Args: { p_token: string }; Returns: Json }
       purge_api_usage_events: { Args: never; Returns: undefined }
+      purge_identity_resolution_log: { Args: never; Returns: number }
       purge_seo_history: { Args: never; Returns: undefined }
       read_vhd_narrative: { Args: { p_report_id: string }; Returns: string }
       reap_stuck_ticket_coding: { Args: never; Returns: undefined }
@@ -13383,9 +13412,14 @@ export type Database = {
         }
         Returns: Json
       }
+      request_password_change: { Args: never; Returns: undefined }
       resolve_formulaire_token: {
         Args: { p_course_id: number; p_email: string; p_form_type: string }
         Returns: Json
+      }
+      resolve_login_identity: {
+        Args: { p_email: string; p_email_hash: string; p_ip: string }
+        Returns: string
       }
       restore_lesson_version: {
         Args: { p_snapshot_id: string }
