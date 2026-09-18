@@ -221,16 +221,12 @@ export async function sendElearningAccess(
 }
 
 /**
- * Send the learner magic link email (account creation / login).
+ * Send the learner access email (account creation / login), never an
+ * auto-connecting link.
  */
-export async function sendLearnerMagicLink(
-  email: string,
-  trainingId?: string,
-  participantId?: string,
-  purpose: "login" | "activation" = "activation",
-) {
-  await supabase.functions.invoke("send-learner-magic-link", {
-    body: { email, trainingId, participantId, purpose },
+export async function sendLearnerAccessEmail(email: string, trainingId?: string) {
+  await supabase.functions.invoke("send-learner-access-email", {
+    body: { email, trainingId },
   });
 }
 

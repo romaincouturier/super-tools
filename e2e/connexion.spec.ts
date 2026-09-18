@@ -54,6 +54,15 @@ test("un compte avec mot de passe mène à l'étape mot de passe", async ({ page
   await expect(page.getByRole("button", { name: /Recevoir un lien de connexion/ })).not.toBeVisible();
 });
 
+test("un lien d'accès reçu par email préremplit l'adresse et enchaîne, sans ouvrir de session", async ({ page }) => {
+  await stubEdge(page, "resolve-login-identity", { state: "password" });
+  await page.goto("/connexion?email=apprenant%40exemple.fr");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Content de vous revoir");
+  await expect(page.locator('input[type="email"]')).toHaveValue("apprenant@exemple.fr");
+  // Toujours un vrai mot de passe à saisir : ce lien n'authentifie jamais seul.
+  await expect(page.locator('input[type="password"]')).toBeVisible();
+});
+
 test("un compte sans mot de passe reçoit un lien de connexion", async ({ page }) => {
   await stubEdge(page, "resolve-login-identity", { state: "link" });
   await stubEdge(page, "send-learner-magic-link", { success: true });

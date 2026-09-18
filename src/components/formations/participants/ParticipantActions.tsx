@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2, Send, Clock, RefreshCw, Receipt, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, BellRing, Trash2, ClipboardCheck, History, KeyRound } from "lucide-react";
+import { Send, Clock, RefreshCw, Receipt, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, BellRing, Trash2, ClipboardCheck, History, KeyRound } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { downloadFile } from "@/lib/file-utils";
 import { buildCertificateFileName } from "@/lib/evaluationUtils";
@@ -47,7 +47,7 @@ const ParticipantActions = ({
   clientName,
   sendingId,
   remindingId,
-  sendingMagicLinkId,
+  sendingAccessEmailId,
   resendingWelcomeId,
   deletingId,
   generatingConventionId,
@@ -62,7 +62,7 @@ const ParticipantActions = ({
   participantsWithAccount,
   onSendSurvey,
   onSendReminder,
-  onSendMagicLink,
+  onSendAccessEmail,
   onResendWelcome,
   onDelete,
   onGenerateConvention,
@@ -104,7 +104,7 @@ const ParticipantActions = ({
                   onClick={() => onResendWelcome(participant)}
                   disabled={isResending}
                 >
-                  {isResending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (isConvoked ? <Send className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />)}
+                  {isResending ? <Spinner className="h-3.5 w-3.5" /> : (isConvoked ? <Send className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />)}
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p>{isConvoked ? "Relancer la convocation" : isScheduled ? "Convocation programmée (non envoyée) — cliquer pour envoyer maintenant" : "Envoyer la convocation"}</p></TooltipContent>
@@ -144,7 +144,7 @@ const ParticipantActions = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => onGenerateConvention(participant)} disabled={isLoading}>
-                  {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Scroll className="h-3.5 w-3.5" />}
+                  {isLoading ? <Spinner className="h-3.5 w-3.5" /> : <Scroll className="h-3.5 w-3.5" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p>Générer la convention</p></TooltipContent>
@@ -156,7 +156,7 @@ const ParticipantActions = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" disabled={isLoading}>
-                {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Scroll className="h-3.5 w-3.5" />}
+                {isLoading ? <Spinner className="h-3.5 w-3.5" /> : <Scroll className="h-3.5 w-3.5" />}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -188,10 +188,10 @@ const ParticipantActions = ({
         );
       })()}
 
-      {/* 1b. Statut compte e-learning + renvoi du lien magique - e-learning uniquement */}
+      {/* 1b. Statut compte e-learning + renvoi de l'email d'accès - e-learning uniquement */}
       {formatFormation === "e_learning" && (() => {
         const hasAccount = participantsWithAccount.has(participant.id);
-        const isSending = sendingMagicLinkId === participant.id;
+        const isSending = sendingAccessEmailId === participant.id;
         return (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -199,14 +199,14 @@ const ParticipantActions = ({
                 variant="ghost"
                 size="icon"
                 className={`h-7 w-7 ${hasAccount ? "text-green-600 hover:text-green-700" : "text-destructive hover:text-destructive"}`}
-                onClick={() => onSendMagicLink(participant)}
+                onClick={() => onSendAccessEmail(participant)}
                 disabled={isSending}
               >
-                {isSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
+                {isSending ? <Spinner className="h-3.5 w-3.5" /> : <KeyRound className="h-3.5 w-3.5" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{hasAccount ? "Compte e-learning créé — renvoyer le lien magique" : "Compte non créé — renvoyer le lien magique"}</p>
+              <p>{hasAccount ? "Compte e-learning créé — renvoyer l'email d'accès" : "Compte non créé — renvoyer l'email d'accès"}</p>
             </TooltipContent>
           </Tooltip>
         );
@@ -220,7 +220,7 @@ const ParticipantActions = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => onSendSurvey(participant)} disabled={sendingId === participant.id}>
-              {sendingId === participant.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              {sendingId === participant.id ? <Spinner className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
             </Button>
           </TooltipTrigger>
           <TooltipContent><p>Envoyer le questionnaire</p></TooltipContent>
@@ -230,7 +230,7 @@ const ParticipantActions = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => onSendReminder(participant)} disabled={remindingId === participant.id}>
-              {remindingId === participant.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              {remindingId === participant.id ? <Spinner className="h-3.5 w-3.5" /> : <RefreshCw className="h-3.5 w-3.5" />}
             </Button>
           </TooltipTrigger>
           <TooltipContent><p>Relancer recueil des besoins</p></TooltipContent>
@@ -277,7 +277,7 @@ const ParticipantActions = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" disabled={generatingCertId === participant.id} onClick={() => onGenerateCertificate(participant)}>
-                  {generatingCertId === participant.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Award className="h-3.5 w-3.5" />}
+                  {generatingCertId === participant.id ? <Spinner className="h-3.5 w-3.5" /> : <Award className="h-3.5 w-3.5" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent><p>Générer l'attestation</p></TooltipContent>
@@ -291,7 +291,7 @@ const ParticipantActions = ({
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" disabled={sendingCertId === participant.id}>
-                    {sendingCertId === participant.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Award className="h-3.5 w-3.5" />}
+                    {sendingCertId === participant.id ? <Spinner className="h-3.5 w-3.5" /> : <Award className="h-3.5 w-3.5" />}
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
@@ -371,7 +371,7 @@ const ParticipantActions = ({
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" disabled={deletingId === participant.id}>
-              {deletingId === participant.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              {deletingId === participant.id ? <Spinner className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>

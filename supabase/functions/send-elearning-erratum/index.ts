@@ -8,8 +8,7 @@ import {
   sendEmail,
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
-import { getAppUrls } from "../_shared/app-urls.ts";
-import { linkExpiresAt } from "../_shared/learner-links.ts";
+import { learnerAccessLink } from "../_shared/learner-account.ts";
 
 // Erratum: annule et remplace le lien erroné (panier WooCommerce) envoyé dans
 // la relance `elearning_start_reminder`. Envoi unitaire par participant,
@@ -53,22 +52,11 @@ serve(async (req) => {
     if (tErr) return createErrorResponse(tErr.message, 500);
     if (!training) return createErrorResponse("Formation introuvable", 404);
 
-    // Lien magique vers le portail apprenant SuperTools (validité 1 an)
-    // Lien d'activation : durée tenue par _shared/learner-links.ts (RG-06).
-    const expiresAt = linkExpiresAt("activation");
-    const { data: link, error: lErr } = await supabase
-      .from("learner_magic_links")
-      .insert({
-        email: String(participant.email || "").toLowerCase(),
-        training_id: training.id,
-        expires_at: expiresAt.toISOString(),
-      })
-      .select("token")
-      .single();
-    if (lErr) return createErrorResponse(`Génération du lien magique impossible: ${lErr.message}`, 500);
-
-    const urls = await getAppUrls();
-    const accessLink = `${urls.app_url}/connexion/lien?token=${link.token}`;
+    // Lien vers le portail apprenant SuperTools : jamais d'ouverture de
+    // session automatique, même dans un erratum.
+    const link = await learnerAccessLink(supabase, participant.email);
+    if (!link) return createErrorResponse("Génération du lien d'accès impossible", 500);
+    const accessLink = link.actionLink;
 
     const firstName = participant.first_name || "";
     const trainingName = training.training_name || "";
@@ -81,7 +69,7 @@ serve(async (req) => {
       `Toute votre formation se trouve dans votre espace apprenant SuperTilt. Pour y accéder, c'est très simple :`,
       `<ol><li>Cliquez sur le bouton ci-dessous</li><li>Créez votre mot de passe (ou connectez-vous si vous avez déjà un compte)</li><li>Vous arrivez directement sur votre tableau de bord, avec votre formation</li></ol>`,
       `<p style="margin: 24px 0;"><a href="${accessLink}" style="display:inline-block;padding:12px 24px;background-color:#ffd100;color:#101820;text-decoration:none;border-radius:8px;font-weight:bold;">Accéder à ma formation</a></p>`,
-      `Ce lien est personnel, valable 7 jours et utilisable une seule fois. Passé ce délai, rendez-vous sur la page de connexion : nous vous en enverrons un nouveau en quelques secondes.`,
+      `Ce lien est personnel. S'il ne fonctionne plus, rendez-vous sur la page de connexion : nous vous en enverrons un nouveau en quelques secondes.`,
       `Le rythme reste totalement libre, vous avancez à votre convenance. Si le moindre point vous freine, répondez simplement à ce mail.`,
       `À très vite,`,
     ];

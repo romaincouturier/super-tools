@@ -164,6 +164,7 @@ const EXPECTED_FUNCTIONS = [
   "send-event-share-email",
   "send-event-update-email",
   "send-group-matching-email",
+  "send-learner-access-email",
   "send-learner-magic-link",
   "send-location-contract-email",
   "send-logistics-requirements",

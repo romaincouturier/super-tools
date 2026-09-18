@@ -63,7 +63,7 @@ import {
   deleteParticipantFile,
   uploadSignedConvention,
   deleteSignedConvention,
-  sendLearnerMagicLink,
+  sendLearnerAccessEmail,
   catchUpAttendanceSignaturesForParticipant,
   type CreateParticipantInput,
   type ParticipantFile,
@@ -401,40 +401,38 @@ describe("deleteParticipantFile", () => {
   });
 });
 
-// ── sendLearnerMagicLink tests ──────────────────────────────────────────────
+// ── sendLearnerAccessEmail tests ────────────────────────────────────────────
 
-describe("sendLearnerMagicLink", () => {
+describe("sendLearnerAccessEmail", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("invokes the send-learner-magic-link edge function with email", async () => {
+  it("invokes the send-learner-access-email edge function with email", async () => {
     mockInvoke.mockResolvedValue({ data: { success: true }, error: null });
 
-    await sendLearnerMagicLink("alice@example.com");
+    await sendLearnerAccessEmail("alice@example.com");
 
     expect(mockInvoke).toHaveBeenCalledWith(
-      "send-learner-magic-link",
+      "send-learner-access-email",
       expect.objectContaining({ body: expect.objectContaining({ email: "alice@example.com" }) }),
     );
   });
 
-  it("passes optional trainingId and participantId when provided", async () => {
+  it("passes optional trainingId when provided", async () => {
     mockInvoke.mockResolvedValue({ data: { success: true }, error: null });
 
-    await sendLearnerMagicLink("alice@example.com", "training-abc", "participant-xyz");
+    await sendLearnerAccessEmail("alice@example.com", "training-abc");
 
     const [, options] = mockInvoke.mock.calls[0] as [string, { body: Record<string, unknown> }];
     expect(options.body.trainingId).toBe("training-abc");
-    expect(options.body.participantId).toBe("participant-xyz");
   });
 
-  it("omits trainingId and participantId when not provided", async () => {
+  it("omits trainingId when not provided", async () => {
     mockInvoke.mockResolvedValue({ data: { success: true }, error: null });
 
-    await sendLearnerMagicLink("alice@example.com");
+    await sendLearnerAccessEmail("alice@example.com");
 
     const [, options] = mockInvoke.mock.calls[0] as [string, { body: Record<string, unknown> }];
     expect(options.body.trainingId).toBeUndefined();
-    expect(options.body.participantId).toBeUndefined();
   });
 });
 

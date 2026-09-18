@@ -4,7 +4,7 @@
  * Source de vérité unique pour l'ajout d'un participant à une session de
  * formation. Utilisée par :
  *   - supertilt-webhook (ajout automatique depuis WooCommerce)
- *   - le frontend via supabase.functions.invoke (ajout manuel ou en masse)
+ *   - le frontend, en appel direct à cette edge function (ajout manuel ou en masse)
  *
  * Gère dans un seul endroit :
  *   - La création du participant et du questionnaire_besoins associé
@@ -21,7 +21,7 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { fetchWorkingDays, subtractWorkingDays, addWorkingDays } from "../_shared/working-days.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
-import { ensureLearnerAccount } from "../_shared/learner-account.ts";
+import { ensureLearnerAccount, sendLearnerAccessEmail } from "../_shared/learner-account.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -600,19 +600,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (shouldSendElearningAccess) {
       // Provisionnement à l'inscription (W12) : le compte existe avant même que
       // l'apprenant clique, sans mot de passe. Puis un seul et même email
-      // d'activation, quelle que soit la source de l'inscription.
+      // d'accès, quelle que soit la source de l'inscription — jamais de lien
+      // qui ouvre une session automatiquement (plus de lien magique).
       try {
         await ensureLearnerAccount(admin, email);
       } catch (err) {
         console.error("[add-training-participant] ensureLearnerAccount:", err);
       }
       try {
-        await admin.functions.invoke("send-learner-magic-link", {
-          body: { email, trainingId, participantId, purpose: "activation" },
-        });
-        elearningAccessSent = true;
+        const { sent } = await sendLearnerAccessEmail(admin, email);
+        elearningAccessSent = sent;
       } catch (err) {
-        console.error("[add-training-participant] send-learner-magic-link:", err);
+        console.error("[add-training-participant] sendLearnerAccessEmail:", err);
       }
     }
 
