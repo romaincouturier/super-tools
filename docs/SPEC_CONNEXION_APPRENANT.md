@@ -346,7 +346,7 @@ Les seuils s'appuient sur les fonctions existantes `check-login-attempt` et `log
 
 | Action | Par adresse | Par adresse IP | Au-delà |
 |--------|-------------|----------------|---------|
-| Résolution d'identité | 5 par heure | 20 par heure | `throttled`, message uniforme |
+| Résolution d'identité | 10 par heure | 20 par heure | `throttled`, message uniforme |
 | Envoi d'un lien de connexion ou d'activation | 3 par heure | 10 par heure | Message d'envoi habituel, aucun email émis |
 | Saisie de mot de passe | Compteur existant conservé (RG-09) | 20 par heure | Blocage temporaire existant |
 
@@ -842,7 +842,7 @@ Les trois derniers se lisent ensemble : une baisse des demandes de lien accompag
 |-----|---------|------------------------|
 | 1 | Fermeture des trajectoires S1 à S5 : jeton qui n'écrase plus de mot de passe, durées et usage unique, fonctions du portail réservées aux appelants authentifiés, identité issue de la session | Indépendant du parcours, corrige des expositions actives, ne demande aucun écran neuf |
 | 2 | Fournisseur d'état de session unique, garde de route unique, table de routage du chapitre 7 | Prérequis de tous les écrans, et corrige les boucles staff |
-| 3 | Service de résolution d'identité, drapeau `password_set`, limitation de débit | Prérequis de la page de connexion. Livré : fonction `resolve-login-identity`, journal `identity_resolution_log`, seuils 5 par adresse et 20 par IP par heure |
+| 3 | Service de résolution d'identité, drapeau `password_set`, limitation de débit | Prérequis de la page de connexion. Livré : fonction `resolve-login-identity`, journal `identity_resolution_log`, seuils 10 par adresse et 20 par IP par heure (relevé à 10 le 18/09/2026, constat en production : une reconnexion répétée en peu de temps déclenchait le freinage) |
 | 4 | Écrans de connexion : W1 à W10, redirections des anciennes URL | Livré. W5 ouvre une vraie session depuis le lien, W10 porte l'action de reprise dans chaque état d'échec, les durées de 30 minutes et 7 jours s'appliquent aux liens émis |
 | 5 | Provisionnement à l'encaissement W12, refonte des emails, suppression de `elearning_access_mode` | Livré côté code : le compte est provisionné à l'inscription, l'email d'activation est unique quelle que soit la source, le réglage a disparu. La bascule elle-même reste une opération manuelle, `scripts/bascule-connexion.sql` |
 | 6 | W13, purge des comptes inactifs, indicateurs, politique de confidentialité | Livré. Changement d'adresse atomique sur 26 tables, comptes dormants signalés, indicateurs dans Monitoring, politique de confidentialité à jour |
