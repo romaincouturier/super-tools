@@ -61,21 +61,70 @@ describe("ConnexionReinitialisation", () => {
     h.stage = "ready";
     h.updatePassword.mockReset().mockResolvedValue(null);
     h.markPasswordChanged.mockReset().mockResolvedValue(undefined);
-    h.confirmRecovery.mockReset().mockResolvedValue(undefined);
+    h.confirmRecovery.mockReset().mockResolvedValue(true);
     h.refresh.mockReset().mockResolvedValue(undefined);
     h.navigate.mockReset();
   });
 
-  it("ne consomme le jeton qu'au clic, jamais au chargement de la page (RG-21)", async () => {
+  it("stage confirm : ni écran ni clic ajoutés, le même formulaire s'affiche directement", () => {
     h.stage = "confirm";
     renderPage();
 
-    expect(screen.getByRole("heading", { name: "Ouvrir mon espace" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Nouveau mot de passe" })).toBeInTheDocument();
     expect(h.confirmRecovery).not.toHaveBeenCalled();
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+  it("stage confirm : enregistrer le mot de passe consomme le jeton avant de l'enregistrer (RG-21)", async () => {
+    h.stage = "confirm";
+    renderPage();
+
+    fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), {
+      target: { value: "Str0ng!Pass" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirmer le mot de passe"), {
+      target: { value: "Str0ng!Pass" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
+
+    await waitFor(() => expect(h.markPasswordChanged).toHaveBeenCalledTimes(1));
+    expect(h.confirmRecovery).toHaveBeenCalledTimes(1);
+    // L'ordre compte : rien n'est consommé avant ce clic, et le mot de passe
+    // n'est enregistré qu'après confirmation du jeton.
+    expect(h.calls).toEqual(["updatePassword", "markPasswordChanged"]);
+    expect(h.confirmRecovery.mock.invocationCallOrder[0]).toBeLessThan(h.updatePassword.mock.invocationCallOrder[0]);
+  });
+
+  it("stage confirm : jeton déjà utilisé ou expiré, le mot de passe n'est jamais enregistré", async () => {
+    h.stage = "confirm";
+    h.confirmRecovery.mockResolvedValue(false);
+    renderPage();
+
+    fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), {
+      target: { value: "Str0ng!Pass" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirmer le mot de passe"), {
+      target: { value: "Str0ng!Pass" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
 
     await waitFor(() => expect(h.confirmRecovery).toHaveBeenCalledTimes(1));
+    expect(h.updatePassword).not.toHaveBeenCalled();
+    expect(h.markPasswordChanged).not.toHaveBeenCalled();
+  });
+
+  it("stage ready (ancien format de lien, déjà consommé) : n'appelle jamais confirmRecovery", async () => {
+    renderPage();
+
+    fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), {
+      target: { value: "Str0ng!Pass" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirmer le mot de passe"), {
+      target: { value: "Str0ng!Pass" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
+
+    await waitFor(() => expect(h.markPasswordChanged).toHaveBeenCalledTimes(1));
+    expect(h.confirmRecovery).not.toHaveBeenCalled();
   });
 
   it("marque le mot de passe comme défini après l'avoir enregistré", async () => {

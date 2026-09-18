@@ -85,42 +85,48 @@ describe("usePasswordRecoverySession", () => {
     expect(h.verifyOtp).toHaveBeenCalledWith({ token_hash: "abc123", type: "recovery" });
   });
 
-  it("confirmRecovery réussie : passe à prêt via l'événement PASSWORD_RECOVERY, comme le ferait Supabase", async () => {
+  it("confirmRecovery réussie : renvoie vrai, et passe à prêt via l'événement PASSWORD_RECOVERY comme le ferait Supabase", async () => {
     setUrl("/connexion/reinitialisation?token_hash=abc123&type=recovery");
     const { result } = renderHook(() => usePasswordRecoverySession());
     await waitFor(() => expect(result.current.stage).toBe("confirm"));
 
+    let confirmed!: boolean;
     await act(async () => {
-      await result.current.confirmRecovery();
+      confirmed = await result.current.confirmRecovery();
       // verifyOtp émet lui-même PASSWORD_RECOVERY en cas de succès (GoTrueClient) ;
       // on le simule pour vérifier que l'abonnement déjà en place le reçoit bien.
       h.authStateCallback?.("PASSWORD_RECOVERY");
     });
 
+    expect(confirmed).toBe(true);
     expect(result.current.stage).toBe("ready");
   });
 
-  it("confirmRecovery en échec (jeton déjà utilisé ou expiré) : lien invalide", async () => {
+  it("confirmRecovery en échec (jeton déjà utilisé ou expiré) : renvoie faux, lien invalide", async () => {
     h.verifyOtp.mockResolvedValue({ error: { message: "Token has expired or is invalid" } });
     setUrl("/connexion/reinitialisation?token_hash=abc123&type=recovery");
     const { result } = renderHook(() => usePasswordRecoverySession());
     await waitFor(() => expect(result.current.stage).toBe("confirm"));
 
+    let confirmed!: boolean;
     await act(async () => {
-      await result.current.confirmRecovery();
+      confirmed = await result.current.confirmRecovery();
     });
 
+    expect(confirmed).toBe(false);
     expect(result.current.stage).toBe("invalid");
   });
 
-  it("confirmRecovery sans token_hash dans l'URL : lien invalide, jamais d'appel à verifyOtp", async () => {
+  it("confirmRecovery sans token_hash dans l'URL : renvoie faux, jamais d'appel à verifyOtp", async () => {
     const { result } = renderHook(() => usePasswordRecoverySession());
     await waitFor(() => expect(result.current.stage).toBe("invalid"));
 
+    let confirmed!: boolean;
     await act(async () => {
-      await result.current.confirmRecovery();
+      confirmed = await result.current.confirmRecovery();
     });
 
+    expect(confirmed).toBe(false);
     expect(h.verifyOtp).not.toHaveBeenCalled();
     expect(result.current.stage).toBe("invalid");
   });

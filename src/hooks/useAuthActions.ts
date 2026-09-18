@@ -65,8 +65,9 @@ export function useAuthActions() {
  * chargement : c'est le cas `stage === "ready"` directement, conservé pour les
  * emails déjà envoyés. Le format `?token_hash=...&type=recovery` (construit
  * par `learnerAccessLink` et `send-password-reset` depuis `hashed_token`, sans
- * jamais visiter `auth/v1/verify`) ne consomme rien avant `confirmRecovery`,
- * appelée uniquement au clic sur "Continuer" (`stage === "confirm"`).
+ * jamais visiter `auth/v1/verify`) ne consomme rien avant `confirmRecovery`
+ * (`stage === "confirm"`) — enregistrer le nouveau mot de passe déclenche
+ * cet appel, sans écran ni clic ajoutés : ConnexionReinitialisation.tsx.
  */
 export function usePasswordRecoverySession() {
   const [stage, setStage] = useState<"checking" | "confirm" | "ready" | "invalid">("checking");
@@ -90,13 +91,19 @@ export function usePasswordRecoverySession() {
     return () => { cancelled = true; subscription.unsubscribe(); };
   }, []);
 
-  /** Consomme le jeton, uniquement appelée depuis un clic de l'apprenant. */
-  const confirmRecovery = useCallback(async () => {
+  /**
+   * Consomme le jeton. Renvoie si l'appelant peut poursuivre (par exemple
+   * enregistrer le mot de passe) ; en cas d'échec, bascule sur "invalid" et
+   * renvoie faux, sans que l'appelant ait à relire le stage lui-même.
+   */
+  const confirmRecovery = useCallback(async (): Promise<boolean> => {
     const tokenHash = new URLSearchParams(window.location.search).get("token_hash");
-    if (!tokenHash) { setStage("invalid"); return; }
+    if (!tokenHash) { setStage("invalid"); return false; }
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
-    // Succès : verifyOtp émet PASSWORD_RECOVERY, déjà écouté ci-dessus.
-    if (error) setStage("invalid");
+    if (error) { setStage("invalid"); return false; }
+    // verifyOtp établit déjà la session ; l'événement PASSWORD_RECOVERY
+    // (écouté ci-dessus) mettra "ready" à jour en arrière-plan.
+    return true;
   }, []);
 
   return { stage, confirmRecovery };
