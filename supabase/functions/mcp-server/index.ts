@@ -31,8 +31,11 @@ import {
   readMediaImage,
   readMissionDocuments,
   readMissionPage,
+  saveMissionActivity,
   saveMissionDocument,
   saveMissionNote,
+  updateMissionActivity,
+  type ActivityInput,
   type AuditFn,
   type ExtractedPart,
 } from "../_shared/mission-tools.ts";
@@ -71,6 +74,10 @@ import {
  *                           par l'agent (PNG, SVG, HTML, MD, PDF) aux
  *                           documents de la mission. Création seule : jamais
  *                           d'écrasement ni de suppression
+ *   - save_mission_activity : écriture additive — ajoute une activité au
+ *                           journal d'une mission
+ *   - update_mission_activity : met à jour les champs fournis d'une activité
+ *                           existante ; aucune suppression possible
  *   - get_seo_performance    : Search Console historisé, avec comparaison de
  *                           période (totaux, série journalière, détail par
  *                           requête / page / pays / appareil / apparence)
@@ -262,6 +269,8 @@ MÉTHODE ATTENDUE
 Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou soumises à validation explicite ; aucune ne supprime ni n'écrase silencieusement des données existantes.
 - save_mission_note : crée ou met à jour une page de mission, pour capitaliser un travail long hors de la conversation. HTML simple, <svg> accepté pour incruster un schéma vectoriel.
 - save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
+- save_mission_activity : ajoute une activité au journal d'une mission (description + date obligatoires, durée en heures/jours/demi-journées, montant facturable facultatif). Une durée de 0 correspond à une action programmée sans temps consommé. Écriture additive.
+- update_mission_activity : corrige une activité existante à partir de son id (listé par get_mission_dossier). Seuls les champs transmis sont modifiés ; aucune activité ne peut être supprimée ni déplacée vers une autre mission.
 - update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre « type » doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
 - create_lms_lesson : crée une leçon dans un module, avec éventuellement ses blocs de contenu initiaux (paramètre « blocks », même schéma que apply_lesson_restructure). Position facultative : si elle est fournie, les leçons suivantes du module sont décalées d'un rang. Écriture additive : aucune leçon existante n'est modifiée dans son contenu. Retourne l'id et l'empreinte de la leçon créée.
 - apply_lesson_restructure : remplace TOUS les blocs de premier niveau d'une leçon par une nouvelle structure proposée. Tous les types du menu « Ajouter un bloc » sont acceptés : blocs de contenu (texte, tableau, encadré, points clés, liste, checklist, synthèse, accordéon, frise, cartes à retourner, code, exercice, auto-évaluation, texte à trous, mots à glisser, quiz, devoir, dépôt de travail, vidéo, image, galerie, fichier, image interactive, avant/après, bouton, CTA, intégration HTML, shortcode) et blocs de mise en page (section, colonnes, conteneur, contenu progressif, séparateur, espace) qui peuvent porter un tableau « children » de blocs de contenu (un seul niveau d'imbrication). EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
@@ -454,6 +463,54 @@ const MCP_TOOLS = [
         },
       },
       required: ["mission_id", "file_name", "mime_type", "content_base64"],
+    },
+  },
+  {
+    name: "save_mission_activity",
+    description:
+      "Log ONE activity (a working day, a batch of hours, a scheduled action) in a mission's activity journal in SuperTools. Use it to record work actually done: 'atelier de cadrage, 2026-09-18, 7 heures'. description and activity_date are required; duration defaults to 0 hours, which is how a scheduled action (no time consumed) is recorded. This write is ADDITIVE: it only creates a new activity row, never modifies or deletes an existing one. Use update_mission_activity to correct an activity already logged.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mission_id: { type: "string", description: "UUID of the mission (from get_mission_dossier)" },
+        description: { type: "string", description: "What was done, e.g. 'Atelier de cadrage avec le comité de direction'" },
+        activity_date: { type: "string", description: "Date of the activity, YYYY-MM-DD" },
+        duration: { type: "number", description: "Amount of time spent, expressed in duration_type units (default 0)" },
+        duration_type: {
+          type: "string",
+          enum: ["hours", "days", "half_days"],
+          description: "Unit of duration (default hours)",
+        },
+        billable_amount: { type: "number", description: "Optional amount billable to the client, in euros excl. tax" },
+        is_billed: { type: "boolean", description: "Whether this activity has already been invoiced (default false)" },
+        invoice_number: { type: "string", description: "Optional invoice number attached to the activity" },
+        notes: { type: "string", description: "Optional internal notes about the activity" },
+      },
+      required: ["mission_id", "description", "activity_date"],
+    },
+  },
+  {
+    name: "update_mission_activity",
+    description:
+      "Correct an existing mission activity in SuperTools. Pass the activity id (listed with each activity by get_mission_dossier) and only the fields to change: everything else is left untouched. Typical uses: fix the duration, add the billable amount, mark it as invoiced with its invoice number, refine the description. This tool can never delete an activity, nor move it to another mission. The answer returns the activity before and after the change.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        activity_id: { type: "string", description: "UUID of the activity to update (from get_mission_dossier's activities list)" },
+        description: { type: "string", description: "New description" },
+        activity_date: { type: "string", description: "New date, YYYY-MM-DD" },
+        duration: { type: "number", description: "New duration, in duration_type units" },
+        duration_type: {
+          type: "string",
+          enum: ["hours", "days", "half_days"],
+          description: "New unit of duration",
+        },
+        billable_amount: { type: "number", description: "New billable amount in euros excl. tax" },
+        is_billed: { type: "boolean", description: "Mark the activity as invoiced or not" },
+        invoice_number: { type: "string", description: "Invoice number attached to the activity" },
+        notes: { type: "string", description: "New internal notes" },
+      },
+      required: ["activity_id"],
     },
   },
   {
@@ -758,6 +815,25 @@ function textResult(text: string, isError = false): ToolResult {
   return { content: [{ type: "text", text }], ...(isError ? { isError: true } : {}) };
 }
 
+/** Ne retient que les champs d'activité réellement fournis : une mise à jour ne
+ * doit jamais écraser un champ que l'appelant n'a pas mentionné. */
+function activityInputFromArgs(args: Record<string, unknown>): ActivityInput {
+  const keys = [
+    "description",
+    "activity_date",
+    "duration",
+    "duration_type",
+    "billable_amount",
+    "is_billed",
+    "invoice_number",
+    "notes",
+  ] as const;
+  const input: Record<string, unknown> = {};
+  for (const k of keys) if (args[k] !== undefined) input[k] = args[k];
+  return input as ActivityInput;
+}
+
+
 async function callTool(
   supabase: Supabase,
   name: string,
@@ -878,6 +954,34 @@ async function callTool(
         );
       } catch (e) {
         return textResult(`Save error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "save_mission_activity": {
+      try {
+        return textResult(
+          await saveMissionActivity(
+            supabase,
+            (args.mission_id as string) || "",
+            activityInputFromArgs(args),
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Save error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_mission_activity": {
+      try {
+        return textResult(
+          await updateMissionActivity(
+            supabase,
+            (args.activity_id as string) || "",
+            activityInputFromArgs(args),
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "get_seo_performance": {
@@ -1172,7 +1276,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.4.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.5.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }
@@ -1285,7 +1389,7 @@ function authorizePage(params: URLSearchParams, errorMsg?: string): Response {
     <h2>En résumé — ce qu'il faut savoir avant de connecter</h2>
     <ul>
       <li>Le MCP SuperTools connecte vos données SuperTools à l'assistant IA de votre choix (Claude, ChatGPT, Cursor…). SuperTilt fournit le connecteur, pas l'assistant IA.</li>
-      <li>En lecture seule, votre assistant IA peut consulter vos données SuperTools (CRM, formations, missions, évaluations, audience, contenus, LMS) selon vos instructions. Les seules écritures possibles sont : créer une page ou attacher un fichier à une mission ; modifier un bloc texte d'une leçon ; et, après votre validation explicite, restructurer les blocs pédagogiques d'une leçon (un snapshot est conservé pour revenir en arrière).</li>
+      <li>En lecture seule, votre assistant IA peut consulter vos données SuperTools (CRM, formations, missions, évaluations, audience, contenus, LMS) selon vos instructions. Les seules écritures possibles sont : créer une page ou attacher un fichier à une mission ; ajouter une activité au journal d'une mission ou corriger une activité existante ; modifier un bloc texte d'une leçon ; et, après votre validation explicite, restructurer les blocs pédagogiques d'une leçon (un snapshot est conservé pour revenir en arrière). Aucune suppression n'est possible.</li>
       <li>Vos données quittent SuperTools : elles sont transmises à votre assistant IA, tiers indépendant de SuperTilt. Une fois transmises, SuperTilt ne les contrôle plus.</li>
       <li>Vérifiez les conditions de votre assistant IA : confidentialité, localisation des données, réutilisation à des fins d'entraînement. SuperTilt n'en est pas responsable.</li>
       <li>Les réponses IA ne sont pas vérifiées par SuperTilt et ne constituent pas un conseil professionnel. Toujours vérifier avant d'agir.</li>
