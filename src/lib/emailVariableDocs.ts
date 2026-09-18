@@ -68,6 +68,8 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   deliverables_link: { label: "Lien des livrables", description: "Lien vers la page des livrables partagés.", sample: "https://super-tools.lovable.app/livrables/exemple" },
   programme_link: { label: "Lien du programme", description: "Lien vers le programme détaillé de la formation.", sample: "https://super-tools.lovable.app/programme/exemple" },
   supports_url: { label: "Lien des supports", description: "Lien vers les supports de formation.", sample: "https://super-tools.lovable.app/supports/exemple" },
+  elearning_url: { label: "Lien du contenu e-learning", description: "Lien personnel vers le contenu en ligne rattaché à la formation.", sample: "https://super-tools.lovable.app/formation-support/exemple" },
+  elearning_button: { label: "Bouton du contenu e-learning", description: "Bouton cliquable menant au contenu en ligne, mis en forme automatiquement.", sample: "Accéder au contenu en ligne", isBlock: true },
   google_review_link: { label: "Lien avis Google", description: "Lien pour déposer un avis Google.", sample: "https://g.page/r/exemple/review" },
   financeur_url: { label: "Lien du financeur", description: "Page d'information de l'organisme financeur.", sample: "https://www.opco-atlas.fr" },
   site_url: { label: "Site web", description: "Adresse du site public.", sample: "https://supertilt.fr" },
