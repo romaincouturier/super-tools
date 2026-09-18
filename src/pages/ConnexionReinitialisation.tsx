@@ -14,7 +14,7 @@ export default function ConnexionReinitialisation() {
   const [searchParams] = useSearchParams();
   const { isStaff, mustChangePassword, refresh } = useSession();
   const stage = usePasswordRecoverySession();
-  const { updatePassword } = useAuthActions();
+  const { updatePassword, markPasswordChanged } = useAuthActions();
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -36,6 +36,12 @@ export default function ConnexionReinitialisation() {
       setSubmitting(false);
       return;
     }
+    // Ce parcours est accessible directement par URL, sans passer par la
+    // résolution d'identité : un apprenant qui n'avait encore aucun mot de
+    // passe peut y arriver. Sans cet appel, password_set resterait à faux et
+    // la prochaine connexion le renverrait vers un lien au lieu du mot de
+    // passe qu'il vient de définir (W8, point 6 : un seul mécanisme).
+    await markPasswordChanged();
     await refresh();
     navigate(
       resolvePostLoginPath({ isStaff, mustChangePassword: false, next: searchParams.get(REDIRECT_PARAM) }),

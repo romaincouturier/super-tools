@@ -4,6 +4,7 @@ import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
+import { generateHash, getClientIp } from "../_shared/crypto.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
@@ -28,6 +29,24 @@ serve(async (req: Request) => {
     }
 
     const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // RG-08 : quota d'envoi tenu côté serveur, partagé avec les liens
+    // d'accès apprenant (3 par adresse, 10 par IP, par heure). Un lien de
+    // réinitialisation n'était couvert par aucune limite avant ce correctif.
+    const emailHash = await generateHash(email.trim().toLowerCase());
+    const { data: allowed } = await supabaseClient.rpc("check_link_quota", {
+      p_email_hash: emailHash,
+      p_ip: getClientIp(req),
+    });
+    if (allowed === false) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Generate password reset link
     const { data, error } = await supabaseClient.auth.admin.generateLink({

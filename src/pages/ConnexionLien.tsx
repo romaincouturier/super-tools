@@ -6,6 +6,7 @@ import { AuthBadge, AuthCard, AuthInfoPanel, AuthShell, AuthSplitCard, AuthSuppo
 import { AuthField, AuthButton } from "@/components/auth/AuthField";
 import { validatePassword } from "@/lib/passwordValidation";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
+import { useIdentityResolution } from "@/hooks/useIdentityResolution";
 import { useLearnerTokenRedemption } from "@/hooks/useLearnerTokenRedemption";
 import { useAuthActions } from "@/hooks/useAuthActions";
 import { LEARNER_HOME, sanitizeRedirect, REDIRECT_PARAM } from "@/lib/authRouting";
@@ -30,6 +31,7 @@ export default function ConnexionLien() {
   const [resent, setResent] = useState(false);
 
   const { updatePassword, markPasswordChanged } = useAuthActions();
+  const { resolve } = useIdentityResolution();
   const { loading: sendingLink, invoke: sendLink } = useEdgeFunction("send-learner-magic-link", {
     silentOnError: true,
   });
@@ -55,7 +57,16 @@ export default function ConnexionLien() {
     e.preventDefault();
     const target = (resendEmail || email).trim().toLowerCase();
     if (!target.includes("@")) return;
-    await sendLink({ email: target, purpose: "login" });
+    // Un lien mort ne dit plus s'il s'agissait d'une connexion ou d'une
+    // activation (learner_magic_links ne garde pas ce champ) : on le
+    // redemande. Un compte déjà là reçoit un lien de connexion (30
+    // minutes), un participant sans compte un lien d'activation (7 jours).
+    // Sans réponse du service, on retient l'activation, la durée la plus
+    // longue (RG-06) — forcer "login" enverrait un lien deux fois plus
+    // court à qui en a le plus besoin.
+    const state = await resolve(target);
+    const purpose = state === "password" || state === "link" ? "login" : "activation";
+    await sendLink({ email: target, purpose });
     setResent(true);
   };
 
