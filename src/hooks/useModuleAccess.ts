@@ -148,7 +148,9 @@ export function useModuleAccess() {
         .from("profiles")
         .select("is_admin")
         .eq("user_id", user.id)
-        .single();
+        // Un apprenant n'a pas de ligne ici : l'absence est un cas normal, pas
+        // une erreur 406 dans la console.
+        .maybeSingle();
       const isAdminUser = profile?.is_admin === true;
       setIsAdmin(isAdminUser);
 
