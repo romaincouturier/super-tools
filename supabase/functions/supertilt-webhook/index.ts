@@ -553,9 +553,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
         let addResult: unknown = null;
         let addError: { message?: string } | null = null;
         for (let attempt = 1; attempt <= 3; attempt++) {
+          // L'en-tête Authorization est passé explicitement : selon la version du
+          // SDK, functions.invoke ne propage pas la clé du client, et
+          // add-training-participant refuse alors l'appel (401).
           const res = await (admin as any).functions.invoke(
             "add-training-participant",
-            { body: participantPayload },
+            {
+              body: participantPayload,
+              headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+            },
           );
           addResult = res.data;
           addError = res.error ?? null;
