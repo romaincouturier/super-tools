@@ -4438,6 +4438,30 @@ export type Database = {
           },
         ]
       }
+      identity_resolution_log: {
+        Row: {
+          email_hash: string
+          id: string
+          ip_address: string
+          resolved_at: string
+          state: string
+        }
+        Insert: {
+          email_hash: string
+          id?: string
+          ip_address?: string
+          resolved_at?: string
+          state: string
+        }
+        Update: {
+          email_hash?: string
+          id?: string
+          ip_address?: string
+          resolved_at?: string
+          state?: string
+        }
+        Relationships: []
+      }
       improvements: {
         Row: {
           category: string
@@ -12083,30 +12107,6 @@ export type Database = {
         }
         Relationships: []
       }
-      identity_resolution_log: {
-        Row: {
-          email_hash: string
-          id: string
-          ip_address: string
-          resolved_at: string
-          state: string
-        }
-        Insert: {
-          email_hash: string
-          id?: string
-          ip_address?: string
-          resolved_at?: string
-          state: string
-        }
-        Update: {
-          email_hash?: string
-          id?: string
-          ip_address?: string
-          resolved_at?: string
-          state?: string
-        }
-        Relationships: []
-      }
       user_security_metadata: {
         Row: {
           created_at: string
@@ -12849,6 +12849,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      change_learner_email: {
+        Args: { p_new_email: string; p_old_email: string; p_user_id?: string }
+        Returns: Json
+      }
       check_formulaire_rate_limit: {
         Args: {
           p_ip_address: string
@@ -12857,8 +12861,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_link_quota: {
+        Args: { p_email_hash: string; p_ip: string }
+        Returns: boolean
+      }
       cleanup_agent_embedding_cache: { Args: never; Returns: number }
+      connexion_indicators: { Args: { p_days?: number }; Returns: Json }
       consume_learner_token: { Args: { p_token: string }; Returns: undefined }
+      current_user_access_level: { Args: never; Returns: string }
       decay_watch_relevance: { Args: never; Returns: undefined }
       decrypt_token: {
         Args: { encrypted_token: string; encryption_key: string }
@@ -13229,6 +13239,14 @@ export type Database = {
         Returns: number
       }
       link_tender_duplicates: { Args: never; Returns: number }
+      list_dormant_learner_accounts: {
+        Args: { p_years?: number }
+        Returns: {
+          created_at: string
+          email: string
+          last_sign_in_at: string
+        }[]
+      }
       lms_learner_is_enrolled: {
         Args: { _course_id: string }
         Returns: boolean
@@ -13245,19 +13263,6 @@ export type Database = {
         Args: { p_timestamp: string; p_token: string }
         Returns: undefined
       }
-      change_learner_email: {
-        Args: { p_new_email: string; p_old_email: string; p_user_id?: string }
-        Returns: Json
-      }
-      connexion_indicators: { Args: { p_days?: number }; Returns: Json }
-      current_user_access_level: { Args: never; Returns: string }
-      revoke_other_sessions: { Args: never; Returns: number }
-      list_dormant_learner_accounts: {
-        Args: { p_years?: number }
-        Returns: { created_at: string; email: string; last_sign_in_at: string }[]
-      }
-      mark_password_changed: { Args: never; Returns: undefined }
-      request_password_change: { Args: never; Returns: undefined }
       mark_convention_opened: {
         Args: { p_timestamp: string; p_token: string }
         Returns: undefined
@@ -13270,6 +13275,7 @@ export type Database = {
         Args: { p_opened_at: string; p_token: string }
         Returns: undefined
       }
+      mark_password_changed: { Args: never; Returns: undefined }
       match_documents: {
         Args: {
           filter_source_types?: string[]
@@ -13401,6 +13407,7 @@ export type Database = {
       }
       preview_learner_token: { Args: { p_token: string }; Returns: Json }
       purge_api_usage_events: { Args: never; Returns: undefined }
+      purge_identity_resolution_log: { Args: never; Returns: number }
       purge_seo_history: { Args: never; Returns: undefined }
       read_vhd_narrative: { Args: { p_report_id: string }; Returns: string }
       reap_stuck_ticket_coding: { Args: never; Returns: undefined }
@@ -13423,14 +13430,20 @@ export type Database = {
         }
         Returns: Json
       }
+      request_password_change: { Args: never; Returns: undefined }
       resolve_formulaire_token: {
         Args: { p_course_id: number; p_email: string; p_form_type: string }
         Returns: Json
+      }
+      resolve_login_identity: {
+        Args: { p_email: string; p_email_hash: string; p_ip: string }
+        Returns: string
       }
       restore_lesson_version: {
         Args: { p_snapshot_id: string }
         Returns: undefined
       }
+      revoke_other_sessions: { Args: never; Returns: number }
       seo_cannibalisation: {
         Args: {
           p_from: string
