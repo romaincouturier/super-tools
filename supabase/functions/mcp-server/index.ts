@@ -31,8 +31,11 @@ import {
   readMediaImage,
   readMissionDocuments,
   readMissionPage,
+  saveMissionActivity,
   saveMissionDocument,
   saveMissionNote,
+  updateMissionActivity,
+  type ActivityInput,
   type AuditFn,
   type ExtractedPart,
 } from "../_shared/mission-tools.ts";
