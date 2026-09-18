@@ -50,18 +50,30 @@ Deno.serve(async (req) => {
 
     // RG-08 : quota d'envoi tenu côté serveur. Au-delà, la réponse est la même,
     // mais aucun email ne part.
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-      || req.headers.get("x-real-ip") || "unknown";
-    const emailHash = await sha256Hex(email.trim().toLowerCase());
-    const { data: allowed } = await supabase.rpc("check_link_quota", {
-      p_email_hash: emailHash,
-      p_ip: ip,
-    });
-    if (allowed === false) {
-      return new Response(
-        JSON.stringify({ success: true, message: "Si un compte existe, un lien vous a été envoyé." }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    //
+    // Le quota protège la page de connexion contre les demandes répétées. Il ne
+    // doit pas museler un envoi déclenché par la plateforme elle-même : un
+    // apprenant qui rachète la même formation dans l'heure ne recevait plus son
+    // accès e-learning, uniquement la convocation.
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+    const apikey = (req.headers.get("apikey") ?? "").trim();
+    const isInternalCall = !!serviceRoleKey && (bearer === serviceRoleKey || apikey === serviceRoleKey);
+
+    if (!isInternalCall) {
+      const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+        || req.headers.get("x-real-ip") || "unknown";
+      const emailHash = await sha256Hex(email.trim().toLowerCase());
+      const { data: allowed } = await supabase.rpc("check_link_quota", {
+        p_email_hash: emailHash,
+        p_ip: ip,
+      });
+      if (allowed === false) {
+        return new Response(
+          JSON.stringify({ success: true, message: "Si un compte existe, un lien vous a été envoyé." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Check participant exists (silent fail for security)
