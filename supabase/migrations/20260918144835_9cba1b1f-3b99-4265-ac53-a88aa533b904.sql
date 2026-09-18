@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS auth_manage_enrollments ON public.lms_enrollments;
