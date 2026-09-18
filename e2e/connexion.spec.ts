@@ -47,6 +47,11 @@ test("un compte avec mot de passe mène à l'étape mot de passe", async ({ page
   await expect(page.locator('input[type="password"]')).toBeVisible();
   // L'adresse reste dans le formulaire pour les gestionnaires de mots de passe.
   await expect(page.locator('input[type="email"]')).toHaveValue("apprenant@exemple.fr");
+  // Retour vers l'étape email, sans ambiguïté sur ce que fait le bouton.
+  await expect(page.getByRole("button", { name: "Revenir à la page de connexion" })).toBeVisible();
+  // Le lien de connexion par email n'a plus sa place ici : il double
+  // "Mot de passe oublié" sans que la différence soit compréhensible.
+  await expect(page.getByRole("button", { name: /Recevoir un lien de connexion/ })).not.toBeVisible();
 });
 
 test("un compte sans mot de passe reçoit un lien de connexion", async ({ page }) => {
@@ -72,6 +77,8 @@ test("une adresse inconnue propose des pistes, jamais un cul-de-sac", async ({ p
   await page.goto("/connexion");
   await submitEmail(page);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Nous n'avons pas trouvé de compte");
+  // L'action principale mène à la création de compte, pas à un cul-de-sac.
+  await expect(page.getByRole("link", { name: "Créer un compte gratuitement" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Essayer une autre adresse" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Écrire au support/ })).toBeVisible();
 });
