@@ -809,6 +809,25 @@ function textResult(text: string, isError = false): ToolResult {
   return { content: [{ type: "text", text }], ...(isError ? { isError: true } : {}) };
 }
 
+/** Ne retient que les champs d'activité réellement fournis : une mise à jour ne
+ * doit jamais écraser un champ que l'appelant n'a pas mentionné. */
+function activityInputFromArgs(args: Record<string, unknown>): ActivityInput {
+  const keys = [
+    "description",
+    "activity_date",
+    "duration",
+    "duration_type",
+    "billable_amount",
+    "is_billed",
+    "invoice_number",
+    "notes",
+  ] as const;
+  const input: Record<string, unknown> = {};
+  for (const k of keys) if (args[k] !== undefined) input[k] = args[k];
+  return input as ActivityInput;
+}
+
+
 async function callTool(
   supabase: Supabase,
   name: string,
