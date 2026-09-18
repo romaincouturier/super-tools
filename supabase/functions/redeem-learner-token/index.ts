@@ -82,8 +82,12 @@ serve(async (req: Request) => {
       );
     }
 
-    // Destination : la formation concernée quand le jeton en porte une, sinon
-    // le tableau de bord (critères 8 et 14).
+    // Destination : la page du cours dès qu'un cours est identifiable, sinon le
+    // tableau de bord (critères 8 et 14). Le paramètre email est indispensable :
+    // la page du cours identifie l'apprenant par lui (progression, communauté).
+    const courseLink = (courseId: string) =>
+      `/lms/${courseId}/home?email=${encodeURIComponent(email)}`;
+
     let next: string | null = null;
     if (result?.training_id) {
       const { data: training } = await admin
@@ -92,7 +96,34 @@ serve(async (req: Request) => {
         .eq("id", result.training_id)
         .maybeSingle();
       const courseId = (training as { supports_lms_course_id?: string | null } | null)?.supports_lms_course_id;
-      if (courseId) next = `/lms/${courseId}/home`;
+      if (courseId) next = courseLink(courseId);
+    }
+
+    // Les liens renvoyés depuis la page de connexion ne portent aucune
+    // formation : sans ce repli, l'apprenant atterrissait sur le tableau de
+    // bord au lieu de son cours.
+    if (!next) {
+      const { data: rows } = await admin
+        .from("training_participants")
+        .select("training_id, created_at, trainings!inner(supports_lms_course_id)")
+        .ilike("email", email)
+        .not("trainings.supports_lms_course_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const courseId = (rows as Array<{ trainings?: { supports_lms_course_id?: string | null } }> | null)
+        ?.[0]?.trainings?.supports_lms_course_id;
+      if (courseId) next = courseLink(courseId);
+    }
+
+    // Inscrit Academy sans ligne de participant : le cours vient des inscriptions LMS.
+    if (!next) {
+      const { data: enrollments } = await admin
+        .from("lms_enrollments")
+        .select("course_id")
+        .ilike("learner_email", email)
+        .limit(2);
+      const list = (enrollments as Array<{ course_id: string }> | null) ?? [];
+      if (list.length === 1) next = courseLink(list[0].course_id);
     }
 
     return createJsonResponse({
