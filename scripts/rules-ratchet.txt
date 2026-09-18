@@ -12,4 +12,4 @@
 #   justifiée de ce cliquet ; toute autre hausse est une régression.
 # 037b : réponses d'erreur JSON construites à la main dans les edge functions (utiliser createErrorResponse)
 037a=233
-037b=361
+037b=354

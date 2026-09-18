@@ -62,20 +62,7 @@ else
      "La page de connexion basculera en mode dégradé : personne n'est bloqué, mais l'aiguillage par adresse ne marche pas. Réponse : ${rep:-aucune}"
 fi
 
-# 2. L'ouverture de lien répond, et refuse un jeton inventé.
-rep=$(appel_fonction redeem-learner-token '{"token":"jeton-de-verification-inexistant"}')
-if echo "$rep" | grep -q '"status"'; then
-  if echo "$rep" | grep -q '"invalid"'; then
-    ok "L'ouverture de lien répond, et refuse un jeton inventé."
-  else
-    alerte "L'ouverture de lien répond autre chose qu'un refus." "Réponse : $rep"
-  fi
-else
-  ko "L'ouverture de lien ne répond pas." \
-     "C'est le cœur du nouveau parcours : aucun lien reçu par email ne connectera. Réponse : ${rep:-aucune}"
-fi
-
-# 3. Le bandeau d'information est lisible sans compte.
+# 2. Le bandeau d'information est lisible sans compte.
 code=$(appel_rpc get_app_setting_public '{"p_key":"maintenance_banner_enabled"}')
 if [ "$code" = "200" ]; then
   ok "Le réglage du bandeau se lit sans compte (valeur : $(cat /tmp/rpc-corps.txt))."
@@ -84,7 +71,7 @@ else
          "Le bandeau restera invisible. Sans gravité pour la connexion."
 fi
 
-# 4. Les données d'un apprenant ne se lisent pas sans compte. Doit échouer.
+# 3. Les données d'un apprenant ne se lisent pas sans compte. Doit échouer.
 code=$(appel_rpc get_learner_portal_data '{"p_email":"verification@exemple-inexistant.fr"}')
 if [ "$code" = "200" ]; then
   ko "Les données du portail se lisent SANS COMPTE." \
@@ -97,13 +84,15 @@ else
   ok "Les données du portail refusent un appel sans compte (code $code)."
 fi
 
-# 5. L'envoi de lien répond. Adresse inventée : aucun email ne part.
-rep=$(appel_fonction send-learner-magic-link '{"email":"verification-deploiement@exemple-inexistant.fr","purpose":"login"}')
+# 4. L'envoi d'email d'accès répond. Adresse inventée : aucun email ne part
+#    (plus de lien magique : ce chemin passe désormais par send-password-reset,
+#    le seul déclenchable anonymement, RG-07/RG-08).
+rep=$(appel_fonction send-password-reset '{"email":"verification-deploiement@exemple-inexistant.fr","redirectUrl":"'"$URL"'/connexion/reinitialisation"}')
 if echo "$rep" | grep -q '"success"'; then
-  ok "L'envoi de lien répond."
+  ok "L'envoi d'email d'accès répond."
 else
-  ko "L'envoi de lien ne répond pas." \
-     "Un apprenant sans mot de passe ne pourra pas entrer. Réponse : ${rep:-aucune}"
+  ko "L'envoi d'email d'accès ne répond pas." \
+     "Un apprenant sans mot de passe ne pourra pas en créer un. Réponse : ${rep:-aucune}"
 fi
 
 echo ""

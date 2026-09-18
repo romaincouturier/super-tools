@@ -22,8 +22,11 @@ async function accessLevel() {
 beforeAll(async () => {
   db = await createTestDb();
   await loadFunctions(db, [
+    // get_learner_email reste chargée depuis la migration différée : sa
+    // fermeture de l'en-tête x-learner-email est un chantier séparé, pas
+    // encore promu, sans rapport avec la démolition du lien magique.
     { migration: "20260915120000_lot6c_fermeture_entete_apprenant.sql", name: "get_learner_email" },
-    { migration: "20260915130000_recette_niveau_acces_et_mentions.sql", name: "current_user_access_level" },
+    { migration: "20260918160000_demolition_lien_magique.sql", name: "current_user_access_level" },
   ]);
 });
 
@@ -101,13 +104,6 @@ describe("current_user_access_level", () => {
   it("rend anon sans session", async () => {
     await actAs(db, null);
     expect(await accessLevel()).toBe("anon");
-  });
-
-  it("ne laisse pas un lien non consommé faire un apprenant", async () => {
-    const id = await createAuthUser(db, "curieux@exemple.fr");
-    await db.query("INSERT INTO learner_magic_links (email) VALUES ($1)", ["curieux@exemple.fr"]);
-    await actAs(db, { uid: id, email: "curieux@exemple.fr" });
-    expect(await accessLevel()).toBe("none");
   });
 
   it("fait de l'équipe du staff même si elle est aussi inscrite à une formation", async () => {

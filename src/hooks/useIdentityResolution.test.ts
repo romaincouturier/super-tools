@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { parseIdentityState } from "./useIdentityResolution";
 
 describe("parseIdentityState", () => {
-  it.each(["password", "link", "activation", "unknown", "throttled"])("accepte l'état %s", (state) => {
+  it.each(["password", "unknown", "throttled"])("accepte l'état %s", (state) => {
     expect(parseIdentityState({ state })).toBe(state);
   });
 
@@ -12,6 +12,10 @@ describe("parseIdentityState", () => {
 
   it("traite un état inattendu comme une panne", () => {
     expect(parseIdentityState({ state: "whatever" })).toBeNull();
+  });
+
+  it.each(["link", "activation"])("ne reconnaît plus l'ancien état %s (lien magique retiré)", (state) => {
+    expect(parseIdentityState({ state })).toBeNull();
   });
 
   it("traite une réponse sans état comme une panne", () => {

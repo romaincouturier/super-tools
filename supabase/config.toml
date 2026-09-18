@@ -63,9 +63,6 @@ verify_jwt = false
 [functions.resolve-login-identity]
 verify_jwt = false
 
-[functions.redeem-learner-token]
-verify_jwt = false
-
 [functions.backfill-learner-accounts]
 verify_jwt = false
 
@@ -279,13 +276,7 @@ verify_jwt = false
 [functions.alert-form-error]
 verify_jwt = false
 
-[functions.send-learner-magic-link]
-verify_jwt = false
-
 [functions.send-learner-access-email]
-verify_jwt = false
-
-[functions.create-learner-account]
 verify_jwt = false
 
 [functions.create-academy-account]

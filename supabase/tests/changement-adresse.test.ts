@@ -17,14 +17,14 @@ async function change(oldEmail: string, newEmail: string, userId: string | null 
 beforeAll(async () => {
   db = await createTestDb();
   await loadFunctions(db, [
-    { migration: "20260915100000_lot6_adresse_indicateurs.sql", name: "change_learner_email" },
+    { migration: "20260918160000_demolition_lien_magique.sql", name: "change_learner_email" },
   ]);
 });
 
 beforeEach(async () => {
   await db.exec(`TRUNCATE profiles, training_participants, lms_enrollments, lms_progress,
-    learner_profiles, questionnaire_besoins, training_evaluations, practice_posts,
-    learner_magic_links; DELETE FROM auth.users; DELETE FROM auth.sessions;`);
+    learner_profiles, questionnaire_besoins, training_evaluations, practice_posts;
+    DELETE FROM auth.users; DELETE FROM auth.sessions;`);
   await db.query("INSERT INTO profiles (user_id, email) VALUES ($1, $2)", [STAFF, "staff@supertilt.fr"]);
   await actAs(db, { uid: STAFF, email: "staff@supertilt.fr" });
 });
@@ -48,14 +48,6 @@ describe("change_learner_email", () => {
             + (SELECT count(*) FROM practice_posts WHERE author_email = 'alice@ancien.fr') AS count`,
     );
     expect(Number(reste.rows[0].count)).toBe(0);
-  });
-
-  it("invalide les liens envoyés à l'ancienne adresse", async () => {
-    await db.query("INSERT INTO training_participants (email) VALUES ('alice@ancien.fr')");
-    await db.query("INSERT INTO learner_magic_links (email) VALUES ('alice@ancien.fr')");
-    await change("alice@ancien.fr", "alice@nouveau.fr");
-    const res = await db.query<{ used_at: string | null }>("SELECT used_at FROM learner_magic_links");
-    expect(res.rows[0].used_at).not.toBeNull();
   });
 
   it("ferme les sessions ouvertes du compte", async () => {
