@@ -13238,6 +13238,7 @@ export type Database = {
         Args: { p_email: string; p_lms_course_id: string }
         Returns: number
       }
+      learner_password_set: { Args: { p_email: string }; Returns: boolean }
       link_tender_duplicates: { Args: never; Returns: number }
       list_dormant_learner_accounts: {
         Args: { p_years?: number }
