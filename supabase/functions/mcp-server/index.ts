@@ -460,6 +460,54 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "save_mission_activity",
+    description:
+      "Log ONE activity (a working day, a batch of hours, a scheduled action) in a mission's activity journal in SuperTools. Use it to record work actually done: 'atelier de cadrage, 2026-09-18, 7 heures'. description and activity_date are required; duration defaults to 0 hours, which is how a scheduled action (no time consumed) is recorded. This write is ADDITIVE: it only creates a new activity row, never modifies or deletes an existing one. Use update_mission_activity to correct an activity already logged.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mission_id: { type: "string", description: "UUID of the mission (from get_mission_dossier)" },
+        description: { type: "string", description: "What was done, e.g. 'Atelier de cadrage avec le comité de direction'" },
+        activity_date: { type: "string", description: "Date of the activity, YYYY-MM-DD" },
+        duration: { type: "number", description: "Amount of time spent, expressed in duration_type units (default 0)" },
+        duration_type: {
+          type: "string",
+          enum: ["hours", "days", "half_days"],
+          description: "Unit of duration (default hours)",
+        },
+        billable_amount: { type: "number", description: "Optional amount billable to the client, in euros excl. tax" },
+        is_billed: { type: "boolean", description: "Whether this activity has already been invoiced (default false)" },
+        invoice_number: { type: "string", description: "Optional invoice number attached to the activity" },
+        notes: { type: "string", description: "Optional internal notes about the activity" },
+      },
+      required: ["mission_id", "description", "activity_date"],
+    },
+  },
+  {
+    name: "update_mission_activity",
+    description:
+      "Correct an existing mission activity in SuperTools. Pass the activity id (listed with each activity by get_mission_dossier) and only the fields to change: everything else is left untouched. Typical uses: fix the duration, add the billable amount, mark it as invoiced with its invoice number, refine the description. This tool can never delete an activity, nor move it to another mission. The answer returns the activity before and after the change.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        activity_id: { type: "string", description: "UUID of the activity to update (from get_mission_dossier's activities list)" },
+        description: { type: "string", description: "New description" },
+        activity_date: { type: "string", description: "New date, YYYY-MM-DD" },
+        duration: { type: "number", description: "New duration, in duration_type units" },
+        duration_type: {
+          type: "string",
+          enum: ["hours", "days", "half_days"],
+          description: "New unit of duration",
+        },
+        billable_amount: { type: "number", description: "New billable amount in euros excl. tax" },
+        is_billed: { type: "boolean", description: "Mark the activity as invoiced or not" },
+        invoice_number: { type: "string", description: "Invoice number attached to the activity" },
+        notes: { type: "string", description: "New internal notes" },
+      },
+      required: ["activity_id"],
+    },
+  },
+  {
     name: "get_seo_performance",
     description:
       "Google Search Console performance for the SuperTilt site, read from SuperTools' own history (synced daily, kept beyond Google's 16-month retention). Returns totals, the day-by-day series, the breakdown for one dimension, AND the comparison with the previous period of the same length (deltas per row). Use this for any question about search visibility, keywords, landing pages, countries, devices or rich results. Always check data_coverage: it states how far back the history actually goes.",
