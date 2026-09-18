@@ -11,6 +11,7 @@ import { useAcademyAuth } from "@/hooks/useAcademyAuth";
 import { useAcademyCatalog } from "@/hooks/useAcademyCatalog";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { HIDDEN_FREE_COURSE_IDS } from "@/lib/academyFreeCourses";
 
 function isStrongPassword(password: string) {
   return password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password);
@@ -53,7 +54,9 @@ export default function AcademySignup() {
   // connexion) : un compte gratuit s'ouvre toujours avec une formation, donc
   // l'écran fait choisir ici au lieu de renvoyer sur la page d'accueil.
   if (!courseId) {
-    const freeCourses = (data?.courses ?? []).filter((item) => item.access_type === "gratuit");
+    const freeCourses = (data?.courses ?? []).filter(
+      (item) => item.access_type === "gratuit" && !HIDDEN_FREE_COURSE_IDS.has(item.id),
+    );
     return <main className="min-h-screen bg-secondary"><header className="bg-background px-6 py-5"><div className="mx-auto flex max-w-6xl items-center justify-between"><Link to="/" aria-label="Retour à l’Academy"><SupertiltLogo className="h-9" /></Link><Link to="/connexion" className="text-sm font-semibold hover:text-primary">J’ai déjà un compte</Link></div></header><div className="mx-auto max-w-3xl px-6 py-14 lg:py-24"><p className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-[0.15em] text-primary"><Gift className="h-4 w-4" /> Compte gratuit</p><h1 className="mt-5 text-4xl font-black leading-tight sm:text-5xl">Créer mon compte</h1><p className="mt-6 text-lg leading-8 text-muted-foreground">Choisissez la formation gratuite avec laquelle vous souhaitez commencer, puis créez votre compte à l’étape suivante.</p>{freeCourses.length > 0 ? <div className="mt-10 grid gap-4">{freeCourses.map((item) => <Link key={item.id} to={`/academy/inscription?course=${encodeURIComponent(item.id)}`} className="flex items-center justify-between gap-6 border border-border bg-background p-6 transition-colors hover:border-primary"><span className="text-lg font-bold leading-tight">{item.title}</span><ArrowLeft className="h-5 w-5 shrink-0 rotate-180 text-primary" /></Link>)}</div> : <p className="mt-10 border border-border bg-background p-6 text-muted-foreground">Aucune formation gratuite n’est disponible pour le moment. Écrivez-nous à contact@supertilt.fr et nous ouvrirons votre accès.</p>}</div></main>;
   }
   if (!course || course.access_type !== "gratuit") return <div className="flex min-h-screen items-center justify-center bg-background px-6"><div className="max-w-md text-center"><SupertiltLogo className="mx-auto h-10" /><h1 className="mt-10 text-3xl font-black">Formation indisponible</h1><p className="mt-4 text-muted-foreground">Cette formation gratuite n’est plus disponible.</p><Button asChild className="mt-8"><Link to="/">Retour à l’Academy</Link></Button></div></div>;
