@@ -16,9 +16,11 @@ Trois niveaux de preuve, nommés sans ambiguïté :
 - **L** : vérification par lecture du code, avec la référence. Aucun test ne la garde.
 - **M** : vérification manuelle ou opératoire, hors portée d'un test automatisé.
 
-Exécution du 2026-09-18 : 2019 tests unitaires dont 70 SQL, 24 parcours
+Exécution du 2026-09-18 (avant démolition) : 2019 tests unitaires dont 70 SQL, 24 parcours
 Playwright, 9 assertions pgTAP sur instance Supabase, tous verts. CI et
 workflow `rls-tests` verts sur la PR.
+
+**Démolition du lien magique, 2026-09-18 (après l'exécution ci-dessus).** L'arbitrage Q1 est révisé (`docs/SPEC_CONNEXION_APPRENANT.md`, chapitre 12) : le lien magique est intégralement supprimé. Les preuves des lignes PR3, PR4, W3, W4, W5, W10, W12, RG-04, RG-05, RG-06 et de la section 4 (service de résolution) ci-dessous citent des tests qui ont disparu avec le mécanisme démoli ; elles sont corrigées dans les tableaux qui suivent, avec les noms de tests réellement en vigueur (2030 tests unitaires, 18 parcours Playwright, `rls-tests` vert sauf l'échec pré-existant et sans rapport documenté sur les PR #425 à #428). Le reste de ce document, écrit avant la démolition, garde sa valeur de trace historique.
 
 ---
 
@@ -28,8 +30,8 @@ workflow `rls-tests` verts sur la PR.
 |---|----------|--------|------|----------|
 | PR1 | Une porte par public, et toute URL historique redirige au lieu d'échouer. | T | `l'ancienne URL /apprenant mène à la page de connexion`, `l'ancienne adresse de lien sans jeton mène à la connexion`, `l'ancienne adresse de réinitialisation mène au nouvel écran` | Vert |
 | PR2 | Identifiant d'abord, méthode ensuite. | T | `la connexion demande l'adresse avant toute autre chose` | Vert |
-| PR3 | Un lien reçu par email ouvre une session. | T | `un compte sans mot de passe reçoit un lien de connexion` + `stageFromResponse > connecte quand le serveur rend une empreinte` | Vert |
-| PR4 | Le mot de passe est optionnel. | L | `src/pages/ConnexionLien.tsx`, action "Plus tard" | Lu |
+| PR3 | Aucun lien n'ouvre de session automatiquement (révisé 2026-09-18). | T | `un lien d'accès reçu par email préremplit l'adresse et enchaîne, sans ouvrir de session` (`e2e/connexion.spec.ts`) | Vert |
+| PR4 | Le mot de passe est de facto obligatoire (révisé 2026-09-18). | T | `aiguille aussi vers le mot de passe quand le compte n'en a pas encore` (`resolution-identite.test.ts`) | Vert |
 | PR5 | Aucun cul-de-sac. | T | `une adresse inconnue propose des pistes, jamais un cul-de-sac`, `un lien expiré propose d'en recevoir un nouveau`, `une URL de lien sans jeton ne montre jamais d'erreur technique` | Vert |
 | PR6 | La destination est conservée. | T | `une page protégée renvoie vers la connexion en mémorisant la destination` + 4 tests `sanitizeRedirect` | Vert |
 | PR7 | L'identité vient de la session, jamais de l'URL. | T | 5 tests `resolveLearnerEmail`, 5 tests `get_learner_email`, 5 tests `get_learner_portal_data` | Vert |
@@ -42,16 +44,16 @@ workflow `rls-tests` verts sur la PR.
 |---|----------|--------|------|----------|
 | W1 | Saisie de l'identifiant, puis aiguillage. | T | `la connexion demande l'adresse avant toute autre chose` | Vert |
 | W2 | Compte avec mot de passe. | T | `un compte avec mot de passe mène à l'étape mot de passe` | Vert |
-| W3 | Compte sans mot de passe : lien de connexion. | T | `un compte sans mot de passe reçoit un lien de connexion` | Vert |
-| W4 | Email connu sans compte : lien d'activation. | T | `un participant sans compte reçoit un lien d'activation` | Vert |
-| W5 | Activation depuis un email. | T | `un lien pré-cliqué par un robot de messagerie reste utilisable`, `un ancien lien reçu par email entre par la nouvelle ouverture de lien`, 5 tests `stageFromResponse` | Vert |
+| W3 | Compte sans mot de passe : même écran que W2, recours par "mot de passe oublié" (réécrit 2026-09-18). | T | `aiguille aussi vers le mot de passe quand le compte n'en a pas encore` | Vert |
+| W4 | Compte provisionné avant toute tentative de connexion, plus d'état "activation" (réécrit 2026-09-18). | T | `ne connaît pas un participant sans compte (plus de lien d'activation séparé)`, `ne connaît pas un inscrit Academy sans compte (plus de lien d'activation séparé)` | Vert |
+| W5 | Email d'accès : lien de réinitialisation si `password_set = false`, préremplissage sinon (réécrit 2026-09-18). | T | `un lien d'accès reçu par email préremplit l'adresse et enchaîne, sans ouvrir de session` (e2e), `learnerAccessLink > compte sans mot de passe : lien recovery vers l'écran de création`, `> compte avec mot de passe : lien qui préremplit /connexion, sans generateLink` (`_shared/learner-account.test.ts`) | Vert |
 | W6 | Email inconnu. | T | `une adresse inconnue propose des pistes, jamais un cul-de-sac` | Vert |
 | W7 | Création de compte en autonomie. | L | `src/pages/AcademySignup.tsx`, `create-academy-account` | Lu |
 | W8 | Mot de passe oublié et définition. | T | `le mot de passe oublié est atteignable sans lien reçu`, `un lien de réinitialisation sans session propose d'en recevoir un nouveau` | Vert |
 | W9 | Session déjà ouverte. | L | `src/pages/Connexion.tsx` effet de redirection, `LearnerPortal.handleLogout` | Lu |
-| W10 | Liens invalides, expirés, déjà utilisés. | T | 4 parcours d'ouverture de lien | Vert |
+| W10 | Lien de réinitialisation expiré ; ancienne URL `/connexion/lien` sans cul-de-sac (réécrit 2026-09-18). | T | `un lien de réinitialisation sans session propose d'en recevoir un nouveau`, `un vieux lien reçu par email avant la démolition mène à la connexion, jamais à une page introuvable` (e2e) | Vert |
 | W11 | Routage après connexion et anti-boucle. | T | 9 tests `resolvePostLoginPath`, `un compte sans rattachement voit un écran explicite`, 6 tests `current_user_access_level` | Vert |
-| W12 | Provisionnement à l'encaissement. | L | `_shared/learner-account.ts`, `add-training-participant` | Lu |
+| W12 | Provisionnement à l'inscription ou à l'encaissement (réécrit 2026-09-18 : plus de durée fixe côté lien). | T | `ensureLearnerAccount > provisionne un compte sans mot de passe et marque password_set à faux`, `> ne touche jamais à un compte déjà présent (S1)` (`_shared/learner-account.test.ts`) | Vert |
 | W13 | Changement d'adresse email. | T | 10 tests `change_learner_email` | Vert |
 
 ## 3. Règles de gestion
@@ -61,11 +63,11 @@ workflow `rls-tests` verts sur la PR.
 | RG-01 | Email normalisé avant toute opération. | T | 3 tests `normalizeLearnerEmail` | Vert |
 | RG-02 | Recherche couvrant toutes les origines. | T | `resolve_login_identity > propose l'activation à un participant connu`, `> à un inscrit Academy`, `current_user_access_level > reconnaît un apprenant à son rattachement` | Vert |
 | RG-03 | Un email, un seul compte. | L | Unicité tenue par l'authentification, `ensureLearnerAccount` ne recrée jamais | Lu |
-| RG-04 | Lien à usage unique, consommé à l'ouverture de session. | T | `un lien déjà utilisé explique pourquoi et relance le parcours` | Vert |
-| RG-05 | Un lien ne change jamais un mot de passe existant. | L | `create-learner-account` répond 409, `redeem-learner-token` ne touche pas au mot de passe | Lu |
-| RG-06 | Durées : 30 minutes, 7 jours, 1 heure. | T | 3 tests `linkExpiresAt` | Vert |
+| RG-04 | *Retirée le 2026-09-18 : portait sur le lien de connexion à usage unique, mécanisme supprimé.* | — | — | Retirée |
+| RG-05 | *Retirée le 2026-09-18 : portait sur le risque qu'un lien magique écrase un mot de passe existant (S1), fermé en supprimant le mécanisme lui-même.* | — | — | Retirée |
+| RG-06 | *Retirée le 2026-09-18 : portait sur les trois durées (connexion, activation, réinitialisation) de l'ancien mécanisme. Seule la durée du lien de réinitialisation Supabase (1 heure) subsiste (RG-08 ci-dessous, W5, W8).* | — | — | Retirée |
 | RG-07 | Message de confirmation identique quel que soit le cas. | L | `ConnexionMotDePasseOublie`, envoi puis message unique | Lu |
-| RG-08 | Quota d'envoi par adresse et par IP. | T | 7 tests `check_link_quota` | Vert |
+| RG-08 | Quota d'envoi par adresse et par IP (reformulée 2026-09-18 : couvre `send-learner-access-email` et `send-password-reset`). | T | 8 tests `check_link_quota` (`supabase/tests/quota-liens.test.ts`) | Vert |
 | RG-09 | Compteur d'échecs commun apprenants et staff. | L | `useLoginAttempts` utilisé par `/connexion` et `/auth` | Lu |
 | RG-10 | Destination interne uniquement. | T | 5 tests `sanitizeRedirect` | Vert |
 | RG-11 | Identité issue de la session. | T | 5 tests `resolveLearnerEmail` + 5 tests `get_learner_email` | Vert |
@@ -78,21 +80,21 @@ workflow `rls-tests` verts sur la PR.
 | RG-18 | Pas de provisionnement sans adresse valide. | T | 3 tests `isUsableLearnerEmail` | Vert |
 | RG-19 | Changement d'adresse atomique. | T | 10 tests `change_learner_email`, dont `ne change rien quand il refuse` | Vert |
 | RG-20 | L'email reste dans le formulaire à l'étape mot de passe. | T | `un compte avec mot de passe mène à l'étape mot de passe` vérifie la valeur du champ | Vert |
-| RG-21 | Un lien pré-cliqué reste utilisable. | T | `un lien pré-cliqué par un robot de messagerie reste utilisable` | Vert |
+| RG-21 | Un lien pré-cliqué reste utilisable. | — | *Régression rouverte le 2026-09-18 (`docs/SPEC_CONNEXION_APPRENANT.md`, chapitre 19) : le test qui gardait cette règle a disparu avec le mécanisme démoli. Le lien de réinitialisation Supabase natif qui l'a remplacé consomme le jeton dès le chargement de la page (`usePasswordRecoverySession`, `src/hooks/useAuthActions.ts:61-81`), pas après une action de l'apprenant. Non tenue, à corriger.* | **Rouge** |
 | RG-22 | L'email d'activation informe de la création du compte. | L | Migration 20260915130000, modèles et texte de repli | Lu |
 | RG-23 | Comptes dormants signalés à trois ans. | T | 5 tests `list_dormant_learner_accounts` | Vert |
 | RG-24 | Journaux conservés 30 jours au plus. | T | `purge_identity_resolution_log > efface les traces de plus de 30 jours` | Vert |
 | RG-25 | Suppression traitée sous 30 jours. | M | Engagement de support, porté par la politique de confidentialité | Hors test |
 | RG-26 | La résolution ne rend qu'un état d'aiguillage. | T | 8 tests `parseIdentityState` + `au-delà du quota, le message est uniforme` | Vert |
 
-## 4. Service de résolution, chapitre 6
+## 4. Service de résolution, chapitre 6 (réécrit le 2026-09-18 : 3 états, `password_set` n'y intervient plus)
 
 | Exigence | Preuve | Test | Résultat |
 |----------|--------|------|----------|
-| Cinq états d'aiguillage | T | 5 parcours, un par état | Vert |
-| Source de `password_set` | T | `aiguille vers le lien quand le compte n'a pas de mot de passe`, `considère qu'un compte antérieur au drapeau a un mot de passe` | Vert |
-| Seuils 5 par adresse, 20 par IP | T | 4 tests de quota sur `resolve_login_identity` | Vert |
-| Mode dégradé si panne | T | `si le service de résolution ne répond pas, l'écran bascule en mode dégradé` + 3 tests `parseIdentityState` | Vert |
+| Trois états d'aiguillage (`password`, `unknown`, `throttled` ; `link` et `activation` retirés) | T | `aiguille vers le mot de passe quand le compte en a un`, `> quand le compte n'en a pas encore`, `ne connaît pas une adresse absente de tous les référentiels`, `freine au-delà de dix résolutions par adresse et par heure` ; `parseIdentityState > ne reconnaît plus l'ancien état %s (lien magique retiré)` pour `link`/`activation` | Vert |
+| `password_set` ne pilote plus la résolution, garde son rôle pour l'email envoyé (W5) | T | `considère qu'un compte antérieur au drapeau a un mot de passe`, `learnerAccessLink > compte sans mot de passe : lien recovery vers l'écran de création` | Vert |
+| Seuils 10 par adresse, 20 par IP (relevé de 5 à 10 le 18/09, avant la démolition) | T | `freine au-delà de dix résolutions par adresse et par heure`, `ne freine pas une autre adresse depuis la même IP tant que le quota IP tient`, `freine au-delà de vingt résolutions depuis la même adresse IP`, `oublie les tentatives de plus d'une heure` | Vert |
+| Mode dégradé si panne | T | `si le service de résolution ne répond pas, l'écran bascule en mode dégradé` (e2e) + `parseIdentityState > traite une réponse vide comme une panne` | Vert |
 
 ## 5. Table de routage, chapitre 7
 
@@ -121,6 +123,12 @@ par lecture, aucun en échec.
 
 ## Ce que cette revue dit honnêtement
 
+*Décompte figé au 2026-09-15, avant la démolition du lien magique. RG-04, RG-05
+et RG-06 sont retirées depuis (chapitre 3 ci-dessus), et RG-21 est passée de
+"Vert" à "Rouge" : ce sont 55 exigences restantes, une régression connue, pas
+58 exigences toutes tenues. Un nouveau décompte est à faire à la prochaine
+revue complète.*
+
 Décompte sur les 58 exigences des tableaux ci-dessus, principes, workflows,
 règles de gestion et service de résolution :
 
@@ -145,7 +153,7 @@ migration change donc le résultat du test.
 
 | Suite | Ce qu'elle garde |
 |-------|------------------|
-| `resolution-identite` | Les cinq états d'aiguillage, les seuils, l'oubli à une heure, l'absence d'adresse en clair dans le journal |
+| `resolution-identite` | Les trois états d'aiguillage (2026-09-18), les seuils, l'oubli à une heure, l'absence d'adresse en clair dans le journal |
 | `identite-session` | L'identité issue du jeton, l'en-tête devenu sans effet, les quatre niveaux d'accès |
 | `quota-liens` | Le quota d'envoi par adresse et par IP, la purge à 30 jours |
 | `changement-adresse` | La propagation, les refus, le retour à l'état initial en cas de refus, la réserve à l'équipe |

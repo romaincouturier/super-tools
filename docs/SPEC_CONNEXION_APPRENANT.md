@@ -5,9 +5,9 @@
 > `docs/RECETTE_FONCTIONNELLE.md` — **le seul à dérouler soi-même**, dans un navigateur, après publication.
 > `docs/COUVERTURE_CONNEXION.md` — ce qui garde chaque exigence, et ce que vaut cette garde. Se lit, ne se joue pas.
 
-Statut : spécification. Aucune implémentation à ce stade.
-Date : 2026-09-14.
-Tous les arbitrages Q1 à Q8 sont rendus au 2026-09-14, reportés dans les règles de gestion, les workflows et le plan de bascule.
+Statut : mis en œuvre. Rédigée le 2026-09-14, cette spécification retenait un lien magique qui ouvre une session sans mot de passe (Q1 : mot de passe optionnel). Le 2026-09-18, ce choix a été inversé : le lien magique est intégralement supprimé, il ne fait plus partie des fonctionnalités disponibles. Voir la révision de Q1 au chapitre 12 ; les chapitres 6, 9, 10, 11, 17, 19 et 22 ainsi que les workflows W3, W4, W5, W10 et W12 sont réécrits en conséquence. Le reste du document (populations, principes directeurs hors PR3/PR4, routage, sécurité) reste la référence.
+Date de rédaction initiale : 2026-09-14. Révision magique → mot de passe : 2026-09-18.
+Tous les arbitrages Q1 à Q8 sont rendus au 2026-09-14 ; Q1 est révisé au 2026-09-18, reporté dans les règles de gestion, les workflows et le plan de bascule.
 
 ## 0. Cadrage
 
@@ -131,11 +131,11 @@ La cible doit rendre ces trajectoires impossibles : identité issue de la sessio
 **PR2. Identifiant d'abord, méthode ensuite.**
 L'utilisateur saisit son email. Le système détermine son cas et propose l'étape adaptée. L'utilisateur n'a jamais à déclarer lui-même s'il a un compte.
 
-**PR3. Un lien reçu par email ouvre une session.**
-Cliquer sur un lien d'accès connecte, point. Le mot de passe n'est jamais un préalable à l'entrée.
+**PR3. Aucun lien n'ouvre de session automatiquement (arbitrage Q1 révisé le 2026-09-18).**
+Un lien reçu par email préremplit l'adresse ou mène à un écran de définition de mot de passe ; il ne connecte jamais par lui-même. Le mot de passe est le seul mécanisme d'ouverture de session.
 
-**PR4. Le mot de passe est optionnel (arbitrage Q1 rendu).**
-Il est proposé après la première connexion par lien, jamais imposé. Un apprenant peut vivre tout son parcours avec des liens de connexion, sans jamais définir de mot de passe.
+**PR4. Le mot de passe est de facto obligatoire (arbitrage Q1 révisé le 2026-09-18).**
+Un compte sans mot de passe défini est aiguillé, comme tout autre compte connu, vers l'étape mot de passe. Son unique recours est « mot de passe oublié », qui envoie un lien de réinitialisation forçant la définition d'un mot de passe avant d'entrer. Il n'existe plus de parcours où un apprenant entre sans jamais définir de mot de passe.
 
 **PR5. Aucun cul-de-sac.**
 Tout état d'échec, lien expiré, lien consommé, email inconnu, propose une action qui relance le parcours depuis l'écran en cours, sans renvoyer l'utilisateur sur une page d'erreur nue.
@@ -173,34 +173,32 @@ Règles associées : RG-01, RG-02, RG-03, RG-12.
 3. Succès : ouverture de session, redirection selon le chapitre 7.
 4. Échec : message générique "Email ou mot de passe incorrect", compteur d'essais existant conservé, proposition de réinitialiser le mot de passe.
 
-### W3. Compte existant sans mot de passe défini
+### W3. Compte existant sans mot de passe défini (réécrit le 2026-09-18)
 
-Cas d'un apprenant provisionné par une inscription ou un achat, qui n'a jamais choisi de mot de passe.
+Cas d'un apprenant provisionné par une inscription ou un achat, qui n'a jamais choisi de mot de passe. Ce n'est plus un cas distinct côté résolution d'identité : `resolve_login_identity` renvoie `password` pour tout compte existant, qu'il ait ou non un mot de passe défini (le drapeau `password_set` n'entre plus dans le calcul de l'état). L'apprenant atterrit donc sur W2.
 
-1. Message : "Nous vous envoyons un lien de connexion à cette adresse."
-2. Envoi immédiat, écran de confirmation avec rappel de l'adresse, action "Renvoyer" soumise à un délai, et rappel de vérifier les indésirables.
-3. À l'ouverture du lien : session ouverte, puis proposition non bloquante "Définir un mot de passe pour vous connecter plus vite la prochaine fois", refusable.
+1. Écran mot de passe (W2), comme pour tout compte connu. Il n'a naturellement pas encore de mot de passe à saisir.
+2. Son seul recours est "Mot de passe oublié" (W8), qui envoie un lien de réinitialisation Supabase (`recovery`, 1 heure, usage unique) menant à l'écran de définition de mot de passe.
+3. Après validation, `password_set` passe à vrai et la session est ouverte : la prochaine connexion utilise directement ce mot de passe.
 
-### W4. Email connu du système mais sans compte
+Il n'existe plus de mécanisme séparé "recevoir un lien de connexion" : un compte sans mot de passe suit exactement le même parcours qu'un compte qui en a un.
 
-Cas d'un participant présent dans les formations ou les inscriptions LMS, sans compte d'authentification.
+### W4. Compte provisionné avant toute tentative de connexion (réécrit le 2026-09-18)
 
-1. Message : "Vous êtes bien inscrit. Nous vous envoyons un lien pour activer votre accès."
-2. Envoi du lien d'activation, puis parcours W5 à partir de l'étape 2.
+Le cas "participant connu mais sans compte" ne se produit plus au moment de la connexion : le compte est désormais créé au moment de l'événement métier qui le justifie (achat, inscription à une formation e-learning), jamais différé jusqu'à ce que l'apprenant tape son adresse. `ensureLearnerAccount` (`supabase/functions/_shared/learner-account.ts`) est appelée dès l'inscription ou l'encaissement (W12), sans mot de passe.
 
-### W5. Activation depuis un email (achat, intra, inter, relance, erratum)
+Une adresse qui n'a jamais fait l'objet d'un tel événement métier reste donc `unknown` à la résolution d'identité et suit W6 : il n'y a plus d'état intermédiaire "activation".
 
-Déclencheur : réception d'un email contenant un lien d'accès. Pour un achat, l'email est émis par W12.
+### W5. Réception de l'email d'accès (achat, intra, inter, relance, erratum) — réécrit le 2026-09-18
 
-1. L'apprenant clique. Le lien ouvre `/connexion/lien?token=`.
-2. Le système valide le token. Si valide : ouverture de session immédiate, consommation du token, redirection vers la destination portée par le lien, à défaut le tableau de bord.
-3. Premier accès seulement : écran d'accueil proposant de définir un mot de passe, avec une action "Plus tard" qui mène directement au contenu.
-4. Si une session est déjà ouverte pour la même personne : pas de nouvelle authentification, redirection directe vers la destination.
-5. Si une session est ouverte pour une autre personne : écran explicite "Vous êtes connecté en tant que X, ce lien concerne Y", avec deux actions : continuer en tant que X, ou changer de compte.
+Déclencheur : réception de l'email d'accès émis par W12 ou renvoyé manuellement par le staff (`send-learner-access-email`). Le contenu du lien dépend de `password_set`, lu via la RPC `learner_password_set` :
 
-Le lien d'activation est valable 7 jours et à usage unique. Le lien de connexion émis depuis la page de connexion est valable 30 minutes.
+1. **`password_set = false`** : le lien est un lien `recovery` Supabase natif (généré par `admin.auth.admin.generateLink`), valable 1 heure, à usage unique. Il ouvre `/connexion/reinitialisation`, l'écran de définition de mot de passe (le même que "mot de passe oublié", W8). Aucune session n'est ouverte avant que le mot de passe soit enregistré.
+2. **`password_set = true`** : le lien pointe vers `/connexion?email=<adresse>`, sans jeton. Il préremplit seulement l'adresse et lance la résolution d'identité habituelle (W1 étape 2) ; l'apprenant saisit son mot de passe comme à l'accoutumée. Ce lien n'expire jamais et est réutilisable, puisqu'il ne porte aucune preuve d'identité.
+3. Dans les deux cas, aucun clic n'ouvre de session par lui-même : `/connexion?email=` s'arrête à l'étape mot de passe (PR3).
+4. Un ancien email envoyé avant la démolition du lien magique pointe vers `/connexion/lien?token=...` : cette route redirige vers `/connexion`, jamais vers une page introuvable.
 
-Règles associées : RG-04, RG-05, RG-06, RG-11.
+Règles associées : RG-08, RG-11.
 
 ### W6. Email totalement inconnu
 
@@ -232,16 +230,17 @@ Déclencheur : formation gratuite depuis la landing, ou lien "Créer un compte" 
 2. Accès à une page protégée avec session valide : accès direct.
 3. Déconnexion explicite depuis le portail : fermeture de session et retour sur `/`, pas sur un écran de connexion.
 
-### W10. Liens invalides, expirés ou déjà utilisés
+### W10. Liens invalides ou expirés (réécrit le 2026-09-18)
 
-| État du lien | Message | Action proposée |
-|--------------|---------|-----------------|
-| Expiré | "Ce lien a expiré." | Champ email pré-rempli, bouton "Recevoir un nouveau lien" dans le même écran |
-| Déjà utilisé | "Ce lien a déjà servi." | Même traitement, plus rappel qu'un lien ne sert qu'une fois |
-| Inconnu ou malformé | "Ce lien n'est pas valide." | Renvoi vers `/connexion`, formulaire vierge |
-| Token absent de l'URL | Aucun message d'erreur | Affichage direct de `/connexion`, étape 1 |
+Il n'existe plus qu'un seul type de lien porteur d'un jeton consommable : le lien de réinitialisation Supabase (`recovery`), utilisé aussi bien pour "mot de passe oublié" (W8) que pour le premier accès d'un compte sans mot de passe (W5). Le lien préremplissant `/connexion?email=` ne porte aucun jeton et ne peut donc jamais être "expiré" ou "déjà utilisé" (W5, point 2).
 
-Principe : l'écran d'erreur porte l'action de reprise. Il ne renvoie jamais vers une page qui redemandera la même chose.
+| État | Message | Action proposée |
+|------|---------|-----------------|
+| Lien de réinitialisation expiré ou déjà utilisé | "Ce lien a expiré." | Adresse pré-remplie, bouton "Recevoir un nouveau lien" vers `/connexion/mot-de-passe-oublie`, dans le même écran (`ConnexionReinitialisation.tsx`) |
+| Ancienne URL `/connexion/lien?token=` (émise avant la démolition du lien magique) | Aucun message d'erreur | Redirection vers `/connexion`, étape 1 — jamais la page "introuvable" |
+| Ancienne URL `/apprenant/connexion` ou `/apprenant` | Aucun message d'erreur | Redirection vers `/connexion` |
+
+Principe conservé : l'écran d'erreur porte l'action de reprise. Il ne renvoie jamais vers une page qui redemandera la même chose, et un ancien lien ne mène jamais à un cul-de-sac.
 
 ### W11. Routage après connexion et anti-boucle
 
@@ -252,19 +251,18 @@ Principe : l'écran d'erreur porte l'action de reprise. Il ne renvoie jamais ver
 5. Un apprenant qui atteint une route staff est redirigé une fois vers son espace, avec un marqueur empêchant un second aller-retour.
 6. Un membre du staff qui atteint `/connexion` est redirigé vers `/dashboard`, sans déconnexion.
 
-### W12. Provisionnement automatique à l'encaissement (arbitrage Q4 rendu)
+### W12. Provisionnement automatique à l'inscription ou à l'encaissement (arbitrage Q4 rendu, réécrit le 2026-09-18)
 
-Déclencheur : paiement encaissé sur une formation en ligne, quelle que soit la source (boutique SuperTilt, inscription par le staff, inscription par un commanditaire intra).
+Déclencheur : inscription à une formation e-learning, quelle que soit la source (achat sur la boutique SuperTilt, inscription par le staff, inscription par un commanditaire intra).
 
-1. Le compte apprenant est créé immédiatement, sans mot de passe, à partir de l'email de facturation normalisé.
-2. Si un compte existe déjà pour cet email, il est réutilisé. Aucun doublon, aucune modification de son mot de passe.
-3. L'inscription à la formation achetée est rattachée au compte dans le même mouvement.
-4. Un email d'activation est envoyé immédiatement, porteur d'un lien valable 7 jours et de la destination du cours acheté.
-5. L'apprenant clique et entre dans son cours, connecté, sans mot de passe : parcours W5.
-6. Le réglage `elearning_access_mode` disparaît. Le mode `woocommerce`, qui renvoyait vers le site marchand sans créer de compte, cesse d'être une voie d'accès.
-7. Si l'email d'activation n'est pas ouvert, la relance avant démarrage régénère un lien d'activation neuf, sans recréer le compte.
+1. Le compte apprenant est créé immédiatement par `ensureLearnerAccount`, sans mot de passe, à partir de l'email normalisé (RG-01). `password_set` est enregistré à faux.
+2. Si un compte existe déjà pour cet email, il est réutilisé tel quel : aucun doublon, aucune modification de son mot de passe ni de son drapeau `password_set` (S1).
+3. L'inscription à la formation est rattachée au compte dans le même mouvement.
+4. Le même email d'accès est envoyé, quelle que soit la source (`sendLearnerAccessEmail`) : le lien envoyé dépend de `password_set` (W5) — jamais d'ouverture de session automatique.
+5. Le réglage `elearning_access_mode` a disparu (lot 5, chapitre 21). Le mode `woocommerce`, qui renvoyait vers le site marchand sans créer de compte, n'est plus une voie d'accès.
+6. Si l'email n'est pas ouvert, la relance avant démarrage régénère un email d'accès neuf via la même fonction, sans recréer le compte.
 
-Règles associées : RG-01, RG-03, RG-05, RG-06.
+Règles associées : RG-01, RG-08, RG-11.
 
 ### W13. Changement d'adresse email d'un apprenant
 
@@ -287,11 +285,11 @@ Constat à l'origine de ce workflow : aujourd'hui `manage-learner-account` actio
 | RG-01 | L'email est normalisé en minuscules et sans espaces de bord avant toute recherche, tout envoi et tout enregistrement. |
 | RG-02 | La recherche d'un apprenant couvre toutes les origines : participants aux formations, inscriptions LMS, comptes Academy. Une seule adresse, une seule identité. |
 | RG-03 | Un email ne peut correspondre qu'à un seul compte. La détection de doublon est faite avant toute création. |
-| RG-04 | Un lien de connexion est à usage unique et consommé dès l'ouverture de session, quel que soit le mode de connexion emprunté ensuite. |
-| RG-05 | Un lien de connexion ne permet jamais de modifier le mot de passe d'un compte existant. La modification passe exclusivement par le parcours W8, sur une session déjà ouverte ou un lien de réinitialisation dédié. |
-| RG-06 | Durées de validité, arbitrage Q3 rendu : lien de connexion 30 minutes, lien d'activation 7 jours, lien de réinitialisation 1 heure. Tous à usage unique, tous consommés à la première ouverture. |
+| RG-04 | *Retirée le 2026-09-18 (démolition du lien magique) : portait sur le lien de connexion à usage unique, mécanisme supprimé.* |
+| RG-05 | *Retirée le 2026-09-18 : portait sur le risque qu'un lien magique écrase le mot de passe d'un compte existant (S1). Le mécanisme visé n'existe plus ; la modification du mot de passe reste exclusivement le fait de W8, sur une session déjà ouverte ou un lien de réinitialisation Supabase natif.* |
+| RG-06 | *Retirée le 2026-09-18 : portait sur les trois durées de validité (connexion, activation, réinitialisation) de l'ancien mécanisme. Une seule durée subsiste, celle du lien de réinitialisation Supabase natif : 1 heure, à usage unique (W5, W8).* |
 | RG-07 | Les messages de confirmation d'envoi sont identiques que l'adresse existe ou non, pour les parcours déclenchés par saisie libre (mot de passe oublié). |
-| RG-08 | Le nombre de demandes de lien est limité par adresse et par adresse IP sur une fenêtre glissante. Au-delà, le système répond le même message sans envoyer d'email. |
+| RG-08 | Reformulée le 2026-09-18 : le nombre d'envois de l'email d'accès ou de réinitialisation (`send-learner-access-email`, `send-password-reset`) est limité par adresse (3 par heure) et par adresse IP (10 par heure) sur une fenêtre glissante, via `check_link_quota`. Au-delà, le système répond le même message sans envoyer d'email. |
 | RG-09 | Le compteur d'échecs de mot de passe existant est conservé et s'applique aux apprenants comme au staff. |
 | RG-10 | Toute redirection vers la connexion mémorise la destination. Seules les destinations internes à l'application sont acceptées, toute valeur externe est ignorée. |
 | RG-11 | L'identité utilisée par le portail et par le player LMS provient de la session. Le paramètre email d'URL n'est accepté que pour la prévisualisation staff, après vérification du rôle. |
@@ -315,30 +313,27 @@ Constat à l'origine de ce workflow : aujourd'hui `manage-learner-account` actio
 
 ## 6. Résolution d'identité à la saisie de l'email
 
-### 6.1 Le service de résolution
+### 6.1 Le service de résolution (réécrit le 2026-09-18 : 3 états au lieu de 5)
 
 Arbitrage Q2 rendu le 2026-09-14 : le système détecte le cas de l'utilisateur, avec limitation de débit et réponse uniforme en cas d'abus. La détection est donc un service, pas une déduction d'écran.
 
-Un unique point d'entrée serveur reçoit une adresse et renvoie un état d'aiguillage. Il ne renvoie rien d'autre : ni nom, ni formation, ni identifiant de compte, ni rôle (RG-26).
+Un unique point d'entrée serveur (`resolve_login_identity`, exposé par la fonction `resolve-login-identity`) reçoit une adresse et renvoie un état d'aiguillage. Il ne renvoie rien d'autre : ni nom, ni formation, ni identifiant de compte, ni rôle (RG-26).
+
+Depuis la démolition du lien magique, `password_set` n'entre plus dans ce calcul : la seule question posée est "un compte d'authentification existe-t-il pour cette adresse ?".
 
 | État renvoyé | Signification | Écran suivant |
 |--------------|---------------|---------------|
-| `password` | Un compte existe et un mot de passe est défini. Vaut aussi pour un compte staff : le rôle n'est pas divulgué avant authentification. | W2 |
-| `link` | Un compte existe, sans mot de passe défini. | W3 |
-| `activation` | Aucun compte, mais l'adresse est connue comme apprenant. | W4 |
-| `unknown` | Adresse inconnue de toutes les origines. | W6 |
+| `password` | Un compte existe, avec ou sans mot de passe déjà défini. Vaut aussi pour un compte staff : le rôle n'est pas divulgué avant authentification. | W2 (et W3 si `password_set` est encore faux : même écran, recours par "mot de passe oublié") |
+| `unknown` | Aucun compte d'authentification pour cette adresse — qu'elle soit ou non connue comme participant ou inscrite (W4). | W6 |
 | `throttled` | Quota dépassé. Aucun email n'est envoyé. | Écran d'attente, message uniforme |
 
-La colonne "connu comme apprenant" agrège participants aux formations, inscriptions LMS et achats rattachés (RG-02).
+Les états `link` et `activation` de la version initiale de cette spécification n'existent plus : ils supposaient un mécanisme de lien qui ouvre une session, aujourd'hui supprimé.
 
 ### 6.2 D'où vient "mot de passe défini"
 
-L'information n'existe nulle part aujourd'hui : `user_security_metadata` ne porte que `must_change_password`, et l'API d'authentification n'expose pas de drapeau lisible. Elle doit donc être produite explicitement.
-
-1. Un drapeau `password_set` est ajouté à `user_security_metadata`, à côté de `must_change_password`.
-2. Il vaut faux au provisionnement (W12, W4) et vrai dès qu'un mot de passe est défini (W7, W8, proposition de W5).
-3. Il est écrit exclusivement par le rôle de service. La policy de mise à jour actuelle de cette table laisse un utilisateur écrire sa propre ligne sans clause de contrôle : elle doit être restreinte, sans quoi un apprenant pourrait positionner son propre drapeau.
-4. Reprise de l'existant : à la bascule, tous les comptes existants sont marqués `password_set = true`. C'est exact, les trois chemins de création actuels imposent tous un mot de passe (`create-learner-account`, `create-academy-account`, onboarding staff).
+1. Le drapeau `password_set` de `user_security_metadata` (ajouté au lot 3) ne sert plus à la résolution d'identité (6.1), mais reste la source de vérité pour deux usages : choisir le contenu du lien envoyé par `sendLearnerAccessEmail` (W5) et alimenter `connexion_indicators` (chapitre 20).
+2. Il vaut faux au provisionnement (`ensureLearnerAccount`, W12) et vrai dès qu'un mot de passe est défini, par n'importe quel parcours qui aboutit à `ConnexionReinitialisation.tsx` (W5, W8) ou à la création de compte (W7).
+3. Il est écrit exclusivement par le rôle de service (`markPasswordChanged`, appelé côté serveur). La policy de mise à jour de `user_security_metadata` ne laisse pas un apprenant positionner son propre drapeau.
 
 ### 6.3 Limitation de débit et journalisation
 
@@ -347,16 +342,16 @@ Les seuils s'appuient sur les fonctions existantes `check-login-attempt` et `log
 | Action | Par adresse | Par adresse IP | Au-delà |
 |--------|-------------|----------------|---------|
 | Résolution d'identité | 10 par heure | 20 par heure | `throttled`, message uniforme |
-| Envoi d'un lien de connexion ou d'activation | 3 par heure | 10 par heure | Message d'envoi habituel, aucun email émis |
+| Envoi de l'email d'accès ou de réinitialisation (RG-08) | 3 par heure | 10 par heure | Message d'envoi habituel, aucun email émis |
 | Saisie de mot de passe | Compteur existant conservé (RG-09) | 20 par heure | Blocage temporaire existant |
 
 Fenêtre glissante, compteurs tenus côté serveur, jamais dans le navigateur. Chaque résolution est journalisée avec l'adresse hachée, l'adresse IP et l'état renvoyé, conservés 30 jours (RG-24), pour détecter un balayage d'adresses.
 
-### 6.4 Mode dégradé si la résolution ne répond pas
+### 6.4 Mode dégradé si la résolution ne répond pas (réécrit le 2026-09-18)
 
-La détection devient un point de passage obligé du parcours : sa panne ne doit pas fermer la porte. Si le service ne répond pas dans les 3 secondes, renvoie une erreur, ou si le navigateur n'exécute pas le script, l'écran bascule sur le formulaire de connexion classique, email et mot de passe affichés ensemble, avec le lien "Recevoir un lien de connexion".
+La détection devient un point de passage obligé du parcours : sa panne ne doit pas fermer la porte. Si le service ne répond pas dans les 3 secondes, renvoie une erreur, ou si le navigateur n'exécute pas le script, l'écran bascule sur le formulaire de connexion classique, avec les champs email et mot de passe affichés ensemble, et le lien "Mot de passe oublié" toujours visible.
 
-Ce repli fonctionne parce que les deux voies de sortie ne dépendent pas de la résolution : la vérification du mot de passe passe par l'authentification, l'envoi de lien par le service d'envoi. Un apprenant sans mot de passe demande un lien, un apprenant qui en a un se connecte directement. Personne n'est bloqué.
+Ce repli fonctionne parce qu'il n'existe plus qu'une seule voie de sortie, indépendante de la résolution : la vérification du mot de passe passe par l'authentification. Un apprenant sans mot de passe encore défini utilise "Mot de passe oublié" comme n'importe quel autre apprenant en difficulté. Personne n'est bloqué.
 
 Le message accompagnant le repli reste discret, ce n'est pas un écran d'erreur : voir le mode dégradé au chapitre 10.1. Les bascules en mode dégradé sont comptées et suivies comme incident, le repli n'étant jamais le comportement nominal.
 
@@ -403,20 +398,22 @@ Le message accompagnant le repli reste discret, ce n'est pas un écran d'erreur 
 
 ---
 
-## 9. Emails impactés
+## 9. Emails impactés (réécrit le 2026-09-18)
 
-| Email | Fonction actuelle | Évolution attendue |
-|-------|-------------------|--------------------|
-| Accès e-learning après achat | `send-elearning-access` | Devient l'email d'activation émis par W12 : lien 7 jours à usage unique vers le cours acheté, sur l'espace apprenant. Le renvoi vers le site marchand disparaît |
-| Lien d'accès apprenant | `send-learner-magic-link` | Devient l'email de connexion ou d'activation, avec durée de validité annoncée et périmètre élargi aux inscrits Academy |
-| Relance avant démarrage | `process-elearning-start-reminders` | Régénère un lien d'activation de 7 jours sans recréer le compte (W12 étape 7) |
-| Erratum e-learning | `send-elearning-erratum` | Lien d'activation aligné sur 7 jours ; le texte annonçant une validité d'un an réutilisable est à réécrire (arbitrage Q3) |
-| Réinitialisation de mot de passe | `send-password-reset` | Distinction du parcours apprenant et du parcours staff, destination de retour adaptée |
-| Notification communauté | `notify-practice-comment` | Lien profond porteur de la destination, exploitable après connexion |
-| Reprise à la bascule | À créer | Envoi unique aux 165 adresses recensées, voir chapitre 17 |
-| Changement d'adresse | À créer | Deux messages, vers la nouvelle et vers l'ancienne adresse (W13) |
+`send-learner-magic-link` et `create-learner-account` sont supprimées avec la table `learner_magic_links` (démolition du lien magique). Le point d'envoi commun devient `sendLearnerAccessEmail` / `send-learner-access-email` (`supabase/functions/_shared/learner-account.ts`), dont le lien varie selon `password_set` (W5) : lien de réinitialisation Supabase (1 heure) si aucun mot de passe n'est encore défini, lien de préremplissage `/connexion?email=` sinon.
 
-Les textes rédigés de ces six emails sont au chapitre 11.
+| Email | Fonction actuelle | État |
+|-------|-------------------|------|
+| Accès après inscription à une formation e-learning (achat, intra, inter) | `sendLearnerAccessEmail`, appelée par `add-training-participant` | Livré. Un seul email, quelle que soit la source, dont le contenu dépend de `password_set` |
+| Renvoi manuel de l'email d'accès | `send-learner-access-email` | Livré. Réservé au staff, depuis la fiche participant ; jamais appelé par un visiteur anonyme |
+| Relance avant démarrage | `process-elearning-start-reminders` | Livré. Régénère le même email d'accès via `learnerAccessLink`, sans recréer le compte |
+| Erratum e-learning | `send-elearning-erratum` | Livré. Rebranché sur `learnerAccessLink` |
+| Réinitialisation de mot de passe et premier accès (W5, W8) | `send-password-reset`, lien `recovery` généré par `learnerAccessLink` | Livré. Même écran de destination (`ConnexionReinitialisation.tsx`) pour les deux cas, texte identique |
+| Notification communauté | `notify-practice-comment` | Inchangé, hors périmètre de la démolition |
+| Reprise à la démolition du lien magique | `scripts/bascule-demolition-lien-magique.sql` | Mesure seulement (chapitre 17) ; l'envoi d'un email de prévenance reste à la discrétion du produit |
+| Changement d'adresse | `change_learner_email` | Livré (W13) |
+
+Les textes des emails encore en circulation sont au chapitre 11.
 
 ---
 
@@ -431,22 +428,17 @@ Libellés de référence. Ton : vous, phrases courtes, aucune formulation culpab
 | Étape 1, saisie | Se connecter | Indiquez l'adresse email utilisée lors de votre inscription. | Champ "Adresse email", bouton "Continuer", lien "Créer un compte" |
 | Étape 2, état `password` | Content de vous revoir | Saisissez votre mot de passe pour accéder à vos formations. | Adresse rappelée et modifiable par "Revenir à la page de connexion", champ "Mot de passe", bouton "Me connecter", lien "Mot de passe oublié" |
 | Étape 2, mot de passe refusé | Content de vous revoir | Email ou mot de passe incorrect. Vous pouvez réessayer, ou réinitialiser votre mot de passe. | Idem, avec le compteur d'essais existant |
-| État `link` | Vérifiez votre boîte mail | Nous venons d'envoyer un lien de connexion à {email}. Il est valable 30 minutes. Pensez à regarder vos courriers indésirables. | Bouton "Renvoyer le lien", actif après 60 secondes, lien "Utiliser une autre adresse" |
-| État `activation` | Votre accès est prêt | Vous êtes bien inscrit. Nous venons d'envoyer à {email} un lien pour activer votre accès. Il est valable 7 jours. | Bouton "Renvoyer le lien", actif après 60 secondes, lien "Utiliser une autre adresse" |
 | État `unknown` | Nous n'avons pas trouvé de compte | Aucun compte n'est associé à {email}. Si vous avez suivi une formation avec nous, essayez l'adresse utilisée lors de votre inscription, souvent votre adresse professionnelle. Sinon, créez un compte gratuit pour commencer. | Bouton principal "Créer un compte gratuitement", lien "Essayer une autre adresse", lien "Écrire au support" |
 | État `throttled` | Trop de tentatives | Vous avez fait plusieurs demandes coup sur coup. Réessayez dans quelques minutes. | Lien "Écrire au support" |
-| Mode dégradé | Se connecter | Nous n'avons pas pu identifier votre compte pour l'instant. Saisissez votre mot de passe, ou demandez un lien de connexion. | Champs email et mot de passe ensemble, bouton "Me connecter", lien "Recevoir un lien de connexion" |
+| Mode dégradé | Se connecter | Nous n'avons pas pu identifier votre compte pour l'instant. Saisissez votre adresse et votre mot de passe. | Champs email et mot de passe ensemble, bouton "Me connecter", lien "Mot de passe oublié" |
 
-### 10.2 Ouverture d'un lien
+Les états `link` et `activation` de la version initiale sont retirés le 2026-09-18 avec le mécanisme de lien qu'ils décrivaient (chapitre 6.1).
 
-| Écran ou état | Titre | Texte | Actions |
-|---------------|-------|-------|---------|
-| Lien valide | Connexion en cours | Un instant, nous ouvrons votre espace. | Aucune, redirection automatique |
-| Proposition de mot de passe, premier accès | Vous y êtes | Souhaitez-vous définir un mot de passe ? Vous pourrez vous connecter directement, sans passer par votre boîte mail. | Champ "Mot de passe" avec exigences affichées, bouton "Enregistrer", lien "Plus tard" |
-| Lien expiré | Ce lien a expiré | Les liens de connexion sont valables 30 minutes, les liens d'activation 7 jours. Nous pouvons vous en envoyer un nouveau tout de suite. | Adresse pré-remplie, bouton "Recevoir un nouveau lien" |
-| Lien déjà utilisé | Ce lien a déjà servi | Un lien ne fonctionne qu'une fois, pour votre sécurité. Nous pouvons vous en envoyer un nouveau. | Adresse pré-remplie, bouton "Recevoir un nouveau lien" |
-| Lien invalide | Ce lien n'est pas valide | Il a peut-être été coupé par votre logiciel de messagerie. Indiquez votre adresse, nous vous en envoyons un nouveau. | Champ email vierge, bouton "Recevoir un lien" |
-| Session ouverte pour une autre personne | Vous êtes déjà connecté | Vous êtes connecté en tant que {email_session}. Ce lien concerne {email_lien}. | Bouton "Continuer en tant que {email_session}", bouton "Me connecter en tant que {email_lien}" |
+### 10.2 Ouverture d'un lien (chapitre retiré le 2026-09-18)
+
+Ce chapitre décrivait l'écran ouvert par le lien magique : connexion automatique, proposition de mot de passe non bloquante, gestion d'une session déjà ouverte pour une autre personne. Ce mécanisme est supprimé (chapitre 6.1) ; aucun de ces écrans n'existe plus.
+
+Ce qui reste, un lien menant toujours à une saisie de mot de passe, jamais à une session déjà ouverte, est déjà décrit au 10.3 ("Définition du mot de passe", "Lien de réinitialisation expiré") et au chapitre 10.1 (`/connexion?email=`, préremplissage sans jeton).
 
 ### 10.3 Mot de passe
 
@@ -467,73 +459,47 @@ Libellés de référence. Ton : vous, phrases courtes, aucune formulation culpab
 
 ---
 
-## 11. Emails
+## 11. Emails (réécrit le 2026-09-18)
 
-Six emails à rédiger ou refondre. Variables entre accolades. Chaque email annonce sa durée de validité (RG-15) et la conduite à tenir si le lien ne fonctionne plus. Le tutoiement existant, piloté par `sponsor_formal_address` et les suffixes `_tu` et `_vous` des modèles, est conservé : les textes ci-dessous sont la version "vous".
+Variables entre accolades. Le tutoiement existant, piloté par `sponsor_formal_address` et les suffixes `_tu` et `_vous` des modèles, est conservé : les textes ci-dessous sont la version "vous". E-A et E-B, distinctes dans la version initiale, sont fusionnées : `sendLearnerAccessEmail` envoie le même email quelle que soit la source de provisionnement (achat, intra, inter, relance, erratum), avec un contenu qui varie seulement selon `password_set` (chapitre 6.2). E-C n'existe plus : il n'y a plus de "lien de connexion demandé depuis la page de connexion" distinct de "mot de passe oublié" (E-D).
 
-### E-A. Activation après achat (W12)
+### E-A. Email d'accès à l'espace apprenant (W5, W12), texte réellement livré
 
-Objet : Votre formation {training_name} vous attend
+Deux variantes, selon `password_set`, envoyées par la même fonction (`sendLearnerAccessEmail`) :
 
-> Bonjour {first_name},
->
-> Merci pour votre achat. Votre formation {training_name} est prête.
->
-> Nous avons créé votre espace apprenant avec l'adresse {email}. Vous y retrouverez votre formation, vos documents et vos attestations.
->
-> [Accéder à ma formation]
->
-> Ce lien est valable 7 jours et ne fonctionne qu'une fois. Passé ce délai, rendez-vous sur la page de connexion, nous vous en enverrons un nouveau en quelques secondes.
->
-> Vous n'aurez pas de mot de passe à créer, sauf si vous le souhaitez.
->
-> Vos données sont traitées par SuperTilt pour vous donner accès à votre formation. Pour demander la suppression de votre compte, écrivez à contact@supertilt.fr.
-
-### E-B. Activation après inscription par un tiers (intra, inter, relance)
-
-Objet : Votre accès à la formation {training_name}
-
-> Bonjour {first_name},
->
-> Vous êtes inscrit à la formation {training_name}{date_label}. Votre espace apprenant est prêt, à l'adresse {email}.
->
-> [Activer mon accès]
->
-> Ce lien est valable 7 jours et ne fonctionne qu'une fois. Passé ce délai, rendez-vous sur la page de connexion, nous vous en enverrons un nouveau.
->
-> Vous n'avez pas de mot de passe à créer, sauf si vous le souhaitez.
->
-> Vos données sont traitées par SuperTilt pour vous donner accès à votre formation. Pour demander la suppression de votre compte, écrivez à contact@supertilt.fr.
-
-### E-C. Lien de connexion (W3, demandé depuis la page de connexion)
-
-Objet : Votre lien de connexion
+Objet si `password_set = false` : Créez votre mot de passe SuperTools
 
 > Bonjour,
 >
-> Voici votre lien pour accéder à votre espace apprenant.
+> Votre espace apprenant est prêt (pour la formation « {training_name} », quand elle est connue). Créez votre mot de passe pour y accéder.
 >
-> [Me connecter]
->
-> Ce lien est valable 30 minutes et ne fonctionne qu'une fois. S'il a expiré, redemandez-en un depuis la page de connexion.
->
-> Vous n'avez pas demandé ce lien ? Ignorez ce message, votre compte reste protégé.
+> [Créer mon mot de passe]
 
-### E-D. Réinitialisation de mot de passe
-
-Objet : Définir un nouveau mot de passe
+Objet si `password_set = true` : Accéder à votre espace SuperTools
 
 > Bonjour,
 >
-> Vous avez demandé à définir un nouveau mot de passe.
+> Votre espace apprenant est prêt (pour la formation « {training_name} », quand elle est connue). Connectez-vous avec votre adresse et votre mot de passe.
+>
+> [Accéder à mon espace]
+
+Le lien de la première variante est un lien de réinitialisation Supabase, valable 1 heure, à usage unique (10.3) ; celui de la seconde ne porte aucun jeton et n'expire jamais (W5, point 2). Ce texte, plus court que celui envisagé en 2026-09-14, reste à enrichir d'une mention de durée de validité pour la première variante (RG-15) et de la conduite à tenir si le lien ne fonctionne plus — écart connu avec RG-15, à corriger dans une prochaine itération du modèle `learner_access_email`.
+
+### E-D. Réinitialisation de mot de passe (W8), texte réellement livré (`send-password-reset`)
+
+Objet : Réinitialisation de votre mot de passe SuperTools
+
+> Bonjour,
+>
+> Vous avez demandé à réinitialiser votre mot de passe SuperTools.
+>
+> Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :
 >
 > [Choisir un nouveau mot de passe]
->
-> Ce lien est valable 1 heure et ne fonctionne qu'une fois.
->
-> Vous n'avez pas fait cette demande ? Ignorez ce message, votre mot de passe actuel reste valable.
 
-### E-E. Email de reprise, envoyé une fois à la bascule
+Le lien est valable 1 heure et ne fonctionne qu'une fois (`ConnexionReinitialisation.tsx`, chapitre 10.3). Ce même écran de destination sert aussi bien à ce parcours qu'à E-A (`password_set = false`) : le texte affiché à l'apprenant ne distingue pas les deux cas ("Nouveau mot de passe" / "Choisissez un nouveau mot de passe pour sécuriser votre compte", chapitre 10.3), le paramètre `mode=activation` prévu en 2026-09-14 n'ayant finalement pas été branché sur un texte différent.
+
+### E-E. Email de reprise, envoyé une fois à la première bascule (2026-09-15, Q7)
 
 Objet : Votre espace apprenant SuperTilt évolue
 
@@ -548,6 +514,8 @@ Objet : Votre espace apprenant SuperTilt évolue
 > Votre identifiant reste l'adresse {email}. Si vous aviez un mot de passe, il fonctionne toujours. Sinon, indiquez simplement votre adresse et nous vous enverrons un lien.
 >
 > Les anciens liens d'accès reçus par email ne fonctionnent plus. C'est volontaire, pour la sécurité de votre compte.
+
+Envoyé lors du lot 4 (chapitre 21), avant la démolition du lien magique. La démolition elle-même (chapitre 17.5) n'a pas nécessité de second envoi de masse : `scripts/bascule-demolition-lien-magique.sql` ne mesure que l'exposition, l'email de prévenance restant à la discrétion du produit.
 
 ### E-F. Changement d'adresse email (W13)
 
@@ -579,9 +547,9 @@ Vers l'ancienne adresse, objet : L'adresse de votre compte a été modifiée
 
 | # | Question | Décision | Conséquences dans la spécification |
 |---|----------|----------|------------------------------------|
-| Q1 | Le mot de passe reste-t-il obligatoire pour un apprenant ? | **Non.** Mot de passe optionnel, proposé après la première connexion par lien, jamais imposé. | PR4, W3 étape 3, W5 étape 3. Un apprenant peut rester sans mot de passe indéfiniment et se connecter par lien à chaque fois. |
-| Q2 | Détecter le compte à la saisie de l'email, ou message neutre systématique ? | **Détecter**, avec limitation de débit et message uniforme en cas d'abus. | Chapitre 6 : contrat du service de résolution, cinq états d'aiguillage, seuils chiffrés, journalisation 30 jours. RG-12, RG-24, RG-26. |
-| Q3 | Durées de validité des liens ? | **Connexion 30 minutes, activation 7 jours, réinitialisation 1 heure. Tous à usage unique.** | RG-04, RG-06, W5, W8. Les textes annonçant un lien valable un an et réutilisable, notamment l'erratum e-learning, sont à réécrire. La reprise de formation passe par la connexion, plus par un lien longue durée. |
+| Q1 | Le mot de passe reste-t-il obligatoire pour un apprenant ? | **Non**, rendu le 2026-09-14. Mot de passe optionnel, proposé après la première connexion par lien, jamais imposé. **Révisé le 2026-09-18 : oui, de facto.** Le lien magique est intégralement supprimé — il ne fait plus partie des fonctionnalités disponibles, sans exception. Un compte sans mot de passe est aiguillé vers l'étape mot de passe comme tout autre compte ; son seul recours est "mot de passe oublié", qui force la définition d'un mot de passe avant d'entrer. | PR3, PR4, chapitre 6.1, W3, W5, W12 (réécrits le 2026-09-18). RG-04, RG-05, RG-06 retirées. Aucun apprenant n'entre plus dans son espace sans, au terme du parcours, avoir défini un mot de passe. |
+| Q2 | Détecter le compte à la saisie de l'email, ou message neutre systématique ? | **Détecter**, avec limitation de débit et message uniforme en cas d'abus. | Chapitre 6 : contrat du service de résolution, **trois** états d'aiguillage depuis le 2026-09-18 (cinq à l'origine), seuils chiffrés, journalisation 30 jours. RG-12, RG-24, RG-26. |
+| Q3 | Durées de validité des liens ? | **Connexion 30 minutes, activation 7 jours, réinitialisation 1 heure. Tous à usage unique.** Rendu le 2026-09-14, **caduc depuis la révision de Q1** : les liens de connexion et d'activation à durée propre n'existent plus. Seule demeure la durée du lien de réinitialisation Supabase natif, 1 heure, réutilisée par W5 comme par W8. | RG-06 retirée. Les textes annonçant un lien valable un an et réutilisable, notamment l'erratum e-learning, ont bien été réécrits (chapitre 9), sur la fonction d'accès unique plutôt que sur des durées spécifiques par email. |
 | Q5 | Une porte unique ou deux portes ? | **Deux portes, et `/auth` ne bouge pas.** Formulaire, anti-brute force et changement de mot de passe conservés à l'identique. Seules les corrections du chapitre 8 s'appliquent, et elles portent sur les gardes de route et le fournisseur de session, pas sur l'écran. | Chapitre 0, chapitre 7. Une seule exception au non-changement, validée le 2026-09-14 : un apprenant qui atteint `/auth` est routé vers son espace au lieu d'être déconnecté avec "Accès réservé" (`src/pages/Auth.tsx:121-131`). Quatre lignes, aucun changement d'écran. |
 | Q7 | Que faire des comptes et jetons existants ? | **Invalider les jetons en circulation au basculement, communiquer par un email de reprise, conserver les comptes et les mots de passe.** | Chapitre 17 : plan de bascule, parcours de transition par population, volumétrie mesurée. |
 | Q4 | Un achat doit-il créer le compte automatiquement ? | **Oui.** Compte provisionné sans mot de passe dès l'encaissement, email d'activation immédiat. Le mode `woocommerce` disparaît comme voie d'accès. | Nouveau workflow W12, suppression du réglage `elearning_access_mode`, refonte de `send-elearning-access` en email d'activation, D7 résolu. |
@@ -610,15 +578,15 @@ Vers l'ancienne adresse, objet : L'adresse de votre compte a été modifiée
 11. Les fonctions de portail ne sont plus exécutables par un appelant anonyme.
 12. Un membre du staff se connecte et atteint `/dashboard` sans aller-retour de redirection.
 13. Un compte sans rôle voit un écran explicite et n'entre jamais dans une boucle.
-14. Un achat en ligne déclenche la création du compte et un email d'activation pointant vers l'espace apprenant et le cours acheté.
-15. Un apprenant qui refuse de définir un mot de passe accède à son espace et peut se reconnecter par lien autant de fois qu'il le souhaite.
-16. Un lien de connexion ouvert une seconde fois est refusé et propose l'envoi d'un nouveau lien.
-17. Un lien de connexion ouvert plus de 30 minutes après son émission est refusé de la même manière, un lien d'activation au-delà de 7 jours, un lien de réinitialisation au-delà d'une heure.
+14. Une inscription à une formation e-learning (achat ou ajout par le staff) déclenche la création du compte et l'envoi immédiat de l'email d'accès. *(critère 14, reformulé le 2026-09-18 : n'est plus un email d'activation à durée fixe, voir chapitre 9 et E-A.)*
+15. *Retiré le 2026-09-18 : décrivait un apprenant se reconnectant indéfiniment par lien sans jamais définir de mot de passe. Ce parcours n'existe plus (PR4) — un tel apprenant est aiguillé vers l'étape mot de passe (W3) à chaque connexion, avec "mot de passe oublié" comme recours.*
+16. Un lien de réinitialisation ouvert une seconde fois est refusé et propose l'envoi d'un nouveau lien (`ConnexionReinitialisation.tsx`, chapitre 10.2).
+17. Un lien de réinitialisation ouvert plus d'une heure après son émission est refusé de la même manière. *(critère 17, reformulé le 2026-09-18 : les durées "connexion 30 minutes" et "activation 7 jours" de RG-06 n'existent plus, RG-06 étant retirée.)*
 18. Le réglage `elearning_access_mode` n'existe plus et aucun email d'accès e-learning ne renvoie vers le site marchand comme voie de connexion.
 19. Le service de résolution d'identité ne renvoie jamais autre chose qu'un état d'aiguillage, et répond `throttled` au-delà des seuils du chapitre 6.
 20. Un apprenant ne peut pas modifier son propre drapeau `password_set`.
 21. Le changement d'adresse d'un apprenant conserve l'accès à toutes ses formations et invalide les liens émis vers l'ancienne adresse.
-22. Un jeton émis avant la bascule ne permet plus d'entrer, et l'écran affiché propose l'envoi d'un lien neuf.
+22. Un jeton de lien magique émis avant la démolition du 2026-09-18 ne permet plus d'entrer ; l'ancienne URL `/connexion/lien?token=` redirige vers `/connexion`, jamais vers une erreur (chapitre 17.5).
 23. L'email d'activation d'un compte créé automatiquement informe la personne de la création du compte et de la marche à suivre pour en demander la suppression.
 24. À l'étape mot de passe, un gestionnaire de mots de passe enregistre bien le couple adresse et mot de passe.
 25. Si le service de résolution ne répond pas, l'écran de connexion bascule en mode dégradé et laisse entrer aussi bien un apprenant avec mot de passe qu'un apprenant sans mot de passe.
@@ -774,11 +742,28 @@ Aucune de ces populations ne doit rencontrer de rupture. Le tableau se lit comme
 
 ### 17.4 Engagements de fluidité
 
-- Personne n'est contraint de créer un mot de passe.
+- Personne n'est contraint de créer un mot de passe. *(Engagement tenu au 2026-09-15 ; caduc depuis la révision de Q1 le 2026-09-18, voir 17.5 : un mot de passe est désormais nécessaire pour entrer, au plus tard au fil de la première connexion suivant la démolition.)*
 - Personne ne perd l'accès à ses formations, ses documents ou sa progression.
 - Aucun apprenant ne rencontre d'écran d'erreur nue : toute impasse porte l'action de reprise.
 - Une seule action supplémentaire est demandée, au plus une fois, à ceux qui cliquent sur un ancien lien.
 - Le support dispose de la liste des 165 adresses et peut renvoyer un lien à la demande.
+
+### 17.5 Deuxième bascule : démolition du lien magique (2026-09-18)
+
+Le 17.1-17.4 documentent la première bascule (2026-09-15), qui conservait le lien magique et le mot de passe optionnel. Le 2026-09-18, l'arbitrage Q1 est révisé : le lien magique est intégralement supprimé, sans fenêtre de compatibilité de 90 jours — bascule nette, cohérente avec « corriger vite un échec » plutôt qu'avec une dépréciation progressive.
+
+**Mesure avant fusion**, jouée en base via `scripts/bascule-demolition-lien-magique.sql` :
+
+| Mesure | Résultat |
+|--------|----------|
+| Comptes `password_set = false` (dépendent encore d'un lien pour entrer) | 1 |
+| Jetons `learner_magic_links` encore valides | 142, pour 70 apprenants distincts |
+
+**Pourquoi aucun blocage, contrairement à la première bascule.** La première bascule (17.3) prévoyait un email de reprise obligatoire avant l'envoi en masse, parce qu'un ancien lien invalidé menait alors à une impasse réelle. Ce n'est plus le cas : `/connexion/lien` redirige désormais vers `/connexion` (jamais de cul-de-sac, chapitre 10.2) et "mot de passe oublié" reste utilisable par n'importe quel compte, avec ou sans mot de passe déjà défini (W3). Rien n'empêche donc de fusionner la démolition sans attendre.
+
+**Ce qui n'est pas fait, à la discrétion du produit.** Contrairement à E-E (17.3, point 3), aucun email n'est envoyé en masse aux 70 apprenants concernés : le script ne fait que mesurer l'exposition. Un envoi ciblé, sur le modèle d'E-E, reste possible si le produit juge que prévenir ces apprenants avant qu'ils ne remarquent d'eux-mêmes que l'ancien lien ne fait plus rien est préférable à les laisser découvrir "mot de passe oublié" par eux-mêmes.
+
+**Après fusion.** Le compte à `password_set = false` et les apprenants ayant un jeton encore valide suivent tous désormais W3 : à leur prochaine tentative de connexion, ils sont aiguillés vers l'étape mot de passe et utilisent "mot de passe oublié" pour en définir un.
 
 ---
 
@@ -807,11 +792,11 @@ La suppression d'un compte d'accès n'emporte pas la suppression des données de
 
 **Changement d'adresse.** Traité par W13.
 
-**Pré-clic des liens par les filtres de messagerie.** Les passerelles de sécurité d'entreprise ouvrent les liens avant l'utilisateur. Avec des jetons à usage unique, l'apprenant reçoit alors un lien déjà consommé. Deux parades : le jeton n'est consommé qu'après une action sur la page d'arrivée, jamais sur le simple chargement (RG-21), et W10 propose toujours le renvoi d'un lien neuf. Q6, le code à six chiffres, reste la réponse de fond.
+**Pré-clic des liens par les filtres de messagerie (réécrit le 2026-09-18, risque rouvert).** Les passerelles de sécurité d'entreprise ouvrent les liens avant l'utilisateur. Avec un jeton à usage unique, l'apprenant reçoit alors un lien déjà consommé. La parade RG-21 (consommation différée à une action de l'utilisateur, jamais au simple chargement) était vraie pour le mécanisme démoli, dont la consommation était pilotée par nos propres fonctions serveur. Elle ne l'est plus pour le lien de réinitialisation Supabase natif qui l'a remplacé (W5, W8) : `usePasswordRecoverySession` (`src/hooks/useAuthActions.ts:61-81`) établit la session dès le chargement de la page, au premier événement `PASSWORD_RECOVERY`, avant toute action de l'apprenant. Un pré-clic par un filtre de messagerie consomme donc le lien avant que l'apprenant ne l'ouvre lui-même — la vulnérabilité que RG-21 visait à fermer est rouverte par la démolition. W10 propose toujours le renvoi d'un lien neuf comme filet de secours, mais RG-21 elle-même n'est plus tenue et reste à corriger : soit en revenant à une consommation applicative différée, soit par le code à six chiffres (Q6), la réponse de fond déjà recommandée.
 
 **Gestionnaires de mots de passe.** Un formulaire en deux étapes casse l'enregistrement du couple identifiant et mot de passe si le champ email disparaît à l'étape 2. L'email reste donc présent dans le formulaire, en lecture seule, avec les attributs d'auto-complétion attendus (RG-20).
 
-**Mobile.** Le lien reçu par email ouvre le navigateur par défaut, qui n'est pas forcément celui où une session existe déjà. C'est sans conséquence : le lien authentifie par lui-même. En revanche, un lien de 30 minutes suppose que l'apprenant consulte ses emails dans la foulée, ce que le message d'attente doit rappeler.
+**Mobile.** Le lien reçu par email ouvre le navigateur par défaut, qui n'est pas forcément celui où une session existe déjà. Sans conséquence pour le lien de préremplissage `/connexion?email=`, qui n'authentifie jamais par lui-même (W5) ; pour le lien de réinitialisation, valable 1 heure (10.3), l'apprenant doit consulter ses emails dans l'heure.
 
 **Accessibilité.** Les écrans de connexion respectent les exigences déjà appliquées au reste de l'application : navigation au clavier complète, messages d'erreur annoncés aux lecteurs d'écran et associés au champ concerné, contraste suffisant, aucun état signalé par la seule couleur.
 
@@ -843,9 +828,10 @@ Les trois derniers se lisent ensemble : une baisse des demandes de lien accompag
 | 1 | Fermeture des trajectoires S1 à S5 : jeton qui n'écrase plus de mot de passe, durées et usage unique, fonctions du portail réservées aux appelants authentifiés, identité issue de la session | Indépendant du parcours, corrige des expositions actives, ne demande aucun écran neuf |
 | 2 | Fournisseur d'état de session unique, garde de route unique, table de routage du chapitre 7 | Prérequis de tous les écrans, et corrige les boucles staff |
 | 3 | Service de résolution d'identité, drapeau `password_set`, limitation de débit | Prérequis de la page de connexion. Livré : fonction `resolve-login-identity`, journal `identity_resolution_log`, seuils 10 par adresse et 20 par IP par heure (relevé à 10 le 18/09/2026, constat en production : une reconnexion répétée en peu de temps déclenchait le freinage) |
-| 4 | Écrans de connexion : W1 à W10, redirections des anciennes URL | Livré. W5 ouvre une vraie session depuis le lien, W10 porte l'action de reprise dans chaque état d'échec, les durées de 30 minutes et 7 jours s'appliquent aux liens émis |
+| 4 | Écrans de connexion : W1 à W10, redirections des anciennes URL | Livré au 2026-09-15. *Description devenue historique : W5 ouvrait alors une session depuis le lien et les durées de 30 minutes et 7 jours s'appliquaient aux liens émis — supprimé par le lot 7.* |
 | 5 | Provisionnement à l'encaissement W12, refonte des emails, suppression de `elearning_access_mode` | Livré côté code : le compte est provisionné à l'inscription, l'email d'activation est unique quelle que soit la source, le réglage a disparu. La bascule elle-même reste une opération manuelle, `scripts/bascule-connexion.sql` |
 | 6 | W13, purge des comptes inactifs, indicateurs, politique de confidentialité | Livré. Changement d'adresse atomique sur 26 tables, comptes dormants signalés, indicateurs dans Monitoring, politique de confidentialité à jour |
+| 7 | Démolition du lien magique (arbitrage Q1 révisé) : suppression de `learner_magic_links` et des écrans associés, réécriture de `resolve_login_identity` à 3 états | Livré le 2026-09-18. Referme la dette du lot 4 : W5 n'ouvre plus jamais de session sans mot de passe, chapitre 17.5 |
 
 Transverse à tous les lots : les tests du chapitre 14 sont écrits avec le lot qu'ils couvrent, jamais après. Les textes du chapitre 10 et les emails du chapitre 11 sont validés avant le développement du lot 4, les maquettes servant de support à cette validation.
 
@@ -853,28 +839,28 @@ Les lots 1 et 2 sont livrables sans rien changer à ce que voit l'apprenant. La 
 
 ---
 
-## 22. Inventaire des impacts pour le chiffrage
+## 22. Inventaire des impacts pour le chiffrage (mis à jour le 2026-09-18)
 
-**Écrans à créer ou refondre**
-`/connexion` (étape email, étape mot de passe, étape lien envoyé, état email inconnu), `/connexion/lien` (consommation du token), `/connexion/mot-de-passe-oublie`, écran "Définir un mot de passe", écran "Compte sans accès", refonte de `LearnerAccess.tsx`, refonte de `LearnerOnboarding.tsx`, garde de route unique.
+**Écrans, état livré après démolition**
+`/connexion` (étape email, étape mot de passe, état email inconnu, état throttled, mode dégradé — les états `link`/`activation` ont disparu), `/connexion/mot-de-passe-oublie`, `/connexion/reinitialisation` (définition de mot de passe, sert aussi bien W5 que W8), écran "Compte sans accès". `/connexion/lien` n'est plus un écran de consommation de jeton : c'est une redirection vers `/connexion` (chapitre 10.2).
 
 **Routes à conserver en redirection**
-`/apprenant`, `/apprenant/connexion`, `/apprenant/reset-password` : les liens en circulation doivent continuer de fonctionner.
+`/apprenant`, `/apprenant/connexion`, `/apprenant/reset-password`, `/connexion/lien` : les liens en circulation doivent continuer de fonctionner, jamais vers une page introuvable.
 
-**Fonctions serveur**
-`send-learner-magic-link`, `create-learner-account`, `create-academy-account`, `send-password-reset`, `send-elearning-access`, `process-elearning-start-reminders`, `send-elearning-erratum`, `add-training-participant`, plus une fonction de résolution d'identité à la saisie de l'email.
+**Fonctions serveur, état livré**
+`send-learner-access-email` (remplace `send-learner-magic-link`), `create-academy-account`, `send-password-reset`, `send-elearning-access`, `process-elearning-start-reminders`, `send-elearning-erratum`, `add-training-participant`, `resolve-login-identity`. `send-learner-magic-link`, `create-learner-account` et `redeem-learner-token` sont supprimées.
 
-**Base de données**
-`learner_magic_links` (durées, usage unique, typage du lien), `preview_learner_token` et `consume_learner_token` (exposition réduite), `get_learner_portal_data` (droits et périmètre), résolution d'identité entre `training_participants`, `lms_enrollments` et les comptes.
+**Base de données, état livré**
+`learner_magic_links`, `validate_learner_token`, `preview_learner_token` et `consume_learner_token` sont supprimées (`supabase/migrations/20260918160000_demolition_lien_magique.sql`). `get_learner_portal_data` corrigée (lot 1). Résolution d'identité entre `training_participants`, `lms_enrollments` et les comptes, réduite à trois états (chapitre 6.1).
 
-**Base de données, ajouts liés aux compléments**
-`user_security_metadata` : colonne `password_set` et restriction de la policy de mise à jour. Journal de résolution d'identité avec adresse hachée et purge à 30 jours. Purge quotidienne des jetons consommés ou expirés.
+**Base de données, ajouts liés aux compléments, état livré**
+`user_security_metadata` : colonne `password_set` (ne pilote plus la résolution d'identité depuis le 2026-09-18, garde son rôle pour le choix du lien envoyé et les indicateurs) et policy de mise à jour restreinte au rôle de service. Journal de résolution d'identité avec adresse hachée et purge à 30 jours.
 
-**Tests**
-`e2e/connexion.spec.ts` à créer, tests unitaires de résolution, de normalisation, d'expiration et de routage, tests d'intégration des fonctions serveur dont les non-régressions S1 à S5.
+**Tests, état livré**
+`e2e/connexion.spec.ts` : les scénarios liés au lien/activation sont retirés, un scénario verrouille la redirection `/connexion/lien` → `/connexion`. Tests unitaires de résolution (trois états), de normalisation et de routage. Tests d'intégration pgTAP des fonctions serveur éditées ou supprimées par la démolition (`supabase/tests/resolution-identite.test.ts`, `identite-session.test.ts`, `changement-adresse.test.ts`, `comptes-et-indicateurs.test.ts`), non-régressions S1 à S5.
 
-**Opérations de bascule**
-Invalidation en masse des jetons en circulation, redirections des anciennes URL pendant 90 jours, email de reprise, mesure des indicateurs du chapitre 20 avant bascule.
+**Opérations de bascule, état livré**
+Première bascule (17.1-17.4, 2026-09-15) : invalidation en masse des jetons, redirections 90 jours, email de reprise E-E. Deuxième bascule, démolition (17.5, 2026-09-18) : mesure seule (`scripts/bascule-demolition-lien-magique.sql`), pas d'invalidation ni d'email obligatoires, la table étant supprimée directement.
 
 **Documents à mettre à jour**
 Politique de confidentialité (création automatique de compte, journalisation, comptes inactifs), textes des emails transactionnels du chapitre 9.

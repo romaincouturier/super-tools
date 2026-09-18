@@ -39,30 +39,36 @@ vous arrivez sur le tableau de bord apprenant, avec vos formations.
 
 Si ça casse : c'est le parcours le plus emprunté. Arrêt immédiat.
 
-### 1.2 Entrer sans mot de passe, par un lien
+### 1.2 Compte sans mot de passe encore défini (mis à jour le 2026-09-18, le lien magique n'existe plus)
 
-1. Ouvrir la page de connexion en navigation privée.
-2. Saisir l'adresse **B**, cliquer « Continuer ».
-3. Relever l'email reçu, cliquer le lien.
-4. Sur la page d'arrivée, cliquer « Ouvrir mon espace ».
+1. Trouver ou créer un compte dont vous savez qu'il n'a jamais eu de mot de
+   passe défini (par exemple juste après le test 3.2 ci-dessous).
+2. Ouvrir la page de connexion, saisir cette adresse, cliquer « Continuer ».
+3. Vous arrivez sur l'écran mot de passe, comme pour un compte qui en a un.
+   Cliquer « Mot de passe oublié ».
+4. Relever l'email, cliquer le lien, choisir un mot de passe.
 
-Attendu : l'email arrive en moins de deux minutes. Le lien mène à une page qui
-demande une action avant d'ouvrir la session, pas à un mot de passe. Après le
-clic, vous êtes connecté.
+Attendu : aucune session ne s'ouvre avant l'étape 4. Il n'existe plus de lien
+qui connecte tout seul. Une fois le mot de passe défini, vous arrivez dans
+l'espace apprenant, et une reconnexion ultérieure utilise ce mot de passe.
 
-Si ça casse : c'est le cœur de la refonte. Arrêt immédiat. Notez à quelle
-étape : email non reçu, lien qui n'ouvre rien, ou page d'erreur.
+Si ça casse : c'est le cœur de la démolition du lien magique. Arrêt immédiat.
+Notez à quelle étape : toujours aiguillé vers un ancien écran de lien, email
+non reçu, ou session ouverte avant l'étape 4 (régression grave, à signaler
+immédiatement : plus aucun mécanisme ne doit ouvrir de session sans mot de
+passe saisi).
 
-### 1.3 Le lien ne s'use pas tout seul
+### 1.3 Un ancien lien magique ne mène plus à une impasse
 
-1. Redemander un lien pour **B**.
-2. Ouvrir l'email, **ne pas cliquer**. Attendre deux minutes.
-3. Cliquer ensuite, puis « Ouvrir mon espace ».
+1. Retrouver un email d'accès reçu **avant** la démolition (avant le
+   2026-09-18), ou construire l'URL `/connexion/lien?token=nimportequoi`.
+2. Ouvrir ce lien.
 
-Attendu : le lien fonctionne encore. Il ne doit pas avoir été consommé par
-l'ouverture de l'email ou par le filtre de sécurité de la messagerie.
+Attendu : vous arrivez sur la page de connexion normale, jamais sur une page
+« introuvable » ni sur une erreur technique.
 
-Si ça casse : les apprenants en entreprise ne pourront pas se connecter. Arrêt.
+Si ça casse : des apprenants ayant un ancien email en main tombent dans une
+impasse. Arrêt.
 
 ### 1.4 L'équipe entre toujours
 
@@ -95,30 +101,31 @@ porte de sortie visible : essayer une autre adresse, découvrir les formations,
 Attendu : l'email arrive, le lien mène à un écran de choix de mot de passe avec
 les règles affichées, et la nouvelle connexion fonctionne.
 
-### 2.2 Le mot de passe reste facultatif
+### 2.2 Un mot de passe est désormais nécessaire pour entrer (mis à jour le 2026-09-18)
 
-1. Se connecter par lien avec **B**.
-2. Quand l'écran propose de définir un mot de passe, cliquer « Plus tard ».
-3. Se déconnecter, puis se reconnecter par lien.
+1. Reprendre le compte du test 1.2, une fois son mot de passe défini.
+2. Se déconnecter, puis se reconnecter avec ce mot de passe.
 
-Attendu : « Plus tard » mène directement à l'espace. La reconnexion par lien
-fonctionne autant de fois que voulu.
+Attendu : la reconnexion se fait par mot de passe, comme n'importe quel autre
+compte. Il n'existe plus de parcours où l'on entre indéfiniment sans jamais en
+définir un.
 
-### 2.3 Un lien déjà utilisé
+### 2.3 Un lien de réinitialisation déjà utilisé
 
-1. Reprendre l'email du test 1.2, déjà utilisé, et cliquer à nouveau.
-2. Cliquer « Ouvrir mon espace ».
+1. Reprendre l'email de réinitialisation du test 1.2 ou 2.1, déjà utilisé, et
+   cliquer à nouveau son lien.
 
-Attendu : un message disant que le lien a déjà servi, **avec le bouton pour en
+Attendu : un message disant que le lien a expiré, **avec le bouton pour en
 recevoir un nouveau sur place**. Cliquer dessus doit envoyer un nouvel email.
 
 ### 2.4 Les anciennes adresses fonctionnent encore
 
-1. Retrouver un ancien email d'accès, envoyé avant la refonte.
+1. Retrouver un ancien email d'accès, envoyé avant la refonte ou avant la
+   démolition du lien magique.
 2. Cliquer son lien.
 
-Attendu : vous arrivez sur la nouvelle page d'ouverture de lien, pas sur une
-erreur. Le lien fonctionne ou propose d'en recevoir un neuf.
+Attendu : vous arrivez sur la page de connexion normale, jamais sur une
+erreur ni sur un ancien écran d'ouverture de lien.
 
 ### 2.5 La déconnexion
 
@@ -146,14 +153,15 @@ tableau de bord.
 
 Attendu : le bandeau apparaît puis disparaît, avec le texte réglé.
 
-### 3.2 Inscrire un participant à une formation en ligne
+### 3.2 Inscrire un participant à une formation en ligne (mis à jour le 2026-09-18)
 
 1. Inscrire une adresse à laquelle vous avez accès sur une formation
    e-learning.
-2. Relever l'email reçu, cliquer le lien, ouvrir l'espace.
+2. Relever l'email reçu.
 
-Attendu : l'email annonce une activation, pas un achat. Le lien connecte et mène
-à la formation. La durée annoncée dans l'email correspond à ce que fait le lien.
+Attendu : l'email dit « Créez votre mot de passe pour y accéder », avec un
+seul bouton. Ce n'est plus un lien qui connecte tout seul (voir test 1.2 pour
+la suite du parcours, jusqu'à l'espace apprenant).
 
 ### 3.3 Mon espace apprenant depuis le back-office
 
@@ -168,10 +176,10 @@ Attendu : votre propre espace apprenant s'ouvre.
 1. Administration des apprenants, changer l'adresse.
 2. Vérifier que ses formations sont toujours là.
 3. Vérifier les deux emails, vers l'ancienne et la nouvelle adresse.
-4. Reprendre un ancien lien envoyé à l'ancienne adresse et le cliquer.
+4. Sur la page de connexion, saisir l'ancienne adresse.
 
-Attendu : formations intactes, deux emails partis, ancien lien refusé avec
-proposition d'en recevoir un neuf.
+Attendu : formations intactes, deux emails partis, l'ancienne adresse n'est
+plus reconnue (état « aucun compte trouvé »).
 
 ## Bloc 4 : après les migrations différées
 
@@ -180,9 +188,11 @@ Ces tests ne valent qu'une fois jouées les migrations de
 
 ### 4.1 Le texte des emails
 
-Déclencher un envoi de lien. L'email doit annoncer un lien qui connecte sans
-mot de passe, sa durée réelle, et mentionner la création du compte et le moyen
-d'en demander la suppression.
+Déclencher l'envoi de l'email d'accès (test 3.2). Il doit annoncer sa durée
+réelle (1 heure pour le lien de création de mot de passe) et mentionner la
+création du compte ainsi que le moyen d'en demander la suppression — ce que
+le texte actuellement livré ne fait pas encore (écart connu, chapitre 11 de
+`docs/SPEC_CONNEXION_APPRENANT.md`).
 
 ### 4.2 L'équipe et le changement de mot de passe
 
