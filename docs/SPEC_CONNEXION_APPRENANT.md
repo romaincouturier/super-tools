@@ -162,16 +162,16 @@ Déclencheur : clic sur "Se connecter" depuis `/`, ou accès direct à `/connexi
 
 1. L'écran `/connexion` affiche un champ email unique, un bouton "Continuer", et un lien "Créer un compte".
 2. À la soumission, le système normalise l'email (minuscules, espaces retirés) et évalue le cas selon la matrice du chapitre 6.
-3. L'écran suivant s'affiche sans changement d'URL perçu comme une rupture, avec l'email rappelé et une action "Ce n'est pas moi" qui revient à l'étape 1.
+3. L'écran suivant s'affiche sans changement d'URL perçu comme une rupture, avec l'email rappelé et une action "Revenir à la page de connexion" qui revient à l'étape 1. Renommée le 18/09/2026 : "Ce n'est pas moi" ne se comprenait pas en usage réel.
 
 Règles associées : RG-01, RG-02, RG-03, RG-12.
 
 ### W2. Compte existant avec mot de passe
 
 1. Affichage du champ mot de passe, avec l'email rappelé en clair.
-2. Actions secondaires visibles : "Recevoir un lien de connexion par email" et "Mot de passe oublié".
+2. Action secondaire visible : "Mot de passe oublié". Le lien "Recevoir un lien de connexion par email" a été retiré le 18/09/2026 : il doublait "Mot de passe oublié" sans que la différence (l'un contourne le mot de passe une fois, l'autre le change) se comprenne en usage réel. Il reste affiché en mode dégradé (chapitre 6.4), où c'est la seule porte d'entrée pour un apprenant sans mot de passe tant que l'aiguillage est en panne.
 3. Succès : ouverture de session, redirection selon le chapitre 7.
-4. Échec : message générique "Email ou mot de passe incorrect", compteur d'essais existant conservé, proposition immédiate du lien de connexion.
+4. Échec : message générique "Email ou mot de passe incorrect", compteur d'essais existant conservé, proposition de réinitialiser le mot de passe.
 
 ### W3. Compte existant sans mot de passe défini
 
@@ -429,11 +429,11 @@ Libellés de référence. Ton : vous, phrases courtes, aucune formulation culpab
 | Écran ou état | Titre | Texte | Actions |
 |---------------|-------|-------|---------|
 | Étape 1, saisie | Se connecter | Indiquez l'adresse email utilisée lors de votre inscription. | Champ "Adresse email", bouton "Continuer", lien "Créer un compte" |
-| Étape 2, état `password` | Content de vous revoir | Saisissez votre mot de passe pour accéder à vos formations. | Adresse rappelée et modifiable par "Ce n'est pas moi", champ "Mot de passe", bouton "Me connecter", liens "Recevoir un lien de connexion" et "Mot de passe oublié" |
-| Étape 2, mot de passe refusé | Content de vous revoir | Email ou mot de passe incorrect. Vous pouvez réessayer, ou recevoir un lien de connexion par email. | Idem, avec le compteur d'essais existant |
+| Étape 2, état `password` | Content de vous revoir | Saisissez votre mot de passe pour accéder à vos formations. | Adresse rappelée et modifiable par "Revenir à la page de connexion", champ "Mot de passe", bouton "Me connecter", lien "Mot de passe oublié" |
+| Étape 2, mot de passe refusé | Content de vous revoir | Email ou mot de passe incorrect. Vous pouvez réessayer, ou réinitialiser votre mot de passe. | Idem, avec le compteur d'essais existant |
 | État `link` | Vérifiez votre boîte mail | Nous venons d'envoyer un lien de connexion à {email}. Il est valable 30 minutes. Pensez à regarder vos courriers indésirables. | Bouton "Renvoyer le lien", actif après 60 secondes, lien "Utiliser une autre adresse" |
 | État `activation` | Votre accès est prêt | Vous êtes bien inscrit. Nous venons d'envoyer à {email} un lien pour activer votre accès. Il est valable 7 jours. | Bouton "Renvoyer le lien", actif après 60 secondes, lien "Utiliser une autre adresse" |
-| État `unknown` | Nous n'avons pas trouvé de compte | Aucun compte n'est associé à {email}. Si vous avez suivi une formation avec nous, essayez l'adresse utilisée lors de votre inscription, souvent votre adresse professionnelle. | Lien "Essayer une autre adresse", lien "Découvrir les formations gratuites", lien "Écrire au support" |
+| État `unknown` | Nous n'avons pas trouvé de compte | Aucun compte n'est associé à {email}. Si vous avez suivi une formation avec nous, essayez l'adresse utilisée lors de votre inscription, souvent votre adresse professionnelle. Sinon, créez un compte gratuit pour commencer. | Bouton principal "Créer un compte gratuitement", lien "Essayer une autre adresse", lien "Écrire au support" |
 | État `throttled` | Trop de tentatives | Vous avez fait plusieurs demandes coup sur coup. Réessayez dans quelques minutes. | Lien "Écrire au support" |
 | Mode dégradé | Se connecter | Nous n'avons pas pu identifier votre compte pour l'instant. Saisissez votre mot de passe, ou demandez un lien de connexion. | Champs email et mot de passe ensemble, bouton "Me connecter", lien "Recevoir un lien de connexion" |
 

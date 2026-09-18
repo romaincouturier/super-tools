@@ -105,7 +105,7 @@ export default function Connexion() {
     if (!outcome.ok) {
       await logAttempt(normalizedEmail, false);
       setShowAttemptFeedback(true);
-      setErrorMsg("Email ou mot de passe incorrect. Vous pouvez réessayer, ou recevoir un lien de connexion par email.");
+      setErrorMsg("Email ou mot de passe incorrect. Vous pouvez réessayer, ou réinitialiser votre mot de passe.");
       setSubmitting(false);
       return;
     }
@@ -153,7 +153,7 @@ export default function Connexion() {
             <p className="mt-5 text-[15px] text-[#6b7686]">
               Vous n'avez pas encore de compte&nbsp;?{" "}
               <a href="/#formations" className="font-bold text-[#1a2230] underline underline-offset-[3px]">
-                Découvrir les formations gratuites
+                Créer un compte gratuitement
               </a>
             </p>
           </>
@@ -182,7 +182,7 @@ export default function Connexion() {
 
               <div className="mb-6 flex flex-wrap items-center justify-between gap-4 text-[15px]">
                 <button type="button" onClick={backToEmail} className="flex items-center gap-2 text-[#6b7686] hover:text-[#1a2230]">
-                  <ArrowLeft className="h-4 w-4" /> Ce n'est pas moi
+                  <ArrowLeft className="h-4 w-4" /> Revenir à la page de connexion
                 </button>
                 <Link to="/connexion/mot-de-passe-oublie" className="underline underline-offset-[3px]">
                   Mot de passe oublié&nbsp;?
@@ -204,11 +204,6 @@ export default function Connexion() {
                 {submitting ? <Spinner /> : "Me connecter"}
               </AuthButton>
             </form>
-            <LinkFallback
-              busy={sendingLink}
-              cooldown={cooldown}
-              onClick={async () => { await requestLink("login"); setStep("link"); }}
-            />
           </>
         )}
 
@@ -233,13 +228,18 @@ export default function Connexion() {
             <Subtitle>
               Aucun compte n'est associé à {normalizedEmail}. Si vous avez suivi une formation avec
               nous, essayez l'adresse utilisée lors de votre inscription, souvent votre adresse
-              professionnelle.
+              professionnelle. Sinon, créez un compte gratuit pour commencer.
             </Subtitle>
             <div className="flex flex-col gap-3">
-              <AuthButton type="button" onClick={backToEmail}>Essayer une autre adresse</AuthButton>
-              <a href="/#formations" className="text-[15px] font-bold underline underline-offset-[3px]">
-                Découvrir les formations gratuites
+              <a
+                href="/#formations"
+                className="flex h-14 w-full items-center justify-center rounded-[11px] bg-[#fdc500] text-base font-semibold text-[#1a2230] transition-colors hover:bg-[#ffd100] active:translate-y-px"
+              >
+                Créer un compte gratuitement
               </a>
+              <button type="button" onClick={backToEmail} className="text-[15px] underline underline-offset-[3px] text-[#6b7686]">
+                Essayer une autre adresse
+              </button>
               <a
                 href={`mailto:contact@supertilt.fr?subject=${encodeURIComponent("Accès à mon espace apprenant")}&body=${encodeURIComponent(`Bonjour,\n\nJe n'arrive pas à accéder à mon espace apprenant avec l'adresse ${normalizedEmail}.\n\nMerci de votre aide.`)}`}
                 className="text-[15px] underline underline-offset-[3px] text-[#6b7686]"
