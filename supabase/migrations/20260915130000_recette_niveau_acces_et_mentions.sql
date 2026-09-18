@@ -1,4 +1,4 @@
--- Corrections issues de la recette (docs/RECETTE_CONNEXION.md, passe 2).
+-- Corrections issues de la recette (docs/COUVERTURE_CONNEXION.md, passe 2).
 --   critère 13 : un compte sans rattachement doit être reconnu comme tel
 --   critère 11 : dernière fonction de portail prenant l'identité en paramètre
 --   critère 23 : mention de la création de compte, différée après le front

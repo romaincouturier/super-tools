@@ -1,4 +1,4 @@
--- Corrections de la passe 4 de recette (docs/RECETTE_CONNEXION.md).
+-- Corrections de la passe 4 de recette (docs/COUVERTURE_CONNEXION.md).
 --   RG-08 : limitation de débit serveur sur l'envoi de liens
 --   RG-24 : purge effective du journal de résolution
 --   W8.5  : les autres sessions tombent quand le mot de passe change

@@ -1,5 +1,10 @@
 # Spécifications métier : workflows de connexion apprenant
 
+> **Quel document ouvrir ?**
+> `docs/SPEC_CONNEXION_APPRENANT.md` — la référence, ce qui doit être fait et pourquoi.
+> `docs/RECETTE_FONCTIONNELLE.md` — **le seul à dérouler soi-même**, dans un navigateur, après publication.
+> `docs/COUVERTURE_CONNEXION.md` — ce qui garde chaque exigence, et ce que vaut cette garde. Se lit, ne se joue pas.
+
 Statut : spécification. Aucune implémentation à ce stade.
 Date : 2026-09-14.
 Tous les arbitrages Q1 à Q8 sont rendus au 2026-09-14, reportés dans les règles de gestion, les workflows et le plan de bascule.
