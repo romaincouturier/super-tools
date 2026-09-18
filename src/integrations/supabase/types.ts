@@ -4651,44 +4651,6 @@ export type Database = {
         }
         Relationships: []
       }
-      learner_magic_links: {
-        Row: {
-          created_at: string
-          email: string
-          expires_at: string
-          id: string
-          token: string
-          training_id: string | null
-          used_at: string | null
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          expires_at?: string
-          id?: string
-          token?: string
-          training_id?: string | null
-          used_at?: string | null
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          expires_at?: string
-          id?: string
-          token?: string
-          training_id?: string | null
-          used_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "learner_magic_links_training_id_fkey"
-            columns: ["training_id"]
-            isOneToOne: false
-            referencedRelation: "trainings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       learner_notifications: {
         Row: {
           body: string
@@ -12867,7 +12829,6 @@ export type Database = {
       }
       cleanup_agent_embedding_cache: { Args: never; Returns: number }
       connexion_indicators: { Args: { p_days?: number }; Returns: Json }
-      consume_learner_token: { Args: { p_token: string }; Returns: undefined }
       current_user_access_level: { Args: never; Returns: string }
       decay_watch_relevance: { Args: never; Returns: undefined }
       decrypt_token: {
@@ -13406,7 +13367,6 @@ export type Database = {
           tag: string
         }[]
       }
-      preview_learner_token: { Args: { p_token: string }; Returns: Json }
       purge_api_usage_events: { Args: never; Returns: undefined }
       purge_identity_resolution_log: { Args: never; Returns: number }
       purge_seo_history: { Args: never; Returns: undefined }
@@ -13549,7 +13509,6 @@ export type Database = {
         Returns: string
       }
       url_path: { Args: { u: string }; Returns: string }
-      validate_learner_token: { Args: { p_token: string }; Returns: Json }
     }
     Enums: {
       app_module:
