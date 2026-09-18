@@ -9,8 +9,8 @@ import MaintenanceBanner from "@/components/auth/MaintenanceBanner";
  */
 export function AuthShell({
   children,
-  backHref = "https://supertilt.fr",
-  backLabel = "Retour au site SuperTilt",
+  backHref = "/",
+  backLabel = "Revenir à l'Académie SuperTilt",
   onBack,
 }: {
   children: ReactNode;

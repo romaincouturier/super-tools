@@ -21,7 +21,9 @@ async function resolve(email: string, hash = HASH_A, ip = "10.0.0.1") {
 beforeAll(async () => {
   db = await createTestDb();
   await loadFunctions(db, [
-    { migration: "20260914170000_lot3_resolution_identite.sql", name: "resolve_login_identity" },
+    // La fonction est réécrite (CREATE OR REPLACE) dans une migration plus
+    // récente : c'est elle qui porte le comportement réellement déployé.
+    { migration: "20260918110000_seuil_resolution_identite.sql", name: "resolve_login_identity" },
   ]);
 });
 
@@ -64,9 +66,9 @@ describe("resolve_login_identity", () => {
     expect(await resolve("  Alice@EXEMPLE.FR  ")).toBe("password");
   });
 
-  it("freine au-delà de cinq résolutions par adresse et par heure", async () => {
+  it("freine au-delà de dix résolutions par adresse et par heure", async () => {
     await createAuthUser(db, "alice@exemple.fr", { passwordSet: true });
-    for (let i = 0; i < 5; i += 1) {
+    for (let i = 0; i < 10; i += 1) {
       expect(await resolve("alice@exemple.fr")).toBe("password");
     }
     expect(await resolve("alice@exemple.fr")).toBe("throttled");
@@ -75,7 +77,7 @@ describe("resolve_login_identity", () => {
   it("ne freine pas une autre adresse depuis la même IP tant que le quota IP tient", async () => {
     await createAuthUser(db, "alice@exemple.fr", { passwordSet: true });
     await createAuthUser(db, "bob@exemple.fr", { passwordSet: true });
-    for (let i = 0; i < 5; i += 1) await resolve("alice@exemple.fr", HASH_A);
+    for (let i = 0; i < 10; i += 1) await resolve("alice@exemple.fr", HASH_A);
     expect(await resolve("bob@exemple.fr", HASH_B)).toBe("password");
   });
 
@@ -91,7 +93,7 @@ describe("resolve_login_identity", () => {
     await createAuthUser(db, "alice@exemple.fr", { passwordSet: true });
     await db.query(
       `INSERT INTO identity_resolution_log (email_hash, ip_address, state, resolved_at)
-       SELECT $1, '10.0.0.1', 'password', now() - interval '2 hours' FROM generate_series(1, 5)`,
+       SELECT $1, '10.0.0.1', 'password', now() - interval '2 hours' FROM generate_series(1, 10)`,
       [HASH_A],
     );
     expect(await resolve("alice@exemple.fr")).toBe("password");

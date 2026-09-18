@@ -146,12 +146,35 @@ test("un lien expiré propose d'en recevoir un nouveau, sans cul-de-sac", async 
 
 test("un lien déjà utilisé explique pourquoi et relance le parcours", async ({ page }) => {
   await stubEdge(page, "redeem-learner-token", { status: "used", email: "apprenant@exemple.fr" });
+  await stubEdge(page, "resolve-login-identity", { state: "password" });
   await stubEdge(page, "send-learner-magic-link", { success: true });
   await page.goto("/connexion/lien?token=deja-servi");
   await page.getByRole("button", { name: "Ouvrir mon espace" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Ce lien a déjà servi");
   await page.getByRole("button", { name: "Recevoir un nouveau lien" }).click();
   await expect(page.getByText(/un nouveau lien vient de partir/)).toBeVisible();
+});
+
+test("le renvoi d'un lien mort redemande le type de lien, il ne force plus la connexion", async ({ page }) => {
+  await stubEdge(page, "redeem-learner-token", { status: "expired", email: "sanscompte@exemple.fr" });
+  await stubEdge(page, "resolve-login-identity", { state: "activation" });
+  let sentPurpose: string | null = null;
+  await page.route("**/functions/v1/send-learner-magic-link", async (route) => {
+    sentPurpose = route.request().postDataJSON()?.purpose ?? null;
+    await route.fulfill({
+      status: 200,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ success: true }),
+    });
+  });
+  await page.goto("/connexion/lien?token=perime");
+  await page.getByRole("button", { name: "Ouvrir mon espace" }).click();
+  await page.getByRole("button", { name: "Recevoir un nouveau lien" }).click();
+  await expect(page.getByText(/un nouveau lien vient de partir/)).toBeVisible();
+  // Un participant sans compte a besoin d'une activation (7 jours), pas
+  // d'une connexion (30 minutes) : forcer "login" lui aurait envoyé un lien
+  // deux fois plus court que celui dont il a besoin.
+  expect(sentPurpose).toBe("activation");
 });
 
 test("une URL de lien sans jeton ne montre jamais d'erreur technique", async ({ page }) => {
