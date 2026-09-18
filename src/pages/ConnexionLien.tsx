@@ -1,19 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { KeyRound, Lock, CheckCircle2, Circle, ShieldCheck, Mail } from "lucide-react";
+import { KeyRound, Mail } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { AuthBadge, AuthCard, AuthInfoPanel, AuthShell, AuthSplitCard, AuthSupportLine, AuthTitle } from "@/components/auth/AuthShell";
+import { AuthCard, AuthShell, AuthSupportLine, AuthTitle } from "@/components/auth/AuthShell";
 import { AuthField, AuthButton } from "@/components/auth/AuthField";
-import { validatePassword } from "@/lib/passwordValidation";
+import { PasswordCreationCard } from "@/components/auth/PasswordCreationCard";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { useIdentityResolution } from "@/hooks/useIdentityResolution";
 import { useLearnerTokenRedemption } from "@/hooks/useLearnerTokenRedemption";
-import { useAuthActions } from "@/hooks/useAuthActions";
+import { useSession } from "@/hooks/useSession";
 import { LEARNER_HOME, sanitizeRedirect, REDIRECT_PARAM } from "@/lib/authRouting";
 
 /**
  * Ouverture d'un lien reçu par email (W5 et W10).
- * Le lien connecte : aucun mot de passe n'est demandé pour entrer. Un lien
+ * Le lien ouvre la session, puis la création du mot de passe est imposée à qui
+ * n'en a pas encore : plus aucun accès durable sans mot de passe. Un lien
  * expiré, déjà utilisé ou invalide porte l'action de reprise dans l'écran même.
  */
 export default function ConnexionLien() {
@@ -23,14 +24,10 @@ export default function ConnexionLien() {
   const { stage, email, sessionEmail, destination, redeem, keepCurrentSession, switchAccount } = useLearnerTokenRedemption();
   const started = useRef(false);
 
-  const [password, setPassword] = useState("");
-  const [confirmation, setConfirmation] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [resendEmail, setResendEmail] = useState("");
   const [resent, setResent] = useState(false);
 
-  const { updatePassword, markPasswordChanged } = useAuthActions();
+  const { refresh } = useSession();
   const { resolve } = useIdentityResolution();
   const { loading: sendingLink, invoke: sendLink } = useEdgeFunction("send-learner-magic-link", {
     silentOnError: true,
@@ -68,24 +65,6 @@ export default function ConnexionLien() {
     const purpose = state === "password" || state === "link" ? "login" : "activation";
     await sendLink({ email: target, purpose });
     setResent(true);
-  };
-
-  const rules = validatePassword(password);
-  const matches = password.length > 0 && password === confirmation;
-
-  const handleSavePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!rules.isValid || !matches) return;
-    setSaving(true);
-    setErrorMsg(null);
-    const failure = await updatePassword(password);
-    if (failure) {
-      setErrorMsg(failure);
-      setSaving(false);
-      return;
-    }
-    await markPasswordChanged();
-    goToSpace();
   };
 
   if (stage === "confirm") {
@@ -146,79 +125,16 @@ export default function ConnexionLien() {
     );
   }
 
-  if (stage === "password-offer") {
+  // Étape obligatoire : aucun retour d'en-tête, aucune sortie vers l'espace
+  // tant que le mot de passe n'est pas enregistré.
+  if (stage === "password-required") {
     return (
-      <AuthShell backLabel="Aller à mon espace" onBack={goToSpace}>
-        <AuthSplitCard
-          left={
-            <>
-              <AuthBadge><KeyRound className="h-6 w-6" /></AuthBadge>
-              <AuthTitle>
-                Vous y êtes
-              </AuthTitle>
-              <p className="mb-5 max-w-[42ch] text-[15.5px] text-[#6b7686]">
-                Souhaitez-vous définir un mot de passe ? Vous pourrez vous connecter directement,
-                sans passer par votre boîte mail.
-              </p>
-              <form onSubmit={handleSavePassword}>
-                <AuthField
-                  id="offer-password"
-                  label="Mot de passe"
-                  type="password"
-                  value={password}
-                  onChange={setPassword}
-                  autoComplete="new-password"
-                  icon={<Lock className="h-[18px] w-[18px]" />}
-                  required
-                />
-                <AuthField
-                  id="offer-password-confirm"
-                  label="Confirmer le mot de passe"
-                  type="password"
-                  value={confirmation}
-                  onChange={setConfirmation}
-                  autoComplete="new-password"
-                  icon={<Lock className="h-[18px] w-[18px]" />}
-                  required
-                />
-                <div className="mb-5 flex flex-col gap-1.5 rounded-[11px] bg-[#eaf6ee] px-4 py-3.5">
-                  <Rule ok={rules.hasMinLength} label="Au moins 8 caractères" />
-                  <Rule ok={rules.hasUppercase && rules.hasLowercase} label="Une majuscule et une minuscule" />
-                  <Rule ok={rules.hasNumber} label="Un chiffre" />
-                  <Rule ok={rules.hasSpecialChar} label="Un caractère spécial" />
-                  <Rule ok={matches} label="Les deux saisies correspondent" />
-                </div>
-                {errorMsg && <p className="mb-4 text-sm text-destructive">{errorMsg}</p>}
-                <AuthButton disabled={saving || !rules.isValid || !matches}>
-                  {saving ? <Spinner /> : "Enregistrer et continuer"}
-                </AuthButton>
-              </form>
-              <button
-                type="button"
-                onClick={goToSpace}
-                className="mt-4 block w-full text-center text-[15px] underline underline-offset-[3px] text-[#6b7686]"
-              >
-                Plus tard, accéder directement à ma formation
-              </button>
-              <AuthSupportLine />
-            </>
-          }
-          right={
-            <AuthInfoPanel
-              items={[
-                {
-                  icon: <Mail className="h-[21px] w-[21px]" />,
-                  title: "Le mot de passe est facultatif",
-                  text: "Vous pouvez toujours vous connecter avec un lien reçu par email, autant de fois que vous le souhaitez.",
-                },
-                {
-                  icon: <ShieldCheck className="h-[21px] w-[21px]" />,
-                  title: "Plus rapide au quotidien",
-                  text: "Avec un mot de passe, vous entrez sans quitter la page de connexion.",
-                },
-              ]}
-            />
-          }
+      <AuthShell>
+        <PasswordCreationCard
+          onDone={async () => {
+            await refresh();
+            goToSpace();
+          }}
         />
       </AuthShell>
     );
@@ -311,16 +227,5 @@ export default function ConnexionLien() {
         </button>
       </AuthCard>
     </AuthShell>
-  );
-}
-
-function Rule({ ok, label }: { ok: boolean; label: string }) {
-  return (
-    <div className={`flex items-center gap-2.5 text-[14.5px] ${ok ? "text-[#1a2230]" : "text-[#6b7686]"}`}>
-      {ok
-        ? <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-[#3f9c62]" />
-        : <Circle className="h-[18px] w-[18px] shrink-0 text-[#9aa3b0]" />}
-      {label}
-    </div>
   );
 }

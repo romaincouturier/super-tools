@@ -1,17 +1,14 @@
 # Roadmap
 
-- [ ] Landing publique Academy SuperTilt : refonte, parcours gratuit et sélection éditoriale
-- [ ] Mail d'attente Echo aux clients de la colonne "Reçues" (proposition rédigée, envoi à valider)
-- [x] Sentry JAVASCRIPT-REACT-P : upload .pptx dans la médiathèque — refus explicite (415) + message clair côté UI (bucket `media` limité aux images/vidéos/audio/PDF)
-- [x] Anna (annaivacheff@gmail.com) : contenus intacts (2 publications, 1 travail, 1 commentaire, 2 réactions) ; visibilité rétablie via les policies de lecture communauté
-- [x] Convocations J-7 non programmées : rattrapage via `reconcile-welcome-emails` (appelé à la mise à jour de `start_date` et par le cron `process-scheduled-emails`). Cas Agirc-ARRCO corrigé (7 convocations programmées au 01/10).
-- [x] Icône avion : `needs_survey_status = programme` affichait "Convocation envoyée" (corrigé : "Convocation programmée")
-- [x] Sentry JAVASCRIPT-REACT-F : parcours TED interrompu par un 429 (2 avis sur 58) — backoff/reprise paginée ajouté dans `walkTedPages` et `ted-sync`
-- [x] Monitoring : `get_course_training_sessions_admin` appelait `is_admin()` (0 arg) inexistant → corrigé en `is_admin(auth.uid())`
-- [x] Monitoring : prévisualisation email alignée sur le rendu réel par type de modèle (escaped / puces / HTML brut)
-- [x] Suppression d'un compte apprenant : déjà disponible sur /lms/apprenants (edge `manage-learner-account`, admin uniquement)
-- [x] Dette technique : 4 ratchets ramenés à la baseline + `CREATE POLICY` rendu idempotent → check-rules 65/65
-- [x] MCP LMS : empreinte de version unifiée (fonction SQL `lms_lesson_fingerprint`) — apply_lesson_restructure ne rejette plus les empreintes valides
-- [ ] AI4Product : deux liens Meet différents (lives vs lieu de la formation) — attente du lien de référence
-- [ ] AI4Product : envoyer le mail "contenu e-learning disponible" avec le lien e-learning (ai4product.supertilt.fr), pas le lien Notion des supports
-- [ ] Alléger les coûts IA : espacer l'analyse éditoriale (cron 10 min) et réduire le contexte relu
+## En cours
+- [ ] Mot de passe obligatoire à la première ouverture du lien apprenant (plan approuvé du 18/09)
+  - [x] Écran de création de mot de passe centré, conforme à la charte
+  - [ ] Suppression de la sortie « Plus tard » dans `ConnexionLien.tsx`
+  - [ ] Garde-fou pour les sessions déjà ouvertes sans mot de passe
+  - [ ] Réécriture des modèles d'email `elearning_magic_link_tu/vous`
+  - [ ] Renvoi du mail corrigé à Colette Nico
+
+## À faire
+- [ ] Colette voit « Bonjour Administrateur » en haut à droite de son espace apprenant
+- [ ] Nom et prénom absents de ses informations personnelles
+- [ ] Lien « Créer un compte gratuitement » de la page de connexion : mène à la landing au lieu de la création de compte

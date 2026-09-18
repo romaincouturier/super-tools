@@ -23,6 +23,8 @@ export type SessionState = {
   email: string | null;
   isStaff: boolean;
   mustChangePassword: boolean;
+  /** Faux uniquement si le serveur affirme qu'aucun mot de passe n'est défini. */
+  passwordSet: boolean;
   refresh: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -37,6 +39,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isStaff, setIsStaff] = useState(false);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [passwordSet, setPasswordSet] = useState(true);
   const mounted = useRef(true);
 
   const resolve = useCallback(async (nextUser: User | null) => {
@@ -45,6 +48,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setIsStaff(false);
       setMustChangePassword(false);
+      setPasswordSet(true);
       setStatus("anon");
       return;
     }
@@ -59,7 +63,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       fetchAccessLevel(nextUser.id),
       supabase
         .from("user_security_metadata")
-        .select("must_change_password")
+        .select("must_change_password, password_set")
         .eq("user_id", nextUser.id)
         .maybeSingle(),
     ]);
@@ -68,6 +72,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const resolved = level;
     setIsStaff(resolved === "staff");
     setMustChangePassword(security?.must_change_password === true);
+    // Seul un "faux" explicite bloque : une ligne absente ou illisible ne doit
+    // pas retenir sur l'écran de création de mot de passe (chapitre 8).
+    setPasswordSet(security?.password_set !== false);
     setStatus(resolved);
   }, []);
 
@@ -126,10 +133,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       email: user?.email?.toLowerCase() ?? null,
       isStaff,
       mustChangePassword,
+      passwordSet,
       refresh,
       signOut,
     }),
-    [status, user, isStaff, mustChangePassword, refresh, signOut],
+    [status, user, isStaff, mustChangePassword, passwordSet, refresh, signOut],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

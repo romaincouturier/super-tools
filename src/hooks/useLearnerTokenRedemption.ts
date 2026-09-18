@@ -8,7 +8,7 @@ export type RedemptionStage =
   | "unavailable"
   | "redeeming"
   | "connected"
-  | "password-offer"
+  | "password-required"
   | "other-session"
   | "expired"
   | "used"
@@ -67,8 +67,9 @@ export function useLearnerTokenRedemption() {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    // Premier accès sans mot de passe : on le propose, sans l'imposer (PR4).
-    setStage(security && security.password_set === false ? "password-offer" : "connected");
+    // Premier accès sans mot de passe : sa création est imposée avant l'entrée
+    // dans l'espace. Un accès durable sans mot de passe n'existe plus.
+    setStage(security && security.password_set === false ? "password-required" : "connected");
   }, []);
 
   /** L'utilisateur choisit de rester sur la session déjà ouverte. */

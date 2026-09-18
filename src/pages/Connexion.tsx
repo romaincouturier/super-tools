@@ -152,9 +152,9 @@ export default function Connexion() {
             </form>
             <p className="mt-5 text-[15px] text-[#6b7686]">
               Vous n'avez pas encore de compte&nbsp;?{" "}
-              <a href="/#formations" className="font-bold text-[#1a2230] underline underline-offset-[3px]">
+              <Link to="/academy/inscription" className="font-bold text-[#1a2230] underline underline-offset-[3px]">
                 Créer un compte gratuitement
-              </a>
+              </Link>
             </p>
           </>
         )}
@@ -231,12 +231,12 @@ export default function Connexion() {
               professionnelle. Sinon, créez un compte gratuit pour commencer.
             </Subtitle>
             <div className="flex flex-col gap-3">
-              <a
-                href="/#formations"
+              <Link
+                to="/academy/inscription"
                 className="flex h-14 w-full items-center justify-center rounded-[11px] bg-[#fdc500] text-base font-semibold text-[#1a2230] transition-colors hover:bg-[#ffd100] active:translate-y-px"
               >
                 Créer un compte gratuitement
-              </a>
+              </Link>
               <button type="button" onClick={backToEmail} className="text-[15px] underline underline-offset-[3px] text-[#6b7686]">
                 Essayer une autre adresse
               </button>

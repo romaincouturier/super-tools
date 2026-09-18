@@ -1223,11 +1223,16 @@ const NOTIF_PREFS: { key: keyof LearnerProfile & `email_notif_${string}`; label:
 function CompteView({
   email,
   profile,
+  fallbackFirstName = "",
+  fallbackLastName = "",
   onNav,
   onLogout,
 }: {
   email: string;
   profile: LearnerProfile | null | undefined;
+  /** Nom porté par l'inscription, quand la fiche de profil est encore vide. */
+  fallbackFirstName?: string;
+  fallbackLastName?: string;
   onNav: (s: NavSection) => void;
   onLogout: () => void;
 }) {
@@ -1235,8 +1240,8 @@ function CompteView({
   const upsert = useUpsertLearnerProfile();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [firstName, setFirstName] = useState(profile?.first_name ?? "");
-  const [lastName, setLastName] = useState(profile?.last_name ?? "");
+  const [firstName, setFirstName] = useState(profile?.first_name ?? fallbackFirstName);
+  const [lastName, setLastName] = useState(profile?.last_name ?? fallbackLastName);
   const [photoUrl, setPhotoUrl] = useState(profile?.photo_url ?? "");
   const [uploading, setUploading] = useState(false);
 
@@ -1252,8 +1257,10 @@ function CompteView({
   const [sendingReset, setSendingReset] = useState(false);
 
   useEffect(() => {
-    setFirstName(profile?.first_name ?? "");
-    setLastName(profile?.last_name ?? "");
+    // Une fiche encore vide reprend le nom de l'inscription : la personne ne
+    // découvre pas des champs vides alors que nous connaissons son nom.
+    setFirstName(profile?.first_name?.trim() || fallbackFirstName);
+    setLastName(profile?.last_name?.trim() || fallbackLastName);
     setPhotoUrl(profile?.photo_url ?? "");
     setNotifs({
       email_notif_work_reply: profile?.email_notif_work_reply ?? true,
@@ -1261,7 +1268,7 @@ function CompteView({
       email_notif_live: profile?.email_notif_live ?? true,
       email_notif_important: profile?.email_notif_important ?? true,
     });
-  }, [profile]);
+  }, [profile, fallbackFirstName, fallbackLastName]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -2204,7 +2211,14 @@ export default function LearnerPortal() {
               <AideView email={data.email} mainTraining={mainTraining} onNav={handleNav} />
             )}
             {activeSection === "compte" && (
-              <CompteView email={data.email} profile={learnerProfile} onNav={handleNav} onLogout={handleLogout} />
+              <CompteView
+                email={data.email}
+                profile={learnerProfile}
+                fallbackFirstName={data.trainings[0]?.first_name ?? ""}
+                fallbackLastName={data.trainings[0]?.last_name ?? ""}
+                onNav={handleNav}
+                onLogout={handleLogout}
+              />
             )}
           </div>
         </div>
