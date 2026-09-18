@@ -19,14 +19,14 @@ export function AuthShell({
   onBack?: () => void;
 }) {
   return (
-    <div className="flex min-h-screen flex-col bg-[#f5f6f7] text-[#1a2230]">
-      <header className="flex flex-wrap items-center gap-5 border-b border-[#eceef1] bg-white px-5 py-4 sm:px-10">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <header className="flex flex-wrap items-center gap-5 border-b bg-card px-5 py-4 sm:px-10">
         <SupertiltLogo className="h-7 sm:h-8" />
         {onBack ? (
           <button
             type="button"
             onClick={onBack}
-            className="ml-auto flex items-center gap-2.5 text-[15px] text-[#1a2230] hover:text-black"
+            className="ml-auto flex items-center gap-2.5 text-[15px] text-foreground hover:opacity-70"
           >
             <ArrowLeft className="h-[19px] w-[19px]" />
             {backLabel}
@@ -34,7 +34,7 @@ export function AuthShell({
         ) : (
           <a
             href={backHref}
-            className="ml-auto flex items-center gap-2.5 text-[15px] text-[#1a2230] hover:text-black"
+            className="ml-auto flex items-center gap-2.5 text-[15px] text-foreground hover:opacity-70"
           >
             <ArrowLeft className="h-[19px] w-[19px]" />
             {backLabel}
@@ -53,7 +53,7 @@ export function AuthShell({
 /** Carte simple, écran de connexion. */
 export function AuthCard({ children }: { children: ReactNode }) {
   return (
-    <div className="relative z-10 w-full max-w-[660px] rounded-[22px] bg-white px-7 pb-10 pt-12 text-center shadow-[0_1px_2px_rgba(26,34,48,.04),0_12px_40px_rgba(26,34,48,.06)] sm:px-16 sm:pt-14">
+    <div className="relative z-10 w-full max-w-[660px] rounded-[22px] bg-card px-7 pb-10 pt-12 text-center shadow-[0_1px_2px_rgba(26,34,48,.04),0_12px_40px_rgba(26,34,48,.06)] sm:px-16 sm:pt-14">
       {children}
     </div>
   );
@@ -62,10 +62,10 @@ export function AuthCard({ children }: { children: ReactNode }) {
 /** Carte deux colonnes : formulaire à gauche, panneau d'aide à droite. */
 export function AuthSplitCard({ left, right }: { left: ReactNode; right: ReactNode }) {
   return (
-    <div className="relative z-10 grid w-full max-w-[1240px] grid-cols-1 rounded-[22px] bg-white shadow-[0_1px_2px_rgba(26,34,48,.04),0_12px_40px_rgba(26,34,48,.06)] lg:grid-cols-[1fr_1px_1fr]">
+    <div className="relative z-10 grid w-full max-w-[1240px] grid-cols-1 rounded-[22px] bg-card shadow-[0_1px_2px_rgba(26,34,48,.04),0_12px_40px_rgba(26,34,48,.06)] lg:grid-cols-[1fr_1px_1fr]">
       <div className="px-8 pb-10 pt-12 sm:px-14">{left}</div>
-      <div className="hidden bg-[#eceef1] lg:block" />
-      <div className="flex flex-col gap-8 border-t border-[#eceef1] px-8 pb-11 pt-10 sm:px-14 lg:border-t-0">
+      <div className="hidden bg-border lg:block" />
+      <div className="flex flex-col gap-8 border-t px-8 pb-11 pt-10 sm:px-14 lg:border-t-0">
         {right}
       </div>
     </div>
@@ -75,7 +75,7 @@ export function AuthSplitCard({ left, right }: { left: ReactNode; right: ReactNo
 /** Pastille ronde crème portant une icône. */
 export function AuthBadge({ children }: { children: ReactNode }) {
   return (
-    <div className="mb-6 flex h-[54px] w-[54px] items-center justify-center rounded-full bg-[#fdf6e4] text-[#1a2230]">
+    <div className="mb-6 flex h-[54px] w-[54px] items-center justify-center rounded-full bg-primary/10 text-foreground">
       {children}
     </div>
   );
@@ -88,18 +88,18 @@ export function AuthInfoPanel({
   items: { icon: ReactNode; title: string; text: string }[];
 }) {
   return (
-    <div className="rounded-2xl bg-[#fdf8ec] px-6 py-1.5">
+    <div className="rounded-2xl bg-primary/10 px-6 py-1.5">
       {items.map((item, index) => (
         <div
           key={item.title}
-          className={`flex gap-4 py-6 ${index > 0 ? "border-t border-[rgba(26,34,48,.07)]" : ""}`}
+          className={`flex gap-4 py-6 ${index > 0 ? "border-t border-foreground/10" : ""}`}
         >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#fdf6e4] text-[#1a2230]">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-foreground">
             {item.icon}
           </div>
           <div>
             <h3 className="mb-1 text-[15.5px] font-semibold">{item.title}</h3>
-            <p className="text-[14.5px] leading-6 text-[#6b7686]">{item.text}</p>
+            <p className="text-[14.5px] leading-6 text-muted-foreground">{item.text}</p>
           </div>
         </div>
       ))}
@@ -123,7 +123,7 @@ export function AuthTitle({ children }: { children: ReactNode }) {
 /** Pied d'écran : contact support, présent sur tous les écrans de connexion. */
 export function AuthSupportLine() {
   return (
-    <div className="mt-6 flex items-center gap-3 border-t border-[#eceef1] pt-6 text-[14.5px] text-[#6b7686]">
+    <div className="mt-6 flex items-center gap-3 border-t pt-6 text-[14.5px] text-muted-foreground">
       Besoin d'aide ? Écrivez-nous à{" "}
       <a href="mailto:contact@supertilt.fr" className="underline underline-offset-[3px]">
         contact@supertilt.fr

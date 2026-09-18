@@ -62,7 +62,7 @@ export default function ConnexionReinitialisation() {
 
   if (stage === "checking") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f5f6f7]">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Spinner size="lg" className="text-primary" />
       </div>
     );
@@ -78,7 +78,7 @@ export default function ConnexionReinitialisation() {
               <AuthTitle>
                 Ce lien a expiré
               </AuthTitle>
-              <p className="mb-7 max-w-[42ch] text-[15.5px] text-[#6b7686]">
+              <p className="mb-7 max-w-[42ch] text-[15.5px] text-muted-foreground">
                 Les liens de réinitialisation sont valables 1 heure et ne fonctionnent qu'une fois.
                 Demandez-en un nouveau, nous vous l'envoyons tout de suite.
               </p>
@@ -111,7 +111,7 @@ export default function ConnexionReinitialisation() {
             <AuthTitle>
               Nouveau mot de passe
             </AuthTitle>
-            <p className="mb-5 max-w-[42ch] text-[15.5px] text-[#6b7686]">
+            <p className="mb-5 max-w-[42ch] text-[15.5px] text-muted-foreground">
               Choisissez un nouveau mot de passe pour sécuriser votre compte.
             </p>
 
@@ -138,7 +138,7 @@ export default function ConnexionReinitialisation() {
                 required
               />
 
-              <div className="mb-5 flex flex-col gap-1.5 rounded-[11px] bg-[#eaf6ee] px-4 py-3.5">
+              <div className="mb-5 flex flex-col gap-1.5 rounded-[11px] bg-primary/10 px-4 py-3.5">
                 <Rule ok={rules.hasMinLength} label="Au moins 8 caractères" />
                 <Rule ok={rules.hasUppercase && rules.hasLowercase} label="Une majuscule et une minuscule" />
                 <Rule ok={rules.hasNumber} label="Un chiffre" />
@@ -179,10 +179,10 @@ export default function ConnexionReinitialisation() {
 
 function Rule({ ok, label }: { ok: boolean; label: string }) {
   return (
-    <div className={`flex items-center gap-2.5 text-[14.5px] ${ok ? "text-[#1a2230]" : "text-[#6b7686]"}`}>
+    <div className={`flex items-center gap-2.5 text-[14.5px] ${ok ? "text-foreground" : "text-muted-foreground"}`}>
       {ok
-        ? <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-[#3f9c62]" />
-        : <Circle className="h-[18px] w-[18px] shrink-0 text-[#9aa3b0]" />}
+        ? <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-primary" />
+        : <Circle className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />}
       {label}
     </div>
   );

@@ -29,7 +29,7 @@ export default function ConnexionDefinirMotDePasse() {
 
   if (status === "loading" || status === "anon" || passwordSet) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f5f6f7]">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Spinner size="lg" className="text-primary" />
       </div>
     );

@@ -45,7 +45,7 @@ export function PasswordCreationCard({ onDone }: { onDone: () => void }) {
           <KeyRound className="h-6 w-6" />
         </AuthBadge>
         <AuthTitle>Dernière étape : votre mot de passe</AuthTitle>
-        <p className="mb-8 max-w-[46ch] text-base text-[#6b7686]">
+        <p className="mb-8 max-w-[46ch] text-base text-muted-foreground">
           Choisissez le mot de passe qui protégera votre espace apprenant. Vous vous connecterez
           ensuite directement, sans passer par votre boîte mail.
         </p>
@@ -73,7 +73,7 @@ export function PasswordCreationCard({ onDone }: { onDone: () => void }) {
           icon={<Lock className="h-[18px] w-[18px]" />}
           required
         />
-        <div className="mb-5 flex flex-col gap-1.5 rounded-[11px] bg-[#fdf8ec] px-4 py-3.5">
+        <div className="mb-5 flex flex-col gap-1.5 rounded-[11px] bg-primary/10 px-4 py-3.5">
           <Rule ok={rules.hasMinLength} label="Au moins 8 caractères" />
           <Rule ok={rules.hasUppercase && rules.hasLowercase} label="Une majuscule et une minuscule" />
           <Rule ok={rules.hasNumber} label="Un chiffre" />
@@ -87,7 +87,7 @@ export function PasswordCreationCard({ onDone }: { onDone: () => void }) {
       </form>
 
       <div className="mx-auto w-full max-w-[420px]">
-        <div className="mt-6 flex items-center justify-center gap-2.5 text-[14.5px] text-[#9aa3b0]">
+        <div className="mt-6 flex items-center justify-center gap-2.5 text-[14.5px] text-muted-foreground">
           <ShieldCheck className="h-[18px] w-[18px]" />
           Connexion sécurisée
         </div>
@@ -99,10 +99,10 @@ export function PasswordCreationCard({ onDone }: { onDone: () => void }) {
 
 function Rule({ ok, label }: { ok: boolean; label: string }) {
   return (
-    <div className={`flex items-center gap-2.5 text-[14.5px] ${ok ? "text-[#1a2230]" : "text-[#6b7686]"}`}>
+    <div className={`flex items-center gap-2.5 text-[14.5px] ${ok ? "text-foreground" : "text-muted-foreground"}`}>
       {ok
-        ? <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-[#3f9c62]" />
-        : <Circle className="h-[18px] w-[18px] shrink-0 text-[#9aa3b0]" />}
+        ? <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-primary" />
+        : <Circle className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />}
       {label}
     </div>
   );
