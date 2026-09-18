@@ -57,7 +57,7 @@ serve(async (req) => {
     const { data: training, error: tErr } = await supabase
       .from("trainings")
       .select(
-        "id, training_name, format_formation, supports_url, supports_lms_course_id, sponsor_formal_address, trainer_id",
+        "id, training_name, format_formation, supports_url, supports_lms_course_id, participants_formal_address, trainer_id",
       )
       .eq("id", trainingId)
       .maybeSingle();
@@ -121,7 +121,10 @@ serve(async (req) => {
       }
     }
 
-    const templateType = `elearning_available_${tuVousSuffix(training.sponsor_formal_address)}`;
+    // Mail adressé aux participants et au formateur : le registre suit le réglage
+    // participants, pas celui du commanditaire.
+    const templateType = `elearning_available_${tuVousSuffix(training.participants_formal_address)}`;
+
 
     const results: { email: string; status: string; error?: string }[] = [];
 

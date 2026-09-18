@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase, createLearnerClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { createLearnerClient } from "@/integrations/supabase/learner-client";
 import type { Database } from "@/integrations/supabase/types";
 
 type Tables = Database["public"]["Tables"];

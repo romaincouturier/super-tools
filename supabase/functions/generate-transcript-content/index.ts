@@ -165,31 +165,55 @@ serve(async (req) => {
       },
     };
 
-    const anthropicResp = await fetch(ANTHROPIC_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 32000,
-        system: promptCfg.system_prompt,
-        tools: [tool],
-        tool_choice: { type: "tool", name: "propose_content" },
-        messages: [{ role: "user", content: userPrompt }],
-      }),
+    // Anthropic renvoie régulièrement 429 / 529 (overload) sur des prompts longs.
+    // Trois tentatives avec backoff évitent de faire échouer l'utilisateur pour
+    // une indisponibilité passagère ; les erreurs 4xx métier ne sont pas retentées.
+    const requestBody = JSON.stringify({
+      model,
+      max_tokens: 32000,
+      system: promptCfg.system_prompt,
+      tools: [tool],
+      tool_choice: { type: "tool", name: "propose_content" },
+      messages: [{ role: "user", content: userPrompt }],
     });
 
-    if (!anthropicResp.ok) {
-      const errText = await anthropicResp.text();
-      console.error("Anthropic error", anthropicResp.status, errText);
-      return new Response(JSON.stringify({ error: "Erreur Anthropic", details: errText }), {
+    let anthropicResp: Response | null = null;
+    let lastErrText = "";
+    for (let attempt = 0; attempt < 3; attempt++) {
+      anthropicResp = await fetch(ANTHROPIC_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": anthropicKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: requestBody,
+      });
+      if (anthropicResp.ok) break;
+
+      lastErrText = await anthropicResp.text();
+      const retryable = anthropicResp.status === 429 || anthropicResp.status >= 500;
+      console.error("Anthropic error", anthropicResp.status, lastErrText, "attempt", attempt + 1);
+      if (!retryable || attempt === 2) break;
+
+      const retryAfter = Number(anthropicResp.headers.get("retry-after"));
+      const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+        ? Math.min(retryAfter * 1000, 10000)
+        : 1000 * Math.pow(2, attempt);
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+
+    if (!anthropicResp || !anthropicResp.ok) {
+      const status = anthropicResp?.status ?? 0;
+      const friendly = status === 429 || status >= 500
+        ? "Le service d'IA est momentanément indisponible. Réessayez dans quelques instants."
+        : "La génération a été refusée par le service d'IA. Vérifiez le modèle configuré dans les paramètres.";
+      return new Response(JSON.stringify({ error: friendly, details: lastErrText }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const data = await anthropicResp.json();
     console.log("Anthropic stop_reason:", data.stop_reason, "usage:", data.usage);

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, createLearnerClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { createLearnerClient } from "@/integrations/supabase/learner-client";
 import { uploadDepositFile, createDeposit } from "@/services/lms-work-deposit";
 
 // Dépôts de travaux de l'apprenant
@@ -120,7 +121,7 @@ export function useToggleDepositReaction(learnerEmail: string | null) {
   return useMutation({
     mutationFn: async ({ depositId, iReacted }: { depositId: string; iReacted: boolean }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
-      const { createLearnerClient } = await import("@/integrations/supabase/client");
+      const { createLearnerClient } = await import("@/integrations/supabase/learner-client");
       const c = createLearnerClient(learnerEmail) as any;
       if (iReacted) {
         const { error } = await c.from("lms_deposit_reactions")

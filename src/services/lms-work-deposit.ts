@@ -9,7 +9,8 @@
  * lms_deposit_feedback) are not yet in the generated Database type, so
  * the from() calls are cast at this boundary.
  */
-import { supabase, createLearnerClient } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { createLearnerClient } from "@/integrations/supabase/learner-client";
 import { resolveContentType } from "@/lib/file-utils";
 import type {
   WorkDeposit,

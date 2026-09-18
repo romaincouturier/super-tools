@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createLearnerClient } from "@/integrations/supabase/client";
+import { createLearnerClient } from "@/integrations/supabase/learner-client";
 
 export interface LearnerNotification {
   id: string;
