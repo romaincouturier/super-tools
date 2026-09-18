@@ -894,6 +894,170 @@ export async function saveMissionDocument(
   });
 }
 
+// ── Activités de mission (création / mise à jour) ────────────
+
+const DURATION_TYPES = ["hours", "days", "half_days"];
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export type ActivityInput = {
+  description?: string;
+  activity_date?: string;
+  duration?: number;
+  duration_type?: string;
+  billable_amount?: number | null;
+  is_billed?: boolean;
+  invoice_number?: string | null;
+  notes?: string | null;
+};
+
+const ACTIVITY_COLUMNS =
+  "id, mission_id, activity_date, description, duration, duration_type, billable_amount, is_billed, invoice_number, notes";
+
+function normalizeActivityFields(input: ActivityInput): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  if (input.description !== undefined) {
+    const d = String(input.description).trim();
+    if (!d) throw new Error("description ne peut pas être vide");
+    patch.description = d;
+  }
+  if (input.activity_date !== undefined) {
+    const date = String(input.activity_date).trim();
+    if (!ISO_DATE_RE.test(date)) throw new Error("activity_date doit être au format YYYY-MM-DD");
+    patch.activity_date = date;
+  }
+  if (input.duration !== undefined) {
+    const n = Number(input.duration);
+    if (!Number.isFinite(n) || n < 0) throw new Error("duration doit être un nombre positif ou zéro");
+    patch.duration = n;
+  }
+  if (input.duration_type !== undefined) {
+    const t = String(input.duration_type);
+    if (!DURATION_TYPES.includes(t)) {
+      throw new Error(`duration_type doit être l'un de : ${DURATION_TYPES.join(", ")}`);
+    }
+    patch.duration_type = t;
+  }
+  if (input.billable_amount !== undefined) {
+    if (input.billable_amount === null) patch.billable_amount = null;
+    else {
+      const n = Number(input.billable_amount);
+      if (!Number.isFinite(n) || n < 0) throw new Error("billable_amount doit être un nombre positif");
+      patch.billable_amount = n;
+    }
+  }
+  if (input.is_billed !== undefined) patch.is_billed = !!input.is_billed;
+  if (input.invoice_number !== undefined) {
+    patch.invoice_number = input.invoice_number === null ? null : String(input.invoice_number).trim() || null;
+  }
+  if (input.notes !== undefined) {
+    patch.notes = input.notes === null ? null : String(input.notes);
+  }
+  return patch;
+}
+
+/**
+ * Crée UNE activité (jour ou heures travaillées) dans le journal d'une mission.
+ * Écriture additive : aucune ligne existante n'est touchée.
+ */
+export async function saveMissionActivity(
+  supabase: Supabase,
+  missionId: string,
+  input: ActivityInput,
+  audit: AuditFn,
+): Promise<string> {
+  if (!UUID_RE.test((missionId || "").trim())) {
+    throw new Error("mission_id doit être un UUID (utiliser get_mission_dossier pour le trouver)");
+  }
+  if (!input.description || !String(input.description).trim()) {
+    throw new Error("description est obligatoire");
+  }
+  if (!input.activity_date) throw new Error("activity_date est obligatoire (YYYY-MM-DD)");
+
+  const { data: mission } = await supabase
+    .from("missions")
+    .select("id, title")
+    .eq("id", missionId.trim())
+    .maybeSingle();
+  if (!mission) throw new Error("Mission introuvable");
+
+  const row = {
+    mission_id: mission.id,
+    duration_type: "hours",
+    duration: 0,
+    is_billed: false,
+    ...normalizeActivityFields(input),
+  };
+
+  await audit(
+    `save_mission_activity sur ${mission.title}: ${String(row.activity_date)} — ${String(row.description).slice(0, 120)}`,
+  );
+
+  const { data: created, error } = await supabase
+    .from("mission_activities")
+    .insert(row)
+    .select(ACTIVITY_COLUMNS)
+    .single();
+  if (error) throw new Error(error.message);
+
+  return JSON.stringify({
+    saved: true,
+    created: true,
+    activity: created,
+    mission: { id: mission.id, title: mission.title },
+    hint:
+      "Activité ajoutée au journal de la mission. get_mission_dossier la liste avec son id, " +
+      "update_mission_activity permet de la corriger.",
+  });
+}
+
+/**
+ * Met à jour UNE activité existante, champ par champ. Seuls les champs fournis
+ * sont modifiés ; aucune suppression n'est possible.
+ */
+export async function updateMissionActivity(
+  supabase: Supabase,
+  activityId: string,
+  input: ActivityInput,
+  audit: AuditFn,
+): Promise<string> {
+  if (!UUID_RE.test((activityId || "").trim())) {
+    throw new Error("activity_id doit être un UUID (get_mission_dossier liste les activités avec leur id)");
+  }
+
+  const { data: existing } = await supabase
+    .from("mission_activities")
+    .select(ACTIVITY_COLUMNS)
+    .eq("id", activityId.trim())
+    .maybeSingle();
+  if (!existing) throw new Error("Activité introuvable");
+
+  const patch = normalizeActivityFields(input);
+  if (Object.keys(patch).length === 0) {
+    throw new Error("Aucun champ à modifier : fournir au moins un champ (description, activity_date, duration, duration_type, billable_amount, is_billed, invoice_number, notes)");
+  }
+  patch.updated_at = new Date().toISOString();
+
+  await audit(
+    `update_mission_activity ${activityId}: ${Object.keys(patch).filter((k) => k !== "updated_at").join(", ")}`,
+  );
+
+  const { data: updated, error } = await supabase
+    .from("mission_activities")
+    .update(patch)
+    .eq("id", activityId.trim())
+    .select(ACTIVITY_COLUMNS)
+    .single();
+  if (error) throw new Error(error.message);
+
+  return JSON.stringify({
+    saved: true,
+    updated: true,
+    before: existing,
+    activity: updated,
+    hint: "Seuls les champs fournis ont été modifiés. Aucune activité ne peut être supprimée depuis ici.",
+  });
+}
+
 export async function getClientDossier(
   supabase: Supabase,
   client: string,
