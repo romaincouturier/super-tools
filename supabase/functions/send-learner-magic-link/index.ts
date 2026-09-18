@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
         `Votre espace apprenant est prêt, à l'adresse ${email}.`,
         `<p style="margin: 20px 0;"><a href="${accessLink}" style="display: inline-block; padding: 12px 24px; background-color: #ffd100; color: #101820; text-decoration: none; border-radius: 8px; font-weight: bold;">${cta}</a></p>`,
         `${validity} Passé ce délai, rendez-vous sur la page de connexion : nous vous en enverrons un nouveau en quelques secondes.`,
-        "Vous n'avez pas de mot de passe à créer, sauf si vous le souhaitez.",
+        "À l'ouverture du lien, vous créez votre mot de passe : c'est une étape obligatoire, elle protège votre espace. Ensuite, vous vous connectez avec votre adresse email et ce mot de passe.",
         "Vos données sont traitées par SuperTilt pour vous donner accès à votre formation. Pour demander la suppression de votre compte, écrivez à contact@supertilt.fr.",
       ].join("\n\n");
     }
