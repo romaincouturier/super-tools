@@ -48,6 +48,10 @@ const { mockFrom, setNextResult, mockUpsert } = vi.hoisted(() => {
   return { mockFrom, setNextResult, mockUpsert };
 });
 
+vi.mock("@/integrations/supabase/learner-client", () => ({
+  createLearnerClient: vi.fn(() => ({ from: mockFrom })),
+}));
+
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: mockFrom },
   createLearnerClient: vi.fn(() => ({ from: mockFrom })),
@@ -140,7 +144,7 @@ describe("useUpsertLearnerProfile", () => {
 
 describe("useLearnerProfile — security invariants", () => {
   it("uses createLearnerClient with the exact email (sets x-learner-email header)", async () => {
-    const { createLearnerClient } = await import("@/integrations/supabase/client");
+    const { createLearnerClient } = await import("@/integrations/supabase/learner-client");
     setNextResult({ data: null, error: null });
 
     renderHook(() => useLearnerProfile("test@example.com"), { wrapper });
