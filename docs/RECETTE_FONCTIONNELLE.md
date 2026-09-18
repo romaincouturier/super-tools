@@ -46,17 +46,23 @@ Si ça casse : c'est le parcours le plus emprunté. Arrêt immédiat.
 2. Ouvrir la page de connexion, saisir cette adresse, cliquer « Continuer ».
 3. Vous arrivez sur l'écran mot de passe, comme pour un compte qui en a un.
    Cliquer « Mot de passe oublié ».
-4. Relever l'email, cliquer le lien, choisir un mot de passe.
+4. Relever l'email, cliquer le lien.
+5. Vous arrivez sur un écran « Ouvrir mon espace », avec un seul bouton
+   « Continuer ». Cliquer.
+6. Choisir un mot de passe.
 
-Attendu : aucune session ne s'ouvre avant l'étape 4. Il n'existe plus de lien
-qui connecte tout seul. Une fois le mot de passe défini, vous arrivez dans
-l'espace apprenant, et une reconnexion ultérieure utilise ce mot de passe.
+Attendu : aucune session ne s'ouvre avant l'étape 6, et rien avant votre clic
+à l'étape 5 (RG-21 : le lien ne doit rien consommer tout seul, pour rester
+utilisable même si votre messagerie d'entreprise l'a ouvert avant vous). Une
+fois le mot de passe défini, vous arrivez dans l'espace apprenant, et une
+reconnexion ultérieure utilise ce mot de passe.
 
 Si ça casse : c'est le cœur de la démolition du lien magique. Arrêt immédiat.
 Notez à quelle étape : toujours aiguillé vers un ancien écran de lien, email
-non reçu, ou session ouverte avant l'étape 4 (régression grave, à signaler
+non reçu, écran « Ouvrir mon espace » absent (régression RG-21), ou session
+ouverte avant votre clic à l'étape 5 ou 6 (régression grave, à signaler
 immédiatement : plus aucun mécanisme ne doit ouvrir de session sans mot de
-passe saisi).
+passe saisi ni consommer un lien sans votre clic).
 
 ### 1.3 Un ancien lien magique ne mène plus à une impasse
 
@@ -95,11 +101,14 @@ porte de sortie visible : essayer une autre adresse, découvrir les formations,
 ### 2.1 Mot de passe oublié
 
 1. Page de connexion, adresse **A**, « Continuer », puis « Mot de passe oublié ».
-2. Valider, relever l'email, ouvrir le lien, choisir un nouveau mot de passe.
-3. Se reconnecter avec ce nouveau mot de passe.
+2. Valider, relever l'email, ouvrir le lien.
+3. Sur l'écran « Ouvrir mon espace », cliquer « Continuer », puis choisir un
+   nouveau mot de passe.
+4. Se reconnecter avec ce nouveau mot de passe.
 
-Attendu : l'email arrive, le lien mène à un écran de choix de mot de passe avec
-les règles affichées, et la nouvelle connexion fonctionne.
+Attendu : l'email arrive, le lien mène d'abord à « Ouvrir mon espace » (RG-21,
+voir test 1.2), puis à l'écran de choix de mot de passe avec les règles
+affichées, et la nouvelle connexion fonctionne.
 
 ### 2.2 Un mot de passe est désormais nécessaire pour entrer (mis à jour le 2026-09-18)
 

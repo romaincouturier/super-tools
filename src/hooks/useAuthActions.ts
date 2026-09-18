@@ -57,13 +57,25 @@ export function useAuthActions() {
 /**
  * État du lien de réinitialisation : il ouvre une session de courte durée.
  * Sans session, le lien est expiré ou a déjà servi.
+ *
+ * RG-21 : un lien qui consomme son jeton dès le chargement de la page reste
+ * utilisable si un filtre de sécurité de messagerie l'ouvre avant l'apprenant
+ * (`docs/SPEC_CONNEXION_APPRENANT.md`, chapitre 19). L'ancien format `#access_
+ * token=...&type=recovery` (lien Supabase natif, action_link) le consomme au
+ * chargement : c'est le cas `stage === "ready"` directement, conservé pour les
+ * emails déjà envoyés. Le format `?token_hash=...&type=recovery` (construit
+ * par `learnerAccessLink` et `send-password-reset` depuis `hashed_token`, sans
+ * jamais visiter `auth/v1/verify`) ne consomme rien avant `confirmRecovery`,
+ * appelée uniquement au clic sur "Continuer" (`stage === "confirm"`).
  */
 export function usePasswordRecoverySession() {
-  const [stage, setStage] = useState<"checking" | "ready" | "invalid">("checking");
+  const [stage, setStage] = useState<"checking" | "confirm" | "ready" | "invalid">("checking");
 
   useEffect(() => {
     let cancelled = false;
     const hashType = new URLSearchParams(window.location.hash.substring(1)).get("type");
+    const search = new URLSearchParams(window.location.search);
+    const pendingTokenHash = search.get("type") === "recovery" ? search.get("token_hash") : null;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" && !cancelled) setStage("ready");
@@ -71,11 +83,21 @@ export function usePasswordRecoverySession() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return;
-      setStage(session || hashType === "recovery" ? "ready" : "invalid");
+      if (session || hashType === "recovery") { setStage("ready"); return; }
+      setStage(pendingTokenHash ? "confirm" : "invalid");
     });
 
     return () => { cancelled = true; subscription.unsubscribe(); };
   }, []);
 
-  return stage;
+  /** Consomme le jeton, uniquement appelée depuis un clic de l'apprenant. */
+  const confirmRecovery = useCallback(async () => {
+    const tokenHash = new URLSearchParams(window.location.search).get("token_hash");
+    if (!tokenHash) { setStage("invalid"); return; }
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
+    // Succès : verifyOtp émet PASSWORD_RECOVERY, déjà écouté ci-dessus.
+    if (error) setStage("invalid");
+  }, []);
+
+  return { stage, confirmRecovery };
 }

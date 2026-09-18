@@ -8,7 +8,9 @@ const h = vi.hoisted(() => ({
   navigate: vi.fn(),
   updatePassword: vi.fn(),
   markPasswordChanged: vi.fn(),
+  confirmRecovery: vi.fn(),
   refresh: vi.fn(),
+  stage: "ready" as "ready" | "confirm" | "invalid",
   calls: [] as string[],
 }));
 
@@ -28,7 +30,7 @@ vi.mock("@/hooks/useAuthActions", () => ({
       return h.markPasswordChanged(...args);
     },
   }),
-  usePasswordRecoverySession: () => "ready",
+  usePasswordRecoverySession: () => ({ stage: h.stage, confirmRecovery: h.confirmRecovery }),
 }));
 
 vi.mock("@/hooks/useSession", () => ({
@@ -56,10 +58,24 @@ function renderPage() {
 describe("ConnexionReinitialisation", () => {
   beforeEach(() => {
     h.calls.length = 0;
+    h.stage = "ready";
     h.updatePassword.mockReset().mockResolvedValue(null);
     h.markPasswordChanged.mockReset().mockResolvedValue(undefined);
+    h.confirmRecovery.mockReset().mockResolvedValue(undefined);
     h.refresh.mockReset().mockResolvedValue(undefined);
     h.navigate.mockReset();
+  });
+
+  it("ne consomme le jeton qu'au clic, jamais au chargement de la page (RG-21)", async () => {
+    h.stage = "confirm";
+    renderPage();
+
+    expect(screen.getByRole("heading", { name: "Ouvrir mon espace" })).toBeInTheDocument();
+    expect(h.confirmRecovery).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+
+    await waitFor(() => expect(h.confirmRecovery).toHaveBeenCalledTimes(1));
   });
 
   it("marque le mot de passe comme défini après l'avoir enregistré", async () => {

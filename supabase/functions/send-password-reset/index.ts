@@ -69,16 +69,22 @@ serve(async (req: Request) => {
       );
     }
 
-    if (!data?.properties?.action_link) {
-      console.error("No action link generated");
+    if (!data?.properties?.hashed_token) {
+      console.error("No hashed token generated");
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé." 
+        JSON.stringify({
+          success: true,
+          message: "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé."
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // RG-21 : jamais l'action_link (auth/v1/verify) dans l'email — un GET sur
+    // cette URL consomme le jeton dès la requête, avant même que l'apprenant
+    // clique. On construit notre propre lien, porteur du seul token_hash ;
+    // ConnexionReinitialisation.tsx ne le consomme (verifyOtp) qu'au clic.
+    const resetLink = `${redirectUrl}?token_hash=${encodeURIComponent(data.properties.hashed_token)}&type=recovery`;
 
     // Get Signitic signature and BCC list
     const [signature, senderFrom, bccList] = await Promise.all([
@@ -95,7 +101,7 @@ serve(async (req: Request) => {
         <p>Bonjour,</p>
         <p>Vous avez demandé à réinitialiser votre mot de passe SuperTools.</p>
         <p>Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :</p>
-        ${emailButton("Réinitialiser mon mot de passe", data.properties.action_link)}
+        ${emailButton("Réinitialiser mon mot de passe", resetLink)}
         <p style="color: #666; font-size: 14px;">Ce lien expire dans 1 heure.</p>
         <p style="color: #666; font-size: 14px;">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
         ${signature}

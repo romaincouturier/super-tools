@@ -13,12 +13,22 @@ export default function ConnexionReinitialisation() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isStaff, mustChangePassword, refresh } = useSession();
-  const stage = usePasswordRecoverySession();
+  const { stage, confirmRecovery } = usePasswordRecoverySession();
   const { updatePassword, markPasswordChanged } = useAuthActions();
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // RG-21 : le jeton n'est consommé qu'à ce clic, jamais au chargement de la
+  // page — un filtre de sécurité de messagerie qui pré-ouvre l'email ne le
+  // brûle plus avant l'apprenant.
+  const handleConfirmRecovery = async () => {
+    setConfirming(true);
+    await confirmRecovery();
+    setConfirming(false);
+  };
 
   const rules = validatePassword(password);
   const matches = password.length > 0 && password === confirmation;
@@ -54,6 +64,40 @@ export default function ConnexionReinitialisation() {
       <div className="flex min-h-screen items-center justify-center bg-[#f5f6f7]">
         <Spinner size="lg" className="text-primary" />
       </div>
+    );
+  }
+
+  if (stage === "confirm") {
+    return (
+      <AuthShell backLabel="Retour à la connexion" onBack={() => navigate("/connexion")}>
+        <AuthSplitCard
+          left={
+            <>
+              <AuthBadge><KeyRound className="h-6 w-6" /></AuthBadge>
+              <AuthTitle>
+                Ouvrir mon espace
+              </AuthTitle>
+              <p className="mb-7 max-w-[42ch] text-[15.5px] text-[#6b7686]">
+                Pour votre sécurité, ce lien ne s'ouvre qu'à votre demande, pas au chargement de la
+                page.
+              </p>
+              <AuthButton type="button" onClick={handleConfirmRecovery} disabled={confirming}>
+                {confirming ? <Spinner /> : "Continuer"}
+              </AuthButton>
+              <AuthSupportLine />
+            </>
+          }
+          right={
+            <AuthInfoPanel
+              items={[{
+                icon: <ShieldCheck className="h-[21px] w-[21px]" />,
+                title: "Pourquoi cette étape ?",
+                text: "Certaines messageries ouvrent les liens avant vous pour vérifier qu'ils sont sûrs. Attendre votre clic évite qu'elles consomment le vôtre à votre place.",
+              }]}
+            />
+          }
+        />
+      </AuthShell>
     );
   }
 

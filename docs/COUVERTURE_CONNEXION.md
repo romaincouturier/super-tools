@@ -22,6 +22,8 @@ workflow `rls-tests` verts sur la PR.
 
 **Démolition du lien magique, 2026-09-18 (après l'exécution ci-dessus).** L'arbitrage Q1 est révisé (`docs/SPEC_CONNEXION_APPRENANT.md`, chapitre 12) : le lien magique est intégralement supprimé. Les preuves des lignes PR3, PR4, W3, W4, W5, W10, W12, RG-04, RG-05, RG-06 et de la section 4 (service de résolution) ci-dessous citent des tests qui ont disparu avec le mécanisme démoli ; elles sont corrigées dans les tableaux qui suivent, avec les noms de tests réellement en vigueur (2030 tests unitaires, 18 parcours Playwright, `rls-tests` vert sauf l'échec pré-existant et sans rapport documenté sur les PR #425 à #428). Le reste de ce document, écrit avant la démolition, garde sa valeur de trace historique.
 
+**Correctif RG-21, même jour.** La démolition avait rouvert la vulnérabilité au pré-clic (chapitre 19 de la spécification) : le lien de réinitialisation Supabase natif consommait son jeton dès une requête GET vers `auth/v1/verify`, avant tout clic de l'apprenant. Corrigé en construisant nos propres liens `token_hash` et en différant la consommation (`verifyOtp`) à un clic explicite. Voir la ligne RG-21 ci-dessous. 2041 tests unitaires après ce correctif.
+
 ---
 
 ## 1. Principes directeurs
@@ -80,7 +82,7 @@ workflow `rls-tests` verts sur la PR.
 | RG-18 | Pas de provisionnement sans adresse valide. | T | 3 tests `isUsableLearnerEmail` | Vert |
 | RG-19 | Changement d'adresse atomique. | T | 10 tests `change_learner_email`, dont `ne change rien quand il refuse` | Vert |
 | RG-20 | L'email reste dans le formulaire à l'étape mot de passe. | T | `un compte avec mot de passe mène à l'étape mot de passe` vérifie la valeur du champ | Vert |
-| RG-21 | Un lien pré-cliqué reste utilisable. | — | *Régression rouverte le 2026-09-18 (`docs/SPEC_CONNEXION_APPRENANT.md`, chapitre 19) : le test qui gardait cette règle a disparu avec le mécanisme démoli. Le lien de réinitialisation Supabase natif qui l'a remplacé consomme le jeton dès le chargement de la page (`usePasswordRecoverySession`, `src/hooks/useAuthActions.ts:61-81`), pas après une action de l'apprenant. Non tenue, à corriger.* | **Rouge** |
+| RG-21 | Un lien pré-cliqué reste utilisable. | T | *Rouverte puis refermée le 2026-09-18 (`docs/SPEC_CONNEXION_APPRENANT.md`, chapitre 19) : l'email ne porte plus l'`action_link` Supabase (qui consommait le jeton dès la requête GET vers `auth/v1/verify`), mais un `token_hash` que `usePasswordRecoverySession` n'échange (`verifyOtp`) qu'au clic sur "Ouvrir mon espace".* `usePasswordRecoverySession > nouveau format ?token_hash=...&type=recovery : attend la confirmation, ne consomme rien` (`useAuthActions.test.ts`), `ConnexionReinitialisation > ne consomme le jeton qu'au clic, jamais au chargement de la page (RG-21)` | Vert |
 | RG-22 | L'email d'activation informe de la création du compte. | L | Migration 20260915130000, modèles et texte de repli | Lu |
 | RG-23 | Comptes dormants signalés à trois ans. | T | 5 tests `list_dormant_learner_accounts` | Vert |
 | RG-24 | Journaux conservés 30 jours au plus. | T | `purge_identity_resolution_log > efface les traces de plus de 30 jours` | Vert |
@@ -124,10 +126,10 @@ par lecture, aucun en échec.
 ## Ce que cette revue dit honnêtement
 
 *Décompte figé au 2026-09-15, avant la démolition du lien magique. RG-04, RG-05
-et RG-06 sont retirées depuis (chapitre 3 ci-dessus), et RG-21 est passée de
-"Vert" à "Rouge" : ce sont 55 exigences restantes, une régression connue, pas
-58 exigences toutes tenues. Un nouveau décompte est à faire à la prochaine
-revue complète.*
+et RG-06 sont retirées depuis (chapitre 3 ci-dessus). RG-21 était passée de
+"Vert" à "Rouge" le temps de la démolition, puis corrigée le même jour (voir sa
+ligne ci-dessus) : ce sont 55 exigences restantes, toutes tenues à nouveau, pas
+58. Un nouveau décompte est à faire à la prochaine revue complète.*
 
 Décompte sur les 58 exigences des tableaux ci-dessus, principes, workflows,
 règles de gestion et service de résolution :
