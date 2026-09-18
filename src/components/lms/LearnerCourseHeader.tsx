@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { normalizeEmail } from "@/lib/stringUtils";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Bell, BookOpen, ChevronDown, HelpCircle, LogOut, Menu, Shield, Sparkles, User,
@@ -189,7 +190,7 @@ export function LearnerAccountMenu({
 
   const goToPortalSection = async (section: string) => {
     const slug = PORTAL_SECTION_SLUGS[section] ?? "tableau-de-bord";
-    let previewEmail = searchParams.get("preview_email") || learnerEmail;
+    let previewEmail = normalizeEmail(searchParams.get("preview_email")) ?? learnerEmail;
     if (isPreview && !previewEmail) {
       const { data: { user } } = await supabase.auth.getUser();
       previewEmail = user?.email ?? "";

@@ -43,13 +43,8 @@ const { mockFrom, mockRpc, setTableResult, clearResults } = vi.hoisted(() => {
   return { mockFrom, mockRpc, setTableResult, clearResults, mockClient };
 });
 
-vi.mock("@/integrations/supabase/learner-client", () => ({
-  createLearnerClient: vi.fn(() => ({ from: mockFrom, rpc: mockRpc })),
-}));
-
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: mockFrom, rpc: mockRpc },
-  createLearnerClient: vi.fn(() => ({ from: mockFrom, rpc: mockRpc })),
 }));
 
 function wrapper({ children }: { children: React.ReactNode }) {

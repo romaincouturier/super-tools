@@ -8,6 +8,15 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Sécurité
 
+### [058] SQL métier — une règle portée par une fonction SQL doit être jouée sur un vrai Postgres, pas relue
+- **Constat** : Revue de la refonte de connexion (15/09/2026). Sur 94 exigences de la spécification, 43 seulement étaient gardées par un test ; les 50 autres reposaient sur une lecture de code. La quasi-totalité de ces 50 vivait dans des fonctions `SECURITY DEFINER` : seuils de quota, atomicité du changement d'adresse, niveau d'accès d'un compte, interdiction de lire l'espace d'un tiers. Ces fonctions portent les règles les plus sensibles du produit et aucune n'était exécutée par la chaîne de tests. Une relecture attentive ne protège d'aucune régression : elle constate un état, elle ne le garde pas.
+- **Règle** : Toute fonction SQL qui porte une règle métier ou une règle d'accès doit être couverte par un test dans `supabase/tests/`. Le test charge la fonction **depuis son fichier de migration** (`readFunctionSql`), jamais une copie : sans cela le test valide un double, pas ce qui est livré. Le harnais tourne sur PGlite, un Postgres réel en mémoire, sans conteneur ni service externe ; le schéma `auth` de la plateforme est remplacé par un stub où le test choisit l'identité de l'appelant. Les cas à couvrir sont le chemin nominal, chaque refus, et le retour à l'état initial quand la fonction refuse.
+- **Vérification** : check [058] de `check-rules.sh` — chaque fonction nommée dans `scripts/sql-tested-functions.txt` doit apparaître dans au moins un fichier de `supabase/tests/`. Ajouter une fonction sensible à cette liste fait partie de la migration qui la crée.
+- **Fichiers de référence** : `supabase/tests/helpers/db.ts`, `supabase/tests/*.test.ts`, `scripts/sql-tested-functions.txt`, `docs/COUVERTURE_CONNEXION.md`
+- **Origine** : revue pas à pas de la spécification de connexion — 50 exigences sur 94 sans autre garde qu'une lecture
+- **Date** : 2026-09-15
+
+
 ### [044] RLS — une policy ne doit jamais lire `auth.users`, toujours passer par une fonction SECURITY DEFINER
 - **Constat** : 03/08/2026, module « Emails reçus » : une ligne existait bien dans `inbound_emails`, le webhook renvoyait 200, et la page `/emails` restait vide sans erreur visible. Cause : la policy `USING (EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'romain@supertilt.fr'))`. Le rôle `authenticated` n'a pas `SELECT` sur `auth.users` : PostgREST renvoie `403 / 42501 permission denied for table users`, le client React Query traite la réponse comme une liste vide et l'UI affiche l'état « aucun email ». Recensement sur la base réelle : 19 policies encore en place lisaient `auth.users` (`api_keys`, `api_request_logs`, `chatbot_knowledge_base`, `balance_sheets`, `breakeven_scenarios`, `cashflow_forecast`, `monthly_reports`) — toutes atteignables depuis l'app par un utilisateur `authenticated`, donc toutes productrices du même 403 silencieux. Aggravant : ces policies faisaient aussi un `EXISTS` direct sur `user_module_access`, dont les policies sont admin-only, donc le sous-`SELECT` renvoyait zéro ligne pour un non-admin même quand le droit existait.
 - **Règle** : Interdiction absolue de référencer `auth.users` (ou toute table du schéma `auth`) dans le `USING` ou le `WITH CHECK` d'une policy. Le contrôle de droits passe par une fonction `SECURITY DEFINER` existante : `public.is_admin(auth.uid())`, `public.is_staff_user()`, `public.has_module_access(auth.uid(), '<module>')`. Corollaire : ne pas non plus faire de sous-`SELECT` direct sur une table elle-même protégée par RLS (comme `user_module_access`) — la RLS de la table lue s'applique et produit un faux négatif silencieux. Corollaire [027] : jamais d'email hardcodé pour identifier l'admin.
@@ -410,6 +419,15 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Convention
 
+### [059] Adresse email en clef de jointure — toujours `normalizeEmail()` à la frontière, jamais `lower()` à la lecture
+- **Constat** : la progression e-learning est rangée sous une adresse en texte libre (`lms_progress.learner_email`), et la lecture est une égalité stricte (`useLmsQueries.ts:446`). Le player prenait `?email=` brut, sans normaliser. Trois autres portes d'entrée faisaient de même (`LmsCourseHomePage`, `LearnerPortal`, `LearnerCourseHeader`) pendant que `useLearnerIdentity` normalisait. Mesuré le 16/09/2026 : 0 ligne non minuscule sur les 8 tables clefées par adresse, donc l'invariant tenait par chance. Il ne tenait à rien : 121 policies RLS comparent `learner_email = get_learner_email()`, et cette fonction rend une valeur en minuscules. Une seule ligne écrite avec une majuscule devient invisible à son propriétaire, sans message d'erreur.
+- **Règle** : toute adresse qui entre dans l'application depuis l'extérieur (paramètre d'URL, formulaire, corps d'edge function, import tiers) passe par `normalizeEmail()` avant d'être stockée ou utilisée comme filtre. Côté edge functions, l'équivalent est `normalizeLearnerEmail()`. Ne jamais rattraper à la lecture avec un `lower()` sur la colonne : ça masque la mauvaise écriture et ça prive la requête de son index.
+- **Vérification** : checks [059] et [059b] de `check-rules.sh` — aucun `searchParams.get("email"|"preview_email"|"learner_email")` sans `normalizeEmail(`, et les deux normaliseurs (front et edge functions, qui ne peuvent pas partager de module) appliquent le même `trim().toLowerCase()`. Sonde périodique en base : `SELECT count(*) FROM lms_progress WHERE learner_email <> lower(learner_email)` et la même sur `lms_enrollments`, `lms_quiz_attempts`, `lms_assignment_submissions`, `lms_work_deposits`, `lms_messages`, `lms_forum_posts.author_email`, `practice_posts.author_email`. Tout résultat non nul est une régression.
+- **Fichiers de référence** : `src/lib/stringUtils.ts` (`normalizeEmail`), `supabase/functions/_shared/learner-email.ts` (`normalizeLearnerEmail`), `src/hooks/useLearnerIdentity.ts`
+- **Origine** : revue des impacts métier de la bascule de connexion apprenant. La question « es-tu certain des impacts ? » a mené à mesurer la base, et la mesure a révélé que l'invariant n'était garanti par rien.
+- **Date** : 2026-09-16
+
+
 ### [005] Overlays hover sur images — toujours promouvoir en couche GPU
 - **Constat** : Les vignettes de la galerie (`MediaGrid`, `EntityMediaManager`) ramaient au hover. Les overlays `transition-opacity` sur des images pleine résolution déclenchaient un repaint complet à chaque frame. Le `backdrop-blur-sm` sur les badges aggravait le problème.
 - **Règle** : Tout overlay avec `transition-opacity` sur une image doit avoir `will-change-[opacity]`. Les images sous l'overlay doivent avoir `will-change-transform`. Ne jamais utiliser `backdrop-blur` sur des éléments qui se superposent à des images dans une grille.
@@ -510,6 +528,15 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 - **Date** : 2026-03-21
 
 ## DX
+
+### [060] Rebase — comparer les inventaires de fichiers, jamais se fier au diff
+- **Constat** : 18/09/2026, rebase de la refonte de connexion sur 45 commits de `main`, neuf conflits d'import résolus. Après coup, `src/integrations/supabase/learner-client.ts` était présent dans l'arbre alors que la branche le supprime. Ni le diff, ni `typecheck`, ni les 2019 tests, ni le lint ne l'ont signalé : le module compile et plus personne ne l'importe. Livré tel quel, le client qui pose l'en-tête `x-learner-email` restait dans le code, ce qui vide de son sens tout le passage de l'identité au jeton. Premier diagnostic posé, et faux : « suppression perdue au rebase ». La comparaison d'inventaire a montré autre chose — `main` avait **recréé** le fichier la veille (commit `a9fded1`) pour mémoïser le client et arrêter un `429 over_request_rate_limit`. Ce n'était donc pas un accident de rebase mais un désaccord d'intention : la base corrigeait ce que la branche retire.
+- **Règle** : après tout rebase, comparer l'inventaire des fichiers d'avant et d'après, et non le diff. Trois anomalies à distinguer : un fichier de la branche qui a disparu, une suppression de la branche qui est revenue, et une suppression de la branche portant sur un fichier que la base vient de modifier. Les deux premières se rétablissent. La troisième se tranche, et la décision se motive dans la PR : la base et la branche ne peuvent pas avoir raison toutes les deux.
+- **Vérification** : `bash scripts/verif-rebase.sh [ref-avant-rebase] [base]` — sans argument, `ORIG_HEAD` et `origin/main`. Sortie vide = aucune anomalie, code 1 sinon. Check [060] de `check-rules.sh` : la skill `sync-and-pr` doit continuer de prescrire ce script, sinon l'étape disparaît de la procédure sans que personne le voie.
+- **Fichiers de référence** : `scripts/verif-rebase.sh`, `.claude/skills/sync-and-pr/SKILL.md` (étape 3ter)
+- **Origine** : rebase du 18/09/2026, suppression de `createLearnerClient` contredite par une recréation côté `main`
+- **Date** : 2026-09-18
+
 
 ### [012] Lovable scaffolding — auditer et supprimer le code mort après chaque génération
 - **Constat** : Lovable génère systématiquement du code scaffolding jamais utilisé : 13 composants UI Radix (hover-card, sidebar, menubar…), des wrappers à 1 import (ReviewSection.tsx), du CSS legacy (App.css), et des imports inutilisés (useTranslation dans Landing.tsx). Au total 1947 lignes mortes accumulées en quelques semaines de génération.

@@ -27,7 +27,9 @@ const { mockFrom, setNextResult, mockUpsert } = vi.hoisted(() => {
     );
   }
 
-  const mockUpsert = vi.fn().mockResolvedValue({ error: null });
+  // upsert() est chaîné avec .select().maybeSingle() dans le hook : le mock doit
+  // rendre la même chaîne, sinon il résout trop tôt.
+  const mockUpsert = vi.fn(() => makeChain());
   const mockFrom = vi.fn((_table: string) => {
     // Build a chain that also exposes `upsert` for the learner_profiles table.
     const p = Promise.resolve(nextResult);
@@ -48,13 +50,8 @@ const { mockFrom, setNextResult, mockUpsert } = vi.hoisted(() => {
   return { mockFrom, setNextResult, mockUpsert };
 });
 
-vi.mock("@/integrations/supabase/learner-client", () => ({
-  createLearnerClient: vi.fn(() => ({ from: mockFrom })),
-}));
-
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: mockFrom },
-  createLearnerClient: vi.fn(() => ({ from: mockFrom })),
 }));
 
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -65,7 +62,6 @@ function wrapper({ children }: { children: React.ReactNode }) {
 beforeEach(() => {
   vi.clearAllMocks();
   setNextResult({ data: null, error: null });
-  mockUpsert.mockResolvedValue({ error: null });
 });
 
 // ── useLearnerProfile ─────────────────────────────────────────────────────────
@@ -106,6 +102,7 @@ describe("useLearnerProfile", () => {
 
 describe("useUpsertLearnerProfile", () => {
   it("calls upsert on learner_profiles with lowercased email", async () => {
+    setNextResult({ data: { email: "alice@example.com" }, error: null });
     const { result } = renderHook(() => useUpsertLearnerProfile(), { wrapper });
 
     await act(async () => {
@@ -124,7 +121,8 @@ describe("useUpsertLearnerProfile", () => {
   });
 
   it("throws when upsert returns an error", async () => {
-    mockUpsert.mockResolvedValueOnce({ error: { message: "RLS violation" } });
+    // L'erreur remonte par la chaîne .select().maybeSingle(), pas par upsert().
+    setNextResult({ data: null, error: { message: "RLS violation" } });
     const { result } = renderHook(() => useUpsertLearnerProfile(), { wrapper });
 
     await expect(
@@ -137,21 +135,11 @@ describe("useUpsertLearnerProfile", () => {
 
 // ── Security: own-row restriction ────────────────────────────────────────────
 //
-// The RLS policy now uses get_learner_email() which reads x-learner-email from
-// the request header. The hook must always pass the email to createLearnerClient
-// so that the header is set, and the .eq("email", ...) call restricts the query
-// to the learner's own row at the application level too.
+// L'identité vient de la session : get_learner_email() lit le jeton et plus
+// aucun en-tête. Le hook doit malgré tout filtrer sur l'adresse de l'apprenant,
+// pour que la requête reste bornée à sa propre ligne côté application.
 
 describe("useLearnerProfile — security invariants", () => {
-  it("uses createLearnerClient with the exact email (sets x-learner-email header)", async () => {
-    const { createLearnerClient } = await import("@/integrations/supabase/learner-client");
-    setNextResult({ data: null, error: null });
-
-    renderHook(() => useLearnerProfile("test@example.com"), { wrapper });
-    await waitFor(() => {});
-
-    expect(createLearnerClient).toHaveBeenCalledWith("test@example.com");
-  });
 
   it("filters by the learner's email before hitting the DB (own-row)", async () => {
     // The hook calls .eq("email", email.toLowerCase()) which means even if RLS
@@ -165,6 +153,7 @@ describe("useLearnerProfile — security invariants", () => {
   });
 
   it("upsert always lowercases the email key (consistent with RLS check on lower(email))", async () => {
+    setNextResult({ data: { email: "upper@case.com" }, error: null });
     const { result } = renderHook(() => useUpsertLearnerProfile(), { wrapper });
 
     await act(async () => {
@@ -261,6 +250,6 @@ describe("uploadLearnerPhoto", () => {
       }),
     );
 
-    await expect(uploadLearnerPhoto(testFile, testEmail)).rejects.toThrow("Erreur inconnue");
+    await expect(uploadLearnerPhoto(testFile, testEmail)).rejects.toThrow("Erreur lors de l'envoi de la photo");
   });
 });

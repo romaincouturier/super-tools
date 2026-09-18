@@ -28,3 +28,6 @@ vhd_report_attachments
 # lu quoi ; sorti de la base, il devient lui-même une donnée à protéger sans
 # rien apporter à une restauration.
 vhd_narrative_access
+# Journal de résolution d'identité : données éphémères (purge à 30 jours),
+# empreintes d'adresses et IP, sans valeur de restauration.
+identity_resolution_log

@@ -236,6 +236,7 @@ export function useFormationConfigs(user: User | null, initialDefaultsApplied: b
   };
 }
 
+/** Formations du catalogue actives, pour les sélecteurs de rattachement. */
 export function useActiveFormationConfigs() {
   return useQuery({
     queryKey: ["formation-configs-active"],
@@ -246,7 +247,7 @@ export function useActiveFormationConfigs() {
         .eq("is_active", true)
         .order("formation_name");
       if (error) throw error;
-      return data ?? [] as { id: string; formation_name: string }[];
+      return data ?? [];
     },
     staleTime: 5 * 60 * 1000,
   });

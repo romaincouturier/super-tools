@@ -6,7 +6,7 @@ import { format, parseISO } from "date-fns";
 import { getErrorMessage } from "@/lib/error-utils";
 import { scheduleEmailsBulk } from "@/services/activityLog";
 import type { ParsedParticipant } from "@/hooks/useParticipantParser";
-import { sendParticipantWelcomeEmail, sendElearningAccess } from "@/services/participants";
+import { sendParticipantWelcomeEmail, sendLearnerMagicLink } from "@/services/participants";
 
 interface InsertedParticipant {
   id: string;
@@ -100,7 +100,9 @@ export async function sendElearningAccessToBatch(
 ): Promise<void> {
   for (const participant of participants) {
     try {
-      await sendElearningAccess(participant.id, trainingId);
+      // Même email d'activation que l'ajout unitaire (W12) : le mode WooCommerce
+      // n'est plus une voie d'accès.
+      await sendLearnerMagicLink(participant.email, trainingId, participant.id, "activation");
       await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error: unknown) {
       console.error("Failed to send e-learning access email to:", participant.email, getErrorMessage(error));

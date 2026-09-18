@@ -227,9 +227,10 @@ export async function sendLearnerMagicLink(
   email: string,
   trainingId?: string,
   participantId?: string,
+  purpose: "login" | "activation" = "activation",
 ) {
   await supabase.functions.invoke("send-learner-magic-link", {
-    body: { email, trainingId, participantId },
+    body: { email, trainingId, participantId, purpose },
   });
 }
 

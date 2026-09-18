@@ -10,6 +10,16 @@ import {
 import { getBccList } from "../_shared/email-settings.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
+import { linkExpiresAt, linkValidityLabel } from "../_shared/learner-links.ts";
+
+/** Empreinte de l'adresse : le journal ne stocke jamais l'adresse en clair. */
+async function sha256Hex(value: string): Promise<string> {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 // Same helper used in send-elearning-access
 function formatContentToHtml(content: string): string {
@@ -28,7 +38,7 @@ Deno.serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { email, trainingId } = await req.json();
+    const { email, trainingId, purpose } = await req.json();
     if (!email) {
       return new Response(JSON.stringify({ error: "Email requis" }), {
         status: 400,
@@ -38,13 +48,42 @@ Deno.serve(async (req) => {
 
     const supabase = getSupabaseClient();
 
+    // RG-08 : quota d'envoi tenu côté serveur. Au-delà, la réponse est la même,
+    // mais aucun email ne part.
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      || req.headers.get("x-real-ip") || "unknown";
+    const emailHash = await sha256Hex(email.trim().toLowerCase());
+    const { data: allowed } = await supabase.rpc("check_link_quota", {
+      p_email_hash: emailHash,
+      p_ip: ip,
+    });
+    if (allowed === false) {
+      return new Response(
+        JSON.stringify({ success: true, message: "Si un compte existe, un lien vous a été envoyé." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Check participant exists (silent fail for security)
     const { data: participants } = await supabase
       .from("training_participants")
       .select("id, first_name, training_id")
       .ilike("email", email);
 
+    // Un inscrit Academy n'a pas de ligne de participant : il est rattaché aux
+    // inscriptions LMS. Sans ce second référentiel, il n'avait aucun chemin de
+    // connexion (rupture D5 de la spécification).
+    let hasEnrollment = false;
     if (!participants || participants.length === 0) {
+      const { data: enrollments } = await supabase
+        .from("lms_enrollments")
+        .select("id")
+        .ilike("learner_email", email)
+        .limit(1);
+      hasEnrollment = !!enrollments && enrollments.length > 0;
+    }
+
+    if ((!participants || participants.length === 0) && !hasEnrollment) {
       return new Response(
         JSON.stringify({ success: true, message: "Si un compte existe, un lien vous a été envoyé." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -70,7 +109,7 @@ Deno.serve(async (req) => {
     } else {
       // Self-service: aggregate all trainings this participant is enrolled in
       const trainingIds = Array.from(
-        new Set(participants.map((p: any) => p.training_id).filter(Boolean))
+        new Set((participants ?? []).map((p: any) => p.training_id).filter(Boolean))
       );
       if (trainingIds.length > 0) {
         const { data: trainings } = await supabase
@@ -99,9 +138,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 1-year expiry
-    const expiresAt = new Date();
-    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    // Durées du chapitre 6, tenues par _shared/learner-links.ts (RG-06).
+    const expiresAt = linkExpiresAt(purpose);
 
     const insertPayload: Record<string, unknown> = {
       email: email.toLowerCase(),
@@ -118,8 +156,8 @@ Deno.serve(async (req) => {
     if (error) throw error;
 
     const urls = await getAppUrls();
-    const accessLink = `${urls.app_url}/apprenant/connexion?token=${link.token}`;
-    const firstName = participants[0].first_name || "";
+    const accessLink = `${urls.app_url}/connexion/lien?token=${link.token}`;
+    const firstName = participants?.[0]?.first_name || "";
 
     // Prefer dedicated magic-link template; fall back to the woocommerce one if not present
     const primaryType = isTu ? "elearning_magic_link_tu" : "elearning_magic_link_vous";
@@ -151,6 +189,12 @@ Deno.serve(async (req) => {
     const hasMultiple = !!trainingsListHtml;
     const displayName = trainingName ?? (hasMultiple ? "vos formations" : "votre formation");
 
+    if (purpose === "login") {
+      // Le modèle d'activation annonce 7 jours : il ne convient pas à un lien
+      // de connexion de 30 minutes (RG-15). On rend le texte dédié.
+      template = null;
+    }
+
     if (template && !hasMultiple) {
       // Single training — use DB template
       subject = replaceVariables(template.subject, {
@@ -177,7 +221,17 @@ Deno.serve(async (req) => {
       const intro = hasMultiple
         ? `Bonjour${firstName ? ` ${firstName}` : ""},\n\nVous êtes inscrit(e) aux formations suivantes :\n\n${trainingsListHtml}`
         : `Bonjour${firstName ? ` ${firstName}` : ""},\n\nVotre entreprise vient de vous inscrire à la formation e-learning ${trainingName ? `"<strong>${trainingName}</strong>"` : "votre formation"}${dateLabel}.`;
-      bodyContent = `${intro}\n\nVous pouvez accéder à votre espace apprenant en cliquant sur le bouton ci-dessous :\n\n<p style="margin: 20px 0;"><a href="${accessLink}" style="display: inline-block; padding: 12px 24px; background-color: #ffd100; color: #101820; text-decoration: none; border-radius: 8px; font-weight: bold;">🎓 Accéder à mes formations</a></p>`;
+      // Texte de référence : chapitre 11 de docs/SPEC_CONNEXION_APPRENANT.md.
+      const validity = linkValidityLabel(purpose);
+      const cta = purpose === "login" ? "Me connecter" : "Activer mon accès";
+      bodyContent = [
+        intro,
+        `Votre espace apprenant est prêt, à l'adresse ${email}.`,
+        `<p style="margin: 20px 0;"><a href="${accessLink}" style="display: inline-block; padding: 12px 24px; background-color: #ffd100; color: #101820; text-decoration: none; border-radius: 8px; font-weight: bold;">${cta}</a></p>`,
+        `${validity} Passé ce délai, rendez-vous sur la page de connexion : nous vous en enverrons un nouveau en quelques secondes.`,
+        "Vous n'avez pas de mot de passe à créer, sauf si vous le souhaitez.",
+        "Vos données sont traitées par SuperTilt pour vous donner accès à votre formation. Pour demander la suppression de votre compte, écrivez à contact@supertilt.fr.",
+      ].join("\n\n");
     }
 
 

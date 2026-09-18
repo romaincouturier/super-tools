@@ -15,6 +15,7 @@ export default defineConfig({
     include: [
       "src/**/*.{test,spec}.{ts,tsx}",
       "supabase/functions/_shared/**/*.test.ts",
+      "supabase/tests/**/*.test.ts",
     ],
   },
   resolve: {

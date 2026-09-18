@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,13 +12,30 @@ import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 import { validatePassword } from "@/lib/passwordValidation";
+import { useSession } from "@/hooks/useSession";
+import { resolvePostLoginPath, REDIRECT_PARAM } from "@/lib/authRouting";
 
 const ForcePasswordChange = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { status, isStaff, mustChangePassword } = useSession();
+  const next = searchParams.get(REDIRECT_PARAM);
+
+  // La contrainte est relue ici : levée, elle libère l'utilisateur vers sa
+  // destination au lieu de le retenir sur cet écran (chapitre 8).
+  const home = resolvePostLoginPath({ isStaff, mustChangePassword: false, next });
+  useEffect(() => {
+    if (status === "loading") return;
+    if (status === "anon") {
+      navigate("/connexion", { replace: true });
+      return;
+    }
+    if (!mustChangePassword) navigate(home, { replace: true });
+  }, [status, mustChangePassword, home, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,21 +68,16 @@ const ForcePasswordChange = () => {
 
       if (error) throw error;
 
-      // Clear must_change_password flag
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from("user_security_metadata")
-          .update({ must_change_password: false })
-          .eq("user_id", user.id);
-      }
+      // Le drapeau n'est plus écrit par l'utilisateur : la bascule passe par
+      // une fonction serveur (lot 3).
+      await supabase.rpc("mark_password_changed");
 
       toast({
         title: "Mot de passe mis à jour",
         description: "Votre mot de passe a été modifié avec succès.",
       });
 
-      navigate("/dashboard");
+      navigate(home, { replace: true });
     } catch (error: unknown) {
       toast({
         title: "Erreur",

@@ -60,6 +60,15 @@ verify_jwt = false
 [functions.check-login-attempt]
 verify_jwt = false
 
+[functions.resolve-login-identity]
+verify_jwt = false
+
+[functions.redeem-learner-token]
+verify_jwt = false
+
+[functions.backfill-learner-accounts]
+verify_jwt = false
+
 [functions.log-login-attempt]
 verify_jwt = false
 

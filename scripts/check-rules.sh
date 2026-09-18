@@ -338,13 +338,13 @@ if [ "$STAGED_MODE" = "false" ]; then
 
   # [014b] Nouveaux fichiers src/pages ou src/components ne doivent pas importer supabase directement
   # Whitelist: fichiers legacy connus avec accès direct (ne pas modifier sans migration complète)
-  LEGACY_DIRECT_SUPABASE="Reclamations|Admin|TimeTracker|MicroDevis|FormationEdit|PictoDico|Evaluations|InboundEmails|BPFReport|FailedEmails|Dropshipping|MissionSummary|FormationDetail|Temoignages|Transcripts|LearnerPortal|SupertiltOrders|ArenaDiscussion|ArenaSetup|EventDetail|LmsCourseHomePage|LmsCommunityAdmin|CrmKanbanBoard|CardDetailDrawer|ProvenanceTab|Step5Email|Step0ClientValidation|KanbanBoard|CommentThread|TranscriptGenerationPanel|ScheduledEmailsSummary|NewOpportunityDialog|UserAccessManager|CardTranscriptsSection|LmsCommunities|Landing|FormulaireRedirect|ForcePasswordChange|ChatbotAdmin|SuperTilt|LmsCoursePlayer|AgentChat|LearnerOnboarding|BesoinsParticipants|LmsMessages|LearnerResetPassword|Auth|CertificateGenerator|PolitiqueConfidentialite|Onboarding|QuoteWorkflow|EventEdit|AdminArchives|ResetPassword|Formations|WoocommerceInbox|LmsLearners|SponsorEvaluation|PartnerPortal|MediaLibrary|Historique|Signup|TrainingSurveyResponse|Catalogue|SignatureConvention|FormationCreate|SignatureLocation|MultiUserSelector|PollingIndicator|GoogleCalendarConnect|WatchItemCard|CardDetailCommunication|CardDetailQualification|CardDetailTabs|CardDetailDialogs|CreateCalendarEventDialog|SentDevisSection|CoachCommercialSettings|CrmDescriptionEditor|CreateTrainingDialog|CronJobsTab|FeatureUsageTab|DbSizeTab|GoogleConnect|RequireStaff|Step1Synthesis|Step3QuoteGeneration|OnboardCollaboratorDialog|EntityMediaManager|MentionTextarea|AiIdeasSearch|NewsletterSection|ContentDashboard|ReviewPanel|ReviewRequestDialog|NotificationBell|UserMenu|ChatbotProvider|KnowledgeBaseManager|ChatbotWidget|ShareEventDialog|SendToContentBoardButton|TemplateReviewReminderCard|TrainerManager|EmailSnippetManager|CrmTagManager|SettingsEmails|AgentIndexationSettings|BackupManager|ApiKeyManager|SettingsGeneral|PostEvaluationEmailManager|BillingSection|TranscriptPromptsSettings|StaffProfileSettings|MissionPages|ImportGoogleEventsDialog|MissionDetailDrawer|GenerateInvoiceDialog|Generate8PDialog|LearnerCourseHeader|CourseHomeSidebar|LessonComments|TrainerSelector|BulkAddParticipantsDialog|FormationDetailSections|AssignedUserSelector|DuplicateParticipantDialog|TrainerEvaluationBlock|TrainerAdequacy|TrainingFormulasManager|ObjectivesEditor|FormationDetailHeader|DuplicateTrainingDialog|ViewQuestionnaireDialog|ParticipantDocumentsDialog|TrainingNameCombobox|UserEmailCombobox|ParticipantFiles|LiveMeetingsSection|ParticipantTraceabilityDrawer|PrerequisitesEditor|FormationDetailParticipants|EmailTimelineComputed|ThankYouEmailPreviewDialog|ProgramSelector|ParticipantEvaluationsBlock|InvoiceSection|DocumentDeliverySection|AttendanceSheetSection|SignedConventionFiles|ConventionSection|ConventionAuditPanel|BroadcastEmailDialog|ForgotPasswordDialog|CatalogFormDialog|OKRAICheckInDraft|OKRAIChat"
+  LEGACY_DIRECT_SUPABASE="Reclamations|Admin|TimeTracker|MicroDevis|FormationEdit|PictoDico|Evaluations|InboundEmails|BPFReport|FailedEmails|Dropshipping|MissionSummary|FormationDetail|Temoignages|Transcripts|LearnerPortal|SupertiltOrders|ArenaDiscussion|ArenaSetup|EventDetail|LmsCourseHomePage|LmsCommunityAdmin|CrmKanbanBoard|CardDetailDrawer|ProvenanceTab|Step5Email|Step0ClientValidation|KanbanBoard|CommentThread|TranscriptGenerationPanel|ScheduledEmailsSummary|NewOpportunityDialog|UserAccessManager|CardTranscriptsSection|LmsCommunities|Landing|FormulaireRedirect|ForcePasswordChange|ChatbotAdmin|SuperTilt|LmsCoursePlayer|AgentChat|BesoinsParticipants|LmsMessages|Auth|CertificateGenerator|PolitiqueConfidentialite|Onboarding|QuoteWorkflow|EventEdit|AdminArchives|ResetPassword|Formations|WoocommerceInbox|LmsLearners|SponsorEvaluation|PartnerPortal|MediaLibrary|Historique|Signup|TrainingSurveyResponse|Catalogue|SignatureConvention|FormationCreate|SignatureLocation|MultiUserSelector|PollingIndicator|GoogleCalendarConnect|WatchItemCard|CardDetailCommunication|CardDetailQualification|CardDetailTabs|CardDetailDialogs|CreateCalendarEventDialog|SentDevisSection|CoachCommercialSettings|CrmDescriptionEditor|CreateTrainingDialog|CronJobsTab|FeatureUsageTab|DbSizeTab|GoogleConnect|RequireStaff|Step1Synthesis|Step3QuoteGeneration|OnboardCollaboratorDialog|EntityMediaManager|MentionTextarea|AiIdeasSearch|NewsletterSection|ContentDashboard|ReviewPanel|ReviewRequestDialog|NotificationBell|UserMenu|ChatbotProvider|KnowledgeBaseManager|ChatbotWidget|ShareEventDialog|SendToContentBoardButton|TemplateReviewReminderCard|TrainerManager|EmailSnippetManager|CrmTagManager|SettingsEmails|AgentIndexationSettings|BackupManager|ApiKeyManager|SettingsGeneral|PostEvaluationEmailManager|BillingSection|TranscriptPromptsSettings|StaffProfileSettings|MissionPages|ImportGoogleEventsDialog|MissionDetailDrawer|GenerateInvoiceDialog|Generate8PDialog|LearnerCourseHeader|CourseHomeSidebar|LessonComments|TrainerSelector|BulkAddParticipantsDialog|FormationDetailSections|AssignedUserSelector|DuplicateParticipantDialog|TrainerEvaluationBlock|TrainerAdequacy|TrainingFormulasManager|ObjectivesEditor|FormationDetailHeader|DuplicateTrainingDialog|ViewQuestionnaireDialog|ParticipantDocumentsDialog|TrainingNameCombobox|UserEmailCombobox|ParticipantFiles|LiveMeetingsSection|ParticipantTraceabilityDrawer|PrerequisitesEditor|FormationDetailParticipants|EmailTimelineComputed|ThankYouEmailPreviewDialog|ProgramSelector|ParticipantEvaluationsBlock|InvoiceSection|DocumentDeliverySection|AttendanceSheetSection|SignedConventionFiles|ConventionSection|ConventionAuditPanel|BroadcastEmailDialog|ForgotPasswordDialog|CatalogFormDialog|OKRAICheckInDraft|OKRAIChat"
   check "014b" "Pas de nouveau import supabase direct dans src/pages ou src/components (whitelist legacy)" \
     "grep -rln 'from.*@/integrations/supabase/client' src/pages src/components --include='*.tsx' 2>/dev/null | while read f; do name=\$(basename \"\$f\" .tsx); echo \"\$name\" | grep -qE \"^(\$LEGACY_DIRECT_SUPABASE)\$\" && continue; echo \"VIOLATION [014b]: \$f\"; done"
 
   # [015] Pages authentifiées doivent utiliser ModuleLayout + PageHeader
   # Exceptions : pages publiques, auth, learner, error, full-screen spécialisées
-  EXEMPT_PAGES="Auth|Signup|AcademySignup|ResetPassword|ForcePasswordChange|LearnerResetPassword|Landing|PolitiqueConfidentialite|Emargement|Evaluation|Questionnaire|TrainerEvaluation|SponsorEvaluation|ReclamationPublic|LearnerPortal|LearnerAccess|LearnerOnboarding|LearnerOnboarding.test|LmsCoursePlayer|LmsCourseHomePage|LessonBuilderPage|LmsCourseHomeBuilderPage|NotFound|FormulaireRedirect|Screenshots|AgentChat|ArenaDiscussion|ArenaSetup|ArenaResults|Dashboard|FormationDetail|MissionSummary|TrainingSummary|TrainingSupportPage|Index|Onboarding|SignatureConvention|SignatureDevis|SignatureLocation|GoogleDriveCallback|GoogleCalendarCallback|GoogleCallback|LmsCourseEntry|PartnerPortal|SurveyPublic|TrainingSurveyResponse|BookPublicPage|SupertiltConfirmationEnvoi"
+  EXEMPT_PAGES="ApprenantConnexionRedirect|Auth|CompteSansAcces|Connexion|ConnexionLien|ConnexionMotDePasseOublie|ConnexionReinitialisation|Signup|AcademySignup|ResetPassword|ForcePasswordChange|Landing|PolitiqueConfidentialite|Emargement|Evaluation|Questionnaire|TrainerEvaluation|SponsorEvaluation|ReclamationPublic|LearnerPortal|LmsCoursePlayer|LmsCourseHomePage|LessonBuilderPage|LmsCourseHomeBuilderPage|NotFound|FormulaireRedirect|Screenshots|AgentChat|ArenaDiscussion|ArenaSetup|ArenaResults|Dashboard|FormationDetail|MissionSummary|TrainingSummary|TrainingSupportPage|Index|Onboarding|SignatureConvention|SignatureDevis|SignatureLocation|GoogleDriveCallback|GoogleCalendarCallback|GoogleCallback|LmsCourseEntry|PartnerPortal|SurveyPublic|TrainingSurveyResponse|BookPublicPage|SupertiltConfirmationEnvoi"
   check "015" "Pages authentifiées utilisent ModuleLayout + PageHeader" \
     "for f in src/pages/*.tsx; do name=\$(basename \"\$f\" .tsx); echo \"\$name\" | grep -qE \"^(\$EXEMPT_PAGES)\$\" && continue; has_layout=\$(grep -l 'ModuleLayout' \"\$f\" 2>/dev/null | wc -l); has_header=\$(grep -l 'PageHeader' \"\$f\" 2>/dev/null | wc -l); if [ \"\$has_layout\" -eq 0 ] || [ \"\$has_header\" -eq 0 ]; then echo \"VIOLATION: \$name (ModuleLayout=\$has_layout, PageHeader=\$has_header)\"; fi; done"
 
@@ -464,10 +464,45 @@ if [ "$STAGED_MODE" = "false" ]; then
   check "044" "Aucun CREATE POLICY lisant auth.users dans les migrations récentes" \
     "bash scripts/check-policy-auth-users.sh"
 
+  # [059] Une adresse email sert de clef de jointure sur des colonnes en texte
+  # libre, et la lecture est une égalité stricte. Une adresse prise brute dans
+  # l'URL peut donc ranger une progression sous une clef que personne ne relit.
+  # Toute adresse venue de l'extérieur passe par normalizeEmail().
+  check "059" "Adresses email d'URL normalisées par normalizeEmail()" \
+    "grep -rnE 'searchParams\\.get\\(\"(email|preview_email|learner_email)\"\\)' --include='*.ts' --include='*.tsx' src/ \
+       | grep -v '\\.test\\.' \
+       | grep -v 'normalizeEmail(' \
+       | grep -v 'searchParams.set(' \
+       | sed 's/^/VIOLATION [059]: adresse email prise brute dans l URL — /'"
+
+  # [059b] Le front et les edge functions ont chacun leur normaliseur : ils ne
+  # peuvent pas partager de module (alias Vite d'un côté, imports Deno de
+  # l'autre). Si l'un cesse de couper les espaces ou de passer en minuscules,
+  # une adresse écrite par une edge function n'est plus relue par le front.
+  # [060] Un rebase peut perdre une suppression de fichier sans que le diff, le
+  # typecheck, les tests ni le lint ne le voient. L'étape de vérification doit
+  # rester dans la procédure : si la skill cesse de la prescrire, elle disparaît
+  # sans que personne le remarque.
+  check "060" "La skill sync-and-pr prescrit toujours verif-rebase.sh" \
+    "test -x scripts/verif-rebase.sh || echo 'VIOLATION [060]: scripts/verif-rebase.sh absent ou non exécutable'; \
+     grep -q 'verif-rebase.sh' .claude/skills/sync-and-pr/SKILL.md || echo 'VIOLATION [060]: la skill sync-and-pr ne prescrit plus verif-rebase.sh'"
+
+  check "059b" "Les deux normaliseurs d'email appliquent le même contrat" \
+    "for f in src/lib/stringUtils.ts supabase/functions/_shared/learner-email.ts; do \
+       grep -q 'trim()\\.toLowerCase()' \"\$f\" || echo \"VIOLATION [059b]: \$f ne normalise plus par trim().toLowerCase()\"; \
+     done"
+
 
   # [039] RLS LMS — chaque table de contenu apprenant doit avoir au moins une policy
   # FOR SELECT TO authenticated dans les migrations (sinon les apprenants voient la
   # structure mais pas le contenu — régression du 15/07/2026 sur lms_lesson_blocks).
+  # [058] Toute fonction SQL sensible est jouée par un test de supabase/tests/,
+  # chargé depuis sa migration. Une relecture ne garde aucune régression.
+  check "058" "Fonctions SQL sensibles couvertes par un test (supabase/tests)" \
+    "grep -v '^#' scripts/sql-tested-functions.txt | grep -v '^$' | while read -r fn; do \
+       grep -rqs \"\$fn\" supabase/tests/ || echo \"VIOLATION [058]: \$fn n'est joué par aucun test de supabase/tests/\"; \
+     done"
+
   check "039" "Tables LMS ont une policy SELECT TO authenticated" \
     "for t in lms_courses lms_modules lms_lessons lms_lesson_blocks lms_quizzes lms_quiz_questions; do \
        grep -rlE \"ON (public\\.)?\$t\" supabase/migrations/ --include='*.sql' 2>/dev/null \

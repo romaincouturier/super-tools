@@ -1,4 +1,5 @@
 import { useParams, useSearchParams, Navigate } from "react-router-dom";
+import { normalizeEmail } from "@/lib/stringUtils";
 import { useQuery } from "@tanstack/react-query";
 import { rpc } from "@/lib/supabase-rpc";
 import SupportViewer from "@/components/formations/support/SupportViewer";
@@ -31,7 +32,7 @@ const TrainingSupportPage = () => {
   // If an LMS course is linked as support, redirect to the public LMS player.
   // The admin only has to pick a course — no need to also toggle a radio.
   if (training?.supports_lms_course_id) {
-    const email = searchParams.get("email") || "";
+    const email = normalizeEmail(searchParams.get("email")) ?? "";
     const isAdminPreview = searchParams.get("preview") === "admin";
     const params = isAdminPreview ? "?preview=admin" : (email ? `?email=${encodeURIComponent(email)}` : "");
     return <Navigate to={`/formation-support/${trainingId}/lms/${training.supports_lms_course_id}${params}`} replace />;

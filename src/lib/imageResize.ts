@@ -12,6 +12,8 @@ export async function resizeImageFile(
   const contentType = resolveContentType(file);
   if (!contentType.startsWith("image/") || contentType === "image/svg+xml") return file;
 
+  // `.catch` ne rattrape pas une API absente : l'appel lève avant la promesse.
+  if (typeof createImageBitmap !== "function") return file;
   const bitmap = await createImageBitmap(file).catch(() => null);
   if (!bitmap) return file;
 

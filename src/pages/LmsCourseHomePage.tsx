@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from "react";
+import { normalizeEmail } from "@/lib/stringUtils";
 import DOMPurify from "dompurify";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -953,7 +954,7 @@ export default function LmsCourseHomePage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const email = searchParams.get("email") || "";
+  const email = normalizeEmail(searchParams.get("email")) ?? "";
   const isPreview = searchParams.get("preview") === "admin";
   const initialLessonId = searchParams.get("lesson");
 

@@ -87,14 +87,9 @@ const ResetPassword = () => {
 
       if (error) throw error;
 
-      // Clear must_change_password flag if exists
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from("user_security_metadata")
-          .update({ must_change_password: false })
-          .eq("user_id", user.id);
-      }
+      // Bascule du drapeau côté serveur (lot 3) : must_change_password à faux,
+      // password_set à vrai.
+      await supabase.rpc("mark_password_changed");
 
       toast({
         title: "Mot de passe mis à jour",

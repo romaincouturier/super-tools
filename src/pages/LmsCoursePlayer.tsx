@@ -1,6 +1,7 @@
 import DOMPurify from "dompurify";
+import { normalizeEmail } from "@/lib/stringUtils";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -39,16 +40,17 @@ import type { WorkDepositConfig } from "@/types/lms-work-deposit";
 import { useConfirm } from "@/hooks/useConfirm";
 import { supabase } from "@/integrations/supabase/client";
 import CourseLoadState from "@/components/lms/CourseLoadState";
+import { useLearnerIdentity } from "@/hooks/useLearnerIdentity";
 
 export default function LmsCoursePlayer() {
   const { courseId } = useParams<{ courseId: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const learnerEmail = searchParams.get("email") || "";
+  const [searchParams] = useSearchParams();
+  const urlEmail = normalizeEmail(searchParams.get("email")) ?? "";
+  // La session prime sur ?email= : un apprenant connecté ne peut plus lire ni
+  // écrire la progression d'un tiers en changeant le paramètre (lot 1).
+  const { email: learnerEmail, resolved: identityResolved } = useLearnerIdentity(urlEmail);
   const isPreview = searchParams.get("preview") === "admin";
   const initialLessonId = searchParams.get("lesson");
-  // Fallback pour les liens reçus sans ?email= (anciens emails) : le
-  // participant saisit son adresse au lieu d'un cul-de-sac.
-  const [emailPrompt, setEmailPrompt] = useState("");
 
   const { data: course, isLoading: courseLoading, error: courseError, refetch: refetchCourse } = useCourse(courseId);
   const { data: modules = [] } = useCourseModules(courseId);
@@ -359,10 +361,10 @@ export default function LmsCoursePlayer() {
     }
   };
 
-  if (!course) {
+  if (!course || !identityResolved) {
     return (
       <CourseLoadState
-        isLoading={courseLoading}
+        isLoading={courseLoading || !identityResolved}
         error={courseError}
         onRetry={() => refetchCourse()}
       />
@@ -384,36 +386,22 @@ export default function LmsCoursePlayer() {
   }
 
   if (!learnerEmail && !isPreview) {
-    const submitEmailPrompt = (e: React.FormEvent) => {
-      e.preventDefault();
-      const value = emailPrompt.trim().toLowerCase();
-      if (!value.includes("@")) return;
-      const next = new URLSearchParams(searchParams);
-      next.set("email", value);
-      setSearchParams(next, { replace: true });
-    };
+    // L'identité vient de la session, plus d'une adresse saisie à la main :
+    // on invite à se connecter au lieu de promettre une progression qui ne
+    // serait rattachée à personne (PR7).
+    const next = `${window.location.pathname}${window.location.search}`;
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
           <CardContent className="py-8 text-center space-y-4">
             <BookOpen className="w-12 h-12 mx-auto text-primary" />
             <h2 className="text-xl font-bold">{course.title}</h2>
             <p className="text-muted-foreground">
-              Saisissez l'adresse email à laquelle vous avez reçu l'invitation
-              pour accéder au cours et retrouver votre progression.
+              Connectez-vous pour suivre cette formation et retrouver votre progression.
             </p>
-            <form onSubmit={submitEmailPrompt} className="space-y-3">
-              <Input
-                type="email"
-                placeholder="votre@email.fr"
-                value={emailPrompt}
-                onChange={(e) => setEmailPrompt(e.target.value)}
-                autoFocus
-              />
-              <Button type="submit" className="w-full" disabled={!emailPrompt.includes("@")}>
-                Accéder au cours
-              </Button>
-            </form>
+            <Button asChild className="w-full">
+              <Link to={`/connexion?next=${encodeURIComponent(next)}`}>Me connecter</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

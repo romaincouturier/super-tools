@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { reportHandledError } from "@/lib/sentry";
 
 /** Buckets that are private and therefore require a signed URL to be read. */
 const PRIVATE_BUCKETS = new Set([
@@ -114,9 +115,12 @@ export async function openResolvedUrl(resolved: string) {
     const blobUrl = URL.createObjectURL(blob);
     openInNewTab(blobUrl);
     setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
-  } catch (err) {
-    // Repli sur le lien direct : le fetch a pu être bloqué (CORS, bloqueur).
-    console.warn("openResolvedUrl: fetch échoué, ouverture directe", err);
+  } catch (error) {
+    // Repli attendu (bloqueur de contenu, CORS) : trace en breadcrumb plutôt
+    // qu'en événement Sentry, mais l'erreur n'est plus avalée.
+    reportHandledError(
+      `openResolvedUrl: repli vers le lien direct (${error instanceof Error ? error.message : String(error)})`,
+    );
     openInNewTab(resolved);
   }
 }

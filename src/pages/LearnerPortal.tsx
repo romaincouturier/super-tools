@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { normalizeEmail } from "@/lib/stringUtils";
 import { useSearchParams, Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -1853,7 +1854,7 @@ export default function LearnerPortal() {
 
   useEffect(() => {
     const token = searchParams.get("token");
-    const previewEmail = searchParams.get("preview_email");
+    const previewEmail = normalizeEmail(searchParams.get("preview_email"));
 
     let cancelled = false;
 
@@ -1872,7 +1873,7 @@ export default function LearnerPortal() {
       if (!session?.user?.email) return false;
       const staff = await isStaff(session.user.id);
       // Staff/admin can preview as any learner via ?preview_email=
-      const emailToLoad = staff && previewEmail ? previewEmail : session.user.email;
+      const emailToLoad = (staff && previewEmail ? previewEmail : normalizeEmail(session.user.email)) ?? "";
       if (cancelled) return true;
       if (staff) sessionStorage.setItem("learner_email", emailToLoad);
       if (!sectionSlug || !SLUG_TO_SECTION[sectionSlug]) {
@@ -1922,7 +1923,7 @@ export default function LearnerPortal() {
             const { data: { user: u2 } } = await supabase.auth.getUser();
             ok = await proceedWithSession(u2 ? { user: u2 } : null);
           }
-          if (!ok) navigate("/apprenant");
+          if (!ok) navigate("/connexion");
         });
       }, 2500);
     };
@@ -1948,7 +1949,7 @@ export default function LearnerPortal() {
   const handleNav = (s: NavSection) => {
     const slug = SECTION_SLUGS[s];
     if (slug) {
-      const previewEmail = searchParams.get("preview_email");
+      const previewEmail = normalizeEmail(searchParams.get("preview_email"));
       const fromCourse = searchParams.get("fromCourse");
       const params = new URLSearchParams();
       if (previewEmail) params.set("preview_email", previewEmail);
@@ -1961,9 +1962,11 @@ export default function LearnerPortal() {
   };
 
   const handleLogout = async () => {
+    // W9.3 : retour à l'accueil, pas sur un écran de connexion. RG-13 : l'état
+    // local de navigation est purgé avec la session.
     sessionStorage.removeItem("learner_email");
     await supabase.auth.signOut();
-    navigate("/apprenant");
+    navigate("/");
   };
 
   const handleRequestCoach = async (training: Training) => {
@@ -2020,10 +2023,10 @@ export default function LearnerPortal() {
           style={{ background: "var(--st-white)", border: "1px solid rgba(16,24,32,0.08)" }}>
           <AlertCircle size={40} className="mx-auto" style={{ color: "#dc2626" }} />
           <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>{error}</p>
-          <Link to="/apprenant"
+          <Link to="/connexion"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold"
             style={{ background: "var(--st-ink)", color: "#fff" }}>
-            Demander un nouveau lien
+            Aller à la page de connexion
           </Link>
         </div>
       </div>

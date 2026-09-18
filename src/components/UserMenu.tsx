@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { User as UserIcon, LogOut, Settings } from "lucide-react";
+import { User as UserIcon, LogOut, Settings, GraduationCap } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 import { validatePassword } from "@/lib/passwordValidation";
@@ -34,6 +35,7 @@ interface UserMenuProps {
 }
 
 const UserMenu = ({ user, onLogout, trigger }: UserMenuProps) => {
+  const navigate = useNavigate();
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -118,6 +120,13 @@ const UserMenu = ({ user, onLogout, trigger }: UserMenuProps) => {
           <DropdownMenuItem onClick={() => setIsPasswordDialogOpen(true)}>
             <Settings className="w-4 h-4 mr-2" />
             Changer le mot de passe
+          </DropdownMenuItem>
+          {/* Un membre de l'équipe peut être inscrit à une formation : il accède
+              à son propre espace apprenant, sans passer par la prévisualisation
+              (critère 27 de la recette). */}
+          <DropdownMenuItem onClick={() => navigate("/espace-apprenant")}>
+            <GraduationCap className="w-4 h-4 mr-2" />
+            Mon espace apprenant
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={onLogout} className="text-destructive">

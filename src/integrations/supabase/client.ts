@@ -17,15 +17,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-/**
- * Create a Supabase client configured for learner portal access.
- * Passes the learner email as a custom header so RLS policies
- * can verify the learner's identity via get_learner_email().
- */
-export function createLearnerClient(learnerEmail: string) {
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    global: {
-      headers: { 'x-learner-email': learnerEmail },
-    },
-  });
-}
+
+// createLearnerClient a été retiré : l'identité de l'apprenant vient désormais
+// de sa session, jamais d'un en-tête posé par le navigateur.
+// Voir docs/AUDIT_SURFACES_EXPOSEES.md, chantier 1.

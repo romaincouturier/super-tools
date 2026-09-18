@@ -29,6 +29,26 @@ Exécute les étapes suivantes dans l'ordre :
   6. Répète si d'autres conflits apparaissent
   7. Si un conflit est trop ambigu pour être résolu automatiquement, montre les deux versions à l'utilisateur et demande quelle version garder
 
+## 3ter. Vérifier que le rebase n'a rien perdu
+
+Un rebase peut supprimer un fichier que la branche gardait, rétablir un fichier
+que la branche supprimait, ou écraser un travail que la base vient de faire sur
+un fichier que la branche retire. Aucune de ces trois anomalies n'apparaît au
+diff, au typecheck, aux tests ni au lint : le code compile et plus personne
+n'importe le fichier fautif.
+
+- Exécuter `bash scripts/verif-rebase.sh` juste après le rebase, avant toute
+  autre vérification. Sans argument il compare `ORIG_HEAD` à l'arbre courant,
+  sur la base `origin/main`
+- **PERTE** et **RETOUR** se rétablissent : remettre l'état d'avant rebase pour
+  le fichier concerné, puis relancer le script jusqu'à sortie vide
+- **COLLISION** ne se rétablit pas, elle se tranche : la base travaille sur un
+  fichier que la branche supprime, donc l'une des deux intentions doit céder.
+  Décider, et écrire la décision et sa raison dans le corps de la PR
+- Ne jamais passer à l'étape suivante avec une anomalie non traitée
+
+Règle [060] d'`IMPROVEMENTS.md`.
+
 ## 3bis. Mesurer la baseline sur main
 
 Sans point de comparaison, impossible de distinguer une erreur préexistante d'une régression introduite par la branche : on perd du temps à corriger ce qui ne vient pas de nous, ou on ignore une vraie régression.

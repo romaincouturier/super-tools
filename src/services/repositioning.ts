@@ -5,7 +5,7 @@ import {
   logParticipantActivity,
   sendParticipantWelcomeEmail,
   
-  sendElearningAccess,
+  sendLearnerMagicLink,
   scheduleParticipantEmail,
   scheduleTrainerSummary,
   catchUpAttendanceSignaturesForParticipant,
@@ -249,7 +249,8 @@ export async function repositionParticipant(
 
   if (!reusedExisting && formatFormation === "e_learning" && source.payment_mode !== "online") {
     try {
-      await sendElearningAccess(inserted.id, target.id);
+      // Repositionnement : même email d'activation que l'inscription (W12).
+      await sendLearnerMagicLink(source.email, target.id, inserted.id, "activation");
     } catch (err) {
       console.error("[reposition] e-learning access failed:", err);
     }

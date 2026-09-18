@@ -1,135 +1,37 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { useSession } from "@/hooks/useSession";
 
 interface UseAuthOptions {
+  /** Porte de connexion utilisée après une déconnexion explicite. */
   redirectTo?: string;
+  /** Conservé pour compatibilité : la contrainte est portée par la garde de route. */
   checkPasswordChange?: boolean;
+  /** Conservé pour compatibilité : ce hook ne redirige plus de lui-même. */
   disableRedirect?: boolean;
 }
 
+/**
+ * Accès en lecture à la session (lot 2 de la refonte de connexion).
+ *
+ * Ce hook ne navigue plus, sauf sur une déconnexion demandée par l'utilisateur.
+ * Les redirections sont émises par les gardes de route uniquement, ce qui
+ * supprime les allers-retours entre `useAuth` et `/auth` (chapitre 8, L1 et L5).
+ * Les options sont conservées pour ne pas casser les appelants existants.
+ */
 export function useAuth(options: UseAuthOptions = {}) {
-  const {
-    redirectTo = "/auth",
-    checkPasswordChange = true,
-    disableRedirect = false,
-  } = options;
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { redirectTo = "/auth", disableRedirect = false } = options;
+  const { user, status, signOut } = useSession();
   const navigate = useNavigate();
 
-  const checkPasswordChangeRequired = useCallback(async (userId: string) => {
-    if (!checkPasswordChange) return false;
-    
-    try {
-      const { data: metadata } = await supabase
-        .from("user_security_metadata")
-        .select("must_change_password")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      return metadata?.must_change_password === true;
-    } catch (error) {
-      console.error("Error checking password change:", error);
-      return false;
-    }
-  }, [checkPasswordChange]);
-
-  useEffect(() => {
-    let mounted = true;
-    
-    // Safety timeout to prevent infinite spinner
-    const timeout = window.setTimeout(() => {
-      if (mounted && loading) {
-        console.warn("[useAuth] Timeout reached, forcing loading to false");
-        setLoading(false);
-      }
-    }, 8000);
-
-    const handleSession = async (session: { user: User } | null) => {
-      if (!mounted) return;
-
-      if (!session?.user) {
-        setUser(null);
-        setLoading(false);
-        if (!disableRedirect) {
-          navigate(redirectTo);
-        }
-        return;
-      }
-
-      setUser((prev) => (prev && prev.id === session.user.id ? prev : session.user));
-
-      if (checkPasswordChange) {
-        const mustChange = await checkPasswordChangeRequired(session.user.id);
-        if (mustChange && mounted) {
-          navigate("/force-password-change");
-          setLoading(false);
-          return;
-        }
-      }
-
-      if (mounted) {
-        setLoading(false);
-      }
-    };
-
-    // Initial session check
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        handleSession(session);
-      })
-      .catch((error) => {
-        console.error("[useAuth] getSession error:", error);
-        if (mounted) {
-          setLoading(false);
-          if (!disableRedirect) {
-            navigate(redirectTo);
-          }
-        }
-      });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-        
-        if (event === "SIGNED_OUT") {
-          setUser(null);
-          if (!disableRedirect) {
-            navigate(redirectTo);
-          }
-          return;
-        }
-
-        // Keep the same user object identity when it's the same account.
-        // A new object reference would re-trigger effects depending on `user`
-        // (data refetch) and wipe unsaved form state on tab focus / token refresh.
-        if (session?.user) {
-          setUser((prev) => (prev && prev.id === session.user.id ? prev : session.user));
-        }
-      }
-    );
-
-    return () => {
-      mounted = false;
-      window.clearTimeout(timeout);
-      subscription.unsubscribe();
-    };
-  }, [navigate, redirectTo, checkPasswordChange, checkPasswordChangeRequired, disableRedirect]);
-
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
-    if (!disableRedirect) {
-      navigate(redirectTo);
-    }
-  }, [navigate, redirectTo, disableRedirect]);
+    await signOut();
+    if (!disableRedirect) navigate(redirectTo);
+  }, [signOut, navigate, redirectTo, disableRedirect]);
 
   return {
     user,
-    loading,
+    loading: status === "loading",
     logout,
   };
 }
-
