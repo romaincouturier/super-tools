@@ -680,7 +680,7 @@ END:VCALENDAR`;
         )}
 
         {/* ═══ SECTION: Documents ═══ */}
-        {(training.program_file_url || training.supports_url || training.supports_lms_course_id || reglementInterieurUrl) && (
+        {(training.program_file_url || training.supports_url || training.supports_lms_course_id || reglementInterieurUrl || vhdProcedure) && (
           <section ref={sectionDocuments} id="section-documents" className="grid grid-cols-2 gap-3 scroll-mt-20">
             {training.program_file_url && (
               <button
@@ -744,6 +744,21 @@ END:VCALENDAR`;
                 <MIcon icon="gavel" className="mb-2" />
                 <span className="text-xs font-bold text-center">Règlement intérieur</span>
               </a>
+            )}
+            {vhdProcedure && (
+              <button
+                type="button"
+                onClick={() => setVhdOpen(true)}
+                className="flex flex-col items-center justify-center p-4 border rounded-xl transition-colors"
+                style={{
+                  background: c.surfaceContainerLowest,
+                  borderColor: `${c.outlineVariant}30`,
+                  color: c.onSurface,
+                }}
+              >
+                <MIcon icon="shield_person" className="mb-2" />
+                <span className="text-xs font-bold text-center">Violences & discriminations</span>
+              </button>
             )}
           </section>
         )}
