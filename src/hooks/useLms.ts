@@ -56,7 +56,6 @@ export {
   useCreateQuizQuestion,
   useSubmitQuizAttempt,
   useMarkLessonComplete,
-  useEnrollLearner,
   useSubmitAssignment,
   useCreateForumPost,
   useTrackPageView,

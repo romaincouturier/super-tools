@@ -22,7 +22,6 @@ serve(async (req) => {
       return createErrorResponse("Configuration serveur indisponible", 500, { fn: "create-academy-account" });
     }
     const body = await req.json() as {
-      courseId?: string;
       email?: string;
       password?: string;
       fullName?: string;
@@ -30,26 +29,18 @@ serve(async (req) => {
     const email = body.email?.trim().toLowerCase() ?? "";
     const password = body.password ?? "";
     const fullName = body.fullName?.trim() ?? "";
-    const courseId = body.courseId?.trim() ?? "";
 
-    if (!courseId || !isValidEmail(email) || password.length < 8 || !fullName) {
+    if (!isValidEmail(email) || password.length < 8 || !fullName) {
       return createErrorResponse("Veuillez renseigner tous les champs avec un mot de passe d'au moins 8 caractères.", 400);
     }
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
-    const { data: course, error: courseError } = await admin
-      .from("lms_courses")
-      .select("id, access_type, expertise, status")
-      .eq("id", courseId)
-      .maybeSingle();
 
-    if (courseError) return createErrorResponse(courseError.message, 500, { cause: courseError, fn: "create-academy-account" });
-    if (!course || course.status !== "published" || course.access_type !== "gratuit" || course.expertise === "intra_clients") {
-      return createErrorResponse("Cette formation gratuite n'est plus disponible.", 400);
-    }
-
+    // Le choix des formations se fait après la création du compte (écran
+    // /academy/choisir-mes-formations, via enroll-academy-courses) : cette
+    // fonction ne fait plus que créer le compte.
     const { data: created, error: createError } = await admin.auth.admin.createUser({
       email,
       password,
@@ -65,17 +56,7 @@ serve(async (req) => {
       return createErrorResponse(createError.message, 500, { cause: createError, fn: "create-academy-account" });
     }
 
-    const userId = created.user?.id;
-    const { error: enrollmentError } = await admin
-      .from("lms_enrollments")
-      .upsert({ course_id: courseId, learner_email: email }, { onConflict: "course_id,learner_email" });
-
-    if (enrollmentError) {
-      if (userId) await admin.auth.admin.deleteUser(userId);
-      return createErrorResponse(enrollmentError.message, 500, { cause: enrollmentError, fn: "create-academy-account" });
-    }
-
-    return createJsonResponse({ success: true, email, courseId });
+    return createJsonResponse({ success: true, email });
   } catch (error) {
     return createErrorResponse(error instanceof Error ? error.message : "Erreur inconnue", 500, {
       cause: error,
