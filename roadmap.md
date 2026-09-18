@@ -1,14 +1,12 @@
 # Roadmap
 
-## En cours
-- [ ] Mot de passe obligatoire à la première ouverture du lien apprenant (plan approuvé du 18/09)
+## Terminé (18/09)
+- [x] Mot de passe obligatoire à la première ouverture du lien apprenant
   - [x] Écran de création de mot de passe centré, conforme à la charte
-  - [ ] Suppression de la sortie « Plus tard » dans `ConnexionLien.tsx`
-  - [ ] Garde-fou pour les sessions déjà ouvertes sans mot de passe
-  - [ ] Réécriture des modèles d'email `elearning_magic_link_tu/vous`
-  - [ ] Renvoi du mail corrigé à Colette Nico
-
-## À faire
-- [ ] Colette voit « Bonjour Administrateur » en haut à droite de son espace apprenant
-- [ ] Nom et prénom absents de ses informations personnelles
-- [ ] Lien « Créer un compte gratuitement » de la page de connexion : mène à la landing au lieu de la création de compte
+  - [x] Suppression de la sortie « Plus tard » dans `ConnexionLien.tsx`
+  - [x] Garde-fou pour les sessions déjà ouvertes sans mot de passe (`/connexion/definir-mot-de-passe`)
+  - [x] Réécriture des modèles d'email `elearning_magic_link_tu/vous`
+  - [x] Renvoi du mail corrigé à Colette Nico
+- [x] Nom affiché dans le cours en ligne : plus jamais « Administrateur » pour un apprenant connecté
+- [x] Nom et prénom repris de l'inscription dans les informations personnelles (+ reprise automatique à chaque inscription)
+- [x] Lien « Créer un compte gratuitement » : écran de création de compte avec choix de la formation gratuite
