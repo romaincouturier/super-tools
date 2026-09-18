@@ -153,8 +153,31 @@ export function LearnerAccountMenu({
   const { courseId } = useParams<{ courseId?: string }>();
   const [searchParams] = useSearchParams();
   const [open, setOpen] = useState(false);
+  const [fallbackEmail, setFallbackEmail] = useState("");
+  const [profileName, setProfileName] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   const { confirm, ConfirmDialog } = useConfirm();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      let email = learnerEmail;
+      if (!email) {
+        const { data: { user } } = await supabase.auth.getUser();
+        email = normalizeEmail(user?.email) ?? "";
+        if (!cancelled) setFallbackEmail(email);
+      }
+      if (!email) return;
+      const { data } = await supabase
+        .from("learner_profiles")
+        .select("first_name, last_name")
+        .eq("email", email)
+        .maybeSingle();
+      const name = [data?.first_name, data?.last_name].filter(Boolean).join(" ").trim();
+      if (!cancelled && name) setProfileName(name);
+    })();
+    return () => { cancelled = true; };
+  }, [learnerEmail]);
 
   useEffect(() => {
     const handle = (e: MouseEvent) => {
@@ -185,8 +208,12 @@ export function LearnerAccountMenu({
     { label: "Aide", icon: HelpCircle, section: "aide" },
   ];
 
-  const initials = getLearnerInitials(learnerEmail);
-  const displayName = learnerEmail ? learnerEmail.split("@")[0] : "Administrateur";
+  // Le lecteur public reçoit l'adresse par l'URL ; ouvert depuis l'espace, il
+  // ne l'a pas. La session prend alors le relais : un apprenant connecté ne
+  // doit jamais être salué « Administrateur ».
+  const effectiveEmail = learnerEmail || fallbackEmail;
+  const initials = getLearnerInitials(effectiveEmail);
+  const displayName = profileName || (effectiveEmail ? effectiveEmail.split("@")[0] : "Mon compte");
 
   const goToPortalSection = async (section: string) => {
     const slug = PORTAL_SECTION_SLUGS[section] ?? "tableau-de-bord";

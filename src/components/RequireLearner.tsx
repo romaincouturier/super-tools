@@ -8,7 +8,7 @@ import { buildLoginPath } from "@/lib/authRouting";
  * propre espace, ou celui d'un apprenant en prévisualisation.
  */
 export function RequireLearner() {
-  const { status } = useSession();
+  const { status, passwordSet } = useSession();
   const location = useLocation();
 
   if (status === "loading") {
@@ -22,5 +22,15 @@ export function RequireLearner() {
     return <Navigate to={buildLoginPath("/connexion", location.pathname + location.search)} replace />;
   }
   if (status === "none") return <Navigate to="/compte-sans-acces" replace />;
+  // Session ouverte par un lien avant que le mot de passe devienne obligatoire :
+  // elle passe par l'écran de création avant d'entrer dans l'espace.
+  if (!passwordSet) {
+    return (
+      <Navigate
+        to={buildLoginPath("/connexion/definir-mot-de-passe", location.pathname + location.search)}
+        replace
+      />
+    );
+  }
   return <Outlet />;
 }

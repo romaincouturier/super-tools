@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.sync_learner_profile_name() FROM PUBLIC, anon, authenticated;
