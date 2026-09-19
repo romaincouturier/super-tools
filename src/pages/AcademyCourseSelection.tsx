@@ -8,6 +8,7 @@ import { useAcademyAuth } from "@/hooks/useAcademyAuth";
 import { useAcademyCatalog } from "@/hooks/useAcademyCatalog";
 import { useAcademyEnrollment } from "@/hooks/useAcademyEnrollment";
 import { useToast } from "@/hooks/use-toast";
+import { useSession } from "@/hooks/useSession";
 import { toastError } from "@/lib/toastError";
 import { HIDDEN_FREE_COURSE_IDS } from "@/lib/academyFreeCourses";
 
@@ -23,6 +24,7 @@ export default function AcademyCourseSelection() {
   const { data, isLoading } = useAcademyCatalog();
   const enroll = useAcademyEnrollment();
   const { toast } = useToast();
+  const { refresh } = useSession();
 
   const preselected = searchParams.get("course") ?? "";
   const [selected, setSelected] = useState<Set<string>>(() => (preselected ? new Set([preselected]) : new Set()));
@@ -48,6 +50,10 @@ export default function AcademyCourseSelection() {
     if (selected.size === 0) return;
     try {
       await enroll.mutateAsync(Array.from(selected));
+      // Le niveau d'accès est mis en cache dans la session : sans cette
+      // relecture, un compte tout juste inscrit reste "none" et la garde
+      // l'enverrait sur "Compte sans accès".
+      await refresh();
       navigate("/espace-apprenant");
     } catch (error) {
       toastError(toast, error instanceof Error ? error.message : "Réessayez dans quelques instants.", { cause: error });
