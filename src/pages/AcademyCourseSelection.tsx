@@ -23,6 +23,7 @@ export default function AcademyCourseSelection() {
   const { user, loading: authLoading } = useAcademyAuth();
   const { data, isLoading } = useAcademyCatalog();
   const enroll = useAcademyEnrollment();
+  const { toast } = useToast();
   const { refresh } = useSession();
 
   const preselected = searchParams.get("course") ?? "";
@@ -49,6 +50,10 @@ export default function AcademyCourseSelection() {
     if (selected.size === 0) return;
     try {
       await enroll.mutateAsync(Array.from(selected));
+      // Le niveau d'accès est mis en cache dans la session : sans cette
+      // relecture, un compte tout juste inscrit reste "none" et la garde
+      // l'enverrait sur "Compte sans accès".
+      await refresh();
       navigate("/espace-apprenant");
     } catch (error) {
       toastError(toast, error instanceof Error ? error.message : "Réessayez dans quelques instants.", { cause: error });
