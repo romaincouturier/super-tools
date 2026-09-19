@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Gift, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,20 +35,27 @@ export default function AcademySignup() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Pendant la création de compte, la connexion fait apparaitre l'utilisateur :
+  // la redirection automatique ne doit pas court-circuiter le choix des
+  // formations, sinon la garde voit un compte encore sans acces.
+  const signingUp = useRef(false);
+
   useEffect(() => {
-    if (user && !authLoading) navigate("/espace-apprenant");
+    if (user && !authLoading && !signingUp.current) navigate("/espace-apprenant");
   }, [authLoading, navigate, user]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!isStrongPassword(password)) return;
     const normalizedEmail = email.trim().toLowerCase();
+    signingUp.current = true;
     try {
       await createAccount.mutateAsync({ fullName: fullName.trim(), email: normalizedEmail, password });
       await signIn(normalizedEmail, password);
       const next = courseId ? `?course=${encodeURIComponent(courseId)}` : "";
       navigate(`/academy/choisir-mes-formations${next}`);
     } catch (error) {
+      signingUp.current = false;
       toastError(toast, error instanceof Error ? error.message : "Réessayez dans quelques instants.", { cause: error });
     }
   };
