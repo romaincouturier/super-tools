@@ -8,6 +8,7 @@ import { useAcademyAuth } from "@/hooks/useAcademyAuth";
 import { useAcademyCatalog } from "@/hooks/useAcademyCatalog";
 import { useAcademyEnrollment } from "@/hooks/useAcademyEnrollment";
 import { useToast } from "@/hooks/use-toast";
+import { useSession } from "@/hooks/useSession";
 import { toastError } from "@/lib/toastError";
 import { HIDDEN_FREE_COURSE_IDS } from "@/lib/academyFreeCourses";
 
@@ -22,7 +23,7 @@ export default function AcademyCourseSelection() {
   const { user, loading: authLoading } = useAcademyAuth();
   const { data, isLoading } = useAcademyCatalog();
   const enroll = useAcademyEnrollment();
-  const { toast } = useToast();
+  const { refresh } = useSession();
 
   const preselected = searchParams.get("course") ?? "";
   const [selected, setSelected] = useState<Set<string>>(() => (preselected ? new Set([preselected]) : new Set()));
