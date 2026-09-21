@@ -444,6 +444,15 @@ if [ "$STAGED_MODE" = "false" ]; then
        supabase/functions src --include='*.ts' 2>/dev/null \
        | grep -v '_shared/mime-types.ts' | grep -v 'src/lib/file-utils.ts'"
 
+  # [052c] Le protocole Pennylane (URL de base de l'API externe et en-tête
+  # Authorization associé) vit dans _shared/pennylane.ts. Deux appelants le
+  # partagent déjà — pennylane-proxy (front) et le tool MCP create_quote — et
+  # une troisième copie ferait diverger le token, les en-têtes de version
+  # d'API et la forme des erreurs remontées.
+  check "052c" "Aucun appel direct à l'API Pennylane hors _shared/pennylane.ts" \
+    "grep -rn 'app.pennylane.com/api/external' supabase/functions --include='*.ts' \
+       | grep -v '_shared/pennylane.ts' | grep -v '\.test\.ts:'"
+
   # [053] new Response(corps, { status: 204 }) lève une TypeError — un statut
   # sans corps ne peut pas en porter. Dans un mock, le test part alors dans le
   # catch et le chemin nominal n'est jamais exercé, en restant vert.
