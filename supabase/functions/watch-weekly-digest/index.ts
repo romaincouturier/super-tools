@@ -8,20 +8,25 @@ import {
 } from "../_shared/mod.ts";
 import { getOpenAIApiKey } from "../_shared/api-keys.ts";
 import { logApiUsage } from "../_shared/api-usage.ts";
+import { isInternalCall } from "../_shared/cron-auth.ts";
 
 /**
  * Generate a weekly digest of the best watch items and post it to Slack.
  * Designed to run every Monday via cron.
+ *
+ * Auth : x-cron-secret (CRON_SECRET, cron planifié en base — voir docs/veille.md),
+ * x-internal-secret (appels inter-fonctions) ou JWT (déclenchement manuel).
  */
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    // Allow both authenticated calls and cron calls (no auth header for cron)
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
-      const authResult = await verifyAuth(authHeader);
+    // Trois voies d'authentification (règle [036]). L'absence d'en-tête valait
+    // autorisation auparavant : la fonction est publique (verify_jwt = false),
+    // n'importe qui pouvait donc déclencher une génération OpenAI et un post Slack.
+    if (!isInternalCall(req)) {
+      const authResult = await verifyAuth(req.headers.get("Authorization"));
       if (!authResult) return createErrorResponse("Non autorisé", 401);
     }
 
