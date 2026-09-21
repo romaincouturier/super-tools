@@ -1,11 +1,10 @@
 // Pennylane API v2 proxy
-// Reads the Bearer token from app_settings and forwards GET/POST/PUT requests to
-// https://app.pennylane.com/api/external/v2/<path>
+// Forwards GET/POST/PUT requests to the Pennylane external API v2.
+// Token, base URL and headers live in _shared/pennylane.ts (rule [052]).
 // Authenticated: requires a valid Supabase JWT (no service role exposed to client).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
-
-const PENNYLANE_BASE = "https://app.pennylane.com/api/external/v2";
+import { handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
+import { getPennylaneToken, pennylaneFetch } from "../_shared/pennylane.ts";
 
 // Whitelist endpoint paths to avoid open proxy abuse.
 // Pattern matched via prefix on the requested `path`.
@@ -67,67 +66,32 @@ Deno.serve(async (req) => {
       return createErrorResponse("Invalid method", 400);
     }
 
-    // ── Fetch Pennylane token from app_settings ─────────────────────────────
+    // ── Token et appel : protocole Pennylane centralisé dans _shared ─────────
     const admin = createClient(supabaseUrl, serviceKey);
-    const { data: setting } = await admin
-      .from("app_settings")
-      .select("setting_value")
-      .eq("setting_key", "pennylane_api_token")
-      .maybeSingle();
-
-    const token = setting?.setting_value?.trim();
-    if (!token) {
-      return createErrorResponse(
-        "Token API Pennylane non configuré dans les paramètres généraux.",
-        400,
-      );
-    }
-
-    // ── Build target URL ────────────────────────────────────────────────────
-    const cleanPath = path.replace(/^\/+/, "");
-    const url = new URL(`${PENNYLANE_BASE}/${cleanPath}`);
-    if (query && typeof query === "object") {
-      for (const [k, v] of Object.entries(query)) {
-        if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
-      }
-    }
-
-    // ── Forward to Pennylane ────────────────────────────────────────────────
-    const init: RequestInit = {
-      method,
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        // Opt in to the new 2026 API behavior (descending order, etc.)
-        "X-Use-2026-API-Changes": "true",
-      },
-    };
-    if (method !== "GET" && payload !== undefined) {
-      init.body = JSON.stringify(payload);
-    }
-
-    const apiUrl = url.toString();
-    console.log(`[pennylane-proxy] ${method} ${apiUrl.replace(token, "***")}`);
-
-    const response = await fetch(apiUrl, init);
-    const text = await response.text();
-    let data: unknown;
+    let token: string;
     try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      data = { raw: text };
+      token = await getPennylaneToken(admin);
+    } catch (e) {
+      return createErrorResponse(e instanceof Error ? e.message : "Token Pennylane indisponible", 400);
     }
 
-    if (!response.ok) {
-      console.error("[pennylane-proxy] API error", response.status, text.slice(0, 500));
+    console.log(`[pennylane-proxy] ${method} ${path}`);
+    const res = await pennylaneFetch(
+      token,
+      method as "GET" | "POST" | "PUT" | "DELETE",
+      path,
+      { query, body: payload },
+    );
+
+    if (!res.ok) {
+      console.error("[pennylane-proxy] API error", res.status, res.raw.slice(0, 500));
       return createJsonResponse(
-        { error: "Pennylane API error", status: response.status, details: data },
-        response.status,
+        { error: "Pennylane API error", status: res.status, details: res.data },
+        res.status,
       );
     }
 
-    return createJsonResponse(data, 200);
+    return createJsonResponse(res.data, 200);
   } catch (err) {
     console.error("[pennylane-proxy] Unexpected error:", err);
     return createErrorResponse(err instanceof Error ? err.message : "Unknown error", 500);

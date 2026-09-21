@@ -9,8 +9,11 @@ import {
   createErrorResponse,
   createJsonResponse,
 } from "../_shared/cors.ts";
-
-const PENNYLANE_BASE = "https://app.pennylane.com/api/external/v2";
+import {
+  getPennylaneToken,
+  pennylaneErrorMessage,
+  pennylaneFetch,
+} from "../_shared/pennylane.ts";
 
 interface PennylaneInvoice {
   date?: string;
@@ -67,19 +70,11 @@ function shiftMonth(month: string, delta: number): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-async function pennylaneFetch<T>(path: string, token: string): Promise<T> {
-  const res = await fetch(`${PENNYLANE_BASE}/${path}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-      "X-Use-2026-API-Changes": "true",
-    },
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Pennylane ${path}: ${res.status} ${text.slice(0, 200)}`);
-  }
-  return (await res.json()) as T;
+/** Lecture Pennylane : le protocole vit dans _shared/pennylane.ts (règle [052]). */
+async function pennylaneList<T>(token: string, path: string): Promise<T> {
+  const res = await pennylaneFetch(token, "GET", path);
+  if (!res.ok) throw new Error(pennylaneErrorMessage(res, `Lecture Pennylane ${path}`));
+  return res.data as T;
 }
 
 function withinRange(date: string | undefined, from: string, to: string): boolean {
@@ -153,15 +148,11 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // Pennylane token
-    const { data: setting } = await admin
-      .from("app_settings")
-      .select("setting_value")
-      .eq("setting_key", "pennylane_api_token")
-      .maybeSingle();
-    const token: string | undefined = setting?.setting_value?.trim();
-    if (!token) {
-      return createErrorResponse("Token API Pennylane non configuré.", 400);
+    let token: string;
+    try {
+      token = await getPennylaneToken(admin);
+    } catch (e) {
+      return createErrorResponse(e instanceof Error ? e.message : "Token Pennylane indisponible", 400);
     }
 
     const { data: meData } = await admin
@@ -174,13 +165,13 @@ Deno.serve(async (req) => {
     // Charger 13 mois de factures pour avoir M-1, M, M+1 et la série
     // mensuelle. Pennylane renvoie tri descendant — limit 500 suffit pour
     // une TPE/PME (sinon paginer plus tard).
-    const customersResp = await pennylaneFetch<PennylaneListResponse<PennylaneInvoice>>(
+    const customersResp = await pennylaneList<PennylaneListResponse<PennylaneInvoice>>(
+      token,
       "customer_invoices?per_page=500",
-      token,
     );
-    const suppliersResp = await pennylaneFetch<PennylaneListResponse<PennylaneInvoice>>(
-      "supplier_invoices?per_page=500",
+    const suppliersResp = await pennylaneList<PennylaneListResponse<PennylaneInvoice>>(
       token,
+      "supplier_invoices?per_page=500",
     );
     const customers = customersResp.items ?? [];
     const suppliers = suppliersResp.items ?? [];
