@@ -7,6 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { Search, GraduationCap, ClipboardCheck, FileText, Star } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useParticipantHistory } from "@/hooks/useParticipantHistory";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskText } from "@/lib/demoMask";
 
 interface ParticipantSearchDrawerProps {
   open: boolean;
@@ -14,6 +16,7 @@ interface ParticipantSearchDrawerProps {
 }
 
 export default function ParticipantSearchDrawer({ open, onOpenChange }: ParticipantSearchDrawerProps) {
+  const { isDemoMode } = useDemoMode();
   const [query, setQuery] = useState("");
   const { search, loading, history } = useParticipantHistory();
 
@@ -52,10 +55,8 @@ export default function ParticipantSearchDrawer({ open, onOpenChange }: Particip
               {/* Identity */}
               <div className="bg-muted/50 rounded-lg p-4">
                 <div className="font-semibold">{history.name}</div>
-                <div className="text-sm text-muted-foreground">{history.email}</div>
-                {history.company && (
-                  <div className="text-sm text-muted-foreground">{history.company}</div>
-                )}
+                <div className="text-sm text-muted-foreground">{isDemoMode ? maskEmail(history.email) : history.email}</div>
+                {history.company && <div className="text-sm text-muted-foreground">{isDemoMode ? maskText(history.company) : history.company}</div>}
                 <div className="mt-2 flex gap-2">
                   <Badge variant="outline">{history.trainings.length} formation{history.trainings.length > 1 ? "s" : ""}</Badge>
                   <Badge variant="outline">{history.evaluations.length} évaluation{history.evaluations.length > 1 ? "s" : ""}</Badge>

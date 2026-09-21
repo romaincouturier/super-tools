@@ -9,6 +9,8 @@ import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import type { Quote, QuoteStatus, SignedDevis } from "@/types/quotes";
 import { openStorageUrl } from "@/lib/storageUrl";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount, maskName, maskText } from "@/lib/demoMask";
 
 const statusLabels: Record<QuoteStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Brouillon", variant: "secondary" },
@@ -25,6 +27,7 @@ interface Props {
 
 export default function QuoteHistorySection({ cardId }: Props) {
   const navigate = useNavigate();
+  const { isDemoMode } = useDemoMode();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loadingQuotes, setLoadingQuotes] = useState(true);
   const [signedDevis, setSignedDevis] = useState<SignedDevis[]>([]);
@@ -104,11 +107,11 @@ export default function QuoteHistorySection({ cardId }: Props) {
 
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">
-                  {d.recipient_name || d.client_name}
+                  {isDemoMode ? maskName(d.recipient_name || d.client_name) : (d.recipient_name || d.client_name)}
                   {d.devis_type === "avec_subrogation" ? " · Avec subrogation" : " · Sans subrogation"}
                 </span>
                 {d.total_amount_ht != null && (
-                  <span className="font-medium">{fmt(d.total_amount_ht)} HT</span>
+                  <span className="font-medium">{isDemoMode ? maskAmount(d.total_amount_ht) : `${fmt(d.total_amount_ht)} HT`}</span>
                 )}
               </div>
 
@@ -154,8 +157,8 @@ export default function QuoteHistorySection({ cardId }: Props) {
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{q.client_company}</span>
-                  <span className="font-medium">{fmt(q.total_ttc)}</span>
+                  <span className="text-muted-foreground">{isDemoMode ? maskText(q.client_company) : q.client_company}</span>
+                  <span className="font-medium">{isDemoMode ? maskAmount(q.total_ttc) : fmt(q.total_ttc)}</span>
                 </div>
 
                 {q.email_sent_at && (

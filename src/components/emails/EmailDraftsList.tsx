@@ -193,7 +193,7 @@ function DraftCard({
               <p className="text-xs text-muted-foreground">
                 → {isDemoMode
                   ? (draft.contact_name ? `${maskName(draft.contact_name)} (${maskEmail(draft.contact_email)})` : maskEmail(draft.contact_email))
-                  : (draft.contact_name ? `${draft.contact_name} (${draft.contact_email})` : draft.contact_email)}
+                  : (draft.contact_name ? `${draft.contact_name} (${draft.contact_email})` : draft.contact_email)}{/* demo-safe: branche hors mode demo */}
               </p>
               {showMissionLabel && draft.mission_id && (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs">
@@ -311,7 +311,9 @@ function DraftCard({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Rejeter ce brouillon ?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      L'email ne sera pas envoyé à {draft.contact_name || draft.contact_email}.
+                      L'email ne sera pas envoyé à {isDemoMode
+                        ? (draft.contact_name ? maskName(draft.contact_name) : maskEmail(draft.contact_email))
+                        : (draft.contact_name || draft.contact_email)}.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -347,7 +349,7 @@ function DraftCard({
               <p className="text-xs text-muted-foreground">Destinataire</p>
               <p className="text-sm">{isDemoMode
                 ? (draft.contact_name ? `${maskName(draft.contact_name)} <${maskEmail(draft.contact_email)}>` : maskEmail(draft.contact_email))
-                : (draft.contact_name ? `${draft.contact_name} <${draft.contact_email}>` : draft.contact_email)}</p>
+                : (draft.contact_name ? `${draft.contact_name} <${draft.contact_email}>` : draft.contact_email)}</p>{/* demo-safe: branche hors mode demo */}
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Objet</p>

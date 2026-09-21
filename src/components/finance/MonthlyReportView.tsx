@@ -55,7 +55,7 @@ const MonthlyReportView = forwardRef<HTMLDivElement, MonthlyReportViewProps>(({ 
     <div ref={ref} className="bg-background p-8 space-y-6">
       <header className="border-b pb-4 space-y-1">
         <h1 className="text-2xl font-bold">Rapport de pilotage — {formatLongMonth(payload.month)}</h1>
-        {payload.company_name && <p className="text-sm text-muted-foreground">{payload.company_name}</p>}
+        {payload.company_name && <p className="text-sm text-muted-foreground">{payload.company_name}</p>}{/* demo-safe: raison sociale de SuperTilt, pas un client */}
         <p className="text-xs text-muted-foreground">
           Généré le {new Date(payload.generated_at).toLocaleDateString("fr-FR")}
         </p>

@@ -53,7 +53,7 @@ const DuplicateParticipantDialog = ({
         )
       }
 
-      initialCompany={participant.company ?? undefined}
+      initialCompany={participant.company ?? undefined} // demo-safe: pre-remplissage d'un champ de saisie, masquer corromprait l'enregistrement
       initialCompanyAddress={participant.company_address ?? undefined}
       initialCompanyZip={participant.company_zip ?? undefined}
       initialCompanyCity={participant.company_city ?? undefined}

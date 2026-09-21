@@ -438,7 +438,7 @@ const MicroDevis = () => {
       const ed = af?.duree_heures ?? sc.duree_heures;
       const label = formulasHook.selectedFormula ? `${formationDemandee} — ${formulasHook.selectedFormula}` : formationDemandee;
       const response = await supabase.functions.invoke("generate-micro-devis", {
-        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, remiseFraisAdmin, offrirFraisAdmin: remiseFraisAdmin > 0, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, selectedFormulaId: formulasHook.selectedFormulaId, ...(crmCardId && { crmCardId, senderEmail: user?.email }) },
+        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, remiseFraisAdmin, offrirFraisAdmin: remiseFraisAdmin > 0, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, selectedFormulaId: formulasHook.selectedFormulaId, ...(crmCardId && { crmCardId, senderEmail: user?.email }) }, // demo-safe: payload envoye a la generation du devis
       });
       if (response.error) throw new Error(response.error.message);
       toast({ title: typeSubrogation === "les2" ? "Devis envoyés !" : "Devis envoyé !", description: typeSubrogation === "les2" ? `Les 2 devis ont été générés et envoyés à ${normalizedEmail}` : `Le devis a été généré et envoyé à ${normalizedEmail}` });
@@ -496,7 +496,7 @@ const MicroDevis = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
               <ClientInfoSection
-                siren={sirenSearch.siren} setSiren={sirenSearch.setSiren}
+                siren={sirenSearch.siren /* demo-safe: valeur de champ de formulaire */} setSiren={sirenSearch.setSiren}
                 searchingSiren={sirenSearch.searchingSiren} onSearchSiren={onSearchSiren}
                 nomClient={nomClient} setNomClient={setNomClient}
                 searchingSirenByName={sirenSearch.searchingSirenByName}

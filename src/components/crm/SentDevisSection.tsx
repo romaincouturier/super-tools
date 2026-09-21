@@ -274,7 +274,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                   </span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {details?.client_name && (
+                  {details?.client_name && ( /* demo-safe: garde, valeur masquee ligne suivante */
                     <Badge variant="outline" className="text-[10px] h-5">
                       {isDemoMode ? maskName(details.client_name) : details.client_name}
                     </Badge>

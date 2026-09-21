@@ -360,9 +360,9 @@ export function SponsorCard({ form }: { form: FormationFormHook }) {
         open={meetingDialogOpen}
         onOpenChange={setMeetingDialogOpen}
         opportunityTitle={form.trainingName || "préparation formation"}
-        company={form.clientName || ""}
+        company={form.clientName || ""} /* demo-safe: valeur de formulaire */
         contactEmail={form.sponsorEmail || ""}
-        initialSummary={`Point préparation — ${form.trainingName}${form.clientName ? ` — ${form.clientName}` : ""}`}
+        initialSummary={/* demo-safe: resume pre-rempli, enregistre tel quel */ `Point préparation — ${form.trainingName}${form.clientName ? ` — ${form.clientName}` : ""}`}
         initialDescription={SPONSOR_MEETING_DESCRIPTION}
         defaultFormality={form.sponsorFormalAddress ? "vous" : "tu"}
       />

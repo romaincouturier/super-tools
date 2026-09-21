@@ -272,12 +272,12 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
         }}
         defaultStatus={createDialogStatus}
         prefillTitle={prefillData?.title}
-        prefillClientName={prefillData?.clientName}
+        prefillClientName={prefillData?.clientName} /* demo-safe: prefill d'un formulaire de creation */
         prefillClientContact={prefillData?.clientContact}
         prefillTotalAmount={prefillData?.totalAmount}
         prefillContactFirstName={prefillData?.contactFirstName}
         prefillContactLastName={prefillData?.contactLastName}
-        prefillContactEmail={prefillData?.contactEmail}
+        prefillContactEmail={prefillData?.contactEmail} /* demo-safe: prefill d'un formulaire de creation */
         prefillContactPhone={prefillData?.contactPhone}
         prefillFromCrmCardId={prefillData?.fromCrmCardId}
       />

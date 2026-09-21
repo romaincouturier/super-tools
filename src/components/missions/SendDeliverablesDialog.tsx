@@ -21,6 +21,8 @@ import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { MissionContact } from "@/types/missions";
 import { useQuery } from "@tanstack/react-query";
 import { useMissionDeliverableSends } from "@/hooks/useMissionDeliverableSends";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName, maskEmail } from "@/lib/demoMask";
 
 interface SendDeliverablesDialogProps {
   missionId: string;
@@ -119,6 +121,7 @@ const SendDeliverablesDialog = ({
   onOpenChange,
 }: SendDeliverablesDialogProps) => {
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const { data: contacts, isLoading: contactsLoading } = useMissionContacts(missionId);
   const { data: pages } = useMissionPages(open ? missionId : null);
   const { data: documents } = useEntityDocuments("mission", open ? missionId : undefined);
@@ -299,13 +302,13 @@ const SendDeliverablesDialog = ({
                       />
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium">
-                          {name || "Sans nom"}
+                          {isDemoMode ? maskName(name) || "Sans nom" : name || "Sans nom"}
                         </span>
                         {contact.is_primary && (
                           <span className="text-xs text-yellow-600 ml-1" title="Contact principal">★</span>
                         )}
                         <span className="text-xs text-muted-foreground ml-2">
-                          {hasEmail ? contact.email : <em>aucun email</em>}
+                          {hasEmail ? (isDemoMode ? maskEmail(contact.email) : contact.email) : <em>aucun email</em>}
                         </span>
                         {contact.role && (
                           <span className="text-xs text-muted-foreground ml-1">
@@ -482,7 +485,7 @@ const SendDeliverablesDialog = ({
               {showPreview && previewContact && (
                 <div className="mt-2 border rounded-lg p-4 bg-background">
                   <div className="text-xs text-muted-foreground mb-2">
-                    Aperçu pour : {previewContact.first_name || previewContact.email}
+                    Aperçu pour : {isDemoMode ? maskName(previewContact.first_name) || maskEmail(previewContact.email) : previewContact.first_name || previewContact.email}
                   </div>
                   <div
                     className="prose prose-sm max-w-none"

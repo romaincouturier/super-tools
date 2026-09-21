@@ -349,7 +349,7 @@ const CardDetailDrawer = ({
       first_name: firstName, last_name: lastName, service_type: serviceType,
       estimated_value: parseFloat(estimatedValue) || 0, comments: details?.comments || [],
       brief_questions: card?.brief_questions || [], activities: details?.activity || [],
-      emails_sent: (details?.emails || []).map(e => ({ subject: e.subject, body_html: e.body_html, sent_at: e.sent_at, recipient_email: e.recipient_email })),
+      emails_sent: (details?.emails || []).map(e => ({ subject: e.subject, body_html: e.body_html, sent_at: e.sent_at, recipient_email: e.recipient_email })), // demo-safe: payload transmis a l'analyse IA, pas un affichage
       client_profile: profileParts.join("\n"),
     };
   };
@@ -504,7 +504,7 @@ const CardDetailDrawer = ({
     if (newStatus === "LOST" && previousStatus !== "LOST") updates.lost_at = new Date().toISOString();
     if (newStatus === "OPEN") { updates.won_at = null; updates.lost_at = null; updates.loss_reason = null; updates.loss_reason_detail = null; }
     const statusChangedToWon = newStatus === "WON" && previousStatus !== "WON";
-    await updateCard.mutateAsync({ id: card.id, updates, actorEmail: user.email, oldCard: card });
+    await updateCard.mutateAsync({ id: card.id, updates, actorEmail: user.email, oldCard: card }); // demo-safe: auteur de la mutation
     if (statusChangedToWon) promptWinChoice();
   };
 
@@ -526,7 +526,7 @@ const CardDetailDrawer = ({
     const updates: Record<string, unknown> = { sales_status: "LOST", loss_reason: reason, loss_reason_detail: detail || null, lost_at: new Date().toISOString(), status_operational: "TODAY", waiting_next_action_date: null, waiting_next_action_text: null };
     if (lossColumnId) updates.column_id = lossColumnId;
     setScheduledDate(""); setScheduledText("");
-    await updateCard.mutateAsync({ id: card.id, updates, actorEmail: user.email, oldCard: card });
+    await updateCard.mutateAsync({ id: card.id, updates, actorEmail: user.email, oldCard: card }); // demo-safe: auteur de la mutation
   };
 
   const handleLossReasonCancel = () => {
@@ -552,7 +552,7 @@ const CardDetailDrawer = ({
     const updates: Record<string, unknown> = { column_id: newColumnId };
     if (isWonColumn) { updates.sales_status = "WON"; setSalesStatus("WON"); } else if (leavingWonColumn) { updates.sales_status = "OPEN"; setSalesStatus("OPEN"); }
     if (leavingLostColumn) { updates.sales_status = "OPEN"; updates.lost_at = null; updates.loss_reason = null; updates.loss_reason_detail = null; setSalesStatus("OPEN"); }
-    await updateCard.mutateAsync({ id: card.id, updates, actorEmail: user.email, oldCard: card });
+    await updateCard.mutateAsync({ id: card.id, updates, actorEmail: user.email, oldCard: card }); // demo-safe: auteur de la mutation
     if (movingToWon) promptWinChoice();
   };
 
@@ -618,8 +618,8 @@ const CardDetailDrawer = ({
     if (!card || !user?.email) return;
     try {
       const hasTag = card.tags?.some((t) => t.id === tagId);
-      if (hasTag) { await unassignTag.mutateAsync({ cardId: card.id, tagId, actorEmail: user.email }); }
-      else { await assignTag.mutateAsync({ cardId: card.id, tagId, actorEmail: user.email }); }
+      if (hasTag) { await unassignTag.mutateAsync({ cardId: card.id, tagId, actorEmail: user.email }); } // demo-safe: auteur de la mutation
+      else { await assignTag.mutateAsync({ cardId: card.id, tagId, actorEmail: user.email }); } // demo-safe: auteur de la mutation
     } catch (e: unknown) {
       console.error("handleToggleTag error:", e);
       const hasTag = card.tags?.some((t) => t.id === tagId);
@@ -633,7 +633,7 @@ const CardDetailDrawer = ({
     if (!card || !user?.email) return;
     try {
       const newTag = await createTag.mutateAsync({ name: name.trim(), category, color });
-      await assignTag.mutateAsync({ cardId: card.id, tagId: newTag.id, actorEmail: user.email });
+      await assignTag.mutateAsync({ cardId: card.id, tagId: newTag.id, actorEmail: user.email }); // demo-safe: auteur de la mutation
     } catch (e: unknown) {
       const detail = (e as any)?.message || "";
       toastError(toast, `Impossible de créer le tag.${detail ? ` ${detail}` : ""}`);
@@ -643,7 +643,7 @@ const CardDetailDrawer = ({
   const handleAddComment = async () => {
     if (!card || !user?.email || !newComment.trim()) return;
     try {
-      await addComment.mutateAsync({ cardId: card.id, content: newComment.trim(), authorEmail: user.email });
+      await addComment.mutateAsync({ cardId: card.id, content: newComment.trim(), authorEmail: user.email }); // demo-safe: auteur du commentaire
       setNewComment("");
     } catch (e) {
       console.error("handleAddComment error:", e);
@@ -666,7 +666,7 @@ const CardDetailDrawer = ({
     const files = Array.from(e.target.files);
     try {
       for (const file of files) {
-        await addAttachment.mutateAsync({ cardId: card.id, file, actorEmail: user.email });
+        await addAttachment.mutateAsync({ cardId: card.id, file, actorEmail: user.email }); // demo-safe: auteur de la piece jointe
       }
     } catch (err) {
       console.error("handleFileUpload error:", err);
@@ -964,7 +964,7 @@ const CardDetailDrawer = ({
       <NewOpportunityDialog
         open={showCreateFromContactDialog}
         onOpenChange={setShowCreateFromContactDialog}
-        userEmail={user?.email || ""}
+        userEmail={user?.email || "" /* demo-safe: auteur de l'opportunite creee */}
         initialContact={{
           first_name: firstName || null,
           last_name: lastName || null,

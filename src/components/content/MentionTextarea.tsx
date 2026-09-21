@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName } from "@/lib/demoMask";
 
 interface Profile {
   user_id: string;
@@ -30,7 +32,7 @@ interface MentionTextareaProps {
 
 const getDisplayName = (profile: Profile) => {
   if (profile.first_name && profile.last_name) {
-    return `${profile.first_name} ${profile.last_name}`;
+    return `${profile.first_name} ${profile.last_name}`; // demo-safe: valeur inseree dans le texte de la mention, masquee au rendu
   }
   if (profile.display_name) return profile.display_name;
   return profile.email;
@@ -46,6 +48,7 @@ const MentionTextarea = ({
   onPaste,
   onKeyDown,
 }: MentionTextareaProps) => {
+  const { isDemoMode } = useDemoMode();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
@@ -207,9 +210,9 @@ const MentionTextarea = ({
               }}
               onMouseEnter={() => setSelectedIndex(index)}
             >
-              <span className="font-medium">{getDisplayName(profile)}</span>
+              <span className="font-medium">{isDemoMode ? maskName(getDisplayName(profile)) : getDisplayName(profile)}</span>
               <span className="text-xs text-muted-foreground">
-                {profile.email}
+                {isDemoMode ? maskEmail(profile.email) : profile.email}
               </span>
             </button>
           ))}

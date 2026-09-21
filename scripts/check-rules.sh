@@ -46,6 +46,17 @@ search_files() {
   fi
 }
 
+# Lignes AJOUTÉES par le commit (mode staged uniquement). Les règles en ratchet
+# portent sur la dette ajoutée : toucher un fichier legacy pour une raison
+# orthogonale n'en ajoute pas, seules les lignes nouvelles comptent.
+search_added_lines() {
+  local pattern="$1"
+  shift
+  git diff --cached -U0 --diff-filter=ACM -- '*.ts' '*.tsx' 2>/dev/null \
+    | awk '/^\+\+\+ /{file=substr($0,7); next} /^\+/{print file ":" substr($0,2)}' \
+    | grep -E "$pattern" "$@" || true
+}
+
 check() {
   local rule_id="$1"
   local description="$2"
@@ -127,11 +138,11 @@ check "023" "Utiliser todayAsISO() au lieu de new Date().toISOString().slice(0, 
 if [ "$STAGED_MODE" = "true" ]; then
   # [017] et [020] : migrations progressives — legacy restant en codebase,
   # vérifiées uniquement sur les fichiers du commit.
-  check "017" "Utiliser <Spinner> au lieu de <Loader2 animate-spin>" \
-    "search_files '<Loader2[^>]*animate-spin' -E | grep -v 'components/ui/spinner.tsx'"
+  check "017" "Utiliser <Spinner> au lieu de <Loader2 animate-spin> (lignes ajoutées)" \
+    "search_added_lines '<Loader2[^>]*animate-spin' | grep -v 'components/ui/spinner.tsx'"
 
-  check "020" "Préférer useEdgeFunction() au lieu de supabase.functions.invoke() inline" \
-    "echo \"\$STAGED_FILES\" | grep -v 'src/services/' | grep -v 'src/lib/' | grep -v 'src/hooks/useEdgeFunction.ts' | xargs -r grep -n 'supabase\\.functions\\.invoke' 2>/dev/null"
+  check "020" "Préférer useEdgeFunction() au lieu de supabase.functions.invoke() inline (lignes ajoutées)" \
+    "search_added_lines 'supabase\\.functions\\.invoke' | grep -v 'src/services/' | grep -v 'src/lib/' | grep -v 'src/hooks/useEdgeFunction.ts'"
 fi
 
 # ==========================================================

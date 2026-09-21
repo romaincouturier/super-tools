@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 
 interface FailedEmail {
   id: string;
@@ -44,6 +46,7 @@ interface FailedEmail {
 
 const FailedEmails = () => {
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const [loading, setLoading] = useState(true);
   const [failedEmails, setFailedEmails] = useState<FailedEmail[]>([]);
   const [scheduledFailed, setScheduledFailed] = useState<any[]>([]);
@@ -171,7 +174,7 @@ const FailedEmails = () => {
                             {email.trainings?.training_name || "—"}
                           </TableCell>
                           <TableCell className="text-sm">
-                            {email.training_participants?.email || "—"}
+                            {email.training_participants?.email ? (isDemoMode ? maskEmail(email.training_participants.email) : email.training_participants.email) : "—"}
                           </TableCell>
                           <TableCell className="text-sm text-destructive max-w-[200px] truncate">
                             {email.error_message || "Erreur inconnue"}
@@ -221,7 +224,7 @@ const FailedEmails = () => {
                           <TableCell className="text-sm">
                             {formatDate(email.created_at)}
                           </TableCell>
-                          <TableCell className="text-sm">{email.recipient_email}</TableCell>
+                          <TableCell className="text-sm">{isDemoMode ? maskEmail(email.recipient_email) : email.recipient_email}</TableCell>
                           <TableCell className="text-sm max-w-[200px] truncate">
                             {email.subject}
                           </TableCell>
@@ -279,7 +282,7 @@ const FailedEmails = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-muted-foreground">Destinataire:</span>{" "}
-                  <span className="font-medium">{previewEmail.recipient_email}</span>
+                  <span className="font-medium">{isDemoMode ? maskEmail(previewEmail.recipient_email) : previewEmail.recipient_email}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Date:</span>{" "}

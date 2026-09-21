@@ -118,7 +118,7 @@ const FormationDetailSections = ({
           schedules={schedules}
           participants={participants}
           signedConventionUrls={training.signed_convention_urls || []}
-          clientName={training.client_name}
+          clientName={training.client_name} /* demo-safe: prop transmise, masquee a l'affichage par le composant enfant */
           trainingDuree={`${_calculateTotalDuration()}h`}
           onUpdate={fetchTrainingData}
         />

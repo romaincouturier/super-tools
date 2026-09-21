@@ -17,7 +17,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 # Champs identifiants : identite, contact, entreprise, argent.
-FIELDS='email|emails|contact_email|recipient_email|phone|telephone|mobile|first_name|last_name|full_name|contact_name|nom|prenom|company|company_name|societe|siret|siren|address|adresse|postal_code|iban|amount|montant|price|prix|sold_price_ht|estimated_value|total_ht|total_ttc'
+FIELDS='email|emails|contact_email|recipient_email|learner_email|clientEmail|contactEmail|phone|telephone|mobile|first_name|last_name|full_name|contact_name|client_name|client_contact|learner_name|participant_name|author_name|authorName|clientName|contactName|nom|prenom|company|company_name|clientCompany|societe|siret|siren|address|adresse|postal_code|iban|amount|montant|price|prix|sold_price_ht|estimated_value|total_ht|total_ttc|totalHt'
 
 # Ecrans publics / apprenant / partenaire : hors perimetre du mode demo.
 PUBLIC_SCREENS='src/pages/(Landing|Auth|Signup|Onboarding|ResetPassword|ForcePasswordChange|PolitiqueConfidentialite|Connexion.*|CompteSansAcces|NotFound|Academy.*|FormulaireRedirect|Google.*Callback|LearnerPortal|LmsCoursePlayer|LmsCourseHomePage|Questionnaire|Evaluation|SponsorEvaluation|TrainerEvaluation|Emargement|Signature.*|ReclamationPublic|PartnerPortal|TrainingSummary|TrainingSupportPage|MissionSummary|SurveyPublic|TrainingSurveyResponse|BookPublicPage|SupertiltConfirmationEnvoi)\.tsx|src/components/(learner|questionnaire|ui)/'
@@ -26,11 +26,11 @@ violations() {
   grep -rnE "\{[^}]*\.($FIELDS)\b" src/pages src/components --include='*.tsx' 2>/dev/null \
     | grep -vE '\.test\.tsx:' \
     | grep -vE "$PUBLIC_SCREENS" \
-    | grep -v 'demo-safe:' \
     | grep -v 'mask[A-Z]' \
     | grep -v 'isDemoMode' \
     | grep -vE '(value|defaultValue|placeholder|checked)=\{' \
-    | grep -vE 'onChange|onValueChange|onSelect|onInput'
+    | grep -v 'demo-safe:' \
+    | grep -vE 'onChange|onValueChange|onSelect|onInput' || true
 }
 
 case "${1:-}" in

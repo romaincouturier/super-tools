@@ -73,7 +73,7 @@ const ParticipantTable = ({
       <TableBody>
         {sortedParticipants.map((participant) => {
           const rawName = participant.first_name || participant.last_name
-            ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
+            ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim() // demo-safe: valeur brute, masquee juste apres dans displayName
             : participant.email;
           const displayName = isDemoMode ? maskName(rawName) : rawName;
 
@@ -87,7 +87,7 @@ const ParticipantTable = ({
                         {isDemoMode
                           ? displayName
                           : (participant.first_name || participant.last_name
-                              ? `${participant.last_name || ""} ${participant.first_name || ""}`.trim()
+                              ? `${participant.last_name || ""} ${participant.first_name || ""}`.trim() // demo-safe: branche hors mode demo
                               : participant.email)}
                       </span>
                       {participant.formula && (
@@ -155,14 +155,14 @@ const ParticipantTable = ({
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6 text-muted-foreground hover:text-primary shrink-0"
-                        onClick={() => onCopyEmail(participant.email)}
+                        onClick={() => onCopyEmail(participant.email)} // demo-safe: copie presse-papier, adresse reelle requise
                       >
                         <Mail className="h-3 w-3" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent><p>Copier {isDemoMode ? maskEmail(participant.email) : participant.email}</p></TooltipContent>
                   </Tooltip>
-                  {(participant.first_name || participant.last_name) && (
+                  {(participant.first_name || participant.last_name) && ( // demo-safe: test de presence, rien n'est affiche
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <a
@@ -186,7 +186,7 @@ const ParticipantTable = ({
               </TableCell>
               {actionsProps.isInterEntreprise && !actionsProps.isFreeTraining && (
                 <TableCell className="tabular-nums">
-                  {participant.sold_price_ht != null
+                  {participant.sold_price_ht != null // demo-safe: test de presence, montant masque ligne suivante
                     ? (isDemoMode ? maskAmount(participant.sold_price_ht) : `${participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €`)
                     : "—"}
                 </TableCell>

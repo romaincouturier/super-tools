@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useMissionPages, MissionPage } from "@/hooks/useMissions";
 import { htmlToPlainText } from "@/lib/htmlUtils";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText } from "@/lib/demoMask";
 
 interface Generate8PDialogProps {
   open: boolean;
@@ -33,6 +35,7 @@ interface CrmCardSummary {
 }
 
 const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Generate8PDialogProps) => {
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const { data: pages } = useMissionPages(missionId);
 
@@ -57,7 +60,7 @@ const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Genera
   }): CrmCardSummary => {
     const rawText = htmlToPlainText(card.description_html || "") || (card.raw_input || "");
     const preview = rawText.replace(/\s+/g, " ").trim().slice(0, 200);
-    return { id: card.id, title: card.title, company: card.company, descriptionPreview: preview };
+    return { id: card.id, title: card.title, company: card.company, descriptionPreview: preview }; // demo-safe: resume transmis a la generation IA
   };
 
   // Fetch linked CRM card when dialog opens
@@ -241,8 +244,8 @@ const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Genera
                     </Button>
                   </div>
                   <div className="text-muted-foreground text-xs">
-                    {crmCard.title}
-                    {crmCard.company ? ` — ${crmCard.company}` : ""}
+                    {isDemoMode ? maskText(crmCard.title) : crmCard.title}
+                    {crmCard.company ? ` — ${isDemoMode ? maskText(crmCard.company) : crmCard.company}` : ""}
                   </div>
                   {crmCard.descriptionPreview ? (
                     <div className="mt-1 text-muted-foreground text-xs italic line-clamp-3">
@@ -317,8 +320,8 @@ const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Genera
                           className="hover:bg-muted block w-full rounded p-2 text-left text-sm"
                         >
                           <div className="font-medium">{r.title}</div>
-                          {r.company && (
-                            <div className="text-muted-foreground text-xs">{r.company}</div>
+                          {r.company && ( // demo-safe: garde d'affichage, valeur masquee plus bas
+                            <div className="text-muted-foreground text-xs">{isDemoMode ? maskText(r.company) : r.company}</div>
                           )}
                           {r.descriptionPreview && (
                             <div className="text-muted-foreground line-clamp-1 text-xs italic">

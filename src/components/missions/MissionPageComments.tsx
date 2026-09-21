@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { MessageSquare, Trash2, CheckCircle2, CornerDownRight, Lock, X } from "lucide-react";
@@ -549,10 +551,12 @@ const CommentView = ({
   comment: MissionPageCommentPublic;
   canDelete: boolean;
   onDelete: (commentId: string) => void;
-}) => (
+}) => {
+  const { isDemoMode } = useDemoMode();
+  return (
   <div>
     <div className="flex items-center gap-2 mb-0.5">
-      <span className="font-medium">{comment.author_name}</span>
+      <span className="font-medium">{isDemoMode ? maskName(comment.author_name) : comment.author_name}</span>
       {comment.is_staff && (
         <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
           Supertilt
@@ -575,7 +579,8 @@ const CommentView = ({
     </div>
     <p className="whitespace-pre-wrap leading-relaxed">{comment.body}</p>
   </div>
-);
+  );
+};
 
 // ── Saisie ──────────────────────────────────────────────────────────
 

@@ -56,7 +56,7 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
     // Fetch trainer email from trainers table
     if (trainerId) {
       supabase.from("trainers").select("email").eq("id", trainerId).maybeSingle()
-        .then(({ data }) => { if (data?.email) setTrainerEmail(data.email); });
+        .then(({ data }) => { if (data?.email) setTrainerEmail(data.email); }); // demo-safe: adresse utilisee pour l'envoi de l'evaluation, jamais affichee
     }
   }, [trainingId, trainerId]);
 

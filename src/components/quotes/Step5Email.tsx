@@ -103,7 +103,7 @@ export default function Step5Email({
         },
       });
 
-      toast.success(`Email de test envoyé à ${user.email}`);
+      toast.success(`Email de test envoyé à ${user.email}`); // demo-safe: adresse du compte connecte, destinataire reel du test
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Erreur lors de l'envoi du test");
     } finally {

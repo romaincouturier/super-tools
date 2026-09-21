@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatDateSlot, getPeriodLabel } from "@/lib/dateFormatters";
 import type { SignatureStatus } from "./types";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 
 interface AttendanceSlotListProps {
   signatureStatuses: SignatureStatus[];
@@ -30,9 +32,9 @@ interface AttendanceSlotListProps {
   onExportPdf: (participantId?: string) => void;
 }
 
-const getParticipantName = (p: { first_name: string | null; last_name: string | null; email: string }) => {
-  const name = `${p.first_name || ""} ${p.last_name || ""}`.trim();
-  return name || p.email;
+const getParticipantName = (p: { first_name: string | null; last_name: string | null; email: string }, isDemoMode: boolean) => {
+  const name = `${p.first_name || ""} ${p.last_name || ""}`.trim(); // demo-safe: masque applique a la valeur retournee
+  return isDemoMode ? maskName(name || p.email) : name || p.email;
 };
 
 const AttendanceSlotList = ({
@@ -49,7 +51,10 @@ const AttendanceSlotList = ({
   onOpenTrainerSign,
   onSignAllTrainer,
   onExportPdf,
-}: AttendanceSlotListProps) => (
+}: AttendanceSlotListProps) => {
+  const { isDemoMode } = useDemoMode();
+
+  return (
   <Card>
     <CardHeader>
       <div className="flex items-center justify-between">
@@ -94,7 +99,7 @@ const AttendanceSlotList = ({
               <DropdownMenuLabel className="text-xs text-muted-foreground">Par participant</DropdownMenuLabel>
               {participants.map((p) => (
                 <DropdownMenuItem key={p.id} onClick={() => onExportPdf(p.id)}>
-                  {getParticipantName(p)}
+                  {getParticipantName(p, isDemoMode)}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -161,6 +166,7 @@ const AttendanceSlotList = ({
       </div>
     </CardContent>
   </Card>
-);
+  );
+};
 
 export default AttendanceSlotList;

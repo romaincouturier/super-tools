@@ -19,6 +19,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/lib/toast";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 
 interface BroadcastEmailDialogProps {
   trainingId: string;
@@ -31,6 +33,7 @@ const BroadcastEmailDialog = ({
   trainingName,
   participantCount,
 }: BroadcastEmailDialogProps) => {
+  const { isDemoMode } = useDemoMode();
   const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
@@ -96,7 +99,7 @@ const BroadcastEmailDialog = ({
             <div className="flex flex-wrap gap-1.5">
               {participants.slice(0, 10).map((p, i) => (
                 <Badge key={i} variant="secondary" className="text-xs">
-                  {p.first_name || p.email.split("@")[0]}
+                  {isDemoMode ? maskName(p.first_name || p.email.split("@")[0]) : p.first_name || p.email.split("@")[0]}
                 </Badge>
               ))}
               {participants.length > 10 && (

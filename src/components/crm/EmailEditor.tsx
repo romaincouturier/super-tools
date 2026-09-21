@@ -28,6 +28,8 @@ import { crmAiAssist } from "@/services/crmAiAssist";
 import { Spinner } from "@/components/ui/spinner";
 import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName, maskText } from "@/lib/demoMask";
 
 interface SlashMenuItem {
   label: string;
@@ -53,6 +55,7 @@ const EmailEditor = ({
   variables,
   onGenderSelect,
 }: EmailEditorProps) => {
+  const { isDemoMode } = useDemoMode();
   const [snippetPopoverOpen, setSnippetPopoverOpen] = useState(false);
   const [bonjourPopoverOpen, setBonjourPopoverOpen] = useState(false);
   const [slashMenuOpen, setSlashMenuOpen] = useState(false);
@@ -88,13 +91,13 @@ const EmailEditor = ({
       items.push({ label: "Nom du client", description: fullName, icon: <User className="h-3.5 w-3.5" />, value: fullName });
     }
     if (variables?.first_name) {
-      items.push({ label: "Prénom", description: variables.first_name, icon: <User className="h-3.5 w-3.5" />, value: variables.first_name });
+      items.push({ label: "Prénom", description: variables.first_name, icon: <User className="h-3.5 w-3.5" />, value: variables.first_name }); // demo-safe: valeur brute inseree dans l'email, masquee au rendu du menu
     }
     if (variables?.last_name) {
-      items.push({ label: "Nom de famille", description: variables.last_name, icon: <User className="h-3.5 w-3.5" />, value: variables.last_name });
+      items.push({ label: "Nom de famille", description: variables.last_name, icon: <User className="h-3.5 w-3.5" />, value: variables.last_name }); // demo-safe: valeur brute inseree dans l'email, masquee au rendu du menu
     }
     if (variables?.company) {
-      items.push({ label: "Entreprise", description: variables.company, icon: <Building2 className="h-3.5 w-3.5" />, value: variables.company });
+      items.push({ label: "Entreprise", description: variables.company, icon: <Building2 className="h-3.5 w-3.5" />, value: variables.company }); // demo-safe: valeur brute inseree dans l'email, masquee au rendu du menu
     }
     return items;
   }, [variables]);
@@ -272,7 +275,7 @@ const EmailEditor = ({
     if (!editor) return;
     let greeting: string;
     if (variant === "prenom") {
-      greeting = `Bonjour ${variables?.first_name || ""}`;
+      greeting = `Bonjour ${variables?.first_name || ""}`; // demo-safe: contenu insere dans l'email, jamais un affichage
     } else {
       const lastName = variables?.last_name || "";
       greeting = variant === "M"
@@ -308,7 +311,7 @@ const EmailEditor = ({
     <div className={cn("border rounded-md bg-background relative", className)}>
       <div className="flex items-center gap-0.5 p-1.5 border-b bg-muted/30 flex-wrap">
         {/* Bonjour button */}
-        {(variables?.last_name || variables?.first_name) && (
+        {(variables?.last_name || variables?.first_name) && ( /* demo-safe: condition d'affichage, aucune donnee rendue */
           <Popover open={bonjourPopoverOpen} onOpenChange={setBonjourPopoverOpen}>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" title="Insérer une salutation">
@@ -317,27 +320,27 @@ const EmailEditor = ({
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-1" align="start">
-              {variables?.first_name && (
+              {variables?.first_name && ( /* demo-safe: condition d'affichage, valeur masquee ci-dessous */
                 <button
                   className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent rounded transition-colors"
                   onClick={() => insertBonjour("prenom")}
                 >
-                  Bonjour {variables.first_name}
+                  Bonjour {isDemoMode ? maskName(variables.first_name) : variables.first_name}
                 </button>
               )}
-              {variables?.last_name && (
+              {variables?.last_name && ( /* demo-safe: condition d'affichage, valeur masquee ci-dessous */
                 <>
                   <button
                     className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent rounded transition-colors"
                     onClick={() => insertBonjour("M")}
                   >
-                    Bonjour M. {variables.last_name}
+                    Bonjour M. {isDemoMode ? maskName(variables.last_name) : variables.last_name}
                   </button>
                   <button
                     className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent rounded transition-colors"
                     onClick={() => insertBonjour("Mme")}
                   >
-                    Bonjour Mme {variables.last_name}
+                    Bonjour Mme {isDemoMode ? maskName(variables.last_name) : variables.last_name}
                   </button>
                 </>
               )}
@@ -491,7 +494,7 @@ const EmailEditor = ({
                 <span className="text-muted-foreground">{item.icon}</span>
                 <div>
                   <div className="font-medium text-xs">{item.label}</div>
-                  <div className="text-[10px] text-muted-foreground">{item.description}</div>
+                  <div className="text-[10px] text-muted-foreground">{isDemoMode ? maskText(item.description) : item.description}</div>
                 </div>
               </button>
             ))}

@@ -73,7 +73,7 @@ export default function Step1Synthesis({
         `Opportunité : ${crmCard.title}`,
         `Client : ${clientCompany}`,
         crmCard.service_type ? `Type de service : ${crmCard.service_type}` : "",
-        crmCard.estimated_value ? `Valeur estimée : ${crmCard.estimated_value} €` : "",
+        crmCard.estimated_value ? `Valeur estimée : ${crmCard.estimated_value} €` : "", // demo-safe: contexte transmis a l'IA, pas un affichage
         descriptionText ? `\nDescription complète :\n${descriptionText}` : "",
         comments.length > 0
           ? `\nNotes internes (${comments.length}) :\n${comments
@@ -128,7 +128,7 @@ export default function Step1Synthesis({
         `Opportunité : ${crmCard.title}`,
         `Client : ${clientCompany}`,
         crmCard.service_type ? `Type : ${crmCard.service_type}` : "",
-        crmCard.estimated_value ? `Valeur estimée : ${crmCard.estimated_value} €` : "",
+        crmCard.estimated_value ? `Valeur estimée : ${crmCard.estimated_value} €` : "", // demo-safe: contexte transmis a l'IA, pas un affichage
       ].filter(Boolean).join("\n");
 
       const { data, error } = await supabase.functions.invoke("commercial-challenge", {

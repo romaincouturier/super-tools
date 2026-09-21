@@ -15,6 +15,8 @@ import { useGames, useGameDevisHistory, resolveGameDevisPdfUrl } from "@/hooks/u
 import { useAuth } from "@/hooks/useAuth";
 import { useGenerateGameDevis, type GameDevisItem } from "@/hooks/useGameDevis";
 import { useGamePriceOptions, priceOptionLabel } from "@/hooks/useGamePriceOptions";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount, maskEmail, maskText } from "@/lib/demoMask";
 
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
@@ -118,7 +120,7 @@ export default function GameDevisTab() {
       gameId,
       priceOptionId: only?.id ?? "",
       title: only ? `${game.title} — ${priceOptionLabel(only)}` : game.title,
-      ...(only ? { unitPrice: Number(only.prix) || 0 } : {}),
+      ...(only ? { unitPrice: Number(only.prix) || 0 } : {}), // demo-safe: tarif catalogue SuperTilt reporte dans le formulaire
     });
   };
 
@@ -204,7 +206,7 @@ export default function GameDevisTab() {
         </div>
       )}
       <ClientInfoSection
-        siren={sirenSearch.siren}
+        siren={sirenSearch.siren} // demo-safe: champ de saisie, masquer corromprait le devis
         setSiren={sirenSearch.setSiren}
         searchingSiren={sirenSearch.searchingSiren}
         onSearchSiren={onSearchSiren}
@@ -267,7 +269,7 @@ export default function GameDevisTab() {
                     <SelectContent>
                       {lineOptions.map((o) => (
                         <SelectItem key={o.id} value={o.id}>
-                          {priceOptionLabel(o)} · {EUR(Number(o.prix) || 0)}
+                          {priceOptionLabel(o)} · {EUR(Number(o.prix) || 0)} {/* demo-safe: tarif du catalogue SuperTilt */}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -419,6 +421,7 @@ async function downloadPdf(url: string, filename: string) {
 
 function GameDevisHistory() {
   const { data: history = [], isLoading } = useGameDevisHistory();
+  const { isDemoMode } = useDemoMode();
 
   return (
     <div className="space-y-4">
@@ -449,12 +452,12 @@ function GameDevisHistory() {
                 return (
                 <TableRow key={d.id}>
                   <TableCell className="text-sm">{DATE(d.created_at)}</TableCell>
-                  <TableCell className="text-sm font-medium">{d.client_name ?? "—"}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{d.recipient_email}</TableCell>
+                  <TableCell className="text-sm font-medium">{(isDemoMode ? maskText(d.client_name) : d.client_name) ?? "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{isDemoMode ? maskEmail(d.recipient_email) : d.recipient_email}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {d.items.reduce((s, i) => s + i.quantity, 0)} article(s)
                   </TableCell>
-                  <TableCell className="text-right text-sm">{EUR(d.total_amount)}</TableCell>
+                  <TableCell className="text-right text-sm">{isDemoMode ? maskAmount(d.total_amount) : EUR(d.total_amount)}</TableCell>
                   <TableCell>
                     {(d.pdf_storage_path || d.pdf_url) && (
                       <div className="flex items-center justify-end gap-1">

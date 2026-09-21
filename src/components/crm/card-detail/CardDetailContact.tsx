@@ -66,7 +66,7 @@ const CardDetailContact = ({ state, handlers }: Props) => {
           {(firstName || lastName) && (
             <span className="text-muted-foreground font-normal">
               — {[d.firstName, d.lastName].filter(Boolean).join(" ")}
-              {company && ` (${d.company})`}
+              {company && ` (${d.company})` /* demo-safe: d.company deja masque */}
             </span>
           )}
         </h4>
@@ -89,7 +89,7 @@ const CardDetailContact = ({ state, handlers }: Props) => {
               title={isDemoMode ? "••••" : email}
             >
               <Copy className="h-3 w-3" />
-              {d.email}
+              {d.email /* demo-safe: d.email deja masque */}
             </Button>
           )}
           {phone.trim() && (
@@ -97,7 +97,7 @@ const CardDetailContact = ({ state, handlers }: Props) => {
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" title="QR Code téléphone">
                   <Phone className="h-3 w-3" />
-                  {d.phone}
+                  {d.phone /* demo-safe: d.phone deja masque */}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-4" align="end">

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 import {
   Sheet,
   SheetContent,
@@ -52,6 +54,7 @@ const STATUS_OPTIONS: DepositPedagogicalStatus[] = [
 ];
 
 export default function DepositAdminDetail({ deposit, open, onOpenChange }: Props) {
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
   const updateDeposit = useAdminUpdateDeposit();
@@ -128,7 +131,7 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="text-base">
-            {deposit.lesson_title || "Leçon"} — {deposit.learner_email}
+            {deposit.lesson_title || "Leçon"} — {isDemoMode ? maskEmail(deposit.learner_email) : deposit.learner_email}
           </SheetTitle>
         </SheetHeader>
 

@@ -15,6 +15,8 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { displayNameOf, type UserProfileLite } from "@/lib/userDisplay";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 
 interface MultiUserSelectorProps {
   value: string[];
@@ -34,6 +36,7 @@ export default function MultiUserSelector({
   className,
   allowedUserIds,
 }: MultiUserSelectorProps) {
+  const { isDemoMode } = useDemoMode();
   const [open, setOpen] = useState(false);
 
   const { data: users = [], isLoading } = useQuery<UserProfileLite[]>({
@@ -110,7 +113,7 @@ export default function MultiUserSelector({
                         />
                         <div className="flex flex-col">
                           <span className="text-sm">{displayNameOf(user)}</span>
-                          <span className="text-xs text-muted-foreground">{user.email}</span>
+                          <span className="text-xs text-muted-foreground">{isDemoMode ? maskEmail(user.email) : user.email}</span>
                         </div>
                       </CommandItem>
                     );

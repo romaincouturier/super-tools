@@ -13,6 +13,8 @@ import { Loader2, Users, Plus, Pencil, Trash2, Save, X, Upload, FileText, Gradua
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName, maskPhone } from "@/lib/demoMask";
 import {
   Dialog,
   DialogContent,
@@ -71,6 +73,7 @@ interface Trainer {
 }
 
 export default function TrainerManager() {
+  const { isDemoMode } = useDemoMode();
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -373,10 +376,10 @@ export default function TrainerManager() {
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={trainer.photo_url || undefined} />
-                        <AvatarFallback>{getInitials(trainer.first_name, trainer.last_name)}</AvatarFallback>
+                        <AvatarFallback>{getInitials(trainer.first_name, trainer.last_name) /* demo-safe: initiales seules, le masque rendrait les memes lettres */}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="font-medium">{trainer.first_name} {trainer.last_name}</div>
+                        <div className="font-medium">{isDemoMode ? maskName(`${trainer.first_name} ${trainer.last_name}`) : `${trainer.first_name} ${trainer.last_name}`}</div>
                         {trainer.is_default && (
                           <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Par défaut</span>
                         )}
@@ -392,8 +395,8 @@ export default function TrainerManager() {
                     </div>
                   </div>
                   <div className="text-sm text-muted-foreground space-y-1">
-                    <div>{trainer.email}</div>
-                    {trainer.phone && <div>{trainer.phone}</div>}
+                    <div>{isDemoMode ? maskEmail(trainer.email) : trainer.email}</div>
+                    {trainer.phone && <div>{isDemoMode ? maskPhone(trainer.phone) : trainer.phone}</div>}
                   </div>
                   {trainer.competences && trainer.competences.length > 0 && (
                     <div className="flex flex-wrap gap-1">
@@ -620,7 +623,7 @@ export default function TrainerManager() {
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer le formateur ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer {trainerToDelete?.first_name} {trainerToDelete?.last_name} ? Cette action est irréversible.
+              Êtes-vous sûr de vouloir supprimer {isDemoMode ? maskName(`${trainerToDelete?.first_name ?? ""} ${trainerToDelete?.last_name ?? ""}`) : `${trainerToDelete?.first_name ?? ""} ${trainerToDelete?.last_name ?? ""}`} ? Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

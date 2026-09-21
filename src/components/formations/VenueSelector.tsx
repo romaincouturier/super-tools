@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useTrainingVenues, useCreateTrainingVenue } from "@/hooks/useTrainingVenues";
 import type { TrainingVenue } from "@/types/training-venue";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAddress, maskEmail } from "@/lib/demoMask";
 
 interface VenueSelectorProps {
   value: string | null;
@@ -24,6 +26,7 @@ const EMPTY_FORM = {
 };
 
 export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
+  const { isDemoMode } = useDemoMode();
   const { data: venues = [], isLoading } = useTrainingVenues();
   const createVenue = useCreateTrainingVenue();
   const [showForm, setShowForm] = useState(false);
@@ -93,9 +96,9 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
         if (!venue) return null;
         return (
           <div className="text-xs text-muted-foreground bg-muted/40 rounded-md px-3 py-2 space-y-0.5">
-            <div>{venue.address}, {venue.postal_code} {venue.city}</div>
+            <div>{isDemoMode ? maskAddress(venue.address) : venue.address}, {isDemoMode ? maskAddress(venue.postal_code) : venue.postal_code} {venue.city}</div>
             {venue.room_name && <div>Salle : {venue.room_name}</div>}
-            <div>Contact : {venue.email}</div>
+            <div>Contact : {isDemoMode ? maskEmail(venue.email) : venue.email}</div>
           </div>
         );
       })()}

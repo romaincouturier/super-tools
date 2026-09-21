@@ -31,6 +31,8 @@ import type { Quote, QuoteLineItem } from "@/types/quotes";
 import type { CrmCard } from "@/types/crm";
 import { v4 as uuid } from "uuid";
 import { htmlToPlainText, cleanHtmlOutput } from "@/lib/htmlUtils";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 
 interface Props {
   quote: Quote;
@@ -81,6 +83,7 @@ export default function Step3QuoteGeneration({
   onContinue,
   onChallengeChange,
 }: Props) {
+  const { isDemoMode } = useDemoMode();
   const { data: settings } = useQuoteSettings();
   const updateMutation = useUpdateQuote();
   const defaultVat = settings?.default_vat_rate ?? 20;
@@ -255,10 +258,10 @@ export default function Step3QuoteGeneration({
 
       const clientContext = [
         `Opportunité : ${crmCard.title}`,
-        `Client : ${crmCard.company || ""}`,
+        `Client : ${crmCard.company || ""}`, // demo-safe: payload envoye a la fonction commercial-challenge, pas un affichage
         crmCard.service_type ? `Type : ${crmCard.service_type}` : "",
-        crmCard.estimated_value ? `Valeur estimée : ${crmCard.estimated_value} €` : "",
-        `\nTotal HT du devis : ${fmt(totals.totalHt)}`,
+        crmCard.estimated_value ? `Valeur estimée : ${crmCard.estimated_value} €` : "", // demo-safe: payload envoye a la fonction commercial-challenge, pas un affichage
+        `\nTotal HT du devis : ${fmt(totals.totalHt)}`, // demo-safe: payload envoye a la fonction commercial-challenge, pas un affichage
         `Total TTC du devis : ${fmt(totals.totalTtc)}`,
         travelTotal > 0 ? `Frais de déplacement : ${fmt(travelTotal)}` : "",
         rightsEnabled ? `Cession de droits : ${rightsRate}% = ${fmt(totals.rightsAmount)}` : "",
@@ -354,7 +357,7 @@ export default function Step3QuoteGeneration({
       y += 4;
       if (settings?.company_phone) { doc.text(`Tél : ${settings.company_phone}`, margin, y); y += 4; }
       if (settings?.company_email) { doc.text(`Email : ${settings.company_email}`, margin, y); y += 4; }
-      if (settings?.siren) { doc.text(`SIREN : ${settings.siren}`, margin, y); y += 4; }
+      if (settings?.siren) { doc.text(`SIREN : ${settings.siren}`, margin, y); y += 4; } // demo-safe: SIREN de SuperTilt, ecrit dans le PDF du devis
       if (settings?.vat_number) { doc.text(`TVA : ${settings.vat_number}`, margin, y); y += 4; }
       if (settings?.rcs_number) { doc.text(`RCS ${settings.rcs_city} ${settings.rcs_number}`, margin, y); y += 4; }
 
@@ -766,24 +769,26 @@ export default function Step3QuoteGeneration({
                 {!settings?.vat_exempt && Object.entries(totals.vatGroups).map(([rate, g]) => (
                   <div key={rate} className="flex justify-between text-sm text-muted-foreground">
                     <span>TVA {rate}%</span>
-                    <span>Base HT : {fmt(g.ht)} — TVA : {fmt(g.vat)}</span>
+                    <span>Base HT : {isDemoMode ? maskAmount(g.ht) : fmt(g.ht)} — TVA : {isDemoMode ? maskAmount(g.vat) : fmt(g.vat)}</span>
                   </div>
                 ))}
                 <div className="border-t pt-3 space-y-2">
                   <div className="flex justify-between text-base font-medium">
                     <span>Total HT</span>
-                    <span>{fmt(totals.totalHt)}</span>
+                    <span>{isDemoMode ? maskAmount(totals.totalHt) : fmt(totals.totalHt)}</span>
                   </div>
                   {!settings?.vat_exempt && (
                     <div className="flex justify-between text-sm text-muted-foreground">
                       <span>Total TVA</span>
-                      <span>{fmt(totals.totalVat)}</span>
+                      <span>{isDemoMode ? maskAmount(totals.totalVat) : fmt(totals.totalVat)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-xl font-bold pt-1 border-t">
                     <span>Total TTC</span>
                     <span className="text-primary">
-                      {fmt(settings?.vat_exempt ? totals.totalHt : totals.totalTtc)}
+                      {isDemoMode
+                        ? maskAmount(settings?.vat_exempt ? totals.totalHt : totals.totalTtc)
+                        : fmt(settings?.vat_exempt ? totals.totalHt : totals.totalTtc)}
                     </span>
                   </div>
                 </div>

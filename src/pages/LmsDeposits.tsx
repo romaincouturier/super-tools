@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 import { useSearchParams } from "react-router-dom";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -40,6 +42,7 @@ const STATUS_BADGE: Record<DepositPedagogicalStatus, string> = {
 };
 
 export default function LmsDeposits() {
+  const { isDemoMode } = useDemoMode();
   const { data: deposits = [], isLoading } = useAllDepositsAdmin();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | DepositPedagogicalStatus>("all");
@@ -141,7 +144,7 @@ export default function LmsDeposits() {
                   >
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <span className="break-all">{d.learner_email}</span>
+                        <span className="break-all">{isDemoMode ? maskEmail(d.learner_email) : d.learner_email}</span>
                         <span>·</span>
                         <span className="break-words">{d.course_title || "—"}</span>
                         {d.module_title && (

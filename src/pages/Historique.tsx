@@ -24,6 +24,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import PageHeader from "@/components/PageHeader";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName, maskText } from "@/lib/demoMask";
 
 interface ActivityLog {
   id: string;
@@ -153,6 +155,7 @@ const formatDateForInput = (date: Date): string => {
 
 const Historique = () => {
   const navigate = useNavigate();
+  const { isDemoMode } = useDemoMode();
   const { user, loading } = useAuth();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
@@ -200,7 +203,7 @@ const Historique = () => {
     };
   };
 
-  const getDetailsDisplay = (log: ActivityLog): string => {
+  const getDetailsDisplay = (log: ActivityLog, mask = false): string => {
     const details = log.details;
     if (!details) return "-";
     
@@ -213,10 +216,10 @@ const Historique = () => {
       parts.push(String(details.formation_name));
     }
     if (details.participant_name && String(details.participant_name).trim()) {
-      parts.push(String(details.participant_name));
+      parts.push(mask ? maskName(String(details.participant_name)) : String(details.participant_name));
     }
     if (details.client_name) {
-      parts.push(String(details.client_name));
+      parts.push(mask ? maskText(String(details.client_name)) : String(details.client_name));
     }
     if (details.document_type) {
       const docTypes: Record<string, string> = {
@@ -415,10 +418,10 @@ const Historique = () => {
                               </Badge>
                             </div>
                             <div className="font-medium shrink-0 truncate min-w-0 sm:max-w-[200px]">
-                              {log.recipient_email}
+                              {isDemoMode ? maskEmail(log.recipient_email) : log.recipient_email}
                             </div>
                             <div className="flex-1 text-muted-foreground text-sm truncate">
-                              {getDetailsDisplay(log)}
+                              {getDetailsDisplay(log, isDemoMode)}
                             </div>
                             {hasEmailDetails && (
                               <Badge variant="outline" className="gap-1 shrink-0">

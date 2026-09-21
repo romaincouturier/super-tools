@@ -132,8 +132,8 @@ export default function TrainingFormulasManager({ trainingId, isPermanent, avail
                 <div className="flex-1">
                   <Label htmlFor={`formula-${f.id}`} className="font-medium cursor-pointer">
                     {f.name}
-                    {f.prix != null && (
-                      <span className="ml-2 text-xs text-muted-foreground font-normal">{f.prix} €</span>
+                    {f.prix != null && ( // demo-safe: test de presence
+                      <span className="ml-2 text-xs text-muted-foreground font-normal">{f.prix} €{/* demo-safe: tarif du catalogue SuperTilt */}</span>
                     )}
                     {f.woocommerce_product_id && (
                       <span className="ml-2 text-xs text-muted-foreground font-normal">

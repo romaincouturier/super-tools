@@ -606,7 +606,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
     const participant = participants.find(p => p.id === email.participant_id);
     if (!participant) return "Participant inconnu";
     if (participant.first_name || participant.last_name) {
-      return `${participant.first_name || ""} ${participant.last_name || ""}`.trim();
+      return `${participant.first_name || ""} ${participant.last_name || ""}`.trim(); // demo-safe: valeur brute, floutee a l'affichage en mode demo
     }
     return participant.email;
   };
@@ -1043,7 +1043,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
             <AlertDialogTitle>Supprimer cet email programmé ?</AlertDialogTitle>
             <AlertDialogDescription>
               L'email "{emailToDelete && getEmailTypeLabel(emailToDelete.email_type)}" prévu pour{" "}
-              {emailToDelete && getParticipantName(emailToDelete)} sera définitivement supprimé.
+              <span style={isDemoMode && emailToDelete?.participant_id ? { filter: "blur(4px)", userSelect: "none" } : undefined}>{emailToDelete && getParticipantName(emailToDelete)}</span> sera définitivement supprimé.
               Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>

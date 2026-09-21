@@ -13,6 +13,8 @@ import Step4Loom from "./Step4Loom";
 import Step5Email from "./Step5Email";
 import { useQuoteWorkflow } from "@/hooks/useQuoteWorkflow";
 import type { CrmCard } from "@/types/crm";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText, maskAmount } from "@/lib/demoMask";
 
 // ---------------------------------------------------------------------------
 // Resizable sidebar helpers
@@ -48,6 +50,7 @@ interface Props {
 }
 
 export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
+  const { isDemoMode } = useDemoMode();
   const wf = useQuoteWorkflow(crmCard, existingQuoteId);
 
   // ---- Resizable sidebar ----
@@ -117,16 +120,16 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2">
                     <FileText className="w-5 h-5" />
-                    {crmCard.title}
+                    {isDemoMode ? maskText(crmCard.title) : crmCard.title}
                   </SheetTitle>
                 </SheetHeader>
                 <div className="mt-4 space-y-4">
                   <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                    {(wf.clientData?.company || crmCard.company) && (
-                      <span className="bg-muted px-2 py-0.5 rounded">{wf.clientData?.company || crmCard.company}</span>
+                    {(wf.clientData?.company || crmCard.company) && ( // demo-safe: garde d'affichage, valeur masquee plus bas
+                      <span className="bg-muted px-2 py-0.5 rounded">{isDemoMode ? maskText(wf.clientData?.company || crmCard.company) : wf.clientData?.company || crmCard.company}</span>
                     )}
                     {crmCard.service_type && <span className="bg-muted px-2 py-0.5 rounded">{crmCard.service_type}</span>}
-                    {crmCard.estimated_value && <span className="bg-muted px-2 py-0.5 rounded">{crmCard.estimated_value} €</span>}
+                    {crmCard.estimated_value && <span className="bg-muted px-2 py-0.5 rounded">{isDemoMode ? maskAmount(crmCard.estimated_value) : `${crmCard.estimated_value} €`}</span>}
                   </div>
                   <div
                     className="text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:my-1.5 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_ol]:my-1 [&_ol]:pl-5 [&_ol]:list-decimal [&_li]:my-0.5 [&_strong]:font-semibold [&_a]:text-primary [&_a]:underline"
@@ -172,7 +175,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
       {wf.step === 0 && (
         <Step1Synthesis
           crmCard={crmCard}
-          clientCompany={wf.clientData?.company || crmCard.company || ""}
+          clientCompany={wf.clientData?.company || crmCard.company || "" /* demo-safe: valeur reprise dans le devis genere */}
           onValidate={wf.handleSynthesisValidated}
           onDraftChange={wf.handleDraftSynthesis}
           onChallengeChange={wf.handleChallengeChange}
@@ -251,8 +254,8 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
             quote={wf.quote}
             synthesis={wf.synthesis}
             loomUrl={wf.loomUrl}
-            clientEmail={wf.clientData?.email || wf.quote.client_email || ""}
-            clientCompany={wf.clientData?.company || wf.quote.client_company}
+            clientEmail={wf.clientData?.email || wf.quote.client_email || "" /* demo-safe: destinataire reel de l'email */}
+            clientCompany={wf.clientData?.company || wf.quote.client_company /* demo-safe: valeur reprise dans l'email envoye */}
             onSent={wf.handleSent}
           />
         </>

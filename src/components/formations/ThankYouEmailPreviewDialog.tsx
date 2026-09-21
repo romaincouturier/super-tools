@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/lib/toast";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 
 interface ThankYouEmailPreviewDialogProps {
   open: boolean;
@@ -84,6 +86,7 @@ const ThankYouEmailPreviewDialog = ({
   onConfirmSend,
   isSending,
 }: ThankYouEmailPreviewDialogProps) => {
+  const { isDemoMode } = useDemoMode();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(false);
   const [customTemplate, setCustomTemplate] = useState<{ subject: string; content: string } | null>(null);
@@ -242,7 +245,7 @@ const ThankYouEmailPreviewDialog = ({
               <div className="flex flex-wrap gap-1.5">
                 {participants.slice(0, 10).map((p, i) => (
                   <Badge key={i} variant="secondary" className="text-xs">
-                    {p.first_name || p.email.split("@")[0]}
+                    {isDemoMode ? maskName(p.first_name || p.email.split("@")[0]) : p.first_name || p.email.split("@")[0]}
                   </Badge>
                 ))}
                 {participants.length > 10 && (
@@ -267,7 +270,7 @@ const ThankYouEmailPreviewDialog = ({
                 <ScrollArea className="h-[300px] mt-1">
                   <div className="bg-muted/30 p-4 rounded-lg border">
                     <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed">
-                      {getEmailContent(participants[0]?.first_name)}
+                      {getEmailContent(isDemoMode ? maskName(participants[0]?.first_name) : participants[0]?.first_name)}
                     </pre>
                   </div>
                 </ScrollArea>

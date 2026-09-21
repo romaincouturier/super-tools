@@ -14,4 +14,4 @@
 037a=233
 037b=354
 # 062 : affichages identifiants sans masque demo dans les ecrans internes (cible : 0)
-062=206
+062=0

@@ -18,6 +18,8 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useSirenSearch } from "@/hooks/useSirenSearch";
 import { useToast } from "@/hooks/use-toast";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount, maskText } from "@/lib/demoMask";
 
 interface Training {
   id: string;
@@ -82,6 +84,7 @@ export function CreateTrainingDialog({
   const [savingSiren, setSavingSiren] = useState(false);
   const { siren, setSiren, searchingSiren, handleSearchSiren } = useSirenSearch();
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
 
   useEffect(() => {
     if (open) {
@@ -169,14 +172,14 @@ export function CreateTrainingDialog({
       setMode("select-quote");
     } else {
       if (quotes.length === 1) {
-        setSelectedQuote({ quoteId: quotes[0].id, totalHt: quotes[0].total_ht });
+        setSelectedQuote({ quoteId: quotes[0].id, totalHt: quotes[0].total_ht }); // demo-safe: montant transmis a la creation, pas un affichage
       }
       setMode("select-training");
     }
   };
 
   const handlePickQuote = (q: QuoteOption) => {
-    setSelectedQuote({ quoteId: q.id, totalHt: q.total_ht });
+    setSelectedQuote({ quoteId: q.id, totalHt: q.total_ht }); // demo-safe: montant transmis a la creation, pas un affichage
     setMode("select-training");
   };
 
@@ -341,7 +344,7 @@ export function CreateTrainingDialog({
                     <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">
-                        {q.quote_number || "Devis sans numéro"} — {formatAmount(q.total_ht)} HT
+                        {q.quote_number || "Devis sans numéro"} — {isDemoMode ? maskAmount(q.total_ht) || "—" : formatAmount(q.total_ht)} HT
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                         {q.synthesis || "Pas de synthèse"}
@@ -391,10 +394,10 @@ export function CreateTrainingDialog({
           </div>
           <AlertDialogDescription>
             Sélectionnez la formation à laquelle ajouter le participant.
-            {selectedQuote?.totalHt != null && (
+            {selectedQuote?.totalHt != null && ( /* demo-safe: garde, montant masque plus bas */
               <>
                 {" "}
-                Le montant vendu sera défini à <strong>{formatAmount(selectedQuote.totalHt)} HT</strong>.
+                Le montant vendu sera défini à <strong>{isDemoMode ? maskAmount(selectedQuote.totalHt) || "—" : formatAmount(selectedQuote.totalHt)} HT</strong>.
               </>
             )}
           </AlertDialogDescription>
@@ -434,7 +437,7 @@ export function CreateTrainingDialog({
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                       <span className="flex items-center gap-1">
                         <Building className="h-3 w-3" />
-                        {training.client_name}
+                        {isDemoMode ? maskText(training.client_name) : training.client_name}
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />

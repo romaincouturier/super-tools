@@ -18,6 +18,8 @@ import {
   getAppreciationsLabel,
   formatEvaluationDisplayName,
 } from "@/lib/evaluationUtils";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName, maskText } from "@/lib/demoMask";
 
 // Re-export for consumers that import from this file
 export type { EvaluationData };
@@ -61,12 +63,14 @@ const EvaluationDetailDialog = ({
   evaluation,
   trainingName,
 }: EvaluationDetailDialogProps) => {
+  const { isDemoMode } = useDemoMode();
   if (!evaluation) return null;
 
-  const displayName = formatEvaluationDisplayName(
+  const rawDisplayName = formatEvaluationDisplayName(
     evaluation.first_name,
     evaluation.last_name,
   );
+  const displayName = isDemoMode ? maskName(rawDisplayName) : rawDisplayName;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -75,7 +79,7 @@ const EvaluationDetailDialog = ({
           <DialogTitle>Détail de l'évaluation</DialogTitle>
           <DialogDescription>
             {displayName}
-            {evaluation.company && ` - ${evaluation.company}`}
+            {evaluation.company && ` - ${isDemoMode ? maskText(evaluation.company) : evaluation.company}`}
             {trainingName && ` • ${trainingName}`}
           </DialogDescription>
         </DialogHeader>
@@ -86,7 +90,7 @@ const EvaluationDetailDialog = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
               <div>
                 <span className="text-sm text-muted-foreground">Email</span>
-                <p className="font-medium">{evaluation.email || "—"}</p>
+                <p className="font-medium">{(isDemoMode ? maskEmail(evaluation.email) : evaluation.email) || "—"}</p>
               </div>
               <div>
                 <span className="text-sm text-muted-foreground">Date de soumission</span>

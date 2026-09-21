@@ -25,6 +25,8 @@ import {
   useGameSales, useGameSalesKpis, useMarkSalesPaid, useDeleteGameSale,
   type GameAuthor, type Game, type GameSale,
 } from "@/hooks/useDropshipping";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskText } from "@/lib/demoMask";
 
 const EUR = (v: number) => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
@@ -395,6 +397,7 @@ function AuthorDialog({ author, onClose }: { author: Partial<GameAuthor> | null;
 }
 
 function AuthorsTable() {
+  const { isDemoMode } = useDemoMode();
   const { data: authors, isLoading } = useGameAuthors();
   const { mutateAsync: del } = useDeleteGameAuthor();
   const [editing, setEditing] = useState<Partial<GameAuthor> | null | undefined>(undefined);
@@ -430,8 +433,8 @@ function AuthorsTable() {
             {(authors ?? []).map((a) => (
               <TableRow key={a.id}>
                 <TableCell className="font-medium">{a.name}</TableCell>
-                <TableCell className="text-muted-foreground text-sm">{a.email ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground text-sm">{a.company ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{a.email ? (isDemoMode ? maskEmail(a.email) : a.email) : "—"}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{a.company ? (isDemoMode ? maskText(a.company) : a.company) : "—"}</TableCell>
                 <TableCell className="text-right">{Math.round(a.royalty_rate * 100)}%</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">

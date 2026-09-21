@@ -56,7 +56,7 @@ export default function FormationConfigSection({
               <div className="flex items-center gap-2">
                 {c.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
                 <span>{c.formation_name}</span>
-                <span className="text-muted-foreground text-xs">({c.prix}€ • {c.duree_heures}h)</span>
+                <span className="text-muted-foreground text-xs">({c.prix}€ • {c.duree_heures}h)</span>{/* demo-safe: prix du catalogue SuperTilt */}
               </div>
             </SelectItem>
           ))}
@@ -74,9 +74,9 @@ export default function FormationConfigSection({
                 <SelectItem key={f.id} value={f.id}>
                   <div className="flex items-center gap-2">
                     <span>{f.name}</span>
-                    {(f.prix != null || f.duree_heures != null) && (
+                    {(f.prix != null || f.duree_heures != null) && ( // demo-safe: prix du catalogue SuperTilt
                       <span className="text-muted-foreground text-xs">
-                        ({f.prix != null ? `${f.prix}€` : ""}{f.prix != null && f.duree_heures != null ? " · " : ""}{f.duree_heures != null ? `${f.duree_heures}h` : ""})
+                        ({f.prix != null ? `${f.prix}€` : ""}{f.prix != null && f.duree_heures != null ? " · " : ""}{f.duree_heures != null ? `${f.duree_heures}h` : ""}){/* demo-safe: prix du catalogue SuperTilt */}
                       </span>
                     )}
                   </div>

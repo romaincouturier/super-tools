@@ -116,7 +116,7 @@ export default function LmsLearners() {
   const handleDelete = async (learner: LearnerAccount) => {
     const ok = await confirm({
       title: "Supprimer ce compte apprenant ?",
-      description: `Le compte de ${learner.email} sera définitivement supprimé. L'apprenant ne pourra plus se connecter. Cette action est irréversible.`,
+      description: `Le compte de ${isDemoMode ? maskEmail(learner.email) : learner.email} sera définitivement supprimé. L'apprenant ne pourra plus se connecter. Cette action est irréversible.`,
       confirmText: "Supprimer",
       variant: "destructive",
     });
@@ -127,7 +127,7 @@ export default function LmsLearners() {
   const handleDisable = async (learner: LearnerAccount) => {
     const ok = await confirm({
       title: "Désactiver ce compte ?",
-      description: `${learner.email} ne pourra plus se connecter à l'espace apprenant. Vous pouvez le réactiver à tout moment.`,
+      description: `${isDemoMode ? maskEmail(learner.email) : learner.email} ne pourra plus se connecter à l'espace apprenant. Vous pouvez le réactiver à tout moment.`,
       confirmText: "Désactiver",
       variant: "destructive",
     });
@@ -264,7 +264,7 @@ export default function LmsLearners() {
             <Button variant="outline" onClick={() => setEditLearner(null)}>Annuler</Button>
             <Button
               onClick={() => editLearner && updateEmailMutation.mutate({ user_id: editLearner.id, email: newEmail })}
-              disabled={!newEmail.trim() || newEmail === editLearner?.email || updateEmailMutation.isPending}
+              disabled={!newEmail.trim() || newEmail === editLearner?.email || updateEmailMutation.isPending /* demo-safe: comparaison logique */}
             >
               {updateEmailMutation.isPending ? <Spinner /> : "Enregistrer"}
             </Button>

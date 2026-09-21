@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText, maskName } from "@/lib/demoMask";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,6 +39,7 @@ interface Props {
 }
 
 const CardDetailQualification = ({ state, handlers }: Props) => {
+  const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
   const updateCard = useUpdateCard();
   const {
@@ -242,10 +245,10 @@ const CardDetailQualification = ({ state, handlers }: Props) => {
                           setShowMissionSearch(false);
                         }}
                       >
-                        <div className="font-medium">{mission.title}</div>
+                        <div className="font-medium">{isDemoMode ? maskText(mission.title) : mission.title}</div>
                         <div className="text-xs text-muted-foreground flex items-center gap-2">
-                          {mission.client_name && <span>{mission.client_name}</span>}
-                          {mission.client_contact && <span>· {mission.client_contact}</span>}
+                          {mission.client_name && <span>{isDemoMode ? maskText(mission.client_name) : mission.client_name}</span>}
+                          {mission.client_contact && <span>· {isDemoMode ? maskName(mission.client_contact) : mission.client_contact}</span>}
                           <span
                             className="px-1.5 py-0.5 rounded text-[10px]"
                             style={{

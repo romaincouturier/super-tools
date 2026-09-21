@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskAmount } from "@/lib/demoMask";
+import { maskAmount, maskText } from "@/lib/demoMask";
 import type { Training, Schedule, Participant } from "@/hooks/useFormationDetail";
 import type { FormationFormula } from "@/types/training";
 import { openStorageUrl } from "@/lib/storageUrl";
@@ -109,7 +109,7 @@ const FormationDetailInfo = ({
       {/* Quick info badges */}
       <div className="flex flex-wrap gap-2">
         <Badge variant="outline" className="flex items-center gap-1.5">
-          <Building className="h-3.5 w-3.5" />{training.client_name}
+          <Building className="h-3.5 w-3.5" />{isDemoMode ? maskText(training.client_name) : training.client_name}
         </Badge>
         {training.client_address && !isPresentiel && (
           <Badge variant="outline" className="flex items-center gap-1.5 group">

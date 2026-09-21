@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 import { UserPlus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +20,7 @@ interface ReseauCartographyProps {
 }
 
 const ReseauCartography = ({ onComplete }: ReseauCartographyProps) => {
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const { data: messages = [] } = useNetworkConversation("cartography");
   const { data: contacts = [] } = useNetworkContacts();
@@ -90,7 +93,7 @@ const ReseauCartography = ({ onComplete }: ReseauCartographyProps) => {
                   className="flex items-center justify-between p-2 rounded border"
                 >
                   <div>
-                    <span className="text-sm font-medium">{contact.name}</span>
+                    <span className="text-sm font-medium">{isDemoMode ? maskName(contact.name) : contact.name}</span>
                     <span className="text-xs text-muted-foreground ml-2">
                       {contact.context} · {WARMTH_LABELS[contact.warmth]}
                     </span>

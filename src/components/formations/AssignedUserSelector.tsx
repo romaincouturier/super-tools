@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/select";
 
 import { Spinner } from "@/components/ui/spinner";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 
 interface UserProfile {
   user_id: string;
@@ -29,6 +31,7 @@ export default function AssignedUserSelector({
 }: AssignedUserSelectorProps) {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isDemoMode } = useDemoMode();
 
   useEffect(() => {
     fetchUsers();
@@ -52,10 +55,10 @@ export default function AssignedUserSelector({
 
   const getDisplayName = (user: UserProfile) => {
     if (user.first_name && user.last_name) {
-      return `${user.first_name} ${user.last_name}`;
+      return isDemoMode ? maskName(`${user.first_name} ${user.last_name}`) : `${user.first_name} ${user.last_name}`;
     }
-    if (user.first_name) return user.first_name;
-    return user.email.split("@")[0];
+    if (user.first_name) return isDemoMode ? maskName(user.first_name) : user.first_name;
+    return isDemoMode ? maskName(user.email.split("@")[0]) : user.email.split("@")[0];
   };
 
   if (loading) {

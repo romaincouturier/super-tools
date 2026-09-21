@@ -676,8 +676,8 @@ const FormationCreate = () => {
                             {formula.duree_heures && (
                               <span className="text-xs text-muted-foreground">{formula.duree_heures}h</span>
                             )}
-                            {formula.prix != null && (
-                              <span className="text-xs text-muted-foreground">{formula.prix}€</span>
+                            {formula.prix != null && ( // demo-safe: test de presence
+                              <span className="text-xs text-muted-foreground">{formula.prix}€{/* demo-safe: tarif du catalogue SuperTilt */}</span>
                             )}
                           </div>
                         </div>

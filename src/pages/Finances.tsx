@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskAmount } from "@/lib/demoMask";
+import { maskAmount, maskAddress } from "@/lib/demoMask";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -214,7 +214,7 @@ export default function Finances() {
                           <div key={String(b.id)} className="flex items-center justify-between p-3 rounded-md border">
                             <div>
                               <div className="font-medium">{b.name || b.bank_name || "Compte"}</div>
-                              {b.iban && <div className="text-xs text-muted-foreground font-mono">{b.iban}</div>}
+                              {b.iban && <div className="text-xs text-muted-foreground font-mono">{isDemoMode ? maskAddress(b.iban) : b.iban}</div>}
                               {b.last_sync_at && (
                                 <div className="text-xs text-muted-foreground">Dernière synchro : {formatDate(b.last_sync_at)}</div>
                               )}

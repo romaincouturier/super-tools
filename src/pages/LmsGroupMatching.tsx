@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { getInitials } from "@/lib/stringUtils";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName } from "@/lib/demoMask";
 import {
   useAllMatchingPosts,
   usePostGroups,
@@ -25,12 +27,14 @@ import {
 // ── Avatar ────────────────────────────────────────────────────────────────────
 
 function MiniAvatar({ email, firstName, lastName, photoUrl }: { email: string; firstName?: string | null; lastName?: string | null; photoUrl?: string | null }) {
+  const { isDemoMode } = useDemoMode();
   const initials = getInitials(firstName ?? "", lastName ?? "", email.slice(0, 2).toUpperCase());
+  const fullName = [firstName, lastName].filter(Boolean).join(" ") || email;
   return (
     <div
       className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-bold shrink-0"
       style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820" }}
-      title={[firstName, lastName].filter(Boolean).join(" ") || email}
+      title={isDemoMode ? maskName(fullName) : fullName}
     >
       {photoUrl ? <img src={photoUrl} alt="" className="w-full h-full object-cover" /> : initials}
     </div>
@@ -50,6 +54,7 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
   const { toast } = useToast();
 
   const canFormAtLeastOne = unassigned.length >= post.group_size;
+  const { isDemoMode } = useDemoMode();
 
   const handleFormGroups = async () => {
     try {
@@ -66,7 +71,7 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
 
   const handleAddToGroup = async (group: GroupMatchingGroup, reg: GroupMatchingRegistration) => {
     try {
-      await addMember.mutateAsync({ groupId: group.id, registrationId: reg.id, learnerEmail: reg.learner_email });
+      await addMember.mutateAsync({ groupId: group.id, registrationId: reg.id, learnerEmail: reg.learner_email }); // demo-safe: payload de mutation, adresse reelle requise
     } catch {
       toastError(toast, "Impossible d'ajouter au groupe.");
     }
@@ -135,7 +140,7 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
                 <div className="space-y-2">
                   {unassigned.map((reg) => (
                     <div key={reg.id} className="rounded-lg border p-3 space-y-2">
-                      <p className="text-sm font-medium">{reg.learner_email}</p>
+                      <p className="text-sm font-medium">{isDemoMode ? maskEmail(reg.learner_email) : reg.learner_email}</p>
                       {groups.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                           <span className="text-xs text-muted-foreground self-center">
@@ -184,15 +189,17 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
                       </div>
                       <div className="space-y-1">
                         {g.members.map((m) => (
-                          <div key={m.learner_email} className="flex items-center gap-2">
+                          <div key={m.learner_email} className="flex items-center gap-2">{/* demo-safe: cle React, valeur non affichee */}
                             <MiniAvatar
-                              email={m.learner_email}
-                              firstName={m.first_name}
-                              lastName={m.last_name}
+                              email={m.learner_email} // demo-safe: sert aux initiales, l'infobulle est masquee dans MiniAvatar
+                              firstName={m.first_name} // demo-safe: initiales uniquement, l'infobulle est masquee dans MiniAvatar
+                              lastName={m.last_name} // demo-safe: initiales uniquement, l'infobulle est masquee dans MiniAvatar
                               photoUrl={m.photo_url}
                             />
                             <span className="flex-1 min-w-0 text-sm truncate">
-                              {[m.first_name, m.last_name].filter(Boolean).join(" ") || m.learner_email}
+                              {isDemoMode
+                                ? (maskName([m.first_name, m.last_name].filter(Boolean).join(" ")) || maskEmail(m.learner_email))
+                                : ([m.first_name, m.last_name].filter(Boolean).join(" ") || m.learner_email)}
                             </span>
                             <Button
                               size="sm"

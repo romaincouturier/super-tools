@@ -47,6 +47,7 @@ interface MissionContactsProps {
 }
 
 const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const { data: contacts, isLoading } = useMissionContacts(missionId);
   const createContact = useCreateMissionContact();
@@ -154,7 +155,7 @@ const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
             .filter((s) => !contacts?.some((c) => c.email?.toLowerCase() === s.email.toLowerCase()))
             .map((s) => (
               <Button
-                key={s.email}
+                key={s.email /* demo-safe: cle React */}
                 size="sm"
                 variant="secondary"
                 className="h-6 px-2 text-xs"
@@ -162,7 +163,7 @@ const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
                 onClick={() => handleQuickAdd(s)}
               >
                 <Plus className="h-3 w-3 mr-1" />
-                {[s.first_name, s.last_name].filter(Boolean).join(" ") || s.email}
+                {isDemoMode ? maskName([s.first_name, s.last_name].filter(Boolean).join(" ")) || maskEmail(s.email) : [s.first_name, s.last_name].filter(Boolean).join(" ") || s.email}
               </Button>
             ))}
         </div>
@@ -251,19 +252,19 @@ const ContactCard = ({ contact, isEditing, onToggleEdit, onUpdate, onSetPrimary,
       {/* Compact info when not editing */}
       {!isEditing && (
         <div className="flex items-center gap-4 text-xs text-muted-foreground pl-6 cursor-pointer" onClick={onToggleEdit}>
-          {contact.email && (
+          {contact.email && ( // demo-safe: garde d'affichage, valeur masquee plus bas
             <span className="flex items-center gap-1">
               <Mail className="h-3 w-3" />
               {isDemoMode ? maskEmail(contact.email) : contact.email}
             </span>
           )}
-          {contact.phone && (
+          {contact.phone && ( // demo-safe: garde d'affichage, valeur masquee plus bas
             <span className="flex items-center gap-1">
               <Phone className="h-3 w-3" />
               {isDemoMode ? maskPhone(contact.phone) : contact.phone}
             </span>
           )}
-          {!contact.email && !contact.phone && (
+          {!contact.email && !contact.phone && ( // demo-safe: garde sur champs vides
             <span className="italic">Cliquer pour modifier</span>
           )}
         </div>

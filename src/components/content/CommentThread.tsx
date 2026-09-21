@@ -19,6 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { resolveContentType } from "@/lib/file-utils";
 import type { MentionUser } from "./MentionTextarea";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName } from "@/lib/demoMask";
 import {
   Select,
   SelectContent,
@@ -66,6 +68,7 @@ const commentTypeConfig = {
 
 const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdded }: CommentThreadProps) => {
   const { copy } = useCopyToClipboard();
+  const { isDemoMode } = useDemoMode();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -147,7 +150,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
         if (profs) {
           for (const p of profs) {
             const fullName = p.first_name && p.last_name
-              ? `${p.first_name} ${p.last_name}`
+              ? `${p.first_name} ${p.last_name}` // demo-safe: valeur brute stockee, masquee au rendu
               : p.email || undefined;
             if (fullName) profileMap[p.user_id as string] = fullName;
           }
@@ -273,7 +276,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
           .select("first_name, last_name")
           .eq("user_id", userId)
           .maybeSingle();
-        const authorName = authorProfile?.first_name ? `${authorProfile.first_name} ${authorProfile.last_name || ""}`.trim() : "Quelqu'un";
+        const authorName = authorProfile?.first_name ? `${authorProfile.first_name} ${authorProfile.last_name || ""}`.trim() : "Quelqu'un"; // demo-safe: corps de la notification enregistree, non affiche ici
         const preview = newComment.trim().split(/\s+/).slice(0, 10).join(" ");
 
         await supabase.from("content_notifications").insert({
@@ -293,7 +296,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
           .eq("user_id", userId)
           .maybeSingle();
         const authorName = authorProfile?.first_name && authorProfile?.last_name
-          ? `${authorProfile.first_name} ${authorProfile.last_name}`
+          ? `${authorProfile.first_name} ${authorProfile.last_name}` // demo-safe: corps de la notification enregistree, non affiche ici
           : authorProfile?.email || "Quelqu'un";
 
         for (const mention of pendingMentions) {
@@ -435,7 +438,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
           .eq("user_id", currentUserId!)
           .maybeSingle();
         const authorName = authorProfile?.first_name
-          ? `${authorProfile.first_name} ${authorProfile.last_name || ""}`.trim()
+          ? `${authorProfile.first_name} ${authorProfile.last_name || ""}`.trim() // demo-safe: corps de la notification enregistree, non affiche ici
           : "Quelqu'un";
         const preview = editContent.trim().split(/\s+/).slice(0, 10).join(" ");
         await supabase.from("content_notifications").insert({
@@ -479,8 +482,13 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
     });
   };
 
-  const getDisplayName = (comment: Comment) =>
-    comment.author_id === currentUserId ? "Moi" : comment.author_email || "Utilisateur";
+  const maskLabel = (label: string) => (label.includes("@") ? maskEmail(label) : maskName(label));
+
+  const getDisplayName = (comment: Comment) => {
+    if (comment.author_id === currentUserId) return "Moi";
+    const name = comment.author_email || "Utilisateur";
+    return isDemoMode ? maskLabel(name) : name;
+  };
 
   const getInitials = (comment: Comment) => {
     if (comment.author_id === currentUserId) return "😊";
@@ -499,10 +507,15 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
     });
   };
 
+  const profileLabel = (p: Profile) => {
+    const name = p.first_name && p.last_name ? [p.first_name, p.last_name].join(" ") : p.email;
+    return isDemoMode && name ? maskLabel(name) : name;
+  };
+
   const getProfileName = (userId: string) => {
     const p = profiles.find((p) => p.user_id === userId);
     if (!p) return null;
-    return p.first_name && p.last_name ? `${p.first_name} ${p.last_name}` : p.email;
+    return profileLabel(p);
   };
 
   if (loading) {
@@ -586,7 +599,9 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                 {comment.assigned_to && (
                   <Badge variant="outline" className="text-[10px] h-4 gap-0.5">
                     <UserPlus className="h-2.5 w-2.5" />
-                    {comment.assigned_name || getProfileName(comment.assigned_to) || "Assigné"}
+                    {comment.assigned_name
+                      ? (isDemoMode ? maskLabel(comment.assigned_name) : comment.assigned_name)
+                      : getProfileName(comment.assigned_to) || "Assigné"}
                   </Badge>
                 )}
                 {isResolved && (
@@ -629,7 +644,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                       <SelectItem value="none" className="text-xs">Personne</SelectItem>
                       {profiles.filter((p) => p.user_id !== currentUserId).map((p) => (
                         <SelectItem key={p.user_id} value={p.user_id} className="text-xs">
-                          {p.first_name && p.last_name ? `${p.first_name} ${p.last_name}` : p.email}
+                          {profileLabel(p)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -937,7 +952,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                 <SelectItem value="none" className="text-xs">Personne</SelectItem>
                 {profiles.filter((p) => p.user_id !== currentUserId).map((p) => (
                   <SelectItem key={p.user_id} value={p.user_id} className="text-xs">
-                    {p.first_name && p.last_name ? `${p.first_name} ${p.last_name}` : p.email}
+                    {profileLabel(p)}
                   </SelectItem>
                 ))}
               </SelectContent>

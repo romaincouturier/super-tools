@@ -16,6 +16,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName } from "@/lib/demoMask";
 
 interface Profile {
   id: string;
@@ -40,6 +42,7 @@ const UserEmailCombobox = ({
   const [open, setOpen] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [inputValue, setInputValue] = useState(value);
+  const { isDemoMode } = useDemoMode();
 
   useEffect(() => {
     fetchProfiles();
@@ -62,7 +65,7 @@ const UserEmailCombobox = ({
 
   const getDisplayName = (profile: Profile) => {
     if (profile.first_name && profile.last_name) {
-      return `${profile.first_name} ${profile.last_name}`;
+      return `${profile.first_name} ${profile.last_name}`; // demo-safe: valeur brute remontee par onChange, masquee aux points d'affichage
     }
     if (profile.display_name) {
       return profile.display_name;
@@ -112,8 +115,10 @@ const UserEmailCombobox = ({
             {value ? (
               <span className="truncate">
                 {selectedProfile
-                  ? `${getDisplayName(selectedProfile)} (${selectedProfile.email})`
-                  : value}
+                  ? (isDemoMode
+                      ? `${maskName(getDisplayName(selectedProfile))} (${maskEmail(selectedProfile.email)})`
+                      : `${getDisplayName(selectedProfile)} (${selectedProfile.email})`) // demo-safe: branche hors mode demo
+                  : (isDemoMode ? maskEmail(value) : value)}
               </span>
             ) : (
               <span className="text-muted-foreground">{placeholder}</span>
@@ -167,9 +172,9 @@ const UserEmailCombobox = ({
                     )}
                   />
                   <div className="flex flex-col">
-                    <span className="font-medium">{getDisplayName(profile)}</span>
+                    <span className="font-medium">{isDemoMode ? maskName(getDisplayName(profile)) : getDisplayName(profile)}</span>
                     <span className="text-sm text-muted-foreground">
-                      {profile.email}
+                      {isDemoMode ? maskEmail(profile.email) : profile.email}
                     </span>
                   </div>
                 </CommandItem>
