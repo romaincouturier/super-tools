@@ -122,6 +122,40 @@ async function sendBookingReminderEmail(
   }
 }
 
+/**
+ * Pending logistics items per entity, from `logistics_checklist_items`
+ * (the configurable checklist, source of truth since 2026-04).
+ * Returns a Map: entityId -> pending labels. An entity present with an
+ * empty array has a checklist with nothing pending. An entity absent from
+ * the map has no checklist at all, so callers fall back to legacy columns.
+ */
+async function fetchPendingChecklists(
+  supabase: any,
+  entityType: "mission" | "training",
+  entityIds: string[],
+): Promise<Map<string, string[]>> {
+  const map = new Map<string, string[]>();
+  if (entityIds.length === 0) return map;
+
+  const { data: items, error } = await supabase
+    .from("logistics_checklist_items")
+    .select("entity_id, label, is_done")
+    .eq("entity_type", entityType)
+    .in("entity_id", entityIds)
+    .limit(2000);
+
+  if (error) {
+    console.error("Error fetching logistics checklist items:", error);
+    return map;
+  }
+
+  for (const it of (items || []) as any[]) {
+    if (!map.has(it.entity_id)) map.set(it.entity_id, []);
+    if (!it.is_done) map.get(it.entity_id)!.push(it.label);
+  }
+  return map;
+}
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
