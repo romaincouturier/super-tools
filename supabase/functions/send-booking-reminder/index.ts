@@ -139,7 +139,7 @@ async function fetchPendingChecklists(
 
   const { data: items, error } = await supabase
     .from("logistics_checklist_items")
-    .select("entity_id, label, is_done")
+    .select("entity_id, label, is_done, due_date, notify_days_before")
     .eq("entity_type", entityType)
     .in("entity_id", entityIds)
     .limit(2000);
@@ -149,9 +149,17 @@ async function fetchPendingChecklists(
     return map;
   }
 
+  const todayMs = new Date(new Date().toISOString().split("T")[0]).getTime();
   for (const it of (items || []) as any[]) {
     if (!map.has(it.entity_id)) map.set(it.entity_id, []);
-    if (!it.is_done) map.get(it.entity_id)!.push(it.label);
+    if (it.is_done) continue;
+    // Un item avec échéance et délai d'alerte n'est rappelé qu'une fois sa
+    // fenêtre ouverte, comme dans _shared/daily-data-fetchers.ts.
+    if (it.due_date && it.notify_days_before !== null && it.notify_days_before !== undefined) {
+      const threshold = new Date(it.due_date).getTime() - it.notify_days_before * 24 * 60 * 60 * 1000;
+      if (todayMs < threshold) continue;
+    }
+    map.get(it.entity_id)!.push(it.label);
   }
   return map;
 }
