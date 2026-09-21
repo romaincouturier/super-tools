@@ -5,14 +5,15 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
 
 ## Modèle de sécurité
 
-- **Tools exposés (17)** : `query_database` (via `agent_sql_query` : SELECT
+- **Tools exposés (32)** : `query_database` (via `agent_sql_query` : SELECT
   uniquement, tables allowlistées du registry, 100 lignes max),
   `search_content` (recherche hybride, filtrable par mission via
   `mission_id`), `list_schema`, `get_mission_dossier` (mission + pages +
   activités + documents + galerie), `get_client_dossier`, `read_media_image`
   (photo de galerie en image, redimensionnée côté serveur, 3 Mo max),
   `read_document`, `read_mission_page`, `read_mission_documents`,
-  `save_mission_note`, `save_mission_document`, les quatre outils
+  `save_mission_note`, `save_mission_document`, `list_watch_items`,
+  `save_watch_item`, les quatre outils
   d'audience et les deux outils de marchés publics décrits ci-dessous. Tous sont journalisés dans
   `agent_query_audit_log`.
 - **Instructions du serveur** : le champ `instructions` du protocole MCP,
@@ -167,6 +168,50 @@ Les tables sous-jacentes (`gsc_metrics_daily`, `gsc_url_inspections`,
   La recherche est littérale, pas sémantique : les événements ne sont pas
   indexés dans `content_index`, donc `search_content` ne les voit pas.
 
+## Veille : publier depuis un agent
+
+Un agent de veille qui ne publie que dans Slack produit un flux qui disparaît :
+rien n'est recherchable, dédupliqué, taggé ni repris dans le digest
+hebdomadaire. Ces deux outils
+(`supabase/functions/_shared/watch-tools.ts`) déposent le même contenu dans
+le module Veille de SuperTools (`/veille`), où il rejoint ce qui est ajouté à
+la main depuis l'application.
+
+- **`list_watch_items`** (lecture) — ce qui est déjà publié, le plus récent
+  d'abord : titre, tags, lien de la source, commentaire et extrait du contenu
+  en texte brut. Filtres : `search` (ILIKE sur titre et contenu), `tags`,
+  `days`, `shared_only`, `limit` (20 par défaut, 100 au plus). À appeler avant
+  de publier, pour ne pas répéter ce qui est couvert et réutiliser les tags
+  existants.
+- **`save_watch_item`** (écriture additive) — un contenu par appel :
+  `title`, `source_url` (URL http(s) absolue, sinon refus), `body` (le
+  contenu, texte ou HTML simple, 20 000 caractères max), `comment` (l'angle,
+  texte brut, 2 000 caractères max), `tags` (8 au plus, normalisés en
+  minuscules sans doublon) et `is_shared`. `content_type` vaut `url` si une
+  source est fournie, `text` sinon ; `created_by` est le compte de
+  `ALLOWED_EMAIL`.
+
+**Déduplication.** L'agent tourne tous les jours : deux passages sur la même
+source ne doivent pas remplir le module de copies. L'appel est donc refusé
+sans rien écrire quand
+  1. la même `source_url` est déjà présente (test exact, fait en premier :
+     un doublon évident ne coûte pas d'appel OpenAI), ou
+  2. un élément existant dépasse 0,92 de similarité cosinus
+     (`match_watch_items`, le même seuil que `watch-check-duplicate` utilisé
+     par l'application).
+
+Le refus renvoie l'élément existant et son lien `/veille?item=<id>`. Le
+paramètre `force` lève le seul contrôle de similarité — jamais celui de
+l'URL, deux fiches sur la même adresse étant le même contenu.
+
+**Enrichissement.** Seul l'embedding est calculé ici (`_shared/embeddings.ts`,
+donc tracé dans `api_usage_events`), et celui qui a servi à la détection de
+doublon est celui qui est stocké : un dépôt ne facture jamais deux embeddings.
+Le reste du pipeline `watch-process-item` (scraping, OCR, transcription,
+titre et tags automatiques) n'a pas lieu d'être — l'agent a lu la source et
+fournit déjà titre, résumé et tags. L'élément entre ensuite normalement dans
+le clustering et le digest hebdomadaire.
+
 ## Marchés publics : qualification Go / No Go
 
 Étape 4 du workflow de `docs/marches-publics.md`, faite depuis Claude Cowork.
@@ -281,9 +326,12 @@ Le contenu lu depuis SuperTools (au premier chef les emails si un jour les
 inbound emails sont activés) est traité par Claude comme du contexte : un
 contenu piégé pourrait tenter de faire écrire Claude vers Notion/Drive.
 Le serveur SuperTools lui-même n'écrit que de façon additive
-(`save_mission_note`, `save_mission_document`) : au pire, un contenu piégé
-ferait créer une page ou un document de trop sur une mission — rien
-d'existant ne peut être modifié ni supprimé. Un fichier HTML poussé par
+(`save_mission_note`, `save_mission_document`, `save_watch_item`) : au pire,
+un contenu piégé ferait créer une page, un document de trop sur une mission
+ou un élément de veille de trop — rien d'existant ne peut être modifié ni
+supprimé. Le cas est concret pour la veille, dont la matière est par nature
+du contenu externe : le contenu déposé est rendu assaini côté application
+(`DOMPurify` dans `WatchItemCard`) et `comment` est affiché en texte brut. Un fichier HTML poussé par
 `save_mission_document` est servi tel quel depuis le domaine de storage
 Supabase, distinct de l'origine de l'application : il ne peut donc pas lire la
 session SuperTools, exactement comme un HTML téléversé à la main dans les

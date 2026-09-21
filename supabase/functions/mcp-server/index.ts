@@ -51,6 +51,13 @@ import {
   updateLmsBlock,
 } from "../_shared/lms-tools.ts";
 import { createDraftQuote, type CustomerInput, type QuoteLineInput } from "../_shared/pennylane-quotes.ts";
+import {
+  listWatchItems,
+  saveWatchItem,
+  WATCH_BODY_MAX_CHARS,
+  WATCH_COMMENT_MAX_CHARS,
+  WATCH_TAGS_MAX,
+} from "../_shared/watch-tools.ts";
 
 /**
  * Serveur MCP SuperTools — lecture seule, mono-utilisateur.
@@ -90,6 +97,10 @@ import { createDraftQuote, type CustomerInput, type QuoteLineInput } from "../_s
  *                           point éditorial en un seul appel
  *   - get_event_history      : événements passés avec pitch soumis, notes,
  *                           bilan, statut CFP et issue déduite (sans médias)
+ *   - list_watch_items       : ce qui est déjà dans le module Veille
+ *   - save_watch_item        : écriture additive — dépose un contenu de veille
+ *                           (lien, résumé, commentaire, tags) dans le module
+ *                           Veille, doublons refusés
  *   - create_quote        : écriture externe — crée un devis en BROUILLON
  *                           dans Pennylane. Aucun envoi, aucune validation,
  *                           aucune transformation en facture.
@@ -100,11 +111,11 @@ import { createDraftQuote, type CustomerInput, type QuoteLineInput } from "../_s
  *     secret d'edge function — jamais dans le repo)
  *   - Chaque requête MCP est liée à ALLOWED_EMAIL : liste blanche d'un seul
  *     utilisateur, codée en dur, vérifiée à chaque appel
- *   - Écriture limitée à save_mission_note (page de mission) et
+ *   - Écriture limitée à save_mission_note (page de mission),
  *     save_mission_document (document de mission, allowlist de types et
- *     plafond de taille). Les deux sont additives : aucune suppression,
- *     aucun écrasement, aucune autre table, aucun autre tool d'action ;
- *     agent_sql_query reste SELECT-only
+ *     plafond de taille) et save_watch_item (contenu de veille). Toutes sont
+ *     additives : aucune suppression, aucun écrasement, aucune autre table,
+ *     aucun autre tool d'action ; agent_sql_query reste SELECT-only
  *   - create_quote est la seule écriture hors SuperTools : un POST /quotes
  *     Pennylane, chemin codé en dur, jamais rejoué (POST non idempotent)
  *   - Rate limiting sur les tentatives de clé (5 échecs / 15 min)
@@ -261,6 +272,7 @@ QUEL OUTIL POUR QUELLE QUESTION
 - Newsletter, point éditorial, arbitrage de sommaire : get_editorial_brief d'abord, puis get_content_performance pour justifier les choix.
 - Client, mission, formation, devis, évaluation : get_client_dossier, get_mission_dossier, read_mission_documents, search_content.
 - Conférence, salon, CFP, réécriture d'un pitch déjà soumis : get_event_history. Il rend le pitch (description), les notes de préparation, le bilan (summary_notes) et l'issue déduite. Ne jamais annoncer qu'un événement a été « accepté » : le modèle ne stocke que held / not_selected / cancelled / upcoming, et le refus se lit sur cancellation_reason.
+- Veille (articles, podcasts, sorties produit suivis par SuperTilt) : list_watch_items pour lire ce qui est déjà couvert, save_watch_item pour y déposer un nouveau contenu.
 - LMS (cours en ligne) : list_lms_courses donne les cours ; list_lms_lessons les leçons d'un cours (avec leur module) ; read_lms_lesson renvoie les blocs avec leur empreinte ; list_lms_block_types catalogue les types de blocs pédagogiques et leur pertinence ; create_lms_lesson crée une leçon vide dans un module ; update_lms_block modifie un seul bloc texte/HTML sans changer son type ; apply_lesson_restructure remplace les blocs de contenu d'une leçon après validation humaine ; list_lesson_versions et restore_lesson_version gèrent l'historique. Utiliser read_lms_lesson avant toute proposition de restructuration pour obtenir l'empreinte (fingerprint) exacte.
 - query_database reste disponible pour tout le reste (SELECT, allowlist de tables) mais les outils agrégés ci-dessus sont plus fiables que du SQL improvisé.
 
@@ -277,11 +289,18 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
 - save_mission_activity : ajoute une activité au journal d'une mission (description + date obligatoires, durée en heures/jours/demi-journées, montant facturable facultatif). Une durée de 0 correspond à une action programmée sans temps consommé. Écriture additive.
 - update_mission_activity : corrige une activité existante à partir de son id (listé par get_mission_dossier). Seuls les champs transmis sont modifiés ; aucune activité ne peut être supprimée ni déplacée vers une autre mission.
+- save_watch_item : dépose un contenu dans le module Veille (un contenu par appel : lien de la source, résumé dans body, angle dans comment, 2 à 5 tags). Écriture additive, doublons refusés : même URL déjà présente ou contenu sémantiquement quasi identique, l'appel ne crée rien et rend l'élément existant.
 - create_quote : crée un devis en BROUILLON dans Pennylane (comptabilité SuperTilt). Aucun envoi au client, aucune validation, aucune transformation en facture n'est possible depuis ici : le brouillon reste à relire et à envoyer manuellement dans Pennylane.
 - update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre « type » doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
 - create_lms_lesson : crée une leçon dans un module, avec éventuellement ses blocs de contenu initiaux (paramètre « blocks », même schéma que apply_lesson_restructure). Position facultative : si elle est fournie, les leçons suivantes du module sont décalées d'un rang. Écriture additive : aucune leçon existante n'est modifiée dans son contenu. Retourne l'id et l'empreinte de la leçon créée.
 - apply_lesson_restructure : remplace TOUS les blocs de premier niveau d'une leçon par une nouvelle structure proposée. Tous les types du menu « Ajouter un bloc » sont acceptés : blocs de contenu (texte, tableau, encadré, points clés, liste, checklist, synthèse, accordéon, frise, cartes à retourner, code, exercice, auto-évaluation, texte à trous, mots à glisser, quiz, devoir, dépôt de travail, vidéo, image, galerie, fichier, image interactive, avant/après, bouton, CTA, intégration HTML, shortcode) et blocs de mise en page (section, colonnes, conteneur, contenu progressif, séparateur, espace) qui peuvent porter un tableau « children » de blocs de contenu (un seul niveau d'imbrication). EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
 Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress n'est possible depuis ici.
+
+VEILLE
+- Un appel save_watch_item par source. Ne jamais empiler plusieurs articles dans un seul contenu : la recherche, les tags, le clustering et le digest hebdomadaire travaillent élément par élément.
+- Commencer par list_watch_items (par tags ou sur les derniers jours) pour ne pas republier ce qui est déjà couvert et pour réutiliser les tags existants plutôt que d'en inventer.
+- body porte le contenu (résumé de la source, extraits utiles), comment porte l'angle : pourquoi c'est pertinent pour SuperTilt, quoi en faire, qui c'est concerné. is_shared marque ce qui est à partager.
+- Un refus pour doublon n'est pas une erreur : c'est la réponse attendue quand la source est déjà là. Ne pas rappeler avec force=true pour passer outre, sauf s'il s'agit vraiment d'une autre source.
 
 RESTRUCTURATION PÉDAGOGIQUE (LMS)
 - Lire la leçon avec read_lms_lesson pour connaître les blocs existants et leur empreinte (fingerprint).
@@ -527,6 +546,56 @@ const MCP_TOOLS = [
         notes: { type: "string", description: "New internal notes" },
       },
       required: ["activity_id"],
+    },
+  },
+  {
+    name: "save_watch_item",
+    description:
+      "Publish ONE piece of technology/market watch (« veille ») into SuperTools, where it becomes searchable, taggable, part of the weekly digest and of the automatic clustering — instead of scrolling away in a Slack channel. Typical use: a watch agent that found an article, a podcast episode, a release note or a study, and posts a short analysis of it. Pass the source link in source_url, the summary in body, and what makes it relevant in comment. " +
+      `Limits: ${WATCH_BODY_MAX_CHARS} characters for body, ${WATCH_COMMENT_MAX_CHARS} for comment, ${WATCH_TAGS_MAX} tags. ` +
+      "DUPLICATES: the call is refused (nothing written) when the same source_url is already there, or when an existing item is semantically almost identical — the existing item is returned instead, so the same agent can run every day without filling the module with copies. This write is strictly ADDITIVE: it only creates a new item, it never modifies or deletes an existing one.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Short, descriptive title, e.g. 'Anthropic publie les agent skills'" },
+        source_url: { type: "string", description: "Absolute http(s) URL of the source (article, episode, repository). Required unless body is given." },
+        body: {
+          type: "string",
+          description:
+            "The content itself: summary of the source, key excerpts, why it matters. Plain text or simple HTML (p, ul, li, strong, em, a, h2...), rendered sanitised in the item. Required unless source_url is given.",
+        },
+        comment: {
+          type: "string",
+          description:
+            "Plain-text note on top of the content: the angle, what to do with it, who it concerns. Kept apart from body, which is the content itself.",
+        },
+        tags: {
+          type: "array",
+          items: { type: "string" },
+          description: "2 to 5 lowercase tags, e.g. ['ia', 'facilitation', 'lms']. Reuse the tags already present (list_watch_items) rather than inventing new ones.",
+        },
+        is_shared: { type: "boolean", description: "Flag the item as « à partager » (default false)" },
+        force: {
+          type: "boolean",
+          description: "Write even though a near-identical item exists. Only after checking it really is another source — an identical source_url is refused in every case.",
+        },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "list_watch_items",
+    description:
+      "List what is already in the SuperTools watch module, most recent first: title, tags, source link, the comment and an excerpt of the content. Call it before publishing to avoid covering again what is already there, and to reuse the existing tags. Read-only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        search: { type: "string", description: "Case-insensitive filter on title and content (literal matching, not semantic)" },
+        tags: { type: "array", items: { type: "string" }, description: "Keep only items carrying at least one of these tags" },
+        days: { type: "number", description: "Only items added in the last N days" },
+        shared_only: { type: "boolean", description: "Only items flagged « à partager »" },
+        limit: { type: "number", description: "Number of items (default 20, max 100)" },
+      },
     },
   },
   {
@@ -1069,6 +1138,47 @@ async function callTool(
         );
       } catch (e) {
         return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "save_watch_item": {
+      try {
+        return textResult(
+          await saveWatchItem(
+            supabase,
+            {
+              title: args.title as string | undefined,
+              body: args.body as string | undefined,
+              comment: args.comment as string | undefined,
+              source_url: args.source_url as string | undefined,
+              tags: args.tags as string[] | undefined,
+              is_shared: args.is_shared === true,
+              force: args.force === true,
+            },
+            await getAllowedUserId(supabase),
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Watch error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "list_watch_items": {
+      try {
+        return textResult(
+          await listWatchItems(
+            supabase,
+            {
+              search: args.search as string | undefined,
+              tags: args.tags as string[] | undefined,
+              days: args.days as number | undefined,
+              shared_only: args.shared_only === true,
+              limit: args.limit as number | undefined,
+            },
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Watch error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "create_quote": {
