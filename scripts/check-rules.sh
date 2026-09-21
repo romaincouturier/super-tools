@@ -423,6 +423,20 @@ if [ "$STAGED_MODE" = "false" ]; then
     "grep -l 'cron\.alter_job([0-9]\\|cron\.unschedule([0-9]' supabase/migrations/*.sql 2>/dev/null \
        | xargs -r grep -L 'FROM cron.job WHERE jobid' 2>/dev/null"
 
+  # [061] Les valeurs que Pennylane possède ont été relevées sur des factures
+  # réelles du compte, pas déduites : le taux d'exonération s'écrit "exempt" et
+  # non FR_000 (F-2026-116, F-2026-141), et la création d'un client passe par
+  # individual_customers / company_customers avec un billing_address imbriqué,
+  # pas par un POST /customers qui n'existe pas. Les deux erreurs initiales
+  # étaient invisibles au typage et à des tests verts. Le test épingle donc ces
+  # valeurs avec la facture qui en fait foi : les remplacer sans nouveau relevé
+  # casse ce check au lieu de casser la production.
+  check "061" "Valeurs Pennylane relevées et épinglées par un test citant une facture réelle" \
+    "for v in exempt individual_customers company_customers billing_address 'F-2026-'; do \
+       grep -q \"\$v\" supabase/functions/_shared/pennylane-quotes.test.ts \
+         || echo \"valeur relevée absente du test : \$v\"; \
+     done"
+
   # [052a] Le rafraîchissement d'un token Google vit dans _shared/google-oauth.ts.
   # Cinq copies coexistaient, divergentes sur la gestion d'erreur, dont aucune ne
   # traitait la réponse 200 portant un corps d'erreur (31/08/2026).
