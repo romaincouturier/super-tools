@@ -200,7 +200,7 @@ export function buildCustomerRequest(
       address,
       postal_code: postalCode,
       city,
-      country: (customer.country || "FR").trim().toUpperCase(),
+      country_alpha2: (customer.country || "FR").trim().toUpperCase(),
     },
     ...(customer.external_reference ? { external_reference: customer.external_reference.trim() } : {}),
   };

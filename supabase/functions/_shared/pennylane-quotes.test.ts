@@ -332,7 +332,7 @@ describe("buildCustomerRequest", () => {
           address: "24 rue Saint-Esprit",
           postal_code: "63000",
           city: "Clermont-Ferrand",
-          country: "FR",
+          country_alpha2: "FR",
         },
       },
     });
@@ -349,7 +349,7 @@ describe("buildCustomerRequest", () => {
           address: "24 rue Saint-Esprit",
           postal_code: "63000",
           city: "Clermont-Ferrand",
-          country: "FR",
+          country_alpha2: "FR",
         },
       },
     });
