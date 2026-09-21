@@ -3,6 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Eye } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import DOMPurify from "dompurify";
 import { useWpArticle } from "@/hooks/useWpArticles";
 
 interface Props {
@@ -91,7 +92,7 @@ export default function WpArticleDetailDialog({ articleId, onOpenChange }: Props
                 {a.content ? (
                   <div
                     className="prose prose-sm max-w-none rounded border p-3 bg-muted/30 dark:prose-invert"
-                    dangerouslySetInnerHTML={{ __html: a.content }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(a.content) }}
                   />
                 ) : (
                   <p className="text-sm text-destructive">Aucun contenu importé — vérifie la colonne « Contenu » du CSV.</p>

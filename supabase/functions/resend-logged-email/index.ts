@@ -6,6 +6,7 @@ import {
   getSupabaseClient,
   sendEmail,
   getBccSettings,
+  verifyAuth,
 } from "../_shared/mod.ts";
 
 
@@ -19,6 +20,13 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
+    // Garde d'auth : cette fonction relit et renvoie un email déjà envoyé
+    // (sent_emails_log) vers une adresse fournie par l'appelant. Sans garde,
+    // c'est un open relay + exfiltration d'emails historiques par un anonyme.
+    // Seul appelant légitime : le drawer de traçabilité (staff authentifié).
+    const user = await verifyAuth(req.headers.get("Authorization"));
+    if (!user) return createErrorResponse("Unauthorized", 401);
+
     const { logId, recipientOverride } = await req.json();
     if (!logId) return createErrorResponse("logId is required", 400);
 

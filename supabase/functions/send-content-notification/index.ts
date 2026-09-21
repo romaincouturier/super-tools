@@ -1,11 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton, emailInfoBox } from "../_shared/templates.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 // Bump this when you deploy to confirm the latest code is running.
 const VERSION = "send-content-notification@2026-02-05.1";
 
@@ -13,6 +13,12 @@ serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
 
   if (corsResponse) return corsResponse;
+
+  // Garde d'auth : destinataire et contenu contrôlés par l'appelant. Sans
+  // garde = relais d'email depuis le domaine vérifié. Seuls appelants
+  // légitimes : le kanban éditorial et les revues (staff authentifié).
+  const authedUser = await verifyAuth(req.headers.get("Authorization"));
+  if (!authedUser) return createErrorResponse("Unauthorized", 401);
 
   try {
     let body: any;
