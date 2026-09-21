@@ -11,6 +11,12 @@
  * voie correspondante est simplement fermée et l'appelant doit présenter un
  * JWT. C'est l'inverse du garde qu'on trouve dans les fonctions plus
  * anciennes, où l'absence d'en-tête laissait passer.
+ *
+ * Le nom du secret est un paramètre parce qu'un secret se rattache à un
+ * domaine, jamais à tout le projet : EDITORIAL_CRON_SECRET, SEO_CRON_SECRET,
+ * VEILLE_CRON_SECRET. La valeur est recopiée en clair dans le SQL de chaque
+ * cron, donc un secret partagé ne peut pas être remplacé sans casser, en
+ * silence et en 401, tous les crons qui portent encore l'ancienne valeur.
  */
 export function isInternalCall(req: Request, secretEnvName = "CRON_SECRET"): boolean {
   const cronSecret = Deno.env.get(secretEnvName) ?? "";

@@ -18,8 +18,9 @@ import { isInternalCall } from "../_shared/cron-auth.ts";
  * - After each new item is processed
  * - On a scheduled basis (e.g., daily cron)
  *
- * Auth : x-cron-secret (CRON_SECRET, cron planifié en base — voir docs/veille.md),
- * x-internal-secret (appels inter-fonctions) ou JWT (déclenchement manuel).
+ * Auth : x-cron-secret (VEILLE_CRON_SECRET, cron planifié en base — voir
+ * docs/veille.md), x-internal-secret (appels inter-fonctions) ou JWT
+ * (déclenchement manuel).
  */
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -28,7 +29,7 @@ serve(async (req) => {
   try {
     // Trois voies d'authentification (règle [036]) : le JWT seul interdisait
     // au cron d'appeler cette fonction, qui n'a donc jamais tourné.
-    if (!isInternalCall(req)) {
+    if (!isInternalCall(req, "VEILLE_CRON_SECRET")) {
       const authResult = await verifyAuth(req.headers.get("Authorization"));
       if (!authResult) return createErrorResponse("Non autorisé", 401);
     }

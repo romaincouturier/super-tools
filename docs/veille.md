@@ -40,31 +40,49 @@ Tant qu'ils ne sont pas posés, le clustering et le digest ne tournent pas.
 
 ## Poser les deux crons (SQL Editor)
 
-Le secret d'edge function `CRON_SECRET` existe déjà et sert aux autres crons du
-projet : les deux fonctions de veille acceptent désormais ce même secret.
-Remplacer les deux placeholders, puis exécuter :
+Les deux fonctions de veille attendent leur propre secret, `VEILLE_CRON_SECRET`,
+à poser dans les secrets d'edge function. Pas `CRON_SECRET` : ce dernier sert
+déjà à cinq crons posés en base (`process-scheduled-emails`,
+`check-daily-actions-completion`, `process-live-reminders`,
+`process-logistics-reminders`, `send-booking-reminder`) qui en portent la valeur
+en clair dans leur SQL. Comme un secret d'edge function ne se relit pas, le
+remplacer pour en retrouver la valeur ferait passer ces cinq crons en 401, sans
+bruit. Un secret par domaine, comme `SEO_CRON_SECRET` et
+`EDITORIAL_CRON_SECRET`.
+
+Poser d'abord `VEILLE_CRON_SECRET` (chaîne longue et aléatoire), puis reporter
+la même valeur dans les deux placeholders ci-dessous :
 
 ```sql
 -- Clustering : une passe par nuit sur les contenus non regroupés des 30 derniers jours
+SELECT cron.unschedule('watch-cluster-analysis-daily')
+WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'watch-cluster-analysis-daily');
+
 SELECT cron.schedule('watch-cluster-analysis-daily', '10 2 * * *', $$
   SELECT net.http_post(
     url := 'https://<PROJET>.supabase.co/functions/v1/watch-cluster-analysis',
     headers := jsonb_build_object('Content-Type', 'application/json',
-                                  'x-cron-secret', '<CRON_SECRET>'),
+                                  'x-cron-secret', '<VEILLE_CRON_SECRET>'),
     timeout_milliseconds := 120000,
     body := '{}'::jsonb);
 $$);
 
 -- Digest de la semaine écoulée, le lundi matin
+SELECT cron.unschedule('watch-weekly-digest')
+WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'watch-weekly-digest');
+
 SELECT cron.schedule('watch-weekly-digest', '0 7 * * 1', $$
   SELECT net.http_post(
     url := 'https://<PROJET>.supabase.co/functions/v1/watch-weekly-digest',
     headers := jsonb_build_object('Content-Type', 'application/json',
-                                  'x-cron-secret', '<CRON_SECRET>'),
+                                  'x-cron-secret', '<VEILLE_CRON_SECRET>'),
     timeout_milliseconds := 120000,
     body := '{}'::jsonb);
 $$);
 ```
+
+Les `unschedule` gardés rendent le bloc rejouable : le repasser après une
+rotation de secret remplace les travaux au lieu d'échouer sur un nom déjà pris.
 
 `timeout_milliseconds` est indispensable : les deux fonctions appellent OpenAI et
 dépassent largement les 5 secondes de pg_net par défaut.
@@ -96,7 +114,7 @@ ses journaux d'edge function.
 
 Trois voies (règle [036]), via `_shared/cron-auth.ts` :
 
-- `x-cron-secret` égal à `CRON_SECRET` — le cron ;
+- `x-cron-secret` égal à `VEILLE_CRON_SECRET` — le cron ;
 - `x-internal-secret` égal à la service_role — un appel d'une edge function à
   une autre ;
 - à défaut, un JWT d'utilisateur connecté — un déclenchement manuel.
