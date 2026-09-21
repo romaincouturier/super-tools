@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveContentType } from "@/lib/file-utils";
 import { todayAsISO } from "@/lib/dateFormatters";
+import { fetchStaffPublicProfiles } from "@/lib/supabase-helpers";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -232,7 +233,7 @@ export function usePracticePosts(
         c.from("practice_post_reactions").select("post_id, author_email, reaction_type"),
         c.from("practice_post_comments").select("id, post_id"),
         db.from("learner_profiles").select("email, first_name, last_name, photo_url"),
-        db.rpc("get_staff_public_profiles"),
+        fetchStaffPublicProfiles(),
         c.from("practice_post_hashtags").select("post_id, tag"),
         c.from("practice_polls").select("id, post_id"),
         c.from("practice_poll_options").select("id, poll_id, label, position"),
@@ -248,7 +249,7 @@ export function usePracticePosts(
       // so a staff member's real name and avatar are used instead of any legacy
       // learner_profile they may also have for testing.
       const learnerProfiles: RawProfile[] = profilesRes.data || [];
-      const staffProfiles: RawProfile[] = staffProfilesRes.data || [];
+      const staffProfiles: RawProfile[] = (staffProfilesRes as RawProfile[]) || [];
       const staffEmailSet = new Set(staffProfiles.map((p) => p.email));
       const profiles: RawProfile[] = [
         ...staffProfiles,
@@ -360,12 +361,12 @@ export function usePracticeComments(postId: string | null, learnerEmail: string 
       const [commentsRes, learnerProfilesRes, staffProfilesRes] = await Promise.all([
         c.from("practice_post_comments").select("*").eq("post_id", postId).order("created_at", { ascending: true }),
         db.from("learner_profiles").select("email, first_name, last_name, photo_url"),
-        db.rpc("get_staff_public_profiles"),
+        fetchStaffPublicProfiles(),
       ]);
 
       if (commentsRes.error) throw commentsRes.error;
       const learnerProfiles: RawProfile[] = learnerProfilesRes.data || [];
-      const staffProfiles: RawProfile[] = staffProfilesRes.data || [];
+      const staffProfiles: RawProfile[] = (staffProfilesRes as RawProfile[]) || [];
       const staffEmailSet = new Set(staffProfiles.map((p) => p.email));
       // Staff profile takes precedence so a staff member's real name and avatar
       // are used instead of any legacy learner_profile with the same email.

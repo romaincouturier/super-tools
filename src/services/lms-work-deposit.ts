@@ -10,6 +10,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { resolveContentType } from "@/lib/file-utils";
+import { fetchStaffPublicProfiles } from "@/lib/supabase-helpers";
 import type {
   WorkDeposit,
   WorkDepositConfig,
@@ -145,14 +146,14 @@ export async function fetchDepositComments(depositId: string, learnerEmail: stri
   const [commentsRes, learnerProfilesRes, staffProfilesRes] = await Promise.all([
     comments(c).select("*").eq("deposit_id", depositId).order("created_at", { ascending: true }),
     supabase.from("learner_profiles").select("email, first_name, last_name"),
-    supabase.rpc("get_staff_public_profiles"),
+    fetchStaffPublicProfiles(),
   ]);
   if (commentsRes.error) throw commentsRes.error;
 
   // Résolution du nom : le profil staff a priorité sur un éventuel profil
   // apprenant de même email.
   const profileMap = new Map<string, { first_name?: string | null; last_name?: string | null }>();
-  ((staffProfilesRes.data as { email: string; first_name?: string | null; last_name?: string | null }[]) || [])
+  ((staffProfilesRes as { email: string; first_name?: string | null; last_name?: string | null }[]) || [])
     .forEach((p) => profileMap.set(p.email, p));
   ((learnerProfilesRes.data as { email: string; first_name?: string | null; last_name?: string | null }[]) || [])
     .forEach((p) => { if (!profileMap.has(p.email)) profileMap.set(p.email, p); });
