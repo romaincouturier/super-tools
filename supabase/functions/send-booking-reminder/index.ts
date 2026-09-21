@@ -122,6 +122,40 @@ async function sendBookingReminderEmail(
   }
 }
 
+/**
+ * Pending logistics items per entity, from `logistics_checklist_items`
+ * (the configurable checklist, source of truth since 2026-04).
+ * Returns a Map: entityId -> pending labels. An entity present with an
+ * empty array has a checklist with nothing pending. An entity absent from
+ * the map has no checklist at all, so callers fall back to legacy columns.
+ */
+async function fetchPendingChecklists(
+  supabase: any,
+  entityType: "mission" | "training",
+  entityIds: string[],
+): Promise<Map<string, string[]>> {
+  const map = new Map<string, string[]>();
+  if (entityIds.length === 0) return map;
+
+  const { data: items, error } = await supabase
+    .from("logistics_checklist_items")
+    .select("entity_id, label, is_done")
+    .eq("entity_type", entityType)
+    .in("entity_id", entityIds)
+    .limit(2000);
+
+  if (error) {
+    console.error("Error fetching logistics checklist items:", error);
+    return map;
+  }
+
+  for (const it of (items || []) as any[]) {
+    if (!map.has(it.entity_id)) map.set(it.entity_id, []);
+    if (!it.is_done) map.get(it.entity_id)!.push(it.label);
+  }
+  return map;
+}
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -169,15 +203,20 @@ serve(async (req) => {
       `)
       .eq("session_format", "presentiel")
       .gte("start_date", now.toISOString().split("T")[0])
-      .lte("start_date", threeMonthsFromNow.toISOString().split("T")[0])
-      .or("hotel_booked.is.null,hotel_booked.eq.false,train_booked.is.null,train_booked.eq.false,restaurant_booked.is.null,restaurant_booked.eq.false");
+      .lte("start_date", threeMonthsFromNow.toISOString().split("T")[0]);
 
     if (trainingsError) {
       console.error("Error fetching trainings:", trainingsError);
       throw trainingsError;
     }
 
-    console.log(`Found ${trainings?.length || 0} trainings requiring booking reminders`);
+    console.log(`Found ${trainings?.length || 0} upcoming trainings to evaluate`);
+
+    const trainingChecklists = await fetchPendingChecklists(
+      supabase,
+      "training",
+      (trainings || []).map((t: any) => t.id),
+    );
 
     for (const training of (trainings || [])) {
       const trainersData = training.trainers;
@@ -205,15 +244,25 @@ serve(async (req) => {
       const trainingDate = new Date(training.start_date);
       const daysUntil = Math.ceil((trainingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-      const needsHotel = !training.hotel_booked;
-      const needsTrain = !training.train_booked && daysUntil <= 60;
-      const isInterEntreprise = training.format_formation === "inter-entreprises";
-      const needsRestaurant = isInterEntreprise && !training.restaurant_booked && daysUntil <= 14;
+      const fromChecklist = trainingChecklists.get(training.id);
+      let bookingItems: string[];
+      let needsRestaurant = false;
 
-      const bookingItems: string[] = [];
-      if (needsTrain) bookingItems.push("le train");
-      if (needsHotel) bookingItems.push("l'hôtel");
-      if (needsRestaurant) bookingItems.push("le restaurant");
+      if (fromChecklist !== undefined) {
+        // Checklist is the source of truth: only pending items are reminded.
+        bookingItems = fromChecklist;
+        needsRestaurant = fromChecklist.some((l) => /restaurant/i.test(l));
+      } else {
+        const needsHotel = !training.hotel_booked;
+        const needsTrain = !training.train_booked && daysUntil <= 60;
+        const isInterEntreprise = training.format_formation === "inter-entreprises";
+        needsRestaurant = isInterEntreprise && !training.restaurant_booked && daysUntil <= 14;
+
+        bookingItems = [];
+        if (needsTrain) bookingItems.push("le train");
+        if (needsHotel) bookingItems.push("l'hôtel");
+        if (needsRestaurant) bookingItems.push("le restaurant");
+      }
 
       if (bookingItems.length === 0) continue;
 
@@ -254,14 +303,19 @@ serve(async (req) => {
       .not("location", "is", null)
       .in("status", ["not_started", "in_progress"])
       .gte("start_date", now.toISOString().split("T")[0])
-      .lte("start_date", threeMonthsFromNow.toISOString().split("T")[0])
-      .or("hotel_booked.is.null,hotel_booked.eq.false,train_booked.is.null,train_booked.eq.false");
+      .lte("start_date", threeMonthsFromNow.toISOString().split("T")[0]);
 
     if (missionsError) {
       console.error("Error fetching missions:", missionsError);
     }
 
-    console.log(`Found ${missions?.length || 0} missions requiring booking reminders`);
+    console.log(`Found ${missions?.length || 0} upcoming missions to evaluate`);
+
+    const missionChecklists = await fetchPendingChecklists(
+      supabase,
+      "mission",
+      (missions || []).map((m: any) => m.id),
+    );
 
     const adminEmail = await getSenderEmail();
     const adminFullName = await getSenderName();
@@ -273,12 +327,19 @@ serve(async (req) => {
       const missionDate = new Date(mission.start_date);
       const daysUntil = Math.ceil((missionDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-      const needsHotel = !mission.hotel_booked;
-      const needsTrain = !mission.train_booked && daysUntil <= 60;
+      const fromChecklist = missionChecklists.get(mission.id);
+      let bookingItems: string[];
 
-      const bookingItems: string[] = [];
-      if (needsTrain) bookingItems.push("le train");
-      if (needsHotel) bookingItems.push("l'hôtel");
+      if (fromChecklist !== undefined) {
+        bookingItems = fromChecklist;
+      } else {
+        const needsHotel = !mission.hotel_booked;
+        const needsTrain = !mission.train_booked && daysUntil <= 60;
+
+        bookingItems = [];
+        if (needsTrain) bookingItems.push("le train");
+        if (needsHotel) bookingItems.push("l'hôtel");
+      }
 
       if (bookingItems.length === 0) continue;
 
