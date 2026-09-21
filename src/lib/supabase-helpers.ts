@@ -40,3 +40,23 @@ export async function getMaxPosition(
   const { data } = await query.order("position", { ascending: false }).limit(1);
   return (data as { position: number }[] | null)?.[0]?.position ?? -1;
 }
+
+/** Vrai si une session authentifiée est ouverte côté client. */
+export async function hasSession(): Promise<boolean> {
+  const { data } = await supabase.auth.getSession();
+  return !!data.session;
+}
+
+/**
+ * Profils publics de l'équipe. La fonction est réservée aux comptes
+ * authentifiés : sans session on renvoie une liste vide plutôt que de
+ * provoquer un "permission denied" à chaque chargement.
+ */
+export async function fetchStaffPublicProfiles(): Promise<
+  { email: string; first_name?: string | null; last_name?: string | null; photo_url?: string | null }[]
+> {
+  if (!(await hasSession())) return [];
+  const { data, error } = await supabase.rpc("get_staff_public_profiles");
+  if (error) return [];
+  return (data as { email: string }[] | null) ?? [] as any;
+}
