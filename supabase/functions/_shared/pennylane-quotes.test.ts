@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildCustomerPayload, buildQuotePayload, createDraftQuote, todayParis } from "./pennylane-quotes.ts";
+import { buildCustomerRequest, buildQuotePayload, createDraftQuote, todayParis } from "./pennylane-quotes.ts";
 
 const LINE = {
   label: "Atelier de facilitation graphique",
@@ -301,51 +301,80 @@ const DELAVAL = {
   first_name: "Béatrice",
   last_name: "Delaval",
   email: "beatrice.delaval@puy-de-dome.fr",
-  phone: "04 73 42 22 52",
   address: "24 rue Saint-Esprit",
   postal_code: "63000",
   city: "Clermont-Ferrand",
-  country_alpha2: "fr",
+};
+
+const DEPARTEMENT = {
+  type: "company" as const,
+  name: "CONSEIL DEPARTEMENTAL DU PUY-DE-DOME",
+  reg_no: "226 300 010",
+  email: "beatrice.delaval@puy-de-dome.fr",
+  address: "24 rue Saint-Esprit",
+  postal_code: "63000",
+  city: "Clermont-Ferrand",
 };
 
 const QUOTE_NO_ID = { ...INPUT, customer_id: undefined };
 
-describe("buildCustomerPayload", () => {
-  it("construit une fiche Particulier avec les champs de la fiche Pennylane", () => {
-    expect(buildCustomerPayload(DELAVAL)).toEqual({
-      customer_type: "individual",
-      first_name: "Béatrice",
-      last_name: "Delaval",
-      emails: ["beatrice.delaval@puy-de-dome.fr"],
-      phone: "04 73 42 22 52",
-      address: "24 rue Saint-Esprit",
-      postal_code: "63000",
-      city: "Clermont-Ferrand",
-      country_alpha2: "FR",
+describe("buildCustomerRequest", () => {
+  // L'API v2 n'a pas de POST /customers : le type est porté par l'endpoint,
+  // et l'adresse est un objet billing_address imbriqué.
+  it("vise individual_customers pour un particulier", () => {
+    expect(buildCustomerRequest(DELAVAL)).toEqual({
+      path: "individual_customers",
+      body: {
+        first_name: "Béatrice",
+        last_name: "Delaval",
+        emails: ["beatrice.delaval@puy-de-dome.fr"],
+        billing_address: {
+          address: "24 rue Saint-Esprit",
+          postal_code: "63000",
+          city: "Clermont-Ferrand",
+          country: "FR",
+        },
+      },
     });
   });
 
-  it("construit une fiche Société avec sa raison sociale et son SIREN sans espaces", () => {
-    expect(buildCustomerPayload({
-      type: "company",
-      name: "CONSEIL DEPARTEMENTAL DU PUY-DE-DOME",
-      reg_no: "226 300 010",
-      email: "compta@puy-de-dome.fr",
-    })).toEqual({
-      customer_type: "company",
-      name: "CONSEIL DEPARTEMENTAL DU PUY-DE-DOME",
-      reg_no: "226300010",
-      emails: ["compta@puy-de-dome.fr"],
+  it("vise company_customers pour une société, SIREN sans espaces", () => {
+    expect(buildCustomerRequest(DEPARTEMENT)).toEqual({
+      path: "company_customers",
+      body: {
+        name: "CONSEIL DEPARTEMENTAL DU PUY-DE-DOME",
+        reg_no: "226300010",
+        emails: ["beatrice.delaval@puy-de-dome.fr"],
+        billing_address: {
+          address: "24 rue Saint-Esprit",
+          postal_code: "63000",
+          city: "Clermont-Ferrand",
+          country: "FR",
+        },
+      },
     });
+  });
+
+  it("n'envoie aucun champ hors du corps documenté", () => {
+    const { body } = buildCustomerRequest(DELAVAL);
+    expect(body).not.toHaveProperty("phone");
+    expect(body).not.toHaveProperty("customer_type");
+    expect(body).not.toHaveProperty("address");
+    expect(body).not.toHaveProperty("country_alpha2");
+  });
+
+  it("nomme précisément ce qui manque dans l'adresse de facturation", () => {
+    expect(() => buildCustomerRequest({ ...DELAVAL, postal_code: "", city: "" }))
+      .toThrow(/postal_code, city manquant/);
   });
 
   it("exige prénom et nom pour un particulier, raison sociale pour une société", () => {
-    expect(() => buildCustomerPayload({ ...DELAVAL, first_name: "" })).toThrow(/first_name et last_name/);
-    expect(() => buildCustomerPayload({ type: "company", email: "x@y.fr" })).toThrow(/raison sociale/);
+    expect(() => buildCustomerRequest({ ...DELAVAL, first_name: "" })).toThrow(/first_name et last_name/);
+    expect(() => buildCustomerRequest({ ...DEPARTEMENT, name: "" })).toThrow(/raison sociale/);
   });
 
   it("refuse un email inexploitable — c'est lui qui évite le doublon", () => {
-    expect(() => buildCustomerPayload({ ...DELAVAL, email: "beatrice.delaval" })).toThrow(/email client invalide/);
+    expect(() => buildCustomerRequest({ ...DELAVAL, email: "beatrice.delaval" })).toThrow(/email client invalide/);
   });
 });
 
@@ -384,14 +413,14 @@ describe("createDraftQuote — résolution du client", () => {
     expect(quote.customerCreated).toBe(false);
     expect(calls.map((c) => c.key)).toEqual(["GET customers", "POST quotes"]);
     // Aucune écriture sur la fiche trouvée.
-    expect(calls.some((c) => c.key.startsWith("PUT") || c.key === "POST customers")).toBe(false);
+    expect(calls.some((c) => c.key.startsWith("PUT") || c.key.includes("_customers"))).toBe(false);
     expect((calls[1].body as Record<string, unknown>).customer_id).toBe(222);
   });
 
   it("crée la fiche quand aucune ne porte cet email, puis crée le devis", async () => {
     const calls = mockFetch({
       "GET customers": { ok: true, status: 200, body: { items: [{ id: 111, emails: ["autre@ailleurs.fr"] }], has_more: false } },
-      "POST customers": { ok: true, status: 201, body: { id: 777 } },
+      "POST individual_customers": { ok: true, status: 201, body: { id: 777 } },
       "POST quotes": { ok: true, status: 201, body: OK_BODY },
     });
     const { client } = makeSupabase();
@@ -405,8 +434,8 @@ describe("createDraftQuote — résolution du client", () => {
 
     expect(quote.customerId).toBe(777);
     expect(quote.customerCreated).toBe(true);
-    expect(calls.map((c) => c.key)).toEqual(["GET customers", "POST customers", "POST quotes"]);
-    expect((calls[1].body as Record<string, unknown>).customer_type).toBe("individual");
+    expect(calls.map((c) => c.key)).toEqual(["GET customers", "POST individual_customers", "POST quotes"]);
+    expect((calls[1].body as Record<string, unknown>).first_name).toBe("Béatrice");
   });
 
   it("parcourt les pages suivantes avant de conclure à l'absence", async () => {
@@ -433,14 +462,14 @@ describe("createDraftQuote — résolution du client", () => {
         { ok: true, status: 200, body: { items: [], has_more: true, next_cursor: "c2" } },
         { ok: false, status: 500, body: { error: "boom" } },
       ],
-      "POST customers": { ok: true, status: 201, body: { id: 777 } },
+      "POST individual_customers": { ok: true, status: 201, body: { id: 777 } },
       "POST quotes": { ok: true, status: 201, body: OK_BODY },
     });
     const { client } = makeSupabase();
 
     await expect(createDraftQuote(client, { ...QUOTE_NO_ID, customer: DELAVAL }, audit, "romain@supertilt.fr"))
       .rejects.toThrow(/Lecture des clients \(page 2\).*HTTP 500/s);
-    expect(calls.some((c) => c.key === "POST customers" || c.key === "POST quotes")).toBe(false);
+    expect(calls.some((c) => c.key.startsWith("POST "))).toBe(false);
   });
 
   it("refuse de trancher quand deux fiches portent le même email", async () => {

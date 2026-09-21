@@ -63,9 +63,12 @@ export type CustomerInput = {
   address?: string;
   postal_code?: string;
   city?: string;
-  country_alpha2?: string;
+  /** Code pays ISO 2 lettres, FR par défaut. */
+  country?: string;
   /** SIREN ou SIRET, pour une société. */
   reg_no?: string;
+  /** Référence interne portée sur la fiche Pennylane. */
+  external_reference?: string;
 };
 
 export type CreateQuoteInput = {
@@ -159,25 +162,47 @@ export function buildQuotePayload(
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 /**
- * Payload `POST /customers`. Le pays n'est envoyé que s'il est fourni : la
- * fiche client renvoyée par Pennylane porte `country`, mais l'API externe
- * attend `country_alpha2`, et une valeur par défaut posée sur le mauvais champ
- * ferait échouer toutes les créations plutôt que les seules où l'adresse
- * compte.
+ * La création d'un client ne passe PAS par `POST /customers` : l'API externe v2
+ * a deux endpoints distincts, `individual_customers` et `company_customers`,
+ * et c'est l'endpoint qui porte le type — il n'y a pas de champ
+ * `customer_type` dans le corps. L'adresse est un objet imbriqué
+ * `billing_address`, obligatoire, et non une série de champs à plat.
+ *
+ * Le téléphone n'est pas envoyé : il ne figure pas dans le corps documenté, et
+ * un champ inconnu ferait échouer la création — donc le devis — pour une
+ * donnée qui ne sert pas au devis. Il se complète dans Pennylane.
  */
-export function buildCustomerPayload(customer: CustomerInput): Record<string, unknown> {
+export function buildCustomerRequest(
+  customer: CustomerInput,
+): { path: string; body: Record<string, unknown> } {
   const email = (customer.email || "").trim();
   if (!EMAIL_RE.test(email)) {
     throw new Error(`email client invalide (${email || "vide"}) : il sert à retrouver la fiche et à éviter un doublon`);
   }
 
+  const address = (customer.address || "").trim();
+  const postalCode = (customer.postal_code || "").trim();
+  const city = (customer.city || "").trim();
+  const missing = [
+    !address ? "address" : null,
+    !postalCode ? "postal_code" : null,
+    !city ? "city" : null,
+  ].filter(Boolean);
+  if (missing.length > 0) {
+    throw new Error(
+      `Adresse de facturation incomplète pour créer la fiche client : ${missing.join(", ")} manquant(s). Pennylane exige billing_address. Fournir l'adresse, ou passer customer_id si la fiche existe déjà.`,
+    );
+  }
+
   const common = {
     emails: [email],
-    ...(customer.phone ? { phone: customer.phone.trim() } : {}),
-    ...(customer.address ? { address: customer.address.trim() } : {}),
-    ...(customer.postal_code ? { postal_code: customer.postal_code.trim() } : {}),
-    ...(customer.city ? { city: customer.city.trim() } : {}),
-    ...(customer.country_alpha2 ? { country_alpha2: customer.country_alpha2.trim().toUpperCase() } : {}),
+    billing_address: {
+      address,
+      postal_code: postalCode,
+      city,
+      country: (customer.country || "FR").trim().toUpperCase(),
+    },
+    ...(customer.external_reference ? { external_reference: customer.external_reference.trim() } : {}),
   };
 
   if (customer.type === "individual") {
@@ -186,16 +211,18 @@ export function buildCustomerPayload(customer: CustomerInput): Record<string, un
     if (!firstName || !lastName) {
       throw new Error("Un client particulier exige first_name et last_name");
     }
-    return { customer_type: "individual", first_name: firstName, last_name: lastName, ...common };
+    return { path: "individual_customers", body: { first_name: firstName, last_name: lastName, ...common } };
   }
 
   const name = (customer.name || "").trim();
   if (!name) throw new Error("Un client société exige name (raison sociale)");
   return {
-    customer_type: "company",
-    name,
-    ...(customer.reg_no ? { reg_no: customer.reg_no.replace(/\s+/g, "") } : {}),
-    ...common,
+    path: "company_customers",
+    body: {
+      name,
+      ...(customer.reg_no ? { reg_no: customer.reg_no.replace(/\s+/g, "") } : {}),
+      ...common,
+    },
   };
 }
 
@@ -228,9 +255,9 @@ export async function resolveCustomer(
     );
   }
 
-  // Payload validé AVANT la recherche : inutile de parcourir les clients pour
-  // échouer ensuite sur un prénom manquant.
-  const payload = buildCustomerPayload(input.customer);
+  // Requête validée AVANT la recherche : inutile de parcourir les clients pour
+  // échouer ensuite sur un prénom ou une adresse manquants.
+  const request = buildCustomerRequest(input.customer);
   const email = (input.customer.email || "").trim();
 
   const scan = await findCustomersByEmail(
@@ -260,8 +287,8 @@ export async function resolveCustomer(
     );
   }
 
-  const res = await pennylaneFetch(token, "POST", "customers", { body: payload });
-  if (!res.ok) throw new Error(pennylaneErrorMessage(res, "Création du client refusée"));
+  const res = await pennylaneFetch(token, "POST", request.path, { body: request.body });
+  if (!res.ok) throw new Error(pennylaneErrorMessage(res, "Création de la fiche client refusée"));
 
   const id = Number(pick(res.data, ["id"]));
   if (!Number.isInteger(id) || id <= 0) {

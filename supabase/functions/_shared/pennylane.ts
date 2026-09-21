@@ -100,7 +100,7 @@ export function pennylaneErrorMessage(res: PennylaneResponse, action: string): s
   const hint = res.status === 401
     ? "token invalide ou expiré"
     : res.status === 403
-    ? "scope insuffisant sur le token (quotes:all requis pour les devis)"
+    ? "scope insuffisant sur le token (quotes:all pour les devis, customers:all pour les fiches clients)"
     : res.status === 404
     ? "ressource introuvable"
     : res.status === 422
