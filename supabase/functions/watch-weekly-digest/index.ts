@@ -14,8 +14,9 @@ import { isInternalCall } from "../_shared/cron-auth.ts";
  * Generate a weekly digest of the best watch items and post it to Slack.
  * Designed to run every Monday via cron.
  *
- * Auth : x-cron-secret (CRON_SECRET, cron planifié en base — voir docs/veille.md),
- * x-internal-secret (appels inter-fonctions) ou JWT (déclenchement manuel).
+ * Auth : x-cron-secret (VEILLE_CRON_SECRET, cron planifié en base — voir
+ * docs/veille.md), x-internal-secret (appels inter-fonctions) ou JWT
+ * (déclenchement manuel).
  */
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -25,7 +26,7 @@ serve(async (req) => {
     // Trois voies d'authentification (règle [036]). L'absence d'en-tête valait
     // autorisation auparavant : la fonction est publique (verify_jwt = false),
     // n'importe qui pouvait donc déclencher une génération OpenAI et un post Slack.
-    if (!isInternalCall(req)) {
+    if (!isInternalCall(req, "VEILLE_CRON_SECRET")) {
       const authResult = await verifyAuth(req.headers.get("Authorization"));
       if (!authResult) return createErrorResponse("Non autorisé", 401);
     }
