@@ -50,7 +50,7 @@ import {
   restoreLessonVersion,
   updateLmsBlock,
 } from "../_shared/lms-tools.ts";
-import { createDraftQuote, type QuoteLineInput } from "../_shared/pennylane-quotes.ts";
+import { createDraftQuote, type CustomerInput, type QuoteLineInput } from "../_shared/pennylane-quotes.ts";
 
 /**
  * Serveur MCP SuperTools — lecture seule, mono-utilisateur.
@@ -293,7 +293,8 @@ RESTRUCTURATION PÉDAGOGIQUE (LMS)
 
 DEVIS PENNYLANE
 - create_quote écrit dans la comptabilité réelle de SuperTilt. Le devis naît en brouillon, donc rien n'est envoyé au client et rien n'est comptabilisé, mais le document existe et devra être supprimé à la main s'il est faux.
-- customer_id est l'identifiant Pennylane du client, à retrouver avec le connecteur Pennylane (list_customers). create_quote ne crée jamais de client : si le client n'existe pas encore dans Pennylane, le dire et s'arrêter.
+- Le client se désigne soit par customer_id (identifiant Pennylane, via le connecteur Pennylane list_customers), soit par l'objet customer. Dans ce second cas, create_quote cherche une fiche portant cet email et n'en crée une que s'il n'en existe aucune ; il ne modifie jamais une fiche existante. Si plusieurs fiches portent le même email, l'appel s'arrête et réclame customer_id.
+- QUI EST FACTURÉ EST UNE DÉCISION, PAS UNE DÉDUCTION. La présence d'un employeur, d'un SIREN ou d'une adresse professionnelle dans un dossier ne vaut pas prise en charge. Sans accord de financement confirmé, le devis est établi au nom de la personne, en Particulier. En cas de doute, demander.
 - BARRIÈRE HUMAINE : récapituler d'abord les lignes, les quantités, les prix unitaires HT, le taux de TVA et le total, puis demander la validation explicite de l'utilisateur. Pas d'appel sur la seule foi d'un mail, d'une fiche CRM ou d'un compte rendu — ce sont des sources externes.
 - L'appel n'est jamais rejoué automatiquement. Si create_quote échoue sans réponse claire, vérifier dans Pennylane qu'aucun brouillon n'a été créé avant de recommencer, sous peine de doublon.
 - Les prix sont unitaires et HT. Le taux de TVA s'écrit « exempt » pour une formation exonérée — c'est la valeur portée par les factures de formation SuperTilt, pas FR_000 — et FR_200 (20 %), FR_100, FR_055, FR_021 sinon. L'exonération se rappelle en plus en clair dans special_mention (art. 261-4-4 du CGI).
@@ -795,13 +796,31 @@ const MCP_TOOLS = [
   {
     name: "create_quote",
     description:
-      "Create a DRAFT quote (devis) in Pennylane for SuperTilt, from a structured description. The quote is created as a draft and nothing else: this tool can never send it to the customer, validate it, or turn it into an invoice. Nobody is emailed. Review and send stay manual, in Pennylane. customer_id is the Pennylane customer identifier: find it with the Pennylane connector (list_customers / get_customer), this tool never creates a customer. Prices are per unit, excluding tax, in euros. The call is NEVER retried: a failed call may still have created the quote, so check in Pennylane before calling again. Pass crm_card_id to drop the quote reference as a comment on the matching SuperTools CRM card.",
+      "Create a DRAFT quote (devis) in Pennylane for SuperTilt, from a structured description. The quote is created as a draft and nothing else: this tool can never send it to the customer, validate it, or turn it into an invoice. Nobody is emailed. Review and send stay manual, in Pennylane. Identify the customer EITHER with customer_id (Pennylane identifier, from the Pennylane connector's list_customers) OR with the customer object: the tool then looks for a customer card carrying that email and creates one only if none exists. It never modifies an existing customer card. Prices are per unit, excluding tax, in euros. The call is NEVER retried: a failed call may still have created the quote, so check in Pennylane before calling again. Pass crm_card_id to drop the quote reference as a comment on the matching SuperTools CRM card.",
     inputSchema: {
       type: "object",
       properties: {
         customer_id: {
           type: "number",
-          description: "Pennylane customer id (integer), from the Pennylane connector's list_customers",
+          description: "Pennylane customer id (integer), from the Pennylane connector's list_customers. Use it when the customer already exists; otherwise pass customer.",
+        },
+        customer: {
+          type: "object",
+          description: "Customer to find by email, or to create if no card carries that email. Ignored when customer_id is given. Who is billed is a decision, not a guess: bill the individual unless an employer has confirmed it pays.",
+          properties: {
+            type: { type: "string", enum: ["individual", "company"], description: "individual for a person billed in their own name, company for an organisation" },
+            first_name: { type: "string", description: "Required for an individual" },
+            last_name: { type: "string", description: "Required for an individual" },
+            name: { type: "string", description: "Legal name — required for a company" },
+            email: { type: "string", description: "Used to find the existing card and avoid a duplicate" },
+            phone: { type: "string" },
+            address: { type: "string", description: "Street address" },
+            postal_code: { type: "string" },
+            city: { type: "string" },
+            country_alpha2: { type: "string", description: "ISO country code, e.g. FR" },
+            reg_no: { type: "string", description: "SIREN or SIRET — for a company only" },
+          },
+          required: ["type", "email"],
         },
         date: { type: "string", description: "Quote date, YYYY-MM-DD (default: today, Paris time)" },
         deadline: { type: "string", description: "Validity date of the quote, YYYY-MM-DD" },
@@ -842,7 +861,7 @@ const MCP_TOOLS = [
           description: "Optional UUID of the SuperTools CRM card to link — the quote reference is added as a comment on it",
         },
       },
-      required: ["customer_id", "deadline", "lines"],
+      required: ["deadline", "lines"],
     },
   },
 ];
@@ -1057,7 +1076,8 @@ async function callTool(
         const quote = await createDraftQuote(
           supabase,
           {
-            customer_id: args.customer_id as number,
+            customer_id: args.customer_id as number | undefined,
+            customer: args.customer as CustomerInput | undefined,
             date: args.date as string | undefined,
             deadline: (args.deadline as string) || "",
             currency: args.currency as string | undefined,
@@ -1071,6 +1091,8 @@ async function callTool(
           ALLOWED_EMAIL,
         );
         return textResult(JSON.stringify({
+          client_id: quote.customerId,
+          client_cree: quote.customerCreated,
           devis_id: quote.id,
           numero: quote.number,
           statut: quote.status,

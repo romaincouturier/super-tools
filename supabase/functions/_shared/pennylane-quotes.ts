@@ -11,6 +11,8 @@
  * inaperçue, l'appel HTTP se contentant de remonter le refus de Pennylane.
  */
 import {
+  CUSTOMER_PAGE_SIZE,
+  findCustomersByEmail,
   getPennylaneToken,
   pennylaneErrorMessage,
   pennylaneFetch,
@@ -50,8 +52,25 @@ export type QuoteLineInput = {
   vat_rate: string;
 };
 
+export type CustomerInput = {
+  type: "individual" | "company";
+  /** Particulier : prénom et nom. Société : raison sociale dans `name`. */
+  first_name?: string;
+  last_name?: string;
+  name?: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  postal_code?: string;
+  city?: string;
+  country_alpha2?: string;
+  /** SIREN ou SIRET, pour une société. */
+  reg_no?: string;
+};
+
 export type CreateQuoteInput = {
-  customer_id: number;
+  customer_id?: number;
+  customer?: CustomerInput;
   date?: string;
   deadline: string;
   currency?: string;
@@ -76,11 +95,12 @@ export function todayParis(): string {
  * Payload `POST /quotes`. Lève sur toute entrée invalide : mieux vaut refuser
  * avant l'appel que créer un brouillon faux dans la comptabilité.
  */
-export function buildQuotePayload(input: CreateQuoteInput): Record<string, unknown> {
-  if (!Number.isInteger(input.customer_id) || input.customer_id <= 0) {
-    throw new Error(
-      "customer_id doit être l'identifiant Pennylane du client (entier). Le retrouver avec le connecteur Pennylane (list_customers).",
-    );
+export function buildQuotePayload(
+  input: CreateQuoteInput,
+  customerId: number,
+): Record<string, unknown> {
+  if (!Number.isInteger(customerId) || customerId <= 0) {
+    throw new Error(`Identifiant client Pennylane invalide (${customerId})`);
   }
 
   const date = (input.date || todayParis()).trim();
@@ -125,7 +145,7 @@ export function buildQuotePayload(input: CreateQuoteInput): Record<string, unkno
   });
 
   return {
-    customer_id: input.customer_id,
+    customer_id: customerId,
     date,
     deadline,
     currency: input.currency || "EUR",
@@ -134,6 +154,120 @@ export function buildQuotePayload(input: CreateQuoteInput): Record<string, unkno
     ...(input.external_reference ? { external_reference: input.external_reference } : {}),
     invoice_lines: invoiceLines,
   };
+}
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/**
+ * Payload `POST /customers`. Le pays n'est envoyé que s'il est fourni : la
+ * fiche client renvoyée par Pennylane porte `country`, mais l'API externe
+ * attend `country_alpha2`, et une valeur par défaut posée sur le mauvais champ
+ * ferait échouer toutes les créations plutôt que les seules où l'adresse
+ * compte.
+ */
+export function buildCustomerPayload(customer: CustomerInput): Record<string, unknown> {
+  const email = (customer.email || "").trim();
+  if (!EMAIL_RE.test(email)) {
+    throw new Error(`email client invalide (${email || "vide"}) : il sert à retrouver la fiche et à éviter un doublon`);
+  }
+
+  const common = {
+    emails: [email],
+    ...(customer.phone ? { phone: customer.phone.trim() } : {}),
+    ...(customer.address ? { address: customer.address.trim() } : {}),
+    ...(customer.postal_code ? { postal_code: customer.postal_code.trim() } : {}),
+    ...(customer.city ? { city: customer.city.trim() } : {}),
+    ...(customer.country_alpha2 ? { country_alpha2: customer.country_alpha2.trim().toUpperCase() } : {}),
+  };
+
+  if (customer.type === "individual") {
+    const firstName = (customer.first_name || "").trim();
+    const lastName = (customer.last_name || "").trim();
+    if (!firstName || !lastName) {
+      throw new Error("Un client particulier exige first_name et last_name");
+    }
+    return { customer_type: "individual", first_name: firstName, last_name: lastName, ...common };
+  }
+
+  const name = (customer.name || "").trim();
+  if (!name) throw new Error("Un client société exige name (raison sociale)");
+  return {
+    customer_type: "company",
+    name,
+    ...(customer.reg_no ? { reg_no: customer.reg_no.replace(/\s+/g, "") } : {}),
+    ...common,
+  };
+}
+
+export type ResolvedCustomer = { id: number; created: boolean };
+
+/**
+ * Identifiant du client Pennylane : celui fourni, sinon la fiche portant cet
+ * email, sinon une fiche créée.
+ *
+ * Ne met JAMAIS à jour une fiche existante — un devis ne doit pas réécrire
+ * l'adresse ou le nom d'un client au passage. En cas de doute (plusieurs fiches
+ * pour le même email, ou parcours tronqué avant d'avoir tout vu), l'appel
+ * s'arrête : créer un doublon dans la comptabilité coûte plus cher que
+ * demander l'identifiant.
+ */
+export async function resolveCustomer(
+  token: string,
+  input: CreateQuoteInput,
+): Promise<ResolvedCustomer> {
+  if (input.customer_id !== undefined) {
+    if (!Number.isInteger(input.customer_id) || input.customer_id <= 0) {
+      throw new Error(`customer_id doit être un entier positif (reçu : ${input.customer_id})`);
+    }
+    return { id: input.customer_id, created: false };
+  }
+
+  if (!input.customer) {
+    throw new Error(
+      "Fournir customer_id (identifiant Pennylane, via le connecteur Pennylane list_customers) ou customer (fiche à retrouver ou créer).",
+    );
+  }
+
+  // Payload validé AVANT la recherche : inutile de parcourir les clients pour
+  // échouer ensuite sur un prénom manquant.
+  const payload = buildCustomerPayload(input.customer);
+  const email = (input.customer.email || "").trim();
+
+  const scan = await findCustomersByEmail(
+    (cursor) =>
+      pennylaneFetch(token, "GET", "customers", {
+        query: { per_page: CUSTOMER_PAGE_SIZE, ...(cursor ? { cursor } : {}) },
+      }),
+    email,
+  );
+  if ("error" in scan) throw new Error(scan.error);
+
+  if (scan.matches.length === 1) {
+    const id = Number(scan.matches[0].id);
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new Error(`Fiche client trouvée pour ${email} mais son identifiant est illisible`);
+    }
+    return { id, created: false };
+  }
+  if (scan.matches.length > 1) {
+    throw new Error(
+      `${scan.matches.length} fiches clients portent l'email ${email} (${scan.matches.map((m) => m.name ?? m.id).join(", ")}). Passer customer_id pour lever l'ambiguïté.`,
+    );
+  }
+  if (scan.truncated) {
+    throw new Error(
+      `Aucune fiche trouvée pour ${email}, mais le parcours des clients s'est arrêté au plafond (${scan.scanned} fiches lues) : impossible d'affirmer qu'elle n'existe pas. Passer customer_id.`,
+    );
+  }
+
+  const res = await pennylaneFetch(token, "POST", "customers", { body: payload });
+  if (!res.ok) throw new Error(pennylaneErrorMessage(res, "Création du client refusée"));
+
+  const id = Number(pick(res.data, ["id"]));
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error(`Client créé mais identifiant illisible dans la réponse Pennylane : ${res.raw}`);
+  }
+  return { id, created: true };
 }
 
 /** Lit une valeur quel que soit l'enrobage de la réponse ({ quote: {...} } ou l'objet nu). */
@@ -147,6 +281,8 @@ function pick(data: unknown, keys: string[]): unknown {
 }
 
 export type CreatedQuote = {
+  customerId: number;
+  customerCreated: boolean;
   id: unknown;
   number: unknown;
   pdfUrl: unknown;
@@ -169,20 +305,27 @@ export async function createDraftQuote(
   audit: AuditFn,
   authorEmail: string,
 ): Promise<CreatedQuote> {
-  const payload = buildQuotePayload(input);
-
   const cardId = (input.crm_card_id || "").trim();
   if (cardId && !UUID_RE.test(cardId)) {
     throw new Error(`crm_card_id doit être un UUID de carte CRM SuperTools (reçu : ${cardId})`);
   }
+  // Le devis est validé sur un identifiant client fictif avant toute écriture :
+  // une ligne mal formée ne doit pas laisser derrière elle une fiche client
+  // créée pour rien.
+  buildQuotePayload(input, 1);
 
   const token = await getPennylaneToken(supabase);
+  const customer = await resolveCustomer(token, input);
+  const payload = buildQuotePayload(input, customer.id);
+
   const res = await pennylaneFetch(token, "POST", "quotes", { body: payload });
   if (!res.ok) {
     throw new Error(pennylaneErrorMessage(res, "Création du devis refusée"));
   }
 
   const quote: CreatedQuote = {
+    customerId: customer.id,
+    customerCreated: customer.created,
     id: pick(res.data, ["id"]),
     number: pick(res.data, ["quote_number", "number", "invoice_number"]),
     pdfUrl: pick(res.data, ["file_url", "public_file_url", "pdf_url"]),
@@ -193,10 +336,10 @@ export async function createDraftQuote(
   };
 
   await audit(
-    `create_quote → devis Pennylane ${quote.number ?? quote.id ?? "?"} (client ${input.customer_id}, ${input.lines.length} ligne(s))`,
+    `create_quote → devis Pennylane ${quote.number ?? quote.id ?? "?"} (client ${customer.id}${customer.created ? " créé" : ""}, ${input.lines.length} ligne(s))`,
   );
   console.log(
-    `[create_quote] devis brouillon créé id=${quote.id} numero=${quote.number} client=${input.customer_id} carte_crm=${cardId || "-"}`,
+    `[create_quote] devis brouillon créé id=${quote.id} numero=${quote.number} client=${customer.id}${customer.created ? " (créé)" : ""} carte_crm=${cardId || "-"}`,
   );
 
   if (cardId) {

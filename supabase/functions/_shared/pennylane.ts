@@ -110,3 +110,72 @@ export function pennylaneErrorMessage(res: PennylaneResponse, action: string): s
     : "erreur Pennylane";
   return `${action} : ${hint} (HTTP ${res.status}). Réponse Pennylane : ${res.raw || "(vide)"}`;
 }
+
+// ── Parcours paginé des clients ─────────────────────────────────────────────
+
+/** Ce qu'on lit d'une fiche client : de quoi identifier et rapprocher, rien de plus. */
+export type PennylaneCustomer = {
+  id?: number | string;
+  name?: string;
+  emails?: string[];
+  customer_type?: string;
+};
+
+export type CustomerScan =
+  | { error: string }
+  | { matches: PennylaneCustomer[]; scanned: number; truncated: boolean };
+
+/** Plafonds du parcours : sans eux, un curseur qui ne s'épuise pas boucle jusqu'au timeout. */
+export const CUSTOMER_PAGE_SIZE = 100;
+export const CUSTOMER_MAX_PAGES = 20;
+
+function emailsOf(customer: PennylaneCustomer): string[] {
+  return (customer.emails ?? []).map((e) => String(e).trim().toLowerCase());
+}
+
+/**
+ * Cherche les fiches clients portant cet email, en parcourant les pages.
+ *
+ * Aucun filtre serveur n'est utilisé : la syntaxe de filtre de l'API externe
+ * n'est pas vérifiée, et un filtre ignoré en silence renverrait la première
+ * page de TOUS les clients — donc « pas trouvé », donc un doublon créé sur un
+ * client qui existe déjà. Le rapprochement se fait ici, sur l'email, où il est
+ * vérifiable.
+ *
+ * Règle [050] : une page en échec est remontée comme erreur et ne passe jamais
+ * pour un succès ; `truncated` signale que le plafond a été atteint, auquel cas
+ * « aucune correspondance » ne veut PAS dire « ce client n'existe pas ».
+ */
+export async function findCustomersByEmail(
+  fetchPage: (cursor: string | null) => Promise<PennylaneResponse>,
+  email: string,
+  maxPages = CUSTOMER_MAX_PAGES,
+): Promise<CustomerScan> {
+  const target = email.trim().toLowerCase();
+  if (!target) return { error: "email vide : rapprochement impossible" };
+
+  const matches: PennylaneCustomer[] = [];
+  let cursor: string | null = null;
+  let scanned = 0;
+
+  for (let page = 0; page < maxPages; page++) {
+    const res: PennylaneResponse = await fetchPage(cursor);
+    if (!res.ok) {
+      return { error: pennylaneErrorMessage(res, `Lecture des clients (page ${page + 1})`) };
+    }
+
+    const body = (res.data ?? {}) as { items?: PennylaneCustomer[]; has_more?: boolean; next_cursor?: string | null };
+    const items = body.items ?? [];
+    scanned += items.length;
+    for (const item of items) {
+      if (emailsOf(item).includes(target)) matches.push(item);
+    }
+
+    if (!body.has_more || !body.next_cursor) {
+      return { matches, scanned, truncated: false };
+    }
+    cursor = body.next_cursor;
+  }
+
+  return { matches, scanned, truncated: true };
+}

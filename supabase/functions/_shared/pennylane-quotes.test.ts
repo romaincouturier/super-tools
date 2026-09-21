@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildQuotePayload, createDraftQuote, todayParis } from "./pennylane-quotes.ts";
+import { buildCustomerPayload, buildQuotePayload, createDraftQuote, todayParis } from "./pennylane-quotes.ts";
 
 const LINE = {
   label: "Atelier de facilitation graphique",
@@ -24,7 +24,7 @@ describe("buildQuotePayload", () => {
       pdf_description: "Contexte / Enjeux / Dispositif",
       special_mention: "Exonération de TVA, art. 261-4-4 du CGI",
       external_reference: "CRM-118",
-    });
+    }, 4271);
 
     expect(payload).toEqual({
       customer_id: 4271,
@@ -49,7 +49,7 @@ describe("buildQuotePayload", () => {
     const payload = buildQuotePayload({
       ...INPUT,
       lines: [{ label: "Forfait", quantity: 1, unit_price: 900, vat_rate: "FR_200" }],
-    }) as Record<string, unknown>;
+    }, 4271) as Record<string, unknown>;
     expect(payload).not.toHaveProperty("pdf_description");
     expect(payload).not.toHaveProperty("special_mention");
     expect(payload).not.toHaveProperty("external_reference");
@@ -59,24 +59,24 @@ describe("buildQuotePayload", () => {
   });
 
   it("date par défaut = aujourd'hui à Paris", () => {
-    const payload = buildQuotePayload({ ...INPUT, date: undefined }) as Record<string, unknown>;
+    const payload = buildQuotePayload({ ...INPUT, date: undefined }, 4271) as Record<string, unknown>;
     expect(payload.date).toBe(todayParis());
   });
 
   it("refuse une deadline antérieure à la date du devis", () => {
-    expect(() => buildQuotePayload({ ...INPUT, deadline: "2026-09-01" }))
+    expect(() => buildQuotePayload({ ...INPUT, deadline: "2026-09-01" }, 4271))
       .toThrow(/antérieure/);
   });
 
   it("refuse un format de date non ISO", () => {
-    expect(() => buildQuotePayload({ ...INPUT, deadline: "21/10/2026" }))
+    expect(() => buildQuotePayload({ ...INPUT, deadline: "21/10/2026" }, 4271))
       .toThrow(/YYYY-MM-DD/);
   });
 
   it("refuse un taux de TVA hors forme FR_XXX", () => {
-    expect(() => buildQuotePayload({ ...INPUT, lines: [{ ...LINE, vat_rate: "20" }] }))
+    expect(() => buildQuotePayload({ ...INPUT, lines: [{ ...LINE, vat_rate: "20" }] }, 4271))
       .toThrow(/vat_rate invalide/);
-    expect(() => buildQuotePayload({ ...INPUT, lines: [{ ...LINE, vat_rate: "" }] }))
+    expect(() => buildQuotePayload({ ...INPUT, lines: [{ ...LINE, vat_rate: "" }] }, 4271))
       .toThrow(/vat_rate invalide/);
   });
 
@@ -85,28 +85,28 @@ describe("buildQuotePayload", () => {
   // quel, sinon aucun devis de formation exonérée ne peut être créé.
   it("accepte exempt (exonération formation) et FR_000", () => {
     for (const rate of ["exempt", "FR_000"]) {
-      const payload = buildQuotePayload({ ...INPUT, lines: [{ ...LINE, vat_rate: rate }] }) as Record<string, unknown>;
+      const payload = buildQuotePayload({ ...INPUT, lines: [{ ...LINE, vat_rate: rate }] }, 4271) as Record<string, unknown>;
       expect((payload.invoice_lines as Array<Record<string, unknown>>)[0].vat_rate).toBe(rate);
     }
   });
 
   it("refuse une variante approximative de l'exonération", () => {
     for (const rate of ["EXEMPT", "exonere", "exempté"]) {
-      expect(() => buildQuotePayload({ ...INPUT, lines: [{ ...LINE, vat_rate: rate }] }))
+      expect(() => buildQuotePayload({ ...INPUT, lines: [{ ...LINE, vat_rate: rate }] }, 4271))
         .toThrow(/vat_rate invalide/);
     }
   });
 
   it("refuse un devis sans ligne, une quantité nulle, un prix négatif, un label vide", () => {
-    expect(() => buildQuotePayload({ ...INPUT, lines: [] })).toThrow(/lines est requis/);
-    expect(() => buildQuotePayload({ ...INPUT, lines: [{ ...LINE, quantity: 0 }] })).toThrow(/quantity/);
-    expect(() => buildQuotePayload({ ...INPUT, lines: [{ ...LINE, unit_price: -1 }] })).toThrow(/unit_price/);
-    expect(() => buildQuotePayload({ ...INPUT, lines: [{ ...LINE, label: "  " }] })).toThrow(/label est requis/);
+    expect(() => buildQuotePayload({ ...INPUT, lines: [] }, 4271)).toThrow(/lines est requis/);
+    expect(() => buildQuotePayload({ ...INPUT, lines: [{ ...LINE, quantity: 0 }] }, 4271)).toThrow(/quantity/);
+    expect(() => buildQuotePayload({ ...INPUT, lines: [{ ...LINE, unit_price: -1 }] }, 4271)).toThrow(/unit_price/);
+    expect(() => buildQuotePayload({ ...INPUT, lines: [{ ...LINE, label: "  " }] }, 4271)).toThrow(/label est requis/);
   });
 
-  it("refuse un customer_id absent ou non entier", () => {
-    expect(() => buildQuotePayload({ ...INPUT, customer_id: 0 })).toThrow(/customer_id/);
-    expect(() => buildQuotePayload({ ...INPUT, customer_id: 4271.5 })).toThrow(/customer_id/);
+  it("refuse un identifiant client invalide", () => {
+    expect(() => buildQuotePayload(INPUT, 0)).toThrow(/Identifiant client/);
+    expect(() => buildQuotePayload(INPUT, 4271.5)).toThrow(/Identifiant client/);
   });
 });
 
@@ -143,14 +143,39 @@ function makeSupabase(options: { token?: string | null; crmError?: string } = {}
   return { client, inserts };
 }
 
-function mockFetch(response: { ok: boolean; status: number; body: unknown }) {
-  const calls: Array<{ url: string; init: RequestInit }> = [];
+type Reply = { ok: boolean; status: number; body: unknown };
+
+/**
+ * Route les appels par `METHOD chemin`. Par défaut, aucun client ne porte
+ * l'email cherché : la liste est vide et complète, donc le tool crée la fiche.
+ */
+function mockFetch(routes: Record<string, Reply | Reply[]>) {
+  const calls: Array<{ key: string; url: string; init: RequestInit; body: unknown }> = [];
+  const defaults: Record<string, Reply> = {
+    "GET customers": { ok: true, status: 200, body: { items: [], has_more: false } },
+  };
+
   vi.stubGlobal("fetch", (url: string, init: RequestInit) => {
-    calls.push({ url: String(url), init });
+    const u = new URL(String(url));
+    const key = `${init.method} ${u.pathname.replace("/api/external/v2/", "")}`;
+    calls.push({
+      key,
+      url: String(url),
+      init,
+      body: init.body ? JSON.parse(String(init.body)) : undefined,
+    });
+
+    let reply = routes[key] ?? defaults[key];
+    if (Array.isArray(reply)) {
+      const seen = calls.filter((c) => c.key === key).length - 1;
+      reply = reply[Math.min(seen, reply.length - 1)];
+    }
+    if (!reply) throw new Error(`Appel non prévu par le test : ${key}`);
+
     return Promise.resolve({
-      ok: response.ok,
-      status: response.status,
-      text: () => Promise.resolve(JSON.stringify(response.body)),
+      ok: reply.ok,
+      status: reply.status,
+      text: () => Promise.resolve(JSON.stringify(reply.body)),
     } as Response);
   });
   return calls;
@@ -170,7 +195,7 @@ describe("createDraftQuote", () => {
   };
 
   it("appelle POST /quotes une seule fois et ne touche aucun endroit d'envoi", async () => {
-    const calls = mockFetch({ ok: true, status: 201, body: OK_BODY });
+    const calls = mockFetch({ "POST quotes": { ok: true, status: 201, body: OK_BODY } });
     const { client } = makeSupabase();
 
     const quote = await createDraftQuote(client, INPUT, audit, "romain@supertilt.fr");
@@ -180,6 +205,7 @@ describe("createDraftQuote", () => {
     expect(calls[0].init.method).toBe("POST");
     // Aucun chemin d'envoi, de validation ou de facturation n'est atteignable.
     expect(calls[0].url).not.toMatch(/send|finalize|validate|customer_invoices/);
+    expect(quote.customerCreated).toBe(false);
     expect(quote.number).toBe("DEV-2026-0043");
     expect(quote.status).toBe("draft");
     expect(quote.pdfUrl).toBe("https://files.pennylane.com/tmp/devis.pdf");
@@ -187,7 +213,7 @@ describe("createDraftQuote", () => {
   });
 
   it("n'appelle pas Pennylane quand le payload est invalide", async () => {
-    const calls = mockFetch({ ok: true, status: 201, body: OK_BODY });
+    const calls = mockFetch({ "POST quotes": { ok: true, status: 201, body: OK_BODY } });
     const { client } = makeSupabase();
 
     await expect(
@@ -198,9 +224,7 @@ describe("createDraftQuote", () => {
 
   it("remonte le corps d'erreur Pennylane tel quel et ne rejoue pas l'appel", async () => {
     const calls = mockFetch({
-      ok: false,
-      status: 422,
-      body: { message: "invoice_lines[0].vat_rate is invalid" },
+      "POST quotes": { ok: false, status: 422, body: { message: "invoice_lines[0].vat_rate is invalid" } },
     });
     const { client } = makeSupabase();
 
@@ -210,14 +234,14 @@ describe("createDraftQuote", () => {
   });
 
   it("traduit un 403 en scope manquant", async () => {
-    mockFetch({ ok: false, status: 403, body: { error: "forbidden" } });
+    mockFetch({ "POST quotes": { ok: false, status: 403, body: { error: "forbidden" } } });
     const { client } = makeSupabase();
     await expect(createDraftQuote(client, INPUT, audit, "romain@supertilt.fr"))
       .rejects.toThrow(/quotes:all/);
   });
 
   it("échoue avant tout appel si le token n'est pas configuré", async () => {
-    const calls = mockFetch({ ok: true, status: 201, body: OK_BODY });
+    const calls = mockFetch({ "POST quotes": { ok: true, status: 201, body: OK_BODY } });
     const { client } = makeSupabase({ token: null });
     await expect(createDraftQuote(client, INPUT, audit, "romain@supertilt.fr"))
       .rejects.toThrow(/Token API Pennylane non configuré/);
@@ -225,7 +249,7 @@ describe("createDraftQuote", () => {
   });
 
   it("dépose la référence du devis en commentaire sur la carte CRM", async () => {
-    mockFetch({ ok: true, status: 201, body: OK_BODY });
+    mockFetch({ "POST quotes": { ok: true, status: 201, body: OK_BODY } });
     const { client, inserts } = makeSupabase();
 
     const quote = await createDraftQuote(
@@ -246,7 +270,7 @@ describe("createDraftQuote", () => {
   });
 
   it("un échec d'écriture CRM est signalé mais n'annule pas le devis déjà créé", async () => {
-    mockFetch({ ok: true, status: 201, body: OK_BODY });
+    mockFetch({ "POST quotes": { ok: true, status: 201, body: OK_BODY } });
     const { client } = makeSupabase({ crmError: "card not found" });
 
     const quote = await createDraftQuote(
@@ -261,11 +285,204 @@ describe("createDraftQuote", () => {
   });
 
   it("refuse un crm_card_id qui n'est pas un UUID, avant tout appel", async () => {
-    const calls = mockFetch({ ok: true, status: 201, body: OK_BODY });
+    const calls = mockFetch({ "POST quotes": { ok: true, status: 201, body: OK_BODY } });
     const { client } = makeSupabase();
     await expect(
       createDraftQuote(client, { ...INPUT, crm_card_id: "carte-118" }, audit, "romain@supertilt.fr"),
     ).rejects.toThrow(/UUID/);
+    expect(calls).toHaveLength(0);
+  });
+});
+
+// ── Résolution / création du client ─────────────────────────────────────────
+
+const DELAVAL = {
+  type: "individual" as const,
+  first_name: "Béatrice",
+  last_name: "Delaval",
+  email: "beatrice.delaval@puy-de-dome.fr",
+  phone: "04 73 42 22 52",
+  address: "24 rue Saint-Esprit",
+  postal_code: "63000",
+  city: "Clermont-Ferrand",
+  country_alpha2: "fr",
+};
+
+const QUOTE_NO_ID = { ...INPUT, customer_id: undefined };
+
+describe("buildCustomerPayload", () => {
+  it("construit une fiche Particulier avec les champs de la fiche Pennylane", () => {
+    expect(buildCustomerPayload(DELAVAL)).toEqual({
+      customer_type: "individual",
+      first_name: "Béatrice",
+      last_name: "Delaval",
+      emails: ["beatrice.delaval@puy-de-dome.fr"],
+      phone: "04 73 42 22 52",
+      address: "24 rue Saint-Esprit",
+      postal_code: "63000",
+      city: "Clermont-Ferrand",
+      country_alpha2: "FR",
+    });
+  });
+
+  it("construit une fiche Société avec sa raison sociale et son SIREN sans espaces", () => {
+    expect(buildCustomerPayload({
+      type: "company",
+      name: "CONSEIL DEPARTEMENTAL DU PUY-DE-DOME",
+      reg_no: "226 300 010",
+      email: "compta@puy-de-dome.fr",
+    })).toEqual({
+      customer_type: "company",
+      name: "CONSEIL DEPARTEMENTAL DU PUY-DE-DOME",
+      reg_no: "226300010",
+      emails: ["compta@puy-de-dome.fr"],
+    });
+  });
+
+  it("exige prénom et nom pour un particulier, raison sociale pour une société", () => {
+    expect(() => buildCustomerPayload({ ...DELAVAL, first_name: "" })).toThrow(/first_name et last_name/);
+    expect(() => buildCustomerPayload({ type: "company", email: "x@y.fr" })).toThrow(/raison sociale/);
+  });
+
+  it("refuse un email inexploitable — c'est lui qui évite le doublon", () => {
+    expect(() => buildCustomerPayload({ ...DELAVAL, email: "beatrice.delaval" })).toThrow(/email client invalide/);
+  });
+});
+
+describe("createDraftQuote — résolution du client", () => {
+  const audit = vi.fn(() => Promise.resolve());
+  beforeEach(() => audit.mockClear());
+  afterEach(() => vi.unstubAllGlobals());
+
+  const OK_BODY = { id: 99120, quote_number: "DEV-2026-0043", status: "draft" };
+
+  it("réutilise la fiche existante portant l'email, sans rien y modifier", async () => {
+    const calls = mockFetch({
+      "GET customers": {
+        ok: true,
+        status: 200,
+        body: {
+          items: [
+            { id: 111, name: "Autre Personne", emails: ["autre@ailleurs.fr"] },
+            { id: 222, name: "Béatrice Delaval", emails: ["BEATRICE.DELAVAL@puy-de-dome.fr"] },
+          ],
+          has_more: false,
+        },
+      },
+      "POST quotes": { ok: true, status: 201, body: OK_BODY },
+    });
+    const { client } = makeSupabase();
+
+    const quote = await createDraftQuote(
+      client,
+      { ...QUOTE_NO_ID, customer: DELAVAL },
+      audit,
+      "romain@supertilt.fr",
+    );
+
+    expect(quote.customerId).toBe(222);
+    expect(quote.customerCreated).toBe(false);
+    expect(calls.map((c) => c.key)).toEqual(["GET customers", "POST quotes"]);
+    // Aucune écriture sur la fiche trouvée.
+    expect(calls.some((c) => c.key.startsWith("PUT") || c.key === "POST customers")).toBe(false);
+    expect((calls[1].body as Record<string, unknown>).customer_id).toBe(222);
+  });
+
+  it("crée la fiche quand aucune ne porte cet email, puis crée le devis", async () => {
+    const calls = mockFetch({
+      "GET customers": { ok: true, status: 200, body: { items: [{ id: 111, emails: ["autre@ailleurs.fr"] }], has_more: false } },
+      "POST customers": { ok: true, status: 201, body: { id: 777 } },
+      "POST quotes": { ok: true, status: 201, body: OK_BODY },
+    });
+    const { client } = makeSupabase();
+
+    const quote = await createDraftQuote(
+      client,
+      { ...QUOTE_NO_ID, customer: DELAVAL },
+      audit,
+      "romain@supertilt.fr",
+    );
+
+    expect(quote.customerId).toBe(777);
+    expect(quote.customerCreated).toBe(true);
+    expect(calls.map((c) => c.key)).toEqual(["GET customers", "POST customers", "POST quotes"]);
+    expect((calls[1].body as Record<string, unknown>).customer_type).toBe("individual");
+  });
+
+  it("parcourt les pages suivantes avant de conclure à l'absence", async () => {
+    const calls = mockFetch({
+      "GET customers": [
+        { ok: true, status: 200, body: { items: [{ id: 1, emails: ["a@a.fr"] }], has_more: true, next_cursor: "c2" } },
+        { ok: true, status: 200, body: { items: [{ id: 2, emails: [DELAVAL.email] }], has_more: false } },
+      ],
+      "POST quotes": { ok: true, status: 201, body: OK_BODY },
+    });
+    const { client } = makeSupabase();
+
+    const quote = await createDraftQuote(client, { ...QUOTE_NO_ID, customer: DELAVAL }, audit, "romain@supertilt.fr");
+
+    expect(quote.customerId).toBe(2);
+    expect(quote.customerCreated).toBe(false);
+    expect(calls.filter((c) => c.key === "GET customers")).toHaveLength(2);
+    expect(calls[1].url).toContain("cursor=c2");
+  });
+
+  it("une page de clients en échec arrête tout : pas de fiche créée, pas de devis", async () => {
+    const calls = mockFetch({
+      "GET customers": [
+        { ok: true, status: 200, body: { items: [], has_more: true, next_cursor: "c2" } },
+        { ok: false, status: 500, body: { error: "boom" } },
+      ],
+      "POST customers": { ok: true, status: 201, body: { id: 777 } },
+      "POST quotes": { ok: true, status: 201, body: OK_BODY },
+    });
+    const { client } = makeSupabase();
+
+    await expect(createDraftQuote(client, { ...QUOTE_NO_ID, customer: DELAVAL }, audit, "romain@supertilt.fr"))
+      .rejects.toThrow(/Lecture des clients \(page 2\).*HTTP 500/s);
+    expect(calls.some((c) => c.key === "POST customers" || c.key === "POST quotes")).toBe(false);
+  });
+
+  it("refuse de trancher quand deux fiches portent le même email", async () => {
+    const calls = mockFetch({
+      "GET customers": {
+        ok: true,
+        status: 200,
+        body: {
+          items: [
+            { id: 1, name: "B. Delaval", emails: [DELAVAL.email] },
+            { id: 2, name: "Béatrice Delaval", emails: [DELAVAL.email] },
+          ],
+          has_more: false,
+        },
+      },
+    });
+    const { client } = makeSupabase();
+
+    await expect(createDraftQuote(client, { ...QUOTE_NO_ID, customer: DELAVAL }, audit, "romain@supertilt.fr"))
+      .rejects.toThrow(/2 fiches clients portent l'email/);
+    expect(calls.every((c) => c.key === "GET customers")).toBe(true);
+  });
+
+  it("ne crée pas de fiche quand le devis lui-même est invalide", async () => {
+    const calls = mockFetch({ "POST quotes": { ok: true, status: 201, body: OK_BODY } });
+    const { client } = makeSupabase();
+
+    await expect(createDraftQuote(
+      client,
+      { ...QUOTE_NO_ID, customer: DELAVAL, lines: [{ ...LINE, vat_rate: "aucune" }] },
+      audit,
+      "romain@supertilt.fr",
+    )).rejects.toThrow(/vat_rate invalide/);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("exige customer_id ou customer", async () => {
+    const calls = mockFetch({ "POST quotes": { ok: true, status: 201, body: OK_BODY } });
+    const { client } = makeSupabase();
+
+    await expect(createDraftQuote(client, QUOTE_NO_ID, audit, "romain@supertilt.fr"))
+      .rejects.toThrow(/customer_id .* ou customer/);
     expect(calls).toHaveLength(0);
   });
 });
