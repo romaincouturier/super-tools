@@ -13,3 +13,4 @@ revoke_other_sessions
 list_dormant_learner_accounts
 connexion_indicators
 learner_password_set
+decay_watch_relevance

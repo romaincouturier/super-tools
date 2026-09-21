@@ -63,21 +63,3 @@ export async function checkDuplicates(body: string, title: string): Promise<{ is
 
   return { isDuplicate: false, duplicateId: null, similarTitle: null };
 }
-
-/** Trigger the weekly digest generation */
-export async function triggerWeeklyDigest() {
-  try {
-    await supabase.functions.invoke("watch-weekly-digest");
-  } catch (err) {
-    console.warn("[Watch] Failed to trigger weekly digest", err);
-  }
-}
-
-/** Trigger cluster analysis */
-export async function triggerClusterAnalysis() {
-  try {
-    await supabase.functions.invoke("watch-cluster-analysis");
-  } catch (err) {
-    console.warn("[Watch] Failed to trigger cluster analysis", err);
-  }
-}

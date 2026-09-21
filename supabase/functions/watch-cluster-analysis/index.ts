@@ -8,6 +8,7 @@ import {
 } from "../_shared/mod.ts";
 import { getOpenAIApiKey } from "../_shared/api-keys.ts";
 import { logApiUsage } from "../_shared/api-usage.ts";
+import { isInternalCall } from "../_shared/cron-auth.ts";
 
 /**
  * Analyze watch items for clusters of related content.
@@ -16,14 +17,21 @@ import { logApiUsage } from "../_shared/api-usage.ts";
  * This function is designed to be called:
  * - After each new item is processed
  * - On a scheduled basis (e.g., daily cron)
+ *
+ * Auth : x-cron-secret (CRON_SECRET, cron planifié en base — voir docs/veille.md),
+ * x-internal-secret (appels inter-fonctions) ou JWT (déclenchement manuel).
  */
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const authResult = await verifyAuth(req.headers.get("Authorization"));
-    if (!authResult) return createErrorResponse("Non autorisé", 401);
+    // Trois voies d'authentification (règle [036]) : le JWT seul interdisait
+    // au cron d'appeler cette fonction, qui n'a donc jamais tourné.
+    if (!isInternalCall(req)) {
+      const authResult = await verifyAuth(req.headers.get("Authorization"));
+      if (!authResult) return createErrorResponse("Non autorisé", 401);
+    }
 
     const OPENAI_API_KEY = await getOpenAIApiKey();
     if (!OPENAI_API_KEY) {

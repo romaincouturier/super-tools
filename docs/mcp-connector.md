@@ -209,8 +209,13 @@ donc tracé dans `api_usage_events`), et celui qui a servi à la détection de
 doublon est celui qui est stocké : un dépôt ne facture jamais deux embeddings.
 Le reste du pipeline `watch-process-item` (scraping, OCR, transcription,
 titre et tags automatiques) n'a pas lieu d'être — l'agent a lu la source et
-fournit déjà titre, résumé et tags. L'élément entre ensuite normalement dans
-le clustering et le digest hebdomadaire.
+fournit déjà titre, résumé et tags.
+
+L'élément est immédiatement cherchable, taggé et trié par le score de
+fraîcheur. Le clustering et le digest hebdomadaire le reprendront **si leurs
+crons sont posés** : ils appellent une edge function, donc portent un secret et
+se planifient en base, pas dans une migration (règle [036]). Le SQL exact et la
+vérification sont dans `docs/veille.md`.
 
 ## Marchés publics : qualification Go / No Go
 
