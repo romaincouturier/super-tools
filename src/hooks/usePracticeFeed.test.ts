@@ -44,7 +44,13 @@ const { mockFrom, mockRpc, setTableResult, clearResults } = vi.hoisted(() => {
 });
 
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { from: mockFrom, rpc: mockRpc },
+  supabase: {
+    from: mockFrom,
+    rpc: mockRpc,
+    // fetchStaffPublicProfiles() passe par hasSession() : sans auth mocké,
+    // la queryFn rejette et le hook ne devient jamais isSuccess.
+    auth: { getSession: async () => ({ data: { session: null } }) },
+  },
 }));
 
 function wrapper({ children }: { children: React.ReactNode }) {
