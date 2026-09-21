@@ -26,6 +26,18 @@ values
 insert into public.profiles (user_id, email, is_admin)
 values ('00000000-0000-4000-a000-000000000001', 'staff-rls-test@supertilt.fr', true);
 
+-- Le compte apprenant est rattaché à une formation Academy. Depuis le critère
+-- 13 de la spécification (20260918160000_demolition_lien_magique.sql),
+-- get_learner_email() ne reconnaît que les comptes réellement rattachés — un
+-- compte inscrit à rien vaut NULL et ne voit aucune donnée. Sans ce
+-- rattachement, l'identité reste NULL et l'insertion de la fiche profil plus
+-- bas viole la policy, ce qui abandonnait le script au cinquième test.
+insert into public.lms_courses (id, title)
+values ('00000000-0000-4000-b000-000000000001', 'Formation de test RLS');
+
+insert into public.lms_enrollments (course_id, learner_email)
+values ('00000000-0000-4000-b000-000000000001', 'learner-rls-test@supertilt.fr');
+
 insert into public.crm_columns (name) values ('rls-test-column');
 
 -- ── 1-2. Mécanique : les policies existent sur toutes les tables staff ─────
@@ -76,7 +88,7 @@ select ok(not public.is_staff_user(), 'is_staff_user() est false pour un apprena
 select is(
   public.get_learner_email(),
   'learner-rls-test@supertilt.fr',
-  'un compte apprenant authentifié est identifié par son JWT même sans inscription'
+  'un compte apprenant rattaché est identifié par son JWT'
 );
 
 select set_config('request.headers',
