@@ -458,10 +458,13 @@ export function useCreateForumPost() {
 export function useTrackPageView() {
   return useMutation({
     mutationFn: async ({ courseId, lessonId, learnerEmail }: { courseId: string; lessonId: string; learnerEmail: string }) => {
-      const client = supabase;
-      const { error } = await client
+      // L'insertion est soumise aux policies : sans session authentifiée elle
+      // est refusée. On n'essaie donc pas, plutôt que de polluer les logs.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { error } = await supabase
         .from("lms_page_views")
-        .insert({ course_id: courseId, lesson_id: lessonId, learner_email: learnerEmail || "admin-preview" } as any);
+        .insert({ course_id: courseId, lesson_id: lessonId, learner_email: learnerEmail || session.user.email || "admin-preview" } as any);
       if (error) console.warn("Page view tracking error:", error);
     },
   });
