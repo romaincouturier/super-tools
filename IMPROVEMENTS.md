@@ -497,6 +497,26 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Sécurité
 
+### [062] Mode démo — aucun écran interne n'affiche une donnée identifiante sans masque
+
+- **Constat** : SuperTools se démontre à des prospects sur la base de production. Le mode démo (`src/contexts/DemoModeContext.tsx` + `src/lib/demoMask.ts`) existe depuis la première campagne d'anonymisation, mais chaque feature ajoutée depuis affichait à nouveau des noms, emails, sociétés et montants clients en clair. L'audit de septembre 2026 relevait 206 affichages identifiants non masqués sur 80 fichiers d'écrans internes : CRM, devis, participants, missions, commandes, LMS. Un mode démo incomplet est pire qu'absent — le présentateur croit être couvert.
+- **Règle** :
+  1. Tout affichage d'une donnée identifiante (identité, contact, société, SIRET/SIREN, adresse, montant client, clé d'API, nom de fichier déposé) dans un écran interne passe par `isDemoMode ? mask*(valeur) : valeur`.
+  2. Le masque s'applique au **texte rendu uniquement**. Jamais sur une valeur qui repart ensuite : payload de mutation, corps d'email, PDF, export, `href="mailto:"`, `value=` de champ de formulaire, clé React.
+  3. Aucune fonction de masquage hors `src/lib/demoMask.ts`.
+  4. Les écrans publics (portail apprenant, portail partenaire, questionnaires, évaluations, signatures, pages d'info formation/mission) affichent les données de leur propre visiteur : hors périmètre.
+  5. Faux positif (prix du catalogue SuperTilt, booléen nommé `…email`, donnée de l'organisme) : annoter la ligne `// demo-safe: <raison>`. Jamais sur une donnée client.
+  6. Toute nouvelle feature qui affiche une donnée client livre son masquage dans le même commit. Le contrôle est un ratchet : la dette ne peut que descendre.
+- **Vérification** :
+  - `bash scripts/check-demo-mask.sh` — liste `fichier:ligne` des affichages non masqués.
+  - `bash scripts/check-demo-mask.sh --count` — alimente le ratchet `062` de `scripts/rules-ratchet.txt`.
+  - Angles morts assumés du grep, à relire à l'oeil en mode démo activé : champs de formulaire, données portées par un nom générique (`title`, `label`, `name`, `content`), HTML injecté, PDF, images.
+- **Fichiers de référence** : `src/lib/demoMask.ts`, `src/contexts/DemoModeContext.tsx`, `src/components/settings/StaffProfileSettings.tsx`, `scripts/check-demo-mask.sh`, `.claude/skills/anonymisation-demo/SKILL.md`
+- **Origine** : préparation de la démo du 22/09/2026 — trois mois de features livrées sans masquage
+- **Date** : 2026-09-21
+
+---
+
 ### [031] Isolation données apprenants — toutes les tables staff protégées en SELECT + edge functions critiques bloquées
 
 - **Constat** : La migration `20260521140000_learner_write_guard.sql` bloquait les écritures (INSERT/UPDATE/DELETE) des apprenants sur les tables staff, mais contenait le commentaire erroné *"read-only leak is low-risk"*. En réalité, un apprenant authentifié pouvait lire : toutes les opportunités CRM, tous les devis, toutes les missions, toute la veille concurrentielle. De plus, la edge function `agent-chat` (qui a accès à toutes les données via service role) n'avait aucun blocage apprenant — un apprenant pouvait invoquer l'agent pour extraire n'importe quelle table. La fonction `notify-lms-comment` n'avait aucune authentification, permettant le spam et l'usurpation d'identité.

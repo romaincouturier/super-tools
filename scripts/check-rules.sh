@@ -692,6 +692,11 @@ if [ "$STAGED_MODE" = "false" ]; then
   count_037b=$(grep -rn 'JSON.stringify({ error\|JSON.stringify({error' supabase/functions/ --include='index.ts' 2>/dev/null | wc -l)
   ratchet "037b" "Ratchet réponses d'erreur manuelles dans les edge functions (utiliser createErrorResponse)" "$count_037b"
 
+  # [062] Mode démo — affichage identifiant non masqué dans un écran interne.
+  # Le détail des violations : bash scripts/check-demo-mask.sh
+  count_062=$(bash scripts/check-demo-mask.sh --count)
+  ratchet "062" "Ratchet affichages identifiants sans masque démo (src/lib/demoMask.ts)" "$count_062"
+
 fi
 
 echo ""
