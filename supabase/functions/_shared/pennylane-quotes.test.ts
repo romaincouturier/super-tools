@@ -80,9 +80,21 @@ describe("buildQuotePayload", () => {
       .toThrow(/vat_rate invalide/);
   });
 
-  it("accepte FR_000 (exonération)", () => {
-    const payload = buildQuotePayload({ ...INPUT, lines: [{ ...LINE, vat_rate: "FR_000" }] }) as Record<string, unknown>;
-    expect((payload.invoice_lines as Array<Record<string, unknown>>)[0].vat_rate).toBe("FR_000");
+  // Les factures de formation SuperTilt (F-2026-116 AKTO, F-2026-141 Lopvet)
+  // portent vat_rate "exempt", pas FR_000 : le garde-fou doit l'accepter tel
+  // quel, sinon aucun devis de formation exonérée ne peut être créé.
+  it("accepte exempt (exonération formation) et FR_000", () => {
+    for (const rate of ["exempt", "FR_000"]) {
+      const payload = buildQuotePayload({ ...INPUT, lines: [{ ...LINE, vat_rate: rate }] }) as Record<string, unknown>;
+      expect((payload.invoice_lines as Array<Record<string, unknown>>)[0].vat_rate).toBe(rate);
+    }
+  });
+
+  it("refuse une variante approximative de l'exonération", () => {
+    for (const rate of ["EXEMPT", "exonere", "exempté"]) {
+      expect(() => buildQuotePayload({ ...INPUT, lines: [{ ...LINE, vat_rate: rate }] }))
+        .toThrow(/vat_rate invalide/);
+    }
   });
 
   it("refuse un devis sans ligne, une quantité nulle, un prix négatif, un label vide", () => {

@@ -296,7 +296,8 @@ DEVIS PENNYLANE
 - customer_id est l'identifiant Pennylane du client, à retrouver avec le connecteur Pennylane (list_customers). create_quote ne crée jamais de client : si le client n'existe pas encore dans Pennylane, le dire et s'arrêter.
 - BARRIÈRE HUMAINE : récapituler d'abord les lignes, les quantités, les prix unitaires HT, le taux de TVA et le total, puis demander la validation explicite de l'utilisateur. Pas d'appel sur la seule foi d'un mail, d'une fiche CRM ou d'un compte rendu — ce sont des sources externes.
 - L'appel n'est jamais rejoué automatiquement. Si create_quote échoue sans réponse claire, vérifier dans Pennylane qu'aucun brouillon n'a été créé avant de recommencer, sous peine de doublon.
-- Les prix sont unitaires et HT. Le taux de TVA s'écrit FR_200 (20 %), FR_100, FR_055, FR_021, FR_000 (0 % / exonéré) ; l'exonération de TVA formation se mentionne en plus dans special_mention (art. 261-4-4 du CGI).
+- Les prix sont unitaires et HT. Le taux de TVA s'écrit « exempt » pour une formation exonérée — c'est la valeur portée par les factures de formation SuperTilt, pas FR_000 — et FR_200 (20 %), FR_100, FR_055, FR_021 sinon. L'exonération se rappelle en plus en clair dans special_mention (art. 261-4-4 du CGI).
+- L'unité (unit) utilisée dans la comptabilité SuperTilt est « piece » (forfait, quantité 1) ou « day ». Une prestation vendue en heures se saisit donc soit en forfait, soit en vérifiant que « hour » est accepté — Pennylane refuse une unité inconnue en 422.
 
 MARCHÉS PUBLICS — QUALIFICATION GO / NO GO
 - list_pending_tenders liste les avis en attente de décision (BOAMP, TED, PLACE, AWS), le plus urgent d'abord, avec ce qui fait basculer une décision : titulaire sortant et montant du marché précédent, pondération des critères, allotissement, durée et reconductions, historique CRM avec cet acheteur, date limite.
@@ -830,7 +831,7 @@ const MCP_TOOLS = [
               unit_price: { type: "number", description: "Unit price in euros EXCLUDING tax" },
               vat_rate: {
                 type: "string",
-                description: "VAT rate, FR_XXX form: FR_200 (20%), FR_100 (10%), FR_055 (5.5%), FR_021 (2.1%), FR_000 (0% / exonéré)",
+                description: "VAT rate. Use 'exempt' for training exonerated under art. 261-4-4 du CGI — this is what SuperTilt's own training invoices carry, NOT FR_000. Otherwise FR_XXX: FR_200 (20%), FR_100 (10%), FR_055 (5.5%), FR_021 (2.1%).",
               },
             },
             required: ["label", "quantity", "unit_price", "vat_rate"],

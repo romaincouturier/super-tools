@@ -24,13 +24,22 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Pennylane nomme ses taux `FR_` + le taux en centièmes de point : FR_200 pour
- * 20 %, FR_100 pour 10 %, FR_055 pour 5,5 %, FR_021 pour 2,1 %, FR_000 pour 0 %.
+ * Deux formes coexistent chez Pennylane, toutes deux relevées dans les factures
+ * SuperTilt : `FR_` + le taux en centièmes de point (FR_200 pour 20 %, FR_100,
+ * FR_055, FR_021, FR_000) et `exempt` pour l'exonération — c'est cette
+ * dernière, et non FR_000, que portent les factures de formation exonérées au
+ * titre de l'art. 261-4-4 du CGI (F-2026-116, F-2026-141).
+ *
  * On vérifie la FORME et non une liste figée : la liste exacte appartient à
  * Pennylane, qui refuse lui-même une valeur inconnue en 422 avec le nom du
  * champ. Une allowlist recopiée ici divergerait en silence (règle [052]).
  */
+const VAT_EXEMPT = "exempt";
 const VAT_RATE_RE = /^FR_\d{3}$/;
+
+function isValidVatRate(value: string): boolean {
+  return value === VAT_EXEMPT || VAT_RATE_RE.test(value);
+}
 
 export type QuoteLineInput = {
   label: string;
@@ -97,9 +106,9 @@ export function buildQuotePayload(input: CreateQuoteInput): Record<string, unkno
       throw new Error(`ligne ${i + 1} (${label}) : unit_price doit être un nombre positif, en euros HT`);
     }
     const vatRate = (line.vat_rate || "").trim();
-    if (!VAT_RATE_RE.test(vatRate)) {
+    if (!isValidVatRate(vatRate)) {
       throw new Error(
-        `ligne ${i + 1} (${label}) : vat_rate invalide (${vatRate || "vide"}). Forme attendue FR_XXX — FR_200 (20 %), FR_100 (10 %), FR_055 (5,5 %), FR_021 (2,1 %), FR_000 (0 % / exonéré).`,
+        `ligne ${i + 1} (${label}) : vat_rate invalide (${vatRate || "vide"}). Valeurs attendues : "exempt" pour une formation exonérée (art. 261-4-4 du CGI), sinon FR_XXX — FR_200 (20 %), FR_100 (10 %), FR_055 (5,5 %), FR_021 (2,1 %).`,
       );
     }
 
