@@ -106,7 +106,9 @@ async function inflatePdfStreams(bytes: Uint8Array, raw: string): Promise<string
     if (endAt === -1) break;
     searchFrom = endAt + "endstream".length;
 
-    const slice = bytes.subarray(start, endAt);
+    // Copie et non vue : un Blob construit sur une vue peut embarquer tout le
+    // tampon sous-jacent, et la décompression échoue alors sur les octets en trop.
+    const slice = bytes.slice(start, endAt);
     if (!slice.length) continue;
     try {
       const stream = new Blob([slice]).stream().pipeThrough(new DecompressionStream("deflate"));
