@@ -239,7 +239,7 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-medium text-sm">
-                      Relecteur : {review.reviewer_email}
+                      Relecteur : {review.reviewer_email}{/* demo-safe: equipe SuperTilt */}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Demandée le {new Date(review.created_at).toLocaleDateString("fr-FR", {
@@ -277,7 +277,7 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleSendReminder(review.id, review.reviewer_email || "")}
+                        onClick={() => handleSendReminder(review.id, review.reviewer_email || "") /* demo-safe: adresse reelle requise pour la relance */}
                       >
                         <Bell className="h-4 w-4 mr-1" />
                         Relancer

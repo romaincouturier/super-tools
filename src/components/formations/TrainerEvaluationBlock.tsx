@@ -172,7 +172,7 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
-                <span className="font-medium text-sm">{evaluation.trainer_name}</span>
+                <span className="font-medium text-sm">{evaluation.trainer_name /* demo-safe: formateur, equipe SuperTilt */}</span>
                 <Badge variant={
                   evaluation.status === "soumis" ? "default" :
                   evaluation.status === "envoye" ? "secondary" : "outline"
@@ -204,7 +204,7 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
 
             {evaluation.email_sent_at && (
               <p className="text-xs text-muted-foreground">
-                Envoyé le {new Date(evaluation.email_sent_at).toLocaleDateString("fr-FR")} à {evaluation.trainer_email}
+                Envoyé le {new Date(evaluation.email_sent_at).toLocaleDateString("fr-FR")} à {evaluation.trainer_email /* demo-safe: formateur, equipe SuperTilt */}
               </p>
             )}
 

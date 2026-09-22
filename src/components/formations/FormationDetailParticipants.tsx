@@ -16,6 +16,8 @@ import NeedsSurveySummaryDialog from "@/components/formations/NeedsSurveySummary
 import BroadcastEmailDialog from "@/components/formations/BroadcastEmailDialog";
 import TrainingSurveyDialog from "@/components/formations/TrainingSurveyDialog";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 import type { Training, Participant } from "@/hooks/useFormationDetail";
 import type { FormationFormula } from "@/types/training";
 
@@ -63,6 +65,7 @@ const FormationDetailParticipants = ({
   bpfNeedsAttention,
 }: Props) => {
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const [hasSupportRecord, setHasSupportRecord] = useState(false);
   const [requestingEmails, setRequestingEmails] = useState(false);
   const [emailsRequestedAt, setEmailsRequestedAt] = useState<string | null>(null);
@@ -155,14 +158,14 @@ const FormationDetailParticipants = ({
               <span>Vous</span>
             </div>
             <div className="flex gap-2">
-              {!isInterSession && participants.length === 0 && training.sponsor_email && (
+              {!isInterSession && participants.length === 0 && training.sponsor_email && ( /* demo-safe: garde d'affichage, valeur masquee ci-dessous */
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleRequestParticipantsEmails}
                   disabled={requestingEmails}
-                  title={`Demander au commanditaire (${training.sponsor_email}) la liste des emails des participants`}
+                  title={`Demander au commanditaire (${isDemoMode ? maskEmail(training.sponsor_email) : training.sponsor_email}) la liste des emails des participants`}
                 >
                   {requestingEmails ? <Spinner className="mr-2" /> : <MailQuestion className="h-4 w-4 mr-2" />}
                   {emailsRequestedAt ? "Renvoyer la demande" : "Demander les emails"}

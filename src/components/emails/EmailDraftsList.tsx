@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskName, maskEmail } from "@/lib/demoMask";
+import { maskName, maskEmail, maskText } from "@/lib/demoMask";
 import DOMPurify from "dompurify";
 import { Mail, Send, Eye, ChevronDown, ChevronUp, X, Pencil, Clock, CalendarDays, Briefcase, Target, ExternalLink } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -189,7 +189,7 @@ function DraftCard({
                   </Badge>
                 )}
               </div>
-              <p className="text-sm font-medium mt-1 truncate">{draft.subject}</p>
+              <p className="text-sm font-medium mt-1 truncate">{isDemoMode ? maskText(draft.subject) : draft.subject}</p>
               <p className="text-xs text-muted-foreground">
                 → {isDemoMode
                   ? (draft.contact_name ? `${maskName(draft.contact_name)} (${maskEmail(draft.contact_email)})` : maskEmail(draft.contact_email))
@@ -353,7 +353,7 @@ function DraftCard({
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Objet</p>
-              <p className="text-sm font-medium">{draft.subject}</p>
+              <p className="text-sm font-medium">{isDemoMode ? maskText(draft.subject) : draft.subject}</p>
             </div>
             <div className="border rounded p-4 bg-white">
               <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(draft.html_content) }} />

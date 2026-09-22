@@ -96,7 +96,7 @@ export default function CashFlowImportPipelineDialog({ open, onOpenChange }: Imp
               >
                 <Checkbox checked={selected.has(deal.id)} onCheckedChange={() => toggle(deal.id)} />
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium truncate">{deal.title}</div>
+                  <div className="font-medium truncate">{isDemoMode ? maskText(deal.title) : deal.title}</div>
                   <div className="text-xs text-muted-foreground">
                     {deal.company ? `${isDemoMode ? maskText(deal.company) : deal.company} • ` : ""}closing prévu {deal.expected_close_date}
                   </div>

@@ -438,7 +438,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
                   {format(new Date(se.scheduled_at), "d MMM 'à' HH:mm", { locale: fr })}
                 </span>
                 <span className="truncate flex-1" title={`${isDemoMode ? maskEmail(se.recipient_email) : se.recipient_email} — ${isDemoMode ? maskText(se.subject) : se.subject}`}>
-                  → {se.subject}
+                  → {isDemoMode ? maskText(se.subject) : se.subject}
                 </span>
                 <Button
                   variant="ghost"

@@ -253,7 +253,7 @@ export default function Step3QuoteGeneration({
 
     try {
       const linesContext = lines
-        .map((l, i) => `Ligne ${i + 1}: ${l.product} — ${l.description || ""} — ${l.quantity} ${l.unit} × ${l.unit_price_ht}€ HT = ${fmt(l.quantity * l.unit_price_ht)}`)
+        .map((l, i) => `Ligne ${i + 1}: ${l.product} — ${l.description || ""} — ${l.quantity} ${l.unit} × ${l.unit_price_ht}€ HT = ${fmt(l.quantity * l.unit_price_ht)}`) // demo-safe: payload envoye a la fonction commercial-challenge, pas un affichage
         .join("\n");
 
       const clientContext = [
@@ -353,10 +353,10 @@ export default function Step3QuoteGeneration({
       doc.setFont("helvetica", "normal");
       doc.setTextColor(100);
       y += 6;
-      doc.text(`${settings?.company_address || ""}, ${settings?.company_zip || ""} ${settings?.company_city || ""}`, margin, y);
+      doc.text(`${settings?.company_address || ""}, ${settings?.company_zip || ""} ${settings?.company_city || ""}`, margin, y); // demo-safe: coordonnees de SuperTilt, emetteur du devis, ecrites dans le PDF
       y += 4;
-      if (settings?.company_phone) { doc.text(`Tél : ${settings.company_phone}`, margin, y); y += 4; }
-      if (settings?.company_email) { doc.text(`Email : ${settings.company_email}`, margin, y); y += 4; }
+      if (settings?.company_phone) { doc.text(`Tél : ${settings.company_phone}`, margin, y); y += 4; } // demo-safe: coordonnees de SuperTilt, emetteur du devis, ecrites dans le PDF
+      if (settings?.company_email) { doc.text(`Email : ${settings.company_email}`, margin, y); y += 4; } // demo-safe: coordonnees de SuperTilt, emetteur du devis, ecrites dans le PDF
       if (settings?.siren) { doc.text(`SIREN : ${settings.siren}`, margin, y); y += 4; } // demo-safe: SIREN de SuperTilt, ecrit dans le PDF du devis
       if (settings?.vat_number) { doc.text(`TVA : ${settings.vat_number}`, margin, y); y += 4; }
       if (settings?.rcs_number) { doc.text(`RCS ${settings.rcs_city} ${settings.rcs_number}`, margin, y); y += 4; }
@@ -396,7 +396,7 @@ export default function Step3QuoteGeneration({
       doc.setTextColor(80);
       doc.text(updated.client_address, pageW / 2 + 5, y + 17);
       doc.text(`${updated.client_zip} ${updated.client_city}`, pageW / 2 + 5, y + 22);
-      if (updated.client_siren) doc.text(`SIREN : ${updated.client_siren}`, pageW / 2 + 5, y + 27);
+      if (updated.client_siren) doc.text(`SIREN : ${updated.client_siren}`, pageW / 2 + 5, y + 27); // demo-safe: contenu ecrit dans le PDF du devis, pas un affichage
 
       y += 36;
 
@@ -525,7 +525,7 @@ export default function Step3QuoteGeneration({
         if (settings.payment_terms_text) mentions.push(`Conditions de règlement : ${settings.payment_terms_text}`);
         if (settings.early_payment_discount) mentions.push(`Escompte : ${settings.early_payment_discount}`);
         if (settings.late_penalty_text) mentions.push(`Pénalités de retard : ${settings.late_penalty_text}`);
-        mentions.push(`Indemnité forfaitaire de recouvrement : ${fmt(settings.recovery_indemnity_amount)} €`);
+        mentions.push(`Indemnité forfaitaire de recouvrement : ${fmt(settings.recovery_indemnity_amount)} €`); // demo-safe: contenu ecrit dans le PDF du devis, pas un affichage
         if (settings.training_declaration_number) mentions.push(`N° déclaration d'activité : ${settings.training_declaration_number}`);
         if (settings.vat_exempt && settings.vat_exempt_text) mentions.push(settings.vat_exempt_text);
         if (settings.insurance_name) mentions.push(`Assurance RC Pro : ${settings.insurance_name} — Police n° ${settings.insurance_policy_number}`);
@@ -716,7 +716,7 @@ export default function Step3QuoteGeneration({
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">Total HT</Label>
                         <div className="h-9 flex items-center px-3 bg-muted rounded-md font-semibold text-sm">
-                          {fmt(line.quantity * line.unit_price_ht)}
+                          {isDemoMode ? maskAmount(line.quantity * line.unit_price_ht) : fmt(line.quantity * line.unit_price_ht)}
                         </div>
                       </div>
                     </div>
@@ -808,7 +808,7 @@ export default function Step3QuoteGeneration({
                     {settings.late_penalty_text && (
                       <p><span className="font-medium">Pénalités de retard :</span> {settings.late_penalty_text}</p>
                     )}
-                    <p><span className="font-medium">Indemnité forfaitaire de recouvrement :</span> {fmt(settings.recovery_indemnity_amount)}</p>
+                    <p><span className="font-medium">Indemnité forfaitaire de recouvrement :</span> {fmt(settings.recovery_indemnity_amount) /* demo-safe: mention legale publique du devis, identique sur tous les devis */}</p>
                     {settings.training_declaration_number && (
                       <p><span className="font-medium">N° déclaration d'activité :</span> {settings.training_declaration_number}</p>
                     )}

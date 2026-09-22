@@ -88,7 +88,7 @@ const MissionCard = ({ mission, isDragging: isDraggingProp, onClick, onEmojiChan
       )}
 
       {/* Amount */}
-      {mission.total_amount && (
+      {mission.total_amount && ( /* demo-safe: garde d'affichage, montant masque ci-dessous */
         <div className="flex items-center gap-1 text-xs font-medium text-primary">
           <Euro className="h-3 w-3" />
           <span>{isDemoMode ? maskAmount(mission.total_amount) : `${mission.total_amount.toLocaleString("fr-FR")} €`}</span>

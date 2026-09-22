@@ -98,7 +98,7 @@ export default function SupportTicketCard({ card, isDragging: isDraggingProp }: 
         </a>
       )}
       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-        <span>{t.submitted_by_email?.split("@")[0] || "—"}</span>
+        <span>{t.submitted_by_email?.split("@")[0] || "—"}</span>{/* demo-safe: equipe SuperTilt */}
         <span>{formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: fr })}</span>
       </div>
     </div>

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskAmount, maskText } from "@/lib/demoMask";
+import { maskAddress, maskAmount, maskEmail, maskName, maskText } from "@/lib/demoMask";
 import type { Training, Schedule, Participant } from "@/hooks/useFormationDetail";
 import type { FormationFormula } from "@/types/training";
 import { openStorageUrl } from "@/lib/storageUrl";
@@ -83,7 +83,7 @@ const FormationDetailInfo = ({
     if (result !== null) {
       toast({
         title: "Email envoyé",
-        description: `Les besoins logistiques ont été envoyés à ${training.sponsor_email}.`,
+        description: `Les besoins logistiques ont été envoyés à ${isDemoMode ? maskEmail(training.sponsor_email) : training.sponsor_email}.`,
       });
     }
   };
@@ -111,10 +111,10 @@ const FormationDetailInfo = ({
         <Badge variant="outline" className="flex items-center gap-1.5">
           <Building className="h-3.5 w-3.5" />{isDemoMode ? maskText(training.client_name) : training.client_name}
         </Badge>
-        {training.client_address && !isPresentiel && (
+        {training.client_address && !isPresentiel && ( /* demo-safe: garde d'affichage, valeur masquee ci-dessous */
           <Badge variant="outline" className="flex items-center gap-1.5 group">
-            <MapPin className="h-3.5 w-3.5" />{training.client_address}
-            <button type="button" className="ml-1 p-0.5 rounded hover:bg-muted transition-colors" onClick={() => copyClientAddress(training.client_address!, { title: "Adresse copiée", description: "L'adresse du client a été copiée." })}>
+            <MapPin className="h-3.5 w-3.5" />{isDemoMode ? maskAddress(training.client_address) : training.client_address}
+            <button type="button" className="ml-1 p-0.5 rounded hover:bg-muted transition-colors" onClick={() => copyClientAddress(training.client_address!, { title: "Adresse copiée", description: "L'adresse du client a été copiée." }) /* demo-safe: adresse reelle copiee dans le presse-papiers */}>
               <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
             </button>
           </Badge>
@@ -127,7 +127,7 @@ const FormationDetailInfo = ({
         </Badge>
         {getFormatLabel() && <Badge variant="secondary">{getFormatLabel()}</Badge>}
         <Badge variant="outline" className="flex items-center gap-1.5">
-          <UserIconLucide className="h-3.5 w-3.5" />{training.trainer_name}
+          <UserIconLucide className="h-3.5 w-3.5" />{training.trainer_name/* demo-safe: formateur, equipe SuperTilt */}
         </Badge>
         {assignedUserName && (
           <Badge variant="outline" className="flex items-center gap-1.5 text-blue-600 border-blue-300">
@@ -175,7 +175,7 @@ const FormationDetailInfo = ({
       </div>
 
       {/* Sponsor */}
-      {(training.sponsor_first_name || training.sponsor_last_name || training.sponsor_email) && (
+      {(training.sponsor_first_name || training.sponsor_last_name || training.sponsor_email) && ( /* demo-safe: garde d'affichage, valeurs masquees ci-dessous */
         <>
           <Separator />
           <div className="flex items-start gap-3">
@@ -190,14 +190,14 @@ const FormationDetailInfo = ({
                 </div>
               </div>
               {(training.sponsor_first_name || training.sponsor_last_name) && (
-                <p className="font-medium">{training.sponsor_first_name} {training.sponsor_last_name}</p>
+                <p className="font-medium">{isDemoMode ? maskName(training.sponsor_first_name) : training.sponsor_first_name} {isDemoMode ? maskName(training.sponsor_last_name) : training.sponsor_last_name}</p>
               )}
-              {training.sponsor_email && (
+              {training.sponsor_email && ( /* demo-safe: garde d'affichage, valeur masquee ci-dessous */
                 <div className="flex items-center gap-2">
-                  <a href={`mailto:${training.sponsor_email}`} className="flex items-center gap-1.5 text-sm text-primary hover:underline">
-                    <Mail className="h-3.5 w-3.5" />{training.sponsor_email}
+                  <a href={`mailto:${training.sponsor_email}` /* demo-safe: lien mailto fonctionnel */} className="flex items-center gap-1.5 text-sm text-primary hover:underline">
+                    <Mail className="h-3.5 w-3.5" />{isDemoMode ? maskEmail(training.sponsor_email) : training.sponsor_email}
                   </a>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyEmail(training.sponsor_email!, { title: "Email copié", description: "L'adresse email a été copiée dans le presse-papiers." })}>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyEmail(training.sponsor_email!, { title: "Email copié", description: "L'adresse email a été copiée dans le presse-papiers." }) /* demo-safe: adresse reelle copiee dans le presse-papiers */}>
                     {copiedEmail ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground" />}
                   </Button>
                 </div>
@@ -211,7 +211,7 @@ const FormationDetailInfo = ({
                 </div>
               )}
               {/* Logistics email button - only for presentiel intra */}
-              {isPresentiel && training.sponsor_email && !isInterSession && (
+              {isPresentiel && training.sponsor_email && !isInterSession && ( /* demo-safe: garde d'affichage, valeur non rendue */
                 <div className="flex items-center gap-2 pt-1">
                   <Button
                     variant="outline"

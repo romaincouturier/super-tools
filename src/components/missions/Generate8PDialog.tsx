@@ -249,7 +249,7 @@ const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Genera
                   </div>
                   {crmCard.descriptionPreview ? (
                     <div className="mt-1 text-muted-foreground text-xs italic line-clamp-3">
-                      « {crmCard.descriptionPreview}{crmCard.descriptionPreview.length >= 200 ? "…" : ""} »
+                      « {isDemoMode ? maskText(crmCard.descriptionPreview) : crmCard.descriptionPreview}{crmCard.descriptionPreview.length >= 200 ? "…" : ""} »
                     </div>
                   ) : (
                     <div className="mt-1 text-muted-foreground text-xs italic">
@@ -319,13 +319,13 @@ const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Genera
                           onClick={() => pickCrmCard(r)}
                           className="hover:bg-muted block w-full rounded p-2 text-left text-sm"
                         >
-                          <div className="font-medium">{r.title}</div>
+                          <div className="font-medium">{isDemoMode ? maskText(r.title) : r.title}</div>
                           {r.company && ( // demo-safe: garde d'affichage, valeur masquee plus bas
                             <div className="text-muted-foreground text-xs">{isDemoMode ? maskText(r.company) : r.company}</div>
                           )}
                           {r.descriptionPreview && (
                             <div className="text-muted-foreground line-clamp-1 text-xs italic">
-                              « {r.descriptionPreview} »
+                              « {isDemoMode ? maskText(r.descriptionPreview) : r.descriptionPreview} »
                             </div>
                           )}
                         </button>

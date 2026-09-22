@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { Survey, SurveyQuestion, SurveyResponse, SurveyAnswer } from "@/hooks/useMissionSurvey";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName, maskEmail } from "@/lib/demoMask";
 
 type ResponseWithAnswers = SurveyResponse & { mission_survey_answers: SurveyAnswer[] };
 
@@ -133,6 +135,7 @@ function exportCsv(questions: SurveyQuestion[], responses: ResponseWithAnswers[]
 }
 
 function ResponsesTable({ questions, responses }: { questions: SurveyQuestion[]; responses: ResponseWithAnswers[] }) {
+  const { isDemoMode } = useDemoMode();
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -158,8 +161,8 @@ function ResponsesTable({ questions, responses }: { questions: SurveyQuestion[];
                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
                   {format(new Date(r.submitted_at), "d MMM yyyy", { locale: fr })}
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap">{r.respondent_name || "—"}</td>
-                <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{r.respondent_email || "—"}</td>
+                <td className="px-3 py-2 whitespace-nowrap">{isDemoMode ? maskName(r.respondent_name) || "—" : r.respondent_name || "—"}</td>
+                <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{isDemoMode ? maskEmail(r.respondent_email) || "—" : r.respondent_email || "—"}</td>
                 {questions.map((q) => {
                   const a = r.mission_survey_answers.find((ans) => ans.question_id === q.id);
                   const val = a ? (a.values ? a.values.join(", ") : a.value ?? "—") : "—";

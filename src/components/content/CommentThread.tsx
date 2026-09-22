@@ -592,8 +592,8 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                 {comment.assigned_to && (
                   <Badge variant="outline" className="text-[10px] h-4 gap-0.5">
                     <UserPlus className="h-2.5 w-2.5" />
-                    {comment.assigned_name
-                      ? comment.assigned_name /* demo-safe: equipe SuperTilt */
+                    {comment.assigned_name /* demo-safe: equipe SuperTilt */
+                      ? comment.assigned_name
                       : getProfileName(comment.assigned_to) || "Assigné"}
                   </Badge>
                 )}

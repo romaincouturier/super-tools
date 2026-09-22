@@ -356,10 +356,10 @@ const ParticipantDocumentsDialog = ({
               Commanditaire (destinataire)
             </Label>
             {sponsorName ? (
-              <p className="text-sm font-medium">{sponsorName}</p>
+              <p className="text-sm font-medium">{isDemoMode ? maskName(sponsorName) : sponsorName}</p>
             ) : null}
-            {participant.sponsor_email ? (
-              <p className="text-sm text-primary">{participant.sponsor_email}</p>
+            {participant.sponsor_email ? ( /* demo-safe: garde d'affichage, valeur masquee ci-dessous */
+              <p className="text-sm text-primary">{isDemoMode ? maskEmail(participant.sponsor_email) : participant.sponsor_email}</p>
             ) : (
               <p className="text-sm text-destructive italic">Aucun email de commanditaire défini</p>
             )}

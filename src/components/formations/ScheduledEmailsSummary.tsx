@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName } from "@/lib/demoMask";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -598,8 +599,8 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
       // For cold_evaluation with no participant (intra): show sponsor name
       if (email.email_type === "cold_evaluation" && training) {
         const sponsorName = [training.sponsor_first_name, training.sponsor_last_name].filter(Boolean).join(" ");
-        if (sponsorName) return `Commanditaire : ${sponsorName}`;
-        if (training.sponsor_email) return `Commanditaire : ${training.sponsor_email}`;
+        if (sponsorName) return `Commanditaire : ${isDemoMode ? maskName(sponsorName) : sponsorName}`;
+        if (training.sponsor_email) return `Commanditaire : ${isDemoMode ? maskEmail(training.sponsor_email) : training.sponsor_email}`;
       }
       return "Tous les participants";
     }
