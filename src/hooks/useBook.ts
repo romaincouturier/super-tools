@@ -19,11 +19,14 @@ import type {
 // ---------------------------------------------------------------------------
 
 async function getCurrentUserId(): Promise<string> {
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) throw new Error("Not authenticated");
+  // La session locale est la source de vérité : getUser() fait un aller-retour
+  // réseau qui échoue (et renvoyait "Not authenticated") sur un token en cours
+  // de rafraîchissement ou une connexion instable.
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user?.id) return session.user.id;
+
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) throw new Error("Session expirée, reconnectez-vous");
   return user.id;
 }
 
