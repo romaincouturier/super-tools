@@ -678,6 +678,14 @@ if [ "$STAGED_MODE" = "false" ]; then
   # parallele — c'est exactement ce qui s'est produit le 04/08/2026, resolu a la
   # main. Un meme numero peut en revanche porter deux checks (cas [006] :
   # un check pattern + un check fichier fixe).
+  # [067] Un numero de regle n'est reserve qu'au merge : la skill sync-and-pr
+# doit porter l'etape de renumerotation apres rebase.
+check "067" "La skill sync-and-pr prescrit la renumerotation des regles apres rebase" \
+  "grep -q '3quater' .claude/skills/sync-and-pr/SKILL.md \
+     || echo 'VIOLATION [067]: etape de renumerotation absente de la skill sync-and-pr'; \
+   grep -q '034b' .claude/skills/sync-and-pr/SKILL.md \
+     || echo 'VIOLATION [067]: la skill sync-and-pr ne renvoie pas au check [034b]'"
+
   check "034b" "Numeros de regles uniques dans IMPROVEMENTS.md" \
     "grep -oE '^### \\[[0-9]+\\]' IMPROVEMENTS.md | sort | uniq -d | sed 's/^/VIOLATION: numero de regle en double /'"
 

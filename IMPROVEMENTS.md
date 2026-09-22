@@ -46,6 +46,21 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## DX
 
+### [067] Un numéro de règle n'est réservé qu'au merge — le vérifier après chaque rebase
+
+- **Constat** : 22/09/2026, branche d'anonymisation du mode démo. Trois collisions de numéro en une journée. La règle écrite sous `[062]` est entrée en conflit avec une `[062]` arrivée sur `main` entre-temps, puis la `[063]` de remplacement avec une `[063]` livrée au rebase suivant. Aucune des deux n'était détectable localement : le rebase ne signale rien (les blocs sont à des endroits différents du fichier) et `check-rules.sh` sur la branche ne voit que la branche. La CI l'a vu parce qu'elle évalue le commit de merge, pas la branche. Pire : `main` portait lui-même un doublon `[062]`, deux PR mergées le même jour ayant chacune pris ce numéro — `main` échouait donc son propre check `[034b]`, ce qui rendait **toute** PR non mergeable.
+- **Règle** :
+  1. Le numéro pris à l'écriture d'une règle est **provisoire**. Il n'est réservé qu'au moment où la PR merge.
+  2. Après chaque rebase, relire le check `[034b]`. En cas de doublon, **la branche cède**, jamais `main` : renuméroter au premier numéro libre au-dessus du maximum de `main`.
+  3. Renuméroter, c'est propager partout : `IMPROVEMENTS.md`, le `check "NNN"` de `check-rules.sh`, `scripts/rules-ratchet.txt`, le script de contrôle dédié, la skill concernée, `CLAUDE.md`. Un numéro oublié quelque part casse le lien règle/check que la règle [034] vérifie.
+  4. Si le doublon vient de `main`, il bloque toutes les PR : le corriger dans la branche est l'exception assumée à « ne jamais corriger un échec préexistant », et elle s'écrit dans le corps de la PR.
+- **Vérification** : check `[034b]` de `check-rules.sh` détecte le doublon, mais seulement une fois les deux règles dans le même arbre — donc en CI, sur le commit de merge, jamais en local avant rebase. Check `[067]` : la skill `sync-and-pr` doit porter l'étape de renumérotation après rebase. Angle mort assumé : rien ne peut prévenir la collision à l'écriture, seulement la rattraper au rebase.
+- **Fichiers de référence** : `.claude/skills/sync-and-pr/SKILL.md` (étape 3quater), check `[034b]` de `scripts/check-rules.sh`
+- **Origine** : trois renumérotations en une journée sur la même branche, dont une causée par un doublon de `main`
+- **Date** : 2026-09-22
+
+---
+
 ### [064] Test vitest d'un module `_shared` — pas d'import statique vers un module à import URL (esm.sh)
 - **Constat** : 22/09/2026, durant `/sync-and-pr`. Un nit de `/code-review` proposait de remplacer l'`import()` dynamique de `verifyAuth` par un import statique en tête de `_shared/cron-auth.ts`. Appliqué, il a cassé `cron-auth.test.ts` au chargement : `supabase-client.ts` importe le SDK depuis `https://esm.sh/@supabase/supabase-js`, et le loader ESM de Node (donc vitest) ne résout que les schémas `file:` et `data:`. L'erreur (`Only URLs with a scheme in: file and data are supported`) tombe à l'import du module de test, avant tout `it` — d'où « 0 test » plutôt qu'un échec parlant.
 - **Règle** : Un module de `supabase/functions/_shared/` qui possède un `.test.ts` ne doit jamais importer **statiquement** un module qui importe depuis une URL (esm.sh, deno.land). Charger ce module en paresseux via `await import(...)` sur le seul chemin qui en a besoin : le test qui n'exerce pas ce chemin se charge sans la dépendance URL, et pour couvrir le chemin qui l'utilise on mocke le module URL-dépendant avec `vi.mock(...)`. Un import statique de `crypto.ts` (sans URL) reste, lui, parfaitement sûr.
