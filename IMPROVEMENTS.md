@@ -57,17 +57,17 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ---
 
-### [063] Un contrôle par grep certifie ce qu'il sait voir, pas l'invariant — sa limite s'écrit dans la règle
+### [064] Un contrôle par grep certifie ce qu'il sait voir, pas l'invariant — sa limite s'écrit dans la règle
 
-- **Constat** : 22/09/2026, campagne d'anonymisation du mode démo. Le contrôle `check-demo-mask.sh` affichait `062=0` — « aucune donnée identifiante non masquée » — trois fois de suite pendant que des fuites réelles subsistaient à l'écran. Trois familles, découvertes par deux revues de code successives et une passe d'angles morts, pas par le contrôle : (1) les champs préfixés, le motif exigeant une racine exacte, donc `sponsor_email` et `customer_name` rendaient en clair ; (2) les sorties hors JSX — toasts, `confirm()`, corps d'email prévisualisé, salutation générée — neuf fuites ; (3) le HTML injecté via `dangerouslySetInnerHTML`, onze blocs invisibles par construction. À chaque itération, le vert du ratchet a servi de preuve alors qu'il n'était qu'un plancher.
+- **Constat** : 22/09/2026, campagne d'anonymisation du mode démo. Le contrôle `check-demo-mask.sh` affichait `063=0` — « aucune donnée identifiante non masquée » — trois fois de suite pendant que des fuites réelles subsistaient à l'écran. Trois familles, découvertes par deux revues de code successives et une passe d'angles morts, pas par le contrôle : (1) les champs préfixés, le motif exigeant une racine exacte, donc `sponsor_email` et `customer_name` rendaient en clair ; (2) les sorties hors JSX — toasts, `confirm()`, corps d'email prévisualisé, salutation générée — neuf fuites ; (3) le HTML injecté via `dangerouslySetInnerHTML`, onze blocs invisibles par construction. À chaque itération, le vert du ratchet a servi de preuve alors qu'il n'était qu'un plancher.
 - **Règle** :
   1. Une règle dont la vérification est un grep ou un script de contrôle **énonce ce que ce contrôle ne voit pas**, dans la règle elle-même. Pas dans un commentaire du script, pas dans une PR : dans `IMPROVEMENTS.md`, là où on la relit.
   2. Le compte d'un ratchet est un **plancher**, jamais une preuve d'invariant. « 0 violation » se lit « 0 violation détectable par ce motif ».
   3. Élargir un contrôle est prioritaire sur corriger ce qu'il remonte : un motif trop étroit ment, un motif juste produit du travail. Quand une revue trouve une fuite que le contrôle rate, corriger le contrôle **avant** la fuite.
   4. Ne pas élargir un motif au prix du bruit. Un détecteur qui remonte 20 faux positifs pour zéro fuite réelle finit ignoré : le renoncer et écrire la limite vaut mieux que le garder. C'est un arbitrage à documenter, pas à taire.
   5. Corollaire de terrain : une fuite arrive rarement seule. Quand un champ est corrigé quelque part, chercher **toutes les autres sorties de la même donnée dans le fichier** — toast, `confirm`, `title=`, aperçu, tableau jumeau.
-- **Vérification** : check [063] de `check-rules.sh` — toute règle listée dans `scripts/rules-ratchet.txt` doit contenir, dans son bloc d'`IMPROVEMENTS.md`, une phrase disant ce que son contrôle ne voit pas (`plancher`, `ne voit pas`, ou `angle mort`). Les quatre ratchets antérieurs à cette règle (017, 020, 037a, 037b) sont en whitelist : ce sont des compteurs de migration progressive, pas des garanties d'invariant.
-- **Fichiers de référence** : `scripts/check-demo-mask.sh`, `.claude/skills/anonymisation-demo/SKILL.md` (section « Ce que le contrôle prouve, et ce qu'il ne prouve pas »), règle [062]
+- **Vérification** : check [064] de `check-rules.sh` — toute règle listée dans `scripts/rules-ratchet.txt` doit contenir, dans son bloc d'`IMPROVEMENTS.md`, une phrase disant ce que son contrôle ne voit pas (`plancher`, `ne voit pas`, ou `angle mort`). Les quatre ratchets antérieurs à cette règle (017, 020, 037a, 037b) sont en whitelist : ce sont des compteurs de migration progressive, pas des garanties d'invariant.
+- **Fichiers de référence** : `scripts/check-demo-mask.sh`, `.claude/skills/anonymisation-demo/SKILL.md` (section « Ce que le contrôle prouve, et ce qu'il ne prouve pas »), règle [063]
 - **Origine** : deux revues de code sur la branche d'anonymisation, chacune trouvant une famille de fuites que le ratchet certifiait absente
 - **Date** : 2026-09-22
 
@@ -516,7 +516,7 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Sécurité
 
-### [062] Mode démo — aucun écran interne n'affiche une donnée identifiante sans masque
+### [063] Mode démo — aucun écran interne n'affiche une donnée identifiante sans masque
 
 - **Constat** : SuperTools se démontre à des prospects sur la base de production. Le mode démo (`src/contexts/DemoModeContext.tsx` + `src/lib/demoMask.ts`) existe depuis la première campagne d'anonymisation, mais chaque feature ajoutée depuis affichait à nouveau des noms, emails, sociétés et montants clients en clair. L'audit de septembre 2026 relevait 206 affichages identifiants non masqués sur 80 fichiers d'écrans internes : CRM, devis, participants, missions, commandes, LMS. Un mode démo incomplet est pire qu'absent — le présentateur croit être couvert.
 - **Règle** :
@@ -528,8 +528,8 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
   6. Toute nouvelle feature qui affiche une donnée client livre son masquage dans le même commit. Le contrôle est un ratchet : la dette ne peut que descendre.
 - **Vérification** :
   - `bash scripts/check-demo-mask.sh` — liste `fichier:ligne` des affichages non masqués.
-  - `bash scripts/check-demo-mask.sh --count` — alimente le ratchet `062` de `scripts/rules-ratchet.txt`.
-  - `062=0` est un **plancher, pas une preuve** : le grep voit un accès de champ (`{c.email}`, `` `…${c.email}…` `` dans un toast), pas une identité passée par une variable locale. Angles morts à relire à l'oeil en mode démo activé : variables intermédiaires, champs de formulaire, noms génériques (`title`, `label`, `name`, `content`), HTML injecté, PDF, images.
+  - `bash scripts/check-demo-mask.sh --count` — alimente le ratchet `063` de `scripts/rules-ratchet.txt`.
+  - `063=0` est un **plancher, pas une preuve** : le grep voit un accès de champ (`{c.email}`, `` `…${c.email}…` `` dans un toast), pas une identité passée par une variable locale. Angles morts à relire à l'oeil en mode démo activé : variables intermédiaires, champs de formulaire, noms génériques (`title`, `label`, `name`, `content`), HTML injecté, PDF, images.
   - Réflexe de correction : un champ masqué à un endroit a presque toujours d'autres sorties dans le même fichier (toast, `confirm`, `title=`, aperçu d'email, tableau jumeau). Les traiter ensemble.
 - **Fichiers de référence** : `src/lib/demoMask.ts`, `src/contexts/DemoModeContext.tsx`, `src/components/settings/StaffProfileSettings.tsx`, `scripts/check-demo-mask.sh`, `.claude/skills/anonymisation-demo/SKILL.md`
 - **Origine** : préparation de la démo du 22/09/2026 — trois mois de features livrées sans masquage
