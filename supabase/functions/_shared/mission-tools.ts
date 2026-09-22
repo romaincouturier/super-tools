@@ -353,51 +353,83 @@ async function downloadFile(url: string): Promise<Uint8Array> {
   return bytes;
 }
 
-/** Résout un document dans les 3 tables de pièces jointes et le télécharge. */
+/**
+ * Télécharge un objet d'un bucket privé via le SDK.
+ *
+ * L'URL `/object/authenticated/...` appelée à la main est refusée (400) : la
+ * clé de service du projet n'est pas un JWT accepté par Storage sur cette
+ * route. Le SDK pose les bons en-têtes et remonte une erreur lisible.
+ */
+async function downloadFromBucket(
+  supabase: Supabase,
+  bucket: string,
+  path: string,
+): Promise<Uint8Array> {
+  const { data, error } = await supabase.storage.from(bucket).download(path);
+  if (error || !data) {
+    throw new Error(`Téléchargement impossible (${bucket}) : ${error?.message ?? "fichier absent"}`);
+  }
+  const bytes = new Uint8Array(await data.arrayBuffer());
+  if (bytes.length > MAX_DOWNLOAD_BYTES) {
+    throw new Error(`Fichier trop lourd (${Math.round(bytes.length / 1024 / 1024)} Mo)`);
+  }
+  return bytes;
+}
+
+/** Résout un document dans les tables de pièces jointes et le télécharge. */
 async function fetchDocumentBytes(
   supabase: Supabase,
   documentId: string,
 ): Promise<{ bytes: Uint8Array; fileName: string; mimeType: string; transcriptPageId?: string }> {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-
   const { data: missionDoc } = await supabase
     .from("mission_documents")
     .select("file_name, file_url, mime_type, transcript_page_id")
     .eq("id", documentId)
     .maybeSingle();
 
-  let url: string | null = null;
-  let fileName = "";
-  let mimeType = "";
-  let transcriptPageId: string | undefined;
-
   if (missionDoc) {
-    url = missionDoc.file_url as string;
-    fileName = missionDoc.file_name as string;
-    mimeType = (missionDoc.mime_type as string) || "";
-    transcriptPageId = (missionDoc.transcript_page_id as string) ?? undefined;
-  } else {
-    for (const [table, bucket] of [
-      ["crm_attachments", "crm-attachments"],
-      ["support_ticket_attachments", "support-attachments"],
-    ] as const) {
-      const { data } = await supabase
-        .from(table)
-        .select("file_name, file_path, mime_type")
-        .eq("id", documentId)
-        .maybeSingle();
-      if (data) {
-        url = `${supabaseUrl}/storage/v1/object/authenticated/${bucket}/${data.file_path}`;
-        fileName = data.file_name as string;
-        mimeType = (data.mime_type as string) || "";
-        break;
-      }
+    return {
+      bytes: await downloadFile(missionDoc.file_url as string),
+      fileName: missionDoc.file_name as string,
+      mimeType: (missionDoc.mime_type as string) || "",
+      transcriptPageId: (missionDoc.transcript_page_id as string) ?? undefined,
+    };
+  }
+
+  for (const [table, bucket] of [
+    ["crm_attachments", "crm-attachments"],
+    ["support_ticket_attachments", "support-attachments"],
+  ] as const) {
+    const { data } = await supabase
+      .from(table)
+      .select("file_name, file_path, mime_type")
+      .eq("id", documentId)
+      .maybeSingle();
+    if (data) {
+      return {
+        bytes: await downloadFromBucket(supabase, bucket, data.file_path as string),
+        fileName: data.file_name as string,
+        mimeType: (data.mime_type as string) || "",
+      };
     }
   }
 
-  if (!url) throw new Error("Document introuvable");
+  // Pièces d'un dossier de consultation (avis de marché public) : même besoin
+  // de lecture que les pièces jointes CRM.
+  const { data: tenderDoc } = await supabase
+    .from("tender_documents")
+    .select("file_name, storage_path, mime_type")
+    .eq("id", documentId)
+    .maybeSingle();
+  if (tenderDoc) {
+    return {
+      bytes: await downloadFromBucket(supabase, "tender-documents", tenderDoc.storage_path as string),
+      fileName: tenderDoc.file_name as string,
+      mimeType: (tenderDoc.mime_type as string) || "",
+    };
+  }
 
-  return { bytes: await downloadFile(url), fileName, mimeType, transcriptPageId };
+  throw new Error("Document introuvable");
 }
 
 /**

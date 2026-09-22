@@ -53,13 +53,18 @@ function toLatin1(bytes: Uint8Array): string {
 
 // ── PDF ──────────────────────────────────────────────────────
 
-/** Texte des blocs BT..ET (ne fonctionne que sur les flux non compressés). */
+/**
+ * Texte des blocs BT..ET.
+ *
+ * Toutes les chaînes entre parenthèses du bloc sont retenues : dans un tableau
+ * `TJ`, seule la dernière est suivie de l'opérateur, les autres seraient perdues.
+ */
 function extractPdfText(raw: string): string {
   const out: string[] = [];
   const btEt = /BT\s([\s\S]*?)ET/g;
   let block: RegExpExecArray | null;
   while ((block = btEt.exec(raw)) !== null) {
-    const strings = /\(((?:[^()\\]|\\.)*)\)\s*(?:Tj|TJ|')/g;
+    const strings = /\(((?:[^()\\]|\\.)*)\)/g;
     let s: RegExpExecArray | null;
     while ((s = strings.exec(block[1])) !== null) {
       const decoded = s[1]
@@ -74,6 +79,47 @@ function extractPdfText(raw: string): string {
   }
   return out.join(" ").replace(/\s+/g, " ").trim();
 }
+
+/** Plafond d'octets décompressés retenus pour la recherche de texte. */
+const PDF_INFLATE_MAX_BYTES = 40 * 1024 * 1024;
+
+/**
+ * Décompresse les flux FlateDecode d'un PDF.
+ *
+ * La quasi-totalité des PDF produits par une suite bureautique compresse le
+ * contenu des pages : sans cette étape, le texte reste invisible et le document
+ * est pris à tort pour un scan.
+ */
+async function inflatePdfStreams(bytes: Uint8Array, raw: string): Promise<string> {
+  const chunks: string[] = [];
+  let total = 0;
+  let searchFrom = 0;
+  while (total < PDF_INFLATE_MAX_BYTES) {
+    const marker = raw.indexOf("/FlateDecode", searchFrom);
+    if (marker === -1) break;
+    const streamAt = raw.indexOf("stream", marker);
+    if (streamAt === -1) break;
+    let start = streamAt + "stream".length;
+    if (raw[start] === "\r") start++;
+    if (raw[start] === "\n") start++;
+    const endAt = raw.indexOf("endstream", start);
+    if (endAt === -1) break;
+    searchFrom = endAt + "endstream".length;
+
+    const slice = bytes.subarray(start, endAt);
+    if (!slice.length) continue;
+    try {
+      const stream = new Blob([slice]).stream().pipeThrough(new DecompressionStream("deflate"));
+      const inflated = new Uint8Array(await new Response(stream).arrayBuffer());
+      total += inflated.length;
+      chunks.push(toLatin1(inflated));
+    } catch {
+      // Flux chiffré, tronqué ou compressé autrement : on passe au suivant.
+    }
+  }
+  return chunks.join("\n");
+}
+
 
 /**
  * Images JPEG embarquées d'un PDF scanné. Les scanners encodent les pages en
@@ -245,7 +291,14 @@ export async function extractDocument(
 
   if (mime === "application/pdf") {
     const raw = toLatin1(bytes);
-    const text = extractPdfText(raw);
+    let text = extractPdfText(raw);
+    if (text.length < PDF_TEXT_MIN_CHARS) {
+      const inflated = await inflatePdfStreams(bytes, raw);
+      if (inflated) {
+        const fromStreams = extractPdfText(inflated);
+        if (fromStreams.length > text.length) text = fromStreams;
+      }
+    }
     if (text.length >= PDF_TEXT_MIN_CHARS) {
       return { parts: [{ kind: "text", text }], note: `Texte extrait de ${fileName}.` };
     }
