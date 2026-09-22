@@ -1,3 +1,6 @@
+import { verifyAuth } from "./supabase-client.ts";
+import { timingSafeEqualSecret } from "./crypto.ts";
+
 /**
  * Authentification des appels automatiques d'une edge function (règle [036]).
  *
@@ -47,11 +50,13 @@ export async function isInternalOrAuthenticated(
 
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const authHeader = req.headers.get("Authorization") ?? "";
-  // Crons pg_cron et délégations envoient le service_role en Bearer.
-  if (serviceRole !== "" && authHeader === `Bearer ${serviceRole}`) return true;
+  // Crons pg_cron et délégations envoient le service_role en Bearer. Comparaison
+  // à temps constant : ce secret est le plus sensible du système.
+  if (serviceRole !== "" && await timingSafeEqualSecret(authHeader, `Bearer ${serviceRole}`)) {
+    return true;
+  }
 
   // Appel frontend authentifié : JWT utilisateur validé via getUser().
-  const { verifyAuth } = await import("./supabase-client.ts");
   const user = await verifyAuth(authHeader);
   return user !== null;
 }

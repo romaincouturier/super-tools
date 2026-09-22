@@ -14,13 +14,13 @@ serve(async (req) => {
 
   if (corsResponse) return corsResponse;
 
-  // Garde d'auth : destinataire et contenu contrôlés par l'appelant. Sans
-  // garde = relais d'email depuis le domaine vérifié. Seuls appelants
-  // légitimes : le kanban éditorial et les revues (staff authentifié).
-  const authedUser = await verifyAuth(req.headers.get("Authorization"));
-  if (!authedUser) return createErrorResponse("Unauthorized", 401);
-
   try {
+    // Garde d'auth : destinataire et contenu contrôlés par l'appelant. Sans
+    // garde = relais d'email depuis le domaine vérifié. Seuls appelants
+    // légitimes : le kanban éditorial et les revues (staff authentifié).
+    const authedUser = await verifyAuth(req.headers.get("Authorization"));
+    if (!authedUser) return createErrorResponse("Unauthorized", 401);
+
     let body: any;
     try {
       body = await req.json();
