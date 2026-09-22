@@ -112,8 +112,23 @@ Le contrôle ne voit pas ce qui n'est pas nommé par un champ identifiant : logo
 clients, captures d'écran, pièces jointes, titres de missions, onglets du
 navigateur, notifications. Cette relecture visuelle est la dernière maille.
 
+## Ce que le contrôle prouve, et ce qu'il ne prouve pas
+
+`062=0` veut dire : aucune donnée identifiante n'est rendue par un accès direct
+à un champ, dans du JSX ou dans un toast. C'est un **plancher, pas une preuve**.
+Le grep ne suit pas une variable : `const name = [c.first_name, c.last_name]…`
+puis `confirm(\`Supprimer ${name} ?\`)` passe au travers, et c'est exactement ce
+qui a laissé neuf fuites en place le 22/09 (toasts d'envoi, corps d'email
+programmé, carte kanban commandes, confirmations de suppression).
+
+Le réflexe qui les attrape : quand tu masques un champ à un endroit, **cherche
+toutes les autres sorties de la même donnée dans le fichier** — toast, `confirm`,
+`title=`, corps d'email prévisualisé, tableau jumeau. Une fuite arrive rarement
+seule.
+
 ## Angles morts connus du contrôle
 
+- Identité portée par une variable locale, pas par un accès de champ.
 - Champs de formulaire (`value=`) — exclus par construction, voir règle 2.
 - Données identifiantes portées par un nom de champ générique (`title`, `label`,
   `name`, `content`) — invisibles pour le grep, à traiter à la relecture.

@@ -510,7 +510,8 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 - **Vérification** :
   - `bash scripts/check-demo-mask.sh` — liste `fichier:ligne` des affichages non masqués.
   - `bash scripts/check-demo-mask.sh --count` — alimente le ratchet `062` de `scripts/rules-ratchet.txt`.
-  - Angles morts assumés du grep, à relire à l'oeil en mode démo activé : champs de formulaire, données portées par un nom générique (`title`, `label`, `name`, `content`), HTML injecté, PDF, images.
+  - `062=0` est un **plancher, pas une preuve** : le grep voit un accès de champ (`{c.email}`, `` `…${c.email}…` `` dans un toast), pas une identité passée par une variable locale. Angles morts à relire à l'oeil en mode démo activé : variables intermédiaires, champs de formulaire, noms génériques (`title`, `label`, `name`, `content`), HTML injecté, PDF, images.
+  - Réflexe de correction : un champ masqué à un endroit a presque toujours d'autres sorties dans le même fichier (toast, `confirm`, `title=`, aperçu d'email, tableau jumeau). Les traiter ensemble.
 - **Fichiers de référence** : `src/lib/demoMask.ts`, `src/contexts/DemoModeContext.tsx`, `src/components/settings/StaffProfileSettings.tsx`, `scripts/check-demo-mask.sh`, `.claude/skills/anonymisation-demo/SKILL.md`
 - **Origine** : préparation de la démo du 22/09/2026 — trois mois de features livrées sans masquage
 - **Date** : 2026-09-21

@@ -27,8 +27,14 @@ EXACT='first_name|last_name|full_name|contact_name|client_name|customer_name|lea
 # Ecrans publics / apprenant / partenaire : hors perimetre du mode demo.
 PUBLIC_SCREENS='src/pages/(Landing|Auth|Signup|Onboarding|ResetPassword|ForcePasswordChange|PolitiqueConfidentialite|Connexion.*|CompteSansAcces|NotFound|Academy.*|FormulaireRedirect|Google.*Callback|LearnerPortal|LmsCoursePlayer|LmsCourseHomePage|Questionnaire|Evaluation|SponsorEvaluation|TrainerEvaluation|Emargement|Signature.*|ReclamationPublic|PartnerPortal|TrainingSummary|TrainingSupportPage|MissionSummary|SurveyPublic|TrainingSurveyResponse|BookPublicPage|SupertiltConfirmationEnvoi)\.tsx|src/components/(learner|questionnaire|ui)/'
 
+# Le rendu n'est pas que du JSX : un toast, un confirm ou une interpolation
+# `${...}` affichent aussi. C'est ce qui laissait passer 9 fuites le 22/09.
+FIELD_RE="(([a-zA-Z_]*_)?($PREFIXED)|($EXACT))"
+
 violations() {
-  grep -rnE "\{[^}]*\.(([a-zA-Z_]*_)?($PREFIXED)|($EXACT))\b" src/pages src/components --include='*.tsx' 2>/dev/null \
+  { grep -rnE "\{[^}]*\.$FIELD_RE\b" src/pages src/components --include='*.tsx' 2>/dev/null; \
+    grep -rnE "(toast\(|confirm\(|title:|description:)[^\n]*\\\$\{[^}]*\.$FIELD_RE\b" src/pages src/components --include='*.tsx' 2>/dev/null; } \
+    | sort -u -t: -k1,1 -k2,2n \
     | grep -vE '\.test\.tsx:' \
     | grep -vE "$PUBLIC_SCREENS" \
     | grep -v 'mask[A-Z]' \

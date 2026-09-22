@@ -58,7 +58,7 @@ const ReseauCartography = ({ onComplete }: ReseauCartographyProps) => {
         warmth: contact.warmth,
       });
       setAddedNames((prev) => new Set([...prev, contact.name]));
-      toast({ title: `${contact.name} ajouté !` });
+      toast({ title: `${isDemoMode ? maskName(contact.name) : contact.name} ajouté !` });
     } catch {
       toast({
         title: "Erreur",

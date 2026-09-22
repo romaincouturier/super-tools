@@ -291,7 +291,7 @@ export default function InboundEmails() {
                           {(isDemoMode ? maskText(email.subject) || null : email.subject) || "(Sans sujet)"}
                         </p>
                         <p className="text-sm text-muted-foreground truncate">
-                          {email.text_body?.substring(0, 100) || "(Pas de contenu texte)"}
+                          {isDemoMode ? "•".repeat(40) : (email.text_body?.substring(0, 100) || "(Pas de contenu texte)")}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
@@ -372,7 +372,9 @@ export default function InboundEmails() {
                 <Separator />
 
                 {/* Content */}
-                {selectedEmail?.html_body ? (
+                {isDemoMode ? (
+                  <p className="text-sm text-muted-foreground italic">Contenu masqué en mode démo.</p>
+                ) : selectedEmail?.html_body ? (
                   <div
                     className="prose prose-sm max-w-none dark:prose-invert break-words [&_img]:max-w-full [&_table]:max-w-full"
                     dangerouslySetInnerHTML={{ 

@@ -35,6 +35,7 @@ interface LineItem {
 
 export default function GameDevisTab() {
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const { data: games = [] } = useGames();
   const { data: priceOptions = [] } = useGamePriceOptions();
   const generateDevis = useGenerateGameDevis();
@@ -179,7 +180,7 @@ export default function GameDevisTab() {
         noteDevis,
         ...(crmCardId && { crmCardId, senderEmail: senderEmail ?? undefined }),
       });
-      toast({ title: "Devis envoyé !", description: `Le devis a été généré et envoyé à ${emailCommanditaire}` });
+      toast({ title: "Devis envoyé !", description: `Le devis a été généré et envoyé à ${isDemoMode ? maskEmail(emailCommanditaire) : emailCommanditaire}` });
       try {
         localStorage.setItem(
           FEES_STORAGE_KEY,

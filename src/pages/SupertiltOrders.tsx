@@ -619,10 +619,14 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
   const { confirm, ConfirmDialog } = useConfirm();
   const { toast } = useToast();
 
+  const { isDemoMode } = useDemoMode();
   const order = item.woocommerce_orders;
-  const customerName = order
+  const rawCustomerName = order
     ? [order.customer_first_name, order.customer_last_name].filter(Boolean).join(" ") || order.customer_email
     : `Commande #${item.wc_order_id}`;
+  const customerName = order && isDemoMode
+    ? (rawCustomerName.includes("@") ? maskEmail(rawCustomerName) : maskName(rawCustomerName))
+    : rawCustomerName;
 
   const handleMarkProcessed = async () => {
     try {

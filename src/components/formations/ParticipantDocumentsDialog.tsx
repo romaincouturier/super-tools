@@ -308,9 +308,9 @@ const ParticipantDocumentsDialog = ({
           : type === "sheets" ? "Les feuilles d'émargement ont été envoyées"
           : "Les documents ont été envoyés";
 
-        let description = `${docTypeLabel} à ${targetEmail}`;
+        let description = `${docTypeLabel} à ${isDemoMode ? maskEmail(targetEmail) : targetEmail}`;
         if (ccEmail) {
-          description += ` (CC: ${ccEmail})`;
+          description += ` (CC: ${isDemoMode ? maskEmail(ccEmail) : ccEmail})`;
         }
         description += ".";
 

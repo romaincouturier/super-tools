@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
 import { toastError } from "@/lib/toastError";
 import {
   useMissionContacts,
@@ -49,6 +50,7 @@ interface MissionContactsProps {
 const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
   const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { data: contacts, isLoading } = useMissionContacts(missionId);
   const createContact = useCreateMissionContact();
   const updateContact = useUpdateMissionContact();
@@ -116,8 +118,10 @@ const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
   };
 
   const handleDelete = async (contact: MissionContact) => {
-    const name = [contact.first_name, contact.last_name].filter(Boolean).join(" ") || "ce contact";
-    if (!confirm(`Supprimer ${name} ?`)) return;
+    const rawName = [contact.first_name, contact.last_name].filter(Boolean).join(" ") || "ce contact";
+    const name = isDemoMode ? maskName(rawName) : rawName;
+    const ok = await confirm({ title: `Supprimer ${name} ?`, description: "Cette action est irréversible.", confirmText: "Supprimer" });
+    if (!ok) return;
     try {
       await deleteContact.mutateAsync({ id: contact.id, missionId });
       toast({ title: "Contact supprimé" });
@@ -190,6 +194,7 @@ const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
           ))}
         </div>
       )}
+      <ConfirmDialog />
     </div>
   );
 };

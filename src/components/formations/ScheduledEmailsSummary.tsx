@@ -279,7 +279,8 @@ const ScheduledEmailsSummary = ({ trainingId, participants, refreshTrigger }: Sc
       ? participants.find(p => p.id === email.participant_id) 
       : null;
     
-    const firstName = participant?.first_name || "";
+    const rawFirstName = participant?.first_name || "";
+    const firstName = isDemoMode ? maskName(rawFirstName) : rawFirstName;
     const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,";
     
     // Format training date
@@ -607,9 +608,10 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
     const participant = participants.find(p => p.id === email.participant_id);
     if (!participant) return "Participant inconnu";
     if (participant.first_name || participant.last_name) {
-      return `${participant.first_name || ""} ${participant.last_name || ""}`.trim(); // demo-safe: valeur brute, floutee a l'affichage en mode demo
+      const name = `${participant.first_name || ""} ${participant.last_name || ""}`.trim(); // demo-safe: masque a la ligne suivante
+      return isDemoMode ? maskName(name) : name;
     }
-    return participant.email;
+    return isDemoMode ? maskEmail(participant.email) : participant.email;
   };
 
   // Split emails into pending vs sent
@@ -872,7 +874,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
                           onClick={() => setSelectedEmail(email)}
                         >
                           <div className="flex-1 min-w-0">
-                            <span className="truncate block" style={isDemoMode && email.participant_id ? { filter: "blur(4px)", userSelect: "none" } : undefined}>{getParticipantName(email)}</span>
+                            <span className="truncate block">{getParticipantName(email)}</span>
                             <span className="text-xs text-muted-foreground">
                               Prévu le {format(parseISO(email.scheduled_for), "d MMM à HH:mm", { locale: fr })}
                             </span>
@@ -930,7 +932,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
                           onClick={() => setSelectedEmail(email)}
                         >
                           <div className="flex-1 min-w-0">
-                            <span className="truncate block" style={isDemoMode && email.participant_id ? { filter: "blur(4px)", userSelect: "none" } : undefined}>{getParticipantName(email)}</span>
+                            <span className="truncate block">{getParticipantName(email)}</span>
                             <span className="text-xs text-muted-foreground">
                               Envoyé le {format(parseISO(email.sent_at!), "d MMM à HH:mm", { locale: fr })}
                             </span>
@@ -967,7 +969,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
             <DialogDescription>
               De: {"{sender_name}"} &lt;{"{sender_email}"}&gt;
               <br />
-              À: <span style={isDemoMode && selectedEmail?.participant_id ? { filter: "blur(4px)", userSelect: "none" } : undefined}>{selectedEmail && getParticipantName(selectedEmail)}</span>
+              À: <span>{selectedEmail && getParticipantName(selectedEmail)}</span>
             </DialogDescription>
           </DialogHeader>
           
@@ -1044,7 +1046,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
             <AlertDialogTitle>Supprimer cet email programmé ?</AlertDialogTitle>
             <AlertDialogDescription>
               L'email "{emailToDelete && getEmailTypeLabel(emailToDelete.email_type)}" prévu pour{" "}
-              <span style={isDemoMode && emailToDelete?.participant_id ? { filter: "blur(4px)", userSelect: "none" } : undefined}>{emailToDelete && getParticipantName(emailToDelete)}</span> sera définitivement supprimé.
+              <span>{emailToDelete && getParticipantName(emailToDelete)}</span> sera définitivement supprimé.
               Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>

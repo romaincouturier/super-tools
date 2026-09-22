@@ -28,7 +28,7 @@ const CoolingAlerts = ({ coolingContacts }: CoolingAlertsProps) => {
         interaction_type: "manual_log",
         notes: "Interaction manuelle enregistrée",
       });
-      toast({ title: `Interaction avec ${contactName} enregistrée` });
+      toast({ title: `Interaction avec ${isDemoMode ? maskName(contactName) : contactName} enregistrée` });
     } catch {
       toastError(toast, null);
     }
