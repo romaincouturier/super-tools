@@ -53,8 +53,8 @@ const DuplicateParticipantDialog = ({
         )
       }
 
-      initialCompany={participant.company ?? undefined}
-      initialCompanyAddress={participant.company_address ?? undefined}
+      initialCompany={participant.company ?? undefined} // demo-safe: pre-remplissage d'un champ de saisie, masquer corromprait l'enregistrement
+      initialCompanyAddress={participant.company_address ?? undefined} // demo-safe: pre-remplissage d'un champ de saisie, masquer corromprait l'enregistrement
       initialCompanyZip={participant.company_zip ?? undefined}
       initialCompanyCity={participant.company_city ?? undefined}
       initialSoldPriceHt={
@@ -69,8 +69,8 @@ const DuplicateParticipantDialog = ({
       initialSourceFinancementBpf={participant.source_financement_bpf ?? undefined}
       initialSponsorFirstName={participant.sponsor_first_name ?? undefined}
       initialSponsorLastName={participant.sponsor_last_name ?? undefined}
-      initialSponsorEmail={participant.sponsor_email ?? undefined}
-      initialSponsorPhone={(participant as any).sponsor_phone ?? undefined}
+      initialSponsorEmail={participant.sponsor_email ?? undefined} // demo-safe: pre-remplissage d'un champ de saisie, masquer corromprait l'enregistrement
+      initialSponsorPhone={(participant as any).sponsor_phone ?? undefined} // demo-safe: pre-remplissage d'un champ de saisie, masquer corromprait l'enregistrement
     />
   );
 };

@@ -103,7 +103,7 @@ const UserMenu = ({ user, onLogout, trigger }: UserMenuProps) => {
               className="text-background hover:bg-background/10 gap-2"
             >
               <UserIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">{user.email}</span>
+              <span className="hidden sm:inline">{user.email}</span>{/* demo-safe: compte connecte */}
             </Button>
           )}
         </DropdownMenuTrigger>
@@ -112,7 +112,7 @@ const UserMenu = ({ user, onLogout, trigger }: UserMenuProps) => {
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium">Mon compte</p>
               <p className="text-xs text-muted-foreground truncate">
-                {user.email}
+                {user.email}{/* demo-safe: compte connecte */}
               </p>
             </div>
           </DropdownMenuLabel>

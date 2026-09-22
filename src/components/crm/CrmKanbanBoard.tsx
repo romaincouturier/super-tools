@@ -624,7 +624,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
                     <div className={`flex-1 min-w-0 space-y-0.5 ${isLost ? "line-through opacity-60" : ""}`}>
                       <div className="flex items-center gap-2">
                         {card.emoji && <span className="text-sm">{card.emoji}</span>}
-                        <span className="text-sm font-medium truncate">{card.title}</span>
+                        <span className="text-sm font-medium truncate">{isDemoMode ? maskText(card.title) : card.title}</span>
                         {isWon && (
                           <Badge className="text-[10px] py-0 h-4 px-1.5 bg-green-100 text-green-700 hover:bg-green-100 border-green-200 no-underline">
                             Gagné
@@ -632,13 +632,13 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
                         )}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        {card.company && (
+                        {card.company && ( /* demo-safe: masque applique a l'affichage ci-dessous */
                           <span className="flex items-center gap-1">
                             <Building className="h-3 w-3" />
                             {isDemoMode ? maskText(card.company) : card.company}
                           </span>
                         )}
-                        {(card.first_name || card.last_name) && (
+                        {(card.first_name || card.last_name) && ( /* demo-safe: masque applique a l'affichage ci-dessous */
                           <span className="flex items-center gap-1">
                             <User className="h-3 w-3" />
                             {isDemoMode
@@ -646,7 +646,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
                               : [card.first_name, card.last_name].filter(Boolean).join(" ")}
                           </span>
                         )}
-                        {(card.estimated_value ?? 0) > 0 && (
+                        {(card.estimated_value ?? 0) > 0 && ( /* demo-safe: masque applique a l'affichage ci-dessous */
                           <span className="font-semibold text-green-700">
                             {isDemoMode ? maskAmount(card.estimated_value) : `${(card.estimated_value ?? 0).toLocaleString("fr-FR")} €`}
                           </span>
@@ -785,7 +785,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         opportunityTitle={pendingTrainingCard?.title || ""}
         isFormation={pendingTrainingCard?.service_type === "formation" || !pendingTrainingCard?.service_type}
         crmCardId={pendingTrainingCard?.id ?? null}
-        initialSiren={pendingTrainingCard?.siren ?? null}
+        initialSiren={pendingTrainingCard?.siren ?? null /* demo-safe: siren transmis a la recherche entreprise, non affiche */}
         onSirenResolved={(overrides) =>
           setPendingTrainingCard((prev) => (prev ? { ...prev, ...overrides } : prev))
         }

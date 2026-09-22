@@ -58,7 +58,7 @@ const MissionCard = ({ mission, isDragging: isDraggingProp, onClick, onEmojiChan
             className="shrink-0 mt-0.5"
           />
         </span>
-        <h4 className="font-medium text-sm line-clamp-2 flex-1">{mission.title}</h4>
+        <h4 className="font-medium text-sm line-clamp-2 flex-1">{isDemoMode ? maskText(mission.title) : mission.title}</h4>
         {hasNewSurvey && (
           <span
             className="inline-block w-2.5 h-2.5 rounded-full bg-destructive shrink-0 mt-1"
@@ -68,7 +68,7 @@ const MissionCard = ({ mission, isDragging: isDraggingProp, onClick, onEmojiChan
       </div>
 
       {/* Client */}
-      {mission.client_name && (
+      {mission.client_name && ( /* demo-safe: garde, valeur masquee ligne suivante */
         <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
           <Building2 className="h-3 w-3" />
           <span className="truncate">{isDemoMode ? maskText(mission.client_name) : mission.client_name}</span>
@@ -88,7 +88,7 @@ const MissionCard = ({ mission, isDragging: isDraggingProp, onClick, onEmojiChan
       )}
 
       {/* Amount */}
-      {mission.total_amount && (
+      {mission.total_amount && ( /* demo-safe: garde d'affichage, montant masque ci-dessous */
         <div className="flex items-center gap-1 text-xs font-medium text-primary">
           <Euro className="h-3 w-3" />
           <span>{isDemoMode ? maskAmount(mission.total_amount) : `${mission.total_amount.toLocaleString("fr-FR")} €`}</span>

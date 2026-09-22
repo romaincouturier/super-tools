@@ -50,6 +50,8 @@ import {
   useDeleteGameAuthor,
   type GameAuthor,
 } from "@/hooks/useDropshipping";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount, maskEmail, maskName, maskPhone, maskText, demoBlur } from "@/lib/demoMask";
 
 const EUR = (v: number) => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
@@ -65,6 +67,8 @@ function getPortalUrl(token: string) {
 // ════════════════════════════════════════════════════════════════
 
 export function BilanTab() {
+  const { isDemoMode } = useDemoMode();
+  const money = (v: number) => (isDemoMode ? maskAmount(v) : EUR(v));
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [appliedFrom, setAppliedFrom] = useState<string | undefined>();
@@ -135,10 +139,10 @@ export function BilanTab() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "CA TTC total", value: EUR(totals.total_ttc), icon: <Euro className="h-5 w-5 text-green-600" /> },
-          { label: "Commissions totales", value: EUR(totals.total_commission), icon: <TrendingUp className="h-5 w-5 text-purple-600" /> },
-          { label: "Dépenses totales", value: EUR(totals.total_expenses), icon: <Package className="h-5 w-5 text-red-600" /> },
-          { label: "Marge estimée", value: EUR(totals.margin), icon: <TrendingUp className="h-5 w-5 text-blue-600" /> },
+          { label: "CA TTC total", value: money(totals.total_ttc), icon: <Euro className="h-5 w-5 text-green-600" /> }, // demo-safe: montant masque par money()
+          { label: "Commissions totales", value: money(totals.total_commission), icon: <TrendingUp className="h-5 w-5 text-purple-600" /> },
+          { label: "Dépenses totales", value: money(totals.total_expenses), icon: <Package className="h-5 w-5 text-red-600" /> },
+          { label: "Marge estimée", value: money(totals.margin), icon: <TrendingUp className="h-5 w-5 text-blue-600" /> },
         ].map(({ label, value, icon }) => (
           <Card key={label}>
             <CardContent className="p-4 flex items-center gap-3">
@@ -174,13 +178,13 @@ export function BilanTab() {
                 <TableCell className="font-medium">{r.title}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">{r.game_type}</TableCell>
                 <TableCell className="text-right text-sm">{r.sales_count}</TableCell>
-                <TableCell className="text-right text-sm">{EUR(r.total_ttc)}</TableCell>
-                <TableCell className="text-right text-sm text-purple-700">{EUR(r.total_commission)}</TableCell>
-                <TableCell className="text-right text-sm text-orange-700">{EUR(r.cogs)}</TableCell>
-                <TableCell className="text-right text-sm text-red-700">{EUR(r.total_expenses)}</TableCell>
-                <TableCell className={`text-right text-sm font-medium ${r.margin >= 0 ? "text-green-700" : "text-red-700"}`}>{EUR(r.margin)}</TableCell>
-                <TableCell className="text-right text-sm text-green-700">{EUR(r.total_paid)}</TableCell>
-                <TableCell className={`text-right text-sm font-medium ${r.commission_remaining > 0 ? "text-orange-700" : ""}`}>{EUR(r.commission_remaining)}</TableCell>
+                <TableCell className="text-right text-sm">{money(r.total_ttc)}{/* demo-safe: montant masque par money() */}</TableCell>
+                <TableCell className="text-right text-sm text-purple-700">{money(r.total_commission)}</TableCell>
+                <TableCell className="text-right text-sm text-orange-700">{money(r.cogs)}</TableCell>
+                <TableCell className="text-right text-sm text-red-700">{money(r.total_expenses)}</TableCell>
+                <TableCell className={`text-right text-sm font-medium ${r.margin >= 0 ? "text-green-700" : "text-red-700"}`}>{money(r.margin)}</TableCell>
+                <TableCell className="text-right text-sm text-green-700">{money(r.total_paid)}</TableCell>
+                <TableCell className={`text-right text-sm font-medium ${r.commission_remaining > 0 ? "text-orange-700" : ""}`}>{money(r.commission_remaining)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -268,7 +272,7 @@ function PaymentDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
-          <Button onClick={save} disabled={isPending || !form.game_id || !form.amount || !form.payment_date}>
+          <Button onClick={save} disabled={isPending || !form.game_id || !form.amount || !form.payment_date}>{/* demo-safe: test de saisie du formulaire, aucun montant affiche */}
             {isPending ? <Spinner /> : "Sauvegarder"}
           </Button>
         </DialogFooter>
@@ -369,6 +373,7 @@ function NewTokenDialog({ games, onClose }: { games: GameFull[]; onClose: () => 
 }
 
 export function PartenairesTab() {
+  const { isDemoMode } = useDemoMode();
   const { data: tokens, isLoading: loadingTokens } = usePartnerTokens();
   const { data: payments, isLoading: loadingPayments } = usePartnerPayments();
   const { data: games } = useGamesFullCatalog();
@@ -479,7 +484,7 @@ export function PartenairesTab() {
                     <TableRow key={p.id}>
                       <TableCell className="text-sm font-medium">{(p.games as any)?.title ?? "—"}</TableCell>
                       <TableCell className="text-sm">{DATE(p.payment_date)}</TableCell>
-                      <TableCell className="text-right text-sm font-medium">{EUR(p.amount)}</TableCell>
+                      <TableCell className="text-right text-sm font-medium">{isDemoMode ? maskAmount(p.amount) : EUR(p.amount)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{p.comment ?? "—"}</TableCell>
                       <TableCell className="text-xs">{p.declared_by === "partner" ? "Partenaire" : "Admin"}</TableCell>
                       <TableCell>
@@ -816,6 +821,7 @@ function StockEditDialog({ game, onClose }: { game: GameFull; onClose: () => voi
 }
 
 function RestockPreviewDialog({ gameId, onClose }: { gameId: string; onClose: () => void }) {
+  const { isDemoMode } = useDemoMode();
   const { mutateAsync: send } = useSendRestockEmail();
   const [preview, setPreview] = useState<{ subject: string; html: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -853,7 +859,7 @@ function RestockPreviewDialog({ gameId, onClose }: { gameId: string; onClose: ()
               <p className="text-xs text-muted-foreground">Objet</p>
               <p className="font-medium text-sm">{preview.subject}</p>
             </div>
-            <div className="border rounded p-3 text-sm prose max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(preview.html, { ADD_ATTR: ["target"] }) }} />
+            <div className="border rounded p-3 text-sm prose max-w-none" style={demoBlur(isDemoMode)} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(preview.html, { ADD_ATTR: ["target"] }) }} />
           </div>
         )}
         {!loading && !preview && (
@@ -1037,6 +1043,7 @@ function AuthorDialog({ author, onClose }: { author: Partial<GameAuthor>; onClos
 }
 
 export function AuteursTab() {
+  const { isDemoMode } = useDemoMode();
   const { data: authors, isLoading } = useGameAuthors();
   const { mutateAsync: del } = useDeleteGameAuthor();
   const [editing, setEditing] = useState<Partial<GameAuthor> | undefined>(undefined);
@@ -1078,10 +1085,10 @@ export function AuteursTab() {
             )}
             {(authors ?? []).map((a) => (
               <TableRow key={a.id}>
-                <TableCell className="font-medium">{a.name}</TableCell>
-                <TableCell className="text-muted-foreground text-sm">{a.email ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground text-sm">{a.phone ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground text-sm">{a.company ?? "—"}</TableCell>
+                <TableCell className="font-medium">{isDemoMode ? maskName(a.name) : a.name}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{(isDemoMode ? maskEmail(a.email) || null : a.email) ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{(isDemoMode ? maskPhone(a.phone) || null : a.phone) ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{(isDemoMode ? maskText(a.company) || null : a.company) ?? "—"}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <Button variant="ghost" size="icon" onClick={() => setEditing(a)}>

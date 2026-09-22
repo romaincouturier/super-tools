@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { formatDateTimeSeconds } from "@/lib/dateFormatters";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAddress, maskName } from "@/lib/demoMask";
 
 import type { ConventionSignatureStatus, VerificationResult } from "./types";
 
@@ -36,6 +38,7 @@ const ConventionAuditPanel = ({
   conventionSignatureStatus,
 }: ConventionAuditPanelProps) => {
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const { loading: verifying, invoke: invokeVerify } = useEdgeFunction<VerificationResult>(
     "verify-convention-signature",
@@ -85,7 +88,7 @@ const ConventionAuditPanel = ({
       {/* Signer info */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         <span className="text-muted-foreground">Signataire</span>
-        <span className="font-medium">{conventionSignatureStatus.signer_name || "—"}</span>
+        <span className="font-medium">{(isDemoMode ? maskName(conventionSignatureStatus.signer_name) : conventionSignatureStatus.signer_name) || "—"}</span>
         {conventionSignatureStatus.signer_function && (
           <>
             <span className="text-muted-foreground">Fonction</span>
@@ -95,7 +98,7 @@ const ConventionAuditPanel = ({
         <span className="text-muted-foreground">Date de signature</span>
         <span>{conventionSignatureStatus.signed_at ? formatFullDate(conventionSignatureStatus.signed_at) : "—"}</span>
         <span className="text-muted-foreground">Adresse IP</span>
-        <span className="font-mono">{conventionSignatureStatus.ip_address || "—"}</span>
+        <span className="font-mono">{(isDemoMode ? maskAddress(conventionSignatureStatus.ip_address) : conventionSignatureStatus.ip_address) || "—"}</span>
         <span className="text-muted-foreground">Consentement donné</span>
         <span>{conventionSignatureStatus.consent_timestamp ? formatFullDate(conventionSignatureStatus.consent_timestamp) : "—"}</span>
       </div>

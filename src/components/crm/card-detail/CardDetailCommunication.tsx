@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskEmail } from "@/lib/demoMask";
+import { maskEmail, maskText } from "@/lib/demoMask";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -437,8 +437,8 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
                 <span className="text-muted-foreground shrink-0">
                   {format(new Date(se.scheduled_at), "d MMM 'à' HH:mm", { locale: fr })}
                 </span>
-                <span className="truncate flex-1" title={`${se.recipient_email} — ${se.subject}`}>
-                  → {se.subject}
+                <span className="truncate flex-1" title={`${isDemoMode ? maskEmail(se.recipient_email) : se.recipient_email} — ${isDemoMode ? maskText(se.subject) : se.subject}`}>
+                  → {isDemoMode ? maskText(se.subject) : se.subject}
                 </span>
                 <Button
                   variant="ghost"
@@ -497,7 +497,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
 
 
       {/* Email & devis history */}
-      <SentDevisSection email={email || null} cardId={card?.id || null} emails={details?.emails} />
+      <SentDevisSection email={email || null} cardId={card?.id || null} emails={details?.emails /* demo-safe: donnees brutes transmises au composant enfant */} />
     </div>
   );
 };

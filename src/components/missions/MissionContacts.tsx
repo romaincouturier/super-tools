@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
 import { toastError } from "@/lib/toastError";
 import {
   useMissionContacts,
@@ -47,7 +48,9 @@ interface MissionContactsProps {
 }
 
 const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { data: contacts, isLoading } = useMissionContacts(missionId);
   const createContact = useCreateMissionContact();
   const updateContact = useUpdateMissionContact();
@@ -115,8 +118,10 @@ const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
   };
 
   const handleDelete = async (contact: MissionContact) => {
-    const name = [contact.first_name, contact.last_name].filter(Boolean).join(" ") || "ce contact";
-    if (!confirm(`Supprimer ${name} ?`)) return;
+    const rawName = [contact.first_name, contact.last_name].filter(Boolean).join(" ") || "ce contact";
+    const name = isDemoMode ? maskName(rawName) : rawName;
+    const ok = await confirm({ title: `Supprimer ${name} ?`, description: "Cette action est irréversible.", confirmText: "Supprimer" });
+    if (!ok) return;
     try {
       await deleteContact.mutateAsync({ id: contact.id, missionId });
       toast({ title: "Contact supprimé" });
@@ -154,7 +159,7 @@ const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
             .filter((s) => !contacts?.some((c) => c.email?.toLowerCase() === s.email.toLowerCase()))
             .map((s) => (
               <Button
-                key={s.email}
+                key={s.email /* demo-safe: cle React */}
                 size="sm"
                 variant="secondary"
                 className="h-6 px-2 text-xs"
@@ -162,7 +167,7 @@ const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
                 onClick={() => handleQuickAdd(s)}
               >
                 <Plus className="h-3 w-3 mr-1" />
-                {[s.first_name, s.last_name].filter(Boolean).join(" ") || s.email}
+                {isDemoMode ? maskName([s.first_name, s.last_name].filter(Boolean).join(" ")) || maskEmail(s.email) : [s.first_name, s.last_name].filter(Boolean).join(" ") || s.email}
               </Button>
             ))}
         </div>
@@ -189,6 +194,7 @@ const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
           ))}
         </div>
       )}
+      <ConfirmDialog />
     </div>
   );
 };
@@ -251,19 +257,19 @@ const ContactCard = ({ contact, isEditing, onToggleEdit, onUpdate, onSetPrimary,
       {/* Compact info when not editing */}
       {!isEditing && (
         <div className="flex items-center gap-4 text-xs text-muted-foreground pl-6 cursor-pointer" onClick={onToggleEdit}>
-          {contact.email && (
+          {contact.email && ( // demo-safe: garde d'affichage, valeur masquee plus bas
             <span className="flex items-center gap-1">
               <Mail className="h-3 w-3" />
               {isDemoMode ? maskEmail(contact.email) : contact.email}
             </span>
           )}
-          {contact.phone && (
+          {contact.phone && ( // demo-safe: garde d'affichage, valeur masquee plus bas
             <span className="flex items-center gap-1">
               <Phone className="h-3 w-3" />
               {isDemoMode ? maskPhone(contact.phone) : contact.phone}
             </span>
           )}
-          {!contact.email && !contact.phone && (
+          {!contact.email && !contact.phone && ( // demo-safe: garde sur champs vides
             <span className="italic">Cliquer pour modifier</span>
           )}
         </div>

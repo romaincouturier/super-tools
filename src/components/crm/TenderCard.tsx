@@ -24,6 +24,8 @@ import { daysLeft, describeMatch, resolveDceLink, TENDER_URGENT_DAYS } from "@/l
 import { useDceReviewFlag } from "@/hooks/crm/useDceReviewFlag";
 import { useTenderSetDeadline } from "@/hooks/crm/useTenderOpportunities";
 import { tenderNoGoReasonConfig, tenderSourceConfig, type TenderWithContext } from "@/types/tenders";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 
 interface TenderCardProps {
   tender: TenderWithContext;
@@ -102,6 +104,7 @@ function DeadlineBadge({
 
 
 export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: TenderCardProps) {
+  const { isDemoMode } = useDemoMode();
   const d = tender.decision ?? {};
   const prix = d.criteres?.find((c) => /prix/i.test(c.libelle));
   // Un marché majoritairement noté sur le prix n'est pas pour SuperTilt :
@@ -158,9 +161,7 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: 
               {prixDominant && /prix/i.test(c.libelle) ? " — critère dominant" : ""}
             </Badge>
           ))}
-          {d.montant != null && (
-            <Badge variant="outline">{d.montant.toLocaleString("fr-FR")} €</Badge>
-          )}
+          {d.montant != null && <Badge variant="outline">{isDemoMode ? maskAmount(d.montant) : `${d.montant.toLocaleString("fr-FR")} €`}</Badge>}
           {d.duree_mois != null && <Badge variant="outline">{d.duree_mois} mois</Badge>}
           {d.reconductible === true && <Badge variant="outline">Reconductible</Badge>}
           {!!d.lots?.length && (
@@ -187,7 +188,7 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: 
             {tender.buyer_awards.map((a) => (
               <p key={a.id} className="line-clamp-1">
                 {a.titulaire}
-                {a.montant != null ? ` — ${a.montant.toLocaleString("fr-FR")} €` : ""}
+                {a.montant != null ? (isDemoMode ? ` — ${maskAmount(a.montant)}` : ` — ${a.montant.toLocaleString("fr-FR")} €`) : ""}
                 {a.dateparution
                   ? ` (${new Date(a.dateparution).toLocaleDateString("fr-FR")})`
                   : ""}

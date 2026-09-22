@@ -58,3 +58,20 @@ export function maskFileName(value: string | null | undefined): string {
   const ext = value.slice(dotIdx);
   return "•".repeat(Math.min(8, dotIdx)) + ext;
 }
+
+/**
+ * Flou de conteneur, pour le texte libre long qu'aucun mask*() ne peut traiter
+ * (résumé, commentaire, note). La valeur réelle reste dans le DOM : réservé à
+ * ce qui n'est pas une identité — un nom, un email ou un montant se masquent.
+ */
+export function demoBlur(
+  active: boolean,
+  opts?: { lockPointer?: boolean },
+): { filter: string; userSelect: "none"; pointerEvents?: "none" } | undefined {
+  if (!active) return undefined;
+  return {
+    filter: "blur(4px)",
+    userSelect: "none",
+    ...(opts?.lockPointer ? { pointerEvents: "none" as const } : {}),
+  };
+}

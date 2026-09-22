@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
 import { notifyContentUser } from "@/services/contentNotifications";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +41,7 @@ const ReviewRequestDialog = ({
   cardTitle,
   onCreated,
 }: ReviewRequestDialogProps) => {
+  const { isDemoMode } = useDemoMode();
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState("");
   const [loading, setLoading] = useState(false);
@@ -145,7 +148,7 @@ const ReviewRequestDialog = ({
               <SelectContent>
                 {users.map((user) => (
                   <SelectItem key={user.id} value={user.email}>
-                    {user.email}
+                    {isDemoMode ? maskEmail(user.email) : user.email}
                   </SelectItem>
                 ))}
               </SelectContent>

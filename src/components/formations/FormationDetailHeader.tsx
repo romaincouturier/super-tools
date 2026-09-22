@@ -319,7 +319,7 @@ const FormationDetailHeader = ({
           <AddFormationToCalendarButton
             trainingId={training.id}
             trainingName={training.training_name}
-            clientName={training.client_name}
+            clientName={training.client_name} /* demo-safe: prop transmise au dialogue de generation */
             location={training.location}
             schedules={schedules.map((s) => ({ day_date: s.day_date, start_time: s.start_time, end_time: s.end_time }))}
             isPresentiel={isPresentiel}

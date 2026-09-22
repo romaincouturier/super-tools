@@ -84,7 +84,7 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
         `- **Statut** : ${statusLabel}`,
         ticket.page_url ? `- **Page** : ${ticket.page_url}` : "",
         ticket.assigned_to ? `- **Assigné à** : ${ticket.assigned_to}` : "",
-        ticket.submitted_by_email ? `- **Soumis par** : ${ticket.submitted_by_email}` : "",
+        ticket.submitted_by_email ? `- **Soumis par** : ${ticket.submitted_by_email}` : "", // demo-safe: equipe SuperTilt, et contenu copie dans le presse-papiers
         "",
         "## Description",
         ticket.description ?? "",
@@ -204,7 +204,7 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
                 <MessageCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
                 <div className="text-xs text-muted-foreground leading-relaxed">
                   Si le besoin n'est pas clair, marque-le « à discuter ». Un email sera envoyé à{" "}
-                  <strong className="text-foreground">{ticket.submitted_by_email || "—"}</strong>{" "}
+                  <strong className="text-foreground">{ticket.submitted_by_email || "—"}</strong>{/* demo-safe: equipe SuperTilt */}{" "}
                   pour proposer un échange de vive voix.
                 </div>
               </div>
@@ -217,7 +217,7 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
                 size="sm"
                 variant="outline"
                 className="w-full gap-2"
-                disabled={requestingDiscussion || !ticket.submitted_by_email}
+                disabled={requestingDiscussion || !ticket.submitted_by_email /* demo-safe: test de presence, valeur non affichee */}
                 onClick={async () => {
                   setRequestingDiscussion(true);
                   try {
@@ -369,7 +369,7 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Soumis par</span>
-            <span>{ticket.submitted_by_email || "—"}</span>
+            <span>{ticket.submitted_by_email || "—"}</span>{/* demo-safe: equipe SuperTilt */}
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Créé</span>

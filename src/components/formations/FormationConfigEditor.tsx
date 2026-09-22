@@ -298,7 +298,7 @@ export default function FormationConfigEditor({
               ) : (
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">
-                    {config.prix}€ • {config.duree_heures}h
+                    {config.prix}€ • {config.duree_heures}h{/* demo-safe: prix du catalogue SuperTilt */}
                     {config.programme_url && " • Programme ✓"}
                     {config.code_specialite_nsf && ` • NSF ${config.code_specialite_nsf}`}
                   </div>

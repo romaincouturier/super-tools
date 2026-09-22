@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskName, maskEmail } from "@/lib/demoMask";
+import { maskName, maskEmail, maskText, demoBlur } from "@/lib/demoMask";
 import DOMPurify from "dompurify";
 import { Mail, Send, Eye, ChevronDown, ChevronUp, X, Pencil, Clock, CalendarDays, Briefcase, Target, ExternalLink } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -189,11 +189,11 @@ function DraftCard({
                   </Badge>
                 )}
               </div>
-              <p className="text-sm font-medium mt-1 truncate">{draft.subject}</p>
+              <p className="text-sm font-medium mt-1 truncate">{isDemoMode ? maskText(draft.subject) : draft.subject}</p>
               <p className="text-xs text-muted-foreground">
                 → {isDemoMode
                   ? (draft.contact_name ? `${maskName(draft.contact_name)} (${maskEmail(draft.contact_email)})` : maskEmail(draft.contact_email))
-                  : (draft.contact_name ? `${draft.contact_name} (${draft.contact_email})` : draft.contact_email)}
+                  : (draft.contact_name ? `${draft.contact_name} (${draft.contact_email})` : draft.contact_email)}{/* demo-safe: branche hors mode demo */}
               </p>
               {showMissionLabel && draft.mission_id && (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs">
@@ -238,6 +238,7 @@ function DraftCard({
           {expanded && !editing && (
             <div
               className="text-xs border rounded p-3 bg-muted/20 max-h-48 overflow-y-auto prose prose-xs"
+              style={demoBlur(isDemoMode)}
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(draft.html_content) }}
             />
           )}
@@ -311,7 +312,9 @@ function DraftCard({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Rejeter ce brouillon ?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      L'email ne sera pas envoyé à {draft.contact_name || draft.contact_email}.
+                      L'email ne sera pas envoyé à {isDemoMode
+                        ? (draft.contact_name ? maskName(draft.contact_name) : maskEmail(draft.contact_email))
+                        : (draft.contact_name || draft.contact_email)}.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -347,14 +350,14 @@ function DraftCard({
               <p className="text-xs text-muted-foreground">Destinataire</p>
               <p className="text-sm">{isDemoMode
                 ? (draft.contact_name ? `${maskName(draft.contact_name)} <${maskEmail(draft.contact_email)}>` : maskEmail(draft.contact_email))
-                : (draft.contact_name ? `${draft.contact_name} <${draft.contact_email}>` : draft.contact_email)}</p>
+                : (draft.contact_name ? `${draft.contact_name} <${draft.contact_email}>` : draft.contact_email)}</p>{/* demo-safe: branche hors mode demo */}
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Objet</p>
-              <p className="text-sm font-medium">{draft.subject}</p>
+              <p className="text-sm font-medium">{isDemoMode ? maskText(draft.subject) : draft.subject}</p>
             </div>
             <div className="border rounded p-4 bg-white">
-              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(draft.html_content) }} />
+              <div style={demoBlur(isDemoMode)} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(draft.html_content) }} />
             </div>
             {isActionable && onApproveAndSend && (
               <div className="flex justify-end gap-2 pt-2">

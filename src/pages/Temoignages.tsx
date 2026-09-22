@@ -126,7 +126,7 @@ function PublishedTestimonialCard({ t, onEdit }: { t: Testimonial; onEdit: () =>
             {thumb ? (
               <img
                 src={thumb}
-                alt={t.service_type || t.company || "Témoignage"}
+                alt={t.service_type || (isDemoMode ? maskText(t.company) : t.company) || "Témoignage"}
                 className="h-full w-full object-cover transition-transform group-hover:scale-105"
                 loading="lazy"
               />

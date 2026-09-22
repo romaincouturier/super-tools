@@ -220,11 +220,11 @@ const ParticipantFormFields = ({
                   {availableFormulas.map((f) => (
                     <SelectItem key={f.id} value={f.name}>
                       {f.name}
-                      {(f.prix != null || f.duree_heures != null) && (
+                      {(f.prix != null || f.duree_heures != null) && ( // demo-safe: prix du catalogue SuperTilt
                         <span className="text-muted-foreground">
                           {" — "}
-                          {f.prix != null ? `${f.prix}€` : ""}
-                          {f.prix != null && f.duree_heures != null ? " · " : ""}
+                          {f.prix != null ? `${f.prix}€` : ""}{/* demo-safe: prix du catalogue SuperTilt */}
+                          {f.prix != null && f.duree_heures != null ? " · " : ""}{/* demo-safe: prix du catalogue SuperTilt */}
                           {f.duree_heures != null ? `${f.duree_heures}h` : ""}
                         </span>
                       )}

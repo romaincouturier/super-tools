@@ -21,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
 import { notifyCrmSlack } from "@/services/crmSlack";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount, maskText } from "@/lib/demoMask";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -71,6 +73,7 @@ interface NewOpportunityDialogProps {
 }
 
 export function NewOpportunityDialog({ open, onOpenChange, userEmail, initialContact, forceAcquisitionSource }: NewOpportunityDialogProps) {
+  const { isDemoMode } = useDemoMode();
   const [step, setStep] = useState<"input" | "review">("input");
   const [rawInput, setRawInput] = useState("");
   const [rawInputOpen, setRawInputOpen] = useState(false);
@@ -497,15 +500,15 @@ Tel: 06 12 34 56 78"
                       return (
                         <div key={card.id} className="flex items-center gap-2 text-xs rounded-md border px-3 py-2 bg-muted/30">
                           <StatusIcon className={`h-3.5 w-3.5 flex-shrink-0 ${statusColor}`} />
-                          <span className="font-medium truncate flex-1">{card.title}</span>
+                          <span className="font-medium truncate flex-1">{isDemoMode ? maskText(card.title) : card.title}</span>
                           {card.service_type && (
                             <Badge variant="outline" className="text-[10px] h-4 px-1">
                               {card.service_type === "formation" ? "Formation" : card.service_type === "jeu" ? "Jeu" : "Mission"}
                             </Badge>
                           )}
-                          {card.estimated_value ? (
+                          {card.estimated_value ? ( // demo-safe: test de presence, montant masque ligne suivante
                             <span className="text-muted-foreground whitespace-nowrap">
-                              {card.estimated_value.toLocaleString("fr-FR")} €
+                              {isDemoMode ? maskAmount(card.estimated_value) : `${card.estimated_value.toLocaleString("fr-FR")} €`}
                             </span>
                           ) : null}
                           <span className={`whitespace-nowrap ${statusColor}`}>{statusLabel}</span>
@@ -521,7 +524,7 @@ Tel: 06 12 34 56 78"
                       if (wonCards.length === 0) return null;
                       return (
                         <p className="text-xs text-muted-foreground pt-1 pl-1">
-                          Total gagné : <span className="font-medium text-green-600">{totalWon.toLocaleString("fr-FR")} €</span> sur {wonCards.length} opportunité{wonCards.length > 1 ? "s" : ""}
+                          Total gagné : <span className="font-medium text-green-600">{isDemoMode ? maskAmount(totalWon) : `${totalWon.toLocaleString("fr-FR")} €`}</span> sur {wonCards.length} opportunité{wonCards.length > 1 ? "s" : ""}
                         </p>
                       );
                     })()}

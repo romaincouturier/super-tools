@@ -15,6 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName } from "@/lib/demoMask";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import {
   AlertDialog,
@@ -71,6 +73,7 @@ const ParticipantDocumentsDialog = ({
   attendanceSheetsUrls,
   onUpdate,
 }: ParticipantDocumentsDialogProps) => {
+  const { isDemoMode } = useDemoMode();
   const [invoiceFileUrl, setInvoiceFileUrl] = useState<string | null>(participant.invoice_file_url);
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [sendingDocuments, setSendingDocuments] = useState(false);
@@ -157,9 +160,12 @@ const ParticipantDocumentsDialog = ({
     }
   }, [trainingId, trainingName, startDate, onUpdate, toast]);
 
-  const participantName = participant.first_name || participant.last_name
-    ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
-    : participant.email;
+  const rawParticipantName = [participant.first_name, participant.last_name].filter(Boolean).join(" ") || participant.email;
+  const participantName = !isDemoMode
+    ? rawParticipantName
+    : rawParticipantName.includes("@")
+      ? maskEmail(rawParticipantName)
+      : maskName(rawParticipantName);
 
   const sponsorName = participant.sponsor_first_name || participant.sponsor_last_name
     ? `${participant.sponsor_first_name || ""} ${participant.sponsor_last_name || ""}`.trim()
@@ -302,9 +308,9 @@ const ParticipantDocumentsDialog = ({
           : type === "sheets" ? "Les feuilles d'émargement ont été envoyées"
           : "Les documents ont été envoyés";
 
-        let description = `${docTypeLabel} à ${targetEmail}`;
+        let description = `${docTypeLabel} à ${isDemoMode ? maskEmail(targetEmail) : targetEmail}`;
         if (ccEmail) {
-          description += ` (CC: ${ccEmail})`;
+          description += ` (CC: ${isDemoMode ? maskEmail(ccEmail) : ccEmail})`;
         }
         description += ".";
 
@@ -350,10 +356,10 @@ const ParticipantDocumentsDialog = ({
               Commanditaire (destinataire)
             </Label>
             {sponsorName ? (
-              <p className="text-sm font-medium">{sponsorName}</p>
+              <p className="text-sm font-medium">{isDemoMode ? maskName(sponsorName) : sponsorName}</p>
             ) : null}
-            {participant.sponsor_email ? (
-              <p className="text-sm text-primary">{participant.sponsor_email}</p>
+            {participant.sponsor_email ? ( /* demo-safe: garde d'affichage, valeur masquee ci-dessous */
+              <p className="text-sm text-primary">{isDemoMode ? maskEmail(participant.sponsor_email) : participant.sponsor_email}</p>
             ) : (
               <p className="text-sm text-destructive italic">Aucun email de commanditaire défini</p>
             )}

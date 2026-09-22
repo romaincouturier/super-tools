@@ -159,7 +159,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
     elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf,
     recognitionType, fundingTerms, accessDelay, accessibilityTerms, isActive,
     expertise, isFeatured,
-    fml: activeFormulas.map(f => `${f.id || ""}|${f.name}|${f.duree_heures}|${f.prix}|${f.woocommerce_product_id}|${f.learndash_course_id}|${f.supports_url}|${f.elearning_access_email_content}`),
+    fml: activeFormulas.map(f => `${f.id || ""}|${f.name}|${f.duree_heures}|${f.prix}|${f.woocommerce_product_id}|${f.learndash_course_id}|${f.supports_url}|${f.elearning_access_email_content}`), // demo-safe: empreinte pour l'auto-save, non affichee
   });
 
   // Shared save logic (used by both auto-save and manual create)
@@ -700,9 +700,9 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                             <span className="text-sm font-medium truncate">
                               {formula.name || "Nouvelle formule"}
                             </span>
-                            {(formula.prix || formula.duree_heures) && (
+                            {(formula.prix || formula.duree_heures) && ( /* demo-safe: tarif du catalogue SuperTilt, pas une donnee client */
                               <span className="text-xs text-muted-foreground shrink-0">
-                                {formula.prix ? `${formula.prix}€` : ""}{formula.prix && formula.duree_heures ? " · " : ""}{formula.duree_heures ? `${formula.duree_heures}h` : ""}
+                                {formula.prix ? `${formula.prix}€` : "" /* demo-safe: tarif du catalogue SuperTilt, pas une donnee client */}{formula.prix && formula.duree_heures ? " · " : ""}{formula.duree_heures ? `${formula.duree_heures}h` : ""}
                               </span>
                             )}
                           </div>

@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Send, Trash2 } from "lucide-react";
@@ -29,6 +31,7 @@ const NewsletterCommentsDrawer = ({
   onOpenChange,
   onCountChange,
 }: NewsletterCommentsDrawerProps) => {
+  const { isDemoMode } = useDemoMode();
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const { comments, loading, submitting, userId, submitComment, deleteComment } =
@@ -63,7 +66,7 @@ const NewsletterCommentsDrawer = ({
             comments.map((c) => (
               <div key={c.id} className="group rounded-lg bg-muted/50 px-3 py-2">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm font-medium">{c.author_name}</span>
+                  <span className="text-sm font-medium">{isDemoMode ? maskName(c.author_name) : c.author_name}</span>
                   <span className="text-xs text-muted-foreground shrink-0">
                     {format(new Date(c.created_at), "d MMM HH:mm", { locale: fr })}
                   </span>

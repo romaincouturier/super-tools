@@ -27,6 +27,8 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event } from "@/types/events";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName, maskEmail } from "@/lib/demoMask";
 
 interface Profile {
   id: string;
@@ -42,6 +44,7 @@ interface ShareEventDialogProps {
 }
 
 const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [comboOpen, setComboOpen] = useState(false);
@@ -82,7 +85,7 @@ const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
 
   const getDisplayName = (profile: Profile) => {
     if (profile.first_name && profile.last_name) {
-      return `${profile.first_name} ${profile.last_name}`;
+      return `${profile.first_name} ${profile.last_name}`; // demo-safe: valeur brute, sert aussi de cle de recherche du combobox
     }
     if (profile.display_name) {
       return profile.display_name;
@@ -169,7 +172,7 @@ const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
                   <User className="h-4 w-4 shrink-0 text-muted-foreground" />
                   {selectedProfile ? (
                     <span className="truncate">
-                      {getDisplayName(selectedProfile)} ({selectedProfile.email})
+                      {isDemoMode ? maskName(getDisplayName(selectedProfile)) : getDisplayName(selectedProfile)} ({isDemoMode ? maskEmail(selectedProfile.email) : selectedProfile.email})
                     </span>
                   ) : (
                     <span className="text-muted-foreground">Choisir un collaborateur</span>
@@ -200,8 +203,8 @@ const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
                           )}
                         />
                         <div className="flex flex-col">
-                          <span className="font-medium">{getDisplayName(profile)}</span>
-                          <span className="text-sm text-muted-foreground">{profile.email}</span>
+                          <span className="font-medium">{isDemoMode ? maskName(getDisplayName(profile)) : getDisplayName(profile)}</span>
+                          <span className="text-sm text-muted-foreground">{isDemoMode ? maskEmail(profile.email) : profile.email}</span>
                         </div>
                       </CommandItem>
                     ))}

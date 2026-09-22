@@ -298,10 +298,10 @@ const ParticipantActions = ({
               <TooltipContent><p>Attestation</p></TooltipContent>
             </Tooltip>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => downloadFile(cert!.certificateUrl!, buildCertificateFileName(participant.first_name, participant.last_name, participant.company || clientName))}>
+              <DropdownMenuItem onClick={() => downloadFile(cert!.certificateUrl!, buildCertificateFileName(participant.first_name, participant.last_name, participant.company || clientName)) /* demo-safe: nom du fichier telecharge, non affiche */}>
                 <Download className="h-4 w-4 mr-2" />Télécharger
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onSendCertificate(participant, participant.email, participant.first_name || "")}>
+              <DropdownMenuItem onClick={() => onSendCertificate(participant, participant.email, participant.first_name || "") /* demo-safe: destinataire reel de l'envoi, non affiche */}>
                 <Forward className="h-4 w-4 mr-2" />Envoyer au participant
               </DropdownMenuItem>
               {sponsorEmail && (

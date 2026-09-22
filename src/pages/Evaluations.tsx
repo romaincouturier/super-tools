@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName, maskText } from "@/lib/demoMask";
 import { Star, Filter, Sparkles, Check, AlertCircle, TrendingUp, Lightbulb, Trash2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -82,6 +84,7 @@ interface Analysis {
 
 const Evaluations = () => {
   const navigate = useNavigate();
+  const { isDemoMode } = useDemoMode();
   const { user, loading } = useAuth();
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [selectedTraining, setSelectedTraining] = useState<string>("all");
@@ -295,6 +298,12 @@ const Evaluations = () => {
     navigate("/auth");
   };
 
+  const evaluationName = (evaluation: Evaluation) => {
+    const name = [evaluation.first_name, evaluation.last_name].filter(Boolean).join(" ");
+    if (!name) return "Anonyme";
+    return isDemoMode ? maskName(name) : name;
+  };
+
   const handleOpenDetail = (evaluation: Evaluation) => {
     setSelectedEvaluation(evaluation);
     setShowDetail(true);
@@ -429,14 +438,8 @@ const Evaluations = () => {
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="font-medium">
-                          {evaluation.first_name || evaluation.last_name
-                            ? `${evaluation.first_name || ""} ${evaluation.last_name || ""}`
-                            : "Anonyme"}
-                          {evaluation.company && (
-                            <span className="text-muted-foreground ml-2">
-                              ({evaluation.company})
-                            </span>
-                          )}
+                          {evaluationName(evaluation)}
+                          {evaluation.company && <span className="text-muted-foreground ml-2">({isDemoMode ? maskText(evaluation.company) : evaluation.company})</span>}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           {evaluation.trainings.training_name}

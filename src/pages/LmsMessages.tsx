@@ -58,7 +58,7 @@ export default function LmsMessages() {
   // Group by course + learner
   const groups: ConversationGroup[] = Object.values(
     messages.reduce<Record<string, ConversationGroup>>((acc, msg) => {
-      const key = `${msg.course_id}::${msg.learner_email}`;
+      const key = `${msg.course_id}::${msg.learner_email}`; // demo-safe: cle de regroupement, jamais rendue
       if (!acc[key]) {
         acc[key] = {
           courseId: msg.course_id,

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 import {
   Sheet,
   SheetContent,
@@ -52,6 +54,7 @@ const STATUS_OPTIONS: DepositPedagogicalStatus[] = [
 ];
 
 export default function DepositAdminDetail({ deposit, open, onOpenChange }: Props) {
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
   const updateDeposit = useAdminUpdateDeposit();
@@ -128,7 +131,7 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="text-base">
-            {deposit.lesson_title || "Leçon"} — {deposit.learner_email}
+            {deposit.lesson_title || "Leçon"} — {isDemoMode ? maskEmail(deposit.learner_email) : deposit.learner_email}
           </SheetTitle>
         </SheetHeader>
 
@@ -280,7 +283,7 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
                   className={`rounded-md border p-3 space-y-1 ${c.status !== "published" ? "opacity-60 bg-muted/30" : "bg-card"}`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-[11px] text-muted-foreground break-all">{c.author_email}</p>
+                    <p className="text-[11px] text-muted-foreground break-all">{isDemoMode ? maskEmail(c.author_email) : c.author_email}</p>
                     <span className="text-[10px] text-muted-foreground shrink-0">
                       {new Date(c.created_at).toLocaleDateString("fr-FR")}
                       {c.status !== "published" ? ` · ${c.status}` : ""}

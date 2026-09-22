@@ -10,6 +10,8 @@ import { CheckCircle2, Shield } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 
 interface TrainerAdequacyProps {
   trainingId: string;
@@ -31,6 +33,7 @@ interface TrainerData {
 }
 
 export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdequacyProps) {
+  const { isDemoMode } = useDemoMode();
   const [adequacy, setAdequacy] = useState<Adequacy | null>(null);
   const [trainer, setTrainer] = useState<TrainerData | null>(null);
   const [trainingObjectives, setTrainingObjectives] = useState<string>("");
@@ -165,7 +168,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
         {trainer && trainer.competences.length > 0 && (
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground">
-              Compétences de {trainer.first_name} {trainer.last_name}
+              Compétences de {isDemoMode ? maskName(`${trainer.first_name} ${trainer.last_name}`) : `${trainer.first_name} ${trainer.last_name}`}
             </Label>
             <div className="flex flex-wrap gap-1">
               {trainer.competences.map((comp) => (

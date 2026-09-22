@@ -10,6 +10,8 @@ import { CalendarPlus, Check, ExternalLink, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { todayAsISO } from "@/lib/dateFormatters";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName } from "@/lib/demoMask";
 
 
 export type Formality = "tu" | "vous";
@@ -79,6 +81,7 @@ function toIso(dateLocal: string, timeLocal: string): string {
 }
 
 export default function CreateCalendarEventDialog({ open, onOpenChange, opportunityTitle, company, contactEmail, initialSummary, initialDescription, defaultFormality = "vous", onEventCreated, contactOptions }: Props) {
+  const { isDemoMode } = useDemoMode();
   const today = todayAsISO();
   const [summary, setSummary] = useState(() => initialSummary ?? buildTitle(company, opportunityTitle));
   const [date, setDate] = useState(today);
@@ -289,9 +292,9 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
                     const selected = selectedEmails.includes(c.email.toLowerCase());
                     return (
                       <button
-                        key={c.email}
+                        key={c.email} // demo-safe: cle React, valeur non affichee
                         type="button"
-                        onClick={() => toggleAttendee(c.email)}
+                        onClick={() => toggleAttendee(c.email)} // demo-safe: adresse reelle requise pour l'invitation
                         className={cn(
                           "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors",
                           selected
@@ -300,7 +303,7 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
                         )}
                       >
                         {selected && <Check className="h-3 w-3" />}
-                        {c.name || c.email}
+                        {isDemoMode ? (c.name ? maskName(c.name) : maskEmail(c.email)) : (c.name || c.email)}
                       </button>
                     );
                   })}

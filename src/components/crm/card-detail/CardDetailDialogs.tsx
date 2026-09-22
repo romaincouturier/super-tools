@@ -32,6 +32,8 @@ import LossReasonDialog from "../LossReasonDialog";
 import MacroPricingDialog, { PricingLine } from "../MacroPricingDialog";
 import { CreateTrainingDialog } from "../CreateTrainingDialog";
 import type { LossReason } from "@/types/crm";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 
 interface Props {
   cardId: string;
@@ -75,6 +77,7 @@ interface Props {
 
 const CardDetailDialogs = (props: Props) => {
   const navigate = useNavigate();
+  const { isDemoMode } = useDemoMode();
   const {
     cardId, title, firstName, lastName, email, company, estimatedValue, serviceType,
     showLossReasonDialog, onLossReasonConfirm, onLossReasonCancel,
@@ -169,7 +172,7 @@ const CardDetailDialogs = (props: Props) => {
       return;
     }
     const q = cardQuotes[0];
-    handleAttachToTraining(trainingId, q ? { quoteId: q.id, totalHt: q.total_ht } : null);
+    handleAttachToTraining(trainingId, q ? { quoteId: q.id, totalHt: q.total_ht } : null); // demo-safe: payload de rattachement, valeur non affichee
   };
 
   const handleAttachToTraining = async (
@@ -493,15 +496,13 @@ const CardDetailDialogs = (props: Props) => {
                 onClick={() => {
                   const trainingId = pendingAttachTrainingId;
                   setPendingAttachTrainingId(null);
-                  if (trainingId) handleAttachToTraining(trainingId, { quoteId: q.id, totalHt: q.total_ht });
+                  if (trainingId) handleAttachToTraining(trainingId, { quoteId: q.id, totalHt: q.total_ht }); // demo-safe: payload de rattachement, valeur non affichee
                 }}
                 className="w-full text-left px-3 py-2.5 rounded-md hover:bg-muted/50 transition-colors"
               >
                 <div className="text-sm font-medium">
                   {q.quote_number || "Devis sans numéro"} —{" "}
-                  {q.total_ht != null
-                    ? new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(q.total_ht)
-                    : "—"}{" "}
+                  {q.total_ht == null ? "—" : isDemoMode ? maskAmount(q.total_ht) : new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(q.total_ht)}{" "}
                   HT
                 </div>
                 {q.synthesis && (

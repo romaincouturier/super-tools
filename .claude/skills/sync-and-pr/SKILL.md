@@ -49,6 +49,27 @@ n'importe le fichier fautif.
 
 Règle [060] d'`IMPROVEMENTS.md`.
 
+## 3quater. Renuméroter les règles que le rebase a mises en collision
+
+Un numéro de règle n'est réservé qu'au moment du merge. Deux branches qui
+écrivent chacune une règle prennent le même numéro sans le savoir : le conflit
+n'apparaît ni au rebase (les blocs sont à des endroits différents du fichier),
+ni au `check-rules.sh` local (il ne voit que la branche). Il tombe en CI, qui
+évalue le commit de merge.
+
+- Après chaque rebase, relancer `bash scripts/check-rules.sh` et lire le
+  check `[034b]`
+- En cas de doublon : **la branche cède**, jamais `main`. Renuméroter la règle
+  de la branche au premier numéro libre au-dessus du maximum de `main`
+- Propager le nouveau numéro partout : `IMPROVEMENTS.md`, le `check "NNN"` de
+  `check-rules.sh`, `scripts/rules-ratchet.txt`, le script de contrôle dédié,
+  la skill concernée, `CLAUDE.md`
+- Si le doublon vient de `main` lui-même (deux PR mergées le même jour), il
+  bloque **toutes** les PR : le corriger ici est l'exception assumée à la règle
+  « ne pas corriger un échec préexistant », et elle s'écrit dans le corps de la PR
+
+Règle [067] d'`IMPROVEMENTS.md`.
+
 ## 3bis. Mesurer la baseline sur main
 
 Sans point de comparaison, impossible de distinguer une erreur préexistante d'une régression introduite par la branche : on perd du temps à corriger ce qui ne vient pas de nous, ou on ignore une vraie régression.

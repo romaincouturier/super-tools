@@ -5,12 +5,15 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useLogInteraction } from "@/hooks/useReseau";
 import { WARMTH_LABELS, type CoolingContact } from "@/types/reseau";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 
 interface CoolingAlertsProps {
   coolingContacts: CoolingContact[];
 }
 
 const CoolingAlerts = ({ coolingContacts }: CoolingAlertsProps) => {
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const logInteraction = useLogInteraction();
 
@@ -25,7 +28,7 @@ const CoolingAlerts = ({ coolingContacts }: CoolingAlertsProps) => {
         interaction_type: "manual_log",
         notes: "Interaction manuelle enregistrée",
       });
-      toast({ title: `Interaction avec ${contactName} enregistrée` });
+      toast({ title: `Interaction avec ${isDemoMode ? maskName(contactName) : contactName} enregistrée` });
     } catch {
       toastError(toast, null);
     }
@@ -56,7 +59,7 @@ const CoolingAlerts = ({ coolingContacts }: CoolingAlertsProps) => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   {isOverdue && <AlertTriangle className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />}
-                  <span className="text-sm font-medium truncate">{contact.name}</span>
+                  <span className="text-sm font-medium truncate">{isDemoMode ? maskName(contact.name) : contact.name}</span>
                   <span className="text-xs text-muted-foreground">
                     {WARMTH_LABELS[contact.warmth]}
                   </span>

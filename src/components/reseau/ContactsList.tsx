@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +35,7 @@ interface ContactsListProps {
 }
 
 const ContactsList = ({ contacts, onCreate, onDelete }: ContactsListProps) => {
+  const { isDemoMode } = useDemoMode();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
   const [context, setContext] = useState("");
@@ -107,7 +110,7 @@ const ContactsList = ({ contacts, onCreate, onDelete }: ContactsListProps) => {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm truncate">{contact.name}</span>
+                      <span className="font-medium text-sm truncate">{isDemoMode ? maskName(contact.name) : contact.name}</span>
                       <span className={`text-xs px-1.5 py-0.5 rounded-full ${w.color}`}>
                         {w.label}
                       </span>

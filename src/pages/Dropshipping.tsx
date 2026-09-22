@@ -25,6 +25,8 @@ import {
   useGameSales, useGameSalesKpis, useMarkSalesPaid, useDeleteGameSale,
   type GameAuthor, type Game, type GameSale,
 } from "@/hooks/useDropshipping";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount, maskEmail, maskName, maskText } from "@/lib/demoMask";
 
 const EUR = (v: number) => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
@@ -32,6 +34,7 @@ const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
 // ── Dashboard ──────────────────────────────────────────────────────
 
 function Dashboard() {
+  const { isDemoMode } = useDemoMode();
   const { data: kpis, isLoading } = useGameSalesKpis();
   const [detail, setDetail] = useState<{ gameId: string | null; title: string } | null>(null);
 
@@ -41,8 +44,8 @@ function Dashboard() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Chiffre d'affaires", value: EUR(kpis?.totalRevenue ?? 0), icon: <Euro className="h-5 w-5 text-green-600" /> },
-          { label: "Royalties dues", value: EUR(kpis?.totalRoyalties ?? 0), icon: <TrendingUp className="h-5 w-5 text-blue-600" /> },
+          { label: "Chiffre d'affaires", value: isDemoMode ? maskAmount(kpis?.totalRevenue ?? 0) : EUR(kpis?.totalRevenue ?? 0), icon: <Euro className="h-5 w-5 text-green-600" /> },
+          { label: "Royalties dues", value: isDemoMode ? maskAmount(kpis?.totalRoyalties ?? 0) : EUR(kpis?.totalRoyalties ?? 0), icon: <TrendingUp className="h-5 w-5 text-blue-600" /> },
           { label: "Ventes totales", value: kpis?.totalSales ?? 0, icon: <ShoppingCart className="h-5 w-5 text-purple-600" /> },
           { label: "Jeux top 5", value: kpis?.topGames?.length ?? 0, icon: <Package className="h-5 w-5 text-orange-600" /> },
         ].map(({ label, value, icon }) => (
@@ -81,7 +84,7 @@ function Dashboard() {
                     <TableCell className="text-muted-foreground">{i + 1}</TableCell>
                     <TableCell className="font-medium">{g.title}</TableCell>
                     <TableCell className="text-right">{g.sales}</TableCell>
-                    <TableCell className="text-right">{EUR(g.revenue)}</TableCell>
+                    <TableCell className="text-right">{isDemoMode ? maskAmount(g.revenue) : EUR(g.revenue)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -110,6 +113,7 @@ function GameSalesDetailDialog({
   title: string;
   onClose: () => void;
 }) {
+  const { isDemoMode } = useDemoMode();
   const { data: allSales, isLoading } = useGameSales();
   const sales = (allSales ?? []).filter((s) => (s.game_id ?? null) === gameId);
 
@@ -169,11 +173,11 @@ function GameSalesDetailDialog({
               </div>
               <div className="rounded-md border p-3">
                 <p className="text-xs text-muted-foreground">CA</p>
-                <p className="text-lg font-semibold">{EUR(totalRevenue)}</p>
+                <p className="text-lg font-semibold">{isDemoMode ? maskAmount(totalRevenue) : EUR(totalRevenue)}</p>
               </div>
               <div className="rounded-md border p-3">
                 <p className="text-xs text-muted-foreground">Royalties</p>
-                <p className="text-lg font-semibold text-blue-700">{EUR(totalRoyalties)}</p>
+                <p className="text-lg font-semibold text-blue-700">{isDemoMode ? maskAmount(totalRoyalties) : EUR(totalRoyalties)}</p>
               </div>
             </div>
             <div className="overflow-auto rounded-md border">
@@ -198,12 +202,12 @@ function GameSalesDetailDialog({
                       <TableCell className="text-sm">{DATE(s.sale_date)}</TableCell>
                       <TableCell className="text-xs font-mono text-muted-foreground">#{s.woocommerce_order_id}</TableCell>
                       <TableCell className="text-sm">
-                        <div>{s.customer_name ?? "—"}</div>
-                        {s.customer_email && <div className="text-xs text-muted-foreground">{s.customer_email}</div>}
+                        <div>{(isDemoMode ? maskName(s.customer_name) || null : s.customer_name) ?? "—"}</div>
+                        {s.customer_email && <div className="text-xs text-muted-foreground">{isDemoMode ? maskEmail(s.customer_email) : s.customer_email}</div>}
                       </TableCell>
                       <TableCell className="text-right text-sm">{s.quantity}</TableCell>
-                      <TableCell className="text-right text-sm">{EUR(s.total_amount)}</TableCell>
-                      <TableCell className="text-right text-sm text-blue-700">{EUR(s.royalty_amount)}</TableCell>
+                      <TableCell className="text-right text-sm">{isDemoMode ? maskAmount(s.total_amount) : EUR(s.total_amount)}</TableCell>
+                      <TableCell className="text-right text-sm text-blue-700">{isDemoMode ? maskAmount(s.royalty_amount) : EUR(s.royalty_amount)}</TableCell>
                       <TableCell>
                         <Badge variant={s.status === "paid" ? "default" : "outline"} className="text-xs">
                           {s.status === "paid" ? "Payé" : "En attente"}
@@ -224,6 +228,7 @@ function GameSalesDetailDialog({
 // ── Sales Table ────────────────────────────────────────────────────
 
 function SalesTable() {
+  const { isDemoMode } = useDemoMode();
   const { data: sales, isLoading } = useGameSales();
   const { mutateAsync: markPaid, isPending } = useMarkSalesPaid();
   const { mutateAsync: deleteSale } = useDeleteGameSale();
@@ -245,10 +250,13 @@ function SalesTable() {
   };
 
   const handleDelete = async (sale: GameSale) => {
-    const label = (sale.games as any)?.title ?? sale.customer_name ?? sale.customer_email ?? "cette commande";
+    const label = (sale.games as any)?.title
+      ?? (sale.customer_name ? (isDemoMode ? maskName(sale.customer_name) : sale.customer_name) : null)
+      ?? (sale.customer_email ? (isDemoMode ? maskEmail(sale.customer_email) : sale.customer_email) : null)
+      ?? "cette commande";
     const ok = await confirm({
       title: "Supprimer cette commande ?",
-      description: `La vente « ${label} » (${EUR(sale.total_amount)}) sera définitivement supprimée. Cette action est irréversible.`,
+      description: `La vente « ${label} » (${isDemoMode ? maskAmount(sale.total_amount) : EUR(sale.total_amount)}) sera définitivement supprimée. Cette action est irréversible.`,
       confirmText: "Supprimer",
       variant: "destructive",
     });
@@ -304,10 +312,10 @@ function SalesTable() {
                 </TableCell>
                 <TableCell className="text-sm">{DATE(s.sale_date)}</TableCell>
                 <TableCell className="text-sm font-medium">{(s.games as any)?.title ?? "—"}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{s.customer_name ?? s.customer_email ?? "—"}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{s.customer_name ? (isDemoMode ? maskName(s.customer_name) : s.customer_name) : s.customer_email ? (isDemoMode ? maskEmail(s.customer_email) : s.customer_email) : "—"}</TableCell>
                 <TableCell className="text-right text-sm">{s.quantity}</TableCell>
-                <TableCell className="text-right text-sm">{EUR(s.total_amount)}</TableCell>
-                <TableCell className="text-right text-sm text-blue-700">{EUR(s.royalty_amount)}</TableCell>
+                <TableCell className="text-right text-sm">{isDemoMode ? maskAmount(s.total_amount) : EUR(s.total_amount)}</TableCell>
+                <TableCell className="text-right text-sm text-blue-700">{isDemoMode ? maskAmount(s.royalty_amount) : EUR(s.royalty_amount)}</TableCell>
                 <TableCell>
                   <Badge variant={s.status === "paid" ? "default" : "outline"} className="text-xs">
                     {s.status === "paid" ? "Payé" : "En attente"}
@@ -395,6 +403,7 @@ function AuthorDialog({ author, onClose }: { author: Partial<GameAuthor> | null;
 }
 
 function AuthorsTable() {
+  const { isDemoMode } = useDemoMode();
   const { data: authors, isLoading } = useGameAuthors();
   const { mutateAsync: del } = useDeleteGameAuthor();
   const [editing, setEditing] = useState<Partial<GameAuthor> | null | undefined>(undefined);
@@ -429,9 +438,9 @@ function AuthorsTable() {
             )}
             {(authors ?? []).map((a) => (
               <TableRow key={a.id}>
-                <TableCell className="font-medium">{a.name}</TableCell>
-                <TableCell className="text-muted-foreground text-sm">{a.email ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground text-sm">{a.company ?? "—"}</TableCell>
+                <TableCell className="font-medium">{isDemoMode ? maskName(a.name) : a.name}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{a.email ? (isDemoMode ? maskEmail(a.email) : a.email) : "—"}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{a.company ? (isDemoMode ? maskText(a.company) : a.company) : "—"}</TableCell>
                 <TableCell className="text-right">{Math.round(a.royalty_rate * 100)}%</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
@@ -523,6 +532,7 @@ function GameDialog({ game, authors, onClose }: { game: Partial<Game> | null; au
 }
 
 function GamesTable() {
+  const { isDemoMode } = useDemoMode();
   const { data: games, isLoading } = useGames();
   const { data: authors } = useGameAuthors();
   const { mutateAsync: del } = useDeleteGame();
@@ -554,7 +564,7 @@ function GamesTable() {
             {(games ?? []).map((g) => (
               <TableRow key={g.id}>
                 <TableCell className="font-medium">{g.title}</TableCell>
-                <TableCell className="text-muted-foreground text-sm">{(g.game_authors as any)?.name ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{(isDemoMode ? maskName(g.game_authors?.name) || null : g.game_authors?.name) ?? "—"}</TableCell>
                 <TableCell className="text-muted-foreground text-sm">{g.woocommerce_product_id ?? "—"}</TableCell>
                 <TableCell>
                   <Badge variant={g.status === "active" ? "default" : "secondary"}>{g.status === "active" ? "Actif" : "Inactif"}</Badge>

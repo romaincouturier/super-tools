@@ -516,7 +516,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
                     flexShrink: 0,
                   }}
                 >
-                  {user.email?.trim().charAt(0).toUpperCase() ?? "?"}
+                  {user.email?.trim().charAt(0).toUpperCase() ?? "?"}{/* demo-safe: initiale du compte connecte, pas une donnee client */}
                 </button>
               }
             />

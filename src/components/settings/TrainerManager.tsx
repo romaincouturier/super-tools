@@ -373,10 +373,10 @@ export default function TrainerManager() {
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={trainer.photo_url || undefined} />
-                        <AvatarFallback>{getInitials(trainer.first_name, trainer.last_name)}</AvatarFallback>
+                        <AvatarFallback>{getInitials(trainer.first_name, trainer.last_name) /* demo-safe: initiales seules, le masque rendrait les memes lettres */}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="font-medium">{trainer.first_name} {trainer.last_name}</div>
+                        <div className="font-medium">{`${trainer.first_name} ${trainer.last_name}`}</div>{/* demo-safe: equipe SuperTilt, pas une donnee client */}
                         {trainer.is_default && (
                           <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Par défaut</span>
                         )}
@@ -392,8 +392,8 @@ export default function TrainerManager() {
                     </div>
                   </div>
                   <div className="text-sm text-muted-foreground space-y-1">
-                    <div>{trainer.email}</div>
-                    {trainer.phone && <div>{trainer.phone}</div>}
+                    <div>{trainer.email}</div>{/* demo-safe: equipe SuperTilt */}
+                    {trainer.phone && <div>{trainer.phone}</div>}{/* demo-safe: equipe SuperTilt */}
                   </div>
                   {trainer.competences && trainer.competences.length > 0 && (
                     <div className="flex flex-wrap gap-1">
@@ -620,7 +620,7 @@ export default function TrainerManager() {
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer le formateur ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer {trainerToDelete?.first_name} {trainerToDelete?.last_name} ? Cette action est irréversible.
+              Êtes-vous sûr de vouloir supprimer {`${trainerToDelete?.first_name ?? ""} ${trainerToDelete?.last_name ?? ""}`} ?{/* demo-safe: equipe SuperTilt */} Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -45,6 +45,8 @@ import { fetchMissionById } from "@/services/missions";
 import MissionPages from "@/components/missions/MissionPages";
 import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName } from "@/lib/demoMask";
 
 interface SystemUser {
   user_id: string;
@@ -73,6 +75,7 @@ export default function SupertiltActionDialog({
   onSave,
   onDelete,
 }: Props) {
+  const { isDemoMode } = useDemoMode();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assigned, setAssigned] = useState("");
@@ -147,7 +150,7 @@ export default function SupertiltActionDialog({
             <SelectItem value="__none__">— Aucun —</SelectItem>
             {systemUsers.map((u) => (
               <SelectItem key={u.user_id} value={u.display_name || u.email}>
-                {u.display_name || u.email}
+                {isDemoMode ? (u.display_name ? maskName(u.display_name) : maskEmail(u.email)) : (u.display_name || u.email)}
               </SelectItem>
             ))}
           </SelectContent>

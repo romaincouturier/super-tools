@@ -97,11 +97,11 @@ const FormationDetailSections = ({
           endDate={training.end_date}
           invoiceFileUrl={training.invoice_file_url}
           attendanceSheetsUrls={training.attendance_sheets_urls || []}
-          sponsorEmail={training.sponsor_email}
+          sponsorEmail={training.sponsor_email /* demo-safe: prop transmise, utilisee pour les envois et masquee a l'affichage par le composant enfant */}
           sponsorName={getSponsorName()}
           sponsorFirstName={training.sponsor_first_name}
-          sponsorFormalAddress={training.sponsor_formal_address}
-          adminContactEmail={(training as any).admin_contact_same_as_sponsor === false ? (training as any).admin_contact_email : null}
+          sponsorFormalAddress={training.sponsor_formal_address /* demo-safe: booleen de civilite, pas une donnee identifiante */}
+          adminContactEmail={(training as any).admin_contact_same_as_sponsor === false ? (training as any).admin_contact_email : null /* demo-safe: prop transmise, destinataire reel des documents */}
           adminContactFirstName={(training as any).admin_contact_first_name}
           adminContactLastName={(training as any).admin_contact_last_name}
           supportsUrl={training.supports_url}
@@ -113,12 +113,12 @@ const FormationDetailSections = ({
           isInterEntreprise={isInterSession}
           isFreeTraining={!!training.is_free}
           conventionFileUrl={training.convention_file_url}
-          trainerName={training.trainer_name}
+          trainerName={training.trainer_name /* demo-safe: formateur, equipe SuperTilt */}
           location={training.location}
           schedules={schedules}
           participants={participants}
           signedConventionUrls={training.signed_convention_urls || []}
-          clientName={training.client_name}
+          clientName={training.client_name} /* demo-safe: prop transmise, masquee a l'affichage par le composant enfant */
           trainingDuree={`${_calculateTotalDuration()}h`}
           onUpdate={fetchTrainingData}
         />
@@ -134,9 +134,9 @@ const FormationDetailSections = ({
           sessionType={training.session_type || null}
           sessionFormat={training.session_format || null}
           formatFormation={training.format_formation}
-          trainerName={training.trainer_name}
+          trainerName={training.trainer_name /* demo-safe: formateur, equipe SuperTilt */}
           sponsorName={getSponsorName()}
-          sponsorEmail={training.sponsor_email}
+          sponsorEmail={training.sponsor_email /* demo-safe: prop transmise, masquee a l'affichage par le composant enfant */}
           thankYouSentAt={thankYouSentAt}
           schedules={schedules}
           hasCoaching={hasCoaching}
@@ -170,7 +170,7 @@ const FormationDetailSections = ({
       <AttendanceSignatureBlock
         trainingId={training.id}
         trainingName={training.training_name}
-        trainerName={training.trainer_name}
+        trainerName={training.trainer_name /* demo-safe: formateur, equipe SuperTilt */}
         schedules={schedules}
         participantsCount={participants.length}
         participants={participants}
@@ -183,9 +183,9 @@ const FormationDetailSections = ({
 
     {/* Trainer Adequacy + Evaluation */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <TrainerAdequacy trainingId={training.id} trainerName={training.trainer_name} />
-      <PedagogicalReferent trainingId={training.id} trainerName={training.trainer_name} />
-      <TrainerEvaluationBlock trainingId={training.id} trainerName={training.trainer_name} trainerId={(training as unknown as { trainer_id?: string | null }).trainer_id} />
+      <TrainerAdequacy trainingId={training.id} trainerName={training.trainer_name /* demo-safe: formateur, equipe SuperTilt */} />
+      <PedagogicalReferent trainingId={training.id} trainerName={training.trainer_name /* demo-safe: formateur, equipe SuperTilt */} />
+      <TrainerEvaluationBlock trainingId={training.id} trainerName={training.trainer_name /* demo-safe: formateur, equipe SuperTilt */} trainerId={(training as unknown as { trainer_id?: string | null }).trainer_id} />
     </div>
 
     {/* Participant Evaluations */}

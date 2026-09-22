@@ -29,6 +29,8 @@ import { toastError } from "@/lib/toastError";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { MissionActivity, useUpdateMissionActivity } from "@/hooks/useMissions";
 import { supabase } from "@/integrations/supabase/client";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 
 interface GenerateInvoiceDialogProps {
   open: boolean;
@@ -46,6 +48,7 @@ const GenerateInvoiceDialog = ({
   missionTitle,
 }: GenerateInvoiceDialogProps) => {
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const { copy: copyToClipboard } = useCopyToClipboard({ defaultToastTitle: "Copié dans le presse-papier" });
   const updateActivity = useUpdateMissionActivity();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -203,7 +206,7 @@ const GenerateInvoiceDialog = ({
                         {activity.duration} {activity.duration_type === "hours" ? "h" : "j"}
                       </TableCell>
                       <TableCell className="text-right text-sm whitespace-nowrap">
-                        {activity.billable_amount?.toLocaleString("fr-FR") || "0"} €
+                        {isDemoMode ? maskAmount(activity.billable_amount ?? 0) : `${activity.billable_amount?.toLocaleString("fr-FR") || "0"} €`}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -245,7 +248,7 @@ const GenerateInvoiceDialog = ({
                     Copier les intitulés
                   </Button>
                   <span className="text-lg font-bold text-primary">
-                    {selectedTotal.toLocaleString("fr-FR")} € HT
+                    {isDemoMode ? maskAmount(selectedTotal) : `${selectedTotal.toLocaleString("fr-FR")} € HT`}
                   </span>
                 </div>
               </div>

@@ -106,9 +106,7 @@ export default function TrainerSelector({
                   )}
                 </AvatarFallback>
               </Avatar>
-              <span>
-                {selectedTrainer.first_name} {selectedTrainer.last_name}
-              </span>
+              <span>{`${selectedTrainer.first_name} ${selectedTrainer.last_name}`}</span>{/* demo-safe: equipe SuperTilt */}
             </div>
           )}
         </SelectValue>
@@ -120,12 +118,10 @@ export default function TrainerSelector({
               <Avatar className="h-6 w-6">
                 <AvatarImage src={trainer.photo_url || undefined} />
                 <AvatarFallback className="text-xs">
-                  {getInitials(trainer.first_name, trainer.last_name)}
+                  {getInitials(trainer.first_name, trainer.last_name) /* demo-safe: initiales seules, le masque rendrait les memes lettres */}
                 </AvatarFallback>
               </Avatar>
-              <span>
-                {trainer.first_name} {trainer.last_name}
-              </span>
+              <span>{`${trainer.first_name} ${trainer.last_name}`}</span>{/* demo-safe: equipe SuperTilt */}
               {trainer.is_default && (
                 <span className="text-xs text-muted-foreground">(défaut)</span>
               )}

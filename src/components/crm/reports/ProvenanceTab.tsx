@@ -535,7 +535,7 @@ export default function ProvenanceTab() {
           <CardContent>
             <div className="space-y-4">
               <DeviceBar label="Desktop" pct={desktopPct} count={stats.desktop} color="#3b82f6" />
-              <DeviceBar label="Mobile" pct={mobilePct} count={stats.mobile} color="#10b981" />
+              <DeviceBar label="Mobile" pct={mobilePct} count={stats.mobile /* demo-safe: volume de sessions mobiles, aucune donnee identifiante */} color="#10b981" />
               <DeviceBar label="Tablette" pct={tabletPct} count={stats.tablet} color="#f59e0b" />
             </div>
           </CardContent>

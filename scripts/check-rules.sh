@@ -46,6 +46,17 @@ search_files() {
   fi
 }
 
+# Lignes AJOUTÉES par le commit (mode staged uniquement). Les règles en ratchet
+# portent sur la dette ajoutée : toucher un fichier legacy pour une raison
+# orthogonale n'en ajoute pas, seules les lignes nouvelles comptent.
+search_added_lines() {
+  local pattern="$1"
+  shift
+  git diff --cached -U0 --diff-filter=ACM -- '*.ts' '*.tsx' 2>/dev/null \
+    | awk '/^\+\+\+ /{file=substr($0,7); next} /^\+/{print file ":" substr($0,2)}' \
+    | grep -E "$pattern" "$@" || true
+}
+
 check() {
   local rule_id="$1"
   local description="$2"
@@ -127,11 +138,11 @@ check "023" "Utiliser todayAsISO() au lieu de new Date().toISOString().slice(0, 
 if [ "$STAGED_MODE" = "true" ]; then
   # [017] et [020] : migrations progressives — legacy restant en codebase,
   # vérifiées uniquement sur les fichiers du commit.
-  check "017" "Utiliser <Spinner> au lieu de <Loader2 animate-spin>" \
-    "search_files '<Loader2[^>]*animate-spin' -E | grep -v 'components/ui/spinner.tsx'"
+  check "017" "Utiliser <Spinner> au lieu de <Loader2 animate-spin> (lignes ajoutées)" \
+    "search_added_lines '<Loader2[^>]*animate-spin' | grep -v 'components/ui/spinner.tsx'"
 
-  check "020" "Préférer useEdgeFunction() au lieu de supabase.functions.invoke() inline" \
-    "echo \"\$STAGED_FILES\" | grep -v 'src/services/' | grep -v 'src/lib/' | grep -v 'src/hooks/useEdgeFunction.ts' | xargs -r grep -n 'supabase\\.functions\\.invoke' 2>/dev/null"
+  check "020" "Préférer useEdgeFunction() au lieu de supabase.functions.invoke() inline (lignes ajoutées)" \
+    "search_added_lines 'supabase\\.functions\\.invoke' | grep -v 'src/services/' | grep -v 'src/lib/' | grep -v 'src/hooks/useEdgeFunction.ts'"
 fi
 
 # ==========================================================
@@ -317,6 +328,19 @@ check "034" "Toute règle d'IMPROVEMENTS.md a un check machine (hors whitelist m
      grep -q \"check \\\"\$id\" scripts/check-rules.sh || grep -qF \"[\$id]\" scripts/check-rules.sh || echo \"VIOLATION: règle [\$id] sans check machine dans check-rules.sh\"; \
    done"
 
+# [066] Un ratchet est un plancher, pas une preuve : sa règle doit dire ce que
+# son contrôle ne voit pas. Whitelist : les quatre ratchets antérieurs à la
+# règle sont des compteurs de migration progressive, pas des invariants.
+RATCHET_LEGACY="017|020|037a|037b"
+
+check "066" "Toute règle en ratchet dit ce que son contrôle ne voit pas" \
+  "for id in \$(grep -oE '^[0-9]+[a-z]?=' scripts/rules-ratchet.txt | tr -d '='); do \
+     echo \"\$id\" | grep -qE \"^(\$RATCHET_LEGACY)\\\$\" && continue; \
+     sed -n \"/^### \\[\$id\\]/,/^---\$/p\" IMPROVEMENTS.md \
+       | grep -qiE 'plancher|ne voit pas|angle mort' \
+       || echo \"VIOLATION [066]: la regle [\$id] est en ratchet sans dire ce que son controle ne voit pas\"; \
+   done"
+
 # ====================================================
 # 3. Audit complet uniquement (scans repo-wide lourds)
 # ====================================================
@@ -480,12 +504,12 @@ if [ "$STAGED_MODE" = "false" ]; then
     "comm -3 <(ls -d supabase/functions/*/ | sed 's|supabase/functions/||;s|/\$||' | grep -v '^_shared\$' | sort) \
              <(grep -oP '(?<=^\\[functions\\.)[^]]+' supabase/config.toml | sort)"
 
-  # [062] cron-auth.ts est testé par cron-auth.test.ts, chargé par vitest (Node).
+  # [064] cron-auth.ts est testé par cron-auth.test.ts, chargé par vitest (Node).
   # supabase-client.ts importe le SDK depuis une URL esm.sh que le loader ESM de
   # Node ne résout pas : un import STATIQUE de supabase-client dans cron-auth.ts
   # casse le chargement du test (« 0 test »). verifyAuth doit y rester en import
   # dynamique (await import). Voir règle [062] d'IMPROVEMENTS.md.
-  check "062" "Pas d'import statique de supabase-client dans _shared/cron-auth.ts" \
+  check "064" "Pas d'import statique de supabase-client dans _shared/cron-auth.ts" \
     "grep -nE '^import .*from \"\\./supabase-client' supabase/functions/_shared/cron-auth.ts"
 
   # [044] Aucun CREATE POLICY ne doit lire auth.users : le rôle `authenticated`
@@ -654,6 +678,14 @@ if [ "$STAGED_MODE" = "false" ]; then
   # parallele — c'est exactement ce qui s'est produit le 04/08/2026, resolu a la
   # main. Un meme numero peut en revanche porter deux checks (cas [006] :
   # un check pattern + un check fichier fixe).
+  # [067] Un numero de regle n'est reserve qu'au merge : la skill sync-and-pr
+# doit porter l'etape de renumerotation apres rebase.
+check "067" "La skill sync-and-pr prescrit la renumerotation des regles apres rebase" \
+  "grep -q '3quater' .claude/skills/sync-and-pr/SKILL.md \
+     || echo 'VIOLATION [067]: etape de renumerotation absente de la skill sync-and-pr'; \
+   grep -q '034b' .claude/skills/sync-and-pr/SKILL.md \
+     || echo 'VIOLATION [067]: la skill sync-and-pr ne renvoie pas au check [034b]'"
+
   check "034b" "Numeros de regles uniques dans IMPROVEMENTS.md" \
     "grep -oE '^### \\[[0-9]+\\]' IMPROVEMENTS.md | sort | uniq -d | sed 's/^/VIOLATION: numero de regle en double /'"
 
@@ -691,6 +723,11 @@ if [ "$STAGED_MODE" = "false" ]; then
 
   count_037b=$(grep -rn 'JSON.stringify({ error\|JSON.stringify({error' supabase/functions/ --include='index.ts' 2>/dev/null | wc -l)
   ratchet "037b" "Ratchet réponses d'erreur manuelles dans les edge functions (utiliser createErrorResponse)" "$count_037b"
+
+  # [065] Mode démo — affichage identifiant non masqué dans un écran interne.
+  # Le détail des violations : bash scripts/check-demo-mask.sh
+  count_065=$(bash scripts/check-demo-mask.sh --count)
+  ratchet "065" "Ratchet affichages identifiants sans masque démo (src/lib/demoMask.ts)" "$count_065"
 
 fi
 

@@ -31,6 +31,8 @@ import type { Quote, QuoteLineItem } from "@/types/quotes";
 import type { CrmCard } from "@/types/crm";
 import { v4 as uuid } from "uuid";
 import { htmlToPlainText, cleanHtmlOutput } from "@/lib/htmlUtils";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount, demoBlur } from "@/lib/demoMask";
 
 interface Props {
   quote: Quote;
@@ -81,6 +83,7 @@ export default function Step3QuoteGeneration({
   onContinue,
   onChallengeChange,
 }: Props) {
+  const { isDemoMode } = useDemoMode();
   const { data: settings } = useQuoteSettings();
   const updateMutation = useUpdateQuote();
   const defaultVat = settings?.default_vat_rate ?? 20;
@@ -250,15 +253,15 @@ export default function Step3QuoteGeneration({
 
     try {
       const linesContext = lines
-        .map((l, i) => `Ligne ${i + 1}: ${l.product} — ${l.description || ""} — ${l.quantity} ${l.unit} × ${l.unit_price_ht}€ HT = ${fmt(l.quantity * l.unit_price_ht)}`)
+        .map((l, i) => `Ligne ${i + 1}: ${l.product} — ${l.description || ""} — ${l.quantity} ${l.unit} × ${l.unit_price_ht}€ HT = ${fmt(l.quantity * l.unit_price_ht)}`) // demo-safe: payload envoye a la fonction commercial-challenge, pas un affichage
         .join("\n");
 
       const clientContext = [
         `Opportunité : ${crmCard.title}`,
-        `Client : ${crmCard.company || ""}`,
+        `Client : ${crmCard.company || ""}`, // demo-safe: payload envoye a la fonction commercial-challenge, pas un affichage
         crmCard.service_type ? `Type : ${crmCard.service_type}` : "",
-        crmCard.estimated_value ? `Valeur estimée : ${crmCard.estimated_value} €` : "",
-        `\nTotal HT du devis : ${fmt(totals.totalHt)}`,
+        crmCard.estimated_value ? `Valeur estimée : ${crmCard.estimated_value} €` : "", // demo-safe: payload envoye a la fonction commercial-challenge, pas un affichage
+        `\nTotal HT du devis : ${fmt(totals.totalHt)}`, // demo-safe: payload envoye a la fonction commercial-challenge, pas un affichage
         `Total TTC du devis : ${fmt(totals.totalTtc)}`,
         travelTotal > 0 ? `Frais de déplacement : ${fmt(travelTotal)}` : "",
         rightsEnabled ? `Cession de droits : ${rightsRate}% = ${fmt(totals.rightsAmount)}` : "",
@@ -350,11 +353,11 @@ export default function Step3QuoteGeneration({
       doc.setFont("helvetica", "normal");
       doc.setTextColor(100);
       y += 6;
-      doc.text(`${settings?.company_address || ""}, ${settings?.company_zip || ""} ${settings?.company_city || ""}`, margin, y);
+      doc.text(`${settings?.company_address || ""}, ${settings?.company_zip || ""} ${settings?.company_city || ""}`, margin, y); // demo-safe: coordonnees de SuperTilt, emetteur du devis, ecrites dans le PDF
       y += 4;
-      if (settings?.company_phone) { doc.text(`Tél : ${settings.company_phone}`, margin, y); y += 4; }
-      if (settings?.company_email) { doc.text(`Email : ${settings.company_email}`, margin, y); y += 4; }
-      if (settings?.siren) { doc.text(`SIREN : ${settings.siren}`, margin, y); y += 4; }
+      if (settings?.company_phone) { doc.text(`Tél : ${settings.company_phone}`, margin, y); y += 4; } // demo-safe: coordonnees de SuperTilt, emetteur du devis, ecrites dans le PDF
+      if (settings?.company_email) { doc.text(`Email : ${settings.company_email}`, margin, y); y += 4; } // demo-safe: coordonnees de SuperTilt, emetteur du devis, ecrites dans le PDF
+      if (settings?.siren) { doc.text(`SIREN : ${settings.siren}`, margin, y); y += 4; } // demo-safe: SIREN de SuperTilt, ecrit dans le PDF du devis
       if (settings?.vat_number) { doc.text(`TVA : ${settings.vat_number}`, margin, y); y += 4; }
       if (settings?.rcs_number) { doc.text(`RCS ${settings.rcs_city} ${settings.rcs_number}`, margin, y); y += 4; }
 
@@ -393,7 +396,7 @@ export default function Step3QuoteGeneration({
       doc.setTextColor(80);
       doc.text(updated.client_address, pageW / 2 + 5, y + 17);
       doc.text(`${updated.client_zip} ${updated.client_city}`, pageW / 2 + 5, y + 22);
-      if (updated.client_siren) doc.text(`SIREN : ${updated.client_siren}`, pageW / 2 + 5, y + 27);
+      if (updated.client_siren) doc.text(`SIREN : ${updated.client_siren}`, pageW / 2 + 5, y + 27); // demo-safe: contenu ecrit dans le PDF du devis, pas un affichage
 
       y += 36;
 
@@ -522,7 +525,7 @@ export default function Step3QuoteGeneration({
         if (settings.payment_terms_text) mentions.push(`Conditions de règlement : ${settings.payment_terms_text}`);
         if (settings.early_payment_discount) mentions.push(`Escompte : ${settings.early_payment_discount}`);
         if (settings.late_penalty_text) mentions.push(`Pénalités de retard : ${settings.late_penalty_text}`);
-        mentions.push(`Indemnité forfaitaire de recouvrement : ${fmt(settings.recovery_indemnity_amount)} €`);
+        mentions.push(`Indemnité forfaitaire de recouvrement : ${fmt(settings.recovery_indemnity_amount)} €`); // demo-safe: contenu ecrit dans le PDF du devis, pas un affichage
         if (settings.training_declaration_number) mentions.push(`N° déclaration d'activité : ${settings.training_declaration_number}`);
         if (settings.vat_exempt && settings.vat_exempt_text) mentions.push(settings.vat_exempt_text);
         if (settings.insurance_name) mentions.push(`Assurance RC Pro : ${settings.insurance_name} — Police n° ${settings.insurance_policy_number}`);
@@ -713,7 +716,7 @@ export default function Step3QuoteGeneration({
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">Total HT</Label>
                         <div className="h-9 flex items-center px-3 bg-muted rounded-md font-semibold text-sm">
-                          {fmt(line.quantity * line.unit_price_ht)}
+                          {isDemoMode ? maskAmount(line.quantity * line.unit_price_ht) : fmt(line.quantity * line.unit_price_ht)}
                         </div>
                       </div>
                     </div>
@@ -766,24 +769,26 @@ export default function Step3QuoteGeneration({
                 {!settings?.vat_exempt && Object.entries(totals.vatGroups).map(([rate, g]) => (
                   <div key={rate} className="flex justify-between text-sm text-muted-foreground">
                     <span>TVA {rate}%</span>
-                    <span>Base HT : {fmt(g.ht)} — TVA : {fmt(g.vat)}</span>
+                    <span>Base HT : {isDemoMode ? maskAmount(g.ht) : fmt(g.ht)} — TVA : {isDemoMode ? maskAmount(g.vat) : fmt(g.vat)}</span>
                   </div>
                 ))}
                 <div className="border-t pt-3 space-y-2">
                   <div className="flex justify-between text-base font-medium">
                     <span>Total HT</span>
-                    <span>{fmt(totals.totalHt)}</span>
+                    <span>{isDemoMode ? maskAmount(totals.totalHt) : fmt(totals.totalHt)}</span>
                   </div>
                   {!settings?.vat_exempt && (
                     <div className="flex justify-between text-sm text-muted-foreground">
                       <span>Total TVA</span>
-                      <span>{fmt(totals.totalVat)}</span>
+                      <span>{isDemoMode ? maskAmount(totals.totalVat) : fmt(totals.totalVat)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-xl font-bold pt-1 border-t">
                     <span>Total TTC</span>
                     <span className="text-primary">
-                      {fmt(settings?.vat_exempt ? totals.totalHt : totals.totalTtc)}
+                      {isDemoMode
+                        ? maskAmount(settings?.vat_exempt ? totals.totalHt : totals.totalTtc)
+                        : fmt(settings?.vat_exempt ? totals.totalHt : totals.totalTtc)}
                     </span>
                   </div>
                 </div>
@@ -803,7 +808,7 @@ export default function Step3QuoteGeneration({
                     {settings.late_penalty_text && (
                       <p><span className="font-medium">Pénalités de retard :</span> {settings.late_penalty_text}</p>
                     )}
-                    <p><span className="font-medium">Indemnité forfaitaire de recouvrement :</span> {fmt(settings.recovery_indemnity_amount)}</p>
+                    <p><span className="font-medium">Indemnité forfaitaire de recouvrement :</span> {fmt(settings.recovery_indemnity_amount) /* demo-safe: mention legale publique du devis, identique sur tous les devis */}</p>
                     {settings.training_declaration_number && (
                       <p><span className="font-medium">N° déclaration d'activité :</span> {settings.training_declaration_number}</p>
                     )}
@@ -862,6 +867,7 @@ export default function Step3QuoteGeneration({
             <>
               <div
                 className="p-4 border rounded-md bg-background overflow-y-auto max-h-[500px] text-sm leading-relaxed [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1 [&_h3:first-child]:mt-0 [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_li]:my-0.5 [&_strong]:font-semibold"
+                style={demoBlur(isDemoMode)}
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(challengeHtml) }}
               />
               <Button

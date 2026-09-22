@@ -77,7 +77,7 @@ const Crm = () => {
         <NewOpportunityDialog
           open={showNewOpportunity}
           onOpenChange={setShowNewOpportunity}
-          userEmail={user?.email || "unknown"}
+          userEmail={user?.email || "unknown" /* demo-safe: auteur de l'opportunite creee */}
         />
 
         {/* Coach Commercial Settings Drawer */}

@@ -202,7 +202,7 @@ const ProcessingLog = ({
                       {getStepIcon(progress.drive, HardDrive)}
                     </div>
                     <div className="flex items-center gap-1" title="Envoi email">
-                      {getStepIcon(progress.email, Mail)}
+                      {getStepIcon(progress.email, Mail) /* demo-safe: statut de l'etape d'envoi, pas une adresse */}
                     </div>
                     {/* Final status */}
                     <div className="ml-2">

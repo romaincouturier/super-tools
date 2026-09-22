@@ -264,7 +264,7 @@ const Reclamations = () => {
   const exportRegistre = () => {
     const lines = reclamations
       .filter((r) => r.status !== "draft")
-      .map((r) => `${r.date_reclamation || "-"}\t${r.client_name || "-"}\t${r.problem_type || "-"}\t${r.severity || "-"}\t${r.actions_decided || "-"}\t${STATUS_LABELS[r.status] || r.status}`);
+      .map((r) => `${r.date_reclamation || "-"}\t${r.client_name || "-"}\t${r.problem_type || "-"}\t${r.severity || "-"}\t${r.actions_decided || "-"}\t${STATUS_LABELS[r.status] || r.status}`); // demo-safe: export TSV, la donnee exportee doit rester reelle
     const header = "Date\tClient\tType\tGravité\tActions\tStatut";
     const text = [header, ...lines].join("\n");
     copy(text, { title: "Registre copié", description: "Le tableau récapitulatif a été copié dans le presse-papier." });

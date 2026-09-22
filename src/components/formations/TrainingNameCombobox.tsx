@@ -170,7 +170,7 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
                       <div className="flex flex-col">
                         <span>{formation.formation_name}</span>
                         <span className="text-xs text-muted-foreground">
-                          {formation.duree_heures}h &middot; {formation.prix}€
+                          {formation.duree_heures}h &middot; {formation.prix}€{/* demo-safe: tarif du catalogue SuperTilt */}
                           {formation.woocommerce_product_id && " · WC"}
                         </span>
                       </div>

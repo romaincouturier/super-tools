@@ -9,8 +9,11 @@ import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import type { CrmCard } from "@/types/crm";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText } from "@/lib/demoMask";
 
 export default function QuoteWorkflowPage() {
+  const { isDemoMode } = useDemoMode();
   const { cardId } = useParams<{ cardId: string }>();
   const [searchParams] = useSearchParams();
   const existingQuoteId = searchParams.get("quoteId") || undefined;
@@ -50,7 +53,7 @@ export default function QuoteWorkflowPage() {
         <PageHeader
           icon={FileText}
           title="Création de devis"
-          subtitle={crmCard ? `${crmCard.title} — ${crmCard.company || "Client"}` : undefined}
+          subtitle={crmCard ? `${isDemoMode ? maskText(crmCard.title) : crmCard.title} — ${crmCard.company ? (isDemoMode ? maskText(crmCard.company) : crmCard.company) : "Client"}` : undefined}
           backTo="/crm"
         />
 

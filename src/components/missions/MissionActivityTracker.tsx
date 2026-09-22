@@ -637,7 +637,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
                     <SelectItem value="none">Non — ne pas déduire d'un crédit</SelectItem>
                     {credits!.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.label || "Crédit"} ({Number(c.amount).toLocaleString("fr-FR")} €)
+                        {c.label || "Crédit"} ({isDemoMode ? maskAmount(c.amount) : `${Number(c.amount).toLocaleString("fr-FR")} €`})
                       </SelectItem>
                     ))}
                   </SelectContent>

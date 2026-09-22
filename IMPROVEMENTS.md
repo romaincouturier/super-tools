@@ -46,13 +46,47 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## DX
 
-### [062] Test vitest d'un module `_shared` — pas d'import statique vers un module à import URL (esm.sh)
+### [067] Un numéro de règle n'est réservé qu'au merge — le vérifier après chaque rebase
+
+- **Constat** : 22/09/2026, branche d'anonymisation du mode démo. Trois collisions de numéro en une journée. La règle écrite sous `[062]` est entrée en conflit avec une `[062]` arrivée sur `main` entre-temps, puis la `[063]` de remplacement avec une `[063]` livrée au rebase suivant. Aucune des deux n'était détectable localement : le rebase ne signale rien (les blocs sont à des endroits différents du fichier) et `check-rules.sh` sur la branche ne voit que la branche. La CI l'a vu parce qu'elle évalue le commit de merge, pas la branche. Pire : `main` portait lui-même un doublon `[062]`, deux PR mergées le même jour ayant chacune pris ce numéro — `main` échouait donc son propre check `[034b]`, ce qui rendait **toute** PR non mergeable.
+- **Règle** :
+  1. Le numéro pris à l'écriture d'une règle est **provisoire**. Il n'est réservé qu'au moment où la PR merge.
+  2. Après chaque rebase, relire le check `[034b]`. En cas de doublon, **la branche cède**, jamais `main` : renuméroter au premier numéro libre au-dessus du maximum de `main`.
+  3. Renuméroter, c'est propager partout : `IMPROVEMENTS.md`, le `check "NNN"` de `check-rules.sh`, `scripts/rules-ratchet.txt`, le script de contrôle dédié, la skill concernée, `CLAUDE.md`. Un numéro oublié quelque part casse le lien règle/check que la règle [034] vérifie.
+  4. Si le doublon vient de `main`, il bloque toutes les PR : le corriger dans la branche est l'exception assumée à « ne jamais corriger un échec préexistant », et elle s'écrit dans le corps de la PR.
+- **Vérification** : check `[034b]` de `check-rules.sh` détecte le doublon, mais seulement une fois les deux règles dans le même arbre — donc en CI, sur le commit de merge, jamais en local avant rebase. Check `[067]` : la skill `sync-and-pr` doit porter l'étape de renumérotation après rebase. Angle mort assumé : rien ne peut prévenir la collision à l'écriture, seulement la rattraper au rebase.
+- **Fichiers de référence** : `.claude/skills/sync-and-pr/SKILL.md` (étape 3quater), check `[034b]` de `scripts/check-rules.sh`
+- **Origine** : trois renumérotations en une journée sur la même branche, dont une causée par un doublon de `main`
+- **Date** : 2026-09-22
+
+---
+
+### [064] Test vitest d'un module `_shared` — pas d'import statique vers un module à import URL (esm.sh)
 - **Constat** : 22/09/2026, durant `/sync-and-pr`. Un nit de `/code-review` proposait de remplacer l'`import()` dynamique de `verifyAuth` par un import statique en tête de `_shared/cron-auth.ts`. Appliqué, il a cassé `cron-auth.test.ts` au chargement : `supabase-client.ts` importe le SDK depuis `https://esm.sh/@supabase/supabase-js`, et le loader ESM de Node (donc vitest) ne résout que les schémas `file:` et `data:`. L'erreur (`Only URLs with a scheme in: file and data are supported`) tombe à l'import du module de test, avant tout `it` — d'où « 0 test » plutôt qu'un échec parlant.
 - **Règle** : Un module de `supabase/functions/_shared/` qui possède un `.test.ts` ne doit jamais importer **statiquement** un module qui importe depuis une URL (esm.sh, deno.land). Charger ce module en paresseux via `await import(...)` sur le seul chemin qui en a besoin : le test qui n'exerce pas ce chemin se charge sans la dépendance URL, et pour couvrir le chemin qui l'utilise on mocke le module URL-dépendant avec `vi.mock(...)`. Un import statique de `crypto.ts` (sans URL) reste, lui, parfaitement sûr.
-- **Vérification** : check [062] de `check-rules.sh` — `_shared/cron-auth.ts` ne doit pas importer `supabase-client.ts` en statique. Au-delà : relancer le `.test.ts` du module après tout changement d'imports.
+- **Vérification** : check [064] de `check-rules.sh` — `_shared/cron-auth.ts` ne doit pas importer `supabase-client.ts` en statique. Au-delà : relancer le `.test.ts` du module après tout changement d'imports.
 - **Fichiers de référence** : `supabase/functions/_shared/cron-auth.ts` (import dynamique de `verifyAuth`), `supabase/functions/_shared/cron-auth.test.ts` (`vi.mock` de `supabase-client.ts`)
 - **Origine** : nit de `/code-review` qui, appliqué tel quel, cassait le chargement du test
 - **Date** : 2026-09-22
+
+
+---
+
+### [066] Un contrôle par grep certifie ce qu'il sait voir, pas l'invariant — sa limite s'écrit dans la règle
+
+- **Constat** : 22/09/2026, campagne d'anonymisation du mode démo. Le contrôle `check-demo-mask.sh` affichait `065=0` — « aucune donnée identifiante non masquée » — trois fois de suite pendant que des fuites réelles subsistaient à l'écran. Trois familles, découvertes par deux revues de code successives et une passe d'angles morts, pas par le contrôle : (1) les champs préfixés, le motif exigeant une racine exacte, donc `sponsor_email` et `customer_name` rendaient en clair ; (2) les sorties hors JSX — toasts, `confirm()`, corps d'email prévisualisé, salutation générée — neuf fuites ; (3) le HTML injecté via `dangerouslySetInnerHTML`, onze blocs invisibles par construction. À chaque itération, le vert du ratchet a servi de preuve alors qu'il n'était qu'un plancher.
+- **Règle** :
+  1. Une règle dont la vérification est un grep ou un script de contrôle **énonce ce que ce contrôle ne voit pas**, dans la règle elle-même. Pas dans un commentaire du script, pas dans une PR : dans `IMPROVEMENTS.md`, là où on la relit.
+  2. Le compte d'un ratchet est un **plancher**, jamais une preuve d'invariant. « 0 violation » se lit « 0 violation détectable par ce motif ».
+  3. Élargir un contrôle est prioritaire sur corriger ce qu'il remonte : un motif trop étroit ment, un motif juste produit du travail. Quand une revue trouve une fuite que le contrôle rate, corriger le contrôle **avant** la fuite.
+  4. Ne pas élargir un motif au prix du bruit. Un détecteur qui remonte 20 faux positifs pour zéro fuite réelle finit ignoré : le renoncer et écrire la limite vaut mieux que le garder. C'est un arbitrage à documenter, pas à taire.
+  5. Corollaire de terrain : une fuite arrive rarement seule. Quand un champ est corrigé quelque part, chercher **toutes les autres sorties de la même donnée dans le fichier** — toast, `confirm`, `title=`, aperçu, tableau jumeau.
+- **Vérification** : check [066] de `check-rules.sh` — toute règle listée dans `scripts/rules-ratchet.txt` doit contenir, dans son bloc d'`IMPROVEMENTS.md`, une phrase disant ce que son contrôle ne voit pas (`plancher`, `ne voit pas`, ou `angle mort`). Les quatre ratchets antérieurs à cette règle (017, 020, 037a, 037b) sont en whitelist : ce sont des compteurs de migration progressive, pas des garanties d'invariant.
+- **Fichiers de référence** : `scripts/check-demo-mask.sh`, `.claude/skills/anonymisation-demo/SKILL.md` (section « Ce que le contrôle prouve, et ce qu'il ne prouve pas »), règle [065]
+- **Origine** : deux revues de code sur la branche d'anonymisation, chacune trouvant une famille de fuites que le ratchet certifiait absente
+- **Date** : 2026-09-22
+
+---
 
 ### [053] Un test vert ne prouve rien tant qu'on n'a pas vu la ligne couverte
 - **Constat** : 31/08/2026, tests du nouvel upload resumable Drive. Un test vérifiait l'annulation de session après échec avec `expect(calls.some((c) => c.method === "DELETE")).toBe(true)` — il passait. Le mock répondait `new Response("", { status: 204 })`, or le constructeur `Response` **lève une TypeError** quand un statut 204/205/304 porte un corps : chaque annulation partait donc dans le `catch`, et tout le chemin nominal était mort sans que rien ne le signale. Seul le rapport de couverture l'a montré, en laissant une ligne rouge à l'intérieur du bloc que le test était censé exercer.
@@ -496,6 +530,27 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 - **Date** : 2026-03-21
 
 ## Sécurité
+
+### [065] Mode démo — aucun écran interne n'affiche une donnée identifiante sans masque
+
+- **Constat** : SuperTools se démontre à des prospects sur la base de production. Le mode démo (`src/contexts/DemoModeContext.tsx` + `src/lib/demoMask.ts`) existe depuis la première campagne d'anonymisation, mais chaque feature ajoutée depuis affichait à nouveau des noms, emails, sociétés et montants clients en clair. L'audit de septembre 2026 relevait 206 affichages identifiants non masqués sur 80 fichiers d'écrans internes : CRM, devis, participants, missions, commandes, LMS. Un mode démo incomplet est pire qu'absent — le présentateur croit être couvert.
+- **Règle** :
+  1. Tout affichage d'une donnée identifiante (identité, contact, société, SIRET/SIREN, adresse, montant client, clé d'API, nom de fichier déposé) dans un écran interne passe par `isDemoMode ? mask*(valeur) : valeur`.
+  2. Le masque s'applique au **texte rendu uniquement**. Jamais sur une valeur qui repart ensuite : payload de mutation, corps d'email, PDF, export, `href="mailto:"`, `value=` de champ de formulaire, clé React.
+  3. Aucune fonction de masquage hors `src/lib/demoMask.ts`.
+  4. Les écrans publics (portail apprenant, portail partenaire, questionnaires, évaluations, signatures, pages d'info formation/mission) affichent les données de leur propre visiteur : hors périmètre.
+  5. Faux positif (prix du catalogue SuperTilt, booléen nommé `…email`, donnée de l'organisme) : annoter la ligne `// demo-safe: <raison>`. Jamais sur une donnée client.
+  6. Toute nouvelle feature qui affiche une donnée client livre son masquage dans le même commit. Le contrôle est un ratchet : la dette ne peut que descendre.
+- **Vérification** :
+  - `bash scripts/check-demo-mask.sh` — liste `fichier:ligne` des affichages non masqués.
+  - `bash scripts/check-demo-mask.sh --count` — alimente le ratchet `065` de `scripts/rules-ratchet.txt`.
+  - `065=0` est un **plancher, pas une preuve** : le grep voit un accès de champ (`{c.email}`, `` `…${c.email}…` `` dans un toast), pas une identité passée par une variable locale. Angles morts à relire à l'oeil en mode démo activé : variables intermédiaires, champs de formulaire, noms génériques (`title`, `label`, `name`, `content`), HTML injecté, PDF, images.
+  - Réflexe de correction : un champ masqué à un endroit a presque toujours d'autres sorties dans le même fichier (toast, `confirm`, `title=`, aperçu d'email, tableau jumeau). Les traiter ensemble.
+- **Fichiers de référence** : `src/lib/demoMask.ts`, `src/contexts/DemoModeContext.tsx`, `src/components/settings/StaffProfileSettings.tsx`, `scripts/check-demo-mask.sh`, `.claude/skills/anonymisation-demo/SKILL.md`
+- **Origine** : préparation de la démo du 22/09/2026 — trois mois de features livrées sans masquage
+- **Date** : 2026-09-21
+
+---
 
 ### [031] Isolation données apprenants — toutes les tables staff protégées en SELECT + edge functions critiques bloquées
 

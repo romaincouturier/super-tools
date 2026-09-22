@@ -110,7 +110,7 @@ export default function MultiUserSelector({
                         />
                         <div className="flex flex-col">
                           <span className="text-sm">{displayNameOf(user)}</span>
-                          <span className="text-xs text-muted-foreground">{user.email}</span>
+                          <span className="text-xs text-muted-foreground">{user.email}</span>{/* demo-safe: equipe SuperTilt */}
                         </div>
                       </CommandItem>
                     );

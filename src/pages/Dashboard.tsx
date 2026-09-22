@@ -29,7 +29,7 @@ import {
 } from "@/hooks/useDashboardData";
 import { greetingFor, formatToday } from "@/lib/dashboardHelpers";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskAmount } from "@/lib/demoMask";
+import { maskAmount, demoBlur } from "@/lib/demoMask";
 
 // ── Palette (charte SuperTools) ──────────────────────────────
 const CREAM = "#f7f5f0";
@@ -439,7 +439,7 @@ const Dashboard = () => {
                         </div>
                         <div style={{ width: 3, height: 28, borderRadius: 2, background: accentColor }} />
                         <Icon size={14} style={{ color: "rgba(16,24,32,0.55)" }} />
-                        <div style={{ fontSize: 14, fontWeight: 500, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", filter: isDemoMode ? "blur(4px)" : "none", userSelect: isDemoMode ? "none" : "auto" }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", ...demoBlur(isDemoMode) }}>
                           {e.title}
                         </div>
                         <div
@@ -562,7 +562,7 @@ const Dashboard = () => {
                           >
                             <IconCmp size={13} />
                           </div>
-                          <div style={{ fontSize: 12.5, flex: 1, filter: isDemoMode ? "blur(4px)" : "none", userSelect: isDemoMode ? "none" : "auto" }}>{a.text}</div>
+                          <div style={{ fontSize: 12.5, flex: 1, ...demoBlur(isDemoMode) }}>{a.text}</div>
                           <ChevronRight size={13} style={{ opacity: 0.4 }} />
                         </button>
                       );

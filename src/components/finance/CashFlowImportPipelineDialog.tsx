@@ -15,6 +15,8 @@ import { toastError } from "@/lib/toastError";
 import { useCrmPipelineForecast, type CrmPipelineDeal } from "@/hooks/useCrmPipelineForecast";
 import { useCreateForecastLinesBatch } from "@/hooks/useCashFlowForecast";
 import { EUR } from "@/components/finance/InvoicesTable";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount, maskText } from "@/lib/demoMask";
 
 interface ImportPipelineProps {
   open: boolean;
@@ -26,6 +28,7 @@ function monthFloor(dateISO: string): string {
 }
 
 export default function CashFlowImportPipelineDialog({ open, onOpenChange }: ImportPipelineProps) {
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const pipelineQ = useCrmPipelineForecast();
   const batch = useCreateForecastLinesBatch();
@@ -49,7 +52,7 @@ export default function CashFlowImportPipelineDialog({ open, onOpenChange }: Imp
       await batch.mutateAsync(
         picked.map((d) => ({
           month: monthFloor(d.expected_close_date),
-          category: d.company ? `${d.title} (${d.company})` : d.title,
+          category: d.company ? `${d.title} (${d.company})` : d.title, // demo-safe: payload enregistre en base, non affiche
           amount: d.estimated_value,
           type: "income" as const,
           source: "crm_deal" as const,
@@ -93,12 +96,12 @@ export default function CashFlowImportPipelineDialog({ open, onOpenChange }: Imp
               >
                 <Checkbox checked={selected.has(deal.id)} onCheckedChange={() => toggle(deal.id)} />
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium truncate">{deal.title}</div>
+                  <div className="font-medium truncate">{isDemoMode ? maskText(deal.title) : deal.title}</div>
                   <div className="text-xs text-muted-foreground">
-                    {deal.company ? `${deal.company} • ` : ""}closing prévu {deal.expected_close_date}
+                    {deal.company ? `${isDemoMode ? maskText(deal.company) : deal.company} • ` : ""}closing prévu {deal.expected_close_date}
                   </div>
                 </div>
-                <div className="text-sm font-semibold tabular-nums">{EUR.format(deal.estimated_value)}</div>
+                <div className="text-sm font-semibold tabular-nums">{isDemoMode ? maskAmount(deal.estimated_value) : EUR.format(deal.estimated_value)}</div>
               </label>
             ))}
           </div>

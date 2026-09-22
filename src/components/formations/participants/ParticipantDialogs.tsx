@@ -3,6 +3,8 @@ import ParticipantDocumentsDialog from "../ParticipantDocumentsDialog";
 import EvaluationDetailDialog from "../EvaluationDetailDialog";
 import ParticipantTraceabilityDrawer from "../ParticipantTraceabilityDrawer";
 import type { Participant } from "./types";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 
 interface ParticipantDialogsProps {
   documentsParticipant: Participant | null;
@@ -35,6 +37,11 @@ const ParticipantDialogs = ({
   attendanceSheetsUrls,
   onParticipantUpdated,
 }: ParticipantDialogsProps) => {
+  const { isDemoMode } = useDemoMode();
+  const traceabilityName = traceabilityParticipant
+    ? [traceabilityParticipant.first_name, traceabilityParticipant.last_name].filter(Boolean).join(" ") || traceabilityParticipant.email
+    : "";
+
   return (
     <>
       {documentsParticipant && (
@@ -73,12 +80,8 @@ const ParticipantDialogs = ({
           open={!!traceabilityParticipant}
           onOpenChange={(open) => !open && onCloseTraceability()}
           participantId={traceabilityParticipant.id}
-          participantEmail={traceabilityParticipant.email}
-          participantName={
-            traceabilityParticipant.first_name || traceabilityParticipant.last_name
-              ? `${traceabilityParticipant.first_name || ""} ${traceabilityParticipant.last_name || ""}`.trim()
-              : traceabilityParticipant.email
-          }
+          participantEmail={traceabilityParticipant.email} // demo-safe: adresse reelle requise pour le renvoi et la requete de tracabilite
+          participantName={isDemoMode ? maskName(traceabilityName) : traceabilityName}
           trainingId={trainingId}
           trainingName={trainingName}
           participantAddedAt={traceabilityParticipant.added_at}

@@ -31,6 +31,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import PageHeader from "@/components/PageHeader";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName, maskEmail, maskText } from "@/lib/demoMask";
 
 interface NeedsSurvey {
   id: string;
@@ -66,6 +68,7 @@ interface NeedsSurvey {
 }
 
 const BesoinsParticipants = () => {
+  const { isDemoMode } = useDemoMode();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [surveys, setSurveys] = useState<NeedsSurvey[]>([]);
@@ -311,14 +314,14 @@ const BesoinsParticipants = () => {
                           </TableCell>
                           <TableCell>
                             <div className="font-medium">
-                              {survey.prenom} {survey.nom}
+                              {isDemoMode ? maskName(survey.prenom) : survey.prenom} {isDemoMode ? maskName(survey.nom) : survey.nom}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              {survey.email}
+                              {isDemoMode ? maskEmail(survey.email) : survey.email}
                             </div>
                           </TableCell>
                           <TableCell>{survey.training?.training_name || "-"}</TableCell>
-                          <TableCell>{survey.training?.client_name || "-"}</TableCell>
+                          <TableCell>{survey.training?.client_name ? (isDemoMode ? maskText(survey.training.client_name) : survey.training.client_name) : "-"}</TableCell>
                           <TableCell>
                             {survey.training?.start_date
                               ? format(parseISO(survey.training.start_date), "d MMM yyyy", { locale: fr })
@@ -353,7 +356,7 @@ const BesoinsParticipants = () => {
                                     <h4 className="font-medium text-sm text-muted-foreground mb-1">
                                       Fonction / Société
                                     </h4>
-                                    <p>{survey.fonction || "-"} / {survey.societe || "-"}</p>
+                                    <p>{survey.fonction || "-"} / {isDemoMode ? maskText(survey.societe) || "-" : survey.societe || "-"}</p>
                                   </div>
                                   {(survey.niveau_actuel != null || survey.niveau_motivation != null) && (
                                     <div className="flex gap-4">

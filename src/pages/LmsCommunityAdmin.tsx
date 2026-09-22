@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 import { useParams } from "react-router-dom";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -229,6 +231,7 @@ function useLastPublicationByLearner(courseId: string) {
 }
 
 function MembersTab({ courseId }: { courseId: string }) {
+  const { isDemoMode } = useDemoMode();
   const { data: enrollments = [], isLoading } = useCourseEnrollments(courseId);
   const { data: lastPubMap } = useLastPublicationByLearner(courseId);
 
@@ -264,7 +267,7 @@ function MembersTab({ courseId }: { courseId: string }) {
             const last = lastPubMap?.get((e.learner_email || "").toLowerCase());
             return (
               <tr key={e.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
-                <td className="px-4 py-3">{e.learner_email}</td>
+                <td className="px-4 py-3">{isDemoMode ? maskEmail(e.learner_email) : e.learner_email}</td>
                 <td className="px-4 py-3 text-muted-foreground">
                   {last ? new Date(last).toLocaleDateString("fr-FR") : <span className="italic">Aucune</span>}
                 </td>

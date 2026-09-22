@@ -22,6 +22,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useAddOKRParticipant, useRemoveOKRParticipant } from "@/hooks/useOKR";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName } from "@/lib/demoMask";
 
 // ---------------------------------------------------------------------------
 // ParticipantRow
@@ -29,6 +31,7 @@ import { useAddOKRParticipant, useRemoveOKRParticipant } from "@/hooks/useOKR";
 
 export function OKRParticipantRow({ participant, objectiveId }: { participant: any; objectiveId: string }) {
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const removeParticipant = useRemoveOKRParticipant();
 
   const handleRemove = async () => {
@@ -42,9 +45,13 @@ export function OKRParticipantRow({ participant, objectiveId }: { participant: a
   return (
     <div className="flex items-center justify-between p-3 border rounded-lg">
       <div>
-        <div className="font-medium">{participant.name || participant.email}</div>
+        <div className="font-medium">
+          {isDemoMode
+            ? (participant.name ? maskName(participant.name) : maskEmail(participant.email))
+            : (participant.name || participant.email)}
+        </div>
         {participant.name && (
-          <div className="text-sm text-muted-foreground">{participant.email}</div>
+          <div className="text-sm text-muted-foreground">{isDemoMode ? maskEmail(participant.email) : participant.email}</div>
         )}
       </div>
       <div className="flex items-center gap-2">

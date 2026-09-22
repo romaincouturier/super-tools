@@ -16,6 +16,8 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import EmojiInsert from "@/components/ui/emoji-insert";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName, maskEmail } from "@/lib/demoMask";
 
 interface Props {
   courseId: string;
@@ -30,9 +32,10 @@ function initials(email: string, first?: string | null, last?: string | null) {
   if (f || l) return `${f[0] ?? ""}${l[0] ?? ""}`.toUpperCase() || email[0].toUpperCase();
   return email[0]?.toUpperCase() ?? "?";
 }
-function displayName(email: string, first?: string | null, last?: string | null) {
+function displayName(email: string, first?: string | null, last?: string | null, demo = false) {
   const name = `${first ?? ""} ${last ?? ""}`.trim();
-  return name || email;
+  if (name) return demo ? maskName(name) : name;
+  return demo ? maskEmail(email) : email;
 }
 
 function PostThread({
@@ -44,6 +47,7 @@ function PostThread({
   learnerEmail: string;
   onDelete: (id: string) => void;
 }) {
+  const { isDemoMode } = useDemoMode();
   const { data: comments = [] } = usePracticeComments(post.id, learnerEmail);
   const createComment = useCreatePracticeComment(learnerEmail);
   const deleteComment = useDeletePracticeComment(learnerEmail, false);
@@ -71,7 +75,7 @@ function PostThread({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium">{displayName(post.author_email, post.author_first_name, post.author_last_name)}</span>
+            <span className="font-medium">{displayName(post.author_email, post.author_first_name, post.author_last_name, isDemoMode)}</span>
             <span className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(post.created_at), { locale: fr, addSuffix: true })}
             </span>
@@ -100,7 +104,7 @@ function PostThread({
               <div key={c.id} className="bg-background rounded-md px-3 py-2 flex items-start justify-between gap-2 group">
                 <div className="min-w-0">
                   <div className="text-xs font-medium">
-                    {displayName(c.author_email, c.author_first_name, c.author_last_name)}
+                    {displayName(c.author_email, c.author_first_name, c.author_last_name, isDemoMode)}
                   </div>
                   <p className="text-sm">{c.content}</p>
                 </div>

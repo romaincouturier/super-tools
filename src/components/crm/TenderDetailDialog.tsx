@@ -23,6 +23,8 @@ import { useDceReviewFlag } from "@/hooks/crm/useDceReviewFlag";
 import { extractTenderDetail } from "@/lib/tenderDetail";
 import { TenderAiPanel } from "@/components/crm/TenderAiPanel";
 import { tenderSourceConfig, type TenderWithContext } from "@/types/tenders";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount, maskEmail, maskPhone } from "@/lib/demoMask";
 
 interface Props {
   tender: TenderWithContext | null;
@@ -46,6 +48,7 @@ function Line({ label, value }: { label: string; value: React.ReactNode }) {
 export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, decided }: Props) {
   // Avant le retour anticipé : un hook ne peut pas être conditionnel.
   const { opened: dceOpened, markOpened: markDceOpened } = useDceReviewFlag(tender?.id ?? "");
+  const { isDemoMode } = useDemoMode();
   if (!tender) return null;
   const d = tender.decision ?? {};
   const dce = resolveDceLink(tender);
@@ -129,7 +132,7 @@ export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, d
                   d.montant != null
                     ? // La devise vient de l'avis : un montant TED en NOK
                       // affiché en euros serait un contresens de décision.
-                      `${d.montant.toLocaleString("fr-FR")} ${d.devise ?? "EUR"}`
+                      (isDemoMode ? maskAmount(d.montant) : `${d.montant.toLocaleString("fr-FR")} ${d.devise ?? "EUR"}`)
                     : null
                 }
               />
@@ -204,20 +207,20 @@ export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, d
               </>
             )}
 
-            {(detail.emails.length > 0 || detail.telephones.length > 0 || d.contact_email) && (
+            {(detail.emails.length > 0 || detail.telephones.length > 0 || d.contact_email) && ( // demo-safe: test de presence, rien n'est affiche
               <>
                 <Separator />
                 <div className="text-sm text-muted-foreground space-y-1">
-                  {[...new Set([d.contact_email, ...detail.emails].filter(Boolean))].map((mail) => (
+                  {[...new Set([d.contact_email, ...detail.emails].filter(Boolean))].map((mail) => ( // demo-safe: liste brute, chaque adresse est masquee a l'affichage
                     <p key={mail as string} className="flex items-center gap-1.5">
                       <Mail className="h-3.5 w-3.5" />
-                      {mail}
+                      {isDemoMode ? maskEmail(mail as string) : mail}
                     </p>
                   ))}
                   {detail.telephones.map((tel) => (
                     <p key={tel} className="flex items-center gap-1.5">
                       <Phone className="h-3.5 w-3.5" />
-                      {tel}
+                      {isDemoMode ? maskPhone(tel) : tel}
                     </p>
                   ))}
                 </div>

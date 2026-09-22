@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 import { Sparkles, Check, SkipForward, Linkedin, Mail, Phone, Coffee, Share2, Copy, ChevronDown, ChevronUp } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -159,6 +161,7 @@ function ActionItem({
   onSkip: () => void;
   isPending: boolean;
 }) {
+  const { isDemoMode } = useDemoMode();
   const config = ACTION_CONFIG[action.action_type as ActionType] || ACTION_CONFIG.email;
   const Icon = config.icon;
 
@@ -172,7 +175,7 @@ function ActionItem({
           <Icon className="h-3 w-3 inline mr-1" />
           {config.label}
         </span>
-        <span className="text-sm font-medium flex-1 truncate">{contactName}</span>
+        <span className="text-sm font-medium flex-1 truncate">{isDemoMode ? maskName(contactName) : contactName}</span>
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"

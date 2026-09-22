@@ -6,12 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useConnexionIndicators, useDormantLearnerAccounts } from "@/hooks/useConnexionIndicators";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 
 /**
  * Indicateurs de la refonte de connexion (chapitre 20 de la spécification)
  * et comptes dormants signalés pour suppression (RG-23).
  */
 export default function ConnexionTab() {
+  const { isDemoMode } = useDemoMode();
   const [days, setDays] = useState(30);
   const { data, isLoading, error } = useConnexionIndicators(days);
   const dormant = useDormantLearnerAccounts(3);
@@ -103,8 +106,8 @@ export default function ConnexionTab() {
           ) : dormant.data && dormant.data.length > 0 ? (
             <ul className="divide-y text-sm">
               {dormant.data.slice(0, 50).map((account) => (
-                <li key={account.email} className="flex flex-wrap justify-between gap-2 py-2">
-                  <span>{account.email}</span>
+                <li key={account.email /* demo-safe: cle React, jamais affichee */} className="flex flex-wrap justify-between gap-2 py-2">
+                  <span>{isDemoMode ? maskEmail(account.email) : account.email}</span>
                   <span className="text-muted-foreground">
                     {account.last_sign_in_at
                       ? `dernière connexion ${format(new Date(account.last_sign_in_at), "d MMMM yyyy", { locale: fr })}`

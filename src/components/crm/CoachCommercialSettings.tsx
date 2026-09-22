@@ -26,6 +26,8 @@ import { toastError } from "@/lib/toastError";
 import { Save, Plus, Trash2, ChevronLeft, ChevronRight, Target, TrendingUp, Euro, Loader2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import type { CommercialCoachContext, CrmRevenueTarget } from "@/types/crm";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 
 interface CoachCommercialSettingsProps {
   open: boolean;
@@ -33,6 +35,7 @@ interface CoachCommercialSettingsProps {
 }
 
 export default function CoachCommercialSettings({ open, onOpenChange }: CoachCommercialSettingsProps) {
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const currentYear = new Date().getFullYear();
 
@@ -579,7 +582,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
                             <div>
                               <p className="text-sm font-medium">{periodLabel(target)}</p>
                               <p className="text-xs text-muted-foreground">
-                                Objectif : {formatEuro(target.target_amount)}
+                                Objectif : {isDemoMode ? maskAmount(target.target_amount) : formatEuro(target.target_amount)}
                                 {isCurrent && " — en cours"}
                               </p>
                             </div>

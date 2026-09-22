@@ -369,11 +369,11 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                     {availableFormulas.map((f) => (
                       <SelectItem key={f.id} value={f.id}>
                         {f.name}
-                        {(f.prix != null || f.duree_heures != null) && (
+                        {(f.prix != null || f.duree_heures != null) && ( // demo-safe: test de presence
                           <span className="text-muted-foreground">
                             {" — "}
-                            {f.prix != null ? `${f.prix}€` : ""}
-                            {f.prix != null && f.duree_heures != null ? " · " : ""}
+                            {f.prix != null ? `${f.prix}€` : ""}{/* demo-safe: tarif du catalogue SuperTilt */}
+                            {f.prix != null && f.duree_heures != null ? " · " : ""}{/* demo-safe: separateur */}
                             {f.duree_heures != null ? `${f.duree_heures}h` : ""}
                           </span>
                         )}

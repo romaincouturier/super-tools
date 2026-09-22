@@ -30,6 +30,8 @@ import type { KanbanColumnDef, KanbanCardDef, KanbanStatsItem } from "@/types/ka
 import ContentCard from "./ContentCard";
 import ContentCardDialog from "./ContentCardDialog";
 import AddColumnDialog from "@/components/shared/AddColumnDialog";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName, maskEmail } from "@/lib/demoMask";
 
 export interface ContentTypeColors {
   article: string;
@@ -86,6 +88,7 @@ interface KanbanBoardProps {
 }
 
 const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPublished = false, onNewsletterChange }: KanbanBoardProps) => {
+  const { isDemoMode } = useDemoMode();
   const [columns, setColumns] = useState<Column[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [cardIdsInReview, setCardIdsInReview] = useState<Set<string>>(new Set());
@@ -872,8 +875,8 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
                     }}
                   />
                   <div>
-                    <p className="text-sm font-medium">{collab.displayName || collab.email.split("@")[0]}</p>
-                    <p className="text-xs text-muted-foreground">{collab.email}</p>
+                    <p className="text-sm font-medium">{isDemoMode ? maskName(collab.displayName || collab.email.split("@")[0]) : collab.displayName || collab.email.split("@")[0]}</p>
+                    <p className="text-xs text-muted-foreground">{isDemoMode ? maskEmail(collab.email) : collab.email}</p>
                   </div>
                 </label>
               );
