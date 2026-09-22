@@ -23,6 +23,8 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Spinner } from "@/components/ui/spinner";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount, maskEmail, maskName } from "@/lib/demoMask";
 
 interface InboxItem {
   id: string;
@@ -44,6 +46,7 @@ interface InboxItem {
 }
 
 export default function WoocommerceInbox() {
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
   const queryClient = useQueryClient();
@@ -149,7 +152,8 @@ export default function WoocommerceInbox() {
             {filtered.map((item) => {
               const { label, color } = typeLabel(item);
               const order = item.woocommerce_orders;
-              const customerName = [order?.customer_first_name, order?.customer_last_name].filter(Boolean).join(" ") || "—";
+              const rawCustomerName = [order?.customer_first_name, order?.customer_last_name].filter(Boolean).join(" ");
+              const customerName = (isDemoMode ? maskName(rawCustomerName) : rawCustomerName) || "—";
               return (
                 <Card key={item.id} className="overflow-hidden">
                   <CardContent className="p-4 space-y-3">
@@ -161,7 +165,7 @@ export default function WoocommerceInbox() {
                         <div className="min-w-0">
                           <p className="font-medium text-sm truncate">{item.product_name}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            Produit #{item.wc_product_id} · {item.quantity} unité{item.quantity > 1 ? "s" : ""} · {item.line_total.toFixed(2)} €
+                            Produit #{item.wc_product_id} · {item.quantity} unité{item.quantity > 1 ? "s" : ""} · {isDemoMode ? maskAmount(item.line_total) : `${item.line_total.toFixed(2)} €`}
                           </p>
                         </div>
                       </div>
@@ -186,7 +190,7 @@ export default function WoocommerceInbox() {
                           <span className="flex items-center gap-1">
                             <User className="w-3 h-3" />
                             {customerName}
-                            {order.customer_email && <span className="text-muted-foreground/70">· {order.customer_email}</span>}
+                            {order.customer_email && <span className="text-muted-foreground/70">· {isDemoMode ? maskEmail(order.customer_email) : order.customer_email}</span>}
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />

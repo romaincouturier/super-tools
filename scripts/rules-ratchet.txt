@@ -15,5 +15,5 @@
 037b=354
 # 062 : affichages identifiants sans masque demo dans les ecrans internes (cible : 0)
 #   Remonte a 75 le 22/09 : la regle accepte desormais les champs prefixes
-#   (sponsor_email, customer_name), invisibles au premier passage. Redescend a 0.
-062=75
+#   (sponsor_email, customer_name), invisibles au premier passage. Redescendu a 0.
+062=0

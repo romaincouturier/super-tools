@@ -30,6 +30,8 @@ import {
   type RestockItemStatus,
   type RestockRun,
 } from "@/hooks/useGameRestocks";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 
 const EUR = (v: number | null | undefined) =>
   v == null ? "—" : v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
@@ -52,6 +54,7 @@ const STATUS_COLORS: Record<RestockItemStatus, string> = {
 // ── Main tab ─────────────────────────────────────────────────────
 
 export function GameRestockTab({ gameId }: { gameId: string }) {
+  const { isDemoMode } = useDemoMode();
   const { data: actions, isLoading } = useRestockActions(gameId);
   const { data: runs } = useRestockRuns(gameId);
   const [editing, setEditing] = useState<Partial<RestockAction> | null | undefined>(undefined);
@@ -105,7 +108,7 @@ export function GameRestockTab({ gameId }: { gameId: string }) {
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">{a.label}</div>
                   <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-x-3 gap-y-1">
-                    {a.unit_price_ht != null && <span>PU HT : {EUR(a.unit_price_ht)}</span>}
+                    {a.unit_price_ht != null && <span>PU HT : {isDemoMode ? maskAmount(a.unit_price_ht) : EUR(a.unit_price_ht)}</span>}
                     {a.url && (
                       <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
                         <ExternalLink className="h-3 w-3" />Lien
@@ -158,7 +161,7 @@ export function GameRestockTab({ gameId }: { gameId: string }) {
                     </div>
                     {r.status === "completed" && (
                       <div className="text-xs text-muted-foreground mt-1">
-                        Coût final : {EUR(totalCostHT)} HT · {EUR(totalCostTTC)} TTC
+                        Coût final : {isDemoMode ? maskAmount(totalCostHT) : EUR(totalCostHT)} HT · {isDemoMode ? maskAmount(totalCostTTC) : EUR(totalCostTTC)} TTC
                       </div>
                     )}
                   </button>
@@ -451,6 +454,7 @@ function RunItemRow({
   readonly: boolean;
   onPatch: (patch: Partial<RestockItem>) => Promise<unknown>;
 }) {
+  const { isDemoMode } = useDemoMode();
   const [expanded, setExpanded] = useState(false);
   const [costHT, setCostHT] = useState<string>(item.final_cost_ht?.toString() ?? "");
   const [costTTC, setCostTTC] = useState<string>(item.final_cost_ttc?.toString() ?? "");
@@ -502,7 +506,7 @@ function RunItemRow({
           <button className="text-left w-full" onClick={() => setExpanded((v) => !v)}>
             <div className="font-medium">{item.label}</div>
             <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-x-3">
-              {item.unit_price_ht != null && <span>PU HT prévu : {EUR(item.unit_price_ht)}</span>}
+              {item.unit_price_ht != null && <span>PU HT prévu : {isDemoMode ? maskAmount(item.unit_price_ht) : EUR(item.unit_price_ht)}</span>}
               {item.url && <span className="inline-flex items-center gap-1"><ExternalLink className="h-3 w-3" />Lien</span>}
               {files.length > 0 && <span className="inline-flex items-center gap-1"><Paperclip className="h-3 w-3" />{files.length} fichier(s)</span>}
             </div>

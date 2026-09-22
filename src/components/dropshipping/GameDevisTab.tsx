@@ -452,7 +452,7 @@ function GameDevisHistory() {
                 return (
                 <TableRow key={d.id}>
                   <TableCell className="text-sm">{DATE(d.created_at)}</TableCell>
-                  <TableCell className="text-sm font-medium">{(isDemoMode ? maskText(d.client_name) : d.client_name) ?? "—"}</TableCell>
+                  <TableCell className="text-sm font-medium">{(isDemoMode ? maskText(d.client_name) || null : d.client_name) ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{isDemoMode ? maskEmail(d.recipient_email) : d.recipient_email}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {d.items.reduce((s, i) => s + i.quantity, 0)} article(s)

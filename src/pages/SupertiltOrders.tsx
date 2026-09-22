@@ -61,6 +61,8 @@ import {
   type KanbanStatus,
   type GameType,
 } from "@/hooks/useSupertiltOrders";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount, maskEmail, maskName } from "@/lib/demoMask";
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -1316,6 +1318,7 @@ function Catalog() {
 // ── Sales list ─────────────────────────────────────────────────────
 
 function Sales() {
+  const { isDemoMode } = useDemoMode();
   const { data: items, isLoading } = useAllOrderItems();
   const [search, setSearch] = useState("");
   const exportCsv = useCsvExport();
@@ -1387,16 +1390,22 @@ function Sales() {
             )}
             {filtered.map((i) => {
               const order = i.woocommerce_orders;
+              const customerName = [order?.customer_first_name, order?.customer_last_name].filter(Boolean).join(" ");
+              const customerLabel = customerName
+                ? (isDemoMode ? maskName(customerName) : customerName)
+                : order?.customer_email
+                  ? (isDemoMode ? maskEmail(order.customer_email) : order.customer_email)
+                  : "—";
               return (
                 <TableRow key={i.id}>
                   <TableCell className="text-sm">{order?.date_created ? DATE(order.date_created) : "—"}</TableCell>
                   <TableCell className="text-sm font-mono">{order?.order_number ?? i.wc_order_id}</TableCell>
                   <TableCell className="text-sm font-medium">{i.games?.title ?? i.product_name ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {[order?.customer_first_name, order?.customer_last_name].filter(Boolean).join(" ") || order?.customer_email || "—"}
+                    {customerLabel}
                   </TableCell>
                   <TableCell className="text-right text-sm">{i.quantity}</TableCell>
-                  <TableCell className="text-right text-sm">{i.line_total ? EUR(i.line_total) : "—"}</TableCell>
+                  <TableCell className="text-right text-sm">{i.line_total ? (isDemoMode ? maskAmount(i.line_total) : EUR(i.line_total)) : "—"}</TableCell>
                   <TableCell>
                     {i.game_type && (
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${GAME_TYPE_COLORS[i.game_type]}`}>

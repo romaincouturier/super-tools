@@ -27,6 +27,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { todayAsISO } from "@/lib/dateFormatters";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 import {
   mapSourceToBpfLine,
   calcScheduleHours,
@@ -244,6 +246,7 @@ const STAGIAIRE_LABELS: Record<TypeStagiaire, string> = {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function BPFReport() {
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const currentYear = new Date().getFullYear();
   const [annee, setAnnee] = useState(currentYear);
@@ -728,7 +731,7 @@ export default function BPFReport() {
                       <div className="flex items-center gap-2 mb-4 text-amber-600 bg-amber-50 border border-amber-200 rounded p-3">
                         <AlertTriangle className="w-4 h-4 shrink-0" />
                         <span className="text-sm">
-                          <strong>{EUR(produits.unclassified)}</strong> de chiffre d&apos;affaires n&apos;a pas de source de financement renseignée.
+                          <strong>{isDemoMode ? maskAmount(produits.unclassified) : EUR(produits.unclassified)}</strong> de chiffre d&apos;affaires n&apos;a pas de source de financement renseignée.
                           Assignez <code className="text-xs bg-amber-100 px-1 rounded">source_financement_bpf</code> sur chaque formation.
                         </span>
                       </div>
@@ -747,14 +750,14 @@ export default function BPFReport() {
                             <TableCell className="font-mono text-xs">{l.bpfRef}</TableCell>
                             <TableCell>{l.label}</TableCell>
                             <TableCell className="text-right font-mono">
-                              {produits[l.key] > 0 ? EUR(produits[l.key]) : "—"}
+                              {produits[l.key] > 0 ? (isDemoMode ? maskAmount(produits[l.key]) : EUR(produits[l.key])) : "—"}
                             </TableCell>
                           </TableRow>
                         ))}
                         <TableRow className="font-semibold border-t-2">
                           <TableCell />
                           <TableCell>TOTAL produits formation</TableCell>
-                          <TableCell className="text-right font-mono">{EUR(totalProduits)}</TableCell>
+                          <TableCell className="text-right font-mono">{isDemoMode ? maskAmount(totalProduits) : EUR(totalProduits)}</TableCell>
                         </TableRow>
                       </TableBody>
                     </Table>
@@ -781,8 +784,8 @@ export default function BPFReport() {
                         </TableHeader>
                         <TableBody>
                           {trainers.map((t) => (
-                            <TableRow key={t.trainer_name}>
-                              <TableCell className="font-medium">{t.trainer_name}</TableCell>
+                            <TableRow key={t.trainer_name /* demo-safe: cle React, jamais masquee */}>
+                              <TableCell className="font-medium">{t.trainer_name /* demo-safe: formateur SuperTilt, l'equipe reste visible en demo */}</TableCell>
                               <TableCell>
                                 <Badge variant="outline">Interne</Badge>
                               </TableCell>
@@ -1060,7 +1063,7 @@ export default function BPFReport() {
                   {balanceSheetCa !== null && (
                     <p className="text-xs text-muted-foreground">
                       Importé depuis le bilan comptable {annee} :{" "}
-                      <strong>{EUR(balanceSheetCa)}</strong>
+                      <strong>{isDemoMode ? maskAmount(balanceSheetCa) : EUR(balanceSheetCa)}</strong>
                     </p>
                   )}
                   {balanceSheetCa === null && (
@@ -1073,7 +1076,7 @@ export default function BPFReport() {
                 </div>
                 {partFormation !== null && (
                   <div className="bg-muted rounded p-3 text-sm">
-                    Part CA formation = {EUR(totalProduits)} / {EUR(caGlobalNum)} × 100{" "}
+                    Part CA formation = {isDemoMode ? maskAmount(totalProduits) : EUR(totalProduits)} / {isDemoMode ? maskAmount(caGlobalNum) : EUR(caGlobalNum)} × 100{" "}
                     = <strong>{partFormation.toFixed(1)}%</strong>
                   </div>
                 )}
@@ -1119,13 +1122,13 @@ export default function BPFReport() {
                   <tr key={l.key} className="border-b border-dashed">
                     <td className="py-1 font-mono text-xs">{l.bpfRef}</td>
                     <td className="py-1">{l.label}</td>
-                    <td className="py-1 text-right font-mono">{EUR(produits[l.key])}</td>
+                    <td className="py-1 text-right font-mono">{EUR(produits[l.key]) /* demo-safe: vue d'impression du Cerfa, document officiel */}</td>
                   </tr>
                 ))}
                 <tr className="font-semibold border-t">
                   <td />
                   <td className="py-1">TOTAL</td>
-                  <td className="py-1 text-right font-mono">{EUR(totalProduits)}</td>
+                  <td className="py-1 text-right font-mono">{EUR(totalProduits) /* demo-safe: vue d'impression du Cerfa, document officiel */}</td>
                 </tr>
               </tbody>
             </table>

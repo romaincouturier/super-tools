@@ -41,6 +41,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import PageHeader from "@/components/PageHeader";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskFileName, maskName, maskText } from "@/lib/demoMask";
 
 interface InboundEmail {
   id: string;
@@ -60,6 +62,7 @@ interface InboundEmail {
 }
 
 export default function InboundEmails() {
+  const { isDemoMode } = useDemoMode();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -274,16 +277,18 @@ export default function InboundEmails() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium truncate">
-                            {email.from_name || email.from_email}
+                            {email.from_name
+                              ? (isDemoMode ? maskName(email.from_name) : email.from_name)
+                              : (isDemoMode ? maskEmail(email.from_email) : email.from_email)}
                           </span>
                           {email.from_name && (
                             <span className="text-sm text-muted-foreground truncate">
-                              &lt;{email.from_email}&gt;
+                              &lt;{isDemoMode ? maskEmail(email.from_email) : email.from_email}&gt;
                             </span>
                           )}
                         </div>
                         <p className="text-sm font-medium truncate">
-                          {email.subject || "(Sans sujet)"}
+                          {(isDemoMode ? maskText(email.subject) || null : email.subject) || "(Sans sujet)"}
                         </p>
                         <p className="text-sm text-muted-foreground truncate">
                           {email.text_body?.substring(0, 100) || "(Pas de contenu texte)"}
@@ -313,10 +318,12 @@ export default function InboundEmails() {
         <Dialog open={!!selectedEmail} onOpenChange={() => setSelectedEmail(null)}>
           <DialogContent className="w-full sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
-              <DialogTitle className="pr-8">{selectedEmail?.subject || "(Sans sujet)"}</DialogTitle>
+              <DialogTitle className="pr-8">{(isDemoMode ? maskText(selectedEmail?.subject) || null : selectedEmail?.subject) || "(Sans sujet)"}</DialogTitle>
               <DialogDescription>
-                De: {selectedEmail?.from_name || selectedEmail?.from_email}
-                {selectedEmail?.from_name && ` <${selectedEmail.from_email}>`}
+                De: {selectedEmail?.from_name
+                  ? (isDemoMode ? maskName(selectedEmail.from_name) : selectedEmail.from_name)
+                  : (isDemoMode ? maskEmail(selectedEmail?.from_email) : selectedEmail?.from_email)}
+                {selectedEmail?.from_name && ` <${isDemoMode ? maskEmail(selectedEmail.from_email) : selectedEmail.from_email}>`}
               </DialogDescription>
             </DialogHeader>
 
@@ -345,7 +352,7 @@ export default function InboundEmails() {
                 {/* Metadata */}
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-muted-foreground">À:</span> {selectedEmail?.to_email}
+                    <span className="text-muted-foreground">À:</span> {selectedEmail?.to_email /* demo-safe: boite de reception SuperTilt, pas une adresse client */}
                   </div>
                   {selectedEmail?.attachments && selectedEmail.attachments.length > 0 && (
                     <div className="col-span-2">
@@ -354,7 +361,7 @@ export default function InboundEmails() {
                         {selectedEmail.attachments.map((att, i) => (
                           <Badge key={i} variant="outline" className="font-normal">
                             <Paperclip className="h-3 w-3 mr-1" />
-                            {att.filename} ({formatFileSize(att.size)})
+                            {isDemoMode ? maskFileName(att.filename) : att.filename} ({formatFileSize(att.size)})
                           </Badge>
                         ))}
                       </div>
