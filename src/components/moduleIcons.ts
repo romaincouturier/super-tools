@@ -34,6 +34,7 @@ import {
   BookImage,
   Clock,
   FolderOpen,
+  Gavel,
   type LucideIcon,
 } from "lucide-react";
 
@@ -45,6 +46,7 @@ interface ModuleIconInfo {
 
 export const MODULE_ICONS: Record<string, ModuleIconInfo> = {
   crm: { icon: Kanban, label: "CRM", path: "/crm" },
+  "crm-tenders": { icon: Gavel, label: "AO à qualifier", path: "/crm/marches-publics" },
   missions: { icon: Briefcase, label: "Missions", path: "/missions" },
   okr: { icon: Target, label: "OKR", path: "/okr" },
   medias: { icon: ImageIcon, label: "Médiathèque", path: "/medias" },

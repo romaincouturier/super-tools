@@ -32,6 +32,8 @@ const SIDEBAR_EXPANDED_KEY = "supertools.sidebar.expanded";
 interface SubNavItem {
   key: string;
   sectionLabel?: string;
+  /** Module de droits, quand le sous-item n'est qu'une vue d'un module existant. */
+  module?: AppModule;
 }
 
 interface NavGroupConfig {
@@ -48,7 +50,13 @@ interface NavItemConfig {
 type NavConfig = NavGroupConfig | NavItemConfig;
 
 const NAV_CONFIG: NavConfig[] = [
-  { type: "item", key: "crm" },
+  {
+    type: "group",
+    key: "crm",
+    children: [
+      { key: "crm-tenders", module: "crm" },
+    ],
+  },
   { type: "item", key: "missions" },
   {
     type: "group",
@@ -336,7 +344,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
             const parentInfo = MODULE_ICONS[entry.key];
             if (!parentInfo) return null;
             const parentAccessible = hasAccess(toAppModule(entry.key));
-            const accessibleChildren = entry.children.filter((c) => hasAccess(toAppModule(c.key)));
+            const accessibleChildren = entry.children.filter((c) => hasAccess(c.module ?? toAppModule(c.key)));
             if (!parentAccessible && accessibleChildren.length === 0) return null;
 
             const anyChildActive = entry.children.some((c) => {
@@ -344,7 +352,8 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
               return info && isActive(info.path);
             });
             const isOpen = openGroups.has(entry.key);
-            const groupAlert = entry.key === "dropshipping" ? routingInboxAlert
+            const groupAlert = entry.key === "crm" ? crmAlert
+              : entry.key === "dropshipping" ? routingInboxAlert
               : entry.key === "monitoring" ? edgeFunctionsAlert
               : entry.key === "formations" ? formationsGroupAlert
               : undefined;
