@@ -15,3 +15,4 @@ connexion_indicators
 learner_password_set
 decay_watch_relevance
 is_known_learner
+is_staff_user

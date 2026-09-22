@@ -30,12 +30,15 @@ beforeAll(async () => {
     // rattachement.
     { migration: "20260922100000_is_known_learner.sql", name: "is_known_learner" },
     { migration: "20260915120000_lot6c_fermeture_entete_apprenant.sql", name: "get_learner_email" },
-    { migration: "20260918160000_demolition_lien_magique.sql", name: "current_user_access_level" },
+    // is_staff_user : appelée par current_user_access_level depuis le
+    // correctif de duplication de la garde staff (audit post-is_known_learner).
+    { migration: "20260612154854_6408dfb1-3ac8-4417-a066-a7174f1ca312.sql", name: "is_staff_user" },
+    { migration: "20260922110000_verification_staff_is_staff_user.sql", name: "current_user_access_level" },
   ]);
 });
 
 beforeEach(async () => {
-  await db.exec("TRUNCATE profiles, training_participants, lms_enrollments; DELETE FROM auth.users;");
+  await db.exec("TRUNCATE profiles, user_module_access, training_participants, lms_enrollments; DELETE FROM auth.users;");
   await actAs(db, null);
 });
 
@@ -81,9 +84,24 @@ describe("get_learner_email", () => {
 describe("current_user_access_level", () => {
   it("reconnaît l'équipe à sa ligne de profil", async () => {
     const id = await createAuthUser(db, "staff@supertilt.fr");
-    await db.query("INSERT INTO profiles (user_id, email) VALUES ($1, $2)", [id, "staff@supertilt.fr"]);
+    await db.query("INSERT INTO profiles (user_id, email, is_admin) VALUES ($1, $2, true)", [id, "staff@supertilt.fr"]);
     await actAs(db, { uid: id, email: "staff@supertilt.fr" });
     expect(await accessLevel()).toBe("staff");
+  });
+
+  it("reconnaît l'équipe à un accès module, sans is_admin", async () => {
+    const id = await createAuthUser(db, "formatrice@supertilt.fr");
+    await db.query("INSERT INTO profiles (user_id, email) VALUES ($1, $2)", [id, "formatrice@supertilt.fr"]);
+    await db.query("INSERT INTO user_module_access (user_id) VALUES ($1)", [id]);
+    await actAs(db, { uid: id, email: "formatrice@supertilt.fr" });
+    expect(await accessLevel()).toBe("staff");
+  });
+
+  it("ne traite plus une ligne profiles sans is_admin ni accès module comme l'équipe (correctif duplication garde staff)", async () => {
+    const id = await createAuthUser(db, "orphelin@supertilt.fr");
+    await db.query("INSERT INTO profiles (user_id, email) VALUES ($1, $2)", [id, "orphelin@supertilt.fr"]);
+    await actAs(db, { uid: id, email: "orphelin@supertilt.fr" });
+    expect(await accessLevel()).toBe("none");
   });
 
   it("reconnaît un apprenant à son rattachement", async () => {
@@ -106,7 +124,7 @@ describe("current_user_access_level", () => {
 
   it("fait de l'équipe du staff même si elle est aussi inscrite à une formation", async () => {
     const id = await createAuthUser(db, "formateur@supertilt.fr");
-    await db.query("INSERT INTO profiles (user_id, email) VALUES ($1, $2)", [id, "formateur@supertilt.fr"]);
+    await db.query("INSERT INTO profiles (user_id, email, is_admin) VALUES ($1, $2, true)", [id, "formateur@supertilt.fr"]);
     await db.query("INSERT INTO training_participants (email) VALUES ($1)", ["formateur@supertilt.fr"]);
     await actAs(db, { uid: id, email: "formateur@supertilt.fr" });
     expect(await accessLevel()).toBe("staff");
