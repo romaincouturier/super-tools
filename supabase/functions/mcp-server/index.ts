@@ -13,6 +13,7 @@ import {
   tenderNoGo,
 } from "../_shared/tender-decision.ts";
 import { postCrmOpportunityToSlack } from "../_shared/crm-slack.ts";
+import { LOSS_REASONS, markOpportunityLost } from "../_shared/crm-tools.ts";
 import { getEventHistory } from "../_shared/event-tools.ts";
 import {
   getSeoPerformance,
@@ -738,6 +739,28 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "mark_opportunity_lost",
+    description:
+      "Mark ONE CRM opportunity as lost in SuperTools, exactly as the « Perdu » column does in the interface: sales_status LOST, loss date, loss reason from the closed list ("
+      + LOSS_REASONS.join(", ")
+      + "), optional free-text detail, move to the « Perdu » column and an entry in the activity log. CALL THIS ONLY AFTER the user has explicitly said that this specific opportunity is lost. Identify the opportunity with card_id when known, otherwise with search (company, contact or opportunity name): when several opportunities match, nothing is written and the candidates are returned so the call can be repeated with card_id. Never deletes anything; an opportunity already lost is left untouched.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        card_id: { type: "string", description: "UUID of the crm_cards row (preferred when known)" },
+        search: { type: "string", description: "Company, contact or opportunity name, used when card_id is unknown" },
+        loss_reason: {
+          type: "string",
+          enum: [...LOSS_REASONS],
+          description: "Loss reason from the closed list, e.g. timing for a deadline that could not be met",
+        },
+        detail: { type: "string", description: "Free-text detail of the loss, stored with the opportunity" },
+        comment: { type: "string", description: "Optional comment added to the opportunity's discussion thread (defaults to detail)" },
+      },
+      required: ["loss_reason"],
+    },
+  },
+  {
     name: "list_lms_courses",
     description:
       "List the LMS courses the current staff member can access, with id, title, status, and updated_at. Use this as the entry point before listing lessons.",
@@ -1337,6 +1360,25 @@ async function callTool(
         return textResult(`decision doit valoir "go" ou "no_go" (reçu : "${decision}").`, true);
       } catch (e) {
         return textResult(`Tender decision error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "mark_opportunity_lost": {
+      try {
+        const res = await markOpportunityLost(
+          supabase,
+          {
+            card_id: (args.card_id as string) || undefined,
+            search: (args.search as string) || undefined,
+            loss_reason: (args.loss_reason as string) || "",
+            detail: (args.detail as string) || undefined,
+            comment: (args.comment as string) || undefined,
+          },
+          log,
+          ALLOWED_EMAIL,
+        );
+        return textResult(res);
+      } catch (e) {
+        return textResult(`CRM error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "list_lms_courses": {
