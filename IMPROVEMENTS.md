@@ -54,6 +54,25 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 - **Origine** : nit de `/code-review` qui, appliqué tel quel, cassait le chargement du test
 - **Date** : 2026-09-22
 
+
+---
+
+### [063] Un contrôle par grep certifie ce qu'il sait voir, pas l'invariant — sa limite s'écrit dans la règle
+
+- **Constat** : 22/09/2026, campagne d'anonymisation du mode démo. Le contrôle `check-demo-mask.sh` affichait `062=0` — « aucune donnée identifiante non masquée » — trois fois de suite pendant que des fuites réelles subsistaient à l'écran. Trois familles, découvertes par deux revues de code successives et une passe d'angles morts, pas par le contrôle : (1) les champs préfixés, le motif exigeant une racine exacte, donc `sponsor_email` et `customer_name` rendaient en clair ; (2) les sorties hors JSX — toasts, `confirm()`, corps d'email prévisualisé, salutation générée — neuf fuites ; (3) le HTML injecté via `dangerouslySetInnerHTML`, onze blocs invisibles par construction. À chaque itération, le vert du ratchet a servi de preuve alors qu'il n'était qu'un plancher.
+- **Règle** :
+  1. Une règle dont la vérification est un grep ou un script de contrôle **énonce ce que ce contrôle ne voit pas**, dans la règle elle-même. Pas dans un commentaire du script, pas dans une PR : dans `IMPROVEMENTS.md`, là où on la relit.
+  2. Le compte d'un ratchet est un **plancher**, jamais une preuve d'invariant. « 0 violation » se lit « 0 violation détectable par ce motif ».
+  3. Élargir un contrôle est prioritaire sur corriger ce qu'il remonte : un motif trop étroit ment, un motif juste produit du travail. Quand une revue trouve une fuite que le contrôle rate, corriger le contrôle **avant** la fuite.
+  4. Ne pas élargir un motif au prix du bruit. Un détecteur qui remonte 20 faux positifs pour zéro fuite réelle finit ignoré : le renoncer et écrire la limite vaut mieux que le garder. C'est un arbitrage à documenter, pas à taire.
+  5. Corollaire de terrain : une fuite arrive rarement seule. Quand un champ est corrigé quelque part, chercher **toutes les autres sorties de la même donnée dans le fichier** — toast, `confirm`, `title=`, aperçu, tableau jumeau.
+- **Vérification** : check [063] de `check-rules.sh` — toute règle listée dans `scripts/rules-ratchet.txt` doit contenir, dans son bloc d'`IMPROVEMENTS.md`, une phrase disant ce que son contrôle ne voit pas (`plancher`, `ne voit pas`, ou `angle mort`). Les quatre ratchets antérieurs à cette règle (017, 020, 037a, 037b) sont en whitelist : ce sont des compteurs de migration progressive, pas des garanties d'invariant.
+- **Fichiers de référence** : `scripts/check-demo-mask.sh`, `.claude/skills/anonymisation-demo/SKILL.md` (section « Ce que le contrôle prouve, et ce qu'il ne prouve pas »), règle [062]
+- **Origine** : deux revues de code sur la branche d'anonymisation, chacune trouvant une famille de fuites que le ratchet certifiait absente
+- **Date** : 2026-09-22
+
+---
+
 ### [053] Un test vert ne prouve rien tant qu'on n'a pas vu la ligne couverte
 - **Constat** : 31/08/2026, tests du nouvel upload resumable Drive. Un test vérifiait l'annulation de session après échec avec `expect(calls.some((c) => c.method === "DELETE")).toBe(true)` — il passait. Le mock répondait `new Response("", { status: 204 })`, or le constructeur `Response` **lève une TypeError** quand un statut 204/205/304 porte un corps : chaque annulation partait donc dans le `catch`, et tout le chemin nominal était mort sans que rien ne le signale. Seul le rapport de couverture l'a montré, en laissant une ligne rouge à l'intérieur du bloc que le test était censé exercer.
 - **Règle** : Trois contrôles sur tout test ajouté. (1) **Asserter le résultat, pas l'appel** — vérifier qu'une fonction a été appelée ne prouve pas qu'elle a abouti : asserter la valeur retournée, l'erreur levée, ou l'argument exact reçu. (2) **Vérifier le réalisme du mock** — une réponse HTTP invalide, une date impossible, un objet incomplet font passer le test par un chemin d'erreur invisible ; construire les objets simulés comme le vrai runtime les construirait. (3) **Le rapport de couverture arbitre** — si la ligne visée reste marquée non couverte après l'ajout du test, c'est le test qui est faux, pas le seuil.

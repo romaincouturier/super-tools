@@ -328,6 +328,19 @@ check "034" "Toute règle d'IMPROVEMENTS.md a un check machine (hors whitelist m
      grep -q \"check \\\"\$id\" scripts/check-rules.sh || grep -qF \"[\$id]\" scripts/check-rules.sh || echo \"VIOLATION: règle [\$id] sans check machine dans check-rules.sh\"; \
    done"
 
+# [063] Un ratchet est un plancher, pas une preuve : sa règle doit dire ce que
+# son contrôle ne voit pas. Whitelist : les quatre ratchets antérieurs à la
+# règle sont des compteurs de migration progressive, pas des invariants.
+RATCHET_LEGACY="017|020|037a|037b"
+
+check "063" "Toute règle en ratchet dit ce que son contrôle ne voit pas" \
+  "for id in \$(grep -oE '^[0-9]+[a-z]?=' scripts/rules-ratchet.txt | tr -d '='); do \
+     echo \"\$id\" | grep -qE \"^(\$RATCHET_LEGACY)\\\$\" && continue; \
+     sed -n \"/^### \\[\$id\\]/,/^---\$/p\" IMPROVEMENTS.md \
+       | grep -qiE 'plancher|ne voit pas|angle mort' \
+       || echo \"VIOLATION [063]: la regle [\$id] est en ratchet sans dire ce que son controle ne voit pas\"; \
+   done"
+
 # ====================================================
 # 3. Audit complet uniquement (scans repo-wide lourds)
 # ====================================================
