@@ -17,7 +17,7 @@ sans altérer les données ni la logique métier.
 | `src/contexts/DemoModeContext.tsx` | `useDemoMode()` → `{ isDemoMode, toggleDemoMode }`. L'état est persisté dans `profiles.demo_mode` : le toggle suit le compte du présentateur, pas l'onglet. |
 | `src/lib/demoMask.ts` | Les masques. Aucune autre fonction de masquage ne doit exister ailleurs. |
 | `src/components/settings/StaffProfileSettings.tsx` | L'interrupteur, dans Paramètres. |
-| `scripts/check-demo-mask.sh` | Le contrôle. Règle [063], branchée en ratchet dans `scripts/check-rules.sh`. |
+| `scripts/check-demo-mask.sh` | Le contrôle. Règle [065], branchée en ratchet dans `scripts/check-rules.sh`. |
 
 ## Stratégie de masquage
 
@@ -102,7 +102,7 @@ bash scripts/check-rules.sh
 
 ### 5. Abaisser le ratchet
 
-`scripts/rules-ratchet.txt` porte `063=<n>`. Le compte ne peut que descendre :
+`scripts/rules-ratchet.txt` porte `065=<n>`. Le compte ne peut que descendre :
 après correction, remettre la valeur réelle dans le même commit.
 
 ### 6. Répétition à blanc
@@ -114,7 +114,7 @@ navigateur, notifications. Cette relecture visuelle est la dernière maille.
 
 ## Ce que le contrôle prouve, et ce qu'il ne prouve pas
 
-`063=0` veut dire : aucune donnée identifiante n'est rendue par un accès direct
+`065=0` veut dire : aucune donnée identifiante n'est rendue par un accès direct
 à un champ, dans du JSX ou dans un toast. C'est un **plancher, pas une preuve**.
 Le grep ne suit pas une variable : `const name = [c.first_name, c.last_name]…`
 puis `confirm(\`Supprimer ${name} ?\`)` passe au travers, et c'est exactement ce
@@ -148,5 +148,5 @@ Ce que la skill attend en entrée — à reprendre tel quel avant une démo :
 > N'altère aucune donnée envoyée (mutations, emails, PDF, exports, champs de
 > saisie). Annote `// demo-safe: <raison>` les faux positifs. Termine par
 > `npm run typecheck`, `npx vitest run`,
-> `bash scripts/check-rules.sh`, abaisse le ratchet `063` et rends-moi la liste
+> `bash scripts/check-rules.sh`, abaisse le ratchet `065` et rends-moi la liste
 > des écrans restés non couverts.

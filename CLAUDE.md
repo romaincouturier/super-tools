@@ -9,7 +9,7 @@ Application e-learning construite avec React, TypeScript, Vite, Tailwind CSS et 
 - `/sync-and-pr` — Synchronise la branche courante avec main, gère les conflits, et pousse une PR automatiquement.
 - `/learn` — Capture un constat ou un bug comme règle acquise dans `IMPROVEMENTS.md`.
 - `/tech-debt-audit` — Audit complet de dette technique et d'architecture. Produit `TECH_DEBT_AUDIT.md` avec findings cités (file:line), sévérité, effort, et quick wins.
-- `/anonymisation-demo` — Audite et complète l'anonymisation des écrans internes avant une démo (mode démo, masques `src/lib/demoMask.ts`, ratchet de contrôle [063]).
+- `/anonymisation-demo` — Audite et complète l'anonymisation des écrans internes avant une démo (mode démo, masques `src/lib/demoMask.ts`, ratchet de contrôle [065]).
 - `/process-ticket ST-YYYY-NNNN` — Analyse un ticket du kanban support, le code si faisable, crée une PR et passe le ticket en `vibe_coding` avec le lien de la branche. Si ambigu, écrit les questions dans le ticket et le laisse en `qualification` avec un point rouge.
 - `/red-team` — Audit de sécurité offensif complet (mindset attaquant, autorisé, sur notre propre app). Balaie RLS, edge functions, auth, routes tokenisées, storage, secrets et injection IA, construit les chaînes d'exploitation, et produit `RED_TEAM_ASSESSMENT.md` avec findings cités (file:line), sévérité, PoC reproductible et correctif. Preuve statique uniquement, jamais d'exfiltration ni de destruction réelle. Invocation manuelle.
 

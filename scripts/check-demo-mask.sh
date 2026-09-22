@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check-demo-mask.sh — Regle [063] : aucun ecran interne ne doit afficher une
+# check-demo-mask.sh — Regle [065] : aucun ecran interne ne doit afficher une
 # donnee identifiante sans passer par le mode demo (src/lib/demoMask.ts).
 #
 # Usage:

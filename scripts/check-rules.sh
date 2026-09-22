@@ -328,17 +328,17 @@ check "034" "Toute règle d'IMPROVEMENTS.md a un check machine (hors whitelist m
      grep -q \"check \\\"\$id\" scripts/check-rules.sh || grep -qF \"[\$id]\" scripts/check-rules.sh || echo \"VIOLATION: règle [\$id] sans check machine dans check-rules.sh\"; \
    done"
 
-# [064] Un ratchet est un plancher, pas une preuve : sa règle doit dire ce que
+# [066] Un ratchet est un plancher, pas une preuve : sa règle doit dire ce que
 # son contrôle ne voit pas. Whitelist : les quatre ratchets antérieurs à la
 # règle sont des compteurs de migration progressive, pas des invariants.
 RATCHET_LEGACY="017|020|037a|037b"
 
-check "064" "Toute règle en ratchet dit ce que son contrôle ne voit pas" \
+check "066" "Toute règle en ratchet dit ce que son contrôle ne voit pas" \
   "for id in \$(grep -oE '^[0-9]+[a-z]?=' scripts/rules-ratchet.txt | tr -d '='); do \
      echo \"\$id\" | grep -qE \"^(\$RATCHET_LEGACY)\\\$\" && continue; \
      sed -n \"/^### \\[\$id\\]/,/^---\$/p\" IMPROVEMENTS.md \
        | grep -qiE 'plancher|ne voit pas|angle mort' \
-       || echo \"VIOLATION [064]: la regle [\$id] est en ratchet sans dire ce que son controle ne voit pas\"; \
+       || echo \"VIOLATION [066]: la regle [\$id] est en ratchet sans dire ce que son controle ne voit pas\"; \
    done"
 
 # ====================================================
@@ -504,12 +504,12 @@ if [ "$STAGED_MODE" = "false" ]; then
     "comm -3 <(ls -d supabase/functions/*/ | sed 's|supabase/functions/||;s|/\$||' | grep -v '^_shared\$' | sort) \
              <(grep -oP '(?<=^\\[functions\\.)[^]]+' supabase/config.toml | sort)"
 
-  # [062] cron-auth.ts est testé par cron-auth.test.ts, chargé par vitest (Node).
+  # [064] cron-auth.ts est testé par cron-auth.test.ts, chargé par vitest (Node).
   # supabase-client.ts importe le SDK depuis une URL esm.sh que le loader ESM de
   # Node ne résout pas : un import STATIQUE de supabase-client dans cron-auth.ts
   # casse le chargement du test (« 0 test »). verifyAuth doit y rester en import
   # dynamique (await import). Voir règle [062] d'IMPROVEMENTS.md.
-  check "062" "Pas d'import statique de supabase-client dans _shared/cron-auth.ts" \
+  check "064" "Pas d'import statique de supabase-client dans _shared/cron-auth.ts" \
     "grep -nE '^import .*from \"\\./supabase-client' supabase/functions/_shared/cron-auth.ts"
 
   # [044] Aucun CREATE POLICY ne doit lire auth.users : le rôle `authenticated`
@@ -716,10 +716,10 @@ if [ "$STAGED_MODE" = "false" ]; then
   count_037b=$(grep -rn 'JSON.stringify({ error\|JSON.stringify({error' supabase/functions/ --include='index.ts' 2>/dev/null | wc -l)
   ratchet "037b" "Ratchet réponses d'erreur manuelles dans les edge functions (utiliser createErrorResponse)" "$count_037b"
 
-  # [063] Mode démo — affichage identifiant non masqué dans un écran interne.
+  # [065] Mode démo — affichage identifiant non masqué dans un écran interne.
   # Le détail des violations : bash scripts/check-demo-mask.sh
-  count_063=$(bash scripts/check-demo-mask.sh --count)
-  ratchet "063" "Ratchet affichages identifiants sans masque démo (src/lib/demoMask.ts)" "$count_063"
+  count_065=$(bash scripts/check-demo-mask.sh --count)
+  ratchet "065" "Ratchet affichages identifiants sans masque démo (src/lib/demoMask.ts)" "$count_065"
 
 fi
 
