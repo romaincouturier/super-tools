@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur } from "@/lib/demoMask";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -634,7 +635,7 @@ function TimelineRow({
           <Icon className="h-3 w-3 flex-shrink-0" />
           <span
             className="truncate"
-            style={isDemoMode && recipientType !== "all" ? { filter: "blur(4px)", userSelect: "none" } : undefined}
+            style={demoBlur(isDemoMode && recipientType !== "all")}
           >{recipientLabel}</span>
           <span className="text-muted-foreground/60">•</span>
           <span className="whitespace-nowrap">

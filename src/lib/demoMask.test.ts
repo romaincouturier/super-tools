@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  demoBlur,
   maskEmail,
   maskName,
   maskAmount,
@@ -60,6 +61,21 @@ describe("demoMask", () => {
   it("maskFileName garde l'extension", () => {
     expect(maskFileName("devis-acme-2026.pdf")).toBe("••••••••.pdf");
     expect(maskFileName("sans-extension")).toBe("••••••");
+  });
+
+  it("demoBlur ne rend un style que si le mode demo est actif", () => {
+    expect(demoBlur(false)).toBeUndefined();
+    expect(demoBlur(true)).toEqual({ filter: "blur(4px)", userSelect: "none" });
+  });
+
+  it("demoBlur verrouille le pointeur a la demande", () => {
+    expect(demoBlur(true, { lockPointer: true })).toEqual({
+      filter: "blur(4px)",
+      userSelect: "none",
+      pointerEvents: "none",
+    });
+    expect(demoBlur(true, { lockPointer: false })).toEqual({ filter: "blur(4px)", userSelect: "none" });
+    expect(demoBlur(false, { lockPointer: true })).toBeUndefined();
   });
 
   it("aucun masque ne rend la valeur d'origine sur une donnee identifiante", () => {

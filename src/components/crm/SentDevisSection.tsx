@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskEmail, maskText, maskFileName, maskName } from "@/lib/demoMask";
+import { maskEmail, maskText, maskFileName, maskName, demoBlur } from "@/lib/demoMask";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Receipt, Copy, FileDown, FileText, AlertCircle, Loader2, ChevronDown, Mail, Paperclip, Eye, MousePointerClick, CheckCircle2, XCircle } from "lucide-react";
@@ -513,7 +513,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                     {emailItem.body_html && (
                       <div
                         className="px-4 pb-4 pt-2 prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline"
-                        style={isDemoMode ? { filter: "blur(4px)", userSelect: "none", pointerEvents: "none" } : undefined}
+                        style={demoBlur(isDemoMode, { lockPointer: true })}
                         dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(emailItem.body_html, { ADD_ATTR: ["target"], ALLOW_DATA_ATTR: false }) }}
                         onClick={(e) => {
                           const target = e.target as HTMLElement;
