@@ -13188,6 +13188,7 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_feature_enabled: { Args: { _flag: string }; Returns: boolean }
+      is_known_learner: { Args: { p_email: string }; Returns: boolean }
       is_service_role: { Args: never; Returns: boolean }
       is_signup_allowed: { Args: { p_email: string }; Returns: boolean }
       is_staff_user: { Args: never; Returns: boolean }
