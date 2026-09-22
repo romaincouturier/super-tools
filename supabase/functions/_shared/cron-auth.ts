@@ -1,4 +1,3 @@
-import { verifyAuth } from "./supabase-client.ts";
 import { timingSafeEqualSecret } from "./crypto.ts";
 
 /**
@@ -57,6 +56,10 @@ export async function isInternalOrAuthenticated(
   }
 
   // Appel frontend authentifié : JWT utilisateur validé via getUser().
+  // Import dynamique volontaire : supabase-client.ts importe le SDK depuis une
+  // URL esm.sh, non résoluble par le loader Node de vitest. Le garder paresseux
+  // permet à cron-auth.test.ts (qui ne teste que isInternalCall) de se charger.
+  const { verifyAuth } = await import("./supabase-client.ts");
   const user = await verifyAuth(authHeader);
   return user !== null;
 }
