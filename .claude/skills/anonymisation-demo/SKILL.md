@@ -58,10 +58,16 @@ const { isDemoMode } = useDemoMode();
    partenaire, questionnaires, évaluations, signatures, pages `/formation-info`)
    affichent les données de leur propre visiteur : rien à masquer, ils sont exclus
    du contrôle.
-4. **Faux positif → `// demo-safe: <raison>`** sur la ligne. Cas légitimes : prix du
-   catalogue SuperTilt, booléen dont le nom contient `email`, donnée de l'organisme
-   lui-même. Jamais de `demo-safe` sur une donnée client.
-5. **`useDemoMode()` au niveau racine du composant** (règles des hooks).
+4. **L'équipe SuperTilt reste visible.** Formateurs, collaborateurs, auteurs de
+   commentaires, compte connecté : ce sont les gens qui font la démo, pas des
+   clients. Leurs noms, emails et téléphones ne se masquent pas.
+5. **Les chiffres de SuperTilt se masquent** comme ceux des clients : bilan
+   dropshipping, encaissements partenaires, finances. Seuls les prix du catalogue
+   restent visibles, ils sont publics.
+6. **Faux positif → `// demo-safe: <raison>`** sur la ligne. Cas légitimes : les
+   deux points ci-dessus, et un booléen dont le nom contient `email`. Jamais de
+   `demo-safe` sur une donnée client.
+7. **`useDemoMode()` au niveau racine du composant** (règles des hooks).
 
 ## Protocole
 

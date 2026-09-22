@@ -2,8 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskEmail, maskName } from "@/lib/demoMask";
 
 interface Profile {
   user_id: string;
@@ -48,7 +46,6 @@ const MentionTextarea = ({
   onPaste,
   onKeyDown,
 }: MentionTextareaProps) => {
-  const { isDemoMode } = useDemoMode();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
@@ -210,9 +207,9 @@ const MentionTextarea = ({
               }}
               onMouseEnter={() => setSelectedIndex(index)}
             >
-              <span className="font-medium">{isDemoMode ? maskName(getDisplayName(profile)) : getDisplayName(profile)}</span>
+              <span className="font-medium">{getDisplayName(profile)}</span>{/* demo-safe: equipe SuperTilt */}
               <span className="text-xs text-muted-foreground">
-                {isDemoMode ? maskEmail(profile.email) : profile.email}
+                {profile.email}{/* demo-safe: equipe SuperTilt */}
               </span>
             </button>
           ))}

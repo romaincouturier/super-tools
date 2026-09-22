@@ -11,8 +11,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { Spinner } from "@/components/ui/spinner";
-import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskName } from "@/lib/demoMask";
 
 interface Trainer {
   id: string;
@@ -35,7 +33,6 @@ export default function TrainerSelector({
   onChange,
   onTrainerSelect,
 }: TrainerSelectorProps) {
-  const { isDemoMode } = useDemoMode();
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -109,7 +106,7 @@ export default function TrainerSelector({
                   )}
                 </AvatarFallback>
               </Avatar>
-              <span>{isDemoMode ? maskName(`${selectedTrainer.first_name} ${selectedTrainer.last_name}`) : `${selectedTrainer.first_name} ${selectedTrainer.last_name}`}</span>
+              <span>{`${selectedTrainer.first_name} ${selectedTrainer.last_name}`}</span>{/* demo-safe: equipe SuperTilt */}
             </div>
           )}
         </SelectValue>
@@ -124,7 +121,7 @@ export default function TrainerSelector({
                   {getInitials(trainer.first_name, trainer.last_name) /* demo-safe: initiales seules, le masque rendrait les memes lettres */}
                 </AvatarFallback>
               </Avatar>
-              <span>{isDemoMode ? maskName(`${trainer.first_name} ${trainer.last_name}`) : `${trainer.first_name} ${trainer.last_name}`}</span>
+              <span>{`${trainer.first_name} ${trainer.last_name}`}</span>{/* demo-safe: equipe SuperTilt */}
               {trainer.is_default && (
                 <span className="text-xs text-muted-foreground">(défaut)</span>
               )}

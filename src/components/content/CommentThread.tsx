@@ -19,8 +19,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { resolveContentType } from "@/lib/file-utils";
 import type { MentionUser } from "./MentionTextarea";
-import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskEmail, maskName } from "@/lib/demoMask";
 import {
   Select,
   SelectContent,
@@ -68,7 +66,6 @@ const commentTypeConfig = {
 
 const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdded }: CommentThreadProps) => {
   const { copy } = useCopyToClipboard();
-  const { isDemoMode } = useDemoMode();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -482,12 +479,9 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
     });
   };
 
-  const maskLabel = (label: string) => (label.includes("@") ? maskEmail(label) : maskName(label));
-
   const getDisplayName = (comment: Comment) => {
     if (comment.author_id === currentUserId) return "Moi";
-    const name = comment.author_email || "Utilisateur";
-    return isDemoMode ? maskLabel(name) : name;
+    return comment.author_email || "Utilisateur"; // demo-safe: equipe SuperTilt, pas une donnee client
   };
 
   const getInitials = (comment: Comment) => {
@@ -507,10 +501,9 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
     });
   };
 
-  const profileLabel = (p: Profile) => {
-    const name = p.first_name && p.last_name ? [p.first_name, p.last_name].join(" ") : p.email;
-    return isDemoMode && name ? maskLabel(name) : name;
-  };
+  // demo-safe: equipe SuperTilt, pas une donnee client
+  const profileLabel = (p: Profile) =>
+    p.first_name && p.last_name ? [p.first_name, p.last_name].join(" ") : p.email;
 
   const getProfileName = (userId: string) => {
     const p = profiles.find((p) => p.user_id === userId);
@@ -600,7 +593,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                   <Badge variant="outline" className="text-[10px] h-4 gap-0.5">
                     <UserPlus className="h-2.5 w-2.5" />
                     {comment.assigned_name
-                      ? (isDemoMode ? maskLabel(comment.assigned_name) : comment.assigned_name)
+                      ? comment.assigned_name /* demo-safe: equipe SuperTilt */
                       : getProfileName(comment.assigned_to) || "Assigné"}
                   </Badge>
                 )}
