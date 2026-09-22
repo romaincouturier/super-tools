@@ -65,7 +65,13 @@ Non appliques : ils touchent des parcours publics vivants, la RLS de prod, des b
 - **F5 (HAUT, authenticated non-staff)** : ~50 tables `authenticated` avec `USING(true)`, sans garde `is_staff_user()`.
   - **Precision de modele (verifiee)** : `is_staff_user()` est correctement defini depuis `20260612154854` : `auth.uid() IS NOT NULL AND (profiles.is_admin OR EXISTS user_module_access)`. Donc un compte auto-inscrit sur `/signup` (ni admin, ni acces module) et un apprenant (`role='learner'`, sans grant) sont bien NON staff. Le self-signup ne donne donc PAS un acces staff par lui-meme. La faille F5 est que ces tables precises ne consultent pas `is_staff_user()` du tout : tout `authenticated` (dont un auto-inscrit) y accede.
   - **Vague 1 CORRIGE** (`20260922130000_hardening_rls_f5_wave1.sql`) : `document_embeddings` (corpus RAG), `transcripts`, `testimonials`, `indexation_queue` re-bornes a `is_staff_user()`. Aucun parcours apprenant/public ne les lit (verifie) ; writes en service_role inchanges.
-  - **Reste (vagues suivantes)** : les autres tables citees (`crm_settings`, `wp_articles`, `training_schedules`, `okr_*`, etc.) a verifier une par une (l'audit a produit des faux positifs : F3, et `wp_articles` semble deja gardee par "Staff manage wp_articles") puis gater par vagues. Chaque vague : confirmer l'absence de lecture apprenant/public avant de gater.
+  - **Reste : essentiellement DEJA REMEDIE (verifie en etat final).** La liste "~50 tables" de l'audit est en tres grande majorite composee de faux positifs : ces tables ont ete durcies par les sweeps systematiques `20260529110000_fix_open_authenticated_policies.sql`, `20260701102838` et `20260709162851`, `20260729104403`. Verifie table par table en etat final :
+    - CRM (`crm_cards`, `crm_comments`, `crm_activity_log`, `crm_card_emails`, `crm_attachments`) : gardes par `has_crm_access(auth.uid())`.
+    - Financier / tokens (`game_sales`, `game_expenses`, `order_items`, `partner_payments`, `partner_access_tokens`) : gardes par "Staff/Admin manage".
+    - `evaluation_analyses`, `improvements`, `ideas`, `coaching_summaries` : gardes par `is_staff_user()` / "staff_all".
+    - `coaching_bookings` : `staff_all` + `learner_own` (apprenant voit ses propres reservations).
+  - **Ecritures** de ~50 tables staff deja bloquees aux non-staff par le garde RESTRICTIVE `staff_only_insert/update/delete` (`20260521140000_learner_write_guard.sql`). Ne restait que la lecture de quelques tables hors sweeps, traitee par la vague 1.
+  - **Conclusion** : pas de gros lot F5 residuel. Toute table nouvellement creee doit naitre gardee (voir Ratchet).
 
 ### Priorite 4 - Edge functions restantes
 - ~~**E2 `send-action-reminder`**~~ CORRIGE (garde `isInternalOrAuthenticated`).
