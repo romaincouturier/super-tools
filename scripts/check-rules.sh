@@ -310,7 +310,7 @@ check "043" "Typecheck : cibler les projets, jamais 'tsc --noEmit' seul" \
 
 # [034] Enforcement machine — toute règle d'IMPROVEMENTS.md doit avoir un check ici.
 # Whitelist : règles legacy à vérification manuelle documentée.
-MANUAL_RULES="002|013|022|024|029|032|033"
+MANUAL_RULES="002|013|022|024|029|032|033|063"
 check "034" "Toute règle d'IMPROVEMENTS.md a un check machine (hors whitelist manuelle)" \
   "for id in \$(grep -oE '^### \[[0-9]{3}\]' IMPROVEMENTS.md | tr -d '#[] '); do \
      echo \"\$id\" | grep -qE '^($MANUAL_RULES)\$' && continue; \
@@ -479,6 +479,14 @@ if [ "$STAGED_MODE" = "false" ]; then
   check "054" "Toute edge function est déclarée dans config.toml" \
     "comm -3 <(ls -d supabase/functions/*/ | sed 's|supabase/functions/||;s|/\$||' | grep -v '^_shared\$' | sort) \
              <(grep -oP '(?<=^\\[functions\\.)[^]]+' supabase/config.toml | sort)"
+
+  # [062] cron-auth.ts est testé par cron-auth.test.ts, chargé par vitest (Node).
+  # supabase-client.ts importe le SDK depuis une URL esm.sh que le loader ESM de
+  # Node ne résout pas : un import STATIQUE de supabase-client dans cron-auth.ts
+  # casse le chargement du test (« 0 test »). verifyAuth doit y rester en import
+  # dynamique (await import). Voir règle [062] d'IMPROVEMENTS.md.
+  check "062" "Pas d'import statique de supabase-client dans _shared/cron-auth.ts" \
+    "grep -nE '^import .*from \"\\./supabase-client' supabase/functions/_shared/cron-auth.ts"
 
   # [044] Aucun CREATE POLICY ne doit lire auth.users : le rôle `authenticated`
   # n'a pas SELECT dessus, la policy échoue en 403 / 42501 et l'écran reste vide

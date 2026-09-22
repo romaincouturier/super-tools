@@ -8,6 +8,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Sécurité
 
+### [063] Edge function `verify_jwt = false` — toute action sensible exige une garde applicative
+- **Constat** : 21-22/09/2026, audit red team. Plusieurs fonctions publiques (`verify_jwt = false`) exécutaient une action sensible sans aucune garde : `resend-logged-email` relisait et renvoyait n'importe quel email déjà envoyé à une adresse fournie par l'appelant (open relay + exfiltration de reset password, factures, PII), `send-broadcast-email` envoyait en masse aux apprenants depuis le domaine vérifié, `generate-attendance-pdf` renvoyait signatures d'émargement et PII à qui connaissait le `trainingId`. `verify_jwt = false` ne rend pas la fonction publique par accident : c'est un choix qui déplace le contrôle d'accès dans le code, et ce contrôle manquait.
+- **Règle** : Une edge function `verify_jwt = false` qui envoie un email/une notification, écrit ou supprime en base, appelle une API tierce payante, ou renvoie des données sensibles (PII, dossiers clients/apprenants) doit, **en tête de handler et avant toute action**, exiger une garde : `verifyAuth` (JWT staff), `isInternalOrAuthenticated` (cron/délégation service_role OU staff), ou une signature/token à usage unique validé en base. Seuls les vrais flux publics tokenisés (formulaires de sondage, signatures) restent anonymes, l'accès étant porté par le token validé.
+- **Vérification** : revue manuelle à l'ajout/modification d'une fonction `verify_jwt = false` — identifier l'action sensible et la garde en tête de handler. Croiser `config.toml` (les fonctions `verify_jwt = false`) avec les envois (`sendEmail`), les écritures en `service_role` et les appels IA.
+- **Fichiers de référence** : `supabase/functions/_shared/cron-auth.ts` (`isInternalOrAuthenticated`), `supabase/functions/resend-logged-email/index.ts`, `supabase/functions/generate-attendance-pdf/index.ts`
+- **Origine** : audit red team — open relays et fuites de PII sur des fonctions publiques sans garde
+- **Date** : 2026-09-22
+
 ### [058] SQL métier — une règle portée par une fonction SQL doit être jouée sur un vrai Postgres, pas relue
 - **Constat** : Revue de la refonte de connexion (15/09/2026). Sur 94 exigences de la spécification, 43 seulement étaient gardées par un test ; les 50 autres reposaient sur une lecture de code. La quasi-totalité de ces 50 vivait dans des fonctions `SECURITY DEFINER` : seuils de quota, atomicité du changement d'adresse, niveau d'accès d'un compte, interdiction de lire l'espace d'un tiers. Ces fonctions portent les règles les plus sensibles du produit et aucune n'était exécutée par la chaîne de tests. Une relecture attentive ne protège d'aucune régression : elle constate un état, elle ne le garde pas.
 - **Règle** : Toute fonction SQL qui porte une règle métier ou une règle d'accès doit être couverte par un test dans `supabase/tests/`. Le test charge la fonction **depuis son fichier de migration** (`readFunctionSql`), jamais une copie : sans cela le test valide un double, pas ce qui est livré. Le harnais tourne sur PGlite, un Postgres réel en mémoire, sans conteneur ni service externe ; le schéma `auth` de la plateforme est remplacé par un stub où le test choisit l'identité de l'appelant. Les cas à couvrir sont le chemin nominal, chaque refus, et le retour à l'état initial quand la fonction refuse.
@@ -37,6 +45,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 ---
 
 ## DX
+
+### [062] Test vitest d'un module `_shared` — pas d'import statique vers un module à import URL (esm.sh)
+- **Constat** : 22/09/2026, durant `/sync-and-pr`. Un nit de `/code-review` proposait de remplacer l'`import()` dynamique de `verifyAuth` par un import statique en tête de `_shared/cron-auth.ts`. Appliqué, il a cassé `cron-auth.test.ts` au chargement : `supabase-client.ts` importe le SDK depuis `https://esm.sh/@supabase/supabase-js`, et le loader ESM de Node (donc vitest) ne résout que les schémas `file:` et `data:`. L'erreur (`Only URLs with a scheme in: file and data are supported`) tombe à l'import du module de test, avant tout `it` — d'où « 0 test » plutôt qu'un échec parlant.
+- **Règle** : Un module de `supabase/functions/_shared/` qui possède un `.test.ts` ne doit jamais importer **statiquement** un module qui importe depuis une URL (esm.sh, deno.land). Charger ce module en paresseux via `await import(...)` sur le seul chemin qui en a besoin : le test qui n'exerce pas ce chemin se charge sans la dépendance URL, et pour couvrir le chemin qui l'utilise on mocke le module URL-dépendant avec `vi.mock(...)`. Un import statique de `crypto.ts` (sans URL) reste, lui, parfaitement sûr.
+- **Vérification** : check [062] de `check-rules.sh` — `_shared/cron-auth.ts` ne doit pas importer `supabase-client.ts` en statique. Au-delà : relancer le `.test.ts` du module après tout changement d'imports.
+- **Fichiers de référence** : `supabase/functions/_shared/cron-auth.ts` (import dynamique de `verifyAuth`), `supabase/functions/_shared/cron-auth.test.ts` (`vi.mock` de `supabase-client.ts`)
+- **Origine** : nit de `/code-review` qui, appliqué tel quel, cassait le chargement du test
+- **Date** : 2026-09-22
 
 ### [053] Un test vert ne prouve rien tant qu'on n'a pas vu la ligne couverte
 - **Constat** : 31/08/2026, tests du nouvel upload resumable Drive. Un test vérifiait l'annulation de session après échec avec `expect(calls.some((c) => c.method === "DELETE")).toBe(true)` — il passait. Le mock répondait `new Response("", { status: 204 })`, or le constructeur `Response` **lève une TypeError** quand un statut 204/205/304 porte un corps : chaque annulation partait donc dans le `catch`, et tout le chemin nominal était mort sans que rien ne le signale. Seul le rapport de couverture l'a montré, en laissant une ligne rouge à l'intérieur du bloc que le test était censé exercer.
