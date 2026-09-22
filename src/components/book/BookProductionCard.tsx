@@ -3,6 +3,7 @@ import { Video, Edit2, Trash2, Star, Link2, ImageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import WatermarkOverlay from '@/components/book/WatermarkOverlay';
+import { useResolvedStorageUrl } from '@/hooks/useResolvedStorageUrl';
 import type { BookProduction } from '@/types/book';
 
 interface BookProductionCardProps {
@@ -25,6 +26,8 @@ export default function BookProductionCard({
   watermarkText,
 }: BookProductionCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [videoThumbFailed, setVideoThumbFailed] = useState(false);
+  const videoSrc = useResolvedStorageUrl(production.file_type === 'video' ? production.file_url : null);
   const visibleTags = production.tags.slice(0, 2);
   const extraTagCount = production.tags.length - visibleTags.length;
   const hasDimensions = production.exif_width != null && production.exif_height != null;
@@ -37,6 +40,7 @@ export default function BookProductionCard({
 
   useEffect(() => {
     setImageFailed(false);
+    setVideoThumbFailed(false);
   }, [production.id, production.thumbnail_url, production.file_url]);
 
   return (
@@ -46,13 +50,22 @@ export default function BookProductionCard({
     >
       {production.file_type === 'video' ? (
         <div className="w-full h-full flex items-center justify-center bg-gray-800">
-          {production.thumbnail_url ? (
+          {production.thumbnail_url && !videoThumbFailed ? (
             <img
               src={production.thumbnail_url}
               alt={production.title}
               className="w-full h-full object-cover"
               loading="lazy"
               decoding="async"
+              onError={() => setVideoThumbFailed(true)}
+            />
+          ) : videoSrc ? (
+            <video
+              src={`${videoSrc}#t=0.1`}
+              className="w-full h-full object-cover"
+              preload="metadata"
+              muted
+              playsInline
             />
           ) : (
             <Video className="w-12 h-12 text-gray-400" />

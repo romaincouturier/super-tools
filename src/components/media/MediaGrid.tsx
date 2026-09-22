@@ -30,7 +30,7 @@ const sourceIconLarge = (sourceType: string) => {
 };
 
 /** Vignette image : résout les URLs des buckets privés en URL signée. */
-const MediaThumb = ({ item }: { item: MediaItem }) => {
+export const MediaThumb = ({ item }: { item: MediaItem }) => {
   const src = useResolvedStorageUrl(item.file_url);
   return (
     <img
@@ -43,7 +43,7 @@ const MediaThumb = ({ item }: { item: MediaItem }) => {
 };
 
 /** Vignette vidéo : même résolution d'URL, image figée à 0,1 s. */
-const MediaVideoThumb = ({ item }: { item: MediaItem }) => {
+export const MediaVideoThumb = ({ item }: { item: MediaItem }) => {
   const src = useResolvedStorageUrl(item.file_url);
   return (
     <video

@@ -497,7 +497,8 @@ export function useAddMediaToAlbum() {
         user_id: userId,
         title: m.file_name.replace(/\.[^/.]+$/, ""),
         file_url: m.file_url,
-        thumbnail_url: m.file_url,
+        // Une vidéo n'a pas d'image de vignette : la carte en extrait une frame.
+        thumbnail_url: m.file_type === "image" ? m.file_url : null,
         file_type: m.file_type as "image" | "video",
         original_filename: m.file_name,
         sort_order: startOrder + idx,

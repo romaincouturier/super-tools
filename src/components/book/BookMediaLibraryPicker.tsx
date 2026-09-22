@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, ImageIcon, Video, Search } from 'lucide-react';
+import { Check, ImageIcon, Play, Search } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useMediaLibrary } from '@/hooks/useMedia';
+import { MediaThumb, MediaVideoThumb } from '@/components/media/MediaGrid';
 import { useAddMediaToAlbum } from '@/hooks/useBook';
 import { toast } from '@/hooks/use-toast';
 
@@ -113,16 +114,12 @@ export default function BookMediaLibraryPicker({ open, onOpenChange, albumId }: 
                     }`}
                   >
                     {m.file_type === 'video' ? (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                        <Video className="w-8 h-8 text-gray-300" />
+                      <div className="relative w-full h-full bg-gray-800">
+                        <MediaVideoThumb item={m} />
+                        <Play className="absolute inset-0 m-auto w-8 h-8 text-white/90 drop-shadow pointer-events-none" />
                       </div>
                     ) : (
-                      <img
-                        src={m.file_url}
-                        alt={m.file_name}
-                        loading="lazy"
-                        className="w-full h-full object-cover"
-                      />
+                      <MediaThumb item={m} />
                     )}
                     {isSelected && (
                       <div className="absolute top-1 right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
