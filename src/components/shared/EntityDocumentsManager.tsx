@@ -9,6 +9,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "@/lib/toast";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskFileName } from "@/lib/demoMask";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,6 +71,8 @@ const EntityDocumentsManager = ({
   showDeliverableToggle = true,
   onUploadComplete,
 }: EntityDocumentsManagerProps) => {
+  const { isDemoMode } = useDemoMode();
+  const shownName = useCallback((name: string) => (isDemoMode ? maskFileName(name) : name), [isDemoMode]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const completedAudioIdsRef = useRef<Set<string>>(new Set());
@@ -86,10 +90,10 @@ const EntityDocumentsManager = ({
       if (doc.processing_status === "completed" && doc.transcript_page_id && !completedAudioIdsRef.current.has(doc.id)) {
         completedAudioIdsRef.current.add(doc.id);
         queryClient.invalidateQueries({ queryKey: ["mission-pages", entityId] });
-        toast.success("Transcription terminée", { description: `Page créée pour ${doc.file_name}` });
+        toast.success("Transcription terminée", { description: `Page créée pour ${shownName(doc.file_name)}` });
       }
     }
-  }, [documents, entityType, entityId, queryClient]);
+  }, [documents, entityType, entityId, queryClient, shownName]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
@@ -160,7 +164,7 @@ const EntityDocumentsManager = ({
 
 
   const handleDelete = useCallback(async (docId: string, fileUrl: string, fileName: string) => {
-    if (!confirm(`Supprimer le document "${fileName}" ?`)) return;
+    if (!confirm(`Supprimer le document "${shownName(fileName)}" ?`)) return;
 
     setDeletingId(docId);
     try {
@@ -170,7 +174,7 @@ const EntityDocumentsManager = ({
       deleteEntityDocumentFile(fileUrl, entityType).catch((err) =>
         console.warn("Storage cleanup failed:", err)
       );
-      toast.success("Document supprimé", { description: fileName });
+      toast.success("Document supprimé", { description: shownName(fileName) });
     } catch (err: unknown) {
       console.error("Delete error:", err);
       toast.error("Erreur de suppression", {
@@ -257,7 +261,7 @@ const EntityDocumentsManager = ({
                   <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{doc.file_name}</p>
+                  <p className="text-sm font-medium truncate">{shownName(doc.file_name)}</p>
                   <p className="text-xs text-muted-foreground">
                     {doc.created_at && format(parseISO(doc.created_at), "d MMM yyyy", { locale: fr })}
                     {doc.created_at && doc.file_size != null && <>{" "}&middot;{" "}</>}

@@ -126,6 +126,8 @@ import Generate8PDialog from "./Generate8PDialog";
 import SurveyBuilder from "./SurveyBuilder";
 import MissionTranscriptPagePicker from "./MissionTranscriptPagePicker";
 import { cn } from "@/lib/utils";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur } from "@/lib/demoMask";
 import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { registerMediaEntry } from "@/hooks/useMedia";
@@ -532,6 +534,7 @@ const PageEditor = ({
   }
 
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const updatePage = useUpdateMissionPage();
   const [imageUploading, setImageUploading] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);
@@ -1093,14 +1096,14 @@ const PageEditor = ({
             <Sparkles className="h-3.5 w-3.5" />
             Résumé IA
           </div>
-          <div className="text-purple-900 whitespace-pre-wrap leading-relaxed pr-4">{aiSummary}</div>
+          <div className="text-purple-900 whitespace-pre-wrap leading-relaxed pr-4" style={demoBlur(isDemoMode)}>{aiSummary}</div>
         </div>
       )}
 
       {/* Editor */}
       <div className="flex-1 relative overflow-y-auto">
         <TableBubbleMenu editor={editor} />
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} style={demoBlur(isDemoMode)} />
         {(imageUploading || fileUploading) && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md z-10">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

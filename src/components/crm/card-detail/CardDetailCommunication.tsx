@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskEmail, maskText } from "@/lib/demoMask";
+import { maskEmail, maskFileName, maskText } from "@/lib/demoMask";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -366,7 +366,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
               {emailAttachments.map((att, i) => (
                 <Badge key={att.filename} variant="secondary" className="text-xs gap-1 pr-1">
                   <Paperclip className="h-3 w-3" />
-                  {att.filename}
+                  {isDemoMode ? maskFileName(att.filename) : att.filename}
                   <button type="button" onClick={() => handlers.handleRemoveAttachment(i)} className="ml-0.5 hover:text-destructive">
                     <X className="h-3 w-3" />
                   </button>

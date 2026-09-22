@@ -14,6 +14,8 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { useQueryClient } from "@tanstack/react-query";
 import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskFileName } from "@/lib/demoMask";
 import {
   TENDER_DOCS_AI_QUERY_KEY,
   useTenderDocumentAnalyses,
@@ -42,6 +44,7 @@ function Bullets({ title, items }: { title: string; items?: string[] | null }) {
 }
 
 export function TenderAiPanel({ tender }: { tender: TenderWithContext }) {
+  const { isDemoMode } = useDemoMode();
   const summary = tender.ai_summary;
   const { loading: summarizing, run: runSummary } = useTenderNoticeSummary();
   const { data: analyses = [] } = useTenderDocumentAnalyses(tender.id);
@@ -155,7 +158,7 @@ export function TenderAiPanel({ tender }: { tender: TenderWithContext }) {
         {analyses.map((doc) => (
           <div key={doc.id} className="space-y-2 rounded-md border p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-sm font-medium break-all">{doc.file_name}</span>
+              <span className="text-sm font-medium break-all">{isDemoMode ? maskFileName(doc.file_name) : doc.file_name}</span>
               <Button
                 variant="outline"
                 size="sm"
