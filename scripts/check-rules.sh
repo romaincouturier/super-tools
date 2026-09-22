@@ -480,12 +480,12 @@ if [ "$STAGED_MODE" = "false" ]; then
     "comm -3 <(ls -d supabase/functions/*/ | sed 's|supabase/functions/||;s|/\$||' | grep -v '^_shared\$' | sort) \
              <(grep -oP '(?<=^\\[functions\\.)[^]]+' supabase/config.toml | sort)"
 
-  # [062] cron-auth.ts est testé par cron-auth.test.ts, chargé par vitest (Node).
+  # [064] cron-auth.ts est testé par cron-auth.test.ts, chargé par vitest (Node).
   # supabase-client.ts importe le SDK depuis une URL esm.sh que le loader ESM de
   # Node ne résout pas : un import STATIQUE de supabase-client dans cron-auth.ts
   # casse le chargement du test (« 0 test »). verifyAuth doit y rester en import
-  # dynamique (await import). Voir règle [062] d'IMPROVEMENTS.md.
-  check "062" "Pas d'import statique de supabase-client dans _shared/cron-auth.ts" \
+  # dynamique (await import). Voir règle [064] d'IMPROVEMENTS.md.
+  check "064" "Pas d'import statique de supabase-client dans _shared/cron-auth.ts" \
     "grep -nE '^import .*from \"\\./supabase-client' supabase/functions/_shared/cron-auth.ts"
 
   # [044] Aucun CREATE POLICY ne doit lire auth.users : le rôle `authenticated`

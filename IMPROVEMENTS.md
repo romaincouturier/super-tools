@@ -46,10 +46,10 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## DX
 
-### [062] Test vitest d'un module `_shared` — pas d'import statique vers un module à import URL (esm.sh)
+### [064] Test vitest d'un module `_shared` — pas d'import statique vers un module à import URL (esm.sh)
 - **Constat** : 22/09/2026, durant `/sync-and-pr`. Un nit de `/code-review` proposait de remplacer l'`import()` dynamique de `verifyAuth` par un import statique en tête de `_shared/cron-auth.ts`. Appliqué, il a cassé `cron-auth.test.ts` au chargement : `supabase-client.ts` importe le SDK depuis `https://esm.sh/@supabase/supabase-js`, et le loader ESM de Node (donc vitest) ne résout que les schémas `file:` et `data:`. L'erreur (`Only URLs with a scheme in: file and data are supported`) tombe à l'import du module de test, avant tout `it` — d'où « 0 test » plutôt qu'un échec parlant.
 - **Règle** : Un module de `supabase/functions/_shared/` qui possède un `.test.ts` ne doit jamais importer **statiquement** un module qui importe depuis une URL (esm.sh, deno.land). Charger ce module en paresseux via `await import(...)` sur le seul chemin qui en a besoin : le test qui n'exerce pas ce chemin se charge sans la dépendance URL, et pour couvrir le chemin qui l'utilise on mocke le module URL-dépendant avec `vi.mock(...)`. Un import statique de `crypto.ts` (sans URL) reste, lui, parfaitement sûr.
-- **Vérification** : check [062] de `check-rules.sh` — `_shared/cron-auth.ts` ne doit pas importer `supabase-client.ts` en statique. Au-delà : relancer le `.test.ts` du module après tout changement d'imports.
+- **Vérification** : check [064] de `check-rules.sh` — `_shared/cron-auth.ts` ne doit pas importer `supabase-client.ts` en statique. Au-delà : relancer le `.test.ts` du module après tout changement d'imports.
 - **Fichiers de référence** : `supabase/functions/_shared/cron-auth.ts` (import dynamique de `verifyAuth`), `supabase/functions/_shared/cron-auth.test.ts` (`vi.mock` de `supabase-client.ts`)
 - **Origine** : nit de `/code-review` qui, appliqué tel quel, cassait le chargement du test
 - **Date** : 2026-09-22
