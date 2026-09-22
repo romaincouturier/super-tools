@@ -11,6 +11,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { timingSafeEqualSecret } from "../_shared/crypto.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { appendRowToSheet } from "../_shared/google-sheets-helper.ts";
 import { postWooOrderToSlack } from "../_shared/woo-slack.ts";
@@ -115,7 +116,7 @@ async function verifySignature(secret: string, body: string, sig: string): Promi
     );
     const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
     const expected = btoa(String.fromCharCode(...new Uint8Array(mac)));
-    return expected === sig;
+    return await timingSafeEqualSecret(expected, sig);
   } catch {
     return false;
   }

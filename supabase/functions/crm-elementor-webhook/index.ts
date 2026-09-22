@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { timingSafeEqualSecret } from "../_shared/crypto.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { postCrmOpportunityToSlack } from "../_shared/crm-slack.ts";
 import { logLovableUsage } from "../_shared/api-usage.ts";
@@ -463,7 +464,7 @@ serve(async (req) => {
 
   const url = new URL(req.url);
   const providedToken = url.searchParams.get("token") || req.headers.get("x-webhook-token");
-  if (providedToken !== ELEMENTOR_WEBHOOK_TOKEN) {
+  if (!(await timingSafeEqualSecret(providedToken, ELEMENTOR_WEBHOOK_TOKEN))) {
     console.error("Invalid webhook token");
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,

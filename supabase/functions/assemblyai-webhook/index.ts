@@ -13,6 +13,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { timingSafeEqualSecret } from "../_shared/crypto.ts";
 import {
   pollAssemblyAIJob,
   analyzeTranscript,
@@ -43,7 +44,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     });
   }
   const provided = req.headers.get("x-webhook-secret");
-  if (provided !== WEBHOOK_SECRET) {
+  if (!(await timingSafeEqualSecret(provided, WEBHOOK_SECRET))) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
