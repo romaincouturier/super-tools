@@ -32,7 +32,7 @@ serve(async (req) => {
       .select(`
         id, training_id, email, first_name, coaching_sessions_total,
         coaching_sessions_completed, coaching_deadline, added_at, formula,
-        trainings!inner(end_date, training_name)
+        trainings!training_participants_training_id_fkey!inner(end_date, training_name)
       `)
       .gt("coaching_sessions_total", 0)
       .not("coaching_deadline", "is", null);
