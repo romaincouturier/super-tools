@@ -6,7 +6,8 @@ import { getAppUrls } from "../_shared/app-urls.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
+import { isInternalOrAuthenticated } from "../_shared/cron-auth.ts";
 
 const VERSION = "send-action-reminder@2026-02-02.3";
 
@@ -16,6 +17,11 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
+    // Delegue par le cron process-action-reminders (service_role). Bloque l'anonyme.
+    if (!(await isInternalOrAuthenticated(req))) {
+      return createErrorResponse("Unauthorized", 401);
+    }
+
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");

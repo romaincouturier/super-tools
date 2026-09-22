@@ -1,3 +1,5 @@
+import { timingSafeEqualSecret } from "./crypto.ts";
+
 /**
  * Authentification des appels automatiques d'une edge function (règle [036]).
  *
@@ -26,4 +28,38 @@ export function isInternalCall(req: Request, secretEnvName = "CRON_SECRET"): boo
 
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   return serviceRole !== "" && req.headers.get("x-internal-secret") === serviceRole;
+}
+
+/**
+ * Garde pour une fonction verify_jwt=false appelée à la fois par le frontend
+ * staff (JWT utilisateur) ET par un cron / une délégation fonction-à-fonction
+ * (les deux envoient `Authorization: Bearer <service_role>` ou un secret
+ * interne). Renvoie true si l'appel est interne OU authentifié ; ne laisse
+ * passer que le trafic non anonyme.
+ *
+ * NE PAS utiliser sur un flux public tokenisé légitimement anonyme (formulaire
+ * de sondage, signature, évaluation) : là, l'anonymat est attendu et le
+ * contrôle d'accès passe par un token à usage unique validé en base.
+ */
+export async function isInternalOrAuthenticated(
+  req: Request,
+  secretEnvName = "CRON_SECRET",
+): Promise<boolean> {
+  if (isInternalCall(req, secretEnvName)) return true;
+
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const authHeader = req.headers.get("Authorization") ?? "";
+  // Crons pg_cron et délégations envoient le service_role en Bearer. Comparaison
+  // à temps constant : ce secret est le plus sensible du système.
+  if (serviceRole !== "" && await timingSafeEqualSecret(authHeader, `Bearer ${serviceRole}`)) {
+    return true;
+  }
+
+  // Appel frontend authentifié : JWT utilisateur validé via getUser().
+  // Import dynamique volontaire : supabase-client.ts importe le SDK depuis une
+  // URL esm.sh, non résoluble par le loader Node de vitest. Le garder paresseux
+  // permet à cron-auth.test.ts (qui ne teste que isInternalCall) de se charger.
+  const { verifyAuth } = await import("./supabase-client.ts");
+  const user = await verifyAuth(authHeader);
+  return user !== null;
 }

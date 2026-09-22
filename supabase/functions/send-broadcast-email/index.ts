@@ -7,6 +7,7 @@ import {
   getSupabaseClient,
   sendEmail,
   textToHtml,
+  verifyAuth,
 } from "../_shared/mod.ts";
 
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
@@ -17,6 +18,13 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
+    // Garde d'auth : envoi de masse (subject/content arbitraires) à tous les
+    // participants d'une formation depuis le domaine vérifié. Sans garde =
+    // relais de phishing de masse. Seul appelant légitime : le dialog de
+    // diffusion (staff authentifié).
+    const user = await verifyAuth(req.headers.get("Authorization"));
+    if (!user) return createErrorResponse("Unauthorized", 401);
+
     const { trainingId, subject, content, participantIds } = await req.json();
 
     if (!trainingId || !subject || !content) {

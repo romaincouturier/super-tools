@@ -9,10 +9,16 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+// verifyAuth vit dans supabase-client.ts qui importe le SDK depuis une URL
+// esm.sh ; on le mocke pour tester isInternalOrAuthenticated sans charger cette
+// dépendance (l'import dynamique dans cron-auth.ts est intercepté par ce mock).
+const { verifyAuthMock } = vi.hoisted(() => ({ verifyAuthMock: vi.fn() }));
+vi.mock("./supabase-client.ts", () => ({ verifyAuth: verifyAuthMock }));
+
 const env: Record<string, string> = {};
 vi.stubGlobal("Deno", { env: { get: (k: string) => env[k] } });
 
-const { isInternalCall } = await import("./cron-auth.ts");
+const { isInternalCall, isInternalOrAuthenticated } = await import("./cron-auth.ts");
 
 function request(headers: Record<string, string> = {}): Request {
   return new Request("https://example.test/", { method: "POST", headers });
@@ -20,6 +26,7 @@ function request(headers: Record<string, string> = {}): Request {
 
 beforeEach(() => {
   for (const k of Object.keys(env)) delete env[k];
+  verifyAuthMock.mockReset();
 });
 
 describe("isInternalCall", () => {
@@ -55,5 +62,40 @@ describe("isInternalCall", () => {
     env.SEO_CRON_SECRET = "seo";
     expect(isInternalCall(request({ "x-cron-secret": "seo" }), "SEO_CRON_SECRET")).toBe(true);
     expect(isInternalCall(request({ "x-cron-secret": "seo" }))).toBe(false);
+  });
+});
+
+describe("isInternalOrAuthenticated", () => {
+  it("accepte le service_role présenté en Bearer (cron/délégation)", async () => {
+    env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
+    expect(await isInternalOrAuthenticated(request({ Authorization: "Bearer service-role" }))).toBe(true);
+    expect(verifyAuthMock).not.toHaveBeenCalled();
+  });
+
+  it("accepte x-internal-secret == service_role", async () => {
+    env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
+    expect(await isInternalOrAuthenticated(request({ "x-internal-secret": "service-role" }))).toBe(true);
+  });
+
+  it("accepte le secret de cron", async () => {
+    env.CRON_SECRET = "s3cret";
+    expect(await isInternalOrAuthenticated(request({ "x-cron-secret": "s3cret" }))).toBe(true);
+  });
+
+  it("accepte un JWT utilisateur valide (staff)", async () => {
+    verifyAuthMock.mockResolvedValueOnce({ id: "u1" });
+    expect(await isInternalOrAuthenticated(request({ Authorization: "Bearer user-jwt" }))).toBe(true);
+  });
+
+  it("refuse un anonyme : pas de secret, JWT non valide", async () => {
+    env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
+    verifyAuthMock.mockResolvedValueOnce(null);
+    expect(await isInternalOrAuthenticated(request({ Authorization: "Bearer cle-anon" }))).toBe(false);
+  });
+
+  it("ne confond pas un mauvais Bearer avec le service_role", async () => {
+    env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
+    verifyAuthMock.mockResolvedValueOnce(null);
+    expect(await isInternalOrAuthenticated(request({ Authorization: "Bearer mauvais" }))).toBe(false);
   });
 });
