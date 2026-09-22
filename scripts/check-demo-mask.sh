@@ -17,13 +17,18 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 # Champs identifiants : identite, contact, entreprise, argent.
-FIELDS='email|emails|contact_email|recipient_email|learner_email|clientEmail|contactEmail|phone|telephone|mobile|first_name|last_name|full_name|contact_name|client_name|client_contact|learner_name|participant_name|author_name|authorName|clientName|contactName|nom|prenom|company|company_name|clientCompany|societe|siret|siren|address|adresse|postal_code|iban|amount|montant|price|prix|sold_price_ht|estimated_value|total_ht|total_ttc|totalHt'
+# Champs identifiants. PREFIXED accepte n'importe quel prefixe (`sponsor_email`,
+# `submitted_by_email`) : la racine dit la nature de la donnee. EXACT liste les
+# champs d'identite, ou un prefixe change tout (`client_name` identifie,
+# `training_name` non).
+PREFIXED='email|phone|telephone|mobile|company|societe|amount|montant|price|price_ht|price_ttc|total_ht|total_ttc|estimated_value|address|adresse|postal_code|iban|siret|siren'
+EXACT='first_name|last_name|full_name|contact_name|client_name|customer_name|learner_name|participant_name|author_name|sponsor_name|trainer_name|assigned_name|buyer_name|company_name|client_contact|nom|prenom|prix|clientName|contactName|customerName|authorName|clientCompany|clientEmail|contactEmail|totalHt'
 
 # Ecrans publics / apprenant / partenaire : hors perimetre du mode demo.
 PUBLIC_SCREENS='src/pages/(Landing|Auth|Signup|Onboarding|ResetPassword|ForcePasswordChange|PolitiqueConfidentialite|Connexion.*|CompteSansAcces|NotFound|Academy.*|FormulaireRedirect|Google.*Callback|LearnerPortal|LmsCoursePlayer|LmsCourseHomePage|Questionnaire|Evaluation|SponsorEvaluation|TrainerEvaluation|Emargement|Signature.*|ReclamationPublic|PartnerPortal|TrainingSummary|TrainingSupportPage|MissionSummary|SurveyPublic|TrainingSurveyResponse|BookPublicPage|SupertiltConfirmationEnvoi)\.tsx|src/components/(learner|questionnaire|ui)/'
 
 violations() {
-  grep -rnE "\{[^}]*\.($FIELDS)\b" src/pages src/components --include='*.tsx' 2>/dev/null \
+  grep -rnE "\{[^}]*\.(([a-zA-Z_]*_)?($PREFIXED)|($EXACT))\b" src/pages src/components --include='*.tsx' 2>/dev/null \
     | grep -vE '\.test\.tsx:' \
     | grep -vE "$PUBLIC_SCREENS" \
     | grep -v 'mask[A-Z]' \
