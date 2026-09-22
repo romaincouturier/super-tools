@@ -526,6 +526,22 @@ if [ "$STAGED_MODE" = "false" ]; then
        grep -rqs \"\$fn\" supabase/tests/ || echo \"VIOLATION [058]: \$fn n'est joué par aucun test de supabase/tests/\"; \
      done"
 
+  # [062] Un contrôle d'accès ne se réimplémente jamais à la main dans plusieurs
+  # fonctions SQL : le test staff passe par is_staff_user(), le test « apprenant
+  # connu » par is_known_learner(). Seuil = la migration qui a fixé chaque
+  # pattern (20260922110000 et 20260922100000) : toute migration postérieure qui
+  # recopie le test à la main au lieu d'appeler la fonction de référence est une
+  # régression du même bug (PR #437, #439).
+  check "062a" "Pas de test staff à la main après la migration de référence (is_staff_user)" \
+    "for f in supabase/migrations/*.sql; do bn=\$(basename \"\$f\"); ts=\${bn%%_*}; [ \"\$ts\" -gt 20260922110000 ] 2>/dev/null || continue; \
+       grep -l 'EXISTS (SELECT 1 FROM profiles WHERE user_id = auth.uid())' \"\$f\"; \
+     done"
+
+  check "062b" "Pas de test apprenant connu à la main après la migration de référence (is_known_learner)" \
+    "for f in supabase/migrations/*.sql; do bn=\$(basename \"\$f\"); ts=\${bn%%_*}; [ \"\$ts\" -gt 20260922100000 ] 2>/dev/null || continue; \
+       grep -l 'SELECT 1 FROM training_participants WHERE lower(email) = v_email' \"\$f\"; \
+     done"
+
   check "039" "Tables LMS ont une policy SELECT TO authenticated" \
     "for t in lms_courses lms_modules lms_lessons lms_lesson_blocks lms_quizzes lms_quiz_questions; do \
        grep -rlE \"ON (public\\.)?\$t\" supabase/migrations/ --include='*.sql' 2>/dev/null \
