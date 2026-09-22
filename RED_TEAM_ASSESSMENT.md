@@ -22,7 +22,7 @@ Rappel de sequencement : `supabase/migrations-apres-front/` est un lot **prepare
 
 ---
 
-## Corrige dans cette PR
+## Corrige (branche courante)
 
 | ID | Finding | Fichier | Correctif applique |
 |----|---------|---------|--------------------|
@@ -30,6 +30,15 @@ Rappel de sequencement : `supabase/migrations-apres-front/` est un lot **prepare
 | E4 | `send-broadcast-email` mailing de masse (HAUT) | `supabase/functions/send-broadcast-email/index.ts` | `verifyAuth` en tete de handler |
 | E5 | `send-content-notification` relais (HAUT) | `supabase/functions/send-content-notification/index.ts` | `verifyAuth` en tete de handler |
 | C2 | XSS stocke `WpArticleDetailDialog` (FAIBLE/MOYEN) | `src/components/transcripts/WpArticleDetailDialog.tsx:94` | `DOMPurify.sanitize()` sur le contenu WP |
+| F2 | `missions` lecture/ecriture par anon + authenticated non-staff (HAUT) | `supabase/migrations/20260922120000_hardening_rls_missions_certificates.sql` | DROP des policies permissives (`USING(true)`, `auth.uid() IS NOT NULL`) + `missions_org_isolation` re-borne a `is_staff_user()` |
+| F4 | Bucket `certificates` : ecrasement d'attestations par tout authenticated (HAUT) | idem migration ci-dessus | Ecriture INSERT/UPDATE restreinte a `is_staff_user()` (lecture publique laissee, voir plus bas) |
+| B1 | `generate-attendance-pdf` fuite signatures + PII (MOYEN) | `supabase/functions/generate-attendance-pdf/index.ts` | garde `isInternalOrAuthenticated` |
+| E2 | `send-action-reminder` relais (delegue par cron) | `supabase/functions/send-action-reminder/index.ts` | garde `isInternalOrAuthenticated` |
+| E7 | `force-send-scheduled-email`, `cleanup-pending-email-drafts` sans garde | ces 2 fonctions | garde `isInternalOrAuthenticated` |
+
+Helper ajoute : `supabase/functions/_shared/cron-auth.ts` -> `isInternalOrAuthenticated(req)` accepte un appel interne (service_role en Bearer, `x-internal-secret`, `x-cron-secret`) OU un JWT staff valide ; bloque uniquement l'anonyme. A reutiliser pour les crons restants (E8) apres verification que chacun envoie bien un secret interne.
+
+**Faux positif corrige de l'audit** : F3 (`mission-documents` `SELECT TO public`) etait deja ferme a `20260804142210:44` (DROP + remplacement par `mission_files_missions_access`, staff only). Aucune fuite. Aucune action.
 
 Ces 4 fonctions n'ont que des appelants frontend staff authentifies (verifie) ; `verifyAuth` bloque exactement l'attaquant anonyme sans casser l'usage. Typecheck src OK, check-rules 81/81 OK.
 
@@ -45,30 +54,29 @@ Non appliques : ils touchent des parcours publics vivants, la RLS de prod, des b
 - **A2 (ELEVE, anon)** Policies RLS `to anon` toujours actives sur `practice_*` (`20260519190000_practice_feed.sql:22-32`, `20260526160000_...:22-116`), jamais DROP. Combine a F1 : publier/modifier/**supprimer** posts et commentaires au nom d'une victime.
   - Correctif : `DROP POLICY` des `anon_*_practice_*`, ne garder que les equivalents `to authenticated`. A coupler avec la bascule front.
 
-### Priorite 2 - Fuite storage sans auth (corrigeable independamment)
-- **F3 (HAUT, anon)** Bucket `mission-documents` : policy `SELECT TO public` survivante (`20260511240000_fix_mission_documents_storage_and_rls.sql:22`). Anon telecharge chaque document client.
-  - Correctif : `DROP POLICY mission_documents_storage_select;` + passer le bucket prive + URLs signees via `mission_files_missions_access`. Verifier d'abord qu'aucun code front ne sert ces objets par URL publique.
-- **F4 (HAUT, anon)** Bucket `certificates` public + policies INSERT/UPDATE sans clause `TO` (`20260226133449_...:7,13,20`). Anon lit et **ecrase** des attestations nominatives.
-  - Correctif : ajouter `TO service_role` sur INSERT/UPDATE, restreindre SELECT ou bucket prive + URLs signees.
-- **F6 (MOYEN, anon)** Bucket `learner-photos` : upload anon non borne + lecture publique (`20260519140000_learner_profiles.sql:45,48`). Meme correctif que B2.
+### Priorite 2 - Fuite storage sans auth
+- ~~**F3**~~ FAUX POSITIF : `mission-documents` deja ferme (cf. section Corrige). Aucune action.
+- ~~**F4 ecriture**~~ CORRIGE : ecriture certificats restreinte au staff.
+  - **Reste (MOYEN)** : la lecture du bucket `certificates` est encore publique (`getPublicUrl` cote front, `useDocumentsFetch.ts:144` ; `generate-certificates:732`). Une attestation nominative est telechargeable par qui connait le chemin `trainingId/fichier`. Fermeture = passer le bucket prive + URLs signees, chantier front+edge separe (pas fait pour ne pas casser l'affichage).
+- **F6 (MOYEN, anon)** Bucket `learner-photos` : upload anon non borne + lecture publique (`20260519140000_learner_profiles.sql:45,48`). Meme correctif que B2 (identite = session/token, bucket prive). Couple a la bascule apprenant (F1).
 
 ### Priorite 3 - RLS metier
-- **F2 (HAUT, authenticated)** `missions` : policy permissive `USING(true)` jamais supprimee (`20260204150000_create_missions_module.sql:31`), les policies de durcissement (is_staff_user, org_isolation) sont additives et n'annulent pas. Tout compte connecte lit toutes les missions clients.
-  - Correctif : `DROP POLICY "Users can view all missions" ON public.missions;`. Verifier que les vues missions cote app passent bien par is_staff_user/has_module_access.
-- **F5 (HAUT, authenticated non-staff)** ~50 tables `authenticated` sans `is_staff_user()` : `document_embeddings` (`20260331200000:149`), `crm_settings`, `transcripts`, `wp_articles`, `training_schedules`, `testimonials`, `okr_*`... Exploitabilite conditionnee a l'ouverture du signup Supabase (a verifier : si le self-signup est ouvert, un non-staff obtient une session et lit/ecrit tout).
-  - Correctif : ajouter `public.is_staff_user()` dans USING/WITH CHECK, aligne sur `missions_select`. **Verifier d'abord si le signup public est desactive** (mitige la classe entiere) avant de toucher 50 policies.
+- ~~**F2**~~ CORRIGE : `missions` etait lisible par anon + tout authenticated (3 policies permissives non supprimees, dont une en role PUBLIC, plus `missions_org_isolation` en `USING(true)` mono-tenant, plus des writes en `auth.uid() IS NOT NULL`). Toutes re-bornees a `is_staff_user()`.
+- **F5 (HAUT, authenticated non-staff) CONFIRME EXPLOITABLE** (signup Supabase ouvert, confirme par l'operateur) : ~50 tables `authenticated` sans `is_staff_user()` : `document_embeddings` (`20260331200000:149`), `crm_settings`, `transcripts`, `wp_articles`, `training_schedules`, `testimonials`, `okr_*`... Un compte auto-inscrit lit/ecrit tout.
+  - Correctif : ajouter `public.is_staff_user()` dans USING/WITH CHECK, aligne sur `missions_select`. Prochain gros lot recommande. A faire par vagues (par domaine), chaque vague verifiee contre les parcours apprenant/public qui utilisent legitimement `authenticated` (ne pas casser un acces apprenant en confondant avec un acces staff). Option complementaire forte : desactiver le self-signup si aucun parcours ne cree de compte en autonomie.
 
 ### Priorite 4 - Edge functions restantes
-- **E2 `send-action-reminder`, E3 `send-support-notification` (HAUT)** : relais. `send-action-reminder` est delegue par le cron `process-action-reminders` -> garde `isInternalCall`, pas `verifyAuth`. `send-support-notification` est appele depuis `Support.tsx`, `LearnerPortal.tsx` ET `FeedbackForm.tsx` : verifier si la soumission de ticket est possible en anonyme/apprenant avant de garder (sinon casse le support). Correctif cible : deriver le destinataire du DB, garder selon l'appelant legitime.
-- **E6 Deni de portefeuille (MOYEN)** : `summarize-needs-survey`, `analyze-needs-survey`, `enrich-idea` (ecrit aussi en base), `extract-objectives-from-pdf`, `generate-convention-formation` (PDFMonkey)... Correctif : `verifyAuth` ou `isInternalCall` selon l'appelant (UI vs cron vs formulaire public tokenise).
-- **E7 Ecriture/comptes service_role sans garde (MOYEN)** : `upload-learner-photo` (retirer `skipAuth`, identite = session/token, cf. B2), `create-academy-account` (rate-limit + captcha + reponse non-enumerante), `cleanup-pending-email-drafts` et `force-send-scheduled-email` (`isInternalCall` ; force-send accepte aussi le JWT staff car appele depuis l'UI).
-- **E8 Crons sans `isInternalCall` (BAS)** : ~25 fonctions `process-*` / `backfill-*` declenchables par anon. Correctif groupe : `isInternalCall(<DOMAIN>_CRON_SECRET)` en tete, en verifiant que le SQL du cron passe bien l'en-tete secret.
+- ~~**E2 `send-action-reminder`**~~ CORRIGE (garde `isInternalOrAuthenticated`).
+- **E3 `send-support-notification` (HAUT)** : relais. Appele depuis `Support.tsx`, `LearnerPortal.tsx` ET `FeedbackForm.tsx` (`src/services/support.ts`). NON garde car la soumission de ticket peut venir d'un contexte apprenant/anonyme : garder casserait le support. Correctif cible : deriver le destinataire du DB (jamais du body), garder par type d'action (les branches copy/notification staff peuvent exiger le staff, la soumission reste ouverte).
+- **E6 Deni de portefeuille (MOYEN)** : `summarize-needs-survey`, `analyze-needs-survey`, `enrich-idea` (ecrit aussi en base), `extract-objectives-from-pdf`, `generate-convention-formation` (PDFMonkey)... Correctif : `isInternalOrAuthenticated` pour les fonctions appelees par l'UI/cron ; pour celles derriere un formulaire public tokenise (evaluations, sondages), garder par token valide, PAS par auth.
+- **E7 Ecriture/comptes service_role (MOYEN)** : ~~`cleanup-pending-email-drafts`, `force-send-scheduled-email`~~ CORRIGES (garde `isInternalOrAuthenticated`). Restent : `upload-learner-photo` (retirer `skipAuth`, identite = session/token, cf. B2), `create-academy-account` (rate-limit + captcha + reponse non-enumerante).
+- **E8 Crons sans garde (BAS)** : ~25 fonctions `process-*` / `backfill-*`. Le helper `isInternalOrAuthenticated` est pret. Rollout : pour chaque fonction, confirmer que son cron/delegation envoie bien `Authorization: Bearer <service_role>` (pattern verifie sur cleanup, process-scheduled-emails, process-action-reminders) puis ajouter la garde. Ne pas garder les process-* qui seraient aussi declenches par un flux public.
 
 ### Priorite 5 - Durcissements cibles
 - **D3 (MOYEN)** Injection de prompt indirecte : l'agent indexe `inbound_emails` / `crm_email` (contenu externe) et peut declencher `execute_action` (ecritures CRM/mission/ticket en service_role) sans confirmation. Correctif : delimiter le contenu recupere comme donnees non fiables, exiger une confirmation humaine avant tout `execute_action` mutant, restreindre les sources indexees exposees a l'agent.
 - **F10 (BAS)** `agent_sql_query` a perdu son `SET search_path` (`20260728120000_...:15`, regression). Correctif minimal et sur : `ALTER FUNCTION public.agent_sql_query(...) SET search_path = pg_catalog, public;` (sans redefinir le corps). Idem F11 : `enqueue_indexation`, `recompute_opportunity_estimated_value`.
 - **Webhooks statiques (BAS-MOYEN)** : `assemblyai-webhook:46`, `fireflies-webhook:103` utilisent un jeton statique (pas de HMAC lie au body, pas d'anti-rejeu), comparaison non constant-time. Durcir : HMAC du body + horodatage anti-rejeu + comparaison constant-time.
-- **B1 `generate-attendance-pdf` (MOYEN)** : aucune auth, renvoie signatures + PII a qui connait le `trainingId`. Correctif : `verifyAuth` ou token de signature dedie.
+- ~~**B1 `generate-attendance-pdf`**~~ CORRIGE (garde `isInternalOrAuthenticated`).
 - **B3 `book_share_links`** : pas d'expiration. Ajouter `expires_at`.
 - **CORS** : `_shared/cors.ts:9` defaut `*`. Risque reel FAIBLE (auth Bearer, pas de cookie) mais amplificateur pour les fonctions non gardees. Fixer `APP_ORIGIN` en prod (variable d'env, pas de changement de code). Le vrai correctif reste les gardes d'auth.
 

@@ -1,12 +1,19 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import { isInternalOrAuthenticated } from "../_shared/cron-auth.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
+    // Garde : renvoie signatures d'emargement + PII. Seuls appelants
+    // legitimes : export attendance (staff authentifie). Bloque l'anonyme.
+    if (!(await isInternalOrAuthenticated(req))) {
+      return createErrorResponse("Unauthorized", 401);
+    }
+
     const { trainingId, participantId } = await req.json();
 
     if (!trainingId) {

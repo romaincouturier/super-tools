@@ -4,7 +4,8 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
+import { isInternalOrAuthenticated } from "../_shared/cron-auth.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import {
   appendEmailParam,
@@ -25,6 +26,12 @@ const handler = async (req: Request): Promise<Response> => {
   if (corsResponse) return corsResponse;
 
   try {
+    // Appele par l'UI (staff) et par le cron process-scheduled-emails
+    // (service_role). Bloque l'anonyme qui forcerait un envoi hors planning.
+    if (!(await isInternalOrAuthenticated(req))) {
+      return createErrorResponse("Unauthorized", 401);
+    }
+
     const { getAppUrls } = await import("../_shared/app-urls.ts");
     const urls = await getAppUrls();
     const appUrl = urls.app_url;
