@@ -77,7 +77,7 @@ export async function markOpportunityLost(
   // deno-lint-ignore no-explicit-any
   supabase: any,
   input: MarkOpportunityLostInput,
-  log: (tool: string, details?: unknown) => Promise<void>,
+  log: (message: string) => Promise<void>,
   actorEmail: string,
 ): Promise<string> {
   const reason = (input.loss_reason || "").trim() as LossReason;
@@ -168,7 +168,7 @@ export async function markOpportunityLost(
     }]);
   }
 
-  await log("mark_opportunity_lost", { card_id: card.id, loss_reason: reason });
+  await log(`mark_opportunity_lost ${card.id} ${reason}`);
 
   return JSON.stringify({
     updated: true,
