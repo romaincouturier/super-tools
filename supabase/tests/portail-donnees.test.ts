@@ -19,15 +19,18 @@ async function portal(email: string) {
 beforeAll(async () => {
   db = await createTestDb();
   await loadFunctions(db, [
-    { migration: "20260918140000_academie_formations_dans_portail.sql", name: "get_learner_portal_data" },
+    // is_staff_user : appelée par get_learner_portal_data depuis le correctif
+    // de duplication de la garde staff (audit post-is_known_learner).
+    { migration: "20260612154854_6408dfb1-3ac8-4417-a066-a7174f1ca312.sql", name: "is_staff_user" },
+    { migration: "20260922110000_verification_staff_is_staff_user.sql", name: "get_learner_portal_data" },
   ]);
 });
 
 beforeEach(async () => {
   await db.exec(
-    "TRUNCATE profiles, training_participants, trainings, lms_enrollments, lms_courses; DELETE FROM auth.users;",
+    "TRUNCATE profiles, user_module_access, training_participants, trainings, lms_enrollments, lms_courses; DELETE FROM auth.users;",
   );
-  await db.query("INSERT INTO profiles (user_id, email) VALUES ($1, $2)", [STAFF, "staff@supertilt.fr"]);
+  await db.query("INSERT INTO profiles (user_id, email, is_admin) VALUES ($1, $2, true)", [STAFF, "staff@supertilt.fr"]);
 });
 
 describe("get_learner_portal_data", () => {
@@ -60,6 +63,13 @@ describe("get_learner_portal_data", () => {
     await actAs(db, { uid: STAFF, email: "staff@supertilt.fr" });
     const data = await portal("alice@exemple.fr");
     expect(data.email).toBe("alice@exemple.fr");
+  });
+
+  it("refuse la prévisualisation à une ligne profiles sans is_admin ni accès module (correctif duplication garde staff)", async () => {
+    const orphelin = "99999999-9999-9999-9999-999999999998";
+    await db.query("INSERT INTO profiles (user_id, email) VALUES ($1, $2)", [orphelin, "orphelin@supertilt.fr"]);
+    await actAs(db, { uid: orphelin, email: "orphelin@supertilt.fr" });
+    await expect(portal("alice@exemple.fr")).rejects.toThrow(/Accès refusé/);
   });
 
   it("affiche une formation gratuite rejointe en autonomie, sans ligne training_participants", async () => {

@@ -18,16 +18,20 @@ beforeAll(async () => {
     { migration: "20260918093744_74edf311-4768-484c-9744-4a7c2a2bbb53.sql", name: "mark_password_changed" },
     { migration: "20260918093744_74edf311-4768-484c-9744-4a7c2a2bbb53.sql", name: "request_password_change" },
     { migration: "20260918093920_2c7273dc-9e82-43f1-85cb-a3ab3baa6db7.sql", name: "revoke_other_sessions" },
-    { migration: "20260918093920_2c7273dc-9e82-43f1-85cb-a3ab3baa6db7.sql", name: "list_dormant_learner_accounts" },
-    { migration: "20260918160000_demolition_lien_magique.sql", name: "connexion_indicators" },
+    // is_staff_user : appelée par list_dormant_learner_accounts et
+    // connexion_indicators depuis le correctif de duplication de la garde
+    // staff (audit post-is_known_learner).
+    { migration: "20260612154854_6408dfb1-3ac8-4417-a066-a7174f1ca312.sql", name: "is_staff_user" },
+    { migration: "20260922110000_verification_staff_is_staff_user.sql", name: "list_dormant_learner_accounts" },
+    { migration: "20260922110000_verification_staff_is_staff_user.sql", name: "connexion_indicators" },
   ]);
 });
 
 beforeEach(async () => {
-  await db.exec(`TRUNCATE profiles, user_security_metadata, training_participants, lms_progress,
+  await db.exec(`TRUNCATE profiles, user_module_access, user_security_metadata, training_participants, lms_progress,
     login_attempts, identity_resolution_log;
     DELETE FROM auth.sessions; DELETE FROM auth.users;`);
-  await db.query("INSERT INTO profiles (user_id, email) VALUES ($1, $2)", [STAFF, "staff@supertilt.fr"]);
+  await db.query("INSERT INTO profiles (user_id, email, is_admin) VALUES ($1, $2, true)", [STAFF, "staff@supertilt.fr"]);
 });
 
 describe("drapeaux du compte", () => {
@@ -139,6 +143,13 @@ describe("list_dormant_learner_accounts", () => {
     await actAs(db, { uid: "99999999-9999-9999-9999-999999999999", email: "apprenant@exemple.fr" });
     await expect(db.query("SELECT * FROM public.list_dormant_learner_accounts(3)")).rejects.toThrow(/équipe/);
   });
+
+  it("refuse une ligne profiles sans is_admin ni accès module (correctif duplication garde staff)", async () => {
+    const orphelin = "99999999-9999-9999-9999-999999999998";
+    await db.query("INSERT INTO profiles (user_id, email) VALUES ($1, $2)", [orphelin, "orphelin@supertilt.fr"]);
+    await actAs(db, { uid: orphelin, email: "orphelin@supertilt.fr" });
+    await expect(db.query("SELECT * FROM public.list_dormant_learner_accounts(3)")).rejects.toThrow(/équipe/);
+  });
 });
 
 describe("connexion_indicators", () => {
@@ -161,6 +172,13 @@ describe("connexion_indicators", () => {
 
   it("est réservé à l'équipe", async () => {
     await actAs(db, { uid: "99999999-9999-9999-9999-999999999999", email: "apprenant@exemple.fr" });
+    await expect(db.query("SELECT public.connexion_indicators(30)")).rejects.toThrow(/équipe/);
+  });
+
+  it("refuse une ligne profiles sans is_admin ni accès module (correctif duplication garde staff)", async () => {
+    const orphelin = "99999999-9999-9999-9999-999999999998";
+    await db.query("INSERT INTO profiles (user_id, email) VALUES ($1, $2)", [orphelin, "orphelin@supertilt.fr"]);
+    await actAs(db, { uid: orphelin, email: "orphelin@supertilt.fr" });
     await expect(db.query("SELECT public.connexion_indicators(30)")).rejects.toThrow(/équipe/);
   });
 });

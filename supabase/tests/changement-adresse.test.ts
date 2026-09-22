@@ -17,15 +17,18 @@ async function change(oldEmail: string, newEmail: string, userId: string | null 
 beforeAll(async () => {
   db = await createTestDb();
   await loadFunctions(db, [
-    { migration: "20260918160000_demolition_lien_magique.sql", name: "change_learner_email" },
+    // is_staff_user : appelée par change_learner_email depuis le correctif de
+    // duplication de la garde staff (audit post-is_known_learner).
+    { migration: "20260612154854_6408dfb1-3ac8-4417-a066-a7174f1ca312.sql", name: "is_staff_user" },
+    { migration: "20260922110000_verification_staff_is_staff_user.sql", name: "change_learner_email" },
   ]);
 });
 
 beforeEach(async () => {
-  await db.exec(`TRUNCATE profiles, training_participants, lms_enrollments, lms_progress,
+  await db.exec(`TRUNCATE profiles, user_module_access, training_participants, lms_enrollments, lms_progress,
     learner_profiles, questionnaire_besoins, training_evaluations, practice_posts;
     DELETE FROM auth.users; DELETE FROM auth.sessions;`);
-  await db.query("INSERT INTO profiles (user_id, email) VALUES ($1, $2)", [STAFF, "staff@supertilt.fr"]);
+  await db.query("INSERT INTO profiles (user_id, email, is_admin) VALUES ($1, $2, true)", [STAFF, "staff@supertilt.fr"]);
   await actAs(db, { uid: STAFF, email: "staff@supertilt.fr" });
 });
 
@@ -91,6 +94,13 @@ describe("change_learner_email", () => {
 
   it("n'est ouvert qu'à l'équipe", async () => {
     await actAs(db, { uid: "99999999-9999-9999-9999-999999999999", email: "apprenant@exemple.fr" });
+    await expect(change("alice@ancien.fr", "alice@nouveau.fr")).rejects.toThrow(/équipe/);
+  });
+
+  it("refuse une ligne profiles sans is_admin ni accès module (correctif duplication garde staff)", async () => {
+    const orphelin = "99999999-9999-9999-9999-999999999998";
+    await db.query("INSERT INTO profiles (user_id, email) VALUES ($1, $2)", [orphelin, "orphelin@supertilt.fr"]);
+    await actAs(db, { uid: orphelin, email: "orphelin@supertilt.fr" });
     await expect(change("alice@ancien.fr", "alice@nouveau.fr")).rejects.toThrow(/équipe/);
   });
 

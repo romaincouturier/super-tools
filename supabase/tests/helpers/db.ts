@@ -54,7 +54,14 @@ $stub$;
 const SCHEMA = `
 CREATE TABLE profiles (
   user_id uuid PRIMARY KEY,
-  email text
+  email text,
+  is_admin boolean NOT NULL DEFAULT false
+);
+
+-- Lue par is_staff_user() : staff = is_admin OU accès à un module, jamais une
+-- simple ligne profiles.
+CREATE TABLE user_module_access (
+  user_id uuid NOT NULL
 );
 
 CREATE TABLE trainings (
