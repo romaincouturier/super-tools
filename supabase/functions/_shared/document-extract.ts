@@ -291,7 +291,14 @@ export async function extractDocument(
 
   if (mime === "application/pdf") {
     const raw = toLatin1(bytes);
-    const text = extractPdfText(raw);
+    let text = extractPdfText(raw);
+    if (text.length < PDF_TEXT_MIN_CHARS) {
+      const inflated = await inflatePdfStreams(bytes, raw);
+      if (inflated) {
+        const fromStreams = extractPdfText(inflated);
+        if (fromStreams.length > text.length) text = fromStreams;
+      }
+    }
     if (text.length >= PDF_TEXT_MIN_CHARS) {
       return { parts: [{ kind: "text", text }], note: `Texte extrait de ${fileName}.` };
     }
