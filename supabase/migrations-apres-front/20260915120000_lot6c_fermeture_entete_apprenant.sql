@@ -13,6 +13,15 @@
 --
 -- Effet pour un visiteur non connecté : les contenus publiés restent lisibles,
 -- mais plus aucune donnée personnelle n'est lue ni écrite en son nom.
+--
+-- Corrigé le 2026-09-22, sans rapport avec la fermeture de l'en-tête : la
+-- troisième branche référençait learner_magic_links, supprimée entre-temps
+-- par la démolition du lien magique (20260918160000_demolition_lien_magique.sql).
+-- Comme Postgres ne valide pas le corps d'une fonction plpgsql à la création,
+-- cette branche morte n'aurait échoué qu'au premier appel, en silence, le
+-- jour de la promotion de ce fichier. Les deux branches restantes passent
+-- désormais par is_known_learner() (20260922100000_is_known_learner.sql),
+-- qui les portait déjà de façon identique.
 CREATE OR REPLACE FUNCTION public.get_learner_email()
 RETURNS text
 LANGUAGE plpgsql
@@ -29,14 +38,7 @@ BEGIN
 
   -- L'adresse doit correspondre à un apprenant connu : un compte staff ne
   -- devient pas apprenant par le simple fait d'être authentifié.
-  IF EXISTS (
-    SELECT 1 FROM training_participants WHERE lower(email) = v_email
-  ) OR EXISTS (
-    SELECT 1 FROM lms_enrollments WHERE lower(learner_email) = v_email
-  ) OR EXISTS (
-    SELECT 1 FROM learner_magic_links
-    WHERE lower(email) = v_email AND used_at IS NOT NULL
-  ) THEN
+  IF public.is_known_learner(v_email) THEN
     RETURN v_email;
   END IF;
 

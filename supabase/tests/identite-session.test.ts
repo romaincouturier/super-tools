@@ -24,14 +24,18 @@ beforeAll(async () => {
   await loadFunctions(db, [
     // get_learner_email reste chargée depuis la migration différée : sa
     // fermeture de l'en-tête x-learner-email est un chantier séparé, pas
-    // encore promu, sans rapport avec la démolition du lien magique.
+    // encore promu, sans rapport avec la démolition du lien magique. Elle
+    // appelle is_known_learner (chargée depuis la migration active, seul
+    // endroit où cette fonction existe) pour ses deux vérifications de
+    // rattachement.
+    { migration: "20260922100000_is_known_learner.sql", name: "is_known_learner" },
     { migration: "20260915120000_lot6c_fermeture_entete_apprenant.sql", name: "get_learner_email" },
     { migration: "20260918160000_demolition_lien_magique.sql", name: "current_user_access_level" },
   ]);
 });
 
 beforeEach(async () => {
-  await db.exec("TRUNCATE profiles, training_participants, lms_enrollments, learner_magic_links; DELETE FROM auth.users;");
+  await db.exec("TRUNCATE profiles, training_participants, lms_enrollments; DELETE FROM auth.users;");
   await actAs(db, null);
 });
 
@@ -71,12 +75,6 @@ describe("get_learner_email", () => {
     await db.query("INSERT INTO lms_enrollments (learner_email) VALUES ($1)", ["bob@exemple.fr"]);
     await actAs(db, { uid: "22222222-2222-2222-2222-222222222222", email: "BOB@exemple.fr" });
     expect(await learnerEmail()).toBe("bob@exemple.fr");
-  });
-
-  it("ne reconnaît pas un lien jamais utilisé", async () => {
-    await db.query("INSERT INTO learner_magic_links (email) VALUES ($1)", ["claire@exemple.fr"]);
-    await actAs(db, { uid: "33333333-3333-3333-3333-333333333333", email: "claire@exemple.fr" });
-    expect(await learnerEmail()).toBeNull();
   });
 });
 
