@@ -33,6 +33,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { ConventionSignatureStatus } from "@/services/participants";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur, maskText } from "@/lib/demoMask";
 
 interface SponsorFormFieldsProps {
   sponsorFirstName: string;
@@ -93,6 +95,9 @@ const SponsorFormFields = ({
   handleConventionUpload,
   handleConventionDelete,
 }: SponsorFormFieldsProps) => {
+  const { isDemoMode } = useDemoMode();
+  const blur = demoBlur(isDemoMode);
+
   return (
     <>
       {/* Sponsor/Commanditaire fields */}
@@ -107,6 +112,7 @@ const SponsorFormFields = ({
           <Input
             id="edit-sponsorFirstName"
             value={sponsorFirstName}
+            style={blur}
             onChange={(e) => setSponsorFirstName(e.target.value)}
             placeholder="Marie"
           />
@@ -116,6 +122,7 @@ const SponsorFormFields = ({
           <Input
             id="edit-sponsorLastName"
             value={sponsorLastName}
+            style={blur}
             onChange={(e) => setSponsorLastName(e.target.value)}
             placeholder="Martin"
           />
@@ -128,6 +135,7 @@ const SponsorFormFields = ({
             id="edit-sponsorEmail"
             type="email"
             value={sponsorEmail}
+            style={blur}
             onChange={(e) => setSponsorEmail(e.target.value)}
             placeholder="marie.martin@example.com"
           />
@@ -138,6 +146,7 @@ const SponsorFormFields = ({
             id="edit-sponsorPhone"
             type="tel"
             value={sponsorPhone}
+            style={blur}
             onChange={(e) => setSponsorPhone(e.target.value)}
             placeholder="06 12 34 56 78"
           />
@@ -181,7 +190,7 @@ const SponsorFormFields = ({
                   className="w-full justify-between font-normal truncate"
                 >
                   <span className="truncate">
-                    {financeurName ||
+                    {(isDemoMode ? maskText(financeurName) : financeurName) ||
                       "Sélectionner ou saisir un financeur..."}
                   </span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -193,11 +202,12 @@ const SponsorFormFields = ({
                     placeholder="Rechercher ou saisir un financeur..."
                     value={financeurName}
                     onValueChange={setFinanceurName}
+                    style={blur}
                   />
                   <CommandList>
                     <CommandEmpty>
                       <div className="p-2 text-sm text-muted-foreground">
-                        Appuyez sur Entrée pour utiliser &quot;{financeurName}&quot;
+                        Appuyez sur Entrée pour utiliser &quot;{isDemoMode ? maskText(financeurName) : financeurName}&quot;
                       </div>
                     </CommandEmpty>
                     <CommandGroup>
@@ -218,7 +228,7 @@ const SponsorFormFields = ({
                                 : "opacity-0",
                             )}
                           />
-                          {f}
+                          {isDemoMode ? maskText(f) : f}
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -233,6 +243,7 @@ const SponsorFormFields = ({
               id="edit-financeurUrl"
               type="url"
               value={financeurUrl}
+              style={blur}
               onChange={(e) => setFinanceurUrl(e.target.value)}
               placeholder="https://..."
             />
@@ -425,6 +436,7 @@ const SponsorFormFields = ({
       <div className="space-y-2">
         <Textarea
           value={notes}
+          style={blur}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Notes libres sur ce participant..."
           rows={3}

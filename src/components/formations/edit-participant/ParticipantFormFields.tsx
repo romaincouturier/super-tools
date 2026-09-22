@@ -10,6 +10,8 @@ import {
 import { Tag, UserCheck } from "lucide-react";
 import type { FormationFormula } from "@/types/training";
 import { SourceFinancementSelector } from "@/components/formations/FormationFormFields";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur } from "@/lib/demoMask";
 
 interface ParticipantFormFieldsProps {
   firstName: string;
@@ -82,6 +84,9 @@ const ParticipantFormFields = ({
   sourceFinancementBpf,
   setSourceFinancementBpf,
 }: ParticipantFormFieldsProps) => {
+  const { isDemoMode } = useDemoMode();
+  const blur = demoBlur(isDemoMode);
+
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -90,6 +95,7 @@ const ParticipantFormFields = ({
           <Input
             id="edit-firstName"
             value={firstName}
+            style={blur}
             onChange={(e) => setFirstName(e.target.value)}
             placeholder="Jean"
           />
@@ -99,6 +105,7 @@ const ParticipantFormFields = ({
           <Input
             id="edit-lastName"
             value={lastName}
+            style={blur}
             onChange={(e) => setLastName(e.target.value)}
             placeholder="Dupont"
           />
@@ -111,6 +118,7 @@ const ParticipantFormFields = ({
           id="edit-email"
           type="email"
           value={email}
+          style={blur}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="jean.dupont@example.com"
           required
@@ -122,6 +130,7 @@ const ParticipantFormFields = ({
         <Input
           id="edit-company"
           value={company}
+          style={blur}
           onChange={(e) => setCompany(e.target.value)}
           placeholder="ACME Corp"
         />
@@ -133,18 +142,21 @@ const ParticipantFormFields = ({
           <Input
             id="edit-company-address"
             value={companyAddress}
+            style={blur}
             onChange={(e) => setCompanyAddress(e.target.value)}
             placeholder="12 rue de la République"
           />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <Input
               value={companyZip}
+              style={blur}
               onChange={(e) => setCompanyZip(e.target.value)}
               placeholder="Code postal"
             />
             <div className="sm:col-span-2">
               <Input
                 value={companyCity}
+                style={blur}
                 onChange={(e) => setCompanyCity(e.target.value)}
                 placeholder="Ville"
               />
@@ -204,6 +216,7 @@ const ParticipantFormFields = ({
               step="0.01"
               min="0"
               value={soldPriceHt}
+              style={blur}
               onChange={(e) => setSoldPriceHt(e.target.value)}
               placeholder="1500.00"
             />
@@ -244,7 +257,7 @@ const ParticipantFormFields = ({
                     <p className="text-xs text-muted-foreground">
                       Coupon WooCommerce
                     </p>
-                    <p className="text-sm font-mono font-bold text-green-700 dark:text-green-300">
+                    <p className="text-sm font-mono font-bold text-green-700 dark:text-green-300" style={blur}>
                       {couponCode}
                     </p>
                   </div>

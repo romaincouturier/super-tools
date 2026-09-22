@@ -16,6 +16,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { ParticipantFile } from "@/services/participants";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskFileName } from "@/lib/demoMask";
 
 /** Extract bucket name and storage path from a Supabase storage URL. */
 function extractStorageInfo(url: string): { bucket: string; path: string } | null {
@@ -39,6 +41,7 @@ const ParticipantFiles = ({
   handleDeleteFile,
 }: ParticipantFilesProps) => {
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
 
   const handleOpenFile = async (pf: ParticipantFile) => {
     // Open a blank window synchronously to preserve the user gesture (avoid popup blocker)
@@ -131,7 +134,7 @@ const ParticipantFiles = ({
                 onClick={() => handleOpenFile(pf)}
                 className="flex-1 text-left text-sm text-primary hover:underline truncate"
               >
-                {pf.file_name}
+                {isDemoMode ? maskFileName(pf.file_name) : pf.file_name}
               </button>
               <span className="text-xs text-muted-foreground flex-shrink-0">
                 {new Date(pf.uploaded_at).toLocaleDateString("fr-FR")}
@@ -153,7 +156,7 @@ const ParticipantFiles = ({
                       Supprimer ce fichier ?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      Le fichier &quot;{pf.file_name}&quot; sera supprimé
+                      Le fichier &quot;{isDemoMode ? maskFileName(pf.file_name) : pf.file_name}&quot; sera supprimé
                       définitivement.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
