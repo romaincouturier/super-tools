@@ -51,7 +51,7 @@ import {
   type GameAuthor,
 } from "@/hooks/useDropshipping";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskAmount, maskEmail, maskName, maskPhone, maskText } from "@/lib/demoMask";
+import { maskAmount, maskEmail, maskName, maskPhone, maskText, demoBlur } from "@/lib/demoMask";
 
 const EUR = (v: number) => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
@@ -821,6 +821,7 @@ function StockEditDialog({ game, onClose }: { game: GameFull; onClose: () => voi
 }
 
 function RestockPreviewDialog({ gameId, onClose }: { gameId: string; onClose: () => void }) {
+  const { isDemoMode } = useDemoMode();
   const { mutateAsync: send } = useSendRestockEmail();
   const [preview, setPreview] = useState<{ subject: string; html: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -858,7 +859,7 @@ function RestockPreviewDialog({ gameId, onClose }: { gameId: string; onClose: ()
               <p className="text-xs text-muted-foreground">Objet</p>
               <p className="font-medium text-sm">{preview.subject}</p>
             </div>
-            <div className="border rounded p-3 text-sm prose max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(preview.html, { ADD_ATTR: ["target"] }) }} />
+            <div className="border rounded p-3 text-sm prose max-w-none" style={demoBlur(isDemoMode)} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(preview.html, { ADD_ATTR: ["target"] }) }} />
           </div>
         )}
         {!loading && !preview && (

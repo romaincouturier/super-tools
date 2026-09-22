@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskName, maskEmail, maskText } from "@/lib/demoMask";
+import { maskName, maskEmail, maskText, demoBlur } from "@/lib/demoMask";
 import DOMPurify from "dompurify";
 import { Mail, Send, Eye, ChevronDown, ChevronUp, X, Pencil, Clock, CalendarDays, Briefcase, Target, ExternalLink } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -238,6 +238,7 @@ function DraftCard({
           {expanded && !editing && (
             <div
               className="text-xs border rounded p-3 bg-muted/20 max-h-48 overflow-y-auto prose prose-xs"
+              style={demoBlur(isDemoMode)}
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(draft.html_content) }}
             />
           )}
@@ -356,7 +357,7 @@ function DraftCard({
               <p className="text-sm font-medium">{isDemoMode ? maskText(draft.subject) : draft.subject}</p>
             </div>
             <div className="border rounded p-4 bg-white">
-              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(draft.html_content) }} />
+              <div style={demoBlur(isDemoMode)} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(draft.html_content) }} />
             </div>
             {isActionable && onApproveAndSend && (
               <div className="flex justify-end gap-2 pt-2">

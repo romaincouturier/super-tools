@@ -62,7 +62,7 @@ import {
   type GameType,
 } from "@/hooks/useSupertiltOrders";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskAmount, maskEmail, maskName } from "@/lib/demoMask";
+import { maskAmount, maskEmail, maskName, demoBlur } from "@/lib/demoMask";
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -152,6 +152,7 @@ function Dashboard() {
 // ── Order Item Card ───────────────────────────────────────────────
 
 function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => void }) {
+  const { isDemoMode } = useDemoMode();
   const { data: emailLogs, isLoading: loadingLogs } = useOrderItemEmailLog(item.wc_order_id);
   const { mutateAsync: sendEmail, isPending: sendingFollowup } = useSendOrderEmail();
   const { toast } = useToast();
@@ -228,6 +229,7 @@ function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => v
                       {log.body && (
                         <div
                           className="mt-2 p-2 bg-background border rounded prose prose-sm max-w-none"
+                          style={demoBlur(isDemoMode)}
                           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(log.body) }}
                         />
                       )}

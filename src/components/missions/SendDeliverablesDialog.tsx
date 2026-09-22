@@ -22,7 +22,7 @@ import { MissionContact } from "@/types/missions";
 import { useQuery } from "@tanstack/react-query";
 import { useMissionDeliverableSends } from "@/hooks/useMissionDeliverableSends";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskName, maskEmail } from "@/lib/demoMask";
+import { maskName, maskEmail, demoBlur } from "@/lib/demoMask";
 
 interface SendDeliverablesDialogProps {
   missionId: string;
@@ -489,6 +489,7 @@ const SendDeliverablesDialog = ({
                   </div>
                   <div
                     className="prose prose-sm max-w-none"
+                    style={demoBlur(isDemoMode)}
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewHtml, { ADD_ATTR: ["target"] }) }}
                   />
                   <div className="mt-3 pt-3 border-t text-xs text-muted-foreground italic">

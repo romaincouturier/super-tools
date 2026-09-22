@@ -26,7 +26,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskEmail } from "@/lib/demoMask";
+import { maskEmail, demoBlur } from "@/lib/demoMask";
 
 interface FailedEmail {
   id: string;
@@ -303,6 +303,7 @@ const FailedEmails = () => {
               <div className="border rounded-lg p-4 bg-white dark:bg-gray-900">
                 <div
                   className="prose prose-sm max-w-none dark:prose-invert"
+                  style={demoBlur(isDemoMode)}
                   dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewEmail.html_content || "", { ADD_ATTR: ["target"] }) }}
                 />
               </div>

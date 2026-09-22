@@ -32,7 +32,7 @@ import type { CrmCard } from "@/types/crm";
 import { v4 as uuid } from "uuid";
 import { htmlToPlainText, cleanHtmlOutput } from "@/lib/htmlUtils";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskAmount } from "@/lib/demoMask";
+import { maskAmount, demoBlur } from "@/lib/demoMask";
 
 interface Props {
   quote: Quote;
@@ -867,6 +867,7 @@ export default function Step3QuoteGeneration({
             <>
               <div
                 className="p-4 border rounded-md bg-background overflow-y-auto max-h-[500px] text-sm leading-relaxed [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1 [&_h3:first-child]:mt-0 [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_li]:my-0.5 [&_strong]:font-semibold"
+                style={demoBlur(isDemoMode)}
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(challengeHtml) }}
               />
               <Button

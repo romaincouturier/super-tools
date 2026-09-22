@@ -14,7 +14,7 @@ import Step5Email from "./Step5Email";
 import { useQuoteWorkflow } from "@/hooks/useQuoteWorkflow";
 import type { CrmCard } from "@/types/crm";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskText, maskAmount } from "@/lib/demoMask";
+import { maskText, maskAmount, demoBlur } from "@/lib/demoMask";
 
 // ---------------------------------------------------------------------------
 // Resizable sidebar helpers
@@ -133,6 +133,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
                   </div>
                   <div
                     className="text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:my-1.5 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_ol]:my-1 [&_ol]:pl-5 [&_ol]:list-decimal [&_li]:my-0.5 [&_strong]:font-semibold [&_a]:text-primary [&_a]:underline"
+                    style={demoBlur(isDemoMode)}
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(crmCard.description_html) }}
                   />
                   {wf.synthesis && (
@@ -140,6 +141,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
                       <h3 className="font-semibold text-sm mb-2">Synthèse générée</h3>
                       <div
                         className="text-sm leading-relaxed [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1 [&_h3:first-child]:mt-0 [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_li]:my-0.5 [&_strong]:font-semibold"
+                        style={demoBlur(isDemoMode)}
                         dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(wf.synthesis) }}
                       />
                     </div>

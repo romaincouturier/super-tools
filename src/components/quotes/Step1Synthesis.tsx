@@ -1,4 +1,6 @@
 import DOMPurify from "dompurify";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur } from "@/lib/demoMask";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,7 @@ export default function Step1Synthesis({
   initialInstructions,
   initialChallengeHtml,
 }: Props) {
+  const { isDemoMode } = useDemoMode();
   const [synthesis, setSynthesis] = useState(initialSynthesis || "");
   const [instructions, setInstructions] = useState(initialInstructions || "");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -227,6 +230,7 @@ export default function Step1Synthesis({
               ) : (
                 <div
                   className="synthesis-content p-4 border rounded-md bg-muted/30 overflow-y-auto max-h-[500px] text-sm leading-relaxed [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1 [&_h3:first-child]:mt-0 [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_li]:my-0.5 [&_strong]:font-semibold"
+                  style={demoBlur(isDemoMode)}
                   dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(synthesis) }}
                 />
               )}
@@ -325,6 +329,7 @@ export default function Step1Synthesis({
             <>
               <div
                 className="p-4 border rounded-md bg-background overflow-y-auto max-h-[500px] text-sm leading-relaxed [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1 [&_h3:first-child]:mt-0 [&_p]:my-1 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_li]:my-0.5 [&_strong]:font-semibold"
+                style={demoBlur(isDemoMode)}
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(challengeHtml) }}
               />
               <Button
