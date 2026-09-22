@@ -75,3 +75,23 @@ export function demoBlur(
     ...(opts?.lockPointer ? { pointerEvents: "none" as const } : {}),
   };
 }
+
+/**
+ * Regex des noms clients connus, pour masquer un nom noyé dans un texte libre
+ * (titre de carte). Les noms de moins de 3 lettres sont ignorés : trop de
+ * faux positifs sur des mots courants.
+ */
+export function buildKnownNamesMatcher(names: (string | null | undefined)[]): RegExp | null {
+  const unique = [...new Set(names.map((n) => (n ?? "").trim()).filter((n) => n.length >= 3))]
+    .sort((a, b) => b.length - a.length)
+    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"));
+  if (unique.length === 0) return null;
+  return new RegExp(`(?<![\\p{L}\\p{N}])(?:${unique.join("|")})(?![\\p{L}\\p{N}])`, "giu");
+}
+
+/** Masque (maskText) chaque nom connu trouvé dans le texte, le reste intact. */
+export function maskKnownNames(value: string | null | undefined, matcher: RegExp | null): string {
+  if (!value) return value ?? "";
+  if (!matcher) return value;
+  return value.replace(matcher, (m) => maskText(m));
+}

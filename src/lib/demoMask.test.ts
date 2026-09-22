@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
+  buildKnownNamesMatcher,
+  maskKnownNames,
   demoBlur,
   maskEmail,
   maskName,
@@ -92,5 +94,25 @@ describe("demoMask", () => {
     for (const [mask, value] of samples) {
       expect(mask(value)).not.toBe(value);
     }
+  });
+});
+
+describe("maskKnownNames", () => {
+  const matcher = buildKnownNamesMatcher(["Henry Schein", "Goood!", "ICT", "IA", null]);
+
+  it("masque les noms connus et laisse le reste du titre intact", () => {
+    expect(maskKnownNames("Scribing Henry Schein", matcher)).toBe("Scribing H•••y S••••n");
+    expect(maskKnownNames("Animation Echo pour goood!", matcher)).toBe("Animation Echo pour g••••!");
+    expect(maskKnownNames("[Post] ECHO à l'ICT de Toulouse", matcher)).toBe("[Post] ECHO à l'I•T de Toulouse");
+  });
+
+  it("ne masque pas un nom inclus dans un mot, ni un nom de moins de 3 lettres", () => {
+    expect(maskKnownNames("Facilitation et IA", matcher)).toBe("Facilitation et IA");
+    expect(maskKnownNames("Dictée", matcher)).toBe("Dictée");
+  });
+
+  it("rend la valeur telle quelle sans liste de noms", () => {
+    expect(maskKnownNames("Scribing Henry Schein", null)).toBe("Scribing Henry Schein");
+    expect(buildKnownNamesMatcher([])).toBeNull();
   });
 });

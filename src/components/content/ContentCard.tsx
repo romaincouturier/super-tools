@@ -15,6 +15,8 @@ import type { Card } from "./KanbanBoard";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { useSortableCard } from "@/hooks/useSortableCard";
 import CardTagList from "@/components/shared/kanban/CardTagList";
+import { useDemoClientNames } from "@/hooks/useDemoClientNames";
+import { maskKnownNames } from "@/lib/demoMask";
 
 interface ContentCardProps {
   card: Card;
@@ -43,6 +45,7 @@ const getTagColor = (tag: string) => {
 const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onDelete, onView, onEmojiChange }: ContentCardProps) => {
   const { ref, style, attributes, listeners, isDragging } = useSortableCard(card.id, isDraggingProp);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const clientNames = useDemoClientNames();
   const borderColor = typeColors ? (typeColors as any)[card.card_type] || "#3b82f6" : (card.card_type === "post" ? "#a855f7" : "#3b82f6");
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -57,7 +60,7 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
 
   const tags = (card.tags || []).map((tag) => ({
     key: tag,
-    label: tag,
+    label: maskKnownNames(tag, clientNames),
     className: getTagColor(tag),
   }));
 
@@ -97,7 +100,7 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
         >
           <img
             src={card.image_url}
-            alt={card.title}
+            alt=""
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           />
         </div>
@@ -122,7 +125,7 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
                 className="shrink-0 mt-0.5"
               />
             </span>
-            <h4 className="font-medium text-sm line-clamp-2">{card.title}</h4>
+            <h4 className="font-medium text-sm line-clamp-2">{maskKnownNames(card.title, clientNames)}</h4>
           </div>
 
           {(onEdit || onDelete || onView) && (
@@ -166,7 +169,7 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
 
         {card.description && (
           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-            {card.description.replace(/<[^>]*>/g, "")}
+            {maskKnownNames(card.description.replace(/<[^>]*>/g, ""), clientNames)}
           </p>
         )}
 
