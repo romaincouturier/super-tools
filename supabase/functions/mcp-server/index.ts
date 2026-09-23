@@ -26,6 +26,7 @@ import {
   logClientInteraction,
   RECORD_TYPES,
   setLogisticsItem,
+  updateTraining,
 } from "../_shared/record-tools.ts";
 import { getEventHistory } from "../_shared/event-tools.ts";
 import {
@@ -1029,6 +1030,22 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "update_training",
+    description:
+      "Update a training's start date, end date, place (location) or video-call link (meeting_url, https). meeting_url updates the upcoming live sessions of the training when it has some, otherwise it becomes the training location. Returns the previous values.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        training_id: { type: "string" },
+        start_date: { type: "string", description: "YYYY-MM-DD" },
+        end_date: { type: "string", description: "YYYY-MM-DD" },
+        location: { type: "string" },
+        meeting_url: { type: "string" },
+      },
+      required: ["training_id"],
+    },
+  },
+  {
     name: "set_logistics_item",
     description:
       "Check (or uncheck) a logistics item of a mission, training or event: train booked, hotel booked, restaurant, room rental, equipment ready, or any label of its logistics checklist. item is either a field (train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready) or part of a checklist label. The checklist and the entity's alert flags stay in sync.",
@@ -1505,6 +1522,13 @@ async function callTool(
         return textResult(`Attach error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "update_training": {
+      try {
+        return textResult(await updateTraining(supabase, args as unknown as Parameters<typeof updateTraining>[1], log));
+      } catch (e) {
+        return textResult(`Training error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "set_logistics_item": {
       try {
         return textResult(await setLogisticsItem(supabase, args as unknown as Parameters<typeof setLogisticsItem>[1], log));
@@ -1686,7 +1710,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.7.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.8.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }
