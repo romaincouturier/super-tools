@@ -3,6 +3,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 
+/**
+ * Une réponse non-2xx arrive en erreur générique ("non-2xx status code") ; le
+ * message utile (`{ error }` de createErrorResponse) est dans le corps.
+ */
+async function edgeErrorWithBody(error: unknown): Promise<Error> {
+  const base = error instanceof Error ? error : new Error(String(error));
+  const context = (error as { context?: unknown })?.context;
+  if (context instanceof Response) {
+    try {
+      const body = await context.clone().json();
+      if (body && typeof body.error === "string" && body.error) return Object.assign(new Error(body.error), { cause: base });
+    } catch (parseError) {
+      return Object.assign(new Error(base.message), { cause: parseError });
+    }
+  }
+  return base;
+}
+
 export interface UseEdgeFunctionOptions {
   /** Custom error message shown in toast on failure. */
   errorMessage?: string;
@@ -60,9 +78,7 @@ export function useEdgeFunction<TResult = unknown>(
           body: body ?? {},
         });
         if (response.error) {
-          throw response.error instanceof Error
-            ? response.error
-            : new Error(String(response.error));
+          throw await edgeErrorWithBody(response.error);
         }
         const extracted: TResult =
           response.data && typeof response.data === "object" && "result" in response.data
