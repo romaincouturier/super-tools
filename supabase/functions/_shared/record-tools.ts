@@ -186,3 +186,55 @@ export async function logClientInteraction(
   await log(`log_client_interaction ${type} ${input.record_id}`);
   return JSON.stringify({ logged: true, record: recLabel, date, summary, action_taken: action || null });
 }
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export async function updateTraining(
+  db: Db,
+  input: { training_id: string; start_date?: string; end_date?: string; location?: string; meeting_url?: string },
+  log: Log,
+): Promise<string> {
+  if (!UUID_RE.test(input.training_id || "")) throw new Error("training_id invalide");
+  const { data: t, error } = await db.from("trainings")
+    .select("id, training_name, start_date, end_date, location").eq("id", input.training_id).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!t) throw new Error("Formation introuvable");
+
+  const patch: Record<string, string> = {};
+  for (const k of ["start_date", "end_date"] as const) {
+    if (input[k] === undefined) continue;
+    if (!DATE_RE.test(input[k]!)) throw new Error(`${k} doit être au format YYYY-MM-DD`);
+    patch[k] = input[k]!;
+  }
+  const start = patch.start_date ?? t.start_date;
+  const end = patch.end_date ?? t.end_date;
+  if (start && end && end < start) throw new Error("end_date est antérieure à start_date");
+
+  const loc = input.location?.trim();
+  const url = input.meeting_url?.trim();
+  if (url && !/^https:\/\/\S+$/i.test(url)) throw new Error("meeting_url doit commencer par https://");
+  if (loc && url) throw new Error("location et meeting_url vont dans le même champ lieu : n'en passer qu'un, ou mettre à jour les lives via meeting_url seul");
+
+  let livesUpdated = 0;
+  if (url) {
+    const { data: lives, error: lErr } = await db.from("training_live_meetings")
+      .update({ meeting_url: url }).eq("training_id", t.id).gte("scheduled_at", new Date().toISOString()).select("id");
+    if (lErr) throw new Error(lErr.message);
+    livesUpdated = lives?.length ?? 0;
+    if (livesUpdated === 0) patch.location = url;
+  } else if (loc) {
+    patch.location = loc;
+  }
+
+  if (Object.keys(patch).length === 0 && livesUpdated === 0) throw new Error("Aucun champ à modifier");
+  if (Object.keys(patch).length > 0) {
+    const { error: uErr } = await db.from("trainings").update(patch).eq("id", t.id);
+    if (uErr) throw new Error(uErr.message);
+  }
+  await log(`update_training ${t.id} ${Object.keys(patch).join(",")}${livesUpdated ? ` lives:${livesUpdated}` : ""}`);
+  return JSON.stringify({
+    updated: true, training: t.training_name,
+    before: { start_date: t.start_date, end_date: t.end_date, location: t.location },
+    changes: patch, upcoming_lives_meeting_url_updated: livesUpdated,
+  });
+}
