@@ -13,8 +13,7 @@
 import { buildQuotePayload, resolveCustomer, todayParis, type CustomerInput } from "./pennylane-quotes.ts";
 import { getPennylaneToken, pennylaneErrorMessage, pennylaneFetch } from "./pennylane.ts";
 
-// deno-lint-ignore no-explicit-any
-type Supabase = any;
+type Supabase = Parameters<typeof getPennylaneToken>[0];
 
 export const INVOICE_PAYMENT_DAYS = 30;
 

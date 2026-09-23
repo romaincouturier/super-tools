@@ -59,6 +59,28 @@ describe("buildMissionInvoicePayload", () => {
     expect(() => buildMissionInvoicePayload(ACTIVITIES, 42, "20")).toThrow(/vat_rate invalide/);
   });
 
+  it("nomme par sa date une activité sans montant ni description", () => {
+    expect(() =>
+      buildMissionInvoicePayload([{ ...ACTIVITIES[0], description: "", billable_amount: null }], 42, "FR_200"),
+    ).toThrow(/manquant sur : 2026-09-02/);
+  });
+
+  it("refuse une facture sans activité", () => {
+    expect(() => buildMissionInvoicePayload([], 42, "FR_200")).toThrow(/Aucune activité/);
+  });
+
+  it("met les jours au pluriel et nomme une activité sans description par sa date", () => {
+    const payload = buildMissionInvoicePayload(
+      [{ ...ACTIVITIES[0], description: "  ", duration: 2 }],
+      42,
+      "FR_200",
+      "2026-09-23",
+    );
+    expect(payload.invoice_lines).toEqual([
+      expect.objectContaining({ label: "Activité du 02/09/2026", description: "02/09/2026 · 2 jours" }),
+    ]);
+  });
+
   it("calcule l'échéance sans glisser d'un jour en fin de mois", () => {
     expect(addDays("2026-01-31", 30)).toBe("2026-03-02");
   });
@@ -78,6 +100,35 @@ describe("createMissionDraftInvoice", () => {
     expect(calls.map((c) => c.key)).toEqual(["GET customers", "POST company_customers", "POST customer_invoices"]);
     expect(calls[2].body).toMatchObject({ customer_id: 777, draft: true });
     expect(invoice).toMatchObject({ id: 5501, customerId: 777, customerCreated: true, pdfUrl: "https://x/f.pdf" });
+  });
+
+  it("réutilise la fiche existante et lit une réponse enveloppée", async () => {
+    const calls = mockFetch({
+      "GET customers": {
+        ok: true,
+        status: 200,
+        body: { items: [{ id: 321, name: "Henry Schein", emails: ["COMPTA@henryschein.fr"] }], has_more: false },
+      },
+      "POST customer_invoices": {
+        ok: true,
+        status: 201,
+        body: { customer_invoice: { id: 9, invoice_number: "F-2026-200", file_url: "https://x/g.pdf" } },
+      },
+    });
+
+    const invoice = await createMissionDraftInvoice(supabaseWithToken(), ACTIVITIES, CUSTOMER, "FR_200");
+
+    expect(calls.map((c) => c.key)).toEqual(["GET customers", "POST customer_invoices"]);
+    expect(invoice).toEqual({ id: 9, number: "F-2026-200", pdfUrl: "https://x/g.pdf", customerId: 321, customerCreated: false });
+  });
+
+  it("tolère une réponse de création vide", async () => {
+    mockFetch({
+      "POST company_customers": { ok: true, status: 201, body: { id: 777 } },
+      "POST customer_invoices": { ok: true, status: 201, body: null },
+    });
+    const invoice = await createMissionDraftInvoice(supabaseWithToken(), ACTIVITIES, CUSTOMER, "FR_200");
+    expect(invoice).toEqual({ id: undefined, number: undefined, pdfUrl: undefined, customerId: 777, customerCreated: true });
   });
 
   it("n'appelle pas Pennylane si une ligne est invalide", async () => {

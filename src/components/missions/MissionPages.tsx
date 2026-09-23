@@ -530,12 +530,12 @@ const PageEditor = ({
   missionId: string;
   onPageUpdated: (page: MissionPage) => void;
 }) => {
+  const { isDemoMode } = useDemoMode();
   if (page.page_type === "survey") {
     return <SurveyBuilder page={page} missionId={missionId} />;
   }
 
   const { toast } = useToast();
-  const { isDemoMode } = useDemoMode();
   const updatePage = useUpdateMissionPage();
   const [imageUploading, setImageUploading] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);

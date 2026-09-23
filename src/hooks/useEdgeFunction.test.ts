@@ -183,4 +183,33 @@ describe("useEdgeFunction", () => {
 
     expect(mockInvoke).toHaveBeenCalledWith("my-fn", { body: {} });
   });
+
+  it("uses the { error } body of a non-2xx response instead of the generic message", async () => {
+    const httpError = Object.assign(new Error("Edge Function returned a non-2xx status code"), {
+      context: new Response(JSON.stringify({ error: "Création de la facture refusée : scope" }), { status: 422 }),
+    });
+    mockInvoke.mockResolvedValue({ data: null, error: httpError });
+
+    const { result } = renderHook(() => useEdgeFunction("my-fn"));
+    await act(async () => {
+      await result.current.invoke();
+    });
+
+    expect(result.current.error?.message).toBe("Création de la facture refusée : scope");
+    expect(mockToastError).toHaveBeenCalledWith(expect.anything(), "Création de la facture refusée : scope");
+  });
+
+  it("keeps the generic message when the error body is not JSON", async () => {
+    const httpError = Object.assign(new Error("Edge Function returned a non-2xx status code"), {
+      context: new Response("<html>502</html>", { status: 502 }),
+    });
+    mockInvoke.mockResolvedValue({ data: null, error: httpError });
+
+    const { result } = renderHook(() => useEdgeFunction("my-fn"));
+    await act(async () => {
+      await result.current.invoke();
+    });
+
+    expect(result.current.error?.message).toBe("Edge Function returned a non-2xx status code");
+  });
 });
