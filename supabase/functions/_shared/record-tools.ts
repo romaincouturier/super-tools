@@ -189,6 +189,36 @@ export async function logClientInteraction(
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+const addDays = (d: string, n: number) => {
+  const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10);
+};
+const dayDiff = (a: string, b: string) => Math.round((Date.parse(`${a}T12:00:00Z`) - Date.parse(`${b}T12:00:00Z`)) / 86400000);
+
+async function syncSchedule(db: Db, trainingId: string, oldStart: string | null, start: string | null, end: string | null) {
+  const { data: rows, error } = await db.from("training_schedules")
+    .select("day_date, start_time, end_time").eq("training_id", trainingId).order("day_date");
+  if (error) throw new Error(error.message);
+  if (!rows?.length || !start) return null;
+  const shift = oldStart ? dayDiff(start, oldStart) : 0;
+  let days = rows.map((r: any) => ({ ...r, day_date: addDays(r.day_date, shift) }));
+  const last = end ?? start;
+  days = days.filter((d: any) => d.day_date >= start && d.day_date <= last);
+  const tpl = days[days.length - 1] ?? rows[rows.length - 1];
+  let cur = days.length ? addDays(days[days.length - 1].day_date, 1) : start;
+  while (cur <= last) {
+    const wd = new Date(`${cur}T12:00:00Z`).getUTCDay();
+    if (wd !== 0 && wd !== 6) days.push({ day_date: cur, start_time: tpl.start_time, end_time: tpl.end_time });
+    cur = addDays(cur, 1);
+  }
+  const { error: dErr } = await db.from("training_schedules").delete().eq("training_id", trainingId);
+  if (dErr) throw new Error(dErr.message);
+  if (days.length) {
+    const { error: iErr } = await db.from("training_schedules").insert(days.map((d: any) => ({ training_id: trainingId, ...d })));
+    if (iErr) throw new Error(iErr.message);
+  }
+  return days.map((d: any) => `${d.day_date} ${d.start_time}-${d.end_time}`);
+}
+
 export async function updateTraining(
   db: Db,
   input: { training_id: string; start_date?: string; end_date?: string; location?: string; meeting_url?: string },
@@ -231,10 +261,11 @@ export async function updateTraining(
     const { error: uErr } = await db.from("trainings").update(patch).eq("id", t.id);
     if (uErr) throw new Error(uErr.message);
   }
+  const scheduleDays = (patch.start_date || patch.end_date) ? await syncSchedule(db, t.id, t.start_date, start, end) : null;
   await log(`update_training ${t.id} ${Object.keys(patch).join(",")}${livesUpdated ? ` lives:${livesUpdated}` : ""}`);
   return JSON.stringify({
     updated: true, training: t.training_name,
     before: { start_date: t.start_date, end_date: t.end_date, location: t.location },
-    changes: patch, upcoming_lives_meeting_url_updated: livesUpdated,
+    changes: patch, upcoming_lives_meeting_url_updated: livesUpdated, schedule_days: scheduleDays,
   });
 }
