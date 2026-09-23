@@ -13,7 +13,20 @@ import {
   tenderNoGo,
 } from "../_shared/tender-decision.ts";
 import { postCrmOpportunityToSlack } from "../_shared/crm-slack.ts";
-import { LOSS_REASONS, markOpportunityLost } from "../_shared/crm-tools.ts";
+import {
+  ACQUISITION_SOURCES,
+  createOpportunity,
+  LOSS_REASONS,
+  markOpportunityLost,
+  SERVICE_TYPES,
+  updateOpportunity,
+} from "../_shared/crm-tools.ts";
+import {
+  attachEmailToRecord,
+  logClientInteraction,
+  RECORD_TYPES,
+  setLogisticsItem,
+} from "../_shared/record-tools.ts";
 import { getEventHistory } from "../_shared/event-tools.ts";
 import {
   getSeoPerformance,
@@ -956,6 +969,96 @@ const MCP_TOOLS = [
       required: ["deadline", "lines"],
     },
   },
+  {
+    name: "create_opportunity",
+    description:
+      "Create ONE opportunity card in the SuperTools CRM. Deduplication: if an OPEN card already exists with the same email, the same non-generic email domain, or a similar company name, NOTHING is created and the candidates are returned; then use update_opportunity, or call again with force=true if it really is a new deal. next_action_date in the future puts the card in WAITING, otherwise TODAY. Column defaults to 'Entrant'.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Opportunity title" },
+        first_name: { type: "string" },
+        last_name: { type: "string" },
+        email: { type: "string" },
+        phone: { type: "string" },
+        company: { type: "string" },
+        service_type: { type: "string", enum: [...SERVICE_TYPES] },
+        acquisition_source: { type: "string", enum: [...ACQUISITION_SOURCES], description: "email_entrant for a received mail, recommandation/partenaire for a forward" },
+        source_email_url: { type: "string", description: "Link to the source email (Gmail URL)" },
+        estimated_value: { type: "number", description: "Euros excl. tax" },
+        column: { type: "string", description: "Column name (partial match) or id; default Entrant" },
+        next_action_text: { type: "string" },
+        next_action_date: { type: "string", description: "YYYY-MM-DD" },
+        description: { type: "string", description: "Context / need, plain text" },
+        force: { type: "boolean", description: "Create even if possible duplicates exist" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "update_opportunity",
+    description:
+      "Update an existing CRM opportunity: move to a column, set the next action and/or follow-up date, change the estimated value, add a comment. Only provided fields change. Find the card by card_id or search (company, contact, email, title); ambiguous searches return candidates without writing. To mark as lost use mark_opportunity_lost.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        card_id: { type: "string" },
+        search: { type: "string" },
+        column: { type: "string", description: "Target column name (partial match) or id" },
+        next_action_text: { type: "string" },
+        next_action_date: { type: "string", description: "YYYY-MM-DD follow-up date; empty string clears it" },
+        estimated_value: { type: "number" },
+        comment: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "attach_email_to_record",
+    description:
+      "Archive a Gmail message (romain@supertilt.fr mailbox) and ALL its attachments into a mission, training or opportunity. SuperTools fetches the mail itself from Gmail: pass only the Gmail message id (or the RFC 822 Message-ID). The mail is stored as a .eml file (unless include_email=false), each attachment as a document, and an interaction entry is logged in the record's history. Get ids from get_mission_dossier, query_database (trainings, crm_cards).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        record_type: { type: "string", enum: [...RECORD_TYPES] },
+        record_id: { type: "string", description: "UUID of the mission, training or CRM card" },
+        gmail_message_id: { type: "string" },
+        include_email: { type: "boolean", description: "Also store the mail itself as .eml (default true)" },
+        note: { type: "string", description: "Action taken, logged in the history" },
+      },
+      required: ["record_type", "record_id", "gmail_message_id"],
+    },
+  },
+  {
+    name: "set_logistics_item",
+    description:
+      "Check (or uncheck) a logistics item of a mission, training or event: train booked, hotel booked, restaurant, room rental, equipment ready, or any label of its logistics checklist. item is either a field (train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready) or part of a checklist label. The checklist and the entity's alert flags stay in sync.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        entity_type: { type: "string", enum: ["mission", "training", "event"] },
+        entity_id: { type: "string" },
+        item: { type: "string" },
+        done: { type: "boolean", description: "default true" },
+      },
+      required: ["entity_type", "entity_id", "item"],
+    },
+  },
+  {
+    name: "log_client_interaction",
+    description:
+      "Trace in a client record that an interaction happened (mail received and processed, call...) with the action taken. Opportunity: dated comment. Mission: activity with 0 hours (notes = action). Training: completed action in the training history. Additive only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        record_type: { type: "string", enum: [...RECORD_TYPES] },
+        record_id: { type: "string" },
+        summary: { type: "string", description: "What happened, e.g. 'Mail reçu de X : demande de devis'" },
+        action_taken: { type: "string", description: "What was done in response" },
+        date: { type: "string", description: "YYYY-MM-DD, default today" },
+      },
+      required: ["record_type", "record_id", "summary"],
+    },
+  },
 ];
 
 // ── Dossiers agrégés (lecture seule, journalisés) ────────────
@@ -1381,6 +1484,41 @@ async function callTool(
         return textResult(`CRM error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "create_opportunity": {
+      try {
+        return textResult(await createOpportunity(supabase, args as unknown as Parameters<typeof createOpportunity>[1], log, ALLOWED_EMAIL));
+      } catch (e) {
+        return textResult(`CRM error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_opportunity": {
+      try {
+        return textResult(await updateOpportunity(supabase, args as Parameters<typeof updateOpportunity>[1], log, ALLOWED_EMAIL));
+      } catch (e) {
+        return textResult(`CRM error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "attach_email_to_record": {
+      try {
+        return textResult(await attachEmailToRecord(supabase, args as unknown as Parameters<typeof attachEmailToRecord>[1], log, ALLOWED_EMAIL));
+      } catch (e) {
+        return textResult(`Attach error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "set_logistics_item": {
+      try {
+        return textResult(await setLogisticsItem(supabase, args as unknown as Parameters<typeof setLogisticsItem>[1], log));
+      } catch (e) {
+        return textResult(`Logistics error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "log_client_interaction": {
+      try {
+        return textResult(await logClientInteraction(supabase, args as unknown as Parameters<typeof logClientInteraction>[1], log, ALLOWED_EMAIL));
+      } catch (e) {
+        return textResult(`Log error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "list_lms_courses": {
       try {
         await log("list_lms_courses");
@@ -1548,7 +1686,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.6.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.7.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }
