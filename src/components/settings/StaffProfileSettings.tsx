@@ -12,10 +12,16 @@ import { toastError } from "@/lib/toastError";
 import { getInitials } from "@/lib/stringUtils";
 import { Camera } from "lucide-react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
+import { Textarea } from "@/components/ui/textarea";
+import { useQueryClient } from "@tanstack/react-query";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { useEditableAppSetting } from "@/hooks/useAppSetting";
+import { DEMO_MASKED_NAMES_SETTING } from "@/hooks/useDemoClientNames";
 
 export default function StaffProfileSettings() {
   const { toast } = useToast();
   const { isDemoMode, toggleDemoMode } = useDemoMode();
+  const { isAdmin } = useModuleAccess();
   const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -151,7 +157,55 @@ export default function StaffProfileSettings() {
         {isDemoMode && (
           <p className="text-xs text-amber-600 font-medium">Mode démo actif — les données sensibles sont masquées.</p>
         )}
+        {isAdmin && <DemoMaskedNamesField />}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Noms masqués en mode démo en plus des clients connus de la base : un client
+ * cité dans un titre sans exister dans le CRM, les missions ou les formations.
+ */
+function DemoMaskedNamesField() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data, isLoading, save } = useEditableAppSetting(DEMO_MASKED_NAMES_SETTING);
+  const [value, setValue] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const current = value ?? data ?? "";
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await save(current);
+      queryClient.invalidateQueries({ queryKey: ["demo-client-names"] });
+      setValue(null);
+      toast({ title: "Noms à masquer enregistrés" });
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur inconnue");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-1.5 pt-2">
+      <Label htmlFor="demo-masked-names">Autres noms à masquer</Label>
+      <p className="text-xs text-muted-foreground">
+        Les clients du CRM, des missions et des formations sont déjà masqués. Ajoutez ici, un par ligne, les noms cités dans un titre sans exister ailleurs.
+      </p>
+      <Textarea
+        id="demo-masked-names"
+        rows={4}
+        value={current}
+        disabled={isLoading}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={"Goood!\nAcqera"}
+      />
+      <Button size="sm" variant="outline" onClick={handleSave} disabled={saving || value === null}>
+        {saving ? <Spinner size="sm" /> : "Enregistrer"}
+      </Button>
     </div>
   );
 }

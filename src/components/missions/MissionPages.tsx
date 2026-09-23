@@ -127,7 +127,7 @@ import SurveyBuilder from "./SurveyBuilder";
 import MissionTranscriptPagePicker from "./MissionTranscriptPagePicker";
 import { cn } from "@/lib/utils";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { demoBlur } from "@/lib/demoMask";
+import { demoBlur, maskText } from "@/lib/demoMask";
 import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { registerMediaEntry } from "@/hooks/useMedia";
@@ -360,6 +360,7 @@ const PageTreeItem = ({
   selectedPageId,
   sortFn,
 }: PageTreeItemProps) => {
+  const { isDemoMode } = useDemoMode();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: page.id,
     data: { parentId: page.parent_page_id ?? null },
@@ -418,7 +419,7 @@ const PageTreeItem = ({
           fallback={<FileText className="h-3.5 w-3.5 text-muted-foreground" />}
         />
         <span className="flex-1 text-sm truncate min-w-0">
-          {page.title || "Sans titre"}
+          {isDemoMode ? maskText(page.title) || "Sans titre" : page.title || "Sans titre"}
         </span>
 
         <div className="opacity-0 group-hover:opacity-100 flex items-center shrink-0">

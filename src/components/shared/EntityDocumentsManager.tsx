@@ -184,7 +184,7 @@ const EntityDocumentsManager = ({
     } finally {
       setDeletingId(null);
     }
-  }, [entityType, deleteDocument, entityId]);
+  }, [entityType, deleteDocument, entityId, shownName]);
 
   const sortedDocuments = useMemo(
     () => [...documents].sort((a, b) => (b.is_deliverable ? 1 : 0) - (a.is_deliverable ? 1 : 0)),
