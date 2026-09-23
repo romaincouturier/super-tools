@@ -327,8 +327,8 @@ export async function createOpportunity(
     sales_status: "OPEN",
     position,
     source_metadata: { via: "mcp", ...(input.source_email_url ? { email_url: input.source_email_url } : {}) },
+    emoji: ["🎯", "🚀", "💡", "✨", "🌱", "🔥", "🎨", "📌"][Math.floor(Math.random() * 8)],
     ...nextActionFields(input.next_action_text, input.next_action_date),
-    status_operational: "TODAY",
   };
 
   const { data: created, error } = await supabase.from("crm_cards").insert(row).select("id").single();
