@@ -38,6 +38,8 @@ import TrainingFormulasManager from "@/components/formations/TrainingFormulasMan
 import type { FormationFormula } from "@/types/training";
 import CreateCalendarEventDialog from "@/components/crm/CreateCalendarEventDialog";
 import CreateCatalogEntryDialog from "@/components/formations/CreateCatalogEntryDialog";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur } from "@/lib/demoMask";
 
 interface TrainingExtended {
   training_name: string;
@@ -78,6 +80,7 @@ interface TrainingExtended {
 
 const FormationEdit = () => {
   const { id } = useParams<{ id: string }>();
+  const { isDemoMode } = useDemoMode();
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -544,6 +547,7 @@ N'hésitez pas à me contacter en amont pour toute question.
                             id="clientName"
                             value={form.clientName}
                             onChange={(e) => form.setClientName(e.target.value)}
+                            style={demoBlur(isDemoMode)}
                             placeholder="Ex: ACME Corp"
                             required
                           />
@@ -555,6 +559,7 @@ N'hésitez pas à me contacter en amont pour toute question.
                           id="clientAddress"
                           value={form.clientAddress}
                           onChange={(e) => form.setClientAddress(e.target.value)}
+                          style={demoBlur(isDemoMode)}
                           placeholder="Ex: 12 rue de la Paix, 75002 Paris"
                         />
                         <p className="text-xs text-muted-foreground">
