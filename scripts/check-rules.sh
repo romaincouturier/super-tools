@@ -686,6 +686,18 @@ check "067" "La skill sync-and-pr prescrit la renumerotation des regles apres re
    grep -q '034b' .claude/skills/sync-and-pr/SKILL.md \
      || echo 'VIOLATION [067]: la skill sync-and-pr ne renvoie pas au check [034b]'"
 
+# [068] Mode demo — un formulaire d'edition interne floute ses champs identifiants.
+# Perimetre : fichiers Edit*.tsx, dossiers edit-*/, *FormFields.tsx, pages FormationEdit.
+check "068" "Formulaires d'edition internes : champs identifiants floutes en mode demo" \
+  "for f in \$(grep -rlE 'value=\\{[^}]*\\b(firstName|lastName|email|company|phone|sponsorEmail|sponsorFirstName|sponsorLastName|companyAddress|clientName|clientAddress|client_name|sponsor_email)\\b' src/components src/pages --include='*.tsx' | grep -E '/Edit[A-Z][^/]*\\.tsx\$|/edit-[^/]+/|FormFields\\.tsx\$|/[A-Za-z]+Edit\\.tsx\$'); do grep -qE 'demoBlur|// demo-safe' \"\$f\" || echo \"VIOLATION [068]: \$f\"; done"
+
+# [069] Bucket prive — useResolvedStorageUrl ne rend jamais l'URL publique avant signature.
+check "069" "useResolvedStorageUrl ne rend pas l'URL d'un bucket prive avant sa signature" \
+  "grep -q 'isPrivateStorageUrl' src/hooks/useResolvedStorageUrl.ts \
+     || echo 'VIOLATION [069]: useResolvedStorageUrl ne distingue plus les buckets prives'; \
+   grep -q \"ne rend pas l'URL publique d'un bucket privé\" src/hooks/useResolvedStorageUrl.test.ts \
+     || echo 'VIOLATION [069]: test de non-regression absent'"
+
   check "034b" "Numeros de regles uniques dans IMPROVEMENTS.md" \
     "grep -oE '^### \\[[0-9]+\\]' IMPROVEMENTS.md | sort | uniq -d | sed 's/^/VIOLATION: numero de regle en double /'"
 

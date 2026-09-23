@@ -734,3 +734,6 @@ verify_jwt = true
 
 [functions.upload-tender-document]
 verify_jwt = true
+
+[functions.create-mission-invoice]
+verify_jwt = false

@@ -239,7 +239,7 @@ export default function AdminArchives() {
 
       <div className="flex gap-6 min-h-0 flex-1 pb-6">
         {/* Sidebar filtres */}
-        <aside className="w-52 flex-shrink-0 space-y-6">
+        <aside className="w-52 flex-shrink-0 space-y-6 overflow-y-auto">
           {/* Années */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
@@ -307,7 +307,7 @@ export default function AdminArchives() {
         </aside>
 
         {/* Zone principale */}
-        <div className="flex-1 min-w-0 flex flex-col gap-4">
+        <div className="flex-1 min-w-0 flex flex-col gap-4 overflow-y-auto">
           {/* Barre de recherche */}
           <div className="flex items-center gap-2">
             <div className="relative flex-1 max-w-sm">

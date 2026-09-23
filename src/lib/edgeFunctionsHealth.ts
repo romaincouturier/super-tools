@@ -32,6 +32,7 @@ export const EXPECTED_FUNCTIONS = [
   "commercial-challenge",
   "create-event-media-upload-url",
   "create-media-upload-url",
+  "create-mission-invoice",
   "create-program-upload-url",
   "create-review-image-upload-url",
   "crm-ai-assist",

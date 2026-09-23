@@ -22,7 +22,7 @@ import { MissionContact } from "@/types/missions";
 import { useQuery } from "@tanstack/react-query";
 import { useMissionDeliverableSends } from "@/hooks/useMissionDeliverableSends";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskName, maskEmail, demoBlur } from "@/lib/demoMask";
+import { maskName, maskEmail, maskFileName, demoBlur } from "@/lib/demoMask";
 
 interface SendDeliverablesDialogProps {
   missionId: string;
@@ -417,7 +417,7 @@ const SendDeliverablesDialog = ({
                       {deliverableDocs.map((d: any) => (
                         <li key={d.id} className="flex items-center gap-2 text-sm">
                           <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <span className="truncate">{d.name || d.file_name}</span>
+                          <span className="truncate">{isDemoMode ? maskFileName(d.name || d.file_name) : d.name || d.file_name}</span>
                         </li>
                       ))}
                     </ul>
@@ -435,7 +435,7 @@ const SendDeliverablesDialog = ({
                       {deliverableMedia.map((m: any) => (
                         <li key={m.id} className="flex items-center gap-2 text-sm">
                           <ImageIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <span className="truncate">{m.title || m.file_name || "Média"}</span>
+                          <span className="truncate">{isDemoMode ? maskFileName(m.title || m.file_name) || "Média" : m.title || m.file_name || "Média"}</span>
                         </li>
                       ))}
                     </ul>

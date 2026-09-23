@@ -54,6 +54,8 @@ import {
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { MissionPage } from "@/hooks/useMissions";
 import SurveyResults from "./SurveyResults";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur } from "@/lib/demoMask";
 
 const FREE_EXPRESSION_LABEL = "Expression libre, vous avez quelque chose à ajouter ? À préciser ?";
 
@@ -253,6 +255,7 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
   const { data: survey, isLoading: surveyLoading } = useSurveyByPageId(page.id);
   const { data: questions = [], isLoading: qLoading } = useSurveyQuestions(survey?.id ?? "");
   const { data: responses = [] } = useSurveyResponses(survey?.id ?? "");
+  const { isDemoMode } = useDemoMode();
   const createSurvey = useCreateSurvey();
   const updateSurvey = useUpdateSurvey();
   const upsertQuestion = useUpsertSurveyQuestion();
@@ -504,7 +507,7 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
         </TabsContent>
 
         {/* ── Results tab ── */}
-        <TabsContent value="results" className="pt-4">
+        <TabsContent value="results" className="pt-4" style={demoBlur(isDemoMode)}>
           {survey ? (
             <SurveyResults survey={survey} questions={localQuestions} responses={responses} />
           ) : (

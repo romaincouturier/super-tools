@@ -126,6 +126,8 @@ import Generate8PDialog from "./Generate8PDialog";
 import SurveyBuilder from "./SurveyBuilder";
 import MissionTranscriptPagePicker from "./MissionTranscriptPagePicker";
 import { cn } from "@/lib/utils";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur, maskText } from "@/lib/demoMask";
 import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { registerMediaEntry } from "@/hooks/useMedia";
@@ -358,6 +360,7 @@ const PageTreeItem = ({
   selectedPageId,
   sortFn,
 }: PageTreeItemProps) => {
+  const { isDemoMode } = useDemoMode();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: page.id,
     data: { parentId: page.parent_page_id ?? null },
@@ -416,7 +419,7 @@ const PageTreeItem = ({
           fallback={<FileText className="h-3.5 w-3.5 text-muted-foreground" />}
         />
         <span className="flex-1 text-sm truncate min-w-0">
-          {page.title || "Sans titre"}
+          {isDemoMode ? maskText(page.title) || "Sans titre" : page.title || "Sans titre"}
         </span>
 
         <div className="opacity-0 group-hover:opacity-100 flex items-center shrink-0">
@@ -527,6 +530,7 @@ const PageEditor = ({
   missionId: string;
   onPageUpdated: (page: MissionPage) => void;
 }) => {
+  const { isDemoMode } = useDemoMode();
   if (page.page_type === "survey") {
     return <SurveyBuilder page={page} missionId={missionId} />;
   }
@@ -1093,14 +1097,14 @@ const PageEditor = ({
             <Sparkles className="h-3.5 w-3.5" />
             Résumé IA
           </div>
-          <div className="text-purple-900 whitespace-pre-wrap leading-relaxed pr-4">{aiSummary}</div>
+          <div className="text-purple-900 whitespace-pre-wrap leading-relaxed pr-4" style={demoBlur(isDemoMode)}>{aiSummary}</div>
         </div>
       )}
 
       {/* Editor */}
       <div className="flex-1 relative overflow-y-auto">
         <TableBubbleMenu editor={editor} />
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} style={demoBlur(isDemoMode)} />
         {(imageUploading || fileUploading) && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md z-10">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

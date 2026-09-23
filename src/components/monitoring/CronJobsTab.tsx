@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
@@ -84,7 +85,7 @@ function statusBadge(status: string) {
 const CronJobsTab = () => {
   const [expandedJob, setExpandedJob] = useState<number | null>(null);
 
-  const { data: cronData, isLoading } = useQuery({
+  const { data: cronData, isLoading, error, refetch } = useQuery({
     queryKey: ["cron-status"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_cron_status");
@@ -92,6 +93,7 @@ const CronJobsTab = () => {
       return data as unknown as { jobs: CronJob[] };
     },
     refetchInterval: 30000,
+    retry: 1,
   });
 
   const jobs = cronData?.jobs || [];
@@ -103,6 +105,15 @@ const CronJobsTab = () => {
       <div className="flex items-center justify-center py-12 text-muted-foreground">
         <Clock className="h-5 w-5 animate-spin mr-2" />
         Chargement des cron jobs...
+      </div>
+    );
+  }
+
+  if (error && !cronData) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-12 text-sm text-muted-foreground">
+        <p>Impossible de charger les cron jobs : {error instanceof Error ? error.message : "erreur inconnue"}</p>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>Réessayer</Button>
       </div>
     );
   }

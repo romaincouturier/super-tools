@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils";
 import { FormationFormHook, PREDEFINED_LOCATIONS } from "@/hooks/useFormationForm";
 import CreateCalendarEventDialog from "@/components/crm/CreateCalendarEventDialog";
 import { openStorageUrl } from "@/lib/storageUrl";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur } from "@/lib/demoMask";
 
 const SPONSOR_MEETING_DESCRIPTION = `Bonjour,
 
@@ -272,6 +274,7 @@ export function LocationRadioGroup({ form }: { form: FormationFormHook }) {
 
 export function SponsorCard({ form }: { form: FormationFormHook }) {
   const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
+  const { isDemoMode } = useDemoMode();
 
   if (form.isInter) return null;
 
@@ -312,7 +315,7 @@ export function SponsorCard({ form }: { form: FormationFormHook }) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4" style={demoBlur(isDemoMode)}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="sponsorFirstName">Prénom</Label>
@@ -373,6 +376,7 @@ export function SponsorCard({ form }: { form: FormationFormHook }) {
 // --- Responsable administratif Card ---
 
 export function AdminContactCard({ form }: { form: FormationFormHook }) {
+  const { isDemoMode } = useDemoMode();
   if (form.isInter) return null;
 
   return (
@@ -380,7 +384,7 @@ export function AdminContactCard({ form }: { form: FormationFormHook }) {
       <CardHeader>
         <CardTitle>Responsable administratif</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4" style={demoBlur(isDemoMode)}>
         <div className="flex items-center gap-3">
           <Switch
             id="adminContactSameAsSponsor"
@@ -447,6 +451,7 @@ export function AdminContactCard({ form }: { form: FormationFormHook }) {
 
 
 export function FinanceurCard({ form }: { form: FormationFormHook }) {
+  const { isDemoMode } = useDemoMode();
   if (form.isInter) return null;
 
   return (
@@ -454,7 +459,7 @@ export function FinanceurCard({ form }: { form: FormationFormHook }) {
       <CardHeader>
         <CardTitle>Financeur</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4" style={demoBlur(isDemoMode)}>
         <div className="flex items-center gap-3">
           <Switch
             id="financeurSameAsSponsor"

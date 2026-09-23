@@ -7,7 +7,7 @@ import { toast } from "@/lib/toast";
 import { formatFileSize } from "@/lib/file-utils";
 import MediaTagEditor from "./MediaTagEditor";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskText } from "@/lib/demoMask";
+import { maskFileName, maskText } from "@/lib/demoMask";
 import { useResolvedStorageUrl } from "@/hooks/useResolvedStorageUrl";
 import { resolveStorageUrl } from "@/lib/storageUrl";
 
@@ -30,7 +30,7 @@ const sourceIconLarge = (sourceType: string) => {
 };
 
 /** Vignette image : résout les URLs des buckets privés en URL signée. */
-const MediaThumb = ({ item }: { item: MediaItem }) => {
+export const MediaThumb = ({ item }: { item: MediaItem }) => {
   const src = useResolvedStorageUrl(item.file_url);
   return (
     <img
@@ -43,7 +43,7 @@ const MediaThumb = ({ item }: { item: MediaItem }) => {
 };
 
 /** Vignette vidéo : même résolution d'URL, image figée à 0,1 s. */
-const MediaVideoThumb = ({ item }: { item: MediaItem }) => {
+export const MediaVideoThumb = ({ item }: { item: MediaItem }) => {
   const src = useResolvedStorageUrl(item.file_url);
   return (
     <video
@@ -122,7 +122,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
 
   const handleDelete = async (e: React.MouseEvent, item: MediaItem) => {
     e.stopPropagation();
-    if (!confirm(`Supprimer ${item.file_name} ?`)) return;
+    if (!confirm(`Supprimer ${isDemoMode ? maskFileName(item.file_name) : item.file_name} ?`)) return;
 
     try {
       await deleteMediaFile(item.file_url);
@@ -179,7 +179,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
                 ) : (
                   <Video className="h-3 w-3 flex-shrink-0" />
                 )}
-                <span className="truncate">{item.file_name}</span>
+                <span className="truncate">{isDemoMode ? maskFileName(item.file_name) : item.file_name}</span>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 <MediaTagEditor mediaId={item.id} tags={item.tags} allTags={allTags} compact triggerClassName="h-6 w-6 bg-secondary text-secondary-foreground hover:bg-secondary/80" />

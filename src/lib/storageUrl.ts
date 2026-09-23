@@ -16,6 +16,12 @@ export function parseStorageUrl(url: string): { bucket: string; path: string } |
   return m ? { bucket: m[1], path: decodeURIComponent(m[2]) } : null;
 }
 
+/** True when the URL points to a private bucket and must be signed before use. */
+export function isPrivateStorageUrl(url: string): boolean {
+  const info = parseStorageUrl(url);
+  return !!info && PRIVATE_BUCKETS.has(info.bucket);
+}
+
 /**
  * Resolve a stored storage URL into a usable URL.
  * Legacy rows hold public URLs for buckets that are now private: for those we

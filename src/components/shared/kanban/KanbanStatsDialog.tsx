@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,8 @@ import {
 import { format, eachDayOfInterval, startOfDay, differenceInCalendarDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { KanbanColumnDef, KanbanStatsItem } from "@/types/kanban";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 
 interface KanbanStatsDialogProps {
   open: boolean;
@@ -191,6 +193,32 @@ function buildControlChartData(
   return { points, mean, ucl, lcl };
 }
 
+/**
+ * Forme de ReferenceLine qui affiche sa valeur au survol. Une zone de survol
+ * transparente élargit la cible, un trait de 1-2px étant difficile à viser.
+ */
+function HoverableLine({ hoverLabel, ...props }: React.SVGProps<SVGLineElement> & { hoverLabel: string }) {
+  const [hovered, setHovered] = useState(false);
+  const { x1, y1, x2, y2 } = props;
+  if ([x1, y1, x2, y2].some((v) => typeof v !== "number")) return null;
+  const x = Math.min(x1 as number, x2 as number) + 8;
+  const y = (y1 as number) - 8;
+  const width = hoverLabel.length * 6.5 + 12;
+
+  return (
+    <g onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <line {...props} strokeWidth={hovered ? 3 : props.strokeWidth} />
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth={12} style={{ pointerEvents: "stroke" }} />
+      {hovered && (
+        <g style={{ pointerEvents: "none" }}>
+          <rect x={x} y={y - 16} width={width} height={20} rx={4} fill="white" stroke={props.stroke} />
+          <text x={x + 6} y={y - 2} fontSize={11} fill={props.stroke}>{hoverLabel}</text>
+        </g>
+      )}
+    </g>
+  );
+}
+
 const WON_COLOR = "#22c55e";
 const LOST_COLOR = "#ef4444";
 
@@ -203,6 +231,9 @@ export default function KanbanStatsDialog({
   wonColumnIds = [],
   lostColumnIds = [],
 }: KanbanStatsDialogProps) {
+  const { isDemoMode } = useDemoMode();
+  const formatValue = (v: number) => (isDemoMode ? maskAmount(v) : formatEuro(v));
+
   const sortedCols = useMemo(
     () => [...columns].sort((a, b) => a.position - b.position),
     [columns],
@@ -319,12 +350,12 @@ export default function KanbanStatsDialog({
                       <YAxis
                         tick={{ fontSize: 11 }}
                         width={70}
-                        tickFormatter={(v: number) => formatEuro(v)}
+                        tickFormatter={(v: number) => formatValue(v)}
                       />
                       <Tooltip
                         contentStyle={{ fontSize: 12 }}
                         labelStyle={{ fontWeight: "bold" }}
-                        formatter={(value: number, name: string) => [formatEuro(value), name]}
+                        formatter={(value: number, name: string) => [formatValue(value), name]}
                       />
                       <Legend wrapperStyle={{ fontSize: 11 }} />
                       {reversedCols.map((col) => {
@@ -390,12 +421,14 @@ export default function KanbanStatsDialog({
                       y={controlChart.mean}
                       stroke="#3b82f6"
                       strokeWidth={2}
+                      shape={<HoverableLine hoverLabel={`Moyenne : ${controlChart.mean.toFixed(1)} jours`} />}
                       label={{ value: `Moy: ${controlChart.mean.toFixed(1)}j`, position: "right", fill: "#3b82f6", fontSize: 11 }}
                     />
                     <ReferenceLine
                       y={controlChart.ucl}
                       stroke="#ef4444"
                       strokeDasharray="5 5"
+                      shape={<HoverableLine hoverLabel={`Limite haute (UCL) : ${controlChart.ucl.toFixed(1)} jours`} />}
                       label={{ value: `UCL: ${controlChart.ucl.toFixed(1)}j`, position: "right", fill: "#ef4444", fontSize: 11 }}
                     />
                     {controlChart.lcl > 0 && (
@@ -403,6 +436,7 @@ export default function KanbanStatsDialog({
                         y={controlChart.lcl}
                         stroke="#22c55e"
                         strokeDasharray="5 5"
+                        shape={<HoverableLine hoverLabel={`Limite basse (LCL) : ${controlChart.lcl.toFixed(1)} jours`} />}
                         label={{ value: `LCL: ${controlChart.lcl.toFixed(1)}j`, position: "right", fill: "#22c55e", fontSize: 11 }}
                       />
                     )}

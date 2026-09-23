@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, ImageIcon, Video, Search } from 'lucide-react';
+import { Check, ImageIcon, Play, Search } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -11,8 +11,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useMediaLibrary } from '@/hooks/useMedia';
+import { MediaThumb, MediaVideoThumb } from '@/components/media/MediaGrid';
 import { useAddMediaToAlbum } from '@/hooks/useBook';
 import { toast } from '@/hooks/use-toast';
+import { useDemoMode } from '@/contexts/DemoModeContext';
+import { maskFileName, maskText } from '@/lib/demoMask';
 
 interface Props {
   open: boolean;
@@ -23,6 +26,7 @@ interface Props {
 export default function BookMediaLibraryPicker({ open, onOpenChange, albumId }: Props) {
   const { data: media = [], isLoading } = useMediaLibrary();
   const addToAlbum = useAddMediaToAlbum();
+  const { isDemoMode } = useDemoMode();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -113,16 +117,12 @@ export default function BookMediaLibraryPicker({ open, onOpenChange, albumId }: 
                     }`}
                   >
                     {m.file_type === 'video' ? (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                        <Video className="w-8 h-8 text-gray-300" />
+                      <div className="relative w-full h-full bg-gray-800">
+                        <MediaVideoThumb item={m} />
+                        <Play className="absolute inset-0 m-auto w-8 h-8 text-white/90 drop-shadow pointer-events-none" />
                       </div>
                     ) : (
-                      <img
-                        src={m.file_url}
-                        alt={m.file_name}
-                        loading="lazy"
-                        className="w-full h-full object-cover"
-                      />
+                      <MediaThumb item={m} />
                     )}
                     {isSelected && (
                       <div className="absolute top-1 right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
@@ -130,10 +130,10 @@ export default function BookMediaLibraryPicker({ open, onOpenChange, albumId }: 
                       </div>
                     )}
                     <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-1.5 text-left">
-                      <p className="text-[10px] text-white truncate">{m.file_name}</p>
+                      <p className="text-[10px] text-white truncate">{isDemoMode ? maskFileName(m.file_name) : m.file_name}</p>
                       <p className="text-[10px] text-white/70 truncate flex items-center gap-1">
                         {m.source_emoji && <span>{m.source_emoji}</span>}
-                        {m.source_label}
+                        {isDemoMode ? maskText(m.source_label) : m.source_label}
                       </p>
                     </div>
                   </button>

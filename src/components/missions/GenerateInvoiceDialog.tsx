@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Receipt, Upload, Check, ExternalLink, Copy } from "lucide-react";
@@ -30,7 +31,12 @@ import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { MissionActivity, useUpdateMissionActivity } from "@/hooks/useMissions";
 import { supabase } from "@/integrations/supabase/client";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskAmount } from "@/lib/demoMask";
+import { maskAmount, maskText } from "@/lib/demoMask";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PennylaneInvoiceFields, { type PennylaneCustomerDraft } from "./PennylaneInvoiceFields";
+
+type InvoiceMode = "pennylane" | "manual";
 
 interface GenerateInvoiceDialogProps {
   open: boolean;
@@ -60,6 +66,58 @@ const GenerateInvoiceDialog = ({
   const [invoiceUrl, setInvoiceUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [mode, setMode] = useState<InvoiceMode>("pennylane");
+  const [customer, setCustomer] = useState<PennylaneCustomerDraft | null>(null);
+  const [customerSource, setCustomerSource] = useState<"crm" | "mission" | null>(null);
+  const [vatRate, setVatRate] = useState("FR_200");
+  const queryClient = useQueryClient();
+  const prepare = useEdgeFunction<{ customer: PennylaneCustomerDraft; source: "crm" | "mission" }>(
+    "create-mission-invoice",
+    { errorMessage: "Impossible de retrouver le client de la mission" },
+  );
+  const createInvoice = useEdgeFunction<{
+    invoice_number: string;
+    activities_updated: boolean;
+    update_error: string | null;
+  }>("create-mission-invoice");
+
+  const prepareInvoke = prepare.invoke;
+  useEffect(() => {
+    if (!open || mode !== "pennylane" || customer) return;
+    prepareInvoke({ action: "prepare", mission_id: missionId }).then((res) => {
+      if (!res) return;
+      setCustomer(res.customer);
+      setCustomerSource(res.source);
+    });
+  }, [open, mode, customer, missionId, prepareInvoke]);
+
+  const customerComplete =
+    !!customer &&
+    [customer.name, customer.email, customer.address, customer.postal_code, customer.city].every((v) => v.trim());
+
+  const handleCreatePennylane = async () => {
+    if (!customer || selectedIds.size === 0) return;
+    const res = await createInvoice.invoke({
+      action: "create",
+      mission_id: missionId,
+      activity_ids: Array.from(selectedIds),
+      vat_rate: vatRate,
+      customer,
+    });
+    if (!res) return;
+    queryClient.invalidateQueries({ queryKey: ["mission-activities", missionId] });
+    queryClient.invalidateQueries({ queryKey: ["missions"] });
+    if (res.activities_updated) {
+      toast({
+        title: "Brouillon créé dans Pennylane",
+        description: `${res.invoice_number} · ${selectedIds.size} activité(s). À vérifier et finaliser dans Pennylane.`,
+      });
+    } else {
+      toastError(toast, `Brouillon ${res.invoice_number} créé, mais les activités n'ont pas été marquées facturées : ${res.update_error}`);
+    }
+    setSelectedIds(new Set());
+    onOpenChange(false);
+  };
 
   const toggleActivity = (id: string) => {
     setSelectedIds((prev) => {
@@ -156,9 +214,16 @@ const GenerateInvoiceDialog = ({
             Générer une facture
           </DialogTitle>
           <DialogDescription>
-            Sélectionnez les activités à facturer pour {missionTitle}
+            Sélectionnez les activités à facturer pour {isDemoMode ? maskText(missionTitle) : missionTitle}
           </DialogDescription>
         </DialogHeader>
+
+        <Tabs value={mode} onValueChange={(v) => setMode(v as InvoiceMode)}>
+          <TabsList>
+            <TabsTrigger value="pennylane">Brouillon Pennylane</TabsTrigger>
+            <TabsTrigger value="manual">Facture existante</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {unbilledActivities.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
@@ -254,7 +319,19 @@ const GenerateInvoiceDialog = ({
               </div>
             )}
 
+            {mode === "pennylane" && (
+              <PennylaneInvoiceFields
+                customer={customer}
+                loading={prepare.loading}
+                source={customerSource}
+                onCustomerChange={setCustomer}
+                vatRate={vatRate}
+                onVatRateChange={setVatRate}
+              />
+            )}
+
             {/* Invoice details */}
+            {mode === "manual" && (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>N° de facture *</Label>
@@ -304,6 +381,7 @@ const GenerateInvoiceDialog = ({
                 </div>
               </div>
             </div>
+            )}
           </div>
         )}
 
@@ -311,6 +389,15 @@ const GenerateInvoiceDialog = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Annuler
           </Button>
+          {mode === "pennylane" ? (
+            <Button
+              onClick={handleCreatePennylane}
+              disabled={createInvoice.loading || selectedIds.size === 0 || !customerComplete}
+            >
+              {createInvoice.loading ? <Spinner className="mr-2" /> : <Receipt className="h-4 w-4 mr-2" />}
+              Créer le brouillon dans Pennylane
+            </Button>
+          ) : (
           <Button
             onClick={handleGenerate}
             disabled={saving || selectedIds.size === 0 || !invoiceNumber.trim()}
@@ -320,8 +407,9 @@ const GenerateInvoiceDialog = ({
             ) : (
               <Receipt className="h-4 w-4 mr-2" />
             )}
-            Générer la facture
+            Enregistrer la facture
           </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
