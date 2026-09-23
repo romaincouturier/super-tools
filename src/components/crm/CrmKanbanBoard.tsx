@@ -181,6 +181,13 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     return isAfter(scheduledDate, today);
   };
 
+  const isFreshFromConnector = (card: CrmCard): boolean =>
+    (card.source_metadata as { via?: string } | null)?.via === "mcp" &&
+    !isAfter(startOfDay(new Date()), startOfDay(new Date(card.created_at)));
+
+  const isHiddenAsFuture = (card: CrmCard): boolean =>
+    isScheduledInFuture(card) && !isFreshFromConnector(card);
+
   const isWonCard = (card: CrmCard): boolean => {
     return card.sales_status === "WON";
   };
@@ -207,10 +214,10 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         filtered = boardData.cards.filter((c) => !isFullyTagged(c));
         break;
       case "en_cours":
-        filtered = boardData.cards.filter((c) => !isWonCard(c) && !isLostCard(c) && !isScheduledInFuture(c));
+        filtered = boardData.cards.filter((c) => !isWonCard(c) && !isLostCard(c) && !isHiddenAsFuture(c));
         break;
       default: // "all" — default board behavior: hide future scheduled
-        filtered = boardData.cards.filter((c) => !isScheduledInFuture(c));
+        filtered = boardData.cards.filter((c) => !isHiddenAsFuture(c));
         break;
     }
     const mapped = filtered.map((c) => ({
