@@ -325,10 +325,10 @@ export async function createOpportunity(
     acquisition_source: input.acquisition_source || null,
     estimated_value: input.estimated_value ?? 0,
     sales_status: "OPEN",
-    status_operational: "TODAY",
     position,
     source_metadata: { via: "mcp", ...(input.source_email_url ? { email_url: input.source_email_url } : {}) },
     ...nextActionFields(input.next_action_text, input.next_action_date),
+    status_operational: "TODAY",
   };
 
   const { data: created, error } = await supabase.from("crm_cards").insert(row).select("id").single();
