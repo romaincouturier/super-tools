@@ -214,10 +214,10 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         filtered = boardData.cards.filter((c) => !isFullyTagged(c));
         break;
       case "en_cours":
-        filtered = boardData.cards.filter((c) => !isWonCard(c) && !isLostCard(c) && !isScheduledInFuture(c));
+        filtered = boardData.cards.filter((c) => !isWonCard(c) && !isLostCard(c) && !isHiddenAsFuture(c));
         break;
       default: // "all" — default board behavior: hide future scheduled
-        filtered = boardData.cards.filter((c) => !isScheduledInFuture(c));
+        filtered = boardData.cards.filter((c) => !isHiddenAsFuture(c));
         break;
     }
     const mapped = filtered.map((c) => ({
