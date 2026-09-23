@@ -181,6 +181,13 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     return isAfter(scheduledDate, today);
   };
 
+  const isFreshFromConnector = (card: CrmCard): boolean =>
+    (card.source_metadata as { via?: string } | null)?.via === "mcp" &&
+    !isAfter(startOfDay(new Date()), startOfDay(new Date(card.created_at)));
+
+  const isHiddenAsFuture = (card: CrmCard): boolean =>
+    isScheduledInFuture(card) && !isFreshFromConnector(card);
+
   const isWonCard = (card: CrmCard): boolean => {
     return card.sales_status === "WON";
   };
