@@ -22,6 +22,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur, maskEmail, maskName, maskText } from "@/lib/demoMask";
 
 interface QuestionnaireData {
   id: string;
@@ -66,12 +68,19 @@ const Section = ({ icon: Icon, title, children }: { icon: React.ComponentType<{ 
   </div>
 );
 
-const Field = ({ label, value }: { label: string; value: string | null | undefined }) => {
+/**
+ * En mode démo, `mask` masque un champ d'identité ; toute autre réponse
+ * (besoins, contraintes, accessibilité) est floutée.
+ */
+const Field = ({ label, value, mask }: { label: string; value: string | null | undefined; mask?: (v: string) => string }) => {
+  const { isDemoMode } = useDemoMode();
   if (!value) return null;
   return (
     <div className="text-sm">
       <span className="text-muted-foreground">{label} :</span>{" "}
-      <span className="font-medium">{value}</span>
+      <span className="font-medium" style={isDemoMode && !mask ? demoBlur(true) : undefined}>
+        {isDemoMode && mask ? mask(value) : value}
+      </span>
     </div>
   );
 };
@@ -103,6 +112,7 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
   const [loading, setLoading] = useState(false);
   const [questionnaire, setQuestionnaire] = useState<QuestionnaireData | null>(null);
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
 
   const fetchQuestionnaire = async () => {
     setLoading(true);
@@ -154,6 +164,8 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
   const exportToPdf = () => {
     if (!questionnaire) return;
 
+    // Le PDF porte le vrai nom : participantName arrive masqué en mode démo.
+    const pdfName = [questionnaire.prenom, questionnaire.nom].filter(Boolean).join(" ") || participantName;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
@@ -228,7 +240,7 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(80, 80, 80);
-    doc.text(participantName, margin, y);
+    doc.text(pdfName, margin, y);
     y += 6;
 
     if (questionnaire.date_soumission) {
@@ -315,7 +327,7 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
       doc.text(`Page ${i}/${pageCount}`, pageWidth - margin, doc.internal.pageSize.getHeight() - 10, { align: "right" });
     }
 
-    const safeName = participantName.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").replace(/\s+/g, "_");
+    const safeName = pdfName.replace(/[^a-zA-Z0-9À-ÿ\s-]/g, "").replace(/\s+/g, "_");
     doc.save(`Recueil_besoins_${safeName}.pdf`);
   };
 
@@ -424,20 +436,20 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
 
               {/* Section 1: Identification */}
               <Section icon={User} title="Identification">
-                <Field label="Nom" value={questionnaire.nom} />
-                <Field label="Prénom" value={questionnaire.prenom} />
-                <Field label="Email" value={questionnaire.email} />
-                <Field label="Société" value={questionnaire.societe} />
-                <Field label="Fonction" value={questionnaire.fonction} />
+                <Field label="Nom" value={questionnaire.nom} mask={maskName} />
+                <Field label="Prénom" value={questionnaire.prenom} mask={maskName} />
+                <Field label="Email" value={questionnaire.email} mask={maskEmail} />
+                <Field label="Société" value={questionnaire.societe} mask={maskText} />
+                <Field label="Fonction" value={questionnaire.fonction} mask={(v) => v} />
               </Section>
 
               <Separator />
 
               {/* Section 2: Experience */}
               <Section icon={Briefcase} title="Expérience et prérequis">
-                <Field label="Expérience sur le sujet" value={getExperienceLabel(questionnaire.experience_sujet)} />
+                <Field label="Expérience sur le sujet" value={getExperienceLabel(questionnaire.experience_sujet)} mask={(v) => v} />
                 <Field label="Détails de l'expérience" value={questionnaire.experience_details} />
-                <Field label="Lecture du programme" value={getLectureProgrammeLabel(questionnaire.lecture_programme)} />
+                <Field label="Lecture du programme" value={getLectureProgrammeLabel(questionnaire.lecture_programme)} mask={(v) => v} />
                 
                 {/* Display individual prerequisite validations */}
                 {questionnaire.prerequis_validation && (() => {
@@ -453,7 +465,7 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
                     }
                   } catch {
                     // If it's not JSON, display as simple text
-                    return <Field label="Validation des prérequis" value={getPrerequisLabel(questionnaire.prerequis_validation)} />;
+                    return <Field label="Validation des prérequis" value={getPrerequisLabel(questionnaire.prerequis_validation)} mask={(v) => v} />;
                   }
                   return null;
                 })()}
@@ -461,7 +473,7 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
                 {questionnaire.prerequis_details && (
                   <div className="text-sm p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md">
                     <span className="text-amber-800 dark:text-amber-200 font-medium">⚠️ Précisions sur les prérequis :</span>
-                    <p className="mt-1 text-amber-700 dark:text-amber-300">{questionnaire.prerequis_details}</p>
+                    <p className="mt-1 text-amber-700 dark:text-amber-300" style={demoBlur(isDemoMode)}>{questionnaire.prerequis_details}</p>
                   </div>
                 )}
               </Section>
@@ -482,7 +494,7 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
               {/* Section 4: Organizational constraints */}
               {questionnaire.contraintes_orga && (
                 <Section icon={BookOpen} title="Contraintes organisationnelles">
-                  <p className="text-sm">{questionnaire.contraintes_orga}</p>
+                  <p className="text-sm" style={demoBlur(isDemoMode)}>{questionnaire.contraintes_orga}</p>
                 </Section>
               )}
 
@@ -506,7 +518,7 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
                 <>
                   <Separator />
                   <Section icon={MessageSquare} title="Commentaires libres">
-                    <p className="text-sm text-foreground whitespace-pre-wrap">
+                    <p className="text-sm text-foreground whitespace-pre-wrap" style={demoBlur(isDemoMode)}>
                       {questionnaire.commentaires_libres}
                     </p>
                   </Section>
