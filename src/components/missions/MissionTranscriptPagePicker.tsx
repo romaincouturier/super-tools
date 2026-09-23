@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import { useTranscripts, useTranscript, type Transcript } from "@/hooks/useTranscripts";
+import { useDemoClientNames } from "@/hooks/useDemoClientNames";
 
 interface Props {
   open: boolean;
@@ -50,6 +51,7 @@ function transcriptToHtml(t: Transcript): string {
 }
 
 const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick, usedTitles }: Props) => {
+  const { mask: maskClients } = useDemoClientNames();
   const [search, setSearch] = useState("");
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const { data: transcripts = [], isLoading } = useTranscripts({
@@ -115,7 +117,7 @@ const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick, usedTitles }:
                       {alreadyAdded && (
                         <Check className="h-3.5 w-3.5 text-green-600 shrink-0" aria-label="Déjà ajouté" />
                       )}
-                      <span className="truncate">{title}</span>
+                      <span className="truncate">{maskClients(title)}</span>
                       {alreadyAdded && (
                         <span className="text-xs text-green-600 font-normal shrink-0">· déjà ajouté</span>
                       )}

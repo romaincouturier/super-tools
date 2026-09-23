@@ -14,6 +14,8 @@ import { useMediaLibrary } from '@/hooks/useMedia';
 import { MediaThumb, MediaVideoThumb } from '@/components/media/MediaGrid';
 import { useAddMediaToAlbum } from '@/hooks/useBook';
 import { toast } from '@/hooks/use-toast';
+import { useDemoMode } from '@/contexts/DemoModeContext';
+import { maskFileName, maskText } from '@/lib/demoMask';
 
 interface Props {
   open: boolean;
@@ -24,6 +26,7 @@ interface Props {
 export default function BookMediaLibraryPicker({ open, onOpenChange, albumId }: Props) {
   const { data: media = [], isLoading } = useMediaLibrary();
   const addToAlbum = useAddMediaToAlbum();
+  const { isDemoMode } = useDemoMode();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -127,10 +130,10 @@ export default function BookMediaLibraryPicker({ open, onOpenChange, albumId }: 
                       </div>
                     )}
                     <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-1.5 text-left">
-                      <p className="text-[10px] text-white truncate">{m.file_name}</p>
+                      <p className="text-[10px] text-white truncate">{isDemoMode ? maskFileName(m.file_name) : m.file_name}</p>
                       <p className="text-[10px] text-white/70 truncate flex items-center gap-1">
                         {m.source_emoji && <span>{m.source_emoji}</span>}
-                        {m.source_label}
+                        {isDemoMode ? maskText(m.source_label) : m.source_label}
                       </p>
                     </div>
                   </button>

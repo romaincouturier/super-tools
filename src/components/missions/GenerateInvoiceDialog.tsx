@@ -31,7 +31,7 @@ import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { MissionActivity, useUpdateMissionActivity } from "@/hooks/useMissions";
 import { supabase } from "@/integrations/supabase/client";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskAmount } from "@/lib/demoMask";
+import { maskAmount, maskText } from "@/lib/demoMask";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PennylaneInvoiceFields, { type PennylaneCustomerDraft } from "./PennylaneInvoiceFields";
@@ -214,7 +214,7 @@ const GenerateInvoiceDialog = ({
             Générer une facture
           </DialogTitle>
           <DialogDescription>
-            Sélectionnez les activités à facturer pour {missionTitle}
+            Sélectionnez les activités à facturer pour {isDemoMode ? maskText(missionTitle) : missionTitle}
           </DialogDescription>
         </DialogHeader>
 
