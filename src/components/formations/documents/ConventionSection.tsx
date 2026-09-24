@@ -20,6 +20,8 @@ import {
 import type { ConventionSignatureStatus } from "./types";
 import ConventionAuditPanel from "./ConventionAuditPanel";
 import SignedConventionFiles from "./SignedConventionFiles";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 
 interface ConventionSectionProps {
   trainingId: string;
@@ -59,6 +61,7 @@ const ConventionSection = ({
   const [enableOnlineSignature, setEnableOnlineSignature] = useState(true);
   const [showAuditPanel, setShowAuditPanel] = useState(false);
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const { loading: sendingConventionReminder, invoke: invokeReminder } = useEdgeFunction(
     "send-convention-reminder",
     { errorMessage: "Impossible d'envoyer la relance." },
@@ -77,7 +80,7 @@ const ConventionSection = ({
   const handleSendConventionReminder = async () => {
     const result = await invokeReminder({ trainingId });
     if (result !== null) {
-      toast({ title: "Relance envoyée", description: `Une relance convention a été envoyée à ${recipientEmail}.` });
+      toast({ title: "Relance envoyée", description: `Une relance convention a été envoyée à ${isDemoMode ? maskEmail(recipientEmail) : recipientEmail}.` });
     }
   };
 

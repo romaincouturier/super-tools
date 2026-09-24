@@ -453,6 +453,7 @@ const SendDeliverablesDialog = ({
               </Label>
               <Input
                 value={subject}
+                style={demoBlur(isDemoMode)}
                 onChange={(e) => setSubject(e.target.value)}
                 className="mt-1"
               />
@@ -461,6 +462,7 @@ const SendDeliverablesDialog = ({
                   <Label className="text-sm font-medium">Objet (relance / nouveautés)</Label>
                   <Input
                     value={subjectUpdate}
+                    style={demoBlur(isDemoMode)}
                     onChange={(e) => setSubjectUpdate(e.target.value)}
                     className="mt-1"
                   />

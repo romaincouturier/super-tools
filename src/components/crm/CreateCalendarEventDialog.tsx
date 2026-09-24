@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { todayAsISO } from "@/lib/dateFormatters";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskEmail, maskName } from "@/lib/demoMask";
+import { maskEmail, maskName, demoBlur } from "@/lib/demoMask";
 
 
 export type Formality = "tu" | "vous";
@@ -234,6 +234,7 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
               <Input
                 id="cal-summary"
                 value={summary}
+                style={demoBlur(isDemoMode)}
                 onChange={(e) => setSummary(e.target.value)}
               />
             </div>
@@ -312,6 +313,7 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
               <Input
                 id="cal-attendee"
                 value={attendeeEmail}
+                style={demoBlur(isDemoMode)}
                 onChange={(e) => setAttendeeEmail(e.target.value)}
                 placeholder="client@exemple.com, collegue@exemple.com"
               />
@@ -332,6 +334,7 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
               <Textarea
                 id="cal-desc"
                 value={description}
+                style={demoBlur(isDemoMode)}
                 onChange={(e) => {
                   descriptionDirtyRef.current = true;
                   setDescription(e.target.value);
