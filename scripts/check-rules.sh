@@ -700,8 +700,8 @@ check "068" "Formulaires d'edition internes : champs identifiants floutes en mod
   "for f in \$(grep -rlE 'value=\\{[^}]*\\b(firstName|lastName|email|company|phone|sponsorEmail|sponsorFirstName|sponsorLastName|companyAddress|clientName|clientAddress|client_name|sponsor_email)\\b' src/components src/pages --include='*.tsx' | grep -E '/Edit[A-Z][^/]*\\.tsx\$|/edit-[^/]+/|FormFields\\.tsx\$|/[A-Za-z]+Edit\\.tsx\$'); do grep -qE 'demoBlur|// demo-safe' \"\$f\" || echo \"VIOLATION [068]: \$f\"; done"
 
 # [063] Une session valide n'est pas une garde : le relais Pennylane exige un droit.
-check "063" "pennylane-proxy verifie le droit Finances (admin ou module), pas seulement la session" \
-  "grep -q 'canUsePennylane' supabase/functions/pennylane-proxy/index.ts || echo 'VIOLATION [063]: pennylane-proxy sans canUsePennylane'"
+check "063" "pennylane-proxy et create-mission-invoice verifient le droit Finances (admin ou module), pas seulement la session" \
+  "for f in pennylane-proxy create-mission-invoice; do grep -q 'await canUsePennylane(' supabase/functions/\$f/index.ts || echo \"VIOLATION [063]: \$f sans canUsePennylane\"; done"
 
 # [070] Mode demo — scan dynamique de tous les ecrans internes.
 check "070" "Scan dynamique du mode demo present, routes lues dans App.tsx, hors smoke CI" \
