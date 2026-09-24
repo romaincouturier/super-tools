@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
-import { verifyAuth } from "../_shared/supabase-client.ts";
+import { requireStaff } from "../_shared/cron-auth.ts";
 import { sendLearnerAccessEmail } from "../_shared/learner-account.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -16,16 +16,11 @@ serve(async (req: Request) => {
   const preflight = handleCorsPreflightIfNeeded(req);
   if (preflight) return preflight;
 
-  const user = await verifyAuth(req);
-  if (!user) return createErrorResponse("Unauthorized", 401);
+  if (!(await requireStaff(req))) return createErrorResponse("Forbidden", 403);
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-
-  const { data: profile } = await admin
-    .from("profiles").select("user_id").eq("user_id", user.id).maybeSingle();
-  if (!profile) return createErrorResponse("Forbidden", 403);
 
   try {
     const { email, trainingId } = await req.json();

@@ -21,6 +21,7 @@ import {
   notificationRecipients,
   type CommentAuthor as Author,
 } from "../_shared/mission-comments.ts";
+import { isStaffUser } from "../_shared/cron-auth.ts";
 
 // Écritures des commentaires de pages livrables. Point d'entrée unique :
 // aucune policy anon en écriture sur mission_page_comments.
@@ -54,22 +55,22 @@ serve(async (req) => {
     const user = await verifyAuth(req.headers.get("Authorization"));
     let author: Author | null = null;
 
-    if (user) {
+    // Staff = admin ou module. Une ligne profiles ne suffit pas : un
+    // apprenant connecté en a une, il passerait pour staff sur toute mission.
+    if (user && await isStaffUser(supabase, user.id)) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("display_name, email")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (profile) {
-        author = {
-          contactId: null,
-          userId: user.id,
-          missionId: null,
-          name: profile.display_name || profile.email || "Supertilt",
-          email: profile.email || user.email || null,
-          isStaff: true,
-        };
-      }
+      author = {
+        contactId: null,
+        userId: user.id,
+        missionId: null,
+        name: profile?.display_name || profile?.email || user.email || "Supertilt",
+        email: profile?.email || user.email || null,
+        isStaff: true,
+      };
     }
 
     if (!author && payload.contact_token) {

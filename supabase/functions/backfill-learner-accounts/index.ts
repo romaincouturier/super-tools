@@ -6,10 +6,10 @@ import {
   handleCorsPreflightIfNeeded,
 } from "../_shared/cors.ts";
 import { ensureLearnerAccount } from "../_shared/learner-account.ts";
+import { requireStaff } from "../_shared/cron-auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 /**
  * Provisionne un compte, sans mot de passe, pour chaque apprenant qui n'en a
@@ -23,23 +23,13 @@ serve(async (req: Request) => {
   const preflight = handleCorsPreflightIfNeeded(req);
   if (preflight) return preflight;
 
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return createErrorResponse("Unauthorized", 401);
+  // Réservé à l'équipe (admin ou module). Une ligne profiles ne prouve rien :
+  // un apprenant en a une.
+  if (!(await requireStaff(req))) return createErrorResponse("Forbidden", 403);
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-
-  // Réservé à l'équipe : une ligne dans profiles.
-  const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-  const { data: { user: caller } } = await callerClient.auth.getUser();
-  if (!caller) return createErrorResponse("Forbidden", 403);
-  const { data: profile } = await admin
-    .from("profiles").select("user_id").eq("user_id", caller.id).maybeSingle();
-  if (!profile) return createErrorResponse("Forbidden", 403);
 
   try {
     const { dryRun = false } = await req.json().catch(() => ({})) as { dryRun?: boolean };

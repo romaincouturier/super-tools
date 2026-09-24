@@ -6,8 +6,8 @@ import {
   getSupabaseClient,
   sendEmail,
   getBccSettings,
-  verifyAuth,
 } from "../_shared/mod.ts";
+import { requireStaff } from "../_shared/cron-auth.ts";
 
 
 /**
@@ -24,8 +24,8 @@ serve(async (req) => {
     // (sent_emails_log) vers une adresse fournie par l'appelant. Sans garde,
     // c'est un open relay + exfiltration d'emails historiques par un anonyme.
     // Seul appelant légitime : le drawer de traçabilité (staff authentifié).
-    const user = await verifyAuth(req.headers.get("Authorization"));
-    if (!user) return createErrorResponse("Unauthorized", 401);
+    const user = await requireStaff(req);
+    if (!user) return createErrorResponse("Forbidden", 403);
 
     const { logId, recipientOverride } = await req.json();
     if (!logId) return createErrorResponse("logId is required", 400);
