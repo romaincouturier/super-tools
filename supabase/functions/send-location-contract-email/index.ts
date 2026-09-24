@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { canAccessOrderItem } from "../_shared/order-item-access.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
@@ -34,16 +35,8 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
-    // Garde : la RLS du module dropshipping, jouée avec le jeton de l'appelant.
-    const authHeader = req.headers.get("Authorization") || "";
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user } } = await userClient.auth.getUser();
-    const { data: allowed } = user
-      ? await userClient.from("order_items").select("id").eq("id", orderItemId).maybeSingle()
-      : { data: null };
-    if (!allowed) {
+    // Garde [063] : la RLS du module dropshipping, jouée avec le jeton de l'appelant.
+    if (!(await canAccessOrderItem(req, orderItemId))) {
       return createErrorResponse("Accès refusé", 403);
     }
 
@@ -52,7 +45,7 @@ serve(async (req: Request): Promise<Response> => {
     let extension: { id: string; contrat_reference: string; contract_file_url: string | null; contract_document_id: string | null } | null = null;
     if (extensionId) {
       const { data: ext } = await supabase
-        .from("location_extensions" as any)
+        .from("location_extensions")
         .select("id, contrat_reference, contract_file_url, contract_document_id")
         .eq("id", extensionId)
         .eq("order_item_id", orderItemId)
@@ -60,7 +53,7 @@ serve(async (req: Request): Promise<Response> => {
       if (!ext) {
         return createErrorResponse("Prolongation introuvable", 404);
       }
-      extension = ext as any;
+      extension = ext as typeof extension;
     }
 
     // ── Fetch order item with joins ───────────────────────────────

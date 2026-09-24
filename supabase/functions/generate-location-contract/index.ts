@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { canAccessOrderItem } from "../_shared/order-item-access.ts";
 import { daysBetween, frDate } from "../_shared/location-extension.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -42,16 +43,8 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
-    // Garde : la RLS du module dropshipping, jouée avec le jeton de l'appelant.
-    const authHeader = req.headers.get("Authorization") || "";
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user } } = await userClient.auth.getUser();
-    const { data: allowed } = user
-      ? await userClient.from("order_items").select("id").eq("id", orderItemId).maybeSingle()
-      : { data: null };
-    if (!allowed) {
+    // Garde [063] : la RLS du module dropshipping, jouée avec le jeton de l'appelant.
+    if (!(await canAccessOrderItem(req, orderItemId))) {
       return createErrorResponse("Accès refusé", 403);
     }
 
@@ -62,7 +55,7 @@ serve(async (req: Request): Promise<Response> => {
     } | null = null;
     if (extensionId) {
       const { data: ext } = await supabase
-        .from("location_extensions" as any)
+        .from("location_extensions")
         .select("id, contrat_reference, start_date, end_date, amount_ht")
         .eq("id", extensionId)
         .eq("order_item_id", orderItemId)
@@ -70,7 +63,7 @@ serve(async (req: Request): Promise<Response> => {
       if (!ext) {
         return createErrorResponse("Prolongation introuvable", 404);
       }
-      extension = ext as any;
+      extension = ext as typeof extension;
     }
 
     // ── Fetch order item with joins ───────────────────────────────
@@ -183,7 +176,7 @@ serve(async (req: Request): Promise<Response> => {
       montant_paye: montantPaye,
 
       // Avenant : champs vides sur un contrat d'origine, utilisables dans le template PDF Monkey.
-      contrat_initial_reference: extension ? ((item as any).contrat_reference ?? "") : "",
+      contrat_initial_reference: extension ? ((item as { contrat_reference?: string | null }).contrat_reference ?? "") : "",
       date_debut: extension ? frDate(extension.start_date) : "",
       date_fin: extension ? frDate(extension.end_date) : "",
 
@@ -259,7 +252,7 @@ serve(async (req: Request): Promise<Response> => {
     // ── Save to order_items (ou à l'avenant) ──────────────────────
     if (extension) {
       await supabase
-        .from("location_extensions" as any)
+        .from("location_extensions")
         .update({ contract_file_url: pdfUrl, contract_document_id: documentId })
         .eq("id", extension.id);
     } else {
