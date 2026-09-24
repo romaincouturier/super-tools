@@ -691,6 +691,10 @@ check "067" "La skill sync-and-pr prescrit la renumerotation des regles apres re
 check "068" "Formulaires d'edition internes : champs identifiants floutes en mode demo" \
   "for f in \$(grep -rlE 'value=\\{[^}]*\\b(firstName|lastName|email|company|phone|sponsorEmail|sponsorFirstName|sponsorLastName|companyAddress|clientName|clientAddress|client_name|sponsor_email)\\b' src/components src/pages --include='*.tsx' | grep -E '/Edit[A-Z][^/]*\\.tsx\$|/edit-[^/]+/|FormFields\\.tsx\$|/[A-Za-z]+Edit\\.tsx\$'); do grep -qE 'demoBlur|// demo-safe' \"\$f\" || echo \"VIOLATION [068]: \$f\"; done"
 
+# [063] Une session valide n'est pas une garde : le relais Pennylane exige un droit.
+check "063" "pennylane-proxy verifie le droit Finances (admin ou module), pas seulement la session" \
+  "grep -q 'canUsePennylane' supabase/functions/pennylane-proxy/index.ts || echo 'VIOLATION [063]: pennylane-proxy sans canUsePennylane'"
+
 # [070] Mode demo — scan dynamique de tous les ecrans internes.
 check "070" "Scan dynamique du mode demo present, routes lues dans App.tsx, hors smoke CI" \
   "test -f e2e/demo-scan/demo-scan.spec.ts || echo 'VIOLATION [070]: e2e/demo-scan/demo-scan.spec.ts absent'; \
