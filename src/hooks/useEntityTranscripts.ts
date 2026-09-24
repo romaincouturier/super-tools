@@ -55,6 +55,7 @@ export function useAssociateEntityTranscript(entity: TranscriptEntity) {
     },
     onSuccess: (_d, { entityId }) => {
       qc.invalidateQueries({ queryKey: ["entity-transcripts", entity, entityId] });
+      qc.invalidateQueries({ queryKey: ["transcript-assignments"] });
     },
   });
 }
@@ -69,6 +70,7 @@ export function useUnlinkEntityTranscript(entity: TranscriptEntity) {
     },
     onSuccess: (_d, { entityId }) => {
       qc.invalidateQueries({ queryKey: ["entity-transcripts", entity, entityId] });
+      qc.invalidateQueries({ queryKey: ["transcript-assignments"] });
     },
   });
 }

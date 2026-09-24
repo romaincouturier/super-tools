@@ -1284,7 +1284,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   const [pending8PTemplate, setPending8PTemplate] = useState<MissionPageTemplate | null>(null);
   const [showTranscriptPicker, setShowTranscriptPicker] = useState(false);
 
-  const handleCreatePageFromTranscript = async ({ title, content, icon }: { title: string; content: string; icon: string }) => {
+  const handleCreatePageFromTranscript = async ({ title, content, icon, transcriptId }: { title: string; content: string; icon: string; transcriptId: string }) => {
     try {
       const newPage = await createPage.mutateAsync({
         mission_id: mission.id,
@@ -1292,6 +1292,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         title,
         content,
         icon,
+        source_transcript_id: transcriptId,
       } as Parameters<typeof createPage.mutateAsync>[0]);
       setSelectedPage(newPage);
       toast({ title: "Page créée depuis le transcript" });
@@ -1677,6 +1678,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         open={showTranscriptPicker}
         onOpenChange={setShowTranscriptPicker}
         onPick={handleCreatePageFromTranscript}
+        missionId={mission.id}
         usedTitles={new Set((pages || []).map((p) => p.title))}
       />
 

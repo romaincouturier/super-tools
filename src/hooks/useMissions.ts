@@ -193,9 +193,12 @@ export const useMissionPages = (missionId: string | null) =>
 export const useCreateMissionPage = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { mission_id: string; parent_page_id?: string | null; title?: string; content?: string; activity_id?: string | null; icon?: string; page_type?: string }) =>
+    mutationFn: (input: { mission_id: string; parent_page_id?: string | null; title?: string; content?: string; activity_id?: string | null; icon?: string; page_type?: string; source_transcript_id?: string | null }) =>
       missionService.createPage(input),
-    onSuccess: (data) => qc.invalidateQueries({ queryKey: [MISSION_PAGES_QUERY_KEY, data.mission_id] }),
+    onSuccess: (data, input) => {
+      qc.invalidateQueries({ queryKey: [MISSION_PAGES_QUERY_KEY, data.mission_id] });
+      if (input.source_transcript_id) qc.invalidateQueries({ queryKey: ["transcript-assignments"] });
+    },
   });
 };
 
