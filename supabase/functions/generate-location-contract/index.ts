@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { daysBetween, frDate } from "../_shared/location-extension.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -8,6 +9,8 @@ const PDFMONKEY_API_KEY = Deno.env.get("PDFMONKEY_API_KEY")!;
 
 interface RequestBody {
   orderItemId: string;
+  /** Avenant de prolongation : génère le PDF de la prolongation au lieu du contrat d'origine. */
+  extensionId?: string;
 }
 
 function formatDateFR(date: Date): string {
@@ -30,7 +33,7 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const body: RequestBody = await req.json();
-    const { orderItemId } = body;
+    const { orderItemId, extensionId } = body;
 
     if (!orderItemId) {
       return new Response(JSON.stringify({ error: "orderItemId requis" }), {
@@ -39,7 +42,36 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
+    // Garde : la RLS du module dropshipping, jouée avec le jeton de l'appelant.
+    const authHeader = req.headers.get("Authorization") || "";
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user } } = await userClient.auth.getUser();
+    const { data: allowed } = user
+      ? await userClient.from("order_items").select("id").eq("id", orderItemId).maybeSingle()
+      : { data: null };
+    if (!allowed) {
+      return createErrorResponse("Accès refusé", 403);
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    let extension: {
+      id: string; contrat_reference: string; start_date: string; end_date: string; amount_ht: number;
+    } | null = null;
+    if (extensionId) {
+      const { data: ext } = await supabase
+        .from("location_extensions" as any)
+        .select("id, contrat_reference, start_date, end_date, amount_ht")
+        .eq("id", extensionId)
+        .eq("order_item_id", orderItemId)
+        .maybeSingle();
+      if (!ext) {
+        return createErrorResponse("Prolongation introuvable", 404);
+      }
+      extension = ext as any;
+    }
 
     // ── Fetch order item with joins ───────────────────────────────
     const { data: item, error: itemErr } = await supabase
@@ -92,11 +124,17 @@ serve(async (req: Request): Promise<Response> => {
     const bailleurEmail = getSetting(settings, "bailleur_email", getSetting(settings, "internal_email", ""));
 
     // ── Generate contrat reference ────────────────────────────────
-    const currentYear = new Date().getFullYear();
-    const { data: refData } = await supabase.rpc("next_location_contract_ref" as any, {
-      p_year: currentYear,
-    });
-    const contratReference = (refData as string) ?? `LOC-${currentYear}-???`;
+    // Un avenant garde la référence fixée à sa création : pas de numéro consommé.
+    let contratReference: string;
+    if (extension) {
+      contratReference = extension.contrat_reference;
+    } else {
+      const currentYear = new Date().getFullYear();
+      const { data: refData } = await supabase.rpc("next_location_contract_ref" as any, {
+        p_year: currentYear,
+      });
+      contratReference = (refData as string) ?? `LOC-${currentYear}-???`;
+    }
 
     // ── Build billing address fields ──────────────────────────────
     const billing = (order?.billing_address ?? {}) as Record<string, string>;
@@ -111,7 +149,7 @@ serve(async (req: Request): Promise<Response> => {
     // ── Build PDF Monkey payload ──────────────────────────────────
     const today = new Date();
     const montantPaye = String(
-      Math.round((item as any).line_total ?? (order?.total_ttc ?? 0))
+      Math.round(extension ? Number(extension.amount_ht) : (item as any).line_total ?? (order?.total_ttc ?? 0))
     );
 
     const payload: Record<string, string> = {
@@ -136,9 +174,18 @@ serve(async (req: Request): Promise<Response> => {
       locataire_pays: locatairePays,
       locataire_email: locataireEmail,
 
-      duree_libelle: game.location_duree_libelle ?? "",
-      duree_jours: String(game.location_duree_jours ?? ""),
+      duree_libelle: extension
+        ? `Prolongation du ${frDate(extension.start_date)} au ${frDate(extension.end_date)}`
+        : game.location_duree_libelle ?? "",
+      duree_jours: extension
+        ? String(daysBetween(extension.start_date, extension.end_date))
+        : String(game.location_duree_jours ?? ""),
       montant_paye: montantPaye,
+
+      // Avenant : champs vides sur un contrat d'origine, utilisables dans le template PDF Monkey.
+      contrat_initial_reference: extension ? ((item as any).contrat_reference ?? "") : "",
+      date_debut: extension ? frDate(extension.start_date) : "",
+      date_fin: extension ? frDate(extension.end_date) : "",
 
       tarif_retard_mois: String(game.location_tarif_retard_mois ?? ""),
       prix_remplacement: String(game.location_prix_remplacement ?? ""),
@@ -209,15 +256,22 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error("Timeout: le PDF n'a pas été généré dans les délais");
     }
 
-    // ── Save to order_items ───────────────────────────────────────
-    await supabase
-      .from("order_items" as any)
-      .update({
-        location_contract_file_url: pdfUrl,
-        location_document_id: documentId,
-        contrat_reference: contratReference,
-      })
-      .eq("id", orderItemId);
+    // ── Save to order_items (ou à l'avenant) ──────────────────────
+    if (extension) {
+      await supabase
+        .from("location_extensions" as any)
+        .update({ contract_file_url: pdfUrl, contract_document_id: documentId })
+        .eq("id", extension.id);
+    } else {
+      await supabase
+        .from("order_items" as any)
+        .update({
+          location_contract_file_url: pdfUrl,
+          location_document_id: documentId,
+          contrat_reference: contratReference,
+        })
+        .eq("id", orderItemId);
+    }
 
     console.log("Contract URL saved to order_item:", pdfUrl);
 

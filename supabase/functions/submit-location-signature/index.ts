@@ -284,8 +284,8 @@ serve(async (req: Request): Promise<Response> => {
         .eq("id", rec.id);
     }
 
-    // ── Move order to processed ───────────────────────────────────
-    if (rec.order_item_id) {
+    // ── Move order to processed (un avenant ne touche pas au kanban) ──
+    if (rec.order_item_id && !rec.location_extension_id) {
       await supabase
         .from("order_items" as any)
         .update({ kanban_status: "processed" })

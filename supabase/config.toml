@@ -737,3 +737,6 @@ verify_jwt = true
 
 [functions.create-mission-invoice]
 verify_jwt = false
+
+[functions.create-location-extension]
+verify_jwt = false

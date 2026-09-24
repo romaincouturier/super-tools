@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
@@ -15,6 +15,8 @@ const PDFMONKEY_API_KEY = Deno.env.get("PDFMONKEY_API_KEY");
 interface RequestBody {
   orderItemId: string;
   enableOnlineSignature?: boolean;
+  /** Avenant de prolongation à envoyer au lieu du contrat d'origine. */
+  extensionId?: string;
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -23,7 +25,7 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const body: RequestBody = await req.json();
-    const { orderItemId, enableOnlineSignature = true } = body;
+    const { orderItemId, enableOnlineSignature = true, extensionId } = body;
 
     if (!orderItemId) {
       return new Response(JSON.stringify({ error: "orderItemId requis" }), {
@@ -32,7 +34,34 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
+    // Garde : la RLS du module dropshipping, jouée avec le jeton de l'appelant.
+    const authHeader = req.headers.get("Authorization") || "";
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user } } = await userClient.auth.getUser();
+    const { data: allowed } = user
+      ? await userClient.from("order_items").select("id").eq("id", orderItemId).maybeSingle()
+      : { data: null };
+    if (!allowed) {
+      return createErrorResponse("Accès refusé", 403);
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    let extension: { id: string; contrat_reference: string; contract_file_url: string | null; contract_document_id: string | null } | null = null;
+    if (extensionId) {
+      const { data: ext } = await supabase
+        .from("location_extensions" as any)
+        .select("id, contrat_reference, contract_file_url, contract_document_id")
+        .eq("id", extensionId)
+        .eq("order_item_id", orderItemId)
+        .maybeSingle();
+      if (!ext) {
+        return createErrorResponse("Prolongation introuvable", 404);
+      }
+      extension = ext as any;
+    }
 
     // ── Fetch order item with joins ───────────────────────────────
     const { data: item, error: itemErr } = await supabase
@@ -58,7 +87,11 @@ serve(async (req: Request): Promise<Response> => {
 
     const order = (item as any).woocommerce_orders;
     const game = (item as any).games;
-    const contractUrl = (item as any).location_contract_file_url;
+    const contractUrl = extension ? extension.contract_file_url : (item as any).location_contract_file_url;
+    // L'URL à jour du PDF est rangée là où le document a été généré.
+    const contractTable = extension ? "location_extensions" : "order_items";
+    const contractRowId = extension ? extension.id : orderItemId;
+    const contractUrlColumn = extension ? "contract_file_url" : "location_contract_file_url";
 
     if (!contractUrl) {
       return new Response(
@@ -75,7 +108,7 @@ serve(async (req: Request): Promise<Response> => {
         .filter(Boolean)
         .join(" ") || recipientEmail;
     const gameName = game?.title ?? (item as any).product_name ?? "Jeu";
-    const contratReference = (item as any).contrat_reference ?? "";
+    const contratReference = extension ? extension.contrat_reference : (item as any).contrat_reference ?? "";
 
     if (!recipientEmail) {
       return new Response(
@@ -89,7 +122,7 @@ serve(async (req: Request): Promise<Response> => {
     let pdfResponse = await fetch(contractUrl);
 
     if (!pdfResponse.ok && PDFMONKEY_API_KEY) {
-      const docId = (item as any).location_document_id;
+      const docId = extension ? extension.contract_document_id : (item as any).location_document_id;
       if (docId) {
         const pmRes = await fetch(`https://api.pdfmonkey.io/api/v1/documents/${docId}`, {
           headers: { Authorization: `Bearer ${PDFMONKEY_API_KEY}` },
@@ -102,9 +135,9 @@ serve(async (req: Request): Promise<Response> => {
             if (pdfResponse.ok) {
               currentContractUrl = freshUrl;
               await supabase
-                .from("order_items" as any)
-                .update({ location_contract_file_url: freshUrl })
-                .eq("id", orderItemId);
+                .from(contractTable as any)
+                .update({ [contractUrlColumn]: freshUrl })
+                .eq("id", contractRowId);
             }
           }
         }
@@ -132,9 +165,9 @@ serve(async (req: Request): Promise<Response> => {
         .getPublicUrl(fileName);
       permanentUrl = publicUrl;
       await supabase
-        .from("order_items" as any)
-        .update({ location_contract_file_url: permanentUrl })
-        .eq("id", orderItemId);
+        .from(contractTable as any)
+        .update({ [contractUrlColumn]: permanentUrl })
+        .eq("id", contractRowId);
     } else {
       console.warn("Storage upload failed, using PDF Monkey URL:", uploadError);
     }
@@ -157,6 +190,7 @@ serve(async (req: Request): Promise<Response> => {
         .insert({
           token: signatureToken,
           order_item_id: orderItemId,
+          location_extension_id: extension?.id ?? null,
           recipient_email: recipientEmail,
           recipient_name: recipientName,
           game_name: gameName,
@@ -197,6 +231,7 @@ serve(async (req: Request): Promise<Response> => {
       subject = subject.replaceAll(key, value);
       htmlBody = htmlBody.replaceAll(key, value);
     }
+    if (extension) subject = `Avenant de prolongation ${contratReference} : ${gameName}`;
 
     // Handle conditional signature block
     if (enableOnlineSignature && signatureUrl) {
