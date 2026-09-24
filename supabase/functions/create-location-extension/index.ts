@@ -1,4 +1,4 @@
-// Prolongation d'une location de jeu.
+// Prolongation d'une location de jeu (avenant au contrat LOC-…, facture brouillon Pennylane).
 //
 // Deux actions :
 // - "prepare" : renvoie la fiche client déduite de la commande WooCommerce et
