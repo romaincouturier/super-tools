@@ -2,10 +2,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 
-// Table absente des types générés.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
-
 export interface LocationExtensionSignature {
   status: "pending" | "signed" | "expired" | "cancelled";
   signed_at: string | null;
@@ -46,13 +42,18 @@ export interface LocationExtensionPrepare {
   amount_ht: number | null;
 }
 
+/** Dernier envoi en signature : c'est lui qui dit si l'avenant est signé. */
+export function latestSignature(sigs: LocationExtensionSignature[] | null | undefined): LocationExtensionSignature | null {
+  return [...(sigs ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
+}
+
 const key = (orderItemId: string) => ["location-extensions", orderItemId];
 
 export function useLocationExtensions(orderItemId: string) {
   return useQuery({
     queryKey: key(orderItemId),
     queryFn: async (): Promise<LocationExtension[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from("location_extensions")
         .select(
           "id, order_item_id, sequence, start_date, end_date, amount_ht, vat_rate, contrat_reference, contract_file_url, invoice_number, invoice_url, created_at, location_contract_signatures(status, signed_at, email_sent_at, signed_pdf_url, created_at)",
@@ -60,11 +61,10 @@ export function useLocationExtensions(orderItemId: string) {
         .eq("order_item_id", orderItemId)
         .order("sequence", { ascending: true });
       if (error) throw error;
-      return (data ?? []).map((row: LocationExtension & { location_contract_signatures: LocationExtensionSignature[] }) => {
-        const { location_contract_signatures: sigs, ...ext } = row;
-        const latest = [...(sigs ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
-        return { ...ext, signature: latest };
-      });
+      return (data ?? []).map(({ location_contract_signatures: sigs, ...ext }) => ({
+        ...ext,
+        signature: latestSignature(sigs as LocationExtensionSignature[]),
+      }));
     },
   });
 }

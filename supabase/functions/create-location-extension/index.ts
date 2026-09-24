@@ -64,10 +64,12 @@ Deno.serve(async (req) => {
     if (itemError) return createErrorResponse(itemError.message, 500, { cause: itemError, fn: FN });
     if (!item) return createErrorResponse("Commande introuvable", 404);
 
-    // deno-lint-ignore no-explicit-any
-    const order = (item as any).woocommerce_orders ?? {};
-    // deno-lint-ignore no-explicit-any
-    const game = (item as any).games ?? {};
+    const joined = item as {
+      woocommerce_orders?: { date_created?: string; customer_email?: string; billing_address?: Record<string, string> } | null;
+      games?: { title?: string; location_duree_jours?: number | null } | null;
+    };
+    const order = joined.woocommerce_orders ?? {};
+    const game = joined.games ?? {};
 
     const { data: previous, error: prevError } = await userClient
       .from("location_extensions")
