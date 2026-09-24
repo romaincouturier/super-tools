@@ -83,23 +83,23 @@ Les fichiers `.env*` sont ignorés par git selon [.gitignore](./.gitignore).
 
 ### Frontend
 
-- [src/pages](./src\pages) : pages de l'application
-- [src/components](./src\components) : composants UI par domaine
-- [src/hooks](./src\hooks) : hooks d'accès aux données et d'orchestration
-- [src/services](./src\services) : services métier partagés
-- [src/lib](./src\lib) : utilitaires
-- [src/integrations/supabase](./src\integrations\supabase) : client et types Supabase
+- [src/pages](./src/pages) : pages de l'application
+- [src/components](./src/components) : composants UI par domaine
+- [src/hooks](./src/hooks) : hooks d'accès aux données et d'orchestration
+- [src/services](./src/services) : services métier partagés
+- [src/lib](./src/lib) : utilitaires
+- [src/integrations/supabase](./src/integrations/supabase) : client et types Supabase
 
 ### Backend
 
-- [supabase/functions](./supabase\functions) : Edge Functions
-- [supabase/migrations](./supabase\migrations) : migrations SQL
-- [supabase/config.toml](./supabase\config.toml) : configuration des functions
+- [supabase/functions](./supabase/functions) : Edge Functions
+- [supabase/migrations](./supabase/migrations) : migrations SQL
+- [supabase/config.toml](./supabase/config.toml) : configuration des functions
 
 ### Documentation
 
 - [PRD.md](./PRD.md) : vue produit et modules
-- [docs/cleanup-plan.md](./docs\cleanup-plan.md) : plan de remise à plat
+- [docs/cleanup-plan.md](./docs/cleanup-plan.md) : plan de remise à plat
 - [IMPROVEMENTS.md](./IMPROVEMENTS.md) : règles acquises et invariants de qualité
 
 ## Repères fonctionnels
@@ -116,14 +116,14 @@ Quelques routes importantes :
 - `/parametres` : réglages métier et techniques
 - `/monitoring` : santé applicative
 
-Le routeur principal est déclaré dans [src/App.tsx](./src\App.tsx).
+Le routeur principal est déclaré dans [src/App.tsx](./src/App.tsx).
 
 ## Conventions utiles
 
 - Le code TypeScript React est organisé par domaine métier.
 - Le produit a déjà une forte largeur fonctionnelle : éviter d'ajouter de nouvelles couches d'abstraction sans nécessité claire.
 - Avant de coder, vérifier les invariants dans [IMPROVEMENTS.md](./IMPROVEMENTS.md).
-- Le script [scripts/check-rules.sh](./scripts\check-rules.sh) sert de garde-fou qualité.
+- Le script [scripts/check-rules.sh](./scripts/check-rules.sh) sert de garde-fou qualité.
 
 ## Points d'attention actuels
 
@@ -131,5 +131,5 @@ Le routeur principal est déclaré dans [src/App.tsx](./src\App.tsx).
 - Plusieurs Edge Functions sont encore exposées de manière trop large.
 - Le produit est riche, mais pas encore assez homogène sur le plan structurel.
 
-Avant tout chantier large, consulter aussi [docs/cleanup-plan.md](./docs\cleanup-plan.md).
+Avant tout chantier large, consulter aussi [docs/cleanup-plan.md](./docs/cleanup-plan.md).
 
