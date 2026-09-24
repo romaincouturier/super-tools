@@ -1,10 +1,12 @@
 // Pennylane API v2 proxy
 // Forwards GET/POST/PUT requests to the Pennylane external API v2.
 // Token, base URL and headers live in _shared/pennylane.ts (rule [052]).
-// Authenticated: requires a valid Supabase JWT (no service role exposed to client).
+// Authenticated: requires a valid Supabase JWT AND the Finances module (or admin).
+// A session alone is not enough: sign-up is open, learners have sessions.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import { getPennylaneToken, pennylaneFetch } from "../_shared/pennylane.ts";
+import { canUsePennylane } from "../_shared/pennylane-access.ts";
 
 // Whitelist endpoint paths to avoid open proxy abuse.
 // Pattern matched via prefix on the requested `path`.
@@ -49,6 +51,11 @@ Deno.serve(async (req) => {
       return createErrorResponse("Invalid or expired session", 401);
     }
 
+    const admin = createClient(supabaseUrl, serviceKey);
+    if (!(await canUsePennylane(admin, user.id))) {
+      return createErrorResponse("Accès Pennylane réservé au module Finances", 403);
+    }
+
     // ── Parse request body ──────────────────────────────────────────────────
     const body = await req.json().catch(() => ({}));
     const path: string = (body.path || "").toString();
@@ -67,7 +74,6 @@ Deno.serve(async (req) => {
     }
 
     // ── Token et appel : protocole Pennylane centralisé dans _shared ─────────
-    const admin = createClient(supabaseUrl, serviceKey);
     let token: string;
     try {
       token = await getPennylaneToken(admin);
