@@ -13,6 +13,8 @@ import { toastError } from "@/lib/toastError";
 import { MessageSquare, Send, User, GraduationCap, Search } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur, maskEmail } from "@/lib/demoMask";
 
 interface LmsMessage {
   id: string;
@@ -37,6 +39,7 @@ interface ConversationGroup {
 
 export default function LmsMessages() {
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<{ courseId: string; learnerEmail: string } | null>(null);
@@ -176,7 +179,7 @@ export default function LmsMessages() {
                   className={`w-full text-left px-3 py-2.5 border-b hover:bg-muted/50 transition-colors ${isActive ? "bg-muted" : ""}`}
                 >
                   <div className="flex items-start justify-between gap-1">
-                    <span className="text-xs font-medium truncate">{g.learnerEmail}</span>
+                    <span className="text-xs font-medium truncate">{isDemoMode ? maskEmail(g.learnerEmail) : g.learnerEmail}</span>
                     {g.unreadCount > 0 && (
                       <Badge variant="destructive" className="text-xs shrink-0">{g.unreadCount}</Badge>
                     )}
@@ -197,7 +200,7 @@ export default function LmsMessages() {
             <CardHeader className="py-3 border-b shrink-0">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium text-sm">{activeGroup.learnerEmail}</span>
+                <span className="font-medium text-sm">{isDemoMode ? maskEmail(activeGroup.learnerEmail) : activeGroup.learnerEmail}</span>
                 <span className="text-muted-foreground">·</span>
                 <span className="text-sm text-muted-foreground">{activeGroup.courseTitle}</span>
               </div>
@@ -219,7 +222,7 @@ export default function LmsMessages() {
                             {format(new Date(msg.created_at), "d MMM HH:mm", { locale: fr })}
                           </span>
                         </div>
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                        <p className="whitespace-pre-wrap" style={demoBlur(isDemoMode)}>{msg.content}</p>
                       </div>
                     </div>
                   );

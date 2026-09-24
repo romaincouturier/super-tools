@@ -20,6 +20,8 @@ import {
 import { authorDisplayName, authorInitialsFromPost } from "@/components/learner/community/authorDisplay";
 import ImageLightbox from "@/components/ui/image-lightbox";
 import { asciiToEmoji } from "@/lib/asciiEmoji";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskFileName, maskName } from "@/lib/demoMask";
 
 /**
  * Render post text supporting [label](url) markdown links and bare URLs.
@@ -143,8 +145,11 @@ export default function PracticePostCard({
   const updatePost = useUpdatePracticePost(currentEmail, isAdmin);
   const { toast } = useToast();
   const rotateImage = useRotatePracticePostImage();
+  const { isDemoMode } = useDemoMode();
 
-  const displayName = authorDisplayName(post.author_email, post.author_first_name, post.author_last_name);
+  const rawDisplayName = authorDisplayName(post.author_email, post.author_first_name, post.author_last_name);
+  const displayName = isDemoMode && !post.author_is_staff ? maskName(rawDisplayName) : rawDisplayName;
+  const shownFileName = isDemoMode ? maskFileName(post.file_name) : post.file_name;
   const initials = authorInitialsFromPost(post.author_email, post.author_first_name, post.author_last_name);
   const isOwn = (post.author_email || "").toLowerCase() === (currentEmail || "").toLowerCase();
   const canDelete = isOwn || isAdmin;
@@ -326,7 +331,7 @@ export default function PracticePostCard({
           >
             <img
               src={fileHref}
-              alt={post.file_name ?? ""}
+              alt={shownFileName ?? ""}
               onLoad={(e) => setNaturalSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
               onClick={() => setLightboxOpen(true)}
               style={{
@@ -341,7 +346,7 @@ export default function PracticePostCard({
               }}
             />
             {lightboxOpen && (
-              <ImageLightbox src={fileHref} alt={post.file_name ?? undefined} rotation={rotation} onClose={() => setLightboxOpen(false)} />
+              <ImageLightbox src={fileHref} alt={shownFileName ?? undefined} rotation={rotation} onClose={() => setLightboxOpen(false)} />
             )}
             {isAdmin && (
               <div className="absolute bottom-2 right-2 flex gap-1 z-10">
@@ -371,11 +376,11 @@ export default function PracticePostCard({
             disabled={downloadingFile}
             className="flex flex-col items-center justify-center gap-2 w-full px-4 py-10 hover:bg-black/5 transition-colors"
             style={{ background: "rgba(16,24,32,0.04)", color: "var(--st-ink)", minHeight: 220 }}
-            title={post.file_name ?? "Télécharger le fichier"}
+            title={shownFileName ?? "Télécharger le fichier"}
           >
             <FileText size={48} style={{ color: "var(--st-ink-muted)" }} />
             <span className="text-sm font-medium text-center break-all px-4">
-              {post.file_name ?? "Télécharger le fichier"}
+              {shownFileName ?? "Télécharger le fichier"}
             </span>
             <span className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--st-ink-muted)" }}>
               <Download size={14} />
@@ -411,9 +416,10 @@ export default function PracticePostCard({
           <TooltipProvider delayDuration={300}>
             {REACTION_EMOJIS.filter((e) => (post.reactions_by_type?.[e.emoji] ?? 0) > 0).map((e) => {
               const users = post.reactions_by_type_users?.[e.emoji] ?? [];
-              const label = users.length <= 5
-                ? users.join(", ")
-                : `${users.slice(0, 5).join(", ")} +${users.length - 5}`;
+              const shownUsers = isDemoMode ? users.map((u) => (u.includes("@") ? maskEmail(u) : maskName(u))) : users;
+              const label = shownUsers.length <= 5
+                ? shownUsers.join(", ")
+                : `${shownUsers.slice(0, 5).join(", ")} +${shownUsers.length - 5}`;
               return (
                 <Tooltip key={e.emoji}>
                   <TooltipTrigger asChild>
@@ -497,7 +503,9 @@ export default function PracticePostCard({
           {comments.map((c) => {
             const cName = c.is_staff_reply && c.author_display_name
               ? c.author_display_name
-              : authorDisplayName(c.author_email, c.author_first_name, c.author_last_name);
+              : isDemoMode && !c.is_staff_reply
+                ? maskName(authorDisplayName(c.author_email, c.author_first_name, c.author_last_name))
+                : authorDisplayName(c.author_email, c.author_first_name, c.author_last_name);
             const cInitials = c.is_staff_reply && c.author_display_name
               ? authorInitialsFromPost("", c.author_display_name.split(" ")[0], c.author_display_name.split(" ")[1])
               : authorInitialsFromPost(c.author_email, c.author_first_name, c.author_last_name);
