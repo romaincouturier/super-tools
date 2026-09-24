@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useTranscriptAssignments, type TranscriptAssignment } from "@/hooks/useTranscriptAssignments";
+import TranscriptAssignmentMarker from "@/components/transcripts/TranscriptAssignmentMarker";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -202,7 +205,7 @@ function EditorialSheet({ t }: { t: Transcript }) {
   );
 }
 
-function TranscriptCard({ t, onClick }: { t: TranscriptListItem; onClick: () => void }) {
+function TranscriptCard({ t, assignments, onClick }: { t: TranscriptListItem; assignments?: TranscriptAssignment[]; onClick: () => void }) {
   const displayTitle = t.ai_title || t.title || "Sans titre";
   const showFilename = !!t.ai_title && !!t.title && t.ai_title !== t.title;
   const { copy } = useCopyToClipboard();
@@ -256,6 +259,7 @@ function TranscriptCard({ t, onClick }: { t: TranscriptListItem; onClick: () => 
         {t.summary && <p className="text-xs text-muted-foreground line-clamp-2">{t.summary}</p>}
         <div className="flex items-center gap-2 flex-wrap">
           <QualificationBadge q={t.editorial_qualification} />
+          {t.status === "ready" && <TranscriptAssignmentMarker assignments={assignments} showUnassigned />}
           {t.tags?.map((tag) => (
             <span key={tag} className="text-xs bg-muted px-2 py-0.5 rounded-full">{tag}</span>
           ))}
@@ -443,6 +447,12 @@ export default function Transcripts() {
   const [qualification, setQualification] = useState<string>("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [searchParams] = useSearchParams();
+  const [assignment, setAssignment] = useState<"" | "assigned" | "unassigned">(
+    searchParams.get("affectation") === "non" ? "unassigned" : "",
+  );
+  const { data: assignments } = useTranscriptAssignments();
+  const assignedIds = assignments ? Array.from(assignments.keys()) : undefined;
 
   // Tout changement de filtre repart de la première page.
   const resetPage = () => setPage(0);
@@ -455,6 +465,8 @@ export default function Transcripts() {
     qualification,
     page,
     pageSize: PAGE_SIZE,
+    assignment,
+    assignedIds,
   });
 
   const data = pageData?.rows ?? [];
@@ -575,6 +587,16 @@ export default function Transcripts() {
             <SelectItem value="none">Non analysé</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={assignment || "all"} onValueChange={(v) => { setAssignment(v === "all" ? "" : (v as "assigned" | "unassigned")); resetPage(); }}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Toutes les affectations" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes les affectations</SelectItem>
+            <SelectItem value="assigned">Affectés</SelectItem>
+            <SelectItem value="unassigned">Non affectés</SelectItem>
+          </SelectContent>
+        </Select>
         <Button variant="outline" size="icon" onClick={() => refetch()} title="Rafraîchir">
           <RefreshCw className="h-4 w-4" />
         </Button>
@@ -599,7 +621,7 @@ export default function Transcripts() {
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {data.map((t) => (
-              <TranscriptCard key={t.id} t={t} onClick={() => setSelectedId(t.id)} />
+              <TranscriptCard key={t.id} t={t} assignments={assignments?.get(t.id)} onClick={() => setSelectedId(t.id)} />
             ))}
           </div>
           <div className="flex items-center justify-between gap-3 mt-6">
