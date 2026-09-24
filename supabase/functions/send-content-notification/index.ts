@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import { requireStaff } from "../_shared/cron-auth.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
@@ -18,8 +19,8 @@ serve(async (req) => {
     // Garde d'auth : destinataire et contenu contrôlés par l'appelant. Sans
     // garde = relais d'email depuis le domaine vérifié. Seuls appelants
     // légitimes : le kanban éditorial et les revues (staff authentifié).
-    const authedUser = await verifyAuth(req.headers.get("Authorization"));
-    if (!authedUser) return createErrorResponse("Unauthorized", 401);
+    const authedUser = await requireStaff(req);
+    if (!authedUser) return createErrorResponse("Forbidden", 403);
 
     let body: any;
     try {

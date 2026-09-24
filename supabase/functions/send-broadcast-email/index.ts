@@ -7,11 +7,11 @@ import {
   getSupabaseClient,
   sendEmail,
   textToHtml,
-  verifyAuth,
 } from "../_shared/mod.ts";
 
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { requireStaff } from "../_shared/cron-auth.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -22,8 +22,8 @@ serve(async (req) => {
     // participants d'une formation depuis le domaine vérifié. Sans garde =
     // relais de phishing de masse. Seul appelant légitime : le dialog de
     // diffusion (staff authentifié).
-    const user = await verifyAuth(req.headers.get("Authorization"));
-    if (!user) return createErrorResponse("Unauthorized", 401);
+    const user = await requireStaff(req);
+    if (!user) return createErrorResponse("Forbidden", 403);
 
     const { trainingId, subject, content, participantIds } = await req.json();
 
