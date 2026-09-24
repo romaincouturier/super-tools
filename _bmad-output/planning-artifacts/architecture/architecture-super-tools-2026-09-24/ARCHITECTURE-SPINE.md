@@ -244,7 +244,7 @@ erDiagram
 ## Open Questions
 
 - **Buckets publics** : 22 sur 27 créés par migration sont publics, contre AD-3 / [047] ; `game-restock-files` est utilisé mais créé hors migration (AD-8). Lesquels migrer, dans quel ordre ?
-- **Fonctions sans garde visible** avec `verify_jwt = false` : `scheduled-backup`, `send-mission-email-draft`, `test-sheet-append`, `zip-mission-deliverables`, `record-db-size`. À vérifier une par une (AD-4).
+- **Page mission publique** : `/mission-info/:missionId` et `zip-mission-deliverables` exposent documents et livrables à quiconque connaît l'UUID de la mission (`get_mission_*_public` accordées à `anon`). Garder ce modèle de lien secret, ou passer à un token dédié et révocable ?
 - **Policies `anon` restantes** (dont `mission_survey_*` en `WITH CHECK (true)`, `training_supports`) : valident-elles un token (AD-2 / [009]) ?
 - **CORS** : `_shared/cors.ts:8` retombe sur `*` si `APP_ORIGIN` n'est pas défini.
 - **`has_module_access()`** code en dur un email (M20260202130645:26-41), contre [027].

@@ -45,21 +45,57 @@ export async function isInternalOrAuthenticated(
   req: Request,
   secretEnvName = "CRON_SECRET",
 ): Promise<boolean> {
-  if (isInternalCall(req, secretEnvName)) return true;
-
-  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const authHeader = req.headers.get("Authorization") ?? "";
-  // Crons pg_cron et délégations envoient le service_role en Bearer. Comparaison
-  // à temps constant : ce secret est le plus sensible du système.
-  if (serviceRole !== "" && await timingSafeEqualSecret(authHeader, `Bearer ${serviceRole}`)) {
-    return true;
-  }
+  if (await isInternalOrServiceRole(req, secretEnvName)) return true;
 
   // Appel frontend authentifié : JWT utilisateur validé via getUser().
   // Import dynamique volontaire : supabase-client.ts importe le SDK depuis une
   // URL esm.sh, non résoluble par le loader Node de vitest. Le garder paresseux
   // permet à cron-auth.test.ts (qui ne teste que isInternalCall) de se charger.
   const { verifyAuth } = await import("./supabase-client.ts");
-  const user = await verifyAuth(authHeader);
+  const user = await verifyAuth(req.headers.get("Authorization") ?? "");
   return user !== null;
+}
+
+/**
+ * Garde d'une action réservée au staff : JWT d'un admin, ou d'un utilisateur
+ * ayant accès au module indiqué. Un apprenant a lui aussi un JWT valide :
+ * `verifyAuth` seul ne suffit donc jamais à ouvrir une action staff.
+ */
+export async function isStaffCaller(req: Request, module?: string): Promise<boolean> {
+  const { verifyAuth, getSupabaseClient } = await import("./supabase-client.ts");
+  const user = await verifyAuth(req.headers.get("Authorization") ?? "");
+  if (!user) return false;
+
+  const supabase = getSupabaseClient();
+  const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: user.id });
+  if (isAdmin === true) return true;
+  if (!module) return false;
+
+  const { data: hasAccess } = await supabase.rpc("has_module_access", {
+    _user_id: user.id,
+    _module: module,
+  });
+  return hasAccess === true;
+}
+
+/**
+ * Garde d'une fonction appelée par un cron ou une autre fonction, et
+ * déclenchable à la main par un admin (page Monitoring, réglages).
+ */
+export async function isInternalOrAdmin(
+  req: Request,
+  secretEnvName = "CRON_SECRET",
+): Promise<boolean> {
+  if (await isInternalOrServiceRole(req, secretEnvName)) return true;
+  return isStaffCaller(req);
+}
+
+async function isInternalOrServiceRole(req: Request, secretEnvName: string): Promise<boolean> {
+  if (isInternalCall(req, secretEnvName)) return true;
+
+  // Crons pg_cron et délégations envoient le service_role en Bearer. Comparaison
+  // à temps constant : ce secret est le plus sensible du système.
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const authHeader = req.headers.get("Authorization") ?? "";
+  return serviceRole !== "" && await timingSafeEqualSecret(authHeader, `Bearer ${serviceRole}`);
 }
