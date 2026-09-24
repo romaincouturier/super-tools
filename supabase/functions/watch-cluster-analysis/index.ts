@@ -169,15 +169,15 @@ async function notifySlackCluster(clusterId: string, title: string, summary: str
     "Content-Type": "application/json; charset=utf-8",
   };
 
-  // Find #general channel
-  let channelTarget = "#general";
+  const channelName = /\b(ia|ai|intelligence artificielle|llm|gpt|claude|gemini|agents?)\b/i.test(`${title} ${summary}`) ? "ai4product" : "veille";
+  let channelTarget = `#${channelName}`;
   const listRes = await fetch(`${GATEWAY_URL}/conversations.list?types=public_channel&exclude_archived=true&limit=200`, {
     headers,
   });
   if (listRes.ok) {
     const data = await listRes.json();
-    const match = data?.channels?.find((c: { name?: string; name_normalized?: string; is_general?: boolean }) =>
-      c.is_general || (c.name_normalized || c.name || "").toLowerCase() === "general");
+    const match = data?.channels?.find((c: { name?: string; name_normalized?: string }) =>
+      [c.name_normalized, c.name].some((n) => (n || "").toLowerCase() === channelName));
     if (match?.id) channelTarget = match.id;
   }
 
