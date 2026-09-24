@@ -8,6 +8,8 @@ import { toastError } from "@/lib/toastError";
 import { useCreateSupportTicket, useAnalyzeTicket } from "@/hooks/useSupport";
 import { resolveContentType } from "@/lib/file-utils";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur } from "@/lib/demoMask";
 
 const MAX_FILES = 5;
 const ACCEPTED_TYPES = [
@@ -39,6 +41,7 @@ export interface FeedbackFormProps {
 
 export function FeedbackForm({ prefillDescription, pageUrlOverride, onSubmitted }: FeedbackFormProps) {
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const createTicket = useCreateSupportTicket();
   const analyzeTicket = useAnalyzeTicket();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -147,6 +150,7 @@ export function FeedbackForm({ prefillDescription, pageUrlOverride, onSubmitted 
             placeholder="Décrivez ce qui ne fonctionne pas, ou l'amélioration que vous souhaitez..."
             rows={6}
             className="text-sm"
+            style={demoBlur(isDemoMode)}
           />
         </div>
 

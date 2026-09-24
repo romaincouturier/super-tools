@@ -32,6 +32,8 @@ import { useOfflineImageCache } from "@/hooks/useOfflineImageCache";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskFileName, demoBlur } from "@/lib/demoMask";
 
 function SortableThumb({ id, children }: { id: string; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -87,6 +89,7 @@ const EntityMediaManager = ({
   const uploadMissionMedia = useUploadMissionMedia();
   const reorderMedia = useReorderMedia();
   const { copy } = useCopyToClipboard();
+  const { isDemoMode } = useDemoMode();
 
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
@@ -340,7 +343,7 @@ const EntityMediaManager = ({
 
   const handleDelete = async (e: React.MouseEvent, item: MediaItem) => {
     e.stopPropagation();
-    if (!confirm(`Supprimer ${item.file_name} ?`)) return;
+    if (!confirm(`Supprimer ${isDemoMode ? maskFileName(item.file_name) : item.file_name} ?`)) return;
 
     try {
       if (item.file_type !== "video_link") {
@@ -443,7 +446,7 @@ const EntityMediaManager = ({
     renameMedia.mutate(
       { id: item.id, file_name: finalName },
       {
-        onSuccess: () => toast.success(`Renommé en "${finalName}"`),
+        onSuccess: () => toast.success(`Renommé en "${isDemoMode ? maskFileName(finalName) : finalName}"`),
         onError: () => toast.error("Erreur lors du renommage"),
       }
     );
@@ -660,7 +663,7 @@ const EntityMediaManager = ({
                       {item.file_type === "image" ? (
                         <img
                           src={displayUrl(item)}
-                          alt={item.file_name}
+                          alt={isDemoMode ? maskFileName(item.file_name) : item.file_name}
                           className="w-full h-full object-cover will-change-transform"
                           loading="lazy"
                         />
@@ -668,7 +671,7 @@ const EntityMediaManager = ({
                         <div className="p-3 space-y-2">
                           <div className="flex items-center gap-2">
                             <FileAudio className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <span className="text-sm font-medium truncate">{item.file_name}</span>
+                            <span className="text-sm font-medium truncate">{isDemoMode ? maskFileName(item.file_name) : item.file_name}</span>
                             <div className="ml-auto flex items-center gap-1">
                               {!item.transcript && (
                                 <Tooltip>
@@ -714,7 +717,7 @@ const EntityMediaManager = ({
                                   Copier
                                 </Button>
                               </div>
-                              <div className="p-2 text-sm text-muted-foreground whitespace-pre-wrap max-h-32 overflow-y-auto">
+                              <div className="p-2 text-sm text-muted-foreground whitespace-pre-wrap max-h-32 overflow-y-auto" style={demoBlur(isDemoMode)}>
                                 {item.transcript}
                               </div>
                             </div>
@@ -730,7 +733,7 @@ const EntityMediaManager = ({
                         <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-muted p-2 text-center">
                           <FileText className="h-8 w-8 text-muted-foreground" />
                           <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2 break-all">
-                            {item.file_name}
+                            {isDemoMode ? maskFileName(item.file_name) : item.file_name}
                           </span>
                         </div>
                       ) : (
@@ -842,7 +845,7 @@ const EntityMediaManager = ({
                           </Button>
                         </div>
                         <p className="w-full text-center text-white text-[11px] leading-tight truncate px-1 drop-shadow">
-                          {item.file_name}
+                          {isDemoMode ? maskFileName(item.file_name) : item.file_name}
                         </p>
                       </div>
                       )}

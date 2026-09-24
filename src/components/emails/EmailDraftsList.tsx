@@ -205,7 +205,7 @@ function DraftCard({
                   >
                     <Briefcase className="h-3 w-3" />
                     <span className="truncate max-w-[180px]">
-                      {links?.missionTitle || `Mission #${draft.mission_id.slice(0, 8)}`}
+                      {(isDemoMode ? maskText(links?.missionTitle) : links?.missionTitle) || `Mission #${draft.mission_id.slice(0, 8)}`}
                     </span>
                     <ExternalLink className="h-2.5 w-2.5" />
                   </a>
@@ -218,7 +218,7 @@ function DraftCard({
                     >
                       <Target className="h-3 w-3" />
                       <span className="truncate max-w-[180px]">
-                        {links.opportunityTitle || "Opportunité"}
+                        {(isDemoMode ? maskText(links.opportunityTitle) : links.opportunityTitle) || "Opportunité"}
                       </span>
                       <ExternalLink className="h-2.5 w-2.5" />
                     </a>
@@ -247,11 +247,11 @@ function DraftCard({
             <div className="space-y-2 border rounded p-3 bg-muted/10">
               <div>
                 <Label className="text-xs">Objet</Label>
-                <Input value={editSubject} onChange={(e) => setEditSubject(e.target.value)} className="text-sm" />
+                <Input value={editSubject} onChange={(e) => setEditSubject(e.target.value)} className="text-sm" style={demoBlur(isDemoMode)} />
               </div>
               <div>
                 <Label className="text-xs">Contenu HTML</Label>
-                <Textarea value={editHtml} onChange={(e) => setEditHtml(e.target.value)} rows={10} className="text-xs font-mono" />
+                <Textarea value={editHtml} onChange={(e) => setEditHtml(e.target.value)} rows={10} className="text-xs font-mono" style={demoBlur(isDemoMode)} />
               </div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleSaveEdit} disabled={isMutating} className="gap-1 text-xs">

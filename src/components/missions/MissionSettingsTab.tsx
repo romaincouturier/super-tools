@@ -26,7 +26,7 @@ import MissionContacts, { type ContactSuggestion } from "./MissionContacts";
 import { useMissionActivities } from "@/hooks/useMissions";
 import { MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskText, maskAmount } from "@/lib/demoMask";
+import { maskText, maskAmount, demoBlur } from "@/lib/demoMask";
 
 const colorOptions = [
   "#6b7280", // gray
@@ -153,13 +153,14 @@ const MissionSettingsTab = ({
         <Label>Titre</Label>
         <div className="flex items-center gap-2">
           <EmojiPickerButton emoji={missionEmoji} onEmojiChange={setMissionEmoji} size="md" />
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} className="flex-1" />
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} className="flex-1" style={demoBlur(isDemoMode)} />
         </div>
       </div>
 
       {/* Description */}
       <div>
         <Label>Description</Label>
+        <div style={demoBlur(isDemoMode)}>
         <VoiceTextarea
           value={description}
           onValueChange={setDescription}
@@ -167,6 +168,7 @@ const MissionSettingsTab = ({
           rows={6}
           placeholder="Description de la mission..."
         />
+        </div>
       </div>
 
       {/* Client info */}

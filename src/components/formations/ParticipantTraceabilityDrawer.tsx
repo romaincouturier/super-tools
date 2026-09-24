@@ -9,6 +9,8 @@ import { Mail, FileText, ClipboardCheck, ExternalLink, ChevronDown, ChevronUp, U
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, demoBlur } from "@/lib/demoMask";
 
 interface ParticipantTraceabilityDrawerProps {
   open: boolean;
@@ -96,6 +98,7 @@ const ParticipantTraceabilityDrawer = ({
   trainingName,
   participantAddedAt,
 }: ParticipantTraceabilityDrawerProps) => {
+  const { isDemoMode } = useDemoMode();
   const [emails, setEmails] = useState<SentEmail[]>([]);
   const [needsSurvey, setNeedsSurvey] = useState<NeedsSurvey | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationData | null>(null);
@@ -112,7 +115,7 @@ const ParticipantTraceabilityDrawer = ({
       if (error || !data?.success) {
         throw new Error(error?.message || data?.error || "Erreur lors du renvoi");
       }
-      toast.success(`Email renvoyé à ${participantEmail}`);
+      toast.success(`Email renvoyé à ${isDemoMode ? maskEmail(participantEmail) : participantEmail}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Échec du renvoi");
     } finally {
@@ -269,7 +272,7 @@ const ParticipantTraceabilityDrawer = ({
                                 )}
                                 {email.cc_emails && email.cc_emails.length > 0 && (
                                   <span className="text-[10px] text-muted-foreground">
-                                    CC: {email.cc_emails.join(", ")}
+                                    CC: {(isDemoMode ? email.cc_emails.map(maskEmail) : email.cc_emails).join(", ")}
                                   </span>
                                 )}
                               </div>
@@ -300,6 +303,7 @@ const ParticipantTraceabilityDrawer = ({
                               </div>
                               <div
                                 className="prose prose-sm max-w-none text-sm [&_img]:max-w-full [&_table]:text-xs"
+                                style={demoBlur(isDemoMode)}
                                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.html_content || "", { ADD_ATTR: ["target"] }) }}
                               />
                             </div>
@@ -439,7 +443,7 @@ const ParticipantTraceabilityDrawer = ({
                         {evaluation.objectifs_evaluation && (
                           <div>
                             <p className="text-xs font-medium text-muted-foreground mb-1">Évaluation des objectifs</p>
-                            <pre className="text-sm bg-muted/50 rounded p-3 whitespace-pre-wrap">
+                            <pre className="text-sm bg-muted/50 rounded p-3 whitespace-pre-wrap" style={demoBlur(isDemoMode)}>
                               {typeof evaluation.objectifs_evaluation === "string"
                                 ? evaluation.objectifs_evaluation
                                 : JSON.stringify(evaluation.objectifs_evaluation, null, 2)}
@@ -459,11 +463,14 @@ const ParticipantTraceabilityDrawer = ({
   );
 };
 
-const FieldBlock = ({ label, value }: { label: string; value: string }) => (
-  <div>
-    <p className="text-xs font-medium text-muted-foreground mb-0.5">{label}</p>
-    <p className="text-sm whitespace-pre-wrap">{value}</p>
-  </div>
-);
+const FieldBlock = ({ label, value }: { label: string; value: string }) => {
+  const { isDemoMode } = useDemoMode();
+  return (
+    <div>
+      <p className="text-xs font-medium text-muted-foreground mb-0.5">{label}</p>
+      <p className="text-sm whitespace-pre-wrap" style={demoBlur(isDemoMode)}>{value}</p>
+    </div>
+  );
+};
 
 export default ParticipantTraceabilityDrawer;

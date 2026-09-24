@@ -4,6 +4,8 @@ import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react
 import { useState, useRef, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useResolvedStorageUrl } from "@/hooks/useResolvedStorageUrl";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskFileName } from "@/lib/demoMask";
 
 interface MediaLightboxProps {
   item: MediaItem;
@@ -23,6 +25,7 @@ const slideVariants = {
 
 const MediaLightbox = ({ item, items, onClose, onNavigate, autoFullscreen }: MediaLightboxProps) => {
   const mediaUrl = useResolvedStorageUrl(item.file_url);
+  const { isDemoMode } = useDemoMode();
   const currentIndex = items.findIndex((i) => i.id === item.id);
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < items.length - 1;
@@ -157,7 +160,7 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, autoFullscreen }: Med
             {item.file_type === "image" ? (
               <img
                 src={mediaUrl ?? undefined}
-                alt={item.file_name}
+                alt={isDemoMode ? maskFileName(item.file_name) : item.file_name}
                 className="pointer-events-auto w-full h-full object-contain rounded"
                 onClick={(e) => e.stopPropagation()}
               />

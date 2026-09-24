@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { toastError } from "@/lib/toastError";
 import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskFileName } from "@/lib/demoMask";
 import {
   fetchAdminDocuments,
   fetchAdminDocumentYears,
@@ -130,7 +131,7 @@ export default function AdminArchives() {
           await uploadAdminDocument(file);
           uploaded++;
         } catch (err) {
-          toastError(toast, err instanceof Error ? err : `Échec upload : ${file.name}`);
+          toastError(toast, err instanceof Error ? err : `Échec upload : ${isDemoMode ? maskFileName(file.name) : file.name}`);
         } finally {
           setUploadingCount((c) => c - 1);
         }
@@ -141,7 +142,7 @@ export default function AdminArchives() {
         toast({ title: `${uploaded} document${uploaded > 1 ? "s" : ""} ajouté${uploaded > 1 ? "s" : ""}`, description: "Analyse en cours…" });
       }
     },
-    [toast, queryClient],
+    [toast, queryClient, isDemoMode],
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -378,7 +379,7 @@ export default function AdminArchives() {
                       onClick={() => handleOpenDocument(doc)}
                       className="text-sm font-medium text-primary hover:underline truncate block max-w-full text-left"
                     >
-                      {doc.file_name}
+                      {isDemoMode ? maskFileName(doc.file_name) : doc.file_name}
                     </button>
                     {doc.analysis_status === "done" ? (
                       <>
@@ -430,7 +431,7 @@ export default function AdminArchives() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Supprimer ce document ?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            &quot;{doc.file_name}&quot; sera supprimé définitivement.
+                            &quot;{isDemoMode ? maskFileName(doc.file_name) : doc.file_name}&quot; sera supprimé définitivement.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

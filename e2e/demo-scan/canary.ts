@@ -46,7 +46,7 @@ const CLIENT_TITLE_TABLES = new Set(["missions", "crm_cards"]);
 function canaryString(table: string, col: string): string | null {
   if (TEAM_TABLES.has(table) || CATALOG_TABLES.has(table) || TEAM_COLUMNS.has(`${table}.${col}`)) return null;
   const c = col.toLowerCase();
-  if (/email/.test(c)) return "zqx.contact@zqx-client.fr";
+  if (/email/.test(c) && !/(email_type|email_template|email_kind)$/.test(c)) return "zqx.contact@zqx-client.fr";
   if (/(^|_)(first_name|prenom)$/.test(c)) return "Zqxprenom";
   if (/(^|_)(last_name|nom)$/.test(c)) return "Zqxnom";
   if (/(full_name|contact_name|customer_name|respondent_name|stakeholder_name|sponsor_name|author_display_name)$/.test(c))

@@ -62,6 +62,8 @@ import CardDetailDialogs from "./card-detail/CardDetailDialogs";
 import { NewOpportunityDialog } from "./NewOpportunityDialog";
 import CreateCalendarEventDialog from "./CreateCalendarEventDialog";
 import type { CardDetailState, CardDetailHandlers } from "./card-detail/types";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur } from "@/lib/demoMask";
 
 interface CardDetailDrawerProps {
   card: CrmCard | null;
@@ -82,6 +84,7 @@ const CardDetailDrawer = ({
 }: CardDetailDrawerProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const { copy } = useCopyToClipboard();
   const { confirm, ConfirmDialog } = useConfirm();
   const navigate = useNavigate();
@@ -846,6 +849,7 @@ const CardDetailDrawer = ({
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              style={demoBlur(isDemoMode)}
               className="flex-1 min-w-0 bg-transparent font-bold text-lg border-none outline-none focus:outline-none"
             />
           </div>
