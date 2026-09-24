@@ -38,3 +38,6 @@ coverage/
 test-results/
 playwright-report/
 dist-demo-scan
+.bmad-loop/runs/
+.bmad-loop/cache/
+_bmad/render/
