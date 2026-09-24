@@ -10,7 +10,7 @@ import { useSirenLookup } from "@/hooks/useQuotes";
 import { supabase } from "@/integrations/supabase/client";
 import type { CrmCard } from "@/types/crm";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskText, maskEmail, maskAddress, maskSiren } from "@/lib/demoMask";
+import { demoBlur } from "@/lib/demoMask";
 
 export interface ClientData {
   company: string;
@@ -99,6 +99,7 @@ export default function Step0ClientValidation({ crmCard, onValidate, initialClie
                 onChange={(e) => setSiren(e.target.value)}
                 placeholder="123 456 789"
                 maxLength={11}
+                style={demoBlur(isDemoMode)}
               />
             </div>
             <Button
@@ -140,17 +141,17 @@ export default function Step0ClientValidation({ crmCard, onValidate, initialClie
             <div className="space-y-2 md:col-span-2">
               <Label>Raison sociale *</Label>
               <Input
-                value={isDemoMode ? maskText(client.company) : client.company}
+                value={client.company}
                 onChange={(e) => set("company", e.target.value)}
-                readOnly={isDemoMode}
+                style={demoBlur(isDemoMode)}
               />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>Adresse *</Label>
               <Input
-                value={isDemoMode ? maskAddress(client.address) : client.address}
+                value={client.address}
                 onChange={(e) => set("address", e.target.value)}
-                readOnly={isDemoMode}
+                style={demoBlur(isDemoMode)}
               />
             </div>
             <div className="space-y-2">
@@ -158,14 +159,15 @@ export default function Step0ClientValidation({ crmCard, onValidate, initialClie
               <Input
                 value={client.zip}
                 onChange={(e) => set("zip", e.target.value)}
+                style={demoBlur(isDemoMode)}
               />
             </div>
             <div className="space-y-2">
               <Label>Ville *</Label>
               <Input
-                value={isDemoMode ? maskText(client.city) : client.city}
+                value={client.city}
                 onChange={(e) => set("city", e.target.value)}
-                readOnly={isDemoMode}
+                style={demoBlur(isDemoMode)}
               />
             </div>
             <div className="space-y-2">
@@ -173,15 +175,16 @@ export default function Step0ClientValidation({ crmCard, onValidate, initialClie
               <Input
                 value={client.vatNumber}
                 onChange={(e) => set("vatNumber", e.target.value)}
+                style={demoBlur(isDemoMode)}
               />
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
               <Input
                 type="email"
-                value={isDemoMode ? maskEmail(client.email) : client.email}
+                value={client.email}
                 onChange={(e) => set("email", e.target.value)}
-                readOnly={isDemoMode}
+                style={demoBlur(isDemoMode)}
               />
             </div>
           </div>

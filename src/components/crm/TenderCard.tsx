@@ -25,7 +25,7 @@ import { useDceReviewFlag } from "@/hooks/crm/useDceReviewFlag";
 import { useTenderSetDeadline } from "@/hooks/crm/useTenderOpportunities";
 import { tenderNoGoReasonConfig, tenderSourceConfig, type TenderWithContext } from "@/types/tenders";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskAmount } from "@/lib/demoMask";
+import { maskAmount, maskText } from "@/lib/demoMask";
 
 interface TenderCardProps {
   tender: TenderWithContext;
@@ -128,7 +128,7 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: 
             </button>
             <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
               <Building2 className="h-3.5 w-3.5 shrink-0" />
-              {tender.acheteur || "Acheteur non précisé"}
+              {(isDemoMode ? maskText(tender.acheteur) : tender.acheteur) || "Acheteur non précisé"}
               {d.ville ? ` — ${d.ville}` : ""}
             </p>
           </div>
@@ -144,7 +144,7 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: 
           <div className="flex items-start gap-1.5 text-sm rounded-md bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
             <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600" />
             <span>
-              Titulaire sortant : <strong>{d.titulaire}</strong>
+              Titulaire sortant : <strong>{isDemoMode ? maskText(d.titulaire) : d.titulaire}</strong>
             </span>
           </div>
         )}
@@ -187,7 +187,7 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: 
             <p className="font-medium text-foreground">Attributions passées de cet acheteur</p>
             {tender.buyer_awards.map((a) => (
               <p key={a.id} className="line-clamp-1">
-                {a.titulaire}
+                {isDemoMode ? maskText(a.titulaire) : a.titulaire}
                 {a.montant != null ? (isDemoMode ? ` — ${maskAmount(a.montant)}` : ` — ${a.montant.toLocaleString("fr-FR")} €`) : ""}
                 {a.dateparution
                   ? ` (${new Date(a.dateparution).toLocaleDateString("fr-FR")})`

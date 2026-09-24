@@ -36,6 +36,8 @@ import { useAutoSaveForm, type AutoSaveFormValues } from "@/hooks/useAutoSaveFor
 import { useContentCardData } from "@/hooks/useContentCardData";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskFileName } from "@/lib/demoMask";
 
 type AiActionType = "reformulate" | "adapt_blog" | "adapt_linkedin" | "adapt_instagram";
 
@@ -70,6 +72,7 @@ const ContentCardDialog = ({
   const [imageUrl, setImageUrl] = useState("");
   const [pdfUrl, setPdfUrl] = useState("");
   const [pdfName, setPdfName] = useState("");
+  const { isDemoMode } = useDemoMode();
   const [tags, setTags] = useState<string[]>([]);
   const [cardType, setCardType] = useState<ContentCardType>("article");
   const [emoji, setEmoji] = useState<string | null>(null);
@@ -585,7 +588,7 @@ const ContentCardDialog = ({
                     rel="noopener noreferrer"
                     className="flex-1 min-w-0 text-sm font-medium truncate hover:underline"
                   >
-                    {pdfName || "Document.pdf"}
+                    {(isDemoMode ? maskFileName(pdfName) : pdfName) || "Document.pdf"}
                   </a>
                   <Button
                     variant="ghost"

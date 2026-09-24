@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur } from "@/lib/demoMask";
 
 interface ClientInfoSectionProps {
   siren: string;
@@ -62,6 +64,7 @@ export default function ClientInfoSection({
   nomCommanditaire,
   setNomCommanditaire,
 }: ClientInfoSectionProps) {
+  const { isDemoMode } = useDemoMode();
   const googleSirenSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(`SIREN ${nomClient.trim()}`)}`;
 
   return (
@@ -81,6 +84,7 @@ export default function ClientInfoSection({
             value={siren}
             onChange={(e) => setSiren(e.target.value.replace(/\D/g, "").slice(0, 9))}
             className="font-mono"
+            style={demoBlur(isDemoMode)}
           />
         </div>
         <Button type="button" variant="secondary" onClick={onSearchSiren} disabled={searchingSiren || siren.length !== 9}>
@@ -92,7 +96,7 @@ export default function ClientInfoSection({
       <div className="space-y-2">
         <Label htmlFor="nomClient">Nom du client *</Label>
         <div className="flex gap-2">
-          <Input id="nomClient" placeholder="Nom de l'entreprise ou du client" value={nomClient} onChange={(e) => setNomClient(e.target.value)} required className="flex-1" />
+          <Input id="nomClient" placeholder="Nom de l'entreprise ou du client" value={nomClient} onChange={(e) => setNomClient(e.target.value)} required className="flex-1" style={demoBlur(isDemoMode)} />
           {nomClient.trim().length >= 2 ? (
             <a
               href={googleSirenSearchUrl}
@@ -114,17 +118,17 @@ export default function ClientInfoSection({
 
       <div className="space-y-2">
         <Label htmlFor="adresseClient">Adresse du client *</Label>
-        <Input id="adresseClient" placeholder="Numéro et nom de rue" value={adresseClient} onChange={(e) => setAdresseClient(e.target.value)} required />
+        <Input id="adresseClient" placeholder="Numéro et nom de rue" value={adresseClient} onChange={(e) => setAdresseClient(e.target.value)} required style={demoBlur(isDemoMode)} />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="space-y-2">
           <Label htmlFor="codePostalClient">Code postal *</Label>
-          <Input id="codePostalClient" placeholder="69000" value={codePostalClient} onChange={(e) => setCodePostalClient(e.target.value)} required />
+          <Input id="codePostalClient" placeholder="69000" value={codePostalClient} onChange={(e) => setCodePostalClient(e.target.value)} required style={demoBlur(isDemoMode)} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="villeClient">Ville *</Label>
-          <Input id="villeClient" placeholder="Lyon" value={villeClient} onChange={(e) => setVilleClient(e.target.value)} required />
+          <Input id="villeClient" placeholder="Lyon" value={villeClient} onChange={(e) => setVilleClient(e.target.value)} required style={demoBlur(isDemoMode)} />
         </div>
         <div className="space-y-2 col-span-2">
           <Label>Pays *</Label>
@@ -172,6 +176,7 @@ export default function ClientInfoSection({
             onChange={(e) => setPrenomCommanditaire(e.target.value)}
             required
             className="flex-1"
+            style={demoBlur(isDemoMode)}
           />
           <Input
             id="nomCommanditaire"
@@ -180,6 +185,7 @@ export default function ClientInfoSection({
             onChange={(e) => setNomCommanditaire(e.target.value)}
             required
             className="flex-1"
+            style={demoBlur(isDemoMode)}
           />
           <Input
             id="emailCommanditaire"
@@ -189,6 +195,7 @@ export default function ClientInfoSection({
             onChange={(e) => setEmailCommanditaire(e.target.value)}
             required
             className="flex-1"
+            style={demoBlur(isDemoMode)}
           />
         </div>
       </div>

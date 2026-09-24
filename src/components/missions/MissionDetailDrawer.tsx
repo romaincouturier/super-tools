@@ -31,6 +31,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMissionContacts } from "@/hooks/useMissions";
 import CreateCalendarEventDialog from "@/components/crm/CreateCalendarEventDialog";
 import type { ContactSuggestion } from "./MissionContacts";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText, demoBlur } from "@/lib/demoMask";
 
 interface MissionDetailDrawerProps {
   mission: Mission | null;
@@ -53,6 +55,7 @@ const MissionDetailDrawer = ({
   const deleteMission = useDeleteMission();
   const createActivity = useCreateMissionActivity();
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const navigate = useNavigate();
   const { copied, copy } = useCopyToClipboard();
   const { confirm, ConfirmDialog } = useConfirm();
@@ -327,6 +330,7 @@ const MissionDetailDrawer = ({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Titre de la mission"
             aria-label="Titre de la mission"
+            style={demoBlur(isDemoMode)}
             className="flex-1 min-w-0 bg-transparent font-bold text-lg border-none outline-none focus:outline-none"
           />
         </div>
@@ -343,7 +347,7 @@ const MissionDetailDrawer = ({
             className="mt-3 flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 hover:bg-blue-100 transition-colors w-fit"
           >
             <Briefcase className="h-4 w-4" />
-            Opportunité : {linkedCard.title}
+            Opportunité : {isDemoMode ? maskText(linkedCard.title) : linkedCard.title}
             <ExternalLink className="h-3 w-3" />
           </a>
         )}

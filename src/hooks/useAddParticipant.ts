@@ -1,6 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 import { supabase } from "@/integrations/supabase/client";
 import type { FormationFormula } from "@/types/training";
 import type { AddParticipantResponse } from "@/types/addParticipant";
@@ -49,6 +51,7 @@ export function useAddParticipant({
   onScheduledEmailsRefresh,
 }: UseAddParticipantOptions) {
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
 
   const mutation = useMutation({
     mutationFn: async (params: AddParticipantParams) => {
@@ -162,7 +165,7 @@ export function useAddParticipant({
 
       toast({
         title: "Participant ajouté",
-        description: `${result.email} a été ajouté. ${statusMessage}`,
+        description: `${isDemoMode ? maskEmail(result.email) : result.email} a été ajouté. ${statusMessage}`,
         ...(isWarn && { variant: "default" as const, duration: 8000 }),
       });
 

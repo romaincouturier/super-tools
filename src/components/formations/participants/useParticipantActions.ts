@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName } from "@/lib/demoMask";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { logActivity } from "@/services/activityLog";
@@ -36,6 +38,11 @@ export function useParticipantActions({
   onParticipantUpdated,
 }: UseParticipantActionsParams) {
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
+  // Destinataire affiché dans les toasts : masqué en mode démo, jamais la valeur envoyée.
+  const shownEmail = (email: string | null | undefined) => (isDemoMode ? maskEmail(email) : email ?? "");
+  const shownWho = (p: { first_name?: string | null; email: string }) =>
+    p.first_name ? (isDemoMode ? maskName(p.first_name) : p.first_name) : shownEmail(p.email);
   const { copy } = useCopyToClipboard();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
@@ -96,7 +103,7 @@ export function useParticipantActions({
 
       toast({
         title: "Participant supprimé",
-        description: `${participant.email} a été retiré de la formation.`,
+        description: `${shownEmail(participant.email)} a été retiré de la formation.`,
       });
 
       onParticipantUpdated();
@@ -119,7 +126,7 @@ export function useParticipantActions({
       if (result !== null) {
         toast({
           title: "Questionnaire envoyé",
-          description: `Le questionnaire a été envoyé à ${participant.email}.`,
+          description: `Le questionnaire a été envoyé à ${shownEmail(participant.email)}.`,
         });
         onParticipantUpdated();
       }
@@ -135,7 +142,7 @@ export function useParticipantActions({
       if (result !== null) {
         toast({
           title: "Relance envoyée",
-          description: `Une relance a été envoyée à ${participant.email}.`,
+          description: `Une relance a été envoyée à ${shownEmail(participant.email)}.`,
         });
         onParticipantUpdated();
       }
@@ -154,7 +161,7 @@ export function useParticipantActions({
       if (result !== null) {
         toast({
           title: "Email d'accès envoyé",
-          description: `Un email d'accès à la formation a été renvoyé à ${participant.email}.`,
+          description: `Un email d'accès à la formation a été renvoyé à ${shownEmail(participant.email)}.`,
         });
       }
     } finally {
@@ -169,7 +176,7 @@ export function useParticipantActions({
       if (result !== null) {
         toast({
           title: "Convocation renvoyée",
-          description: `La convocation a été renvoyée à ${participant.email}.`,
+          description: `La convocation a été renvoyée à ${shownEmail(participant.email)}.`,
         });
         onParticipantUpdated();
       }

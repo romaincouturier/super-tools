@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName } from "@/lib/demoMask";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { downloadFile } from "@/lib/file-utils";
 import type { Participant } from "./types";
@@ -28,6 +30,11 @@ export function useDocumentActions({
   onParticipantUpdated,
 }: UseDocumentActionsParams) {
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
+  // Destinataire affiché dans les toasts : masqué en mode démo, jamais la valeur envoyée.
+  const shownEmail = (email: string | null | undefined) => (isDemoMode ? maskEmail(email) : email ?? "");
+  const shownWho = (p: { first_name?: string | null; email: string }) =>
+    p.first_name ? (isDemoMode ? maskName(p.first_name) : p.first_name) : shownEmail(p.email);
   const [generatingConventionId, setGeneratingConventionId] = useState<string | null>(null);
   const [downloadingConventionId, setDownloadingConventionId] = useState<string | null>(null);
   const [conventionRemindingId, setConventionRemindingId] = useState<string | null>(null);
@@ -85,7 +92,7 @@ export function useDocumentActions({
         recipientName,
       });
       if (result !== null) {
-        toast({ title: "Certificat envoyé", description: `Le certificat a été envoyé à ${recipientEmail}.` });
+        toast({ title: "Certificat envoyé", description: `Le certificat a été envoyé à ${shownEmail(recipientEmail)}.` });
       }
     } finally {
       setSendingCertId(null);
@@ -156,7 +163,7 @@ export function useDocumentActions({
 
       toast({
         title: "Attestation générée",
-        description: `L'attestation a été générée et envoyée à ${participant.email}.`,
+        description: `L'attestation a été générée et envoyée à ${shownEmail(participant.email)}.`,
       });
       onParticipantUpdated();
     } catch (error: unknown) {
@@ -182,7 +189,7 @@ export function useDocumentActions({
     if (hasCompany && !hasAddress) {
       toast({
         title: "Adresse manquante",
-        description: `Merci de renseigner l'adresse de la société de ${participant.first_name || participant.email} avant de générer la convention.`,
+        description: `Merci de renseigner l'adresse de la société de ${shownWho(participant)} avant de générer la convention.`,
         variant: "destructive",
       });
       return;
@@ -216,7 +223,7 @@ export function useDocumentActions({
               title: "Convention générée et envoyée",
               description: count > 1
                 ? `Convention regroupant ${count} participants de ${data?.clientName || participant.company || "la même entreprise"} envoyée à ${participant.sponsor_email}.`
-                : `La convention pour ${participant.first_name || participant.email} a été envoyée à ${participant.sponsor_email}.`,
+                : `La convention pour ${shownWho(participant)} a été envoyée à ${participant.sponsor_email}.`,
             });
 
           } catch (sendErr: unknown) {
@@ -230,7 +237,7 @@ export function useDocumentActions({
         } else {
           toast({
             title: "Convention générée",
-            description: `La convention pour ${participant.first_name || participant.email} a été générée. Aucun commanditaire défini pour l'envoi.`,
+            description: `La convention pour ${shownWho(participant)} a été générée. Aucun commanditaire défini pour l'envoi.`,
           });
         }
       }
@@ -254,7 +261,7 @@ export function useDocumentActions({
       if (result !== null) {
         toast({
           title: "Relance envoyée",
-          description: `Une relance convention a été envoyée pour ${participant.first_name || participant.email}.`,
+          description: `Une relance convention a été envoyée pour ${shownWho(participant)}.`,
         });
       }
     } finally {

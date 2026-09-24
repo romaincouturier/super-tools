@@ -24,7 +24,7 @@ import { extractTenderDetail } from "@/lib/tenderDetail";
 import { TenderAiPanel } from "@/components/crm/TenderAiPanel";
 import { tenderSourceConfig, type TenderWithContext } from "@/types/tenders";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskAmount, maskEmail, maskPhone } from "@/lib/demoMask";
+import { maskAmount, maskEmail, maskPhone, maskText, demoBlur } from "@/lib/demoMask";
 
 interface Props {
   tender: TenderWithContext | null;
@@ -63,7 +63,7 @@ export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, d
           <DialogTitle className="leading-snug pr-6">{tender.objet || "(sans objet)"}</DialogTitle>
           <DialogDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <Building2 className="h-3.5 w-3.5" />
-            {tender.acheteur || "Acheteur non précisé"}
+            {(isDemoMode ? maskText(tender.acheteur) : tender.acheteur) || "Acheteur non précisé"}
             <Badge variant="secondary" className="text-[10px]">
               {tenderSourceConfig[tender.source] ?? tender.source}
             </Badge>
@@ -195,6 +195,7 @@ export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, d
                 <Separator />
                 <div>
                   <p className="text-sm font-medium mb-1.5">Description de l'avis</p>
+                  <div style={demoBlur(isDemoMode)}>
                   {detail.descriptions.map((text, i) => (
                     <p
                       key={i}
@@ -203,6 +204,7 @@ export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, d
                       {text}
                     </p>
                   ))}
+                  </div>
                 </div>
               </>
             )}

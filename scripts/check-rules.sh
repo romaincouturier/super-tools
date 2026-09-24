@@ -691,6 +691,13 @@ check "067" "La skill sync-and-pr prescrit la renumerotation des regles apres re
 check "068" "Formulaires d'edition internes : champs identifiants floutes en mode demo" \
   "for f in \$(grep -rlE 'value=\\{[^}]*\\b(firstName|lastName|email|company|phone|sponsorEmail|sponsorFirstName|sponsorLastName|companyAddress|clientName|clientAddress|client_name|sponsor_email)\\b' src/components src/pages --include='*.tsx' | grep -E '/Edit[A-Z][^/]*\\.tsx\$|/edit-[^/]+/|FormFields\\.tsx\$|/[A-Za-z]+Edit\\.tsx\$'); do grep -qE 'demoBlur|// demo-safe' \"\$f\" || echo \"VIOLATION [068]: \$f\"; done"
 
+# [070] Mode demo — scan dynamique de tous les ecrans internes.
+check "070" "Scan dynamique du mode demo present, routes lues dans App.tsx, hors smoke CI" \
+  "test -f e2e/demo-scan/demo-scan.spec.ts || echo 'VIOLATION [070]: e2e/demo-scan/demo-scan.spec.ts absent'; \
+   grep -q 'RequireStaff' e2e/demo-scan/routes.ts || echo 'VIOLATION [070]: les routes ne sont plus lues dans App.tsx'; \
+   grep -q 'demo-scan' playwright.config.ts || echo 'VIOLATION [070]: le scan n est plus exclu des smoke tests'; \
+   grep -q 'scan:demo' package.json || echo 'VIOLATION [070]: script npm scan:demo absent'"
+
 # [069] Bucket prive — useResolvedStorageUrl ne rend jamais l'URL publique avant signature.
 check "069" "useResolvedStorageUrl ne rend pas l'URL d'un bucket prive avant sa signature" \
   "grep -q 'isPrivateStorageUrl' src/hooks/useResolvedStorageUrl.ts \

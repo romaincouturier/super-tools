@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { useDistanceFollowUp } from "@/hooks/useDistanceFollowUp";
 import { FOLLOW_UP_LABELS, type FollowUpStatus } from "@/lib/distanceFollowUp";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 
 /**
  * Effectivité du suivi à distance (indicateur 19 du référentiel qualité).
@@ -32,6 +34,7 @@ const SUMMARY_ORDER: FollowUpStatus[] = [
 export function DistanceFollowUpTab({ courseId }: { courseId: string }) {
   const { results, summary, mandatoryCount, loading } = useDistanceFollowUp(courseId);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const { isDemoMode } = useDemoMode();
 
   if (loading) {
     return <div className="flex justify-center py-12"><Spinner size="md" /></div>;
@@ -79,7 +82,7 @@ export function DistanceFollowUpTab({ courseId }: { courseId: string }) {
                     {isOpen
                       ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
                       : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
-                    <span className="flex-1 truncate text-sm">{result.learnerEmail}</span>
+                    <span className="flex-1 truncate text-sm">{isDemoMode ? maskEmail(result.learnerEmail) : result.learnerEmail}</span>
                     <span className="hidden sm:inline text-xs text-muted-foreground tabular-nums">
                       {result.completed}/{result.expected} modules · {result.activities} activité
                       {result.activities > 1 ? "s" : ""}

@@ -36,8 +36,8 @@ async function fetchAll(table: NameTable, columns: string): Promise<Record<strin
 
 async function fetchClientNames(): Promise<RegExp | null> {
   const [crm, missions, missionContacts, trainings, participants, quotes, testimonials, extra] = await Promise.all([
-    fetchAll("crm_cards", "company, first_name, last_name"),
-    fetchAll("missions", "client_name"),
+    fetchAll("crm_cards", "company, first_name, last_name, title"),
+    fetchAll("missions", "client_name, title"),
     fetchAll("mission_contacts", "first_name, last_name"),
     fetchAll("trainings", "client_name"),
     fetchAll("training_participants", "company"),
@@ -50,11 +50,11 @@ async function fetchClientNames(): Promise<RegExp | null> {
     if (first && last) names.push(`${first} ${last}`, last);
   };
   for (const c of crm) {
-    names.push(c.company);
+    names.push(c.company, c.title);
     person(c.first_name, c.last_name);
   }
   for (const c of missionContacts) person(c.first_name, c.last_name);
-  for (const m of missions) names.push(m.client_name);
+  for (const m of missions) names.push(m.client_name, m.title);
   for (const t of trainings) names.push(t.client_name);
   for (const p of participants) names.push(p.company);
   for (const q of quotes) names.push(q.client_company);
@@ -65,7 +65,7 @@ async function fetchClientNames(): Promise<RegExp | null> {
 
 /**
  * Masque, en mode démo, les noms de clients cités dans un texte libre : clients
- * connus (CRM, missions et contacts, formations et sociétés des participants,
+ * connus et titres des missions et opportunités (CRM, missions et contacts, formations et sociétés des participants,
  * devis, témoignages) et noms ajoutés à la main dans le réglage
  * `demo_masked_names`. SuperTilt reste visible. Rien n'est chargé hors démo.
  *

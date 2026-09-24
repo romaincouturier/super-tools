@@ -18,6 +18,8 @@ import {
 
 import type { DocumentSentInfo, DocumentType } from "./types";
 import SendRecipientDialog from "./SendRecipientDialog";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 
 interface DocumentDeliverySectionProps {
   trainingId: string;
@@ -69,6 +71,7 @@ const DocumentDeliverySection = ({
   const [pendingDocumentType, setPendingDocumentType] = useState<DocumentType | null>(null);
   const [sendToSponsorWithOptions, setSendToSponsorWithOptions] = useState(false);
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const { loading: sendingDocuments, invoke: invokeSendDocs } = useEdgeFunction(
     "send-training-documents",
     { errorMessage: "Impossible d'envoyer les documents." },
@@ -129,7 +132,7 @@ const DocumentDeliverySection = ({
       }
       toast({
         title: "Attestations envoyées",
-        description: `Les attestations ont été générées et envoyées à ${recipientEmail}.`,
+        description: `Les attestations ont été générées et envoyées à ${isDemoMode ? maskEmail(recipientEmail) : recipientEmail}.`,
       });
       onCertificatesGenerated?.();
     } catch (error: unknown) {

@@ -44,6 +44,8 @@ import { useAddParticipant } from "@/hooks/useAddParticipant";
 import { getEmailMode } from "@/lib/emailScheduling";
 import { fetchExistingFinanceurs } from "@/services/participants";
 import { SourceFinancementSelector } from "./FormationFormFields";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur, maskText } from "@/lib/demoMask";
 
 interface AddParticipantDialogProps {
   trainingId: string;
@@ -86,6 +88,8 @@ interface AddParticipantDialogProps {
 const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, isFreeTraining = false, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSponsorPhone, initialSoldPriceHt, initialFormulaId, initialPaymentMode, initialFinanceurSameAsSponsor, initialFinanceurName, initialFinanceurUrl, initialTypeStagiaireBpf, initialSourceFinancementBpf, externalOpen, onExternalOpenChange, trigger, title, description }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const { isDemoMode } = useDemoMode();
+  const blur = demoBlur(isDemoMode);
   const setOpen = (v: boolean) => {
     if (onExternalOpenChange) onExternalOpenChange(v);
     setInternalOpen(v);
@@ -294,6 +298,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                 <Input
                   id="firstName"
                   value={firstName}
+                  style={blur}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder="Jean"
                 />
@@ -303,6 +308,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                 <Input
                   id="lastName"
                   value={lastName}
+                  style={blur}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder="Dupont"
                 />
@@ -315,6 +321,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                 id="email"
                 type="email"
                 value={email}
+                style={blur}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="jean.dupont@example.com"
                 required
@@ -326,6 +333,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
               <Input
                 id="company"
                 value={company}
+                style={blur}
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="ACME Corp"
               />
@@ -337,18 +345,21 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                 <Input
                   id="companyAddress"
                   value={companyAddress}
+                  style={blur}
                   onChange={(e) => setCompanyAddress(e.target.value)}
                   placeholder="12 rue de la République"
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <Input
                     value={companyZip}
+                    style={blur}
                     onChange={(e) => setCompanyZip(e.target.value)}
                     placeholder="Code postal"
                   />
                   <div className="sm:col-span-2">
                     <Input
                       value={companyCity}
+                      style={blur}
                       onChange={(e) => setCompanyCity(e.target.value)}
                       placeholder="Ville"
                     />
@@ -394,6 +405,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                   step="0.01"
                   min="0"
                   value={soldPriceHt}
+                  style={blur}
                   onChange={(e) => setSoldPriceHt(e.target.value)}
                   placeholder="1500.00"
                 />
@@ -449,6 +461,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                         <Input
                           id="sponsorFirstName"
                           value={sponsorFirstName}
+                          style={blur}
                           onChange={(e) => setSponsorFirstName(e.target.value)}
                           placeholder="Marie"
                         />
@@ -458,6 +471,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                         <Input
                           id="sponsorLastName"
                           value={sponsorLastName}
+                          style={blur}
                           onChange={(e) => setSponsorLastName(e.target.value)}
                           placeholder="Martin"
                         />
@@ -470,6 +484,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                           id="sponsorEmail"
                           type="email"
                           value={sponsorEmail}
+                          style={blur}
                           onChange={(e) => setSponsorEmail(e.target.value)}
                           placeholder="marie.martin@example.com"
                         />
@@ -480,6 +495,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                           id="sponsorPhone"
                           type="tel"
                           value={sponsorPhone}
+                          style={blur}
                           onChange={(e) => setSponsorPhone(e.target.value)}
                           placeholder="06 12 34 56 78"
                         />
@@ -514,7 +530,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                             aria-expanded={financeurPopoverOpen}
                             className="w-full justify-between font-normal"
                           >
-                            {financeurName || "Sélectionner ou saisir un financeur..."}
+                            {(isDemoMode ? maskText(financeurName) : financeurName) || "Sélectionner ou saisir un financeur..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
@@ -524,11 +540,12 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                               placeholder="Rechercher ou saisir un financeur..."
                               value={financeurName}
                               onValueChange={setFinanceurName}
+                              style={blur}
                             />
                             <CommandList>
                               <CommandEmpty>
                                 <div className="p-2 text-sm text-muted-foreground">
-                                  Appuyez sur Entrée pour utiliser "{financeurName}"
+                                  Appuyez sur Entrée pour utiliser "{isDemoMode ? maskText(financeurName) : financeurName}"
                                 </div>
                               </CommandEmpty>
                               <CommandGroup>
@@ -547,7 +564,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                                         financeurName === f ? "opacity-100" : "opacity-0"
                                       )}
                                     />
-                                    {f}
+                                    {isDemoMode ? maskText(f) : f}
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
@@ -562,6 +579,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                         id="financeurUrl"
                         type="url"
                         value={financeurUrl}
+                        style={blur}
                         onChange={(e) => setFinanceurUrl(e.target.value)}
                         placeholder="https://..."
                       />

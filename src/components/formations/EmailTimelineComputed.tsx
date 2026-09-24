@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { demoBlur } from "@/lib/demoMask";
+import { maskEmail, maskName } from "@/lib/demoMask";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -606,6 +606,13 @@ function TimelineRow({
   isDemoMode?: boolean;
 }) {
   const Icon = RECIPIENT_ICONS[recipientType] || User;
+  const maskWho = (who: string) => (who.includes("@") ? maskEmail(who) : maskName(who));
+  const displayedRecipient =
+    isDemoMode && (recipientType === "participant" || recipientType === "sponsor") && recipientLabel !== "Commanditaire"
+      ? recipientLabel.startsWith("Commanditaire : ")
+        ? `Commanditaire : ${maskWho(recipientLabel.slice("Commanditaire : ".length))}`
+        : maskWho(recipientLabel)
+      : recipientLabel;
 
   const statusDot =
     status === "sent"
@@ -633,10 +640,7 @@ function TimelineRow({
         </div>
         <div className="flex items-center gap-1.5 text-muted-foreground mt-0.5">
           <Icon className="h-3 w-3 flex-shrink-0" />
-          <span
-            className="truncate"
-            style={demoBlur(isDemoMode && recipientType !== "all")}
-          >{recipientLabel}</span>
+          <span className="truncate">{displayedRecipient}</span>
           <span className="text-muted-foreground/60">•</span>
           <span className="whitespace-nowrap">
             {format(date, "d MMM yyyy", { locale: fr })}

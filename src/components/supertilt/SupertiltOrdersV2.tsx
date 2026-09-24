@@ -541,6 +541,7 @@ function ExpenseDialog({ expense, games, onClose }: { expense: Partial<GameExpen
   );
   const { mutateAsync: upsert, isPending } = useUpsertGameExpense();
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const set = (k: keyof GameExpense, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
 
   // Auto-compute amount_ttc from amount_ht + vat
@@ -589,11 +590,11 @@ function ExpenseDialog({ expense, games, onClose }: { expense: Partial<GameExpen
             </div>
             <div className="space-y-1">
               <Label>Fournisseur</Label>
-              <Input value={form.supplier ?? ""} onChange={(e) => set("supplier", e.target.value)} placeholder="Nom du fournisseur" />
+              <Input value={form.supplier ?? ""} onChange={(e) => set("supplier", e.target.value)} placeholder="Nom du fournisseur" style={demoBlur(isDemoMode)} />
             </div>
             <div className="space-y-1">
               <Label>URL fournisseur</Label>
-              <Input value={form.supplier_url ?? ""} onChange={(e) => set("supplier_url", e.target.value)} placeholder="https://…" />
+              <Input value={form.supplier_url ?? ""} onChange={(e) => set("supplier_url", e.target.value)} placeholder="https://…" style={demoBlur(isDemoMode)} />
             </div>
             <div className="space-y-1">
               <Label>Acheté par</Label>
@@ -605,7 +606,7 @@ function ExpenseDialog({ expense, games, onClose }: { expense: Partial<GameExpen
             </div>
             <div className="space-y-1">
               <Label>Montant HT (€)</Label>
-              <Input type="number" step="0.01" min="0" value={form.amount_ht ?? ""}
+              <Input type="number" step="0.01" min="0" value={form.amount_ht ?? ""} style={demoBlur(isDemoMode)}
                 onChange={(e) => {
                   const ht = parseFloat(e.target.value) || 0;
                   set("amount_ht", ht);
@@ -631,7 +632,7 @@ function ExpenseDialog({ expense, games, onClose }: { expense: Partial<GameExpen
             </div>
             <div className="space-y-1">
               <Label>Montant TTC (€)</Label>
-              <Input type="number" step="0.01" min="0" value={form.amount_ttc ?? ""}
+              <Input type="number" step="0.01" min="0" value={form.amount_ttc ?? ""} style={demoBlur(isDemoMode)}
                 onChange={(e) => set("amount_ttc", parseFloat(e.target.value) || null)}
               />
             </div>
@@ -660,6 +661,8 @@ export function DepensesTab() {
   const [filterGame, setFilterGame] = useState("");
   const exportCsv = useCsvExport();
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
+  const money = (v: number) => (isDemoMode ? maskAmount(v) : EUR(v));
 
   const filtered = (expenses ?? []).filter((e) => !filterGame || e.game_id === filterGame);
   const totalTtc = filtered.reduce((s, e) => s + (e.amount_ttc ?? 0), 0);
@@ -703,8 +706,8 @@ export function DepensesTab() {
 
       {filtered.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Card><CardContent className="p-4"><p className="text-xl font-bold">{EUR(totalTtc)}</p><p className="text-xs text-muted-foreground">Total TTC</p></CardContent></Card>
-          <Card><CardContent className="p-4"><p className="text-xl font-bold">{EUR(totalHt)}</p><p className="text-xs text-muted-foreground">Total HT</p></CardContent></Card>
+          <Card><CardContent className="p-4"><p className="text-xl font-bold">{money(totalTtc)}</p><p className="text-xs text-muted-foreground">Total TTC</p></CardContent></Card>
+          <Card><CardContent className="p-4"><p className="text-xl font-bold">{money(totalHt)}</p><p className="text-xs text-muted-foreground">Total HT</p></CardContent></Card>
           <Card><CardContent className="p-4"><p className="text-xl font-bold">{filtered.length}</p><p className="text-xs text-muted-foreground">Lignes</p></CardContent></Card>
         </div>
       )}
@@ -734,10 +737,10 @@ export function DepensesTab() {
                 <TableCell className="text-sm text-muted-foreground">{e.description ?? "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {e.supplier_url
-                    ? <a href={e.supplier_url} target="_blank" rel="noopener noreferrer" className="underline">{e.supplier ?? e.supplier_url}</a>
-                    : e.supplier ?? "—"}
+                    ? <a href={e.supplier_url} target="_blank" rel="noopener noreferrer" className="underline">{isDemoMode ? maskText(e.supplier ?? e.supplier_url) : e.supplier ?? e.supplier_url}</a>
+                    : e.supplier != null ? (isDemoMode ? maskText(e.supplier) : e.supplier) : "—"}
                 </TableCell>
-                <TableCell className="text-right text-sm font-medium">{e.amount_ttc ? EUR(e.amount_ttc) : "—"}</TableCell>
+                <TableCell className="text-right text-sm font-medium">{e.amount_ttc ? money(e.amount_ttc) : "—"}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <Button variant="ghost" size="icon" onClick={() => setEditing(e)}><Pencil className="h-3.5 w-3.5" /></Button>

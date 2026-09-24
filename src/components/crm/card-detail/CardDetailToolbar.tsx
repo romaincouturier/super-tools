@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useFeatureTracking } from "@/hooks/useFeatureTracking";
 import type { CardDetailState, CardDetailHandlers } from "./types";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount, demoBlur } from "@/lib/demoMask";
 
 interface Props {
   state: CardDetailState;
@@ -28,6 +30,7 @@ interface Props {
 const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
   const { trackFeature } = useFeatureTracking();
   const navigate = useNavigate();
+  const { isDemoMode } = useDemoMode();
   const {
     card: _card, allColumns, columnId, estimatedValue, setEstimatedValue,
     confidenceScore, setConfidenceScore, salesStatus, setShowPricingDialog,
@@ -97,7 +100,9 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
       <Popover>
         <PopoverTrigger asChild>
           <button className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-sm font-medium transition-colors cursor-pointer hover:opacity-80 text-green-700 bg-green-50 border-green-200">
-            {estimatedValue && parseFloat(estimatedValue) > 0
+            {isDemoMode
+              ? maskAmount(estimatedValue || 0)
+              : estimatedValue && parseFloat(estimatedValue) > 0
               ? `${Number(parseFloat(estimatedValue) || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €`
               : "0 €"}
           </button>
@@ -111,6 +116,7 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
             value={estimatedValue}
             onChange={(e) => setEstimatedValue(e.target.value)}
             className="h-8 mt-1"
+            style={demoBlur(isDemoMode)}
             autoFocus
           />
         </PopoverContent>

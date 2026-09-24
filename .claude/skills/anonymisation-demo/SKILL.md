@@ -18,6 +18,7 @@ sans altérer les données ni la logique métier.
 | `src/lib/demoMask.ts` | Les masques. Aucune autre fonction de masquage ne doit exister ailleurs. |
 | `src/components/settings/StaffProfileSettings.tsx` | L'interrupteur, dans Paramètres. |
 | `scripts/check-demo-mask.sh` | Le contrôle. Règle [065], branchée en ratchet dans `scripts/check-rules.sh`. |
+| `npm run scan:demo` (`e2e/demo-scan/`) | Le scan dynamique. Règle [070] : chaque écran interne, ses onglets, menus et modales, rendus en mode démo avec des données canari. |
 
 ## Stratégie de masquage
 
@@ -73,6 +74,25 @@ const { isDemoMode } = useDemoMode();
 
 ### 1. Mesurer l'écart
 
+**D'abord le scan dynamique, il voit ce que le grep ne voit pas.**
+
+```bash
+npm run scan:demo                                   # tous les écrans internes (~1 h, 4 navigateurs)
+DEMO_SCAN_ROUTES=/crm,/formations npm run scan:demo # un sous-ensemble
+```
+
+Le scan construit l'application contre un faux Supabase (rien ne sort de la
+machine, aucune écriture réelle), force le mode démo, visite chaque route de
+`<RequireStaff />` lue dans `src/App.tsx`, clique chaque bouton, onglet, menu
+et déclencheur de modale, puis chaque bouton des modales ouvertes. Les
+données factices portent des marqueurs (`Zqxnom`, `zqx.contact@zqx-client.fr`,
+`987654`…) : un marqueur lu en entier dans le texte visible, une valeur de
+champ non floutée, une infobulle, un toast ou un `confirm()` est une fuite.
+Rapport : `test-results/demo-scan/RAPPORT.md` (écran, état qui a montré la
+fuite, section, texte lu).
+
+Ensuite le contrôle statique, qui alimente le ratchet :
+
 ```bash
 bash scripts/check-demo-mask.sh --count    # total de violations
 bash scripts/check-demo-mask.sh --files    # regroupées par fichier
@@ -125,6 +145,18 @@ Le réflexe qui les attrape : quand tu masques un champ à un endroit, **cherche
 toutes les autres sorties de la même donnée dans le fichier** — toast, `confirm`,
 `title=`, corps d'email prévisualisé, tableau jumeau. Une fuite arrive rarement
 seule.
+
+## Angles morts du scan dynamique
+
+- Écrans que les données factices ne font pas apparaître (liste vide, statut
+  particulier, rôle, fonctionnalité derrière un réglage). Une branche jamais
+  rendue n'est jamais relevée.
+- Au-delà de 60 déclencheurs par écran et 20 par modale (réglables :
+  `DEMO_SCAN_MAX_TRIGGERS`, `DEMO_SCAN_MAX_NESTED`), et au-delà du deuxième
+  niveau d'imbrication.
+- Données non marquées : un titre, une note ou un libellé générique n'est
+  canari que pour `missions.title` et `crm_cards.title`. Le reste se relit.
+- Images, PDF générés, contenu d'iframe.
 
 ## Angles morts connus du contrôle
 
