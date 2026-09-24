@@ -79,9 +79,12 @@ export function useTranscriptsPage({
   qualification,
   page,
   pageSize,
-}: UseTranscriptsPageOptions) {
+  assignment,
+  assignedIds,
+}: UseTranscriptsPageOptions & { assignment?: "" | "assigned" | "unassigned"; assignedIds?: string[] }) {
   return useQuery({
-    queryKey: ["transcripts-page", { search, source, status, trashed, qualification, page, pageSize }],
+    queryKey: ["transcripts-page", { search, source, status, trashed, qualification, page, pageSize, assignment, n: assignedIds?.length }],
+    enabled: !assignment || !!assignedIds,
     queryFn: async () => {
       let q = (supabase as any)
         .from("transcripts")
@@ -97,6 +100,8 @@ export function useTranscriptsPage({
       if (qualification === "none") q = q.is("editorial_qualification", null);
       else if (qualification === "editorial") q = q.eq("editorial_qualification", "pro_exploitable");
       else if (qualification) q = q.eq("editorial_qualification", qualification);
+      if (assignment === "assigned") q = q.in("id", assignedIds?.length ? assignedIds : ["00000000-0000-0000-0000-000000000000"]);
+      else if (assignment === "unassigned" && assignedIds?.length) q = q.not("id", "in", `(${assignedIds.join(",")})`);
 
       const { data, error, count } = await q;
       if (error) throw error;
