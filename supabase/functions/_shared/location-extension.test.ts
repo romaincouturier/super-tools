@@ -30,6 +30,17 @@ describe("suggestedExtensionStart", () => {
     ).toBe("2026-10-14");
   });
 
+  it("reprend la fin de location connue quand aucune prolongation n'existe", () => {
+    expect(
+      suggestedExtensionStart({
+        lastExtensionEnd: null,
+        locationEndDate: "2026-10-20",
+        orderDate: "2026-09-14",
+        durationDays: 30,
+      }),
+    ).toBe("2026-10-20");
+  });
+
   it("ne propose rien sans durée connue", () => {
     expect(
       suggestedExtensionStart({ lastExtensionEnd: null, locationEndDate: null, orderDate: "2026-09-14", durationDays: null }),
@@ -48,7 +59,11 @@ describe("extension", () => {
 
   it("refuse une période vide ou inversée", () => {
     expect(() => validateExtensionPeriod("2026-10-14", "2026-10-14")).toThrow(/postérieure/);
-    expect(() => validateExtensionPeriod("", "2026-10-14")).toThrow(/début invalide/);
+    expect(() => validateExtensionPeriod("", "2026-10-14")).toThrow("Date de début invalide (vide)");
+    expect(() => validateExtensionPeriod("14/10/2026", "2026-10-14")).toThrow("Date de début invalide (14/10/2026)");
+    expect(() => validateExtensionPeriod("2026-10-14", "")).toThrow("Date de fin invalide (vide)");
+    expect(() => validateExtensionPeriod("2026-10-14", "15/11/2026")).toThrow("Date de fin invalide (15/11/2026)");
+    expect(() => validateExtensionPeriod("2026-10-14", "2026-11-15")).not.toThrow();
   });
 
   it("décrit la période et l'avenant sur la ligne de facture", () => {
