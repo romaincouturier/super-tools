@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileAudio, Search, Check } from "lucide-react";
+import { FileAudio, Search } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -13,11 +13,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import { useTranscripts, useTranscript, type Transcript } from "@/hooks/useTranscripts";
 import { useDemoClientNames } from "@/hooks/useDemoClientNames";
+import { useTranscriptAssignments } from "@/hooks/useTranscriptAssignments";
+import TranscriptAssignmentMarker from "@/components/transcripts/TranscriptAssignmentMarker";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPick: (payload: { title: string; content: string; icon: string }) => void | Promise<void>;
+  onPick: (payload: { title: string; content: string; icon: string; transcriptId: string }) => void | Promise<void>;
+  missionId?: string;
   usedTitles?: Set<string>;
 }
 
@@ -50,7 +53,8 @@ function transcriptToHtml(t: Transcript): string {
   return parts.join("\n");
 }
 
-const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick, usedTitles }: Props) => {
+const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick, missionId, usedTitles }: Props) => {
+  const { data: assignments } = useTranscriptAssignments();
   const { mask: maskClients } = useDemoClientNames();
   const [search, setSearch] = useState("");
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -66,7 +70,7 @@ const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick, usedTitles }:
       // The list already includes raw_text/summary via select("*")
       const title = t.ai_title || t.title || "Transcript";
       const content = transcriptToHtml(t);
-      await onPick({ title, content, icon: "🎙️" });
+      await onPick({ title, content, icon: "🎙️", transcriptId: t.id });
       onOpenChange(false);
       setSearch("");
     } finally {
@@ -113,15 +117,13 @@ const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick, usedTitles }:
                 >
                   <FileAudio className="h-4 w-4 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate flex items-center gap-1.5">
-                      {alreadyAdded && (
-                        <Check className="h-3.5 w-3.5 text-green-600 shrink-0" aria-label="Déjà ajouté" />
-                      )}
+                    <p className="text-sm font-medium flex items-center gap-1.5 min-w-0">
                       <span className="truncate">{maskClients(title)}</span>
-                      {alreadyAdded && (
-                        <span className="text-xs text-green-600 font-normal shrink-0">· déjà ajouté</span>
+                      {alreadyAdded && !assignments?.get(t.id)?.some((a) => a.entity_id === missionId) && (
+                        <span className="text-xs text-primary font-normal shrink-0">déjà ajouté</span>
                       )}
                     </p>
+                    <TranscriptAssignmentMarker assignments={assignments?.get(t.id)} currentEntityId={missionId} />
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(t.created_at), "d MMM yyyy", { locale: fr })}
                       {t.duration_seconds
