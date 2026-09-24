@@ -7,8 +7,7 @@
  * une valeur fournie par le client. Une erreur de lecture vaut refus.
  */
 
-// deno-lint-ignore no-explicit-any
-type Supabase = { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: any; error: unknown }> };
+type Supabase = { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> };
 
 export const PENNYLANE_MODULE = "finances";
 
