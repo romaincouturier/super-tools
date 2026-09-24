@@ -58,3 +58,11 @@ ALTER TABLE public.location_contract_signatures
 
 CREATE INDEX IF NOT EXISTS idx_location_contract_signatures_extension
   ON public.location_contract_signatures (location_extension_id);
+
+-- Lecture des signatures (contrat d'origine et avenants) : même périmètre que
+-- order_items. Sans elle, un utilisateur du module sans rôle admin voit un
+-- avenant signé comme non signé et peut le regénérer ou le renvoyer.
+DROP POLICY IF EXISTS location_contract_signatures_dropshipping_select ON public.location_contract_signatures;
+CREATE POLICY location_contract_signatures_dropshipping_select ON public.location_contract_signatures
+  FOR SELECT TO authenticated
+  USING (public.has_module_access(auth.uid(), 'dropshipping'));
