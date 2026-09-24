@@ -9,11 +9,13 @@
 //
 // Les lectures et écritures en base passent par le client de l'utilisateur :
 // la RLS des missions décide de qui peut facturer quoi. Seul le token
-// Pennylane est lu en service role.
+// Pennylane est lu en service role. Écrire dans Pennylane exige en plus le
+// droit Finances (canUsePennylane), comme pennylane-proxy.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import { createMissionDraftInvoice, type InvoiceActivity } from "../_shared/pennylane-invoices.ts";
 import type { CustomerInput } from "../_shared/pennylane-quotes.ts";
+import { canUsePennylane } from "../_shared/pennylane-access.ts";
 
 const FN = "create-mission-invoice";
 
@@ -111,6 +113,9 @@ Deno.serve(async (req) => {
     }
 
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    if (!(await canUsePennylane(admin, user.id))) {
+      return createErrorResponse("Accès Pennylane réservé au module Finances", 403);
+    }
     let invoice;
     try {
       invoice = await createMissionDraftInvoice(admin, rows as InvoiceActivity[], body.customer, vatRate);
