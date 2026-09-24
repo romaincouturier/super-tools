@@ -6953,6 +6953,7 @@ export type Database = {
           page_type: string
           parent_page_id: string | null
           position: number
+          source_transcript_id: string | null
           title: string
           updated_at: string | null
         }
@@ -6969,6 +6970,7 @@ export type Database = {
           page_type?: string
           parent_page_id?: string | null
           position?: number
+          source_transcript_id?: string | null
           title?: string
           updated_at?: string | null
         }
@@ -6985,6 +6987,7 @@ export type Database = {
           page_type?: string
           parent_page_id?: string | null
           position?: number
+          source_transcript_id?: string | null
           title?: string
           updated_at?: string | null
         }
@@ -7008,6 +7011,13 @@ export type Database = {
             columns: ["parent_page_id"]
             isOneToOne: false
             referencedRelation: "mission_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_pages_source_transcript_id_fkey"
+            columns: ["source_transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
             referencedColumns: ["id"]
           },
         ]
@@ -13217,6 +13227,15 @@ export type Database = {
         Returns: Json
       }
       get_training_survey_by_token: { Args: { p_token: string }; Returns: Json }
+      get_transcript_assignments: {
+        Args: never
+        Returns: {
+          entity_id: string
+          kind: string
+          label: string
+          transcript_id: string
+        }[]
+      }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       get_vhd_narrative_access: {
         Args: { p_report_id: string }
