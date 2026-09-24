@@ -12,7 +12,7 @@
 #   justifiée de ce cliquet ; toute autre hausse est une régression.
 # 037b : réponses d'erreur JSON construites à la main dans les edge functions (utiliser createErrorResponse)
 037a=233
-037b=354
+037b=353
 # 065 : affichages identifiants sans masque demo dans les ecrans internes (cible : 0)
 #   Remonte a 75 le 22/09 : la regle accepte desormais les champs prefixes
 #   (sponsor_email, customer_name), invisibles au premier passage. Redescendu a 0.
