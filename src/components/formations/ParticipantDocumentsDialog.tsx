@@ -288,12 +288,7 @@ const ParticipantDocumentsDialog = ({
 
       const result = await invokeSendDocuments({
         trainingId,
-        trainingName,
-        startDate,
-        endDate,
-        recipientEmail: targetEmail,
-        recipientName: sponsorName,
-        recipientFirstName: participant.sponsor_first_name,
+        // Destinataire lu en base : commanditaire de participantId.
         documentType: type,
         invoiceUrl: type === "sheets" || type === "certificates" ? null : invoiceFileUrl,
         attendanceSheetsUrls: sheetsToSend,
