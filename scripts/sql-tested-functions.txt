@@ -16,3 +16,7 @@ learner_password_set
 decay_watch_relevance
 is_known_learner
 is_staff_user
+get_cron_status
+get_previous_trainer_evaluations
+learner_accounts_for_emails
+get_staff_directory
