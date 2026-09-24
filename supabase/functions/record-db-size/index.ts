@@ -15,10 +15,15 @@ import {
   createErrorResponse,
   createJsonResponse,
 } from "../_shared/cors.ts";
+import { isInternalOrAdmin } from "../_shared/cron-auth.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+
+  if (!(await isInternalOrAdmin(req))) {
+    return createErrorResponse("Unauthorized", 401);
+  }
 
   try {
     const supabase = getSupabaseClient();

@@ -23,6 +23,7 @@ import { getBccList } from "../_shared/email-settings.ts";
 import { streamFileToGoogleDrive } from "../_shared/drive-resumable-upload.ts";
 import { mimeTypeFromFileName } from "../_shared/mime-types.ts";
 import { refreshGoogleAccessToken } from "../_shared/google-oauth.ts";
+import { isInternalOrAdmin } from "../_shared/cron-auth.ts";
 
 // ─── Tables to backup ───────────────────────────────────────────────────────
 
@@ -1420,6 +1421,10 @@ serve(async (req) => {
       req.headers.get("authorization")?.includes(Deno.env.get("SUPABASE_ANON_KEY") || "__none__")
     ) {
       return createJsonResponse({ status: "ok", function: "scheduled-backup" });
+    }
+
+    if (!(await isInternalOrAdmin(req))) {
+      return createErrorResponse("Unauthorized", 401);
     }
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
