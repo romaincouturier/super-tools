@@ -6,7 +6,8 @@
 --
 -- Corps repris à l'identique de la production (pg_get_functiondef, 24/09/2026),
 -- seule la garde est ajoutée (règle [063] : un droit, pas une session).
--- get_db_size reste appelable en service role par record-db-size.
+-- get_db_size reste appelable en service role (record-db-size) et en SQL
+-- direct sans jeton (hourly-db-size-snapshot dans sa version d'origine).
 
 CREATE OR REPLACE FUNCTION public.get_cron_status()
 RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $function$
@@ -41,7 +42,10 @@ RETURNS json LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $f
 DECLARE
   result JSON;
 BEGIN
-  IF NOT (public.is_staff_user() OR COALESCE(auth.jwt() ->> 'role', '') = 'service_role') THEN
+  -- Un appel par l'API porte toujours le rôle anon ou authenticated. Sans
+  -- rôle, c'est un appel interne (tâche planifiée en SQL direct) : autorisé,
+  -- comme le service role (record-db-size).
+  IF NOT (public.is_staff_user() OR COALESCE(auth.jwt() ->> 'role', '') NOT IN ('anon', 'authenticated')) THEN
     RAISE EXCEPTION 'Réservé à l''équipe SuperTilt' USING ERRCODE = '42501';
   END IF;
   SELECT json_build_object(
