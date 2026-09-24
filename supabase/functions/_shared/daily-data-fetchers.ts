@@ -1657,7 +1657,27 @@ export interface DailyData {
   restockDeliveries: RestockDeliveryItem[];
   inProgressRestocks: InProgressRestockItem[];
   elearningIntegrationIssues: ElearningIntegrationIssueItem[];
+  unassignedTranscripts: UnassignedTranscriptItem[];
+}
 
+export interface UnassignedTranscriptItem {
+  id: string;
+  title: string;
+  createdAt: string;
+}
+
+/** Transcripts prêts des 30 derniers jours, affectés à aucune mission, opportunité, événement ou leçon. */
+export async function fetchUnassignedTranscripts(supabase: SupabaseClient): Promise<UnassignedTranscriptItem[]> {
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  const [{ data: rows }, { data: links }] = await Promise.all([
+    supabase.from("transcripts").select("id, title, ai_title, created_at")
+      .eq("status", "ready").gte("created_at", since).order("created_at", { ascending: false }),
+    supabase.rpc("get_transcript_assignments"),
+  ]);
+  const assigned = new Set(((links ?? []) as { transcript_id: string }[]).map((l) => l.transcript_id));
+  return ((rows ?? []) as { id: string; title: string | null; ai_title: string | null; created_at: string }[])
+    .filter((t) => !assigned.has(t.id))
+    .map((t) => ({ id: t.id, title: t.ai_title || t.title || "Sans titre", createdAt: t.created_at }));
 }
 
 export async function fetchAllDailyData(supabase: SupabaseClient, today: string): Promise<DailyData> {
@@ -1694,6 +1714,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     restockDeliveries,
     inProgressRestocks,
     elearningIntegrationIssues,
+    unassignedTranscripts,
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),
@@ -1724,6 +1745,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchRestockDeliveries(supabase),
     fetchInProgressRestocks(supabase),
     fetchElearningIntegrationIssues(supabase),
+    fetchUnassignedTranscripts(supabase),
   ]);
 
 
@@ -1737,6 +1759,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     restockDeliveries,
     inProgressRestocks,
     elearningIntegrationIssues,
+    unassignedTranscripts,
   };
 
 }

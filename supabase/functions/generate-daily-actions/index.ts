@@ -513,6 +513,18 @@ serve(async (req) => {
       });
     }
 
+    // 17quater. Transcripts à affecter
+    for (const t of data.unassignedTranscripts) {
+      actions.push({
+        category: "transcripts_a_affecter",
+        title: `🎙️ ${t.title}`,
+        description: `Transcript du ${new Date(t.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" })} à affecter à une mission, une opportunité ou un événement`,
+        link: `${appUrl}/transcripts?affectation=non`,
+        entityType: "transcript", entityId: t.id,
+        scope: "global",
+      });
+    }
+
     // 18. SuperTilt — actions personnelles (deadline aujourd'hui ou en retard)
     for (const a of data.supertiltActions) {
       const dateLabel = a.deadline === today

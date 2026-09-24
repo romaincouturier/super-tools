@@ -545,6 +545,13 @@ serve(async (req) => {
         )
       );
 
+      // 15d-ter. Transcripts à affecter
+      add("🎙️", "Transcripts à affecter", COLORS.teal,
+        data.unassignedTranscripts.map(t =>
+          `<li>${linkHtml(`${appUrl}/transcripts?affectation=non`, t.title)} — à affecter à une mission, une opportunité ou un événement</li>`
+        )
+      );
+
       // 15e. Marchés publics — Go / No Go à décider
       add("⚖️", "Marchés publics — Go / No Go", COLORS.amber,
         data.tendersToDecide.map(t => {
