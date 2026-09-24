@@ -717,6 +717,11 @@ check "069" "useResolvedStorageUrl ne rend pas l'URL d'un bucket prive avant sa 
    grep -q \"ne rend pas l'URL publique d'un bucket privé\" src/hooks/useResolvedStorageUrl.test.ts \
      || echo 'VIOLATION [069]: test de non-regression absent'"
 
+  # [063] Privilèges de profil : trigger de garde, upsert_profile borné à soi,
+  # et aucune garde staff fondée sur l'existence d'une ligne profiles.
+  check "063b" "Profils : trg_guard_profile_privileges, upsert_profile borne a soi, pas de garde staff par ligne profiles" \
+    "bash scripts/check-profile-privileges.sh"
+
   check "034b" "Numeros de regles uniques dans IMPROVEMENTS.md" \
     "grep -oE '^### \\[[0-9]+\\]' IMPROVEMENTS.md | sort | uniq -d | sed 's/^/VIOLATION: numero de regle en double /'"
 
