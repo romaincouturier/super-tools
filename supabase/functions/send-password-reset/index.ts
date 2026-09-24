@@ -5,15 +5,17 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 import { generateHash, getClientIp } from "../_shared/crypto.ts";
+import { passwordResetLink } from "../_shared/password-reset.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// Le lien est construit depuis app_settings.app_url (passwordResetLink).
+// Un éventuel redirectUrl du corps est ignoré : il n'est même pas lu.
 interface RequestBody {
   email: string;
-  redirectUrl: string;
 }
 
 serve(async (req: Request) => {
@@ -22,7 +24,7 @@ serve(async (req: Request) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { email, redirectUrl }: RequestBody = await req.json();
+    const { email }: RequestBody = await req.json();
     
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new Error("Email invalide");
@@ -48,43 +50,17 @@ serve(async (req: Request) => {
       );
     }
 
-    // Generate password reset link
-    const { data, error } = await supabaseClient.auth.admin.generateLink({
-      type: "recovery",
-      email: email,
-      options: {
-        redirectTo: redirectUrl,
-      },
-    });
-
-    if (error) {
-      console.error("Generate link error:", error);
-      // Don't reveal if user exists or not for security
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé." 
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!data?.properties?.hashed_token) {
-      console.error("No hashed token generated");
+    const resetLink = await passwordResetLink(supabaseClient, email);
+    if (!resetLink) {
+      // Ne rien révéler de l'existence du compte.
       return new Response(
         JSON.stringify({
           success: true,
-          message: "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé."
+          message: "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // RG-21 : jamais l'action_link (auth/v1/verify) dans l'email — un GET sur
-    // cette URL consomme le jeton dès la requête, avant même que l'apprenant
-    // clique. On construit notre propre lien, porteur du seul token_hash ;
-    // ConnexionReinitialisation.tsx ne le consomme (verifyOtp) qu'au clic.
-    const resetLink = `${redirectUrl}?token_hash=${encodeURIComponent(data.properties.hashed_token)}&type=recovery`;
 
     // Get Signitic signature and BCC list
     const [signature, senderFrom, bccList] = await Promise.all([

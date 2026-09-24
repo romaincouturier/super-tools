@@ -26,13 +26,8 @@ const ForgotPasswordDialog = () => {
     setIsLoading(true);
 
     try {
-      const redirectUrl = `${window.location.origin}/reset-password`;
-      
       const { data, error } = await supabase.functions.invoke("send-password-reset", {
-        body: { 
-          email,
-          redirectUrl,
-        },
+        body: { email },
       });
 
       if (error) throw error;

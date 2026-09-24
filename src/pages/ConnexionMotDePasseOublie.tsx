@@ -20,10 +20,7 @@ export default function ConnexionMotDePasseOublie() {
     if (!normalized.includes("@")) return;
     // Message identique que l'adresse existe ou non (RG-07) : on affiche la
     // confirmation quelle que soit la réponse.
-    await invoke({
-      email: normalized,
-      redirectUrl: `${window.location.origin}/connexion/reinitialisation`,
-    });
+    await invoke({ email: normalized });
     setSent(true);
   };
 
