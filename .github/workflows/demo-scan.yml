@@ -1,0 +1,40 @@
+name: Scan du mode démo
+
+# Règle [070] : chaque écran interne, ses onglets, menus et modales, rendus en
+# mode démo contre un faux Supabase (aucun secret, aucune donnée réelle).
+# Le rapport est joint à l'exécution : RAPPORT.md.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * 1" # lundi 7 h (Paris, heure d'été)
+
+jobs:
+  scan:
+    name: Anonymisation du mode démo
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Scan
+        run: npm run scan:demo
+        env:
+          CI: "true"
+
+      - name: Rapport
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-mode-demo
+          path: test-results/demo-scan/

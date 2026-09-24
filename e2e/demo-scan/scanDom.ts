@@ -85,7 +85,7 @@ export async function readableTexts(page: Page): Promise<Readable[]> {
 export function findLeaks(texts: Readable[]): Leak[] {
   const leaks: Leak[] = [];
   for (const { text, where } of texts) {
-    const digits = text.replace(/[\s  .]/g, "");
+    const digits = text.replace(/[\s\u00a0\u202f.]/g, "");
     for (const c of CANARIES) {
       const haystack = /^\d+$/.test(c.token) ? digits : text;
       if (haystack.includes(c.token)) {
