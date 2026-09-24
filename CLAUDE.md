@@ -1,8 +1,6 @@
 # CLAUDE.md
 
-## Project: Super Tools
-
-Application e-learning construite avec React, TypeScript, Vite, Tailwind CSS et Supabase.
+@AGENTS.md
 
 ## Skills disponibles
 
@@ -13,21 +11,9 @@ Application e-learning construite avec React, TypeScript, Vite, Tailwind CSS et 
 - `/process-ticket ST-YYYY-NNNN` — Analyse un ticket du kanban support, le code si faisable, crée une PR et passe le ticket en `vibe_coding` avec le lien de la branche. Si ambigu, écrit les questions dans le ticket et le laisse en `qualification` avec un point rouge.
 - `/red-team` — Audit de sécurité offensif complet (mindset attaquant, autorisé, sur notre propre app). Balaie RLS, edge functions, auth, routes tokenisées, storage, secrets et injection IA, construit les chaînes d'exploitation, et produit `RED_TEAM_ASSESSMENT.md` avec findings cités (file:line), sévérité, PoC reproductible et correctif. Preuve statique uniquement, jamais d'exfiltration ni de destruction réelle. Invocation manuelle.
 
-## BMAD Method
-
-- Installé via `npx bmad-method install` (v6.12.0, modules `core` + `bmm`, outil `claude-code`). Config dans `_bmad/`, skills `bmad-*` dans `.claude/skills/`.
-- Point d'entrée : `/bmad-help` (recommande la prochaine étape). Agents : analyst (Mary), pm (John), ux-designer (Sally), architect (Winston), dev (Amelia).
-- Livrables générés dans `_bmad-output/` (planning-artifacts, implementation-artifacts). Connaissance projet : `docs/`.
-- Mise à jour : `npx bmad-method@latest install --action update --yes`. Surcharges durables : `_bmad/custom/config.toml` (jamais écrasé).
-
 ## Amélioration continue
 
-- `IMPROVEMENTS.md` contient des **règles acquises** — pas un backlog. Chaque règle est un invariant à vérifier en permanence.
 - Quand l'utilisateur pose une question sur la qualité, l'architecture, la duplication ou les patterns du code, **propose systématiquement** d'exécuter `/learn` pour capturer le constat comme règle.
-- Avant de coder une nouvelle feature, consulte `IMPROVEMENTS.md` pour vérifier si des règles documentées s'appliquent (ex: utiliser `useAutoSaveForm` pour tout auto-save, utiliser `resolveContentType()` au lieu de `file.type`).
-- Chaque règle inclut un critère de **vérification** concret pour savoir si elle est respectée.
-- **OBLIGATOIRE** : Avant chaque commit, exécuter `bash scripts/check-rules.sh`. Si des violations sont trouvées, les corriger AVANT de committer. Ne jamais ignorer une violation.
-- Quand une nouvelle règle est ajoutée via `/learn`, **ajouter aussi** le check correspondant dans `scripts/check-rules.sh`.
 
 ## Style de réponse
 
@@ -60,7 +46,6 @@ Application e-learning construite avec React, TypeScript, Vite, Tailwind CSS et 
 
 ## Conventions
 
-- Utiliser TypeScript strict
 - Composants React dans `src/components/`
 - Pages dans `src/pages/`
 - Styles avec Tailwind CSS
