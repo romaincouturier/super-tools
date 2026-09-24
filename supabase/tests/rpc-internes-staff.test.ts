@@ -56,6 +56,7 @@ describe("get_cron_status", () => {
 describe("get_db_size", () => {
   it("refuse un apprenant, accepte l'équipe et le service role", async () => {
     await asLearner();
+    await db.query("SELECT set_config('test.jwt', $1, false)", [JSON.stringify({ email: "apprenant@exemple.fr", role: "authenticated" })]);
     await expect(db.query("SELECT public.get_db_size()")).rejects.toThrow("Réservé à l'équipe SuperTilt");
 
     await actAs(db, { uid: STAFF, email: "staff@supertilt.fr" });
@@ -66,6 +67,15 @@ describe("get_db_size", () => {
     await db.query("SELECT set_config('test.jwt', $1, false)", [JSON.stringify({ role: "service_role" })]);
     const service = await db.query<{ s: { total_size_bytes: number } }>("SELECT public.get_db_size() AS s");
     expect(service.rows[0].s.total_size_bytes).toBeGreaterThan(0);
+  });
+
+  it("reste appelable en SQL direct sans jeton (tâche planifiée), pas par anon", async () => {
+    await actAs(db, null);
+    const cron = await db.query<{ s: { total_size_bytes: number } }>("SELECT public.get_db_size() AS s");
+    expect(cron.rows[0].s.total_size_bytes).toBeGreaterThan(0);
+
+    await db.query("SELECT set_config('test.jwt', $1, false)", [JSON.stringify({ role: "anon" })]);
+    await expect(db.query("SELECT public.get_db_size()")).rejects.toThrow("Réservé à l'équipe SuperTilt");
   });
 });
 
