@@ -272,6 +272,14 @@ check "046" "Migrations app_settings — UPDATE de setting_value conditionné à
 check "047" "Pas de nouveau bucket storage public dans les migrations" \
   "for f in supabase/migrations/*.sql; do bn=\$(basename \"\$f\"); ts=\${bn%%_*}; [ \"\$ts\" -gt 20260804162002 ] 2>/dev/null || continue; grep -vE '^[[:space:]]*--' \"\$f\" | awk -v F=\"\$f\" '/INSERT INTO storage\\.buckets/{u=1;s=\"\"} u{s=s\" \"\$0} u&&/;[[:space:]]*\$/{u=0; if (s ~ /,[[:space:]]*true[[:space:]]*,/) print \"VIOLATION: \" F \" — bucket cree en public, les buckets doivent etre prives\"}'; done; true"
 
+# [071] Jeton de flux public — une table qui porte un jeton de signature ou
+# d'accès (lien envoyé par email) n'ouvre sa ligne en lecture qu'aux admins.
+# Une policy SELECT/ALL plus large livre le jeton, donc le droit de signer ou
+# d'accéder à la place du destinataire. Exception annotée : -- token-safe: <raison>.
+TOKEN_TABLES="convention_signatures|learner_magic_links|location_contract_signatures|partner_access_tokens|reclamations|sponsor_cold_evaluations|stakeholder_appreciations|trainer_evaluations|training_survey_recipients"
+check "071" "Tables à jeton : aucune policy de lecture au-delà des admins dans les nouvelles migrations" \
+  "for f in supabase/migrations/*.sql; do bn=\$(basename \"\$f\"); ts=\${bn%%_*}; [ \"\$ts\" -ge 20260924100000 ] 2>/dev/null || continue; awk -v F=\"\$f\" -v T=\"$TOKEN_TABLES\" 'BEGIN{IGNORECASE=1} /^[[:space:]]*--/{if (\$0 ~ /token-safe:/) safe=1; next} /CREATE POLICY/{u=1;s=\"\"} u{s=s\" \"\$0} u&&/;[[:space:]]*\$/{u=0; if (s ~ (\"ON public\\\\.(\" T \")[[:space:]]\") && s ~ /FOR (SELECT|ALL)/ && s !~ /USING[[:space:]]*\\([[:space:]]*public\\.is_admin\\(auth\\.uid\\(\\)\\)[[:space:]]*\\)/ && !safe) print \"VIOLATION: \" F \" — policy de lecture sur une table à jeton : \" s; safe=0}' \"\$f\"; done; true"
+
 # [050] Connecteurs paginés — la boucle de parcours vit dans _shared/ (testable)
 # et non dans le handler. Un handler *-sync qui pagine par jeton doit importer
 # une fonction de parcours depuis ../_shared/, et le module de parcours (celui

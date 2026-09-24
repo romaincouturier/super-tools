@@ -128,6 +128,7 @@ export interface OrderItem {
   location_contract_file_url: string | null;
   location_document_id: string | null;
   contrat_reference: string | null;
+  location_end_date: string | null;
   notes: string | null;
   commission_amount: number | null;
   raw_line_item: Record<string, unknown> | null;
@@ -1119,6 +1120,7 @@ export function useLocationContractSignature(orderItemId: string | null | undefi
         .from("location_contract_signatures")
         .select("id, token, order_item_id, recipient_email, recipient_name, game_name, contrat_reference, pdf_url, signed_pdf_url, status, signed_at, email_sent_at, created_at")
         .eq("order_item_id", orderItemId as string)
+        .is("location_extension_id", null)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();

@@ -6064,6 +6064,7 @@ export type Database = {
           id: string
           ip_address: string | null
           journey_events: Json | null
+          location_extension_id: string | null
           order_item_id: string | null
           pdf_hash: string | null
           pdf_url: string | null
@@ -6091,6 +6092,7 @@ export type Database = {
           id?: string
           ip_address?: string | null
           journey_events?: Json | null
+          location_extension_id?: string | null
           order_item_id?: string | null
           pdf_hash?: string | null
           pdf_url?: string | null
@@ -6118,6 +6120,7 @@ export type Database = {
           id?: string
           ip_address?: string | null
           journey_events?: Json | null
+          location_extension_id?: string | null
           order_item_id?: string | null
           pdf_hash?: string | null
           pdf_url?: string | null
@@ -6135,7 +6138,91 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "location_contract_signatures_location_extension_id_fkey"
+            columns: ["location_extension_id"]
+            isOneToOne: false
+            referencedRelation: "location_extensions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "location_contract_signatures_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      location_extensions: {
+        Row: {
+          amount_ht: number
+          contract_document_id: string | null
+          contract_file_url: string | null
+          contrat_reference: string
+          created_at: string
+          created_by: string | null
+          end_date: string
+          id: string
+          invoice_number: string | null
+          invoice_url: string | null
+          order_item_id: string
+          pennylane_invoice_id: string | null
+          signature_sent_at: string | null
+          signature_status: string | null
+          signed_at: string | null
+          signed_pdf_url: string | null
+          sequence: number
+          start_date: string
+          updated_at: string
+          vat_rate: string
+        }
+        Insert: {
+          amount_ht: number
+          contract_document_id?: string | null
+          contract_file_url?: string | null
+          contrat_reference: string
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          id?: string
+          invoice_number?: string | null
+          invoice_url?: string | null
+          order_item_id: string
+          pennylane_invoice_id?: string | null
+          signature_sent_at?: string | null
+          signature_status?: string | null
+          signed_at?: string | null
+          signed_pdf_url?: string | null
+          sequence: number
+          start_date: string
+          updated_at?: string
+          vat_rate?: string
+        }
+        Update: {
+          amount_ht?: number
+          contract_document_id?: string | null
+          contract_file_url?: string | null
+          contrat_reference?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          id?: string
+          invoice_number?: string | null
+          invoice_url?: string | null
+          order_item_id?: string
+          pennylane_invoice_id?: string | null
+          signature_sent_at?: string | null
+          signature_status?: string | null
+          signed_at?: string | null
+          signed_pdf_url?: string | null
+          sequence?: number
+          start_date?: string
+          updated_at?: string
+          vat_rate?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_extensions_order_item_id_fkey"
             columns: ["order_item_id"]
             isOneToOne: false
             referencedRelation: "order_items"
@@ -7822,6 +7909,7 @@ export type Database = {
           line_total: number | null
           location_contract_file_url: string | null
           location_document_id: string | null
+          location_end_date: string | null
           notes: string | null
           product_name: string | null
           quantity: number
@@ -7851,6 +7939,7 @@ export type Database = {
           line_total?: number | null
           location_contract_file_url?: string | null
           location_document_id?: string | null
+          location_end_date?: string | null
           notes?: string | null
           product_name?: string | null
           quantity?: number
@@ -7880,6 +7969,7 @@ export type Database = {
           line_total?: number | null
           location_contract_file_url?: string | null
           location_document_id?: string | null
+          location_end_date?: string | null
           notes?: string | null
           product_name?: string | null
           quantity?: number

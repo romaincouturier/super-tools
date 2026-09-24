@@ -127,6 +127,7 @@ const TABLES_TO_BACKUP = [
   "lms_user_badges",
   "lms_work_deposits",
   "location_contract_signatures",
+  "location_extensions",
   "login_attempts",
   "logistics_checklist_items",
   "media",

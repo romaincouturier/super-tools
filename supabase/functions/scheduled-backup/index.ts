@@ -63,7 +63,7 @@ const TABLES_TO_BACKUP = [
   "lms_messages", "lms_modules", "lms_page_views", "lms_progress",
   "lms_quiz_attempts", "lms_quiz_questions", "lms_quizzes",
   "lms_submissions", "lms_user_badges", "lms_work_deposits",
-  "location_contract_signatures", "login_attempts", "logistics_checklist_items",
+  "location_contract_signatures", "location_extensions", "login_attempts", "logistics_checklist_items",
   "media",
   "mission_actions", "mission_activities", "mission_contacts", "mission_credits",
   "mission_deliverable_sends",

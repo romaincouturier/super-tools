@@ -1,5 +1,5 @@
 /**
- * Facture Pennylane en BROUILLON depuis les activités d'une mission.
+ * Facture Pennylane en BROUILLON : activités d'une mission, prolongation de location.
  *
  * Même périmètre fermé que les devis (`pennylane-quotes.ts`) : un seul chemin
  * d'écriture, `POST /customer_invoices` avec `draft: true`. Aucune validation
@@ -10,7 +10,13 @@
  * éprouvé sur les devis SuperTools. Le payload est volontairement minimal :
  * pas de champ propre aux devis (pdf_description, special_mention).
  */
-import { buildQuotePayload, resolveCustomer, todayParis, type CustomerInput } from "./pennylane-quotes.ts";
+import {
+  buildQuotePayload,
+  resolveCustomer,
+  todayParis,
+  type CustomerInput,
+  type QuoteLineInput,
+} from "./pennylane-quotes.ts";
 import { getPennylaneToken, pennylaneErrorMessage, pennylaneFetch } from "./pennylane.ts";
 
 type Supabase = Parameters<typeof getPennylaneToken>[0];
@@ -44,36 +50,13 @@ function durationLabel(a: InvoiceActivity): string {
   return `${n} h`;
 }
 
-/** Une ligne par activité : libellé = description, détail = date et durée. */
-export function buildMissionInvoicePayload(
-  activities: InvoiceActivity[],
+/** Payload brouillon `POST /customer_invoices`, échéance à J+30. */
+export function buildDraftInvoicePayload(
+  lines: QuoteLineInput[],
   customerId: number,
-  vatRate: string,
   date = todayParis(),
 ): Record<string, unknown> {
-  if (activities.length === 0) throw new Error("Aucune activité à facturer");
-  const missing = activities.filter((a) => !a.billable_amount || a.billable_amount <= 0);
-  if (missing.length > 0) {
-    throw new Error(
-      `Montant facturable manquant sur : ${missing.map((a) => a.description || a.activity_date).join(", ")}`,
-    );
-  }
-
-  const quote = buildQuotePayload(
-    {
-      date,
-      deadline: addDays(date, INVOICE_PAYMENT_DAYS),
-      lines: activities.map((a) => ({
-        label: a.description.trim() || `Activité du ${frDate(a.activity_date)}`,
-        description: `${frDate(a.activity_date)} · ${durationLabel(a)}`,
-        quantity: 1,
-        unit_price: a.billable_amount as number,
-        vat_rate: vatRate,
-      })),
-    },
-    customerId,
-  );
-
+  const quote = buildQuotePayload({ date, deadline: addDays(date, INVOICE_PAYMENT_DAYS), lines }, customerId);
   return {
     customer_id: quote.customer_id,
     date: quote.date,
@@ -82,6 +65,33 @@ export function buildMissionInvoicePayload(
     invoice_lines: quote.invoice_lines,
     draft: true,
   };
+}
+
+function missionLines(activities: InvoiceActivity[], vatRate: string): QuoteLineInput[] {
+  if (activities.length === 0) throw new Error("Aucune activité à facturer");
+  const missing = activities.filter((a) => !a.billable_amount || a.billable_amount <= 0);
+  if (missing.length > 0) {
+    throw new Error(
+      `Montant facturable manquant sur : ${missing.map((a) => a.description || a.activity_date).join(", ")}`,
+    );
+  }
+  return activities.map((a) => ({
+    label: a.description.trim() || `Activité du ${frDate(a.activity_date)}`,
+    description: `${frDate(a.activity_date)} · ${durationLabel(a)}`,
+    quantity: 1,
+    unit_price: a.billable_amount as number,
+    vat_rate: vatRate,
+  }));
+}
+
+/** Une ligne par activité : libellé = description, détail = date et durée. */
+export function buildMissionInvoicePayload(
+  activities: InvoiceActivity[],
+  customerId: number,
+  vatRate: string,
+  date = todayParis(),
+): Record<string, unknown> {
+  return buildDraftInvoicePayload(missionLines(activities, vatRate), customerId, date);
 }
 
 function pick(data: unknown, keys: string[]): unknown {
@@ -106,19 +116,18 @@ export type CreatedInvoice = {
  * second essai après timeout laisserait deux brouillons. La fiche client est
  * retrouvée par email, ou créée ; une fiche existante n'est jamais modifiée.
  */
-export async function createMissionDraftInvoice(
+export async function createDraftInvoice(
   supabase: Supabase,
-  activities: InvoiceActivity[],
+  lines: QuoteLineInput[],
   customer: CustomerInput,
-  vatRate: string,
 ): Promise<CreatedInvoice> {
   // Validé sur un client fictif avant toute écriture : une ligne invalide ne
   // doit pas laisser une fiche client créée pour rien.
-  buildMissionInvoicePayload(activities, 1, vatRate);
+  buildDraftInvoicePayload(lines, 1);
 
   const token = await getPennylaneToken(supabase);
   const resolved = await resolveCustomer(token, { customer, deadline: "", lines: [] });
-  const payload = buildMissionInvoicePayload(activities, resolved.id, vatRate);
+  const payload = buildDraftInvoicePayload(lines, resolved.id);
 
   const res = await pennylaneFetch(token, "POST", "customer_invoices", { body: payload });
   if (!res.ok) throw new Error(pennylaneErrorMessage(res, "Création de la facture refusée"));
@@ -130,4 +139,13 @@ export async function createMissionDraftInvoice(
     customerId: resolved.id,
     customerCreated: resolved.created,
   };
+}
+
+export async function createMissionDraftInvoice(
+  supabase: Supabase,
+  activities: InvoiceActivity[],
+  customer: CustomerInput,
+  vatRate: string,
+): Promise<CreatedInvoice> {
+  return await createDraftInvoice(supabase, missionLines(activities, vatRate), customer);
 }

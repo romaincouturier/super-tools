@@ -211,6 +211,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         .from("location_contract_signatures")
         .select("token, status")
         .eq("order_item_id", order_item_id)
+        .is("location_extension_id", null)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();

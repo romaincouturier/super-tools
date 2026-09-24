@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { BilanTab, PartenairesTab, DepensesTab, StockTab, AuteursTab } from "@/components/supertilt/SupertiltOrdersV2";
 import { GameRestockTab } from "@/components/supertilt/GameRestockTab";
+import LocationExtensionsSection from "@/components/supertilt/LocationExtensionsSection";
 import GameDevisTab from "@/components/dropshipping/GameDevisTab";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -705,6 +706,14 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
 
       {item.kanban_status === "location_pending" && (
         <LocationContractSection item={item} />
+      )}
+
+      {item.game_type === "location" && item.contrat_reference && item.kanban_status !== "location_pending" && (
+        <LocationExtensionsSection
+          orderItemId={item.id}
+          contratReference={item.contrat_reference}
+          locationEndDate={item.location_end_date}
+        />
       )}
 
       <div className="flex flex-wrap gap-1 pt-1">

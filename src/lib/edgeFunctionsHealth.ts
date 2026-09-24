@@ -31,6 +31,7 @@ export const EXPECTED_FUNCTIONS = [
   "cleanup-pending-email-drafts",
   "commercial-challenge",
   "create-event-media-upload-url",
+  "create-location-extension",
   "create-media-upload-url",
   "create-mission-invoice",
   "create-program-upload-url",

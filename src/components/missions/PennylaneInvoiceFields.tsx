@@ -34,6 +34,8 @@ interface Props {
   customer: PennylaneCustomerDraft | null;
   loading: boolean;
   source: "crm" | "mission" | null;
+  /** Remplace l'origine CRM / mission quand la fiche vient d'ailleurs. */
+  sourceNote?: string;
   onCustomerChange: (customer: PennylaneCustomerDraft) => void;
   vatRate: string;
   onVatRateChange: (value: string) => void;
@@ -52,6 +54,7 @@ export default function PennylaneInvoiceFields({
   customer,
   loading,
   source,
+  sourceNote,
   onCustomerChange,
   vatRate,
   onVatRateChange,
@@ -71,7 +74,7 @@ export default function PennylaneInvoiceFields({
       <div>
         <p className="text-sm font-medium">Client</p>
         <p className="text-xs text-muted-foreground">
-          {source === "crm" ? "Repris de l'opportunité CRM liée à la mission." : "Aucune opportunité CRM liée : repris de la mission, à compléter."}{" "}
+          {sourceNote ?? (source === "crm" ? "Repris de l'opportunité CRM liée à la mission." : "Aucune opportunité CRM liée : repris de la mission, à compléter.")}{" "}
           La fiche Pennylane portant cet email est réutilisée telle quelle ; sinon elle est créée.
         </p>
       </div>
