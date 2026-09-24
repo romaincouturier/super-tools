@@ -23,6 +23,9 @@ import UpcomingCalendarPanel from "@/components/dashboard/UpcomingCalendarPanel"
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { useDemoClientNames } from "@/hooks/useDemoClientNames";
+import { maskFileName } from "@/lib/demoMask";
 
 const SUGGESTIONS = [
   "Combien de devis ai-je envoyés ce mois-ci ?",
@@ -455,6 +458,9 @@ function MessageBubble({
   const isUser = message.role === "user";
   const { copied, copy } = useCopyToClipboard();
   const [feedbackGiven, setFeedbackGiven] = useState<"up" | "down" | null>(null);
+  // Mode démo : clients, missions et opportunités cités dans la conversation.
+  const { mask: maskClients } = useDemoClientNames();
+  const { isDemoMode } = useDemoMode();
 
   if (!isUser && !message.content) return null;
 
@@ -495,17 +501,17 @@ function MessageBubble({
                     ) : (
                       <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs underline opacity-80">
                         <FileText className="h-3 w-3" />
-                        {att.name}
+                        {isDemoMode ? maskFileName(att.name) : att.name}
                       </a>
                     )
                   ))}
                 </div>
               )}
-              <p className="whitespace-pre-wrap">{message.content}</p>
+              <p className="whitespace-pre-wrap">{maskClients(message.content)}</p>
             </div>
           ) : (
             <div className="prose prose-sm dark:prose-invert max-w-none [&_table]:text-xs [&_table]:w-full [&_table]:border-collapse [&_th]:px-2 [&_th]:py-1 [&_th]:border [&_th]:border-border [&_th]:bg-muted/50 [&_th]:text-left [&_td]:px-2 [&_td]:py-1 [&_td]:border [&_td]:border-border [&_pre]:bg-muted [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-x-auto [&_code]:text-xs [&_a]:text-primary [&_a]:underline [&_ul]:pl-4 [&_ol]:pl-4">
-              <ReactMarkdown>{message.content}</ReactMarkdown>
+              <ReactMarkdown>{maskClients(message.content)}</ReactMarkdown>
               {isStreaming && (
                 <span className="inline-block w-2 h-4 bg-primary/60 animate-pulse ml-0.5 -mb-0.5 rounded-sm" />
               )}
