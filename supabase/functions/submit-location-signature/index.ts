@@ -284,6 +284,14 @@ serve(async (req: Request): Promise<Response> => {
         .eq("id", rec.id);
     }
 
+    // ── Avenant : état recopié sur la prolongation (la table des signatures reste admin) ──
+    if (rec.location_extension_id) {
+      await supabase
+        .from("location_extensions")
+        .update({ signature_status: "signed", signed_at: signedAt, signed_pdf_url: signedPdfUrl ?? null })
+        .eq("id", rec.location_extension_id);
+    }
+
     // ── Move order to processed (un avenant ne touche pas au kanban) ──
     if (rec.order_item_id && !rec.location_extension_id) {
       await supabase

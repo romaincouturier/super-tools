@@ -6167,6 +6167,10 @@ export type Database = {
           invoice_url: string | null
           order_item_id: string
           pennylane_invoice_id: string | null
+          signature_sent_at: string | null
+          signature_status: string | null
+          signed_at: string | null
+          signed_pdf_url: string | null
           sequence: number
           start_date: string
           updated_at: string
@@ -6185,6 +6189,10 @@ export type Database = {
           invoice_url?: string | null
           order_item_id: string
           pennylane_invoice_id?: string | null
+          signature_sent_at?: string | null
+          signature_status?: string | null
+          signed_at?: string | null
+          signed_pdf_url?: string | null
           sequence: number
           start_date: string
           updated_at?: string
@@ -6203,6 +6211,10 @@ export type Database = {
           invoice_url?: string | null
           order_item_id?: string
           pennylane_invoice_id?: string | null
+          signature_sent_at?: string | null
+          signature_status?: string | null
+          signed_at?: string | null
+          signed_pdf_url?: string | null
           sequence?: number
           start_date?: string
           updated_at?: string

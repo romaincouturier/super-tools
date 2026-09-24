@@ -66,6 +66,14 @@ describe("extension", () => {
     expect(() => validateExtensionPeriod("2026-10-14", "2026-11-15")).not.toThrow();
   });
 
+  it("refuse une prolongation qui recouvre une période déjà couverte", () => {
+    expect(() => validateExtensionPeriod("2026-10-01", "2026-10-31", "2026-11-15")).toThrow(
+      "La location est déjà couverte jusqu'au 15/11/2026 : la prolongation doit commencer à cette date ou après",
+    );
+    expect(() => validateExtensionPeriod("2026-11-15", "2026-12-15", "2026-11-15")).not.toThrow();
+    expect(() => validateExtensionPeriod("2026-11-20", "2026-12-15", null)).not.toThrow();
+  });
+
   it("décrit la période et l'avenant sur la ligne de facture", () => {
     expect(
       extensionInvoiceLine({

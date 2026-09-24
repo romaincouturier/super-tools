@@ -2,14 +2,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 
-export interface LocationExtensionSignature {
-  status: "pending" | "signed" | "expired" | "cancelled";
-  signed_at: string | null;
-  email_sent_at: string | null;
-  signed_pdf_url: string | null;
-  created_at: string;
-}
-
 export interface LocationExtension {
   id: string;
   order_item_id: string;
@@ -22,9 +14,11 @@ export interface LocationExtension {
   contract_file_url: string | null;
   invoice_number: string | null;
   invoice_url: string | null;
+  signature_status: "pending" | "signed" | null;
+  signature_sent_at: string | null;
+  signed_at: string | null;
+  signed_pdf_url: string | null;
   created_at: string;
-  /** Dernier envoi en signature de l'avenant, s'il y en a un. */
-  signature: LocationExtensionSignature | null;
 }
 
 export interface LocationExtensionPrepare {
@@ -42,11 +36,6 @@ export interface LocationExtensionPrepare {
   amount_ht: number | null;
 }
 
-/** Dernier envoi en signature : c'est lui qui dit si l'avenant est signé. */
-export function latestSignature(sigs: LocationExtensionSignature[] | null | undefined): LocationExtensionSignature | null {
-  return [...(sigs ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
-}
-
 const key = (orderItemId: string) => ["location-extensions", orderItemId];
 
 export function useLocationExtensions(orderItemId: string) {
@@ -56,15 +45,12 @@ export function useLocationExtensions(orderItemId: string) {
       const { data, error } = await supabase
         .from("location_extensions")
         .select(
-          "id, order_item_id, sequence, start_date, end_date, amount_ht, vat_rate, contrat_reference, contract_file_url, invoice_number, invoice_url, created_at, location_contract_signatures(status, signed_at, email_sent_at, signed_pdf_url, created_at)",
+          "id, order_item_id, sequence, start_date, end_date, amount_ht, vat_rate, contrat_reference, contract_file_url, invoice_number, invoice_url, signature_status, signature_sent_at, signed_at, signed_pdf_url, created_at",
         )
         .eq("order_item_id", orderItemId)
         .order("sequence", { ascending: true });
       if (error) throw error;
-      return (data ?? []).map(({ location_contract_signatures: sigs, ...ext }) => ({
-        ...ext,
-        signature: latestSignature(sigs as LocationExtensionSignature[]),
-      }));
+      return (data ?? []) as LocationExtension[];
     },
   });
 }

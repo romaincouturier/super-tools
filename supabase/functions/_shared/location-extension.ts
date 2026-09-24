@@ -43,10 +43,18 @@ export function extensionReference(parentReference: string, sequence: number): s
   return `${parentReference}-P${sequence}`;
 }
 
-export function validateExtensionPeriod(start: string, end: string): void {
+/**
+ * `coveredUntil` : fin de la période déjà couverte (dernière prolongation, sinon
+ * fin connue de la location). Une prolongation qui commence avant facturerait
+ * deux fois les mêmes jours et ferait reculer la fin de location.
+ */
+export function validateExtensionPeriod(start: string, end: string, coveredUntil: string | null = null): void {
   if (!DATE_RE.test(start)) throw new Error(`Date de début invalide (${start || "vide"})`);
   if (!DATE_RE.test(end)) throw new Error(`Date de fin invalide (${end || "vide"})`);
   if (end <= start) throw new Error("La date de fin doit être postérieure à la date de début");
+  if (coveredUntil && start < coveredUntil) {
+    throw new Error(`La location est déjà couverte jusqu'au ${frDate(coveredUntil)} : la prolongation doit commencer à cette date ou après`);
+  }
 }
 
 export function extensionInvoiceLine(input: {

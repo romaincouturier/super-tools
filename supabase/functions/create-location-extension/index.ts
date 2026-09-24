@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     const amountHt = Number(body.amount_ht);
     const vatRate = (body.vat_rate || "").trim();
     try {
-      validateExtensionPeriod(startDate, endDate);
+      validateExtensionPeriod(startDate, endDate, previous?.end_date ?? item.location_end_date ?? null);
     } catch (e) {
       return createErrorResponse(e instanceof Error ? e.message : String(e), 400);
     }

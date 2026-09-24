@@ -267,6 +267,13 @@ serve(async (req: Request): Promise<Response> => {
 
     console.log("Location contract email sent to:", recipientEmail);
 
+    if (extension && enableOnlineSignature) {
+      await supabase
+        .from("location_extensions")
+        .update({ signature_status: "pending", signature_sent_at: new Date().toISOString() })
+        .eq("id", extension.id);
+    }
+
     return new Response(
       JSON.stringify({ success: true, signatureUrl, signatureToken }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

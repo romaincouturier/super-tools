@@ -27,6 +27,12 @@ CREATE TABLE IF NOT EXISTS public.location_extensions (
   pennylane_invoice_id  TEXT,
   invoice_number        TEXT,
   invoice_url           TEXT,
+  -- État de signature recopié ici : location_contract_signatures porte le
+  -- jeton de signature et reste réservée aux admins (règle [071]).
+  signature_status      TEXT CHECK (signature_status IN ('pending', 'signed')),
+  signature_sent_at     TIMESTAMPTZ,
+  signed_at             TIMESTAMPTZ,
+  signed_pdf_url        TEXT,
   created_by            UUID,
   created_at            TIMESTAMPTZ   NOT NULL DEFAULT now(),
   updated_at            TIMESTAMPTZ   NOT NULL DEFAULT now(),
@@ -59,10 +65,3 @@ ALTER TABLE public.location_contract_signatures
 CREATE INDEX IF NOT EXISTS idx_location_contract_signatures_extension
   ON public.location_contract_signatures (location_extension_id);
 
--- Lecture des signatures (contrat d'origine et avenants) : même périmètre que
--- order_items. Sans elle, un utilisateur du module sans rôle admin voit un
--- avenant signé comme non signé et peut le regénérer ou le renvoyer.
-DROP POLICY IF EXISTS location_contract_signatures_dropshipping_select ON public.location_contract_signatures;
-CREATE POLICY location_contract_signatures_dropshipping_select ON public.location_contract_signatures
-  FOR SELECT TO authenticated
-  USING (public.has_module_access(auth.uid(), 'dropshipping'));
