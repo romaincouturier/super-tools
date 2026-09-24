@@ -24,6 +24,8 @@ import {
   useUnlinkEntityTranscript,
   type TranscriptEntity,
 } from "@/hooks/useEntityTranscripts";
+import { useTranscriptAssignments } from "@/hooks/useTranscriptAssignments";
+import TranscriptAssignmentMarker from "@/components/transcripts/TranscriptAssignmentMarker";
 
 interface Props {
   entity: TranscriptEntity;
@@ -53,6 +55,7 @@ const EntityTranscriptsSection = ({ entity, entityId }: Props) => {
     status: "ready",
   });
 
+  const { data: assignments } = useTranscriptAssignments();
   const linkedIds = useMemo(() => new Set(links.map((l) => l.transcript_id)), [links]);
   const candidates = useMemo(
     () => allTranscripts.filter((t) => !linkedIds.has(t.id)),
@@ -176,6 +179,7 @@ const EntityTranscriptsSection = ({ entity, entityId }: Props) => {
                         {format(new Date(t.created_at), "d MMM yyyy", { locale: fr })}
                       </p>
                     </div>
+                    <TranscriptAssignmentMarker assignments={assignments?.get(t.id)} currentEntityId={entityId} />
                   </button>
                 );
               })}
