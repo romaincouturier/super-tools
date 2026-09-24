@@ -176,7 +176,8 @@ async function notifySlackCluster(clusterId: string, title: string, summary: str
   });
   if (listRes.ok) {
     const data = await listRes.json();
-    const match = data?.channels?.find((c: { name?: string }) => (c.name || "").toLowerCase() === "general");
+    const match = data?.channels?.find((c: { name?: string; name_normalized?: string; is_general?: boolean }) =>
+      c.is_general || (c.name_normalized || c.name || "").toLowerCase() === "general");
     if (match?.id) channelTarget = match.id;
   }
 
@@ -205,7 +206,7 @@ async function notifySlackCluster(clusterId: string, title: string, summary: str
     },
   ];
 
-  await fetch(`${GATEWAY_URL}/chat.postMessage`, {
+  const postRes = await fetch(`${GATEWAY_URL}/chat.postMessage`, {
     method: "POST",
     headers,
     body: JSON.stringify({
@@ -216,6 +217,11 @@ async function notifySlackCluster(clusterId: string, title: string, summary: str
       icon_emoji: ":mag:",
     }),
   });
+  const postData = await postRes.json().catch(() => ({}));
+  if (!postRes.ok || postData?.ok === false) {
+    console.error(`Slack chat.postMessage failed [${postRes.status}]:`, JSON.stringify(postData));
+    return;
+  }
 
   // Mark cluster as posted
   const supabase = getSupabaseClient();
