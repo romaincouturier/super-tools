@@ -11,5 +11,5 @@
 - [x] Nom et prénom repris de l'inscription dans les informations personnelles (+ reprise automatique à chaque inscription)
 - [x] Lien « Créer un compte gratuitement » : écran de création de compte avec choix de la formation gratuite
 
-- [ ] Retry/backoff sur le refresh Google (internal_failure) + échec géré proprement
+- [x] Retry/backoff sur le refresh Google (internal_failure) + échec géré proprement
 - [ ] Bandeau réassort ECHO : bloqué, mail envoyé par AutomateWoo (boutique), accès admin requis
