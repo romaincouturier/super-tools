@@ -31,26 +31,45 @@ export async function refreshGoogleAccessToken(
     throw new Error("Google OAuth credentials not configured");
   }
 
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    refresh_token: refreshToken,
+    grant_type: "refresh_token",
   });
 
-  if (!response.ok) {
-    throw new Error(`Failed to refresh Google access token: ${await response.text()}`);
-  }
-
-  const data = await response.json();
-  if (!data.access_token) {
-    // Google répond parfois 200 avec un corps d'erreur : sans ce contrôle, on
-    // repart avec un token undefined et l'échec surgit plus loin, sans cause.
-    throw new Error(`Failed to refresh Google access token: ${JSON.stringify(data)}`);
+  // Google renvoie parfois des erreurs transitoires (5xx, 429, "internal_failure",
+  // "backend_error") : on réessaie avec backoff 1s, 2s. Les refus définitifs
+  // (invalid_grant, invalid_client) ne sont pas réessayés.
+  const delays = [1000, 2000];
+  let data: Record<string, unknown> = {};
+  for (let attempt = 0; ; attempt++) {
+    let transient = false;
+    let failure = "";
+    try {
+      const response = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body,
+      });
+      const text = await response.text();
+      let parsed: Record<string, unknown> = {};
+      try { parsed = JSON.parse(text); } catch { /* corps non JSON */ }
+      if (response.ok && parsed.access_token) {
+        data = parsed;
+        break;
+      }
+      failure = response.ok ? JSON.stringify(parsed) : text;
+      transient = response.status >= 500 || response.status === 429 ||
+        /internal_failure|backend_error|temporarily_unavailable/i.test(text);
+    } catch (networkErr) {
+      failure = networkErr instanceof Error ? networkErr.message : String(networkErr);
+      transient = true;
+    }
+    if (!transient || attempt >= delays.length) {
+      throw new Error(`Failed to refresh Google access token: ${failure}`);
+    }
+    await new Promise((r) => setTimeout(r, delays[attempt]));
   }
 
   const expiresInSeconds = Number(data.expires_in) || 3600;

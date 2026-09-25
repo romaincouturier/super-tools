@@ -408,7 +408,14 @@ serve(async (req: Request): Promise<Response> => {
       let accessToken = tokenRow.access_token;
       const isExpired = new Date(tokenRow.token_expires_at) < new Date();
       if (isExpired) {
-        accessToken = (await refreshGoogleAccessToken(tokenRow.refresh_token)).accessToken;
+        try {
+          accessToken = (await refreshGoogleAccessToken(tokenRow.refresh_token)).accessToken;
+        } catch (refreshError) {
+          console.error("Token refresh failed:", refreshError);
+          return new Response(JSON.stringify({
+            error: "Google Agenda ne répond pas ou l'accès a expiré. Réessayez dans quelques minutes, sinon reconnectez votre agenda.",
+          }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
         const newExpiry = new Date(Date.now() + 3600 * 1000).toISOString();
         await supabase
           .from(tokenTable)
