@@ -94,4 +94,16 @@ describe("refreshGoogleAccessToken", () => {
 
     await expect(refreshGoogleAccessToken("1//refresh")).rejects.toThrow(/invalid_client/);
   });
+  it("réessaie quand Google renvoie internal_failure", async () => {
+    const impl = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: "internal_failure" }), { status: 500 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "ya29.ok" }), { status: 200 }));
+    vi.stubGlobal("fetch", impl);
+    vi.stubGlobal("setTimeout", (fn: () => void) => { fn(); return 0; });
+
+    const result = await refreshGoogleAccessToken("1//refresh");
+
+    expect(result.accessToken).toBe("ya29.ok");
+    expect(impl).toHaveBeenCalledTimes(2);
+  });
 });
