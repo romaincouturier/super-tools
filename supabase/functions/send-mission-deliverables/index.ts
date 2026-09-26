@@ -150,7 +150,7 @@ serve(async (req) => {
         .eq("is_deliverable", true),
       supabase
         .from("media")
-        .select("id, title, file_name, is_deliverable")
+        .select("id, file_name, is_deliverable")
         .eq("source_type", "mission")
         .eq("source_id", mission_id)
         .eq("is_deliverable", true),
@@ -171,7 +171,7 @@ serve(async (req) => {
       })),
       ...((mediaRes.data as any[]) || []).map((m) => ({
         key: `media:${m.id}`,
-        label: m.title || m.file_name || "Média",
+        label: m.file_name || "Média",
       })),
     ];
     const currentKeys = currentItems.map((i) => i.key);
