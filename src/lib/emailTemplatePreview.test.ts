@@ -15,7 +15,7 @@ describe("needs survey reminder preview", () => {
     expect(html).toContain('<table role="presentation"');
     expect(html).toContain("Répondre au questionnaire de préparation");
     expect(html).toContain("Si le bouton ne fonctionne pas");
-    expect(html.match(/https:\/\/super-tools\.lovable\.app\/questionnaire\/test-token/g)).toHaveLength(2);
+    expect(html.match(/https:\/\/super-tools\.lovable\.app\/questionnaire\/test-token/g)).toHaveLength(3);
   });
 
   it("keeps the participant first name and escapes unsafe participant data", () => {
