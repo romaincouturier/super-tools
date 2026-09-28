@@ -15,6 +15,7 @@
 
 import { getSupabaseClient } from "./supabase-client.ts";
 import { estimateCostUsd, type ApiProvider, type CostInput } from "./api-pricing.ts";
+import { cacheHitRate } from "./prompt-cache.ts";
 
 export type { ApiProvider };
 export { estimateCostUsd };
@@ -57,6 +58,21 @@ export interface ApiUsageEntry extends CostInput {
  * réseau côté appelant si celui-ci ne l'await pas, et n'échoue jamais.
  */
 export async function logApiUsage(entry: ApiUsageEntry): Promise<void> {
+  // Trace lisible dans les logs de la fonction, pour suivre le taux de cache
+  // sans requêter la base. La ligne en base reste la source de vérité.
+  if (entry.provider === "anthropic" && (entry.status ?? "success") === "success") {
+    console.log(JSON.stringify({
+      evt: "anthropic_usage",
+      origin: entry.origin,
+      operation: entry.operation ?? null,
+      model: entry.model ?? null,
+      input_tokens: entry.inputTokens ?? 0,
+      cache_creation_input_tokens: entry.cacheWriteTokens ?? 0,
+      cache_read_input_tokens: entry.cacheReadTokens ?? 0,
+      output_tokens: entry.outputTokens ?? 0,
+      cache_hit_rate: Number(cacheHitRate(entry).toFixed(3)),
+    }));
+  }
   try {
     const supabase = getSupabaseClient();
     const { error } = await supabase.from("api_usage_events").insert({

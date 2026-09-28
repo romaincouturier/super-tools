@@ -4,6 +4,7 @@ import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.74.0";
 import OpenAI from "https://esm.sh/openai@4.77.0";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
+import { isArenaHistoryAppendOnly, joinedParts, textBlocks } from "../_shared/prompt-cache.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
 
 interface RequestBody {
@@ -65,7 +66,6 @@ ${modeInstructions[mode]}
 Participants :
 ${agentsList}
 
-Tour actuel : ${turnNumber}/${maxTurns}
 Langue : ${language === "fr" ? "francais" : "anglais"}
 
 Regles CRITIQUES :
@@ -87,11 +87,19 @@ Tu DOIS repondre UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte a
   "keyPointsSoFar": ["point 1", "point 2"]
 }`;
 
-  const historyText = history.length > 0
-    ? history.map((m) => `[${m.isUser ? "Utilisateur" : m.agentName}]: ${m.content}`).join("\n\n")
-    : "(Debut de la discussion, aucun message encore)";
-
-  const userContent = `Historique de la discussion :\n\n${historyText}\n\nQui parle ensuite et quelle instruction ?`;
+  // Préfixe de cache : system (stable sur toute la session) puis un bloc par
+  // message d'historique (append-only d'un appel au suivant). Le numéro de
+  // tour, qui change à chaque appel, est placé après le point de cache.
+  const historyParts = history.length > 0
+    ? joinedParts(
+      "Historique de la discussion :\n\n",
+      history.map((m) => `[${m.isUser ? "Utilisateur" : m.agentName}]: ${m.content}`),
+      "\n\n",
+    )
+    : ["Historique de la discussion :\n\n(Debut de la discussion, aucun message encore)"];
+  const turnText = `\n\nTour actuel : ${turnNumber}/${maxTurns}\n\nQui parle ensuite et quelle instruction ?`;
+  const userContent = historyParts.join("") + turnText;
+  const cacheHistory = history.length > 0 && isArenaHistoryAppendOnly(history);
 
   try {
     let text = "";
@@ -127,7 +135,10 @@ Tu DOIS repondre UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte a
         model: CLAUDE_DEFAULT,
         max_tokens: 500,
         system: systemPrompt,
-        messages: [{ role: "user", content: userContent }],
+        messages: [{
+          role: "user",
+          content: [...textBlocks(historyParts, cacheHistory), ...textBlocks([turnText], false)],
+        }],
       });
       text = response.content[0].type === "text" ? response.content[0].text : "";
       await logAnthropicUsage({

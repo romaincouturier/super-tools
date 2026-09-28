@@ -4,6 +4,7 @@ import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.74.0";
 import OpenAI from "https://esm.sh/openai@4.77.0";
 import { verifyAuth } from "../_shared/supabase-client.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
+import { isArenaHistoryAppendOnly, joinedParts, textBlocks } from "../_shared/prompt-cache.ts";
 
 interface RequestBody {
   provider: "claude" | "openai" | "gemini";
@@ -48,22 +49,26 @@ Deno.serve(async (req: Request) => {
 
   // Build user message from history
   //
-  // L'historique est renvoyé en entier à chaque prise de parole. Il est
-  // append-only : les experts d'un même tour reçoivent les mêmes octets, et le
-  // tour suivant les reprend en préfixe. On le sépare de l'instruction du tour
-  // pour pouvoir poser un point de cache entre les deux côté Claude.
-  let historyPrefix = "";
+  // L'historique est renvoyé en entier à chaque prise de parole. Chaque expert
+  // a son propre system prompt, donc le cache ne se partage pas entre experts :
+  // il sert au même expert d'un tour à l'autre. Pour cela l'historique est
+  // découpé en un bloc par message (un bloc unique change à chaque tour et
+  // n'est jamais relu) et séparé de l'instruction du tour, qui reste après le
+  // point de cache.
+  let historyParts: string[] = [];
   let turnText: string;
   if (history && history.length > 0) {
-    const historyText = history
-      .map((m) => `[${m.isUser ? "Utilisateur" : m.agentName}]: ${m.content}`)
-      .join("\n\n");
-    historyPrefix = `Voici l'historique de la discussion jusqu'ici :\n\n${historyText}`;
+    historyParts = joinedParts(
+      "Voici l'historique de la discussion jusqu'ici :\n\n",
+      history.map((m) => `[${m.isUser ? "Utilisateur" : m.agentName}]: ${m.content}`),
+      "\n\n",
+    );
     turnText = `\n\n---\n\nInstruction pour ce tour : ${turnInstruction}`;
   } else {
     turnText = `Sujet de discussion : ${topic}\n\nInstruction : ${turnInstruction}`;
   }
-  const userContent = historyPrefix + turnText;
+  const userContent = historyParts.join("") + turnText;
+  const cacheHistory = historyParts.length > 0 && isArenaHistoryAppendOnly(history);
 
   try {
     if (provider === "openai") {
@@ -71,7 +76,7 @@ Deno.serve(async (req: Request) => {
     } else if (provider === "gemini") {
       return await streamGemini(apiKey, model, systemPrompt, userContent, maxTokens);
     } else {
-      return await streamClaude(apiKey, model, systemPrompt, historyPrefix, turnText, maxTokens);
+      return await streamClaude(apiKey, model, systemPrompt, historyParts, cacheHistory, turnText, maxTokens);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
@@ -97,18 +102,19 @@ function sseEncode(encoder: TextEncoder, data: string): Uint8Array {
 
 // ─── Claude (Anthropic) ───
 async function streamClaude(
-  apiKey: string, model: string, systemPrompt: string, historyPrefix: string, turnText: string, maxTokens: number
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  historyParts: string[],
+  cacheHistory: boolean,
+  turnText: string,
+  maxTokens: number,
 ) {
-  // Point de cache à la fin de l'historique : l'instruction du tour, qui
-  // change à chaque expert, reste après le breakpoint. Sans historique
-  // (premier tour) il n'y a rien de réutilisable, donc pas de breakpoint :
-  // une écriture de cache jamais relue est facturée 1,25x pour rien.
-  const content = historyPrefix
-    ? [
-      { type: "text" as const, text: historyPrefix, cache_control: { type: "ephemeral" as const } },
-      { type: "text" as const, text: turnText },
-    ]
-    : [{ type: "text" as const, text: turnText }];
+  // Point de cache sur le dernier message de l'historique : l'instruction du
+  // tour reste après. Pas de breakpoint sans historique (premier tour) ni
+  // quand la fenêtre glissante a résumé le début : une écriture jamais relue
+  // est facturée 1,25x pour rien.
+  const content = [...textBlocks(historyParts, cacheHistory), ...textBlocks([turnText], false)];
 
   const client = new Anthropic({ apiKey });
   const stream = await client.messages.stream({

@@ -114,20 +114,20 @@ async function getBusinessContext(supabase: ReturnType<typeof getSupabaseClient>
 
 // ── System prompt ────────────────────────────────────────────
 
-function buildSystemPrompt(dbSchema: string, businessContext: string): string {
-  // Date sans l'heure : le prompt sert de préfixe de cache (cache_control),
-  // une heure qui change à chaque minute invaliderait le cache en permanence.
-  const now = new Date();
-  const dateStr = now.toLocaleDateString("fr-FR", {
+// La date vit dans un bloc system séparé, placé après le point de cache : le
+// préfixe tools + consignes + schéma reste identique d'un jour à l'autre.
+function buildDateContext(): string {
+  const dateStr = new Date().toLocaleDateString("fr-FR", {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
   });
+  return `Date actuelle : ${dateStr}.`;
+}
 
+function buildSystemPrompt(dbSchema: string, businessContext: string): string {
   return `Tu es l'assistant IA de SuperTools, une application de gestion pour un organisme de formation professionnelle.
-
-Date actuelle : ${dateStr}.
 
 Tu aides l'utilisateur à :
 - Analyser ses données (CRM, formations, devis, missions, emails, etc.)
@@ -156,7 +156,7 @@ Règles :
 - IMPORTANT : avant toute action d'écriture, décris ce que tu vas faire et demande confirmation à l'utilisateur. N'exécute l'action que si l'utilisateur confirme explicitement (oui, ok, vas-y, confirme, etc.)
 - Après une écriture, le serveur te renvoie l'état réel de la ligne. Rapporte cet état, pas ton intention.
 - Si l'utilisateur demande une action et que tu n'as pas assez d'infos, pose des questions avant d'agir
-- Pour les requêtes temporelles relatives ("cette semaine", "ce mois-ci", "les 7 derniers jours"), utilise la date actuelle ci-dessus pour calculer les bornes SQL appropriées
+- Pour les requêtes temporelles relatives ("cette semaine", "ce mois-ci", "les 7 derniers jours"), utilise la date actuelle (indiquée en fin de consignes) pour calculer les bornes SQL appropriées
 - Tu ne peux requêter QUE les tables listées ci-dessous. Toute table hors de cette liste sera rejetée.
 
 Contenu d'une mission (pages, documents, photos) :
@@ -974,6 +974,7 @@ async function runAgentStreaming(
             text: buildSystemPrompt(dbSchema, businessContext),
             cache_control: { type: "ephemeral" },
           },
+          { type: "text", text: buildDateContext() },
         ],
         tools: TOOLS,
         messages: withCacheBreakpoints(compactForApi(conversationMessages, compactionCutoff)),

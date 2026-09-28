@@ -4,6 +4,7 @@ import { verifyAuth } from "../_shared/supabase-client.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.74.0";
 import OpenAI from "https://esm.sh/openai@4.77.0";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
+import { logAnthropicUsage } from "../_shared/api-usage.ts";
 
 // Inline expert catalog for the Edge Function (avoids sharing code with frontend)
 const EXPERT_IDS = [
@@ -151,6 +152,13 @@ Tu DOIS repondre UNIQUEMENT avec un JSON valide :
         messages: [{ role: "user", content: prompt }],
       });
       text = response.content[0].type === "text" ? response.content[0].text : "";
+      await logAnthropicUsage({
+        origin: "arena-suggest-experts",
+        operation: "suggest",
+        model: CLAUDE_DEFAULT,
+        trigger: "user",
+        usage: response.usage,
+      });
     }
 
     let parsed;

@@ -648,6 +648,22 @@ if [ "$STAGED_MODE" = "false" ]; then
          && echo \"VIOLATION [055c]: \$c (\$m) coûte \$cur dans l'Arena et \$ref côté serveur\"; \
      done; true"
 
+  # [072] Prompt caching — un cache_control ne vaut que s'il est relu : rien de
+  # variable avant le point de cache, un bloc par message d'historique.
+  check "072" "Prompt caching : préfixes stables (Arena, OKR, agent-chat)" \
+    "test -f supabase/functions/_shared/prompt-cache.test.ts \
+       || echo 'VIOLATION [072]: test invariant supprime (_shared/prompt-cache.test.ts)'; \
+     for f in arena-orchestrate arena-orchestrator; do \
+       grep -q 'textBlocks(' supabase/functions/\$f/index.ts && grep -q 'isArenaHistoryAppendOnly(' supabase/functions/\$f/index.ts \
+         || echo \"VIOLATION [072]: \$f doit envoyer l historique en un bloc par message (textBlocks + isArenaHistoryAppendOnly)\"; \
+     done; \
+     awk '/const systemPrompt = /{u=1} /const historyParts/{u=0} u && /Tour actuel/{print \"VIOLATION [072]: arena-orchestrator, Tour actuel dans le system\"}' supabase/functions/arena-orchestrator/index.ts; \
+     grep -q 'function buildDateContext' supabase/functions/agent-chat/index.ts \
+       || echo 'VIOLATION [072]: agent-chat, la date doit vivre dans buildDateContext'; \
+     awk '/function buildSystemPrompt/{u=1} /^const TOOLS/{u=0} u && /Date actuelle :/{print \"VIOLATION [072]: agent-chat, date dans le bloc system cache\"}' supabase/functions/agent-chat/index.ts; \
+     grep -q 'text: dateLine' supabase/functions/okr-ai-assistant/index.ts \
+       || echo 'VIOLATION [072]: okr-ai-assistant, la date doit etre dans un bloc apres le point de cache'; true"
+
   # [056] Le coût d'un agent se juge par tâche aboutie, pas par appel : sans
   # identifiant de tâche, les rounds d'un même tour sont indistinguables et
   # api_usage_events ne peut pas répondre « combien a coûté cette question ».
