@@ -81,28 +81,32 @@ Je vous remercie de le compléter{{#deadline_date}} avant le {{deadline_date}}{{
     timing: "before",
     sendingInfo: "📤 Envoyé automatiquement aux participants qui n'ont pas complété le questionnaire, 3 jours après l'envoi initial",
     subject: {
-      tu: "Rappel : Prépare ta formation \"{{training_name}}\"",
-      vous: "Rappel : Préparez votre formation \"{{training_name}}\"",
+      tu: "Un petit rappel avant de démarrer ta formation",
+      vous: "Un petit rappel avant de démarrer votre formation",
     },
     content: {
       tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-Je me permets de te relancer concernant le questionnaire de préparation pour la formation "{{training_name}}".
+Tu as récemment rejoint la formation « {{training_name}} », et nous sommes ravis de t'accueillir !
 
-Ton retour m'est précieux pour adapter au mieux le contenu à tes besoins.
+Avant de te lancer, nous te proposons de répondre à quelques questions sur ton niveau, tes attentes et tes envies. Cela nous permet de comprendre ton point de départ et de mieux t'accompagner.
 
 {{questionnaire_link}}
 
-Merci d'avance pour ta participation !`,
+Cela ne te prendra que quelques minutes.
+
+Merci pour ton retour, et bonne découverte de la formation !`,
       vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-Je me permets de vous relancer concernant le questionnaire de préparation pour la formation "{{training_name}}".
+Vous avez récemment rejoint la formation « {{training_name}} », et nous sommes ravis de vous accueillir !
 
-Votre retour m'est précieux pour adapter au mieux le contenu à vos besoins.
+Avant de vous lancer, nous vous proposons de répondre à quelques questions sur votre niveau, vos attentes et vos envies. Cela nous permet de comprendre votre point de départ et de mieux vous accompagner.
 
 {{questionnaire_link}}
 
-Merci d'avance pour votre participation !`,
+Cela ne vous prendra que quelques minutes.
+
+Merci pour votre retour, et bonne découverte de la formation !`,
     },
     variables: ["first_name", "training_name", "questionnaire_link"],
   },

@@ -12,7 +12,7 @@ import { getVariableDoc } from "@/lib/emailVariableDocs";
 export type PreviewVariables = Record<string, string | undefined | null>;
 
 /** Which server-side body renderer a template goes through. */
-export type PreviewRenderer = "escaped" | "bullets" | "raw-blocks";
+export type PreviewRenderer = "escaped" | "bullets" | "raw-blocks" | "needs-survey-reminder";
 
 export function escapeHtml(text: string): string {
   return text
@@ -138,6 +138,7 @@ const RENDERER_BY_TEMPLATE_TYPE: Record<string, PreviewRenderer> = {
   live_reminder: "bullets",
   today_reminder: "bullets",
   trainer_today_reminder: "bullets",
+  needs_survey_reminder: "needs-survey-reminder",
 };
 
 export function rendererForTemplateType(templateType?: string): PreviewRenderer {
@@ -149,11 +150,19 @@ export const RENDERER_LABELS: Record<PreviewRenderer, string> = {
   escaped: "Texte simple : le HTML tapé dans le modèle apparaîtra tel quel dans l'email.",
   bullets: "Les lignes commençant par • ou - deviennent une liste à puces.",
   "raw-blocks": "Le HTML tapé dans le modèle est conservé et interprété.",
+  "needs-survey-reminder": "Le lien du questionnaire devient automatiquement un bouton avec un lien de secours.",
 };
 
 export function bodyToHtml(text: string, renderer: PreviewRenderer): string {
   if (renderer === "bullets") return bulletTextToHtml(text);
   if (renderer === "raw-blocks") return rawBlocksTextToHtml(text);
+  if (renderer === "needs-survey-reminder") {
+    const marker = "NEEDS_SURVEY_QUESTIONNAIRE_CTA";
+    const urlMatch = text.match(/https?:\/\/[^\s<]+/);
+    const url = urlMatch?.[0] ?? "#";
+    const button = `<table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 20px 0;"><tr><td align="center" bgcolor="#e6bc00" style="border-radius: 6px;"><a href="${escapeHtml(url)}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #1a1a1a; text-decoration: none; border-radius: 6px; font-weight: bold;">Répondre au questionnaire de préparation</a></td></tr></table><p style="margin: 8px 0 20px; font-size: 12px; color: #555555;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br><a href="${escapeHtml(url)}" style="color: #555555; text-decoration: underline; word-break: break-all;">${escapeHtml(url)}</a></p>`;
+    return escapedTextToHtml(text.replace(url, marker)).replace(`<p>${marker}</p>`, button);
+  }
   return escapedTextToHtml(text);
 }
 
