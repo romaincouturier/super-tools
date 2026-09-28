@@ -40,7 +40,8 @@ serve(async (req) => {
       .from("okr_objectives")
       .select("*")
       .eq("target_year", targetYear)
-      .order("position", { ascending: true });
+      .order("position", { ascending: true })
+      .order("id", { ascending: true });
 
     const objectiveIds = (objectives || []).map((o: any) => o.id);
 
@@ -50,6 +51,7 @@ serve(async (req) => {
           .select("*")
           .in("objective_id", objectiveIds)
           .order("position", { ascending: true })
+          .order("id", { ascending: true })
       : { data: [] };
 
     const { data: checkIns } = objectiveIds.length
@@ -58,6 +60,7 @@ serve(async (req) => {
           .select("*")
           .in("objective_id", objectiveIds)
           .order("check_in_date", { ascending: false })
+          .order("id", { ascending: true })
           .limit(100)
       : { data: [] };
 
@@ -66,6 +69,8 @@ serve(async (req) => {
           .from("okr_initiatives")
           .select("*")
           .in("key_result_id", (keyResults || []).map((kr: any) => kr.id))
+          .order("position", { ascending: true })
+          .order("id", { ascending: true })
       : { data: [] };
 
     const { data: participants } = objectiveIds.length
@@ -73,6 +78,8 @@ serve(async (req) => {
           .from("okr_participants")
           .select("*")
           .in("objective_id", objectiveIds)
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
       : { data: [] };
 
     // ─── Build context ───
@@ -169,7 +176,12 @@ Pour chacun :
 Ton direct et orienté action.`;
     }
 
-    const systemPrompt = `Tu es l'assistant IA des OKRs de SuperTilt. Tu as accès aux données OKR complètes de l'organisation pour l'année ${targetYear}.
+    // Le system est découpé en deux blocs dont la concaténation est le prompt
+    // d'origine : les données OKR et les règles (stables tant que les OKR ne
+    // bougent pas) portent le point de cache, la date du jour vient après.
+    // Les requêtes ci-dessus sont triées pour que le JSON soit identique
+    // d'un appel à l'autre.
+    const stableSystem = `Tu es l'assistant IA des OKRs de SuperTilt. Tu as accès aux données OKR complètes de l'organisation pour l'année ${targetYear}.
 
 Voici les données OKR actuelles :
 ${okrContext}
@@ -180,8 +192,9 @@ Règles :
 - Sois concis, factuel et orienté action
 - Utilise le markdown pour la mise en forme
 - Si on te demande un JSON, réponds uniquement avec du JSON valide, sans markdown autour
-- Ne fabrique jamais de données que tu n'as pas
-- Date du jour : ${new Date().toISOString().split("T")[0]}`;
+- Ne fabrique jamais de données que tu n'as pas`;
+    const dateLine = `\n- Date du jour : ${new Date().toISOString().split("T")[0]}`;
+    const systemPrompt = stableSystem + dateLine;
 
     // ─── Call LLM ───
 
@@ -229,7 +242,10 @@ Règles :
         model: CLAUDE_DEFAULT,
         max_tokens: 4000,
         temperature: 0.3,
-        system: systemPrompt,
+        system: [
+          { type: "text", text: stableSystem, cache_control: { type: "ephemeral" } },
+          { type: "text", text: dateLine },
+        ],
         messages: [{ role: "user", content: userPrompt }],
       }),
     });
