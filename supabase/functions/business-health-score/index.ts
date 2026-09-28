@@ -1,6 +1,7 @@
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logLovableUsage } from "../_shared/api-usage.ts";
+import { isInternalCall } from "../_shared/cron-auth.ts";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -13,16 +14,18 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Get user from JWT
-    const token = authHeader?.replace("Bearer ", "");
-    if (!token) {
-      return new Response(JSON.stringify({ error: "Non authentifié" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Appel interne (connecteur MCP) ou membre de l'équipe. Un apprenant a
+    // aussi un JWT valide : c'est is_staff_user(), évaluée avec le JWT de
+    // l'appelant, qui décide.
+    let isStaff = false;
+    if (!isInternalCall(req) && authHeader?.startsWith("Bearer ")) {
+      const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
       });
+      const { data } = await userClient.rpc("is_staff_user");
+      isStaff = data === true;
     }
-
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) {
+    if (!isInternalCall(req) && !isStaff) {
       return new Response(JSON.stringify({ error: "Non authentifié" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

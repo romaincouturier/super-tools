@@ -42,7 +42,7 @@ function capitalizeName(name: string | null | undefined): string | null {
  * ┌─────────────────────────┬──────────────────┬──────────────────────┐
  * │ Cas                     │ status           │ sendWelcomeNow       │
  * ├─────────────────────────┼──────────────────┼──────────────────────┤
- * │ Pas de date de début    │ programme        │ false (cron J-7)     │
+ * │ Pas de date de début    │ programme        │ false                │
  * │ Déjà commencée (> 0 j)  │ non_envoye       │ false*               │
  * │ Démarre aujourd'hui     │ non_envoye       │ false* (voir ongoing)│
  * │ < 2 j                   │ manuel           │ false                │
@@ -128,7 +128,6 @@ export interface AddParticipantResponse {
   ongoing: boolean;
   welcomeSent: boolean;
   welcomeFailed: boolean;
-  welcomeScheduled: boolean;
   needsSurveyScheduled: boolean;
   trainerSummaryScheduled: boolean;
   attendanceCatchUp: { sentSlots: number; errors: number } | null;
@@ -340,7 +339,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // Suivi des emails programmés (retourné au caller)
     let needsSurveyScheduled = false;
-    let welcomeScheduled = false;
 
     if (alreadyExisted) {
       participantId = existing.id;
@@ -477,27 +475,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
           }
         } catch (err) {
           console.error("[add-training-participant] schedule reminder:", err);
-        }
-      }
-
-      // Convocation J-7 : uniquement quand la formation est à plus de 7 j
-      // (status "programme") et non e-learning.
-      if (!isFreeTraining && trainingStartDate && !isElearning && emailStatus === "programme") {
-        try {
-          const startDate = new Date(`${trainingStartDate}T00:00:00`);
-          const welcomeDate = subtractWorkingDays(startDate, 7, workingDaysArr);
-          if (welcomeDate > new Date()) {
-            await admin.from("scheduled_emails").insert({
-              training_id: trainingId,
-              participant_id: participantId,
-              email_type: "welcome",
-              scheduled_for: `${welcomeDate.toISOString().split("T")[0]}T09:00:00`,
-              status: "pending",
-            });
-            welcomeScheduled = true;
-          }
-        } catch (err) {
-          console.error("[add-training-participant] schedule welcome J-7:", err);
         }
       }
     }
@@ -705,7 +682,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       ongoing,
       welcomeSent,
       welcomeFailed,
-      welcomeScheduled,
       needsSurveyScheduled,
       trainerSummaryScheduled,
       attendanceCatchUp,

@@ -4,9 +4,11 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.stubGlobal("Deno", { env: { get: () => undefined } });
+const env: Record<string, string> = { SUPABASE_URL: "https://proj.test", SUPABASE_SERVICE_ROLE_KEY: "service-role" };
+vi.stubGlobal("Deno", { env: { get: (k: string) => env[k] } });
 
 const {
+  getBusinessHealth,
   addSupportNote,
   updateTicketStatus,
   addContentCard,
@@ -126,5 +128,21 @@ describe("updateQuoteStatus", () => {
     const { db, calls } = makeDb();
     await expect(updateQuoteStatus(db, { quote_id: ID, status: "paid" }, log)).rejects.toThrow("invalide");
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe("getBusinessHealth", () => {
+  it("appelle business-health-score en appel interne et rend le corps", async () => {
+    const fetchMock = vi.fn(async () => new Response('{"report":"ok"}', { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await getBusinessHealth(log)).toBe('{"report":"ok"}');
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://proj.test/functions/v1/business-health-score");
+    expect((init.headers as Record<string, string>)["x-internal-secret"]).toBe("service-role");
+  });
+
+  it("remonte une erreur quand la fonction refuse", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("Non authentifié", { status: 401 })));
+    await expect(getBusinessHealth(log)).rejects.toThrow("401");
   });
 });

@@ -76,6 +76,7 @@ import {
 import {
   addContentCard,
   addSupportNote,
+  getBusinessHealth,
   MISSION_FIELDS,
   MISSION_STATUSES,
   QUOTE_STATUSES,
@@ -297,6 +298,7 @@ QUEL OUTIL POUR QUELLE QUESTION
 - « Quels contenus marchent », préparation d'un article, refonte : get_content_performance.
 - Newsletter, point éditorial, arbitrage de sommaire : get_editorial_brief d'abord, puis get_content_performance pour justifier les choix.
 - Client, mission, formation, devis, évaluation : get_client_dossier, get_mission_dossier, read_mission_documents, search_content.
+- État général de l'activité (formations, taux d'évaluation, pipeline sur 30 jours) : get_business_health.
 - Conférence, salon, CFP, réécriture d'un pitch déjà soumis : get_event_history. Il rend le pitch (description), les notes de préparation, le bilan (summary_notes) et l'issue déduite. Ne jamais annoncer qu'un événement a été « accepté » : le modèle ne stocke que held / not_selected / cancelled / upcoming, et le refus se lit sur cancellation_reason.
 - Veille (articles, podcasts, sorties produit suivis par SuperTilt) : list_watch_items pour lire ce qui est déjà couvert, save_watch_item pour y déposer un nouveau contenu.
 - LMS (cours en ligne) : list_lms_courses donne les cours ; list_lms_lessons les leçons d'un cours (avec leur module) ; read_lms_lesson renvoie les blocs avec leur empreinte ; list_lms_block_types catalogue les types de blocs pédagogiques et leur pertinence ; create_lms_lesson crée une leçon vide dans un module ; update_lms_block modifie un seul bloc texte/HTML sans changer son type ; apply_lesson_restructure remplace les blocs de contenu d'une leçon après validation humaine ; list_lesson_versions et restore_lesson_version gèrent l'historique. Utiliser read_lms_lesson avant toute proposition de restructuration pour obtenir l'empreinte (fingerprint) exacte.
@@ -1092,6 +1094,12 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "get_business_health",
+    description:
+      "Business health report for the last 30 days: trainings, participants, needs-survey and evaluation rates, CRM pipeline, with an AI-written diagnosis and recommendations. Takes about 10 seconds.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
     name: "add_support_note",
     description:
       "Append a dated note to a support ticket's resolution notes. Existing notes are kept; the new note is added after them.",
@@ -1627,6 +1635,13 @@ async function callTool(
         return textResult(`Logistics error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "get_business_health": {
+      try {
+        return textResult(await getBusinessHealth(log));
+      } catch (e) {
+        return textResult(`get_business_health error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "add_support_note":
     case "update_ticket_status":
     case "add_content_card":
@@ -1821,7 +1836,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.9.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.10.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }

@@ -1,6 +1,6 @@
 /**
- * Outils MCP repris de l'agent intégré (agent-chat) avant son gel : tickets
- * support, cartes de contenu, missions et statut de devis.
+ * Outils MCP repris de l'agent intégré (agent-chat) avant son gel : bilan
+ * d'activité, tickets support, cartes de contenu, missions et statut de devis.
  * Chaque écriture ne modifie que les champs transmis et relit la ligne écrite.
  */
 
@@ -43,6 +43,22 @@ async function readBack(db: Db, table: string, id: string, columns: string): Pro
   if (error) throw new Error(error.message);
   if (!data) throw new Error(`${table} introuvable : ${id}`);
   return data;
+}
+
+/** Bilan d'activité des 30 derniers jours, calculé par business-health-score. */
+export async function getBusinessHealth(log: Log): Promise<string> {
+  await log("get_business_health");
+  const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/business-health-score`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-internal-secret": Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    },
+    body: JSON.stringify({}),
+  });
+  const body = await res.text();
+  if (!res.ok) throw new Error(`business-health-score : ${res.status} ${body.slice(0, 300)}`);
+  return body;
 }
 
 export async function addSupportNote(
