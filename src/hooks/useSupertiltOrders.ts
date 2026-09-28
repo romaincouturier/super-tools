@@ -22,6 +22,7 @@ export type KanbanStatus =
   | "to_ship"
   | "dropshipping"
   | "location_pending"
+  | "location_active"
   | "processed"
   | "blocked";
 
@@ -31,6 +32,7 @@ export const KANBAN_COLUMNS: { key: KanbanStatus; label: string }[] = [
   { key: "to_ship", label: "À expédier" },
   { key: "dropshipping", label: "Dropshipping" },
   { key: "location_pending", label: "Location — contrat en attente" },
+  { key: "location_active", label: "Location en cours" },
   { key: "processed", label: "Traitées" },
   { key: "blocked", label: "Bloquées / Erreur" },
 ];
