@@ -90,6 +90,7 @@ const KANBAN_ICONS: Record<KanbanStatus, React.ReactNode> = {
   to_ship: <Truck className="h-3.5 w-3.5 text-indigo-600" />,
   dropshipping: <RefreshCw className="h-3.5 w-3.5 text-purple-600" />,
   location_pending: <FileText className="h-3.5 w-3.5 text-orange-600" />,
+  location_active: <Clock className="h-3.5 w-3.5 text-orange-600" />,
   processed: <CheckCircle className="h-3.5 w-3.5 text-green-600" />,
   blocked: <Ban className="h-3.5 w-3.5 text-red-600" />,
 };
