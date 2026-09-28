@@ -133,11 +133,7 @@ const CTA_TEXT = "#1a1a1a";
  * for consistent styling.
  */
 export function emailButton(label: string, url: string): string {
-  return `<p style="margin: 20px 0;">
-  <a href="${url}" style="display: inline-block; padding: 12px 24px; background-color: ${CTA_BG}; color: ${CTA_TEXT}; text-decoration: none; border-radius: 6px; font-weight: bold;">
-    ${label}
-  </a>
-</p>`;
+  return `<table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 20px 0;"><tr><td align="center" bgcolor="${CTA_BG}" style="border-radius: 6px;"><a href="${url}" style="display: inline-block; padding: 12px 24px; background-color: ${CTA_BG}; color: ${CTA_TEXT}; text-decoration: none; border-radius: 6px; font-weight: bold;">${label}</a></td></tr></table>`;
 }
 
 /**

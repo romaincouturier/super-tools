@@ -13,3 +13,6 @@
 
 - [x] Retry/backoff sur le refresh Google (internal_failure) + échec géré proprement
 - [ ] Bandeau réassort ECHO : bloqué, mail envoyé par AutomateWoo (boutique), accès admin requis
+
+## En cours (28/09)
+- [ ] Relance questionnaire de préparation : modèles tu/vous, bouton compatible, tests avant déploiement

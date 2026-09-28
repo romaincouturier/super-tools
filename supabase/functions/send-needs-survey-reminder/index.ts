@@ -9,32 +9,36 @@ import {
   sendEmail,
   formatDateWithDayFr,
 } from "../_shared/mod.ts";
-import { processTemplate, textToHtml } from "../_shared/templates.ts";
+import { emailButton, processTemplate, textToHtml } from "../_shared/templates.ts";
 import { resolveSessionDate } from "../_shared/training-date.ts";
 
 // Default templates (fallback if no custom template in DB)
-const DEFAULT_SUBJECT_TU = "Rappel : Prépare ta formation \"{{training_name}}\"";
-const DEFAULT_SUBJECT_VOUS = "Rappel : Préparez votre formation \"{{training_name}}\"";
+const DEFAULT_SUBJECT_TU = "Un petit rappel avant de démarrer ta formation";
+const DEFAULT_SUBJECT_VOUS = "Un petit rappel avant de démarrer votre formation";
 
 const DEFAULT_CONTENT_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-Je me permets de te relancer concernant le questionnaire de préparation pour la formation "{{training_name}}".
+Tu as récemment rejoint la formation « {{training_name}} », et nous sommes ravis de t'accueillir !
 
-Ton retour m'est précieux pour adapter au mieux le contenu à tes besoins.
+Avant de te lancer, nous te proposons de répondre à quelques questions sur ton niveau, tes attentes et tes envies. Cela nous permet de comprendre ton point de départ et de mieux t'accompagner.
 
 {{questionnaire_link}}
 
-Merci d'avance pour ta participation !`;
+Cela ne te prendra que quelques minutes.
+
+Merci pour ton retour, et bonne découverte de la formation !`;
 
 const DEFAULT_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-Je me permets de vous relancer concernant le questionnaire de préparation pour la formation "{{training_name}}".
+Vous avez récemment rejoint la formation « {{training_name}} », et nous sommes ravis de vous accueillir !
 
-Votre retour m'est précieux pour adapter au mieux le contenu à vos besoins.
+Avant de vous lancer, nous vous proposons de répondre à quelques questions sur votre niveau, vos attentes et vos envies. Cela nous permet de comprendre votre point de départ et de mieux vous accompagner.
 
 {{questionnaire_link}}
 
-Merci d'avance pour votre participation !`;
+Cela ne vous prendra que quelques minutes.
+
+Merci pour votre retour, et bonne découverte de la formation !`;
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -199,9 +203,13 @@ serve(async (req) => {
       questionnaire_link: questionnaireUrl,
     };
 
-    const emailSubject = processTemplate(subjectTemplate, variables, false);
-    const contentText = processTemplate(contentTemplate, variables, false);
-    const contentHtml = textToHtml(contentText);
+    const ctaMarker = "NEEDS_SURVEY_QUESTIONNAIRE_CTA";
+    const safeContentTemplate = contentTemplate.replaceAll("{{questionnaire_link}}", ctaMarker);
+    const emailSubject = processTemplate(subjectTemplate, variables);
+    const contentText = processTemplate(safeContentTemplate, variables);
+    const questionnaireCta = `${emailButton("Répondre au questionnaire de préparation", questionnaireUrl)}
+<p style="margin: 8px 0 20px; font-size: 12px; color: #555555;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br><a href="${questionnaireUrl}" style="color: #555555; text-decoration: underline; word-break: break-all;">${questionnaireUrl}</a></p>`;
+    const contentHtml = textToHtml(contentText).replace(`<p>${ctaMarker}</p>`, questionnaireCta);
     const htmlContent = `${contentHtml}\n${signature}`;
 
     // Send email
