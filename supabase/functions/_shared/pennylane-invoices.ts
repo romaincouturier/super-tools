@@ -56,7 +56,9 @@ export function buildDraftInvoicePayload(
   customerId: number,
   date = todayParis(),
 ): Record<string, unknown> {
-  const quote = buildQuotePayload({ date, deadline: addDays(date, INVOICE_PAYMENT_DAYS), lines }, customerId);
+  // Pour les factures, Pennylane exige `unit` sur une ligne standard (NotOneOf sinon).
+  const withUnit = lines.map((l) => ({ ...l, unit: l.unit || "piece" }));
+  const quote = buildQuotePayload({ date, deadline: addDays(date, INVOICE_PAYMENT_DAYS), lines: withUnit }, customerId);
   return {
     customer_id: quote.customer_id,
     date: quote.date,
