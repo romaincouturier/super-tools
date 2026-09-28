@@ -2,12 +2,11 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import DetailDrawer from "@/components/shared/DetailDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { X, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, CalendarPlus, ExternalLink, Briefcase, Bot, Maximize2, Minimize2, Bug } from "lucide-react";
+import { X, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, CalendarPlus, ExternalLink, Briefcase, Maximize2, Minimize2, Bug } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FeedbackForm } from "@/components/feedback/FeedbackForm";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { Spinner } from "@/components/ui/spinner";
-import { useNavigate } from "react-router-dom";
 import { Mission, MissionStatus } from "@/types/missions";
 import { useUpdateMission, useDeleteMission, useCreateMissionActivity } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
@@ -56,7 +55,6 @@ const MissionDetailDrawer = ({
   const createActivity = useCreateMissionActivity();
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
-  const navigate = useNavigate();
   const { copied, copy } = useCopyToClipboard();
   const { confirm, ConfirmDialog } = useConfirm();
   const [showDeliverables, setShowDeliverables] = useState(false);
@@ -284,14 +282,6 @@ const MissionDetailDrawer = ({
       </Button>
       <Button size="sm" variant="outline" onClick={handleShareLink} title="Copier le lien de partage">
         {copied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => navigate(`/agent?q=${encodeURIComponent(`Analyse la mission "${mission.title}" : activité récente, heures consommées, état d'avancement et recommandations.`)}`)}
-        title="Demander à l'agent"
-      >
-        <Bot className="h-4 w-4" />
       </Button>
       <Button
         size="sm"

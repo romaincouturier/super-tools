@@ -66,7 +66,7 @@ Les points d'entrée principaux sont :
 
 Point produit important :
 
-- `/dashboard` redirige actuellement vers `/agent`
+- `/agent` redirige vers `/dashboard` : l'agent intégré (`agent-chat`) est gelé, l'agent conversationnel est Claude avec le connecteur MCP SuperTools (`supabase/functions/mcp-server/`)
 
 ## 4. Modèle de couches recommandé
 

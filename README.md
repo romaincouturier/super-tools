@@ -106,7 +106,6 @@ Les fichiers `.env*` sont ignorés par git selon [.gitignore](./.gitignore).
 
 Quelques routes importantes :
 
-- `/agent` : point d'entrée conversationnel principal
 - `/formations` : gestion des formations
 - `/crm` : pipeline commercial
 - `/missions` : suivi missions
