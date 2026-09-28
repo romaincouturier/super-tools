@@ -292,11 +292,14 @@ serve(async (req: Request): Promise<Response> => {
         .eq("id", rec.location_extension_id);
     }
 
-    // ── Move order to processed (un avenant ne touche pas au kanban) ──
+    // ── Location en cours, échéance = signature + 30 jours (un avenant ne touche pas au kanban) ──
     if (rec.order_item_id && !rec.location_extension_id) {
+      const parisDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date(signedAt));
+      const end = new Date(`${parisDay}T00:00:00Z`);
+      end.setUTCDate(end.getUTCDate() + 30);
       await supabase
         .from("order_items" as any)
-        .update({ kanban_status: "processed" })
+        .update({ kanban_status: "location_active", location_end_date: end.toISOString().slice(0, 10) })
         .eq("id", rec.order_item_id);
     }
 

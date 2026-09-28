@@ -90,6 +90,7 @@ const KANBAN_ICONS: Record<KanbanStatus, React.ReactNode> = {
   to_ship: <Truck className="h-3.5 w-3.5 text-indigo-600" />,
   dropshipping: <RefreshCw className="h-3.5 w-3.5 text-purple-600" />,
   location_pending: <FileText className="h-3.5 w-3.5 text-orange-600" />,
+  location_active: <Clock className="h-3.5 w-3.5 text-orange-600" />,
   processed: <CheckCircle className="h-3.5 w-3.5 text-green-600" />,
   blocked: <Ban className="h-3.5 w-3.5 text-red-600" />,
 };
@@ -631,6 +632,9 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
     ? (rawCustomerName.includes("@") ? maskEmail(rawCustomerName) : maskName(rawCustomerName))
     : rawCustomerName;
 
+  const todayParis = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date());
+  const locationRunning = !!item.contrat_reference && (!item.location_end_date || item.location_end_date > todayParis);
+
   const handleMarkProcessed = async () => {
     try {
       await updateStatus({ id: item.id, kanban_status: "processed" });
@@ -733,8 +737,12 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
           </Button>
         )}
         {item.kanban_status !== "processed" && item.kanban_status !== "blocked" && (
-          <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={handleMarkProcessed} disabled={updatingStatus}>
-            <CheckCircle className="h-3 w-3 mr-1" />Traité
+          <Button
+            variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={handleMarkProcessed}
+            disabled={updatingStatus || locationRunning}
+            title={locationRunning ? `Location en cours jusqu'au ${item.location_end_date ? DATE(item.location_end_date) : "(échéance non renseignée)"}` : undefined}
+          >
+            <CheckCircle className="h-3 w-3 mr-1" />{locationRunning ? "Terminer (à échéance)" : "Traité"}
           </Button>
         )}
         {item.game_type === "dropshipping" && item.kanban_status !== "blocked" && (
