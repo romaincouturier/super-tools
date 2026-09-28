@@ -157,7 +157,7 @@ Le sens des flèches est la règle de dépendance : pas de flèche inverse, pas 
 
 - **Binds:** src/lib, supabase/functions/_shared
 - **Prevents:** deux copies d'une même règle qui divergent (front et edge).
-- **Rule:** La décision d'un effet de bord (quand envoyer, quel statut, quel calcul de jours) est prise côté serveur. Une copie front inévitable porte un commentaire `// twin: <chemin>` et partage des cas de test joués des deux côtés [057]. Paires connues : `src/lib/emailScheduling.ts` / `add-training-participant` (déjà divergentes), `src/lib/workingDays.ts` / `_shared/working-days.ts`, `src/lib/stateMachine.ts` / `_shared/state-machine.ts`.
+- **Rule:** La décision d'un effet de bord (quand envoyer, quel statut, quel calcul de jours) est prise côté serveur. Une copie front inévitable porte un commentaire `// twin: <chemin>` et partage des cas de test joués des deux côtés [057]. Paires connues : `src/lib/emailScheduling.ts` / `add-training-participant` (alignées le 2026-09-28 : envoi immédiat dès J-2), `src/lib/workingDays.ts` / `_shared/working-days.ts`, `src/lib/stateMachine.ts` / `_shared/state-machine.ts`.
 
 ### AD-15 : Enveloppe d'exploitation [ADOPTED]
 
@@ -249,7 +249,6 @@ erDiagram
 - **CORS** : `_shared/cors.ts:8` retombe sur `*` si `APP_ORIGIN` n'est pas défini.
 - **`has_module_access()`** code en dur un email (M20260202130645:26-41), contre [027].
 - **Staff côté front** : `RequireStaff` et `useLearnerIdentity` considèrent staff tout compte avec une ligne `profiles`, `is_staff_user()` exige admin ou un accès module.
-- **Convocation** : `add-training-participant` envoie la convocation tout de suite dès J-2, le front (`getEmailMode`) la programme au-delà de J-7 ; la branche J-7 de la fonction est inatteignable. Quel comportement est voulu ?
 - **Jobs hors dépôt** : `daily-scheduled-backup` et le job de `monitor_missing_evaluation_reminders()` n'ont pas de `cron.schedule` dans les migrations (AD-8).
 - **supabase-js côté edge** : trois versions importées depuis esm.sh, dont `@2` non épinglée.
 - **Doc contradictoire** : `docs/AUDIT_AVANT_PUSH.md:4,12` affirme qu'un push applique les migrations ; le README de `migrations-apres-front/` (18/09/2026, vérifié en base) affirme l'inverse. AD-8 suit le README.
