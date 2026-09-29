@@ -12,6 +12,7 @@ import {
 
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { recipientsWithoutSubmittedResponse } from "../_shared/reminder-filters.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -119,12 +120,28 @@ serve(async (req) => {
     let sent = 0;
     let failed = 0;
 
+    // Rappel : exclure ceux qui ont déjà soumis une réponse (recipient_id, sinon email).
+    let pendingRecIds: Set<string> | null = null;
+    if (isReminder) {
+      const { data: responses, error: rErr } = await (supabase as any)
+        .from("training_survey_responses")
+        .select("recipient_id, respondent_email, submitted_at")
+        .eq("survey_id", surveyId);
+      if (rErr) return createErrorResponse(`Erreur réponses: ${rErr.message}`, 500);
+      const allRecs = [...recByPid.values(), ...recByEmail.values()];
+      pendingRecIds = new Set(
+        recipientsWithoutSubmittedResponse(allRecs, responses ?? []).map((r: any) => r.id),
+      );
+    }
+
     for (const p of recipientsList) {
       const rec = p.participant_id ? recByPid.get(p.participant_id) : recByEmail.get(p.email.toLowerCase());
       if (!rec) continue;
 
       // Skip already-sent if not a reminder
       if (!isReminder && rec.sent_at) continue;
+      if (pendingRecIds && !pendingRecIds.has(rec.id)) continue;
+      if (pendingRecIds && !rec.sent_at) continue;
 
       const firstName = p.first_name || "";
       const link = `${baseUrl}/sondage-formation/${rec.token}`;

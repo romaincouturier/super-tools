@@ -321,13 +321,13 @@ const handler = async (req: Request): Promise<Response> => {
           throw new Error("needs_survey_reminder requires a participant_id");
         }
         // Skip if questionnaire already submitted
-        const { data: questionnaire } = await supabase
+        const { data: questionnaires, error: qErr } = await supabase
           .from("questionnaire_besoins")
-          .select("etat")
+          .select("etat, date_soumission")
           .eq("participant_id", scheduledEmail.participant_id)
-          .eq("training_id", scheduledEmail.training_id)
-          .maybeSingle();
-        if (questionnaire && questionnaire.etat && questionnaire.etat !== "envoye") {
+          .eq("training_id", scheduledEmail.training_id);
+        if (qErr) throw new Error(`questionnaire_besoins lookup failed: ${qErr.message}`);
+        if (isNeedsSurveySubmitted(questionnaires ?? [])) {
           await supabase
             .from("scheduled_emails")
             .update({ status: "cancelled", error_message: "Questionnaire déjà complété" })
@@ -862,14 +862,16 @@ Règles :
         recipientEmail = participant?.email || "";
         
         // Check if evaluation already submitted
-        const { data: evalCheck } = await supabase
+        const { data: evalRows, error: evErr } = await supabase
           .from("training_evaluations")
-          .select("id, etat, token")
+          .select("id, etat, token, date_soumission, created_at")
           .eq("training_id", training.id)
           .eq("participant_id", participant?.id)
-          .single();
+          .order("created_at", { ascending: false });
+        if (evErr) throw new Error(`training_evaluations lookup failed: ${evErr.message}`);
+        const evalCheck = (evalRows ?? [])[0] ?? null;
 
-        if (evalCheck && evalCheck.etat === "soumis") {
+        if (isEvaluationSubmitted(evalRows ?? [])) {
           await supabase
             .from("scheduled_emails")
             .update({ status: "cancelled", error_message: "Évaluation déjà soumise" })
