@@ -30,6 +30,13 @@ import {
 } from "../_shared/record-tools.ts";
 import { getEventHistory } from "../_shared/event-tools.ts";
 import {
+  createContentCard,
+  getContentCard,
+  listContentBoard,
+  listNewsletters,
+  prepareNewsletter,
+} from "../_shared/editorial-tools.ts";
+import {
   getSeoPerformance,
   getSeoOpportunities,
   getContentPerformance,
@@ -285,6 +292,7 @@ QUEL OUTIL POUR QUELLE QUESTION
 - « Que faut-il optimiser », audit SEO ou GEO : get_seo_opportunities. Chaque bloc est mesuré ; s'appuyer dessus plutôt que sur des recommandations génériques.
 - « Quels contenus marchent », préparation d'un article, refonte : get_content_performance.
 - Newsletter, point éditorial, arbitrage de sommaire : get_editorial_brief d'abord, puis get_content_performance pour justifier les choix.
+- Question simple sur le kanban éditorial ou l'historique des newsletters (« qu'a-t-on déjà envoyé », « quelles idées sur tel thème ») : list_newsletters et list_content_board, plus légers que get_editorial_brief ; get_content_card pour lire un contenu en entier.
 - Client, mission, formation, devis, évaluation : get_client_dossier, get_mission_dossier, read_mission_documents, search_content.
 - Conférence, salon, CFP, réécriture d'un pitch déjà soumis : get_event_history. Il rend le pitch (description), les notes de préparation, le bilan (summary_notes) et l'issue déduite. Ne jamais annoncer qu'un événement a été « accepté » : le modèle ne stocke que held / not_selected / cancelled / upcoming, et le refus se lit sur cancellation_reason.
 - Veille (articles, podcasts, sorties produit suivis par SuperTilt) : list_watch_items pour lire ce qui est déjà couvert, save_watch_item pour y déposer un nouveau contenu.
@@ -306,6 +314,8 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - update_mission_activity : corrige une activité existante à partir de son id (listé par get_mission_dossier). Seuls les champs transmis sont modifiés ; aucune activité ne peut être supprimée ni déplacée vers une autre mission.
 - save_watch_item : dépose un contenu dans le module Veille (un contenu par appel : lien de la source, résumé dans body, angle dans comment, 2 à 5 tags). Écriture additive, doublons refusés : même URL déjà présente ou contenu sémantiquement quasi identique, l'appel ne crée rien et rend l'élément existant.
 - create_quote : crée un devis en BROUILLON dans Pennylane (comptabilité SuperTilt). Aucun envoi au client, aucune validation, aucune transformation en facture n'est possible depuis ici : le brouillon reste à relire et à envoyer manuellement dans Pennylane.
+- create_content_card : dépose une carte (idée ou article rédigé) dans le kanban éditorial, au stade choisi (colonne, « Idées » par défaut), avec titre, contenu et thèmes. Écriture additive. Réutiliser les thèmes existants (list_content_board) plutôt que d'en inventer.
+- prepare_newsletter : compose le sommaire ordonné d'une newsletter en BROUILLON (création du brouillon ou reprise d'un brouillon existant), à partir de cartes existantes et/ou de nouveaux contenus créés au passage. Remplace le sommaire du brouillon visé uniquement ; refuse toute newsletter déjà envoyée. Aucun envoi n'est possible d'ici : ne jamais prétendre avoir envoyé une newsletter. Récapituler le sommaire et obtenir l'accord de l'utilisateur avant d'écraser le sommaire d'un brouillon existant.
 - update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre « type » doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
 - create_lms_lesson : crée une leçon dans un module, avec éventuellement ses blocs de contenu initiaux (paramètre « blocks », même schéma que apply_lesson_restructure). Position facultative : si elle est fournie, les leçons suivantes du module sont décalées d'un rang. Écriture additive : aucune leçon existante n'est modifiée dans son contenu. Retourne l'id et l'empreinte de la leçon créée.
 - apply_lesson_restructure : remplace TOUS les blocs de premier niveau d'une leçon par une nouvelle structure proposée. Tous les types du menu « Ajouter un bloc » sont acceptés : blocs de contenu (texte, tableau, encadré, points clés, liste, checklist, synthèse, accordéon, frise, cartes à retourner, code, exercice, auto-évaluation, texte à trous, mots à glisser, quiz, devoir, dépôt de travail, vidéo, image, galerie, fichier, image interactive, avant/après, bouton, CTA, intégration HTML, shortcode) et blocs de mise en page (section, colonnes, conteneur, contenu progressif, séparateur, espace) qui peuvent porter un tableau « children » de blocs de contenu (un seul niveau d'imbrication). EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
@@ -676,6 +686,88 @@ const MCP_TOOLS = [
         days: { type: "number", description: "Length of the audience period analysed (default 90)" },
         horizon_days: { type: "number", description: "How far ahead to look for events and sessions (default 120)" },
       },
+    },
+  },
+  {
+    name: "list_content_board",
+    description:
+      "Light view of the editorial kanban: column names and, for each content card, its id, title, column, themes (tags), type, deadline, the date of the last SENT newsletter that used it and whether it sits in a draft newsletter. Content itself is NOT returned (use get_content_card). Filter by column, theme or title.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        column: { type: "string", description: "Column name, e.g. 'Idées', 'Diffusion Terminée'" },
+        tag: { type: "string", description: "Only cards carrying this theme" },
+        search: { type: "string", description: "Substring of the title" },
+        limit: { type: "number", description: "Max cards (default 200, max 500)" },
+      },
+    },
+  },
+  {
+    name: "get_content_card",
+    description: "Full content of one editorial card (title, body, themes, column, newsletters it was sent in).",
+    inputSchema: {
+      type: "object",
+      properties: { card_id: { type: "string", description: "UUID from list_content_board or list_newsletters" } },
+      required: ["card_id"],
+    },
+  },
+  {
+    name: "create_content_card",
+    description:
+      "Create a card in the SuperTools editorial kanban (an idea or an already written article), directly at the right stage. ADDITIVE: never modifies or deletes an existing card. The card is placed at the top of its column. An unknown column is rejected with the list of valid ones.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Card title (max 300 characters)" },
+        content: { type: "string", description: "Body: plain text, Markdown or simple HTML; can be a full article" },
+        tags: { type: "array", items: { type: "string" }, description: "Themes (max 10). Reuse existing ones from list_content_board." },
+        column: { type: "string", description: "Stage (column name). Default 'Idées'." },
+        card_type: { type: "string", enum: ["article", "post", "post_linkedin"], description: "Default 'article'" },
+        emoji: { type: "string" },
+        deadline: { type: "string", description: "YYYY-MM-DD" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "list_newsletters",
+    description:
+      "History of newsletters, most recent first: date, status (draft / sent), sent date, and the ordered list of articles in each (id, title, themes, type). Content is not returned. Much lighter than get_editorial_brief.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Default 12, max 50" },
+        status: { type: "string", enum: ["draft", "sent"] },
+      },
+    },
+  },
+  {
+    name: "prepare_newsletter",
+    description:
+      "Compose the ordered table of contents of a DRAFT newsletter. Either pass newsletter_id of an existing draft, or scheduled_date (+ optional title) to create a new draft. items is the full ordered list: each entry is either {card_id} for an existing card, or a new card {title, content, tags, column, card_type} that is created in the kanban on the fly (column 'Idées' by default). The draft's previous table of contents is REPLACED. A newsletter already sent is always refused. Nothing is ever sent from here. Cards already used in a sent newsletter are flagged (already_sent_in), not blocked.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        newsletter_id: { type: "string", description: "Existing draft to update" },
+        scheduled_date: { type: "string", description: "YYYY-MM-DD, required when creating a new draft" },
+        title: { type: "string" },
+        items: {
+          type: "array",
+          description: "Ordered entries (max 30)",
+          items: {
+            type: "object",
+            properties: {
+              card_id: { type: "string" },
+              title: { type: "string" },
+              content: { type: "string" },
+              tags: { type: "array", items: { type: "string" } },
+              column: { type: "string" },
+              card_type: { type: "string", enum: ["article", "post", "post_linkedin"] },
+            },
+          },
+        },
+      },
+      required: ["items"],
     },
   },
   {
@@ -1426,6 +1518,56 @@ async function callTool(
         })));
       } catch (e) {
         return textResult(`Brief error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "list_content_board": {
+      try {
+        await log("list_content_board");
+        return textResult(JSON.stringify(await listContentBoard(supabase, {
+          column: args.column as string | undefined,
+          tag: args.tag as string | undefined,
+          search: args.search as string | undefined,
+          limit: args.limit as number | undefined,
+        })));
+      } catch (e) {
+        return textResult(`Board error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "get_content_card": {
+      try {
+        await log("get_content_card");
+        return textResult(JSON.stringify(await getContentCard(supabase, (args.card_id as string) || "")));
+      } catch (e) {
+        return textResult(`Card error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "create_content_card": {
+      try {
+        const res = await createContentCard(supabase, args);
+        await log("create_content_card");
+        return textResult(JSON.stringify(res));
+      } catch (e) {
+        return textResult(`Card creation error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "list_newsletters": {
+      try {
+        await log("list_newsletters");
+        return textResult(JSON.stringify(await listNewsletters(supabase, {
+          limit: args.limit as number | undefined,
+          status: args.status as string | undefined,
+        })));
+      } catch (e) {
+        return textResult(`Newsletters error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "prepare_newsletter": {
+      try {
+        const res = await prepareNewsletter(supabase, args);
+        await log("prepare_newsletter");
+        return textResult(JSON.stringify(res));
+      } catch (e) {
+        return textResult(`Newsletter error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "read_media_image": {
