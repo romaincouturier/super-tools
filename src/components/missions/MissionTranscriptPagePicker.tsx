@@ -63,6 +63,7 @@ const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick, missionId, us
     status: "ready",
   });
   const { refetch: fetchOne } = useTranscript(null);
+  const available = transcripts.filter((t) => !assignments?.get(t.id)?.length);
 
   const handlePick = async (t: Transcript) => {
     setLoadingId(t.id);
@@ -99,13 +100,13 @@ const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick, missionId, us
         </div>
         <div className="max-h-[min(400px,60vh)] overflow-y-auto overscroll-contain pr-2 [-webkit-overflow-scrolling:touch]">
           {isLoading && <Spinner />}
-          {!isLoading && transcripts.length === 0 && (
+          {!isLoading && available.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">
               Aucun transcript disponible
             </p>
           )}
           <div className="space-y-1">
-            {transcripts.map((t) => {
+            {available.map((t) => {
               const title = t.ai_title || t.title || "Sans titre";
               const alreadyAdded = usedTitles?.has(title) ?? false;
               return (

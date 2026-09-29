@@ -58,8 +58,8 @@ const EntityTranscriptsSection = ({ entity, entityId }: Props) => {
   const { data: assignments } = useTranscriptAssignments();
   const linkedIds = useMemo(() => new Set(links.map((l) => l.transcript_id)), [links]);
   const candidates = useMemo(
-    () => allTranscripts.filter((t) => !linkedIds.has(t.id)),
-    [allTranscripts, linkedIds],
+    () => allTranscripts.filter((t) => !linkedIds.has(t.id) && !assignments?.get(t.id)?.length),
+    [allTranscripts, linkedIds, assignments],
   );
 
   const { data: viewedTranscript, isLoading: loadingView } = useTranscript(viewId);
