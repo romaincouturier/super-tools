@@ -21,7 +21,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { uploadEntityDocument } from "@/hooks/useEntityDocuments";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEdgeFunction } from "@/hooks/useEdgeFunction";
+import { transcribeAudio } from "@/services/lmsMediaImport";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -102,10 +102,6 @@ const EntityMediaManager = ({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { invoke: invokeTranscribe } = useEdgeFunction<{ transcript?: string }>(
-    "transcribe-audio-long",
-    { silentOnError: true },
-  );
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   // Filter out video_link for display/download purposes
@@ -296,12 +292,13 @@ const EntityMediaManager = ({
     setTranscribingIds((prev) => new Set(prev).add(item.id));
     try {
       toast.info("Transcription en cours...");
-      const data = await invokeTranscribe({ audio_url: item.file_url });
-      if (!data) {
-        toast.error("Erreur lors de la transcription");
+      let transcript: string;
+      try {
+        transcript = await transcribeAudio(item.file_url);
+      } catch (err) {
+        toast.error(`Erreur lors de la transcription : ${err instanceof Error ? err.message : "inconnue"}`);
         return;
       }
-      const transcript = data.transcript;
       if (!transcript || transcript === "[inaudible]") {
         toast.error("Transcription impossible — audio inaudible ou vide");
         return;
