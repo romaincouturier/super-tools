@@ -542,13 +542,13 @@ Je vous remercie sincèrement pour votre aide et vous souhaite une excellente co
 
 Il faut que tu prennes contact avec {{financeur_name}}, à cette adresse : {{financeur_url}}
 
-Le formulaire Google historique ne doit plus être utilisé. Retrouve le suivi qualité et les évaluations SuperTools depuis la fiche de la formation :
+Retrouve le suivi qualité et les évaluations SuperTools depuis la fiche de la formation :
 {{training_url}}`,
       vous: `Bonjour,
 
 Il faut prendre contact avec {{financeur_name}}, à cette adresse : {{financeur_url}}
 
-Le formulaire Google historique ne doit plus être utilisé. Retrouvez le suivi qualité et les évaluations SuperTools depuis la fiche de la formation :
+Retrouvez le suivi qualité et les évaluations SuperTools depuis la fiche de la formation :
 {{training_url}}`,
     },
     variables: ["financeur_name", "financeur_url", "training_name", "training_url"],

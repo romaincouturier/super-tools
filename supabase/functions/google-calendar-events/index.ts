@@ -351,6 +351,7 @@ serve(async (req: Request): Promise<Response> => {
         allDay: !event.start?.dateTime,
         attendees: (event.attendees || []).length,
         htmlLink: event.htmlLink || null,
+        description: event.description || "",
       }));
 
       return new Response(JSON.stringify({ events }), {
