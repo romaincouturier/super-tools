@@ -205,8 +205,8 @@ serve(async (req) => {
 
     const ctaMarker = "NEEDS_SURVEY_QUESTIONNAIRE_CTA";
     const safeContentTemplate = contentTemplate.replaceAll("{{questionnaire_link}}", ctaMarker);
-    const emailSubject = processTemplate(subjectTemplate, variables);
-    const contentText = processTemplate(safeContentTemplate, variables);
+    const emailSubject = processTemplate(subjectTemplate, variables, false);
+    const contentText = processTemplate(safeContentTemplate, variables, false);
     const questionnaireButton = `<table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 20px 0;"><tr><td align="center" bgcolor="#e6bc00" style="border-radius: 6px;"><a href="${questionnaireUrl}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #1a1a1a; text-decoration: none; border-radius: 6px; font-weight: bold;">Répondre au questionnaire de préparation</a></td></tr></table>`;
     const questionnaireCta = `${questionnaireButton}
 <p style="margin: 8px 0 20px; font-size: 12px; color: #555555;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br><a href="${questionnaireUrl}" style="color: #555555; text-decoration: underline; word-break: break-all;">${questionnaireUrl}</a></p>`;
