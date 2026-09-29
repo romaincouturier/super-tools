@@ -29,6 +29,7 @@ import {
   updateTraining,
 } from "../_shared/record-tools.ts";
 import { getEventHistory } from "../_shared/event-tools.ts";
+import { addTrainingParticipant, SOURCE_FINANCEMENT_BPF, TYPE_STAGIAIRE_BPF } from "../_shared/participant-tools.ts";
 import {
   createContentCard,
   getContentCard,
@@ -1153,6 +1154,40 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "add_training_participant",
+    description:
+      "Add a participant to a training exactly like the manual 'Ajouter un participant' dialog: same fields, same checks (valid email, no duplicate, formula of the training catalog, BPF values), and same automatic actions (convocation or scheduling, needs survey, trainer summary, convention to the sponsor for inter sessions, e-learning access, attendance catch-up). Training dates/format/inter/free are read from the database. Only email is required. Sponsor and funder fields apply to inter/e-learning sessions; price and BPF are ignored for free trainings. Without confirm=true it only returns a preview (fields + expected emails) and writes nothing: show it to the user and call again with confirm=true only after explicit approval, because real emails are sent.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        training_id: { type: "string" },
+        email: { type: "string" },
+        first_name: { type: "string" },
+        last_name: { type: "string" },
+        company: { type: "string", description: "Intra: defaults to the training client" },
+        company_address: { type: "string" },
+        company_zip: { type: "string" },
+        company_city: { type: "string" },
+        formula_id: { type: "string" },
+        formula_name: { type: "string", description: "Alternative to formula_id (exact name)" },
+        payment_mode: { type: "string", enum: ["invoice", "online"], description: "default invoice" },
+        sold_price_ht: { type: "number" },
+        type_stagiaire_bpf: { type: "string", enum: [...TYPE_STAGIAIRE_BPF] },
+        source_financement_bpf: { type: "string", enum: [...SOURCE_FINANCEMENT_BPF] },
+        sponsor_same_as_participant: { type: "boolean" },
+        sponsor_first_name: { type: "string" },
+        sponsor_last_name: { type: "string" },
+        sponsor_email: { type: "string" },
+        sponsor_phone: { type: "string" },
+        financeur_same_as_sponsor: { type: "boolean", description: "default true" },
+        financeur_name: { type: "string" },
+        financeur_url: { type: "string" },
+        confirm: { type: "boolean", description: "true to actually add (after user approval)" },
+      },
+      required: ["training_id", "email"],
+    },
+  },
+  {
     name: "log_client_interaction",
     description:
       "Trace in a client record that an interaction happened (mail received and processed, call...) with the action taken. Opportunity: dated comment. Mission: activity with 0 hours (notes = action). Training: completed action in the training history. Additive only.",
@@ -1676,6 +1711,24 @@ async function callTool(
         return textResult(await setLogisticsItem(supabase, args as unknown as Parameters<typeof setLogisticsItem>[1], log));
       } catch (e) {
         return textResult(`Logistics error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "add_training_participant": {
+      try {
+        const invoke = async (body: Record<string, unknown>) => {
+          const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+          const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/add-training-participant`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${key}`, apikey: key, "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(`add-training-participant HTTP ${res.status}: ${data?.error ?? "échec"}`);
+          return data;
+        };
+        return textResult(await addTrainingParticipant(supabase, args as unknown as Parameters<typeof addTrainingParticipant>[1], log, invoke));
+      } catch (e) {
+        return textResult(`Participant error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "log_client_interaction": {
