@@ -28,4 +28,13 @@ describe("needs survey reminder preview", () => {
     expect(rendered).toContain("&lt;img");
     expect(rendered).not.toContain("<img");
   });
+
+  it("does not double-escape values with an apostrophe (regression)", () => {
+    const variables = { training_name: "Prévention de l'épuisement" };
+    const text = processTemplate("« {{training_name}} »", variables, false);
+    const html = bodyToHtml(text, "needs-survey-reminder");
+
+    expect(html).toContain("« Prévention de l&#39;épuisement »");
+    expect(html).not.toContain("&amp;");
+  });
 });
