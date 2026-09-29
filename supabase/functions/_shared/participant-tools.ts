@@ -71,7 +71,7 @@ export async function buildParticipantRequest(db: Db, input: AddParticipantInput
   if (!EMAIL_RE.test(email)) throw new Error(`email invalide : ${email}`);
 
   const { data: t, error } = await db.from("trainings")
-    .select("id, training_name, start_date, end_date, format_formation, session_type, is_free, catalog_id, formula_id, client_name, is_cancelled")
+    .select("id, training_name, start_date, end_date, format_formation, session_type, is_free, catalog_id, client_name, is_cancelled")
     .eq("id", input.training_id).maybeSingle();
   if (error) throw new Error(error.message);
   if (!t) throw new Error("Formation introuvable");
@@ -101,7 +101,7 @@ export async function buildParticipantRequest(db: Db, input: AddParticipantInput
       throw new Error(`Formule inconnue pour cette formation. Formules disponibles : ${formulas.map((f) => `${f.name} (${f.id})`).join(", ") || "aucune"}`);
     }
   } else {
-    formula = formulas.find((f) => f.id === t.formula_id) ?? (formulas.length === 1 ? formulas[0] : null);
+    formula = (formulas.length === 1 ? formulas[0] : null);
   }
 
   const paymentMode = input.payment_mode ?? "invoice";
