@@ -16,3 +16,8 @@
 
 ## En cours (28/09)
 - [ ] Relance questionnaire de préparation : modèles tu/vous, bouton compatible, tests avant déploiement
+
+## En cours (29/09)
+- [ ] Supprimer les liens Google Forms des emails et invitations de formation
+- [ ] Lister les invitations futures contenant encore un ancien lien
+- [ ] Ajouter un test anti-régression sur les modèles
