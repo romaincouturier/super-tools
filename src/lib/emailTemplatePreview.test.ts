@@ -34,7 +34,7 @@ describe("needs survey reminder preview", () => {
     const text = processTemplate("« {{training_name}} »", variables, false);
     const html = bodyToHtml(text, "needs-survey-reminder");
 
-    expect(html).toContain("Prévention de l'épuisement");
+    expect(html).toContain("« Prévention de l&#39;épuisement »");
     expect(html).not.toContain("&amp;");
   });
 });
