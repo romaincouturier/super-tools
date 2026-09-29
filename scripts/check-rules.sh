@@ -648,6 +648,15 @@ if [ "$STAGED_MODE" = "false" ]; then
          && echo \"VIOLATION [055c]: \$c (\$m) coûte \$cur dans l'Arena et \$ref côté serveur\"; \
      done; true"
 
+  # [073] Listes BPF — la contrainte en base fait foi ; le code qui en garde une
+  # copie (outil MCP) doit porter exactement les mêmes valeurs.
+  check "073" "Listes BPF du MCP alignées sur la contrainte en base" \
+    "mig=\$(grep -l 'training_participants_source_financement_bpf_check' supabase/migrations/*.sql | tail -1); \
+     [ -n \"\$mig\" ] || echo 'VIOLATION [073]: contrainte BPF absente des migrations'; \
+     for v in \$(sed -n '/TYPE_STAGIAIRE_BPF =/,/as const;/p;/SOURCE_FINANCEMENT_BPF =/,/as const;/p' supabase/functions/_shared/participant-tools.ts | grep -oE '\"[a-z_]+\"' | tr -d '\"'); do \
+       grep -q \"'\$v'\" \"\$mig\" || echo \"VIOLATION [073]: valeur BPF \$v absente de la contrainte (\$mig)\"; \
+     done"
+
   # [072] Prompt caching — un cache_control ne vaut que s'il est relu : rien de
   # variable avant le point de cache, un bloc par message d'historique.
   check "072" "Prompt caching : préfixes stables (Arena, OKR, agent-chat)" \
