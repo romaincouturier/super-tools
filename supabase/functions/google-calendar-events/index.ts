@@ -327,7 +327,9 @@ serve(async (req: Request): Promise<Response> => {
       calendarUrl.searchParams.set("timeMax", timeMaxParam || twoWeeksLater.toISOString());
       calendarUrl.searchParams.set("singleEvents", "true");
       calendarUrl.searchParams.set("orderBy", "startTime");
-      calendarUrl.searchParams.set("maxResults", "100");
+      calendarUrl.searchParams.set("maxResults", "2500");
+      const pageToken = url.searchParams.get("pageToken");
+      if (pageToken) calendarUrl.searchParams.set("pageToken", pageToken);
 
       const calendarResponse = await fetch(calendarUrl.toString(), {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -351,9 +353,10 @@ serve(async (req: Request): Promise<Response> => {
         allDay: !event.start?.dateTime,
         attendees: (event.attendees || []).length,
         htmlLink: event.htmlLink || null,
+        description: event.description || "",
       }));
 
-      return new Response(JSON.stringify({ events }), {
+      return new Response(JSON.stringify({ events, nextPageToken: calendarData.nextPageToken || null }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

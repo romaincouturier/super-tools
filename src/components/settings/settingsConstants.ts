@@ -429,7 +429,7 @@ Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des é
 
 Pourrais-tu prendre 2 minutes pour remplir ce questionnaire en ligne ?
 
-👉 Remplir le questionnaire : https://forms.gle/Hm4TvAVUSvzuWeBJ6
+{{evaluation_link}}
 
 Merci énormément pour ton soutien :-)
 
@@ -444,7 +444,7 @@ Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des é
 
 Pourriez-vous prendre 2 minutes pour remplir ce questionnaire en ligne ?
 
-👉 Remplir le questionnaire : https://forms.gle/Hm4TvAVUSvzuWeBJ6
+{{evaluation_link}}
 
 Merci infiniment pour votre soutien.
 
@@ -452,7 +452,7 @@ Merci infiniment pour votre soutien.
 
 PS : nous pouvons continuer à rester en contact sur LinkedIn (https://www.linkedin.com/in/romaincouturier/) et sur Instagram (https://www.instagram.com/supertilt.ledeclic/) pour d'autres contenus sur le sujet de la formation.`,
     },
-    variables: ["first_name", "training_name"],
+    variables: ["first_name", "training_name", "evaluation_link"],
   },
   evaluation_reminder_1: {
     name: "Relance évaluation - 1ère",
@@ -542,50 +542,16 @@ Je vous remercie sincèrement pour votre aide et vous souhaite une excellente co
 
 Il faut que tu prennes contact avec {{financeur_name}}, à cette adresse : {{financeur_url}}
 
-Voici le message type à envoyer :
-
----
-
-Bonjour,
-
-Comment allez-vous ?
-
-Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des évaluations à froid de mes formations pour les financeurs.
-
-Pouvez-vous prendre 2 minutes pour remplir ce questionnaire en ligne sur la formation "{{training_name}}" ?
-
-👉 Remplir le questionnaire : https://forms.gle/Hm4TvAVUSvzuWeBJ6
-
-Merci énormément pour votre soutien :-)
-
-À bientôt
-
-PS : on peut continuer à rester en contact sur LinkedIn (https://www.linkedin.com/in/romaincouturier/) et sur Instagram (https://www.instagram.com/supertilt.ledeclic/) pour d'autres contenus sur le sujet de la formation.`,
+Retrouve le suivi qualité et les évaluations SuperTools depuis la fiche de la formation :
+{{training_url}}`,
       vous: `Bonjour,
 
 Il faut prendre contact avec {{financeur_name}}, à cette adresse : {{financeur_url}}
 
-Voici le message type à envoyer :
-
----
-
-Bonjour,
-
-Comment allez-vous ?
-
-Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des évaluations à froid de mes formations pour les financeurs.
-
-Pouvez-vous prendre 2 minutes pour remplir ce questionnaire en ligne sur la formation "{{training_name}}" ?
-
-👉 Remplir le questionnaire : https://forms.gle/Hm4TvAVUSvzuWeBJ6
-
-Merci énormément pour votre soutien.
-
-À bientôt,
-
-PS : on peut continuer à rester en contact sur LinkedIn (https://www.linkedin.com/in/romaincouturier/) et sur Instagram (https://www.instagram.com/supertilt.ledeclic/) pour d'autres contenus sur le sujet de la formation.`,
+Retrouvez le suivi qualité et les évaluations SuperTools depuis la fiche de la formation :
+{{training_url}}`,
     },
-    variables: ["financeur_name", "financeur_url", "training_name"],
+    variables: ["financeur_name", "financeur_url", "training_name", "training_url"],
   },
   follow_up_news: {
     name: "Prise de nouvelles informelle",
