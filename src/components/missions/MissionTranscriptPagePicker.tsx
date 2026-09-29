@@ -97,7 +97,7 @@ const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick, missionId, us
             className="pl-8"
           />
         </div>
-        <ScrollArea className="h-[400px] pr-2">
+        <div className="max-h-[min(400px,60vh)] overflow-y-auto overscroll-contain pr-2 [-webkit-overflow-scrolling:touch]">
           {isLoading && <Spinner />}
           {!isLoading && transcripts.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">
@@ -137,7 +137,7 @@ const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick, missionId, us
             })}
 
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
