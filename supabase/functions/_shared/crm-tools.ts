@@ -6,6 +6,7 @@
  */
 
 export const LOSS_REASONS = [
+  "fausse_demande",
   "prix",
   "timing",
   "concurrent",
