@@ -418,6 +418,27 @@ const EntityMediaManager = ({
     }
   };
 
+  const selectedImages = downloadableMedia.filter((m) => selectedIds.has(m.id) && m.file_type === "image");
+
+  const handleExportPdf = async () => {
+    if (selectedImages.length === 0) return;
+    setDownloading(true);
+    try {
+      const { exportImagesToPdf } = await import("@/lib/exportImagesPdf");
+      const n = await exportImagesToPdf(
+        selectedImages.map((m) => ({ url: m.file_url, name: m.file_name })),
+        `selection-${new Date().toISOString().slice(0, 10)}.pdf`,
+      );
+      if (n === 0) toast.error("Aucune image n'a pu être ajoutée au PDF");
+      else toast.success(n === 1 ? "PDF créé avec 1 image" : `PDF créé avec ${n} images`);
+    } catch {
+      toast.error("Erreur lors de la création du PDF");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+
   const toggleSelected = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -601,6 +622,15 @@ const EntityMediaManager = ({
                       <DownloadCloud className="h-4 w-4 mr-2" />
                     )}
                     Télécharger la sélection
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleExportPdf}
+                    disabled={downloading || selectedImages.length === 0}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Exporter en PDF
                   </Button>
                 </>
               )}
