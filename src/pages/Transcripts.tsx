@@ -41,6 +41,7 @@ import {
 const SOURCE_LABELS: Record<TranscriptSource, string> = {
   google_drive: "Google Drive",
   fireflies: "Fireflies",
+  dictation: "Dictée",
 };
 
 const STATUS_ICONS: Record<TranscriptStatus, React.ReactNode> = {
