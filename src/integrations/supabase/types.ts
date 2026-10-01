@@ -4726,6 +4726,42 @@ export type Database = {
         }
         Relationships: []
       }
+      live_reminder_sends: {
+        Row: {
+          created_at: string
+          live_meeting_id: string
+          participant_id: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          live_meeting_id: string
+          participant_id: string
+          source: string
+        }
+        Update: {
+          created_at?: string
+          live_meeting_id?: string
+          participant_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_reminder_sends_live_meeting_id_fkey"
+            columns: ["live_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "training_live_meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_reminder_sends_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_assignment_submissions: {
         Row: {
           comment: string | null
