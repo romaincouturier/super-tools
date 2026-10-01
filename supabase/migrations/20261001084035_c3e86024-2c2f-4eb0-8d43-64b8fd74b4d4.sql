@@ -1,0 +1,2 @@
+ALTER TABLE public.transcripts DROP CONSTRAINT transcripts_source_check;
+ALTER TABLE public.transcripts ADD CONSTRAINT transcripts_source_check CHECK (source IN ('google_drive','fireflies','dictation'));

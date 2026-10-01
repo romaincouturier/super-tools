@@ -34,6 +34,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import MediaLightbox from "@/components/media/MediaLightbox";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskFileName, demoBlur } from "@/lib/demoMask";
+import { todayAsISO } from "@/lib/dateFormatters";
 
 function SortableThumb({ id, children }: { id: string; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -427,7 +428,7 @@ const EntityMediaManager = ({
       const { exportImagesToPdf } = await import("@/lib/exportImagesPdf");
       const n = await exportImagesToPdf(
         selectedImages.map((m) => ({ url: m.file_url, name: m.file_name })),
-        `selection-${new Date().toISOString().slice(0, 10)}.pdf`,
+        `selection-${todayAsISO()}.pdf`,
       );
       if (n === 0) toast.error("Aucune image n'a pu être ajoutée au PDF");
       else toast.success(n === 1 ? "PDF créé avec 1 image" : `PDF créé avec ${n} images`);

@@ -31,3 +31,6 @@ vhd_narrative_access
 # Journal de résolution d'identité : données éphémères (purge à 30 jours),
 # empreintes d'adresses et IP, sans valeur de restauration.
 identity_resolution_log
+
+# Suivi anti-doublon des rappels de live : reconstructible depuis sent_emails_log.
+live_reminder_sends
