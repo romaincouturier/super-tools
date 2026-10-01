@@ -15,7 +15,7 @@ ALTER TABLE public.live_reminder_sends ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Admins read live reminder sends"
   ON public.live_reminder_sends FOR SELECT TO authenticated
-  USING (public.is_admin());
+  USING (public.is_admin(auth.uid()));
 
 -- Historique : envois du cron quotidien (clé activity_logs '<live>:<participant>')
 INSERT INTO public.live_reminder_sends (live_meeting_id, participant_id, source, created_at)
