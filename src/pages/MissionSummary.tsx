@@ -417,7 +417,12 @@ const MissionSummary = () => {
   // contact, qui identifie l'auteur des commentaires sans aucune saisie.
   const [searchParams] = useSearchParams();
   const contactToken = searchParams.get("c");
-  const { data: contact } = useMissionContactByToken(contactToken);
+  const { data: contact, isError: contactError, error: contactErr } = useMissionContactByToken(contactToken);
+  useEffect(() => {
+    if (contactError) {
+      toast.error("Connexion instable : impossible de vous identifier pour les commentaires. Rechargez la page.", { cause: contactErr });
+    }
+  }, [contactError, contactErr]);
   const [mission, setMission] = useState<MissionData | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [documents, setDocuments] = useState<MissionDocument[]>([]);
