@@ -27,8 +27,8 @@ export async function exportImagesToPdf(images: ImageEntry[], fileName: string):
     let loaded;
     try {
       loaded = await loadImage(img.url);
-    } catch {
-      console.error(`PDF export: image load failed ${img.name}`);
+    } catch (err) {
+      console.error(`PDF export: image load failed ${img.name}`, err);
       continue;
     }
     const orientation = loaded.w > loaded.h ? "landscape" : "portrait";
