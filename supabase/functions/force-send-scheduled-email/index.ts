@@ -3,6 +3,7 @@ import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_sh
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { claimLiveReminder, releaseLiveReminder } from "../_shared/live-reminder-claim.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import { isInternalOrAuthenticated } from "../_shared/cron-auth.ts";
@@ -987,6 +988,20 @@ Règles :
                 { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
               );
             }
+            if (scheduledEmail.participant_id) {
+              const claimed = await claimLiveReminder(supabase, liveMeetingId, scheduledEmail.participant_id, "scheduled_emails");
+              if (!claimed) {
+                await supabase
+                  .from("scheduled_emails")
+                  .update({ status: "cancelled", error_message: `live:${liveMeetingId} | Déjà envoyé` })
+                  .eq("id", scheduledEmailId);
+                return new Response(
+                  JSON.stringify({ success: true, message: "Skipped: live reminder already sent" }),
+                  { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+                );
+              }
+              liveClaim = { liveId: liveMeetingId, participantId: scheduledEmail.participant_id };
+            }
             liveTitle = liveMeeting.title;
             const liveDateTime = new Date(liveMeeting.scheduled_at);
             liveDate = liveDateTime.toLocaleDateString("fr-FR", {
@@ -1207,7 +1222,9 @@ Règles :
     // dans un template custom) — le player LMS exige ?email=<destinataire>.
     htmlContent = personalizeSupportsLinks(htmlContent, recipientEmail);
 
-    const emailResponse = await sendEmail({
+    let emailResponse;
+    try {
+      emailResponse = await sendEmail({
       from: senderFrom,
       to: [recipientEmail],
       bcc: bccList,
@@ -1216,7 +1233,14 @@ Règles :
       _emailType: `scheduled_${scheduledEmail.email_type}`,
       _trainingId: training.id,
       _participantId: scheduledEmail.participant_id || undefined,
-    });
+      });
+    } catch (e) {
+      if (liveClaim) await releaseLiveReminder(supabase, liveClaim.liveId, liveClaim.participantId);
+      throw e;
+    }
+    if (!emailResponse.success && liveClaim) {
+      await releaseLiveReminder(supabase, liveClaim.liveId, liveClaim.participantId);
+    }
 
     console.log("Email sent successfully:", emailResponse);
 
