@@ -114,8 +114,10 @@ const endOfCentralDirectory = (entryCount: number, centralSize: number, centralO
     view.setUint16(20, 0, true);
   });
 
-const enqueue = (controller: ReadableStreamDefaultController<Uint8Array>, bytes: Uint8Array, written: { value: number }) => {
-  controller.enqueue(bytes);
+// Attend que le client ait consommé (backpressure) : sans cela une vidéo
+// entière s'accumule en mémoire et la fonction est tuée (archive tronquée).
+const enqueue = async (controller: WritableStreamDefaultWriter<Uint8Array>, bytes: Uint8Array, written: { value: number }) => {
+  await controller.write(bytes);
   written.value += bytes.length;
 };
 
@@ -184,8 +186,14 @@ serve(async (req) => {
     }
 
 
-    const stream = new ReadableStream<Uint8Array>({
-      async start(controller) {
+    const { readable: stream, writable } = new TransformStream<Uint8Array, Uint8Array>(
+      undefined,
+      { highWaterMark: 1 },
+      { highWaterMark: 1 },
+    );
+    const controller = writable.getWriter();
+    const pump = (async () => {
+      {
         const entries: ZipEntryMeta[] = [];
         const written = { value: 0 };
         const seen = new Map<string, number>();
@@ -211,7 +219,7 @@ serve(async (req) => {
 
             const nameBytes = encoder.encode(name);
             const offset = written.value;
-            enqueue(controller, localFileHeader(nameBytes, modTime, modDate), written);
+            await enqueue(controller, localFileHeader(nameBytes, modTime, modDate), written);
 
             let crc = 0;
             let size = 0;
@@ -222,10 +230,10 @@ serve(async (req) => {
               if (!value) continue;
               crc = updateCrc32(crc, value);
               size += value.length;
-              enqueue(controller, value, written);
+              await enqueue(controller, value, written);
             }
 
-            enqueue(controller, dataDescriptor(crc, size), written);
+            await enqueue(controller, dataDescriptor(crc, size), written);
             entries.push({ nameBytes, crc, size, offset, modTime, modDate });
           }
 
@@ -245,10 +253,10 @@ serve(async (req) => {
 
               const nameBytes = encoder.encode(name);
               const offset = written.value;
-              enqueue(controller, localFileHeader(nameBytes, modTime, modDate), written);
+              await enqueue(controller, localFileHeader(nameBytes, modTime, modDate), written);
               const crc = updateCrc32(0, pdfBytes);
-              enqueue(controller, pdfBytes, written);
-              enqueue(controller, dataDescriptor(crc, pdfBytes.length), written);
+              await enqueue(controller, pdfBytes, written);
+              await enqueue(controller, dataDescriptor(crc, pdfBytes.length), written);
               entries.push({ nameBytes, crc, size: pdfBytes.length, offset, modTime, modDate });
             } catch (err) {
               console.warn(`Skipping page ${p.id} PDF generation:`, err);
@@ -257,16 +265,17 @@ serve(async (req) => {
 
 
           const centralOffset = written.value;
-          for (const entry of entries) enqueue(controller, centralDirectoryHeader(entry), written);
+          for (const entry of entries) await enqueue(controller, centralDirectoryHeader(entry), written);
           const centralSize = written.value - centralOffset;
-          enqueue(controller, endOfCentralDirectory(entries.length, centralSize, centralOffset), written);
-          controller.close();
+          await enqueue(controller, endOfCentralDirectory(entries.length, centralSize, centralOffset), written);
+          await controller.close();
         } catch (error) {
           console.error("ZIP stream error:", error);
-          controller.error(error);
+          await controller.abort(error).catch((e) => console.error("abort failed", e));
         }
-      },
-    });
+      }
+    })();
+    (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime?.waitUntil?.(pump);
 
     const fileName = archiveName(mission.title);
     return new Response(stream, {
