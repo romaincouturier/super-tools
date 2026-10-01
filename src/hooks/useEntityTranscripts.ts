@@ -100,3 +100,38 @@ export async function fetchTranscriptContent(transcriptId: string): Promise<{
     raw_text: string | null;
   };
 }
+
+/** Crée un transcript à partir d'une dictée vocale et l'associe à l'entité. */
+export function useCreateDictatedTranscript(entity: TranscriptEntity) {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const { table, fk } = CONFIG[entity];
+  return useMutation({
+    mutationFn: async ({ entityId, text, title }: { entityId: string; text: string; title: string }) => {
+      const db = supabase as any;
+      const { data, error } = await db
+        .from("transcripts")
+        .insert({
+          source: "dictation",
+          external_id: crypto.randomUUID(),
+          title,
+          raw_text: text,
+          status: "ready",
+          tags: [],
+          metadata: { entity, entity_id: entityId, created_by: user?.id ?? null },
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      const { error: linkErr } = await db
+        .from(table)
+        .insert({ [fk]: entityId, transcript_id: data.id, created_by: user?.id ?? null });
+      if (linkErr) throw linkErr;
+    },
+    onSuccess: (_d, { entityId }) => {
+      qc.invalidateQueries({ queryKey: ["entity-transcripts", entity, entityId] });
+      qc.invalidateQueries({ queryKey: ["transcript-assignments"] });
+      qc.invalidateQueries({ queryKey: ["transcripts"] });
+    },
+  });
+}

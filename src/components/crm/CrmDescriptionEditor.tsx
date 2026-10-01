@@ -5,7 +5,10 @@ import TableBubbleMenu from "@/components/shared/TableBubbleMenu";
 import { useTiptapEditor } from "@/hooks/useTiptapEditor";
 import { useTiptapImagePaste } from "@/hooks/useTiptapImagePaste";
 import { transformEmojiImageTags } from "@/lib/tiptapPasteUtils";
-import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, List, ListOrdered, Undo, Redo, ImageIcon, Mic, Mail, Table as TableIcon } from "lucide-react";
+import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, List, ListOrdered, Undo, Redo, ImageIcon, Mic, Mail, Square, Table as TableIcon } from "lucide-react";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
+import { useCreateDictatedTranscript } from "@/hooks/useEntityTranscripts";
+import { toast } from "@/lib/toast";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -34,6 +37,20 @@ const CrmDescriptionEditor = ({
 }: CrmDescriptionEditorProps) => {
   const [imageUploading, setImageUploading] = useState(false);
   const timestampInsertedRef = useRef(false);
+  const stampLabelRef = useRef("");
+  const createDictated = useCreateDictatedTranscript("crm_card");
+  const dictation = useVoiceDictation({
+    onTranscript: (text) => {
+      if (!cardId) return;
+      createDictated.mutate(
+        { entityId: cardId, text, title: `Message vocal laissé le ${stampLabelRef.current}` },
+        {
+          onSuccess: () => toast.success("Message vocal enregistré dans les transcripts"),
+          onError: (e) => toast.error("Enregistrement du transcript impossible : " + (e instanceof Error ? e.message : "inconnue")),
+        },
+      );
+    },
+  });
 
   const uploadImage = useCallback(
     async (file: File): Promise<string | null> => {
@@ -124,6 +141,15 @@ const CrmDescriptionEditor = ({
       .run();
   }, [editor]);
 
+  const handleVoiceClick = () => {
+    if (dictation.isRecording) { dictation.stopRecording(); return; }
+    insertStamp("Message vocal laissé");
+    if (cardId && dictation.isSupported) {
+      stampLabelRef.current = format(new Date(), "d MMMM yyyy 'à' HH:mm", { locale: fr });
+      dictation.startRecording();
+    }
+  };
+
   if (!editor) return null;
 
   return (
@@ -133,11 +159,21 @@ const CrmDescriptionEditor = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => insertStamp("Message vocal laissé")}
-          title="Ajouter un horodatage de message vocal"
-          className="h-7 px-1.5 text-muted-foreground hover:text-foreground"
+          onClick={handleVoiceClick}
+          disabled={dictation.isTranscribing || createDictated.isPending}
+          title={dictation.isRecording ? "Arrêter la dictée du message vocal" : "Horodater et dicter le message vocal laissé"}
+          className={cn(
+            "h-7 px-1.5 text-muted-foreground hover:text-foreground",
+            dictation.isRecording && "text-destructive animate-pulse",
+          )}
         >
-          <Mic className="h-3.5 w-3.5" />
+          {dictation.isTranscribing || createDictated.isPending ? (
+            <Spinner className="h-3.5 w-3.5" />
+          ) : dictation.isRecording ? (
+            <Square className="h-3.5 w-3.5 fill-current" />
+          ) : (
+            <Mic className="h-3.5 w-3.5" />
+          )}
         </Button>
         <Button
           variant="ghost"

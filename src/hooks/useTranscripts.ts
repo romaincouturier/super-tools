@@ -7,7 +7,7 @@ export function invalidateTranscriptLists(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: ["transcripts-counts"] });
 }
 
-export type TranscriptSource = "google_drive" | "fireflies";
+export type TranscriptSource = "google_drive" | "fireflies" | "dictation";
 export type TranscriptStatus = "pending" | "processing" | "ready" | "error" | "trashed";
 
 export type EditorialQualification =

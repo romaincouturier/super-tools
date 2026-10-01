@@ -1,4 +1,4 @@
-CREATE TABLE public.live_reminder_sends (
+CREATE TABLE IF NOT EXISTS public.live_reminder_sends (
   live_meeting_id uuid NOT NULL REFERENCES public.training_live_meetings(id) ON DELETE CASCADE,
   participant_id uuid NOT NULL REFERENCES public.training_participants(id) ON DELETE CASCADE,
   source text NOT NULL,
@@ -11,6 +11,7 @@ GRANT SELECT ON public.live_reminder_sends TO authenticated;
 
 ALTER TABLE public.live_reminder_sends ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins read live reminder sends" ON public.live_reminder_sends;
 CREATE POLICY "Admins read live reminder sends"
   ON public.live_reminder_sends FOR SELECT TO authenticated
   USING (public.is_admin(auth.uid()));
