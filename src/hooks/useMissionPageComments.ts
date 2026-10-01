@@ -16,8 +16,16 @@ export const useMissionContactByToken = (token: string | null) =>
     },
     enabled: !!token,
     staleTime: Infinity,
-    retry: false,
+    // Réseau instable (Wi-Fi client, VPN) : "Failed to fetch" est transitoire,
+    // on réessaie. Un token invalide (erreur Postgres) ne se réessaie pas.
+    retry: (failureCount, error) => isNetworkError(error) && failureCount < 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
   });
+
+function isNetworkError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String((error as { message?: string })?.message ?? "");
+  return /failed to fetch|networkerror|load failed|network request failed/i.test(msg);
+}
 
 export const useMissionPageComments = (missionId: string | null, enabled = true) =>
   useQuery({
