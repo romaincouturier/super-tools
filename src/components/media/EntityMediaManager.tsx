@@ -432,7 +432,8 @@ const EntityMediaManager = ({
       );
       if (n === 0) toast.error("Aucune image n'a pu être ajoutée au PDF");
       else toast.success(n === 1 ? "PDF créé avec 1 image" : `PDF créé avec ${n} images`);
-    } catch {
+    } catch (err) {
+      console.error("PDF export failed", err);
       toast.error("Erreur lors de la création du PDF");
     } finally {
       setDownloading(false);
