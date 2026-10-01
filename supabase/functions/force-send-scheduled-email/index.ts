@@ -210,6 +210,7 @@ const handler = async (req: Request): Promise<Response> => {
     let recipientEmail = "";
     let subject = "";
     let htmlContent = "";
+    let liveClaim: { liveId: string; participantId: string } | null = null;
 
     // Build email based on type
     switch (scheduledEmail.email_type) {
