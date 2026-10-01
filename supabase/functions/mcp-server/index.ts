@@ -38,6 +38,12 @@ import {
   prepareNewsletter,
 } from "../_shared/editorial-tools.ts";
 import {
+  assignTranscript,
+  listUnassignedTranscripts,
+  refreshTranscripts,
+  unassignTranscript,
+} from "../_shared/transcript-tools.ts";
+import {
   getSeoPerformance,
   getSeoOpportunities,
   getContentPerformance,
@@ -316,6 +322,7 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - save_watch_item : dépose un contenu dans le module Veille (un contenu par appel : lien de la source, résumé dans body, angle dans comment, 2 à 5 tags). Écriture additive, doublons refusés : même URL déjà présente ou contenu sémantiquement quasi identique, l'appel ne crée rien et rend l'élément existant.
 - create_quote : crée un devis en BROUILLON dans Pennylane (comptabilité SuperTilt). Aucun envoi au client, aucune validation, aucune transformation en facture n'est possible depuis ici : le brouillon reste à relire et à envoyer manuellement dans Pennylane.
 - create_content_card : dépose une carte (idée ou article rédigé) dans le kanban éditorial, au stade choisi (colonne, « Idées » par défaut), avec titre, contenu et thèmes. Écriture additive. Réutiliser les thèmes existants (list_content_board) plutôt que d'en inventer.
+- refresh_transcripts / list_unassigned_transcripts / assign_transcript / unassign_transcript : récupèrent les nouveaux transcripts, listent ceux non affectés, les associent à une opportunité ou une mission (page créée) ou retirent le lien. Proposer l'association à l'utilisateur avant de l'appliquer ; si le transcript est déjà affecté ailleurs, demander avant d'utiliser allow_multiple.
 - prepare_newsletter : compose le sommaire ordonné d'une newsletter en BROUILLON (création du brouillon ou reprise d'un brouillon existant), à partir de cartes existantes et/ou de nouveaux contenus créés au passage. Remplace le sommaire du brouillon visé uniquement ; refuse toute newsletter déjà envoyée. Aucun envoi n'est possible d'ici : ne jamais prétendre avoir envoyé une newsletter. Récapituler le sommaire et obtenir l'accord de l'utilisateur avant d'écraser le sommaire d'un brouillon existant.
 - update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre « type » doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
 - create_lms_lesson : crée une leçon dans un module, avec éventuellement ses blocs de contenu initiaux (paramètre « blocks », même schéma que apply_lesson_restructure). Position facultative : si elle est fournie, les leçons suivantes du module sont décalées d'un rang. Écriture additive : aucune leçon existante n'est modifiée dans son contenu. Retourne l'id et l'empreinte de la leçon créée.
@@ -710,6 +717,58 @@ const MCP_TOOLS = [
       type: "object",
       properties: { card_id: { type: "string", description: "UUID from list_content_board or list_newsletters" } },
       required: ["card_id"],
+    },
+  },
+  {
+    name: "refresh_transcripts",
+    description:
+      "Fetch new call transcripts from Google Drive and/or Fireflies now (same as the 'Forcer' buttons on the Transcripts page). Drive audio is transcribed asynchronously, so new items can take a few minutes to appear.",
+    inputSchema: {
+      type: "object",
+      properties: { source: { type: "string", enum: ["google_drive", "fireflies", "all"], description: "Default 'all'" } },
+    },
+  },
+  {
+    name: "list_unassigned_transcripts",
+    description:
+      "List ready transcripts not yet assigned to any opportunity, mission, event or e-learning lesson, most recent first: id, title, date, source, summary excerpt. Use it to find which call belongs where, then assign_transcript.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Default 30, max 100" },
+        search: { type: "string", description: "Filter on title or summary" },
+        since: { type: "string", description: "ISO date: only transcripts created after it" },
+        include_assigned: { type: "boolean", description: "Also return assigned transcripts with their current assignments. Default false." },
+      },
+    },
+  },
+  {
+    name: "assign_transcript",
+    description:
+      "Assign a transcript to a CRM opportunity (link) or to a mission (creates a mission page from the transcript, like the app does). If the transcript is already assigned elsewhere, nothing is done and current assignments are returned: confirm with the user, then retry with allow_multiple=true.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        transcript_id: { type: "string" },
+        target_type: { type: "string", enum: ["opportunity", "mission"] },
+        target_id: { type: "string", description: "crm_cards id or missions id" },
+        allow_multiple: { type: "boolean", description: "Keep existing assignments and add this one. Default false." },
+      },
+      required: ["transcript_id", "target_type", "target_id"],
+    },
+  },
+  {
+    name: "unassign_transcript",
+    description:
+      "Remove the link between a transcript and an opportunity or a mission. For a mission, the page created from the transcript is kept; only its link is removed.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        transcript_id: { type: "string" },
+        target_type: { type: "string", enum: ["opportunity", "mission"] },
+        target_id: { type: "string" },
+      },
+      required: ["transcript_id", "target_type", "target_id"],
     },
   },
   {
@@ -1574,6 +1633,52 @@ async function callTool(
         return textResult(JSON.stringify(await getContentCard(supabase, (args.card_id as string) || "")));
       } catch (e) {
         return textResult(`Card error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "list_unassigned_transcripts": {
+      try {
+        await log("list_unassigned_transcripts");
+        return textResult(JSON.stringify(await listUnassignedTranscripts(supabase, args as Parameters<typeof listUnassignedTranscripts>[1])));
+      } catch (e) {
+        return textResult(`Transcripts error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "assign_transcript": {
+      try {
+        const res = await assignTranscript(supabase, args);
+        await log("assign_transcript");
+        return textResult(JSON.stringify(res));
+      } catch (e) {
+        return textResult(`Assignment error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "unassign_transcript": {
+      try {
+        const res = await unassignTranscript(supabase, args);
+        await log("unassign_transcript");
+        return textResult(JSON.stringify(res));
+      } catch (e) {
+        return textResult(`Unassignment error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "refresh_transcripts": {
+      try {
+        const invoke = async (fn: string) => {
+          const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+          const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/${fn}`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${key}`, apikey: key, "Content-Type": "application/json" },
+            body: "{}",
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(`${fn} HTTP ${res.status}: ${data?.error ?? "échec"}`);
+          return data;
+        };
+        const res = await refreshTranscripts(args, invoke);
+        await log("refresh_transcripts");
+        return textResult(JSON.stringify(res));
+      } catch (e) {
+        return textResult(`Refresh error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "create_content_card": {
