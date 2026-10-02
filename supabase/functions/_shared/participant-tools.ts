@@ -200,3 +200,109 @@ export async function addTrainingParticipant(db: Db, input: AddParticipantInput,
   await log(`add_training_participant: ${body.email} -> ${label}`);
   return JSON.stringify({ added: true, training: label, email: body.email, warnings, result });
 }
+
+/**
+ * Outil MCP remove_training_participant : même suppression que le bouton
+ * « Supprimer » de la liste des participants (useParticipantActions.handleDelete) :
+ * questionnaire de besoins supprimé, participant supprimé (les emails programmés,
+ * évaluations, émargements, fichiers, coupons et réservations de coaching
+ * suivent par cascade en base), log participant_removed. Ajoute la raison dans
+ * l'historique de la formation. Sans confirm=true : aperçu seul.
+ */
+export interface RemoveParticipantInput {
+  training_id?: string;
+  participant_id?: string;
+  email?: string;
+  reason?: string;
+  confirm?: boolean;
+}
+
+async function countRows(db: Db, table: string, participantId: string, extra?: (q: Db) => Db): Promise<number> {
+  let q = db.from(table).select("id", { count: "exact", head: true }).eq("participant_id", participantId);
+  if (extra) q = extra(q);
+  const { count, error } = await q;
+  if (error) throw new Error(`${table}: ${error.message}`);
+  return count ?? 0;
+}
+
+export async function removeTrainingParticipant(db: Db, input: RemoveParticipantInput, log: Log, actorEmail: string): Promise<string> {
+  if (!UUID_RE.test(input.training_id || "")) throw new Error("training_id invalide");
+  const { data: training, error: tErr } = await db.from("trainings")
+    .select("id, training_name, start_date").eq("id", input.training_id).maybeSingle();
+  if (tErr) throw new Error(tErr.message);
+  if (!training) throw new Error("Formation introuvable");
+
+  let q = db.from("training_participants").select("id, first_name, last_name, email, company").eq("training_id", training.id);
+  if (input.participant_id) {
+    if (!UUID_RE.test(input.participant_id)) throw new Error("participant_id invalide");
+    q = q.eq("id", input.participant_id);
+  } else if (input.email?.trim()) {
+    q = q.ilike("email", input.email.trim());
+  } else {
+    throw new Error("participant_id ou email requis");
+  }
+  const { data: matches, error: pErr } = await q;
+  if (pErr) throw new Error(pErr.message);
+  if (!matches?.length) throw new Error("Participant introuvable dans cette formation");
+  if (matches.length > 1) throw new Error(`Plusieurs participants correspondent : ${matches.map((m: Db) => m.id).join(", ")}. Préciser participant_id.`);
+  const p = matches[0];
+  const name = `${p.first_name || ""} ${p.last_name || ""}`.trim() || null;
+  const label = `${training.training_name} (${training.start_date ?? "sans date"})`;
+
+  const { count: total } = await db.from("training_participants").select("id", { count: "exact", head: true }).eq("training_id", training.id);
+  const { data: pending } = await db.from("scheduled_emails").select("email_type, scheduled_for")
+    .eq("participant_id", p.id).eq("status", "pending").order("scheduled_for");
+  const coachingSummaries = await countRows(db, "coaching_summaries", p.id);
+  const effects = {
+    scheduled_emails_cancelled: (pending || []).map((e: Db) => ({ type: e.email_type, scheduled_for: e.scheduled_for })),
+    needs_questionnaires_deleted: await countRows(db, "questionnaire_besoins", p.id),
+    evaluations_deleted: await countRows(db, "training_evaluations", p.id),
+    attendance_signatures_deleted: await countRows(db, "attendance_signatures", p.id),
+    participant_files_deleted: await countRows(db, "participant_files", p.id),
+    coaching_bookings_deleted: await countRows(db, "coaching_bookings", p.id),
+    note: "Aucun email n'est envoyé au participant ni au commanditaire. Les conventions déjà signées et les emails déjà envoyés restent dans l'historique.",
+  };
+  const blockers = coachingSummaries
+    ? [`${coachingSummaries} compte(s)-rendu(s) de coaching rattaché(s) : la suppression sera refusée, comme dans l'interface.`]
+    : [];
+
+  if (input.confirm !== true) {
+    return JSON.stringify({
+      preview: true,
+      message: "Aperçu seulement, rien n'a été modifié. Relance avec confirm=true après validation explicite de l'utilisateur.",
+      training: label,
+      participant: { id: p.id, name, email: p.email, company: p.company },
+      headcount: { before: total ?? null, after: total != null ? total - 1 : null },
+      effects,
+      blockers,
+    });
+  }
+  if (blockers.length) throw new Error(blockers[0]);
+
+  await db.from("questionnaire_besoins").delete().eq("participant_id", p.id);
+  const { error: dErr } = await db.from("training_participants").delete().eq("id", p.id);
+  if (dErr) throw new Error(dErr.message);
+
+  const reason = input.reason?.trim() || null;
+  await db.from("activity_logs").insert({
+    action_type: "participant_removed",
+    recipient_email: p.email,
+    details: { training_id: training.id, participant_name: name, reason, via: "mcp" },
+  });
+  await db.from("training_actions").insert({
+    training_id: training.id,
+    description: `Participant retiré : ${name ? `${name} (${p.email})` : p.email}${reason ? ` — Raison : ${reason}` : ""}`.slice(0, 1000),
+    assigned_user_email: actorEmail,
+    due_date: new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date()),
+    status: "done",
+  });
+  await log(`remove_training_participant: ${p.email} <- ${label}`);
+  return JSON.stringify({
+    removed: true,
+    training: label,
+    participant: { name, email: p.email },
+    headcount_after: total != null ? total - 1 : null,
+    scheduled_emails_cancelled: effects.scheduled_emails_cancelled.length,
+    reason,
+  });
+}
