@@ -25,6 +25,7 @@ import {
   attachEmailToRecord,
   logClientInteraction,
   RECORD_TYPES,
+  ATTACH_RECORD_TYPES,
   setLogisticsItem,
   updateTraining,
 } from "../_shared/record-tools.ts";
@@ -1168,15 +1169,17 @@ const MCP_TOOLS = [
   {
     name: "attach_email_to_record",
     description:
-      "Archive a Gmail message (romain@supertilt.fr mailbox) and ALL its attachments into a mission, training or opportunity. SuperTools fetches the mail itself from Gmail: pass only the Gmail message id (or the RFC 822 Message-ID). The mail is stored as a .eml file (unless include_email=false), each attachment as a document, and an interaction entry is logged in the record's history. Get ids from get_mission_dossier, query_database (trainings, crm_cards).",
+      "Archive a Gmail message (romain@supertilt.fr mailbox) and ALL its attachments into a mission, training, opportunity or training participant. SuperTools fetches the mail itself from Gmail: pass only the Gmail message id (or the RFC 822 Message-ID). The mail is stored as a .eml file (unless include_email=false), each attachment as a document, and an interaction entry is logged in the record's history. With record_type=participant (record_id = training_participants id), files go to the participant's files and the interaction is logged in the training history naming the participant. document_role=signed_convention (participant only) records the first PDF attachment (or the one named attachment_filename) as the participant's signed agreement, exactly like an upload from the participant card; the result returns signed_convention_url. Get ids from get_mission_dossier, query_database (trainings, training_participants, crm_cards).",
     inputSchema: {
       type: "object",
       properties: {
-        record_type: { type: "string", enum: [...RECORD_TYPES] },
-        record_id: { type: "string", description: "UUID of the mission, training or CRM card" },
+        record_type: { type: "string", enum: [...ATTACH_RECORD_TYPES] },
+        record_id: { type: "string", description: "UUID of the mission, training, CRM card or training participant" },
         gmail_message_id: { type: "string" },
         include_email: { type: "boolean", description: "Also store the mail itself as .eml (default true)" },
         note: { type: "string", description: "Action taken, logged in the history" },
+        document_role: { type: "string", enum: ["signed_convention", "other"], description: "participant only. signed_convention: the PDF becomes the participant's signed agreement. Default other." },
+        attachment_filename: { type: "string", description: "With signed_convention: exact file name of the PDF to use when the mail has several" },
       },
       required: ["record_type", "record_id", "gmail_message_id"],
     },
