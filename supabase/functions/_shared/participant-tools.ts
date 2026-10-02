@@ -294,7 +294,8 @@ export async function removeTrainingParticipant(db: Db, input: RemoveParticipant
     description: `Participant retiré : ${name ? `${name} (${p.email})` : p.email}${reason ? ` — Raison : ${reason}` : ""}`.slice(0, 1000),
     assigned_user_email: actorEmail,
     due_date: new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date()),
-    status: "done",
+    status: "completed",
+    completed_at: new Date().toISOString(),
   });
   await log(`remove_training_participant: ${p.email} <- ${label}`);
   return JSON.stringify({

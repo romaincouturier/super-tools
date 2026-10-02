@@ -30,7 +30,7 @@ import {
   updateTraining,
 } from "../_shared/record-tools.ts";
 import { getEventHistory } from "../_shared/event-tools.ts";
-import { addTrainingParticipant, SOURCE_FINANCEMENT_BPF, TYPE_STAGIAIRE_BPF } from "../_shared/participant-tools.ts";
+import { addTrainingParticipant, removeTrainingParticipant, SOURCE_FINANCEMENT_BPF, TYPE_STAGIAIRE_BPF } from "../_shared/participant-tools.ts";
 import {
   createContentCard,
   getContentCard,
@@ -1216,6 +1216,22 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "remove_training_participant",
+    description:
+      "Remove a participant from a training (e.g. withdrawal reported by the client), exactly like the 'Supprimer' button of the participant list: needs survey deleted, participant deleted, and by database cascade their pending scheduled emails/reminders, evaluations, attendance signatures, files, coupons and coaching bookings. No email is sent. Identify the participant with participant_id, or email within training_id. Without confirm=true it only returns a preview (participant, headcount before/after, scheduled emails that will be cancelled, blockers) and changes nothing: show it to the user and call again with confirm=true only after explicit approval. The removal and the reason are logged in the training history.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        training_id: { type: "string" },
+        participant_id: { type: "string", description: "training_participants id (preferred)" },
+        email: { type: "string", description: "Used when participant_id is not given" },
+        reason: { type: "string", description: "Free text, e.g. 'désistement signalé par le client le 02/10'" },
+        confirm: { type: "boolean", description: "true to actually remove, after explicit user approval" },
+      },
+      required: ["training_id"],
+    },
+  },
+  {
     name: "add_training_participant",
     description:
       "Add a participant to a training exactly like the manual 'Ajouter un participant' dialog: same fields, same checks (valid email, no duplicate, formula of the training catalog, BPF values), and same automatic actions (convocation or scheduling, needs survey, trainer summary, convention to the sponsor for inter sessions, e-learning access, attendance catch-up). Training dates/format/inter/free are read from the database. Only email is required. Sponsor and funder fields apply to inter/e-learning sessions; price and BPF are ignored for free trainings. Without confirm=true it only returns a preview (fields + expected emails) and writes nothing: show it to the user and call again with confirm=true only after explicit approval, because real emails are sent.",
@@ -1819,6 +1835,13 @@ async function callTool(
         return textResult(await setLogisticsItem(supabase, args as unknown as Parameters<typeof setLogisticsItem>[1], log));
       } catch (e) {
         return textResult(`Logistics error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "remove_training_participant": {
+      try {
+        return textResult(await removeTrainingParticipant(supabase, args as unknown as Parameters<typeof removeTrainingParticipant>[1], log, ALLOWED_EMAIL));
+      } catch (e) {
+        return textResult(`Participant error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "add_training_participant": {
