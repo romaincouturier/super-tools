@@ -2,6 +2,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4
 import { normalizeLearnerEmail, isUsableLearnerEmail } from "./learner-email.ts";
 import { generateHash } from "./crypto.ts";
 import { getAppUrls } from "./app-urls.ts";
+import { passwordResetLink } from "./password-reset.ts";
 import { getSigniticSignature } from "./signitic.ts";
 import { getBccList } from "./email-settings.ts";
 import { sendEmail } from "./resend.ts";
@@ -70,21 +71,12 @@ export async function learnerAccessLink(
   const { data: passwordSet } = await admin.rpc("learner_password_set", { p_email: normalized });
   if (passwordSet === null) return null;
 
-  const urls = await getAppUrls();
   if (passwordSet === false) {
-    const { data, error } = await admin.auth.admin.generateLink({
-      type: "recovery",
-      email: normalized,
-      options: { redirectTo: `${urls.app_url}/connexion/reinitialisation` },
-    });
-    if (error || !data?.properties?.hashed_token) return null;
-    const tokenHash = encodeURIComponent(data.properties.hashed_token);
-    return {
-      actionLink: `${urls.app_url}/connexion/reinitialisation?token_hash=${tokenHash}&type=recovery`,
-      passwordSet: false,
-    };
+    const actionLink = await passwordResetLink(admin, normalized);
+    return actionLink ? { actionLink, passwordSet: false } : null;
   }
 
+  const urls = await getAppUrls();
   return {
     actionLink: `${urls.app_url}/connexion?email=${encodeURIComponent(normalized)}`,
     passwordSet: true,
