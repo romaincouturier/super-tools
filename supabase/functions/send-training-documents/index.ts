@@ -6,7 +6,8 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { requireStaff } from "../_shared/cron-auth.ts";
 // Format date range for display (e.g., "du 15 au 17 janvier 2025")
 function formatDateRangeForDisplay(startDate: string, endDate: string | null): string {
   const start = new Date(startDate);
@@ -48,29 +49,29 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { 
-      trainingId, 
-      trainingName,
-      startDate,
-      endDate,
-      recipientEmail, 
-      recipientName, 
-      recipientFirstName,
+    const caller = await requireStaff(req);
+    if (!caller) {
+      return createErrorResponse("Accès refusé", 403);
+    }
+
+    // Destinataire lu en base : commanditaire du participant (participantId)
+    // ou de la formation. Seule exception, une adresse saisie par le staff
+    // (customRecipientEmail, ccEmail), tracée dans activity_logs avec user_id.
+    const {
+      trainingId,
+      participantId,
+      customRecipientEmail,
       documentType,
       invoiceUrl,
       attendanceSheetsUrls,
       certificateUrls,
       ccEmail,
-      participantId,
       formalAddress = true,
       includeEvaluations = false,
     } = await req.json();
 
-    if (!recipientEmail) {
-      return new Response(
-        JSON.stringify({ error: "Recipient email is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!trainingId) {
+      return createErrorResponse("trainingId is required", 400);
     }
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
@@ -81,6 +82,50 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const { data: training } = await supabase
+      .from("trainings")
+      .select("training_name, start_date, end_date, sponsor_email, sponsor_first_name, sponsor_last_name")
+      .eq("id", trainingId)
+      .maybeSingle();
+    if (!training) {
+      return createErrorResponse("Formation introuvable", 404);
+    }
+
+    let sponsor = {
+      email: training.sponsor_email as string | null,
+      first_name: training.sponsor_first_name as string | null,
+      last_name: training.sponsor_last_name as string | null,
+    };
+    if (participantId) {
+      const { data: participant } = await supabase
+        .from("training_participants")
+        .select("sponsor_email, sponsor_first_name, sponsor_last_name")
+        .eq("id", participantId)
+        .eq("training_id", trainingId)
+        .maybeSingle();
+      if (!participant) {
+        return createErrorResponse("Participant introuvable pour cette formation", 404);
+      }
+      sponsor = {
+        email: participant.sponsor_email,
+        first_name: participant.sponsor_first_name,
+        last_name: participant.sponsor_last_name,
+      };
+    }
+
+    const trainingName: string = training.training_name;
+    const startDate: string | null = training.start_date;
+    const endDate: string | null = training.end_date;
+    const recipientEmail: string | null = customRecipientEmail || sponsor.email;
+    const recipientName = customRecipientEmail
+      ? null
+      : [sponsor.first_name, sponsor.last_name].filter(Boolean).join(" ") || null;
+    const recipientFirstName = customRecipientEmail ? null : sponsor.first_name;
+
+    if (!recipientEmail) {
+      return createErrorResponse("Aucun email de commanditaire en base", 400);
+    }
 
     // Determine template type suffix based on formal address
     const templateTypeSuffix = formalAddress ? "_vous" : "_tu";
@@ -369,7 +414,10 @@ Bonne réception.`;
       await supabase.from("activity_logs").insert({
         action_type: "training_documents_sent",
         recipient_email: recipientEmail,
+        user_id: caller.id,
         details: {
+          custom_recipient: !!customRecipientEmail,
+          cc_email: ccEmail || null,
           training_id: trainingId,
           training_name: trainingName,
           document_type: documentType,
