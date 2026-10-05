@@ -90,8 +90,7 @@ export function useBookAlbums() {
           supabase
             .from("book_productions")
             .select("album_id, file_url, thumbnail_url, file_type, sort_order, created_at")
-            .order("sort_order", { ascending: true })
-            .order("created_at", { ascending: true }),
+            .order("created_at", { ascending: false }),
         ]);
 
       if (albumsError) throw albumsError;
