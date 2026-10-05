@@ -277,7 +277,7 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
 
           {/* Comments moderation */}
           <div className="border-t pt-4 space-y-3">
-            <h3 className="font-semibold text-sm">Commentaires apprenants ({comments.length})</h3>
+            <h3 className="font-semibold text-sm">Commentaires de la communauté ({comments.length})</h3>
             {comments.length === 0 && <p className="text-xs text-muted-foreground italic">Aucun commentaire.</p>}
             <ul className="space-y-2">
               {comments.map((c) => (
