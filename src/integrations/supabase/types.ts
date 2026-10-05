@@ -13393,6 +13393,15 @@ export type Database = {
           last_sign_in_at: string
         }[]
       }
+      lms_enrollment_removal_decision: {
+        Args: {
+          _course_id: string
+          _email: string
+          _exclude_participant_id?: string
+          _repositioned_to?: string
+        }
+        Returns: Json
+      }
       lms_learner_is_enrolled: {
         Args: { _course_id: string }
         Returns: boolean
