@@ -693,7 +693,10 @@ async function verifyBackupIntegrityByCounts(
         .select("*", { count: "exact", head: true });
       const liveRows = count ?? 0;
       result.checks.totalLiveRows += liveRows;
-      if (backupRows === liveRows) {
+      // Le run dure plusieurs heures : des lignes ajoutées depuis l'export de la
+      // table sont normales. Seule une croissance anormale ou une perte compte.
+      const growth = liveRows - backupRows;
+      if (growth >= 0 && growth <= Math.max(100, liveRows * 0.05)) {
         result.checks.rowCountMatches++;
       } else {
         result.checks.rowCountMismatches.push({ table, backup: backupRows, live: liveRows });
