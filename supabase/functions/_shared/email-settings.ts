@@ -29,6 +29,7 @@ async function fetchSettings(): Promise<EmailSettings> {
     senderName: "Romain Couturier",
     bccEnabled: true,
     contactEmail: "contact@supertilt.fr",
+    nocrmBccEmail: "supertilt@bcc.nocrm.io",
   };
 
   try {
@@ -40,7 +41,7 @@ async function fetchSettings(): Promise<EmailSettings> {
     const { data } = await supabase
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", ["bcc_email", "bcc_enabled", "sender_email", "sender_name", "contact_email"]);
+      .in("setting_key", ["bcc_email", "bcc_enabled", "sender_email", "sender_name", "contact_email", "nocrm_bcc_email"]);
 
     if (data) {
       // Strip ALL whitespace from email values — a stray space breaks Resend's `from` validation
