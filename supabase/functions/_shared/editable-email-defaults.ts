@@ -506,4 +506,119 @@ Ce message est envoyé automatiquement tous les 2 jours ouvrés tant qu'aucun pa
 Bonne journée ! 🚀`),
     variables: ["trainer_first_name", "training_name", "client_name", "start_date", "days_remaining", "training_table"],
   },
+
+  game_devis: {
+    name: "Envoi du devis jeux",
+    audience: "client",
+    sendingInfo: "📤 Envoyé au commanditaire avec le PDF du devis jeux en pièce jointe",
+    subject: same("Votre devis jeux — {{client_name}}"),
+    content: same(`Bonjour {{recipient_name}},
+
+Veuillez trouver ci-joint votre devis pour les jeux suivants :
+
+{{items_list}}
+
+{{#note}}*{{note}}*{{/note}}
+
+N'hésitez pas à nous contacter pour toute question.
+
+À très bientôt,`),
+    variables: ["recipient_name", "client_name", "items_list", "note"],
+  },
+
+  trainer_evaluation_request: {
+    name: "Demande de retour au formateur",
+    audience: "client",
+    sendingInfo: "📤 Envoyé au formateur à la fin de la session pour recueillir son retour",
+    subject: same("Votre retour – {{training_name}}{{#client_name}} ({{client_name}}){{/client_name}}{{#date_line}} – {{date_line}}{{/date_line}}"),
+    content: same(`Bonjour {{trainer_name}},
+
+La formation « **{{training_name}}** »{{#client_name}} pour **{{client_name}}**{{/client_name}}{{#date_line}} ({{date_line}}){{/date_line}} est maintenant terminée.
+
+Merci de prendre quelques minutes pour donner votre retour sur cette session en cliquant sur le lien ci-dessous :
+
+{{evaluation_button}}
+
+Ce formulaire prend environ 2 minutes.
+
+Merci,
+L'équipe SuperTilt`),
+    variables: ["trainer_name", "training_name", "client_name", "date_line", "evaluation_button"],
+  },
+
+  mission_page_comment: {
+    name: "Nouveau commentaire sur une page de mission",
+    audience: "client",
+    sendingInfo: "📤 Envoyé au consultant et aux participants du fil quand un commentaire est publié",
+    subject: same("Nouveau commentaire sur « {{page_title}} » - {{mission_title}}"),
+    content: same(`**{{author_name}}** a commenté la page « {{page_title}} » de la mission « {{mission_title}} ».
+
+{{comment_block}}
+
+{{reply_button}}`),
+    variables: ["author_name", "page_title", "mission_title", "comment_block", "reply_button"],
+  },
+
+  certificate_participant: {
+    name: "Certificat de réalisation (participant)",
+    audience: "client",
+    sendingInfo: "📤 Envoyé au participant avec son certificat en pièce jointe",
+    subject: {
+      tu: "Ton certificat de réalisation pour la formation {{training_name}}",
+      vous: "Ton certificat de réalisation pour la formation {{training_name}}",
+    },
+    content: same(`Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Tu trouveras en pièce jointe ton certificat de réalisation pour la formation {{training_name}}.
+
+Je te souhaite de bien exploiter tout ce que tu as vu pendant la formation !
+
+{{resources_links}}
+
+Bonne continuation et à bientôt !`),
+    variables: ["first_name", "training_name", "resources_links"],
+  },
+
+  certificate_admin_copy: {
+    name: "Copie du certificat (interne)",
+    audience: "internal",
+    sendingInfo: "📤 Copie envoyée en interne à chaque envoi de certificat",
+    subject: same("[Copie] Certificat envoyé à {{participant_name}} - {{training_name}}"),
+    content: same(`**Certificat envoyé**
+
+Le certificat de formation a été envoyé à **{{participant_name}}** ({{participant_email}}).
+
+**Formation :** {{training_name}}
+
+Une copie du certificat est jointe à cet email.`),
+    variables: ["participant_name", "participant_email", "training_name"],
+  },
+
+  certificate_sponsor_single: {
+    name: "Certificat au commanditaire (un participant)",
+    audience: "client",
+    sendingInfo: "📤 Envoyé au commanditaire avec le certificat en pièce jointe",
+    subject: same("Certificat de réalisation - Formation {{training_name}}"),
+    content: same(`Bonjour,
+
+Veuillez trouver ci-joint le certificat de réalisation pour la formation **{{training_name}}**.
+
+Cordialement,`),
+    variables: ["training_name"],
+  },
+
+  certificate_sponsor_zip: {
+    name: "Certificats au commanditaire (archive)",
+    audience: "client",
+    sendingInfo: "📤 Envoyé au commanditaire avec l'archive ZIP des certificats",
+    subject: same("Certificats de réalisation - Formation {{training_name}}"),
+    content: same(`Bonjour,
+
+Veuillez trouver ci-joint l'ensemble des certificats de réalisation pour la formation **{{training_name}}**.
+
+Cette archive contient {{certificate_count}} certificat(s).
+
+Cordialement,`),
+    variables: ["training_name", "certificate_count"],
+  },
 };
