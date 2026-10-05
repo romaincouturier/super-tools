@@ -29,6 +29,12 @@ const DEFAULT_COLORS: ServiceTypeColors = {
   default: "#6b7280",
 };
 
+// Match "appel", "appeler", "rappeler", "téléphone"... but not "rappel" (noun)
+const CALL_ACTION_RE = /\bappel(s|er|ez|era|erai)?\b|téléphon|\bphone\b|\brappel(er|ez|e)\b/i;
+
+const isCallAction = (text: string | null | undefined): boolean =>
+  !!text && CALL_ACTION_RE.test(text);
+
 const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTypeColors }: CrmCardProps) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
