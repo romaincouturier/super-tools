@@ -55,7 +55,7 @@ const TABLES_TO_BACKUP = [
   "group_matching_configs", "group_matching_groups", "group_matching_members", "group_matching_registrations",
   "gsc_metrics_daily", "gsc_sitemaps", "gsc_url_inspections",
   "idea_votes", "ideas", "improvements", "inbound_emails",
-  "learner_magic_links", "learner_notifications", "learner_profiles",
+  "learner_notifications", "learner_profiles",
   "lms_assignment_submissions", "lms_assignments", "lms_badge_awards", "lms_badges",
   "lms_course_folders", "lms_courses", "lms_deposit_comments", "lms_deposit_feedback", "lms_deposit_reactions",
   "lms_enrollments", "lms_forum_posts", "lms_forums",
@@ -1487,6 +1487,20 @@ serve(async (req) => {
           finished_at: new Date().toISOString(),
           errors: [...(run.errors || []), "Run abandonné (inactif trop longtemps)"],
         });
+        // Jamais d'échec silencieux : mail d'échec + alerte « aucune sauvegarde ».
+        try {
+          await sendBackupEmail(
+            `❌ ÉCHEC sauvegarde SuperTools ${run.run_date}`,
+            `<div style="font-family: sans-serif; max-width: 600px; text-align: left;">
+              <h2 style="color: #dc2626;">Sauvegarde automatique interrompue</h2>
+              <p>Le run du ${run.run_date} n'a pas terminé dans la fenêtre du cron (arrêté en phase <strong>${escapeForHtml(String(run.phase))}</strong>, étape ${run.cursor_index}).</p>
+            </div>`,
+            "scheduled_backup_failure",
+          );
+        } catch (err) {
+          console.error("[scheduled-backup] Mail d'abandon non envoyé:", err);
+        }
+        await checkMissingBackupAlert(supabase);
         return createJsonResponse({ aborted: true, runId: run.id });
       }
     }
