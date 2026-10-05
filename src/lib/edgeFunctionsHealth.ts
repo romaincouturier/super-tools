@@ -149,6 +149,7 @@ export const EXPECTED_FUNCTIONS = [
   "send-convention-reminder",
   "send-deposit-feedback-notification",
   "send-deposit-trainer-notification",
+  "deposit-email-reaction",
 
   "send-elearning-access",
 

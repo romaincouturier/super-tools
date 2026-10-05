@@ -2340,6 +2340,41 @@ export type Database = {
         }
         Relationships: []
       }
+      deposit_reaction_tokens: {
+        Row: {
+          created_at: string
+          deposit_id: string
+          expires_at: string
+          token: string
+          trainer_email: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          deposit_id: string
+          expires_at: string
+          token: string
+          trainer_email: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          deposit_id?: string
+          expires_at?: string
+          token?: string
+          trainer_email?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposit_reaction_tokens_deposit_id_fkey"
+            columns: ["deposit_id"]
+            isOneToOne: false
+            referencedRelation: "lms_work_deposits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devis_signatures: {
         Row: {
           activity_log_id: string
@@ -6017,6 +6052,7 @@ export type Database = {
           pedagogical_status: string
           publication_status: string
           trainer_notified_at: string | null
+          trainer_notify_requested_at: string | null
           updated_at: string
           visibility: string
           visibility_changed_at: string | null
@@ -6038,6 +6074,7 @@ export type Database = {
           pedagogical_status?: string
           publication_status?: string
           trainer_notified_at?: string | null
+          trainer_notify_requested_at?: string | null
           updated_at?: string
           visibility?: string
           visibility_changed_at?: string | null
@@ -6059,6 +6096,7 @@ export type Database = {
           pedagogical_status?: string
           publication_status?: string
           trainer_notified_at?: string | null
+          trainer_notify_requested_at?: string | null
           updated_at?: string
           visibility?: string
           visibility_changed_at?: string | null

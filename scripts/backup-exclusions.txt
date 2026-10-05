@@ -34,3 +34,6 @@ identity_resolution_log
 
 # Suivi anti-doublon des rappels de live : reconstructible depuis sent_emails_log.
 live_reminder_sends
+
+# Liens « J'aime » des mails formateur : éphémères (30 j).
+deposit_reaction_tokens

@@ -23,6 +23,7 @@ import {
 import type { AdminDepositRow } from "@/services/lms-work-deposit";
 import DepositAdminDetail from "@/components/lms/DepositAdminDetail";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 const STATUS_FILTER: ("all" | DepositPedagogicalStatus)[] = [
   "all",
@@ -59,7 +60,11 @@ export default function LmsDeposits() {
       setSelected(target);
       const next = new URLSearchParams(searchParams);
       next.delete("deposit");
+      const reaction = next.get("reaction");
+      next.delete("reaction");
       setSearchParams(next, { replace: true });
+      if (reaction === "ok") toast({ title: "Votre « J'aime » a été enregistré" });
+      else if (reaction) toast({ title: "Le lien « J'aime » n'est plus valable", description: "Vous pouvez réagir depuis cette fenêtre." });
     }
   }, [deposits, searchParams, selected, setSearchParams]);
 

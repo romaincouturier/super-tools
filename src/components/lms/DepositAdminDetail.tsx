@@ -38,6 +38,7 @@ import {
 } from "@/types/lms-work-deposit";
 import type { AdminDepositRow } from "@/services/lms-work-deposit";
 import DepositFilePreview from "@/components/lms/DepositFilePreview";
+import DepositCommunityPanel from "@/components/lms/DepositCommunityPanel";
 
 interface Props {
   deposit: AdminDepositRow | null;
@@ -166,6 +167,8 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
             </div>
           )}
 
+          <DepositCommunityPanel depositId={deposit.id} />
+
           {/* Status + publication */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -274,7 +277,7 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
 
           {/* Comments moderation */}
           <div className="border-t pt-4 space-y-3">
-            <h3 className="font-semibold text-sm">Commentaires apprenants ({comments.length})</h3>
+            <h3 className="font-semibold text-sm">Commentaires de la communauté ({comments.length})</h3>
             {comments.length === 0 && <p className="text-xs text-muted-foreground italic">Aucun commentaire.</p>}
             <ul className="space-y-2">
               {comments.map((c) => (
