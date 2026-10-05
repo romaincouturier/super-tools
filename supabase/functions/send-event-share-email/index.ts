@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderEditableEmail, ctaButton } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import {
@@ -142,55 +144,33 @@ serve(async (req) => {
     // Get Signitic signature
     const emailSignature = await getSigniticSignature();
 
-    const greeting = recipient_name ? `Bonjour ${escapeHtml(recipient_name)},` : "Bonjour,";
-
-    const completeHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333; margin: 0; padding: 0;">
-  <div style="max-width: 600px; padding: 20px;">
-    <p style="margin: 0 0 10px 0;">${greeting}</p>
-
-    <p style="margin: 0 0 16px 0;">
-      ${escapeHtml(senderName)} souhaite partager un événement avec toi :
-    </p>
-
-    <div style="background-color: #f9fafb; border-radius: 12px; padding: 20px; margin: 16px 0; border: 1px solid #e5e7eb;">
-      <h2 style="margin: 0 0 12px 0; color: #111; font-size: 18px;">
-        🎉 ${escapeHtml(event.title)}
-      </h2>
-      <p style="margin: 4px 0; color: #555;">
-        📅 ${eventDate}${eventTime ? ` à ${eventTime}` : ""}
-      </p>
+    const tpl = EDITABLE_EMAIL_DEFAULTS.event_share;
+    const rendered = await renderEditableEmail(supabase, {
+      type: "event_share",
+      defaultSubject: tpl.subject.vous,
+      defaultContent: tpl.content.vous,
+      vars: { recipient_name: recipient_name || null, sender_name: senderName, event_title: event.title },
+      blocks: {
+        event_details: `<div style="background-color: #f9fafb; border-radius: 12px; padding: 20px; margin: 16px 0; border: 1px solid #e5e7eb;">
+      <h2 style="margin: 0 0 12px 0; color: #111; font-size: 18px;">🎉 ${escapeHtml(event.title)}</h2>
+      <p style="margin: 4px 0; color: #555;">📅 ${eventDate}${eventTime ? ` à ${eventTime}` : ""}</p>
       ${locationHtml}
       ${descriptionHtml}
-    </div>
-
-    ${imagesHtml}
-
-    ${emailButton("Voir l'événement →", eventLink)}
-
-    <p style="margin: 20px 0 0 0; color: #999; font-size: 12px;">
-      Cet email a été envoyé depuis SuperTools.
-    </p>
-
-    <div style="margin-top: 20px;">
-      ${emailSignature}
-    </div>
-  </div>
-</body>
-</html>
-    `;
+    </div>`,
+        images_preview: imagesHtml,
+        event_button: emailButton("Voir l'événement →", eventLink),
+      },
+    });
+    const completeHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333; margin: 0; padding: 0;">
+  <div style="max-width: 600px; padding: 20px;">${rendered.html}<div style="margin-top: 20px;">${emailSignature}</div></div>
+</body></html>`;
 
     const bccList = await getBccList();
 
     const emailResult = await sendEmail({
       to: [recipient_email],
-      subject: `📌 Événement partagé : ${event.title}`,
+      subject: rendered.subject,
       html: completeHtml,
       bcc: bccList,
     });

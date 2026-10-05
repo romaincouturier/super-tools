@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderEditableEmail, ctaButton } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import {
   handleCorsPreflightIfNeeded,
@@ -125,23 +127,30 @@ serve(async (req) => {
 
       const supertoolsUrl = `${APP_URL}/events/${event.id}`;
 
-      const subject = isToday
-        ? `📅 Aujourd'hui : ${event.title}`
-        : `📅 Demain : ${event.title}`;
-
-      const html = `
-<div style="font-family: Arial, sans-serif; color:#333; max-width:600px; text-align:left;">
-  <p>${greeting}</p>
-  <p>${intro}</p>
-  <div style="background:#f6f7f9; border-left:3px solid #4f46e5; padding:12px 16px; margin:16px 0; border-radius:4px;">
+      const detailsHtml = `<div style="background:#f6f7f9; border-left:3px solid #4f46e5; padding:12px 16px; margin:16px 0; border-radius:4px;">
     <p style="margin:0 0 8px 0; font-size:16px;"><strong>${escapeHtml(event.title)}</strong></p>
     <p style="margin:8px 0;"><strong>Date :</strong> ${escapeHtml(eventDate)}${eventTime ? ` à ${escapeHtml(eventTime)}` : ""}</p>
     ${locParts.join("\n")}
     ${event.description ? `<p style="margin:8px 0; white-space:pre-wrap;">${escapeHtml(event.description)}</p>` : ""}
-  </div>
-  <p style="text-align:left;">${emailButton("Ouvrir dans SuperTools", supertoolsUrl)}</p>
-  ${signatureHtml}
-</div>`;
+  </div>`;
+      const tpl = EDITABLE_EMAIL_DEFAULTS.event_reminder;
+      const rendered = await renderEditableEmail(supabase, {
+        type: "event_reminder",
+        defaultSubject: tpl.subject.vous,
+        defaultContent: tpl.content.vous,
+        vars: {
+          first_name: profile.first_name || null,
+          event_title: event.title,
+          is_today: isToday || null,
+          is_tomorrow: isToday ? null : true,
+        },
+        blocks: {
+          event_details: detailsHtml,
+          open_button: `<p style="text-align:left;">${emailButton("Ouvrir dans SuperTools", supertoolsUrl)}</p>`,
+        },
+      });
+      const subject = rendered.subject;
+      const html = `<div style="font-family: Arial, sans-serif; color:#333; max-width:600px; text-align:left;">${rendered.html}${signatureHtml}</div>`;
 
       const result = await sendEmail({
         to: profile.email,
