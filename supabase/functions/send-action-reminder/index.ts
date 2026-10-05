@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderCatalogEmail, escapeEmailValue as escE } from "../_shared/editable-email.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
@@ -72,16 +73,18 @@ serve(async (req) => {
     const signature = await getSigniticSignature();
     const senderFrom = await getSenderFrom();
 
-    const htmlContent = `
-      <p>${greeting}</p>
-      <p>Tu as une action à réaliser dans le cadre de la formation <strong>${formationLabel}</strong> :</p>
-      <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
-        <strong>${description}</strong>
-      </div>
-      <p>Merci de traiter cette action dès que possible.</p>
-      ${emailButton("Voir la formation", trainingLink)}
-      ${signature}
-    `;
+    const arRendered = await renderCatalogEmail(supabase, "action_reminder", {
+      vars: {
+        recipient_name: recipientName || null,
+        training_name: formationLabel,
+        action_short: `${description.substring(0, 50)}${description.length > 50 ? "..." : ""}`,
+      },
+      blocks: {
+        action_box: `<div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;"><strong>${escE(description)}</strong></div>`,
+        training_button: emailButton("Voir la formation", trainingLink),
+      },
+    });
+    const htmlContent = `${arRendered.html}${signature}`;
 
     console.log(`[${VERSION}] Sending reminder to ${assignedEmail} for action ${actionId}`);
 
@@ -89,7 +92,7 @@ serve(async (req) => {
       from: senderFrom,
       to: [assignedEmail],
       bcc: bccList,
-      subject: `🔔 Rappel : ${description.substring(0, 50)}${description.length > 50 ? "..." : ""}`,
+      subject: arRendered.subject,
       html: htmlContent,
       _emailType: "action_reminder",
       _trainingId: trainingId || undefined,
