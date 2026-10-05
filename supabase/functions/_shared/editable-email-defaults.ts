@@ -405,4 +405,105 @@ Nous confirmons la bonne réception de votre signature électronique pour le con
 {{download_button}}`),
     variables: ["signer_name", "contrat_reference", "details_list", "download_button"],
   },
+
+  event_reminder: {
+    name: "Rappel d'évènement (veille et jour J)",
+    audience: "internal",
+    sendingInfo: "⏰ Envoyé automatiquement la veille et le jour d'un évènement à son organisateur",
+    subject: same("📅 {{#is_today}}Aujourd'hui{{/is_today}}{{#is_tomorrow}}Demain{{/is_tomorrow}} : {{event_title}}"),
+    content: same(`Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+**{{#is_today}}C'est aujourd'hui !{{/is_today}}{{#is_tomorrow}}C'est demain !{{/is_tomorrow}}** Voici le récapitulatif de ton évènement :
+
+{{event_details}}
+
+{{open_button}}`),
+    variables: ["first_name", "event_title", "is_today", "is_tomorrow", "event_details", "open_button"],
+  },
+
+  event_share: {
+    name: "Partage d'évènement",
+    audience: "internal",
+    sendingInfo: "📤 Envoyé quand un évènement est partagé depuis SuperTools",
+    subject: same("📌 Événement partagé : {{event_title}}"),
+    content: same(`Bonjour{{#recipient_name}} {{recipient_name}}{{/recipient_name}},
+
+{{sender_name}} souhaite partager un événement avec toi :
+
+{{event_details}}
+
+{{images_preview}}
+
+{{event_button}}
+
+Cet email a été envoyé depuis SuperTools.`),
+    variables: ["recipient_name", "sender_name", "event_title", "event_details", "images_preview", "event_button"],
+  },
+
+  event_update: {
+    name: "Modification d'un évènement partagé",
+    audience: "internal",
+    sendingInfo: "📤 Envoyé aux destinataires d'un partage quand l'évènement est modifié",
+    subject: same("🔄 Événement modifié : {{event_title}}"),
+    content: same(`Bonjour{{#recipient_name}} {{recipient_name}}{{/recipient_name}},
+
+{{sender_name}} a modifié l'événement **{{event_title}}** qui avait été partagé avec toi. Voici ce qui a changé :
+
+{{changes_table}}
+
+{{event_button}}
+
+Cet email a été envoyé depuis SuperTools.`),
+    variables: ["recipient_name", "sender_name", "event_title", "changes_table", "event_button"],
+  },
+
+  venue_booking_request: {
+    name: "Demande de réservation de salle",
+    audience: "client",
+    sendingInfo: "📤 Envoyé manuellement au lieu de formation depuis la fiche session",
+    subject: same("Demande de réservation de salle — {{training_name}}"),
+    content: {
+      tu: `Bonjour,
+
+Je me permets de te contacter afin de te soumettre une demande de réservation de salle pour une session de formation.
+
+Nous souhaiterions réserver {{room_ref}} pour la formation **{{training_name}}** aux dates et horaires suivants :
+
+{{schedule_list}}
+
+Est-ce possible ? Merci beaucoup et bonne journée.`,
+      vous: `Bonjour,
+
+Je me permets de vous contacter afin de vous soumettre une demande de réservation de salle pour une session de formation.
+
+Nous souhaiterions réserver {{room_ref}} pour la formation **{{training_name}}** aux dates et horaires suivants :
+
+{{schedule_list}}
+
+Est-ce possible ? Merci beaucoup et bonne journée.`,
+    },
+    variables: ["training_name", "room_ref", "schedule_list"],
+  },
+
+  participant_list_reminder: {
+    name: "Alerte formation sans participant",
+    audience: "internal",
+    sendingInfo: "⏰ Envoyé au formateur tous les 2 jours ouvrés tant qu'aucun participant n'est inscrit",
+    subject: same("⚠️ Alerte : aucun participant pour « {{training_name}} » (J-{{days_remaining}})"),
+    content: same(`Bonjour {{trainer_first_name}},
+
+Petit rappel amical 😊 — la formation **« {{training_name}} »** pour **{{client_name}}** démarre le **{{start_date}}** (dans {{days_remaining}} jours) et **aucun participant n'est encore inscrit**.
+
+Il serait bon de :
+- 🔍 Relancer le client pour obtenir la liste des participants
+- 📋 Vérifier si la formation est toujours maintenue
+- ❌ Envisager une annulation si aucun retour ne vient
+
+{{training_table}}
+
+Ce message est envoyé automatiquement tous les 2 jours ouvrés tant qu'aucun participant n'est ajouté.
+
+Bonne journée ! 🚀`),
+    variables: ["trainer_first_name", "training_name", "client_name", "start_date", "days_remaining", "training_table"],
+  },
 };
