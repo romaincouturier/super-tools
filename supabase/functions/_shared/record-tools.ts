@@ -147,9 +147,11 @@ export async function attachEmailToRecord(
   }
 
   const saved: Array<{ file_name: string; size: number }> = [];
+  let emlError: string | null = null;
   if (input.include_email !== false) {
     const emlName = `${todayParis()}_${(msg.subject || "mail").slice(0, 80)}.eml`;
-    saved.push(await storeParticipantFile(db, p.training_id, p.id, emlName, "message/rfc822", msg.raw));
+    const r = await storeEml((m) => storeParticipantFile(db, p.training_id, p.id, emlName, m, msg.raw));
+    if (r.file) saved.push(r.file); else emlError = r.error!;
   }
   let conventionUrl: string | null = null;
   for (const a of msg.attachments) {
@@ -177,9 +179,25 @@ export async function attachEmailToRecord(
     training_id: p.training_id,
     email: { subject: msg.subject, from: msg.from, date: msg.date, gmail_id: msg.id },
     files: saved,
+    email_file_error: emlError ?? undefined,
     signed_convention_url: conventionUrl,
     previous_signed_convention_url: conventionUrl ? p.signed_convention_url ?? null : undefined,
   });
+}
+
+/** Le .eml ne doit jamais bloquer : types de repli si le bucket refuse message/rfc822, puis échec signalé. */
+const EML_MIMES = ["message/rfc822", "application/octet-stream", "text/plain"];
+async function storeEml(
+  store: (mime: string) => Promise<{ file_name: string; size: number }>,
+): Promise<{ file?: { file_name: string; size: number }; error?: string }> {
+  let last = "";
+  for (const mime of EML_MIMES) {
+    try { return { file: await store(mime) }; } catch (e) {
+      last = e instanceof Error ? e.message : String(e);
+      if (!/mime type/i.test(last)) break;
+    }
+  }
+  return { error: last };
 }
 
 async function attachToRecord(
@@ -193,9 +211,11 @@ async function attachToRecord(
 
   const msg = await fetchGmailMessage(input.gmail_message_id, MAX_FILE_BYTES);
   const saved: Array<{ file_name: string; size: number }> = [];
+  let emlError: string | null = null;
   if (input.include_email !== false) {
     const emlName = `${todayParis()}_${(msg.subject || "mail").slice(0, 80)}.eml`;
-    saved.push(await storeFile(db, type, input.record_id, emlName, "message/rfc822", msg.raw, actorEmail));
+    const r = await storeEml((m) => storeFile(db, type, input.record_id, emlName, m, msg.raw, actorEmail));
+    if (r.file) saved.push(r.file); else emlError = r.error!;
   }
   for (const a of msg.attachments) {
     saved.push(await storeFile(db, type, input.record_id, a.fileName, a.mimeType, a.bytes, actorEmail));
@@ -214,6 +234,7 @@ async function attachToRecord(
     record: recLabel,
     email: { subject: msg.subject, from: msg.from, date: msg.date, gmail_id: msg.id },
     files: saved,
+    email_file_error: emlError ?? undefined,
   });
 }
 
