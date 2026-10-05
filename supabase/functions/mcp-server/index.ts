@@ -141,7 +141,8 @@ import {
  *   - L'écran d'autorisation demande une clé personnelle (MCP_PERSONAL_SECRET,
  *     secret d'edge function — jamais dans le repo)
  *   - Chaque requête MCP est liée à ALLOWED_EMAIL : liste blanche d'un seul
- *     utilisateur, codée en dur, vérifiée à chaque appel
+ *     utilisateur, lue depuis app_settings (mcp_allowed_email), vérifiée à
+ *     chaque appel
  *   - Écriture limitée à save_mission_note (page de mission),
  *     save_mission_document (document de mission, allowlist de types et
  *     plafond de taille) et save_watch_item (contenu de veille). Toutes sont
@@ -153,7 +154,23 @@ import {
  *   - Toutes les requêtes SQL sont journalisées (agent_query_audit_log)
  */
 
-const ALLOWED_EMAIL = "romain@supertilt.fr";
+// Liste blanche d'un seul utilisateur, lue depuis app_settings
+// (mcp_allowed_email, Paramètres > Général) ; repli si illisible.
+let ALLOWED_EMAIL = "romain@supertilt.fr";
+
+async function resolveAllowedEmail(supabase: Supabase): Promise<void> {
+  try {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "mcp_allowed_email")
+      .maybeSingle();
+    const v = (data as { setting_value?: string } | null)?.setting_value?.trim();
+    if (v) ALLOWED_EMAIL = v;
+  } catch {
+    // repli sur la valeur par défaut
+  }
+}
 const ACCESS_TOKEN_TTL_S = 30 * 24 * 3600; // 30 jours
 const REFRESH_TOKEN_TTL_S = 60 * 24 * 3600; // 60 jours
 const CODE_TTL_S = 600; // 10 minutes
@@ -2367,6 +2384,7 @@ serve(async (req) => {
     // Sous-chemin après /mcp-server ("" pour la racine)
     const subPath = url.pathname.replace(/^.*?\/mcp-server/, "").replace(/\/$/, "");
     const supabase = getSupabaseClient();
+    await resolveAllowedEmail(supabase);
 
     if (subPath === "/.well-known/oauth-authorization-server") {
       return metadataAuthServer(baseUrl);
