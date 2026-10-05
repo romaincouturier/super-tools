@@ -34,3 +34,4 @@ identity_resolution_log
 
 # Suivi anti-doublon des rappels de live : reconstructible depuis sent_emails_log.
 live_reminder_sends
+deposit_reaction_tokens  # liens « J'aime » éphémères (30 j), régénérés à chaque mail

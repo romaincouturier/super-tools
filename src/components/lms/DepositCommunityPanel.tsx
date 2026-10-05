@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ThumbsUp, Send } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useDepositReactions, useToggleStaffDepositReaction, useCreateStaffDepositComment } from "@/hooks/useDepositCommunity";
 import { useAuth } from "@/hooks/useAuth";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskEmail } from "@/lib/demoMask";
@@ -24,47 +23,19 @@ export default function DepositCommunityPanel({ depositId }: Props) {
   const myEmail = (user?.email || "").toLowerCase();
   const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
-  const qc = useQueryClient();
   const [draft, setDraft] = useState("");
-  const c = supabase as any;
-
-  const { data: reactions = [] } = useQuery<{ author_email: string }[]>({
-    queryKey: ["admin-deposit-reactions", depositId],
-    queryFn: async () => {
-      const { data, error } = await c.from("lms_deposit_reactions").select("author_email").eq("deposit_id", depositId);
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
+  const { data: reactions = [] } = useDepositReactions(depositId);
   const iReacted = reactions.some((r) => r.author_email.toLowerCase() === myEmail);
+  const toggle = useToggleStaffDepositReaction(depositId, myEmail);
+  const comment = useCreateStaffDepositComment(depositId, myEmail);
 
-  const toggle = useMutation({
-    mutationFn: async () => {
-      if (!myEmail) throw new Error("Session introuvable");
-      const q = c.from("lms_deposit_reactions");
-      const { error } = iReacted
-        ? await q.delete().eq("deposit_id", depositId).eq("author_email", myEmail)
-        : await q.insert({ deposit_id: depositId, author_email: myEmail });
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-deposit-reactions", depositId] }),
-    onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur"),
-  });
-
-  const comment = useMutation({
-    mutationFn: async (content: string) => {
-      if (!myEmail) throw new Error("Session introuvable");
-      const { error } = await c.from("lms_deposit_comments").insert({ deposit_id: depositId, author_email: myEmail, content });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      setDraft("");
-      qc.invalidateQueries({ queryKey: ["admin-comments", depositId] });
-      toast({ title: "Commentaire publié" });
-    },
-    onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur"),
-  });
+  const onToggle = () =>
+    toggle.mutate(iReacted, { onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur") });
+  const onComment = (content: string) =>
+    comment.mutate(content, {
+      onSuccess: () => { setDraft(""); toast({ title: "Commentaire publié" }); },
+      onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur"),
+    });
 
   return (
     <div className="space-y-3 rounded-md border p-3 bg-card">
@@ -72,7 +43,7 @@ export default function DepositCommunityPanel({ depositId }: Props) {
         <Button
           size="sm"
           variant={iReacted ? "default" : "outline"}
-          onClick={() => toggle.mutate()}
+          onClick={onToggle}
           disabled={toggle.isPending}
         >
           <ThumbsUp className="h-4 w-4 mr-2" />
@@ -94,7 +65,7 @@ export default function DepositCommunityPanel({ depositId }: Props) {
         <div className="flex justify-end">
           <Button
             size="sm"
-            onClick={() => draft.trim() && comment.mutate(draft.trim())}
+            onClick={() => draft.trim() && onComment(draft.trim())}
             disabled={!draft.trim() || comment.isPending}
           >
             {comment.isPending ? <Spinner className="mr-2" /> : <Send className="h-4 w-4 mr-2" />}
