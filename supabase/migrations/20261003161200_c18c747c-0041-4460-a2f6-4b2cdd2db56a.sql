@@ -1,4 +1,4 @@
-DROP POLICY auth_learner_insert_work_deposits ON public.lms_work_deposits;
+DROP POLICY IF EXISTS auth_learner_insert_work_deposits ON public.lms_work_deposits;
 
 CREATE POLICY auth_learner_insert_work_deposits ON public.lms_work_deposits
 FOR INSERT
