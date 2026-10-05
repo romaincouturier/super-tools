@@ -183,13 +183,13 @@ const SettingsEmails = ({ settings, loading, initialLoadDone }: SettingsEmailsPr
     if (entries.length === 0) return null;
 
     const accordionProps = searchTerms.length > 0
-      ? { type: "multiple" as const, defaultValue: entries.map(([type]) => type), key: `search-${searchQuery}` }
+      ? { type: "multiple" as const, defaultValue: entries.map(([type]) => type) }
       : { type: "single" as const, collapsible: true };
 
     return (
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{title}</h3>
-        <Accordion {...accordionProps} className="w-full">
+        <Accordion key={searchTerms.length > 0 ? `search-${searchQuery}` : "browse"} {...accordionProps} className="w-full">
           {entries.map(([type, defaultTemplate]) => {
             const currentMode = activeMode[type] || "vous";
             const saveKey = `${type}_${currentMode}`;
