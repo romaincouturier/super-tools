@@ -3,7 +3,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
-import { emailButton, wrapEmailHtml } from "../_shared/templates.ts";
+import { wrapEmailHtml } from "../_shared/templates.ts";
+import { renderEditableEmail, ctaButton } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { learnerHasNotifEnabled } from "../_shared/learner-prefs.ts";
 
@@ -87,20 +89,23 @@ serve(async (req) => {
       .filter((e: string) => e && e !== commenter);
     let adminEmailSent = false;
     if (adminEmails.length > 0) {
-      const adminHtml = wrapEmailHtml(`
-        <p>Bonjour,</p>
-        <p><strong>${commenterName}</strong> a posté un commentaire dans la communauté :</p>
-        <blockquote style="border-left:3px solid #e5e7eb;padding:8px 16px;margin:16px 0;color:#374151;background:#f9fafb;border-radius:4px">
-          ${excerptHtml}
-        </blockquote>
-        ${emailButton("Voir la discussion", link)}
-      `, signature);
+      const adminTpl = EDITABLE_EMAIL_DEFAULTS.practice_comment_admin;
+      const rendered = await renderEditableEmail(supabase, {
+        type: "practice_comment_admin",
+        defaultSubject: adminTpl.subject.vous,
+        defaultContent: adminTpl.content.vous,
+        vars: { commenter_name: commenterName },
+        blocks: {
+          comment_quote: `<blockquote style="border-left:3px solid #e5e7eb;padding:8px 16px;margin:16px 0;color:#374151;background:#f9fafb;border-radius:4px">${excerptHtml}</blockquote>`,
+          discussion_button: ctaButton("Voir la discussion", link),
+        },
+      });
       const adminResult = await sendEmail({
         from: senderFrom,
         to: adminEmails,
         bcc: bccList,
-        subject: `💬 Nouveau commentaire dans la communauté`,
-        html: adminHtml,
+        subject: rendered.subject,
+        html: wrapEmailHtml(rendered.html, signature),
         _emailType: "practice_comment_admin_notification",
       });
       adminEmailSent = !!adminResult.success;
@@ -130,21 +135,23 @@ serve(async (req) => {
       // Email a l'auteur (respecte sa preference).
       const enabled = await learnerHasNotifEnabled(supabase, ownerEmail, "email_notif_work_comment");
       if (enabled) {
-        const ownerHtml = wrapEmailHtml(`
-          <p>Bonjour,</p>
-          <p><strong>${commenterName}</strong> a commenté votre publication dans la communauté :</p>
-          <blockquote style="border-left:3px solid #e5e7eb;padding:8px 16px;margin:16px 0;color:#374151;background:#f9fafb;border-radius:4px">
-            ${excerptHtml}
-          </blockquote>
-          ${emailButton("Voir la discussion", link)}
-          <p>À bientôt,<br>L'équipe SuperTilt</p>
-        `, signature);
+        const ownerTpl = EDITABLE_EMAIL_DEFAULTS.practice_comment_owner;
+        const rendered = await renderEditableEmail(supabase, {
+          type: "practice_comment_owner",
+          defaultSubject: ownerTpl.subject.vous,
+          defaultContent: ownerTpl.content.vous,
+          vars: { commenter_name: commenterName },
+          blocks: {
+            comment_quote: `<blockquote style="border-left:3px solid #e5e7eb;padding:8px 16px;margin:16px 0;color:#374151;background:#f9fafb;border-radius:4px">${excerptHtml}</blockquote>`,
+            discussion_button: ctaButton("Voir la discussion", link),
+          },
+        });
         const result = await sendEmail({
           from: senderFrom,
           to: [ownerEmail],
           bcc: bccList,
-          subject: `💬 Nouveau commentaire sur votre publication`,
-          html: ownerHtml,
+          subject: rendered.subject,
+          html: wrapEmailHtml(rendered.html, signature),
           _emailType: "practice_comment_notification",
         });
         ownerEmailSent = !!result.success;
