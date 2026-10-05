@@ -3,7 +3,9 @@ import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getBccList, getSenderEmail } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
-import { emailButton } from "../_shared/templates.ts";
+import { wrapEmailHtml } from "../_shared/templates.ts";
+import { renderEditableEmail, ctaButton } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
@@ -254,30 +256,30 @@ serve(async (req) => {
             }
 
             const signatureUrl = `${baseUrl}/emargement/${token}`;
-            const firstName = participant.first_name || "";
-            const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,";
-
-            const htmlContent = `
-              <p>${greeting}</p>
-              <p>Merci de bien vouloir signer ta présence pour la formation <strong>"${training.training_name}"</strong>.</p>
-              <ul style="list-style: none; padding: 0; margin: 20px 0;">
-                <li>📍 <strong>Lieu :</strong> ${displayLocation}</li>
-                <li>📅 <strong>Date :</strong> ${formattedDate}</li>
-                <li>🕐 <strong>Horaire :</strong> ${periodLabel} (${timeRange})</li>
-              </ul>
-              ${emailButton("✍️ Signer ma présence", signatureUrl)}
-              <p style="font-size: 12px; color: #666;">
-                Cette signature électronique a valeur légale conformément au règlement européen eIDAS.
-              </p>
-              ${signature}
-            `;
+            const tpl = EDITABLE_EMAIL_DEFAULTS.session_start_signature;
+            const useTu = (training as any).participants_formal_address === false;
+            const rendered = await renderEditableEmail(supabase, {
+              type: "session_start_signature",
+              defaultSubject: tpl.subject.vous,
+              defaultContent: useTu ? tpl.content.tu : tpl.content.vous,
+              formal: !useTu,
+              vars: {
+                first_name: participant.first_name || null,
+                training_name: training.training_name,
+                location: displayLocation,
+                session_date: formattedDate,
+                period_label: periodLabel,
+                time_range: timeRange,
+              },
+              blocks: { signature_button: ctaButton("✍️ Signer ma présence", signatureUrl) },
+            });
 
             const result = await sendEmail({
               from: senderFrom,
               to: [participant.email],
               bcc: bccList,
-              subject: `✍️ Émargement – ${training.training_name} – ${formattedDate} ${periodLabel}`,
-              html: htmlContent,
+              subject: rendered.subject,
+              html: wrapEmailHtml(rendered.html, signature),
               _emailType: "attendance_signature_auto",
               _trainingId: trainingId,
               _participantId: participant.id,
@@ -312,27 +314,28 @@ serve(async (req) => {
           try {
             await new Promise((resolve) => setTimeout(resolve, 300));
 
-            const trainerHtml = `
-              <p>Bonjour ${trainerFirstName},</p>
-              <p>La session <strong>${periodLabel}</strong> de la formation <strong>"${training.training_name}"</strong> vient de démarrer.</p>
-              <ul style="list-style: none; padding: 0; margin: 20px 0;">
-                <li>📍 <strong>Lieu :</strong> ${displayLocation}</li>
-                <li>📅 <strong>Date :</strong> ${formattedDate}</li>
-                <li>🕐 <strong>Horaire :</strong> ${periodLabel} (${timeRange})</li>
-                <li>👥 <strong>Participants :</strong> ${signaturesSent} demande(s) d'émargement envoyée(s)</li>
-              </ul>
-              <p style="font-size: 13px; color: #666;">
-                Les participants ont reçu leur lien de signature électronique par email.
-              </p>
-              ${signature}
-            `;
+            const trainerTpl = EDITABLE_EMAIL_DEFAULTS.session_start_trainer;
+            const trainerRendered = await renderEditableEmail(supabase, {
+              type: "session_start_trainer",
+              defaultSubject: trainerTpl.subject.vous,
+              defaultContent: trainerTpl.content.vous,
+              vars: {
+                trainer_first_name: trainerFirstName,
+                training_name: training.training_name,
+                location: displayLocation,
+                session_date: formattedDate,
+                period_label: periodLabel,
+                time_range: timeRange,
+                signatures_sent: String(signaturesSent),
+              },
+            });
 
             const trainerResult = await sendEmail({
               from: senderFrom,
               to: [trainerEmail],
               bcc: bccList,
-              subject: `📋 Début de session – ${training.training_name} – ${formattedDate} ${periodLabel}`,
-              html: trainerHtml,
+              subject: trainerRendered.subject,
+              html: wrapEmailHtml(trainerRendered.html, signature),
               _emailType: "session_start_trainer",
               _trainingId: trainingId,
             });
