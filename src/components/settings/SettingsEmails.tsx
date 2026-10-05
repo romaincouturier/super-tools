@@ -239,6 +239,8 @@ const SettingsEmails = ({ settings, loading, initialLoadDone }: SettingsEmailsPr
     renderTimingSection("during", "\u{1F3AF} Pendant la formation", "bg-secondary text-secondary-foreground", false, ""),
     renderTimingSection("manual", "\u270B Envoi manuel", "bg-secondary text-secondary-foreground", false, ""),
     renderTimingSection("mission_after", "\u{1F4BC} Après une mission", "bg-accent text-accent-foreground", true, "J+"),
+    renderTimingSection("automatic", "\u{1F4E8} Notifications automatiques", "bg-secondary text-secondary-foreground", false, ""),
+    renderTimingSection("internal", "\u{1F514} Alertes internes", "bg-secondary text-secondary-foreground", false, ""),
   ].filter(Boolean);
 
   return (
