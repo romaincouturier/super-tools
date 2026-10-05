@@ -30,6 +30,7 @@ import {
   updateTraining,
 } from "../_shared/record-tools.ts";
 import { getEventHistory } from "../_shared/event-tools.ts";
+import { enrollLmsLearner, unenrollLmsLearner } from "../_shared/lms-enrollment-tools.ts";
 import { addTrainingParticipant, removeTrainingParticipant, SOURCE_FINANCEMENT_BPF, TYPE_STAGIAIRE_BPF } from "../_shared/participant-tools.ts";
 import {
   createContentCard,
@@ -1216,9 +1217,38 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "enroll_lms_learner",
+    description: "Open access to an e-learning course (lms_enrollments) for one email or a list of emails, without going through a training session. No email is sent. Without confirm=true it only returns a preview (to enroll, already enrolled, invalid emails) and writes nothing; call again with confirm=true after explicit user approval. Logged in activity history.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        course_id: { type: "string" },
+        email: { type: "string" },
+        emails: { type: "array", items: { type: "string" }, description: "Up to 200 emails" },
+        confirm: { type: "boolean" },
+      },
+      required: ["course_id"],
+    },
+  },
+  {
+    name: "unenroll_lms_learner",
+    description: "Remove a learner's access to an e-learning course (lms_enrollments). Identify by email or enrollment_id. Progress, quiz attempts and work deposits are kept in the database (counts shown in preview) but no longer accessible. Preview warns if the learner is still a participant of a session linked to the course. Without confirm=true it only returns a preview; call again with confirm=true after explicit user approval. Removal and reason are logged.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        course_id: { type: "string" },
+        email: { type: "string" },
+        enrollment_id: { type: "string" },
+        reason: { type: "string" },
+        confirm: { type: "boolean" },
+      },
+      required: ["course_id"],
+    },
+  },
+  {
     name: "remove_training_participant",
     description:
-      "Remove a participant from a training (e.g. withdrawal reported by the client), exactly like the 'Supprimer' button of the participant list: needs survey deleted, participant deleted, and by database cascade their pending scheduled emails/reminders, evaluations, attendance signatures, files, coupons and coaching bookings. No email is sent. Identify the participant with participant_id, or email within training_id. Without confirm=true it only returns a preview (participant, headcount before/after, scheduled emails that will be cancelled, blockers) and changes nothing: show it to the user and call again with confirm=true only after explicit approval. The removal and the reason are logged in the training history.",
+      "Remove a participant from a training (e.g. withdrawal reported by the client), exactly like the 'Supprimer' button of the participant list: needs survey deleted, participant deleted, and by database cascade their pending scheduled emails/reminders, evaluations, attendance signatures, files, coupons and coaching bookings. If the training has a linked e-learning course, the learner's course enrollment is removed too unless they are still a participant of another session linked to that course, were repositioned to such a session, or the course is free access; the preview's elearning_access field says 'supprimé' or 'conservé' and why. No email is sent. Identify the participant with participant_id, or email within training_id. Without confirm=true it only returns a preview (participant, headcount before/after, scheduled emails that will be cancelled, blockers) and changes nothing: show it to the user and call again with confirm=true only after explicit approval. The removal and the reason are logged in the training history.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1835,6 +1865,20 @@ async function callTool(
         return textResult(await setLogisticsItem(supabase, args as unknown as Parameters<typeof setLogisticsItem>[1], log));
       } catch (e) {
         return textResult(`Logistics error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "enroll_lms_learner": {
+      try {
+        return textResult(await enrollLmsLearner(supabase, args as unknown as Parameters<typeof enrollLmsLearner>[1], log, ALLOWED_EMAIL));
+      } catch (e) {
+        return textResult(`Enrollment error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "unenroll_lms_learner": {
+      try {
+        return textResult(await unenrollLmsLearner(supabase, args as unknown as Parameters<typeof unenrollLmsLearner>[1], log, ALLOWED_EMAIL));
+      } catch (e) {
+        return textResult(`Enrollment error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "remove_training_participant": {
