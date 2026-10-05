@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import MaintenanceBanner from "@/components/auth/MaintenanceBanner";
+import { useContactEmail } from "@/hooks/useContactEmail";
 
 /**
  * Coquille commune aux écrans de connexion (maquette SuperTilt).
@@ -122,11 +123,12 @@ export function AuthTitle({ children }: { children: ReactNode }) {
 
 /** Pied d'écran : contact support, présent sur tous les écrans de connexion. */
 export function AuthSupportLine() {
+  const contactEmail = useContactEmail();
   return (
     <div className="mt-6 flex items-center gap-3 border-t pt-6 text-[14.5px] text-muted-foreground">
       Besoin d'aide ? Écrivez-nous à{" "}
-      <a href="mailto:contact@supertilt.fr" className="underline underline-offset-[3px]">
-        contact@supertilt.fr
+      <a href={`mailto:${contactEmail}`} className="underline underline-offset-[3px]">
+        {contactEmail}
       </a>
     </div>
   );

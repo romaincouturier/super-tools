@@ -1985,7 +1985,7 @@ export default function LearnerPortal() {
         .select("setting_value")
         .eq("setting_key", "sender_email")
         .single();
-      const adminEmail = (settings?.setting_value as string) || "contact@supertilt.fr";
+      const adminEmail = (settings?.setting_value as string) || DEFAULT_CONTACT_EMAIL;
 
       await supabase.functions.invoke("request-coached-formula", {
         body: {

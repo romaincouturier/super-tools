@@ -6,6 +6,7 @@ import {
 } from "../_shared/cors.ts";
 
 import { getSigniticSignature, wrapEmailHtml, sendEmail, getAppUrls } from "../_shared/mod.ts";
+import { getContactEmail } from "../_shared/email-settings.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -51,7 +52,7 @@ async function notifyEmailChange(oldEmail: string, newEmail: string): Promise<vo
          <strong>${maskEmail(newEmail)}</strong>. Les liens envoyés à cette ancienne
          adresse ne fonctionnent plus.</p>
          <p>Si vous n'êtes pas à l'origine de ce changement, écrivez-nous immédiatement à
-         <a href="mailto:contact@supertilt.fr">contact@supertilt.fr</a>.</p>`,
+         <a href="mailto:${contactEmail}">${contactEmail}</a>.</p>`,
         signature,
       ),
       _emailType: "learner_email_changed_notice",

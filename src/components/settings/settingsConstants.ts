@@ -1325,6 +1325,7 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   sender_email: { default: "", description: "Adresse email de l'expéditeur pour tous les envois" },
   sender_name: { default: "", description: "Nom de l'expéditeur pour tous les envois" },
   evaluation_notification_email: { default: "", description: "Email qui reçoit les notifications de nouvelles évaluations" },
+  contact_email: { default: "contact@supertilt.fr", description: "Adresse de contact affichée aux apprenants et clients" },
   
   bcc_email: { default: "", description: "Adresse email en copie cachée (BCC) pour tous les envois" },
   bcc_enabled: { default: "true", description: "Activer ou désactiver l'envoi en copie cachée (BCC)" },

@@ -25,6 +25,7 @@ const FREE_COURSE_THUMBNAILS: Record<string, string> = {
 const FREE_COURSE_ORDER = Object.keys(FREE_COURSE_THUMBNAILS);
 
 import { HIDDEN_FREE_COURSE_IDS } from "@/lib/academyFreeCourses";
+import { useContactEmail } from "@/hooks/useContactEmail";
 
 
 const expertise = [
@@ -100,6 +101,6 @@ export default function Landing() {
 
     <section className="bg-primary px-6 py-20 lg:px-10 lg:py-24"><div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 md:flex-row md:items-end"><div><p className="text-sm font-bold uppercase tracking-[0.15em] text-primary-foreground/70">À vous de jouer</p><h2 className="mt-4 text-4xl font-black tracking-tight text-primary-foreground sm:text-6xl">Envie de commencer ?</h2><p className="mt-5 max-w-xl text-lg leading-8 text-primary-foreground/80">Choisissez une formation gratuite, créez votre compte et c’est parti.</p></div><Button asChild size="lg" className="bg-foreground px-7 font-bold text-background hover:bg-foreground/90"><a href="#formations">Voir les formations <ArrowRight className="ml-2 h-5 w-5" /></a></Button></div></section>
 
-    <footer className="bg-foreground px-6 py-10 text-background lg:px-10"><div className="mx-auto flex max-w-7xl flex-col gap-5 md:flex-row md:items-center md:justify-between"><SupertiltLogo className="h-7" invert /><div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-background/60"><Link to="/politique-confidentialite" className="hover:text-primary">Politique de confidentialité</Link><a href="mailto:contact@supertilt.fr" className="hover:text-primary">Contact</a><span>© {new Date().getFullYear()} SuperTilt</span></div></div></footer>
+    <footer className="bg-foreground px-6 py-10 text-background lg:px-10"><div className="mx-auto flex max-w-7xl flex-col gap-5 md:flex-row md:items-center md:justify-between"><SupertiltLogo className="h-7" invert /><div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-background/60"><Link to="/politique-confidentialite" className="hover:text-primary">Politique de confidentialité</Link><a href={`mailto:${contactEmail}`} className="hover:text-primary">Contact</a><span>© {new Date().getFullYear()} SuperTilt</span></div></div></footer>
   </main>;
 }

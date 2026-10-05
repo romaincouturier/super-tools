@@ -3,6 +3,7 @@ import { UserX } from "lucide-react";
 import { AuthCard, AuthShell, AuthTitle } from "@/components/auth/AuthShell";
 import { AuthButton } from "@/components/auth/AuthField";
 import { useSession } from "@/hooks/useSession";
+import { useContactEmail } from "@/hooks/useContactEmail";
 
 /**
  * Compte authentifié qui n'est rattaché ni à l'équipe ni à une formation
@@ -28,7 +29,7 @@ export default function CompteSansAcces() {
         </p>
         <div className="flex flex-col gap-3">
           <a
-            href={`mailto:contact@supertilt.fr?subject=${encodeURIComponent("Mon compte n'a pas d'accès")}&body=${encodeURIComponent(`Bonjour,\n\nMon compte ${email ?? ""} n'a accès à aucune formation.\n\nMerci de votre aide.`)}`}
+            href={`mailto:${contactEmail}?subject=${encodeURIComponent("Mon compte n'a pas d'accès")}&body=${encodeURIComponent(`Bonjour,\n\nMon compte ${email ?? ""} n'a accès à aucune formation.\n\nMerci de votre aide.`)}`}
             className="text-[15px] font-bold underline underline-offset-[3px]"
           >
             Écrire au support
