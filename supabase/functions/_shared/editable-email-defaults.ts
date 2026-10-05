@@ -263,6 +263,21 @@ Cette signature électronique a valeur légale conformément au règlement europ
     variables: ["first_name", "training_name", "live_title", "session_date", "live_time", "signature_button"],
   },
 
+  attendance_signed_trainer: {
+    name: "Émargement reçu (formateur)",
+    audience: "internal",
+    sendingInfo: "🔔 Envoyé au formateur après chaque signature d'émargement d'un participant",
+    subject: same("{{#all_signed}}🎉 Tous les émargements reçus{{/all_signed}}{{#some_pending}}✍️ {{signed_count}}/{{total_count}} émargements reçus{{/some_pending}} – {{training_name}} – {{session_date}} {{period_label}}"),
+    content: same(`Bonjour {{trainer_first_name}},
+
+**{{participant_name}}** vient de signer sa feuille d'émargement pour la formation **{{training_name}}**.
+
+📅 **Date :** {{session_date}} – {{period_label}}
+
+{{status_block}}`),
+    variables: ["trainer_first_name", "participant_name", "training_name", "session_date", "period_label", "all_signed", "some_pending", "signed_count", "total_count", "status_block"],
+  },
+
   session_start_trainer: {
     name: "Début de session (formateur)",
     audience: "internal",
