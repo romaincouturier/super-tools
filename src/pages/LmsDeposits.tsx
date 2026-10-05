@@ -59,7 +59,11 @@ export default function LmsDeposits() {
       setSelected(target);
       const next = new URLSearchParams(searchParams);
       next.delete("deposit");
+      const reaction = next.get("reaction");
+      next.delete("reaction");
       setSearchParams(next, { replace: true });
+      if (reaction === "ok") toast({ title: "Votre « J'aime » a été enregistré" });
+      else if (reaction) toast({ title: "Le lien « J'aime » n'est plus valable", description: "Vous pouvez réagir depuis cette fenêtre." });
     }
   }, [deposits, searchParams, selected, setSearchParams]);
 

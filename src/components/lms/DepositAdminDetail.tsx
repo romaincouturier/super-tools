@@ -38,6 +38,7 @@ import {
 } from "@/types/lms-work-deposit";
 import type { AdminDepositRow } from "@/services/lms-work-deposit";
 import DepositFilePreview from "@/components/lms/DepositFilePreview";
+import DepositCommunityPanel from "@/components/lms/DepositCommunityPanel";
 
 interface Props {
   deposit: AdminDepositRow | null;
@@ -165,6 +166,8 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
               <p className="text-sm italic text-muted-foreground break-words">« {deposit.comment} »</p>
             </div>
           )}
+
+          <DepositCommunityPanel depositId={deposit.id} />
 
           {/* Status + publication */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
