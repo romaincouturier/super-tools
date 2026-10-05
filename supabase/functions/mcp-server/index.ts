@@ -141,7 +141,8 @@ import {
  *   - L'écran d'autorisation demande une clé personnelle (MCP_PERSONAL_SECRET,
  *     secret d'edge function — jamais dans le repo)
  *   - Chaque requête MCP est liée à ALLOWED_EMAIL : liste blanche d'un seul
- *     utilisateur, codée en dur, vérifiée à chaque appel
+ *     utilisateur, lue depuis app_settings (mcp_allowed_email), vérifiée à
+ *     chaque appel
  *   - Écriture limitée à save_mission_note (page de mission),
  *     save_mission_document (document de mission, allowlist de types et
  *     plafond de taille) et save_watch_item (contenu de veille). Toutes sont
