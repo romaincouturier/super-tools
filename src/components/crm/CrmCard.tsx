@@ -29,6 +29,12 @@ const DEFAULT_COLORS: ServiceTypeColors = {
   default: "#6b7280",
 };
 
+// Match "appel", "appeler", "rappeler", "téléphone"... but not "rappel" (noun)
+const CALL_ACTION_RE = /\bappel(s|er|ez|era|erai)?\b|téléphon|\bphone\b|\brappel(er|ez|e)\b/i;
+
+const isCallAction = (text: string | null | undefined): boolean =>
+  !!text && CALL_ACTION_RE.test(text);
+
 const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTypeColors }: CrmCardProps) => {
   const { user } = useAuth();
   const { isDemoMode } = useDemoMode();
@@ -102,12 +108,12 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
       onClick={handleCardClick}
     >
       <CardContent className="p-3 space-y-2">
-        {/* Header: Service type + Value */}
+        {/* Header: Service type + Relance type + Value */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 min-w-0">
             {card.service_type ? (
               <div
-                className="flex items-center gap-1 text-xs font-medium"
+                className="flex items-center gap-1 text-xs font-medium shrink-0"
                 style={{ color: cardColor }}
               >
                 {card.service_type === "formation" ? (
@@ -120,6 +126,14 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
                 {card.service_type === "formation" ? "Formation" : card.service_type === "jeu" ? "Jeu" : "Mission"}
               </div>
             ) : null}
+            {card.waiting_next_action_date && (
+              <span
+                className="shrink-0 text-xs leading-none"
+                title={`Relance prévue le ${card.waiting_next_action_date}${card.waiting_next_action_text ? ` : ${card.waiting_next_action_text}` : ""}`}
+              >
+                {isCallAction(card.waiting_next_action_text) ? "📞" : "✉️"}
+              </span>
+            )}
           </div>
 
           {/* Estimated value - clickable to edit */}
