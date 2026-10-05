@@ -698,6 +698,12 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
             Email envoyé le {DATE(item.email_sent_at)}
           </p>
         )}
+        {item.tracking_url && (
+          <a href={item.tracking_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-indigo-700 hover:underline">
+            <Truck className="h-3 w-3" />
+            Suivi {item.tracking_number ?? "Sendcloud"}
+          </a>
+        )}
       </div>
 
       {item.block_reason && (
