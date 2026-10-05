@@ -780,6 +780,13 @@ check "069" "useResolvedStorageUrl ne rend pas l'URL d'un bucket prive avant sa 
   count_037b=$(grep -rn 'JSON.stringify({ error\|JSON.stringify({error' supabase/functions/ --include='index.ts' 2>/dev/null | wc -l)
   ratchet "037b" "Ratchet réponses d'erreur manuelles dans les edge functions (utiliser createErrorResponse)" "$count_037b"
 
+  # [074] Adresses email de l'organisation : jamais en dur, toujours depuis
+  # Paramètres > Général (app_settings : contact_email, sender_email...).
+  check "074" "Aucune adresse email de l'organisation écrite en dur" \
+    "grep -rnE '(contact|romain|noreply)@supertilt\\.fr' src/ supabase/functions/ --include='*.ts' --include='*.tsx' 2>/dev/null \
+       | grep -v '\\.test\\.' | grep -vE 'placeholder=|sample:|hooks/useContactEmail.ts|_shared/email-settings.ts|settingsConstants.ts|mcp-server/index.ts|_shared/gmail.ts|default_sender' \
+       | sed 's/^/VIOLATION [074]: email en dur — /'"
+
   # [065] Mode démo — affichage identifiant non masqué dans un écran interne.
   # Le détail des violations : bash scripts/check-demo-mask.sh
   count_065=$(bash scripts/check-demo-mask.sh --count)
