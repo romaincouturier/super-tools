@@ -153,7 +153,23 @@ import {
  *   - Toutes les requêtes SQL sont journalisées (agent_query_audit_log)
  */
 
-const ALLOWED_EMAIL = "romain@supertilt.fr";
+// Liste blanche d'un seul utilisateur, lue depuis app_settings
+// (mcp_allowed_email, Paramètres > Général) ; repli si illisible.
+let ALLOWED_EMAIL = "romain@supertilt.fr";
+
+async function resolveAllowedEmail(supabase: Supabase): Promise<void> {
+  try {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "mcp_allowed_email")
+      .maybeSingle();
+    const v = (data as { setting_value?: string } | null)?.setting_value?.trim();
+    if (v) ALLOWED_EMAIL = v;
+  } catch {
+    // repli sur la valeur par défaut
+  }
+}
 const ACCESS_TOKEN_TTL_S = 30 * 24 * 3600; // 30 jours
 const REFRESH_TOKEN_TTL_S = 60 * 24 * 3600; // 60 jours
 const CODE_TTL_S = 600; // 10 minutes

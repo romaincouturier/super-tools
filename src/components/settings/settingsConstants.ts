@@ -1326,6 +1326,9 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   sender_name: { default: "", description: "Nom de l'expéditeur pour tous les envois" },
   evaluation_notification_email: { default: "", description: "Email qui reçoit les notifications de nouvelles évaluations" },
   contact_email: { default: "contact@supertilt.fr", description: "Adresse de contact affichée aux apprenants et clients" },
+  mcp_allowed_email: { default: "romain@supertilt.fr", description: "Adresse email autorisée à utiliser le serveur MCP" },
+  nocrm_bcc_email: { default: "supertilt@bcc.nocrm.io", description: "Adresse de copie cachée (BCC) vers noCRM ajoutée à tous les envois" },
+  agent_author_email: { default: "agent@supertools.ai", description: "Adresse email d'auteur utilisée par l'agent IA pour ses commentaires" },
   
   bcc_email: { default: "", description: "Adresse email en copie cachée (BCC) pour tous les envois" },
   bcc_enabled: { default: "true", description: "Activer ou désactiver l'envoi en copie cachée (BCC)" },
