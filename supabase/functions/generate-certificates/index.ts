@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderEditableEmail } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { zipSync } from "https://esm.sh/fflate@0.8.2";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
@@ -395,21 +397,25 @@ async function sendEmailWithResend(
   const greeting = safeParticipantFirstName ? `Bonjour ${safeParticipantFirstName},` : "Bonjour,";
 
   const [senderFrom, bccList] = await Promise.all([getSenderFrom(), getBccList()]);
+  const tplDb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const tplP = EDITABLE_EMAIL_DEFAULTS.certificate_participant;
+  const renderedP = await renderEditableEmail(tplDb, {
+    type: "certificate_participant",
+    defaultSubject: tplP.subject.tu,
+    defaultContent: tplP.content.tu,
+    vars: { first_name: participantFirstName || null, training_name: formationName },
+    blocks: {
+      resources_links: `<p>Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur <a href="${websiteUrl}">${websiteUrl.replace(/^https?:\/\/(www\.)?/, "")}</a> et à consulter ma <a href="${youtubeUrl}">chaîne YouTube</a>.</p>`,
+    },
+  });
 
   // Send to participant
   await sendEmail({
     from: senderFrom,
     to: [participantEmail],
     bcc: bccList,
-    subject: `Ton certificat de réalisation pour la formation ${formationName}`,
-    html: `
-      <p>${greeting}</p>
-      <p>Tu trouveras en pièce jointe ton certificat de réalisation pour la formation ${safeFormationName}.</p>
-      <p>Je te souhaite de bien exploiter tout ce que tu as vu pendant la formation !</p>
-      <p>Si tu souhaites aller plus loin, je t'invite à te rendre régulièrement sur <a href="${websiteUrl}">${websiteUrl.replace(/^https?:\/\/(www\.)?/, "")}</a> et à consulter ma <a href="${youtubeUrl}">chaîne YouTube</a>.</p>
-      <p>Bonne continuation et à bientôt !</p>
-      ${signature}
-    `,
+    subject: renderedP.subject,
+    html: `${renderedP.html}${signature}`,
     attachments: [
       {
         filename: fileName,
@@ -424,16 +430,18 @@ async function sendEmailWithResend(
     const safeParticipantEmail = escapeHtml(participantEmail);
     const safeParticipantNameForAdmin = escapeHtml(participantName);
 
+    const tplA = EDITABLE_EMAIL_DEFAULTS.certificate_admin_copy;
+    const renderedA = await renderEditableEmail(tplDb, {
+      type: "certificate_admin_copy",
+      defaultSubject: tplA.subject.vous,
+      defaultContent: tplA.content.vous,
+      vars: { participant_name: participantName, participant_email: participantEmail, training_name: formationName },
+    });
     await sendEmail({
       from: senderFrom,
       to: [emailDestinataire],
-      subject: `[Copie] Certificat envoyé à ${participantName} - ${formationName}`,
-      html: `
-        <h1>Certificat envoyé</h1>
-        <p>Le certificat de formation a été envoyé à <strong>${safeParticipantNameForAdmin}</strong> (${safeParticipantEmail}).</p>
-        <p><strong>Formation :</strong> ${safeFormationName}</p>
-        <p>Une copie du certificat est jointe à cet email.</p>
-      `,
+      subject: renderedA.subject,
+      html: renderedA.html,
       attachments: [
         {
           filename: fileName,
@@ -456,6 +464,16 @@ async function sendCertificatesToCommanditaire(
 ): Promise<void> {
   const senderFrom = await getSenderFrom();
   const bccList = await getBccList();
+  const tplDb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const sponsorKey = pdfDataList.length === 1 ? "certificate_sponsor_single" : "certificate_sponsor_zip";
+  const tplS = EDITABLE_EMAIL_DEFAULTS[sponsorKey];
+  const renderedS = await renderEditableEmail(tplDb, {
+    type: sponsorKey,
+    defaultSubject: tplS.subject.vous,
+    defaultContent: tplS.content.vous,
+    vars: { training_name: formationName, certificate_count: String(pdfDataList.length) },
+  });
+  const sponsorHtml = `${renderedS.html}${signature}`;
 
   // If only one PDF, send it directly without ZIP
   if (pdfDataList.length === 1) {
@@ -468,13 +486,8 @@ async function sendCertificatesToCommanditaire(
       from: senderFrom,
       to: [emailCommanditaire],
       bcc: bccList,
-      subject: `Certificat de réalisation - Formation ${formationName}`,
-      html: `
-        <p>Bonjour,</p>
-        <p>Veuillez trouver ci-joint le certificat de réalisation pour la formation <strong>${escapeHtml(formationName)}</strong>.</p>
-        <p>Cordialement,</p>
-        ${signature}
-      `,
+      subject: renderedS.subject,
+      html: sponsorHtml,
       attachments: [
         {
           filename: pdfData.fileName,
@@ -507,14 +520,8 @@ async function sendCertificatesToCommanditaire(
     from: senderFrom,
     to: [emailCommanditaire],
     bcc: bccList,
-    subject: `Certificats de réalisation - Formation ${formationName}`,
-    html: `
-      <p>Bonjour,</p>
-      <p>Veuillez trouver ci-joint l'ensemble des certificats de réalisation pour la formation <strong>${escapeHtml(formationName)}</strong>.</p>
-      <p>Cette archive contient ${pdfDataList.length} certificat(s).</p>
-      <p>Cordialement,</p>
-      ${signature}
-    `,
+    subject: renderedS.subject,
+    html: sponsorHtml,
     attachments: [
       {
         filename: zipFileName,
