@@ -228,11 +228,11 @@ async function countRows(db: Db, table: string, participantId: string, extra?: (
 export async function removeTrainingParticipant(db: Db, input: RemoveParticipantInput, log: Log, actorEmail: string): Promise<string> {
   if (!UUID_RE.test(input.training_id || "")) throw new Error("training_id invalide");
   const { data: training, error: tErr } = await db.from("trainings")
-    .select("id, training_name, start_date").eq("id", input.training_id).maybeSingle();
+    .select("id, training_name, start_date, supports_lms_course_id").eq("id", input.training_id).maybeSingle();
   if (tErr) throw new Error(tErr.message);
   if (!training) throw new Error("Formation introuvable");
 
-  let q = db.from("training_participants").select("id, first_name, last_name, email, company").eq("training_id", training.id);
+  let q = db.from("training_participants").select("id, first_name, last_name, email, company, repositioned_to_training_id").eq("training_id", training.id);
   if (input.participant_id) {
     if (!UUID_RE.test(input.participant_id)) throw new Error("participant_id invalide");
     q = q.eq("id", input.participant_id);
@@ -262,6 +262,18 @@ export async function removeTrainingParticipant(db: Db, input: RemoveParticipant
     coaching_bookings_deleted: await countRows(db, "coaching_bookings", p.id),
     note: "Aucun email n'est envoyé au participant ni au commanditaire. Les conventions déjà signées et les emails déjà envoyés restent dans l'historique.",
   };
+  let elearning_access: { action: string; reason: string } | null = null;
+  if (training.supports_lms_course_id) {
+    const { data: d, error: lErr } = await db.rpc("lms_enrollment_removal_decision", {
+      _course_id: training.supports_lms_course_id, _email: p.email,
+      _exclude_participant_id: p.id, _repositioned_to: p.repositioned_to_training_id ?? null,
+    });
+    if (lErr) throw new Error(`Accès e-learning : ${lErr.message}`);
+    elearning_access = {
+      action: d.action === "remove" ? "supprimé" : d.action === "keep" ? "conservé" : "aucun",
+      reason: d.reason,
+    };
+  }
   const blockers = coachingSummaries
     ? [`${coachingSummaries} compte(s)-rendu(s) de coaching rattaché(s) : la suppression sera refusée, comme dans l'interface.`]
     : [];
@@ -274,6 +286,7 @@ export async function removeTrainingParticipant(db: Db, input: RemoveParticipant
       participant: { id: p.id, name, email: p.email, company: p.company },
       headcount: { before: total ?? null, after: total != null ? total - 1 : null },
       effects,
+      elearning_access,
       blockers,
     });
   }
@@ -304,6 +317,7 @@ export async function removeTrainingParticipant(db: Db, input: RemoveParticipant
     participant: { name, email: p.email },
     headcount_after: total != null ? total - 1 : null,
     scheduled_emails_cancelled: effects.scheduled_emails_cancelled.length,
+    elearning_access,
     reason,
   });
 }
