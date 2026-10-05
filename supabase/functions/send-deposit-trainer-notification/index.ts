@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderCatalogEmail, escapeEmailValue as escE } from "../_shared/editable-email.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
@@ -141,9 +142,6 @@ async function sendGroup(
   const learnerName = `${(p?.first_name || "").trim()} ${(p?.last_name || "").trim()}`.trim() || group.learner_email;
   const courseTitle = course?.title || "votre formation";
   const n = group.deposits.length;
-  const subject = n > 1
-    ? `${n} nouvelles publications communauté — ${courseTitle}`
-    : `Nouvelle publication communauté — ${courseTitle}`;
 
   let sent = 0;
   for (const trainer of recipients) {
@@ -163,22 +161,17 @@ async function sendGroup(
     ).join("");
 
     const firstName = (trainer.first_name || "").trim();
-    const intro = n > 1
-      ? `vient de publier <strong>${n} travaux</strong> dans la communauté de la formation`
-      : "vient de publier un travail dans la communauté de la formation";
-    const html = wrapEmailHtml(`
-      <p>Bonjour${firstName ? " " + escapeHtml(firstName) : ""},</p>
-      <p><strong>${escapeHtml(learnerName)}</strong> ${intro} <strong>${escapeHtml(courseTitle)}</strong>.</p>
-      ${previews}
-      <p style="color:#6b7280;font-size:13px">« J'aime » enregistre votre réaction directement, sans vous reconnecter.</p>
-      <p>Bonne lecture,<br>L'équipe SuperTilt</p>
-    `, ctx.signature);
+    const dtRendered = await renderCatalogEmail(supabase, n > 1 ? "deposit_trainer_notification_multi" : "deposit_trainer_notification", {
+      vars: { first_name: firstName || null, learner_name: learnerName, course_title: courseTitle, count: String(n) },
+      blocks: { deposits_preview: previews },
+    });
+    const html = wrapEmailHtml(dtRendered.html, ctx.signature);
 
     const result = await sendEmail({
       from: ctx.senderFrom,
       to: [trainerEmail],
       bcc: ctx.bccList,
-      subject,
+      subject: dtRendered.subject,
       html,
       _emailType: "deposit_trainer_notification",
     });

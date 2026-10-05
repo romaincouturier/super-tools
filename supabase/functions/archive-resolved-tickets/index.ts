@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderCatalogEmail, escapeEmailValue as escE } from "../_shared/editable-email.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
@@ -129,39 +130,38 @@ serve(async (req) => {
         return `<tr>
           <td style="padding:8px 12px;border-bottom:1px solid #eee;font-family:monospace;">${t.ticket_number}</td>
           <td style="padding:8px 12px;border-bottom:1px solid #eee;">${typeLabel}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #eee;">${t.title}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #eee;">${escE(t.title)}</td>
           <td style="padding:8px 12px;border-bottom:1px solid #eee;color:#666;">${t.submitted_by_email || "—"}</td>
         </tr>`;
       })
       .join("");
 
-    const bodyHtml = `
-      <p>Synthèse hebdomadaire de la purge des tickets support — ${dateStr}.</p>
-      ${emailInfoBox(`<strong>${archivedCount}</strong> ticket${archivedCount > 1 ? "s" : ""} résolu${archivedCount > 1 ? "s" : ""} archivé${archivedCount > 1 ? "s" : ""} et retiré${archivedCount > 1 ? "s" : ""} du Kanban.`)}
-      ${
-        archivedCount > 0
+    const purgeRendered = await renderCatalogEmail(supabase, "support_purge_summary", {
+      vars: { date: dateStr, archived_count: String(archivedCount) },
+      blocks: {
+        purge_summary: emailInfoBox(`<strong>${archivedCount}</strong> ticket${archivedCount > 1 ? "s" : ""} résolu${archivedCount > 1 ? "s" : ""} archivé${archivedCount > 1 ? "s" : ""} et retiré${archivedCount > 1 ? "s" : ""} du Kanban.`),
+        tickets_table: archivedCount > 0
           ? `<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;">
-              <thead>
-                <tr style="background:#f8f9fa;">
-                  <th style="padding:8px 12px;text-align:left;">N°</th>
-                  <th style="padding:8px 12px;text-align:left;">Type</th>
-                  <th style="padding:8px 12px;text-align:left;">Titre</th>
-                  <th style="padding:8px 12px;text-align:left;">Soumis par</th>
-                </tr>
-              </thead>
+              <thead><tr style="background:#f8f9fa;">
+                <th style="padding:8px 12px;text-align:left;">N°</th>
+                <th style="padding:8px 12px;text-align:left;">Type</th>
+                <th style="padding:8px 12px;text-align:left;">Titre</th>
+                <th style="padding:8px 12px;text-align:left;">Soumis par</th>
+              </tr></thead>
               <tbody>${rowsHtml}</tbody>
             </table>`
-          : `<p style="color:#666;">Aucun ticket résolu à archiver cette semaine.</p>`
-      }
-      ${userSummaryHtml}
-      ${emailButton("Ouvrir le support", `${APP_URL}/support`)}
-    `;
+          : `<p style="color:#666;">Aucun ticket résolu à archiver cette semaine.</p>`,
+        user_summary: userSummaryHtml,
+        support_button: emailButton("Ouvrir le support", `${APP_URL}/support`),
+      },
+    });
+    const bodyHtml = purgeRendered.html;
 
     const result = await sendEmail({
       from: senderFrom,
       to: [adminEmail],
       bcc: bccList,
-      subject: `🧹 Purge support — ${archivedCount} ticket${archivedCount > 1 ? "s" : ""} archivé${archivedCount > 1 ? "s" : ""}`,
+      subject: purgeRendered.subject,
       html: wrapEmailHtml(bodyHtml, signature),
       _emailType: "support_weekly_archive",
     });

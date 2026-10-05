@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderCatalogEmail, escapeEmailValue as escE } from "../_shared/editable-email.ts";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
@@ -38,6 +39,8 @@ serve(async (req) => {
     const signature = await getSigniticSignature();
     const senderFrom = await getSenderFrom();
     const bccList = await getBccList();
+    const { getSupabaseClient } = await import("../_shared/supabase-client.ts");
+    const db = getSupabaseClient();
 
     // ── New ticket notification (to admin) ──
     if (type === "new_ticket") {
@@ -57,21 +60,21 @@ serve(async (req) => {
 
       console.log(`[${VERSION}] new ticket notification to=${adminEmail} ticket=${ticketNumber}`);
 
-      const subject = `🎫 Nouveau ticket ${ticketNumber} — ${ticketTitle}`;
-
-      const bodyHtml = `
-        <p>Un nouveau ticket de support a été soumis.</p>
-        ${emailInfoBox(`<strong>${ticketNumber} — ${ticketTitle}</strong>`)}
-        <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+      const ntR = await renderCatalogEmail(db, "support_new_ticket", {
+        vars: { ticket_number: ticketNumber, ticket_title: ticketTitle },
+        blocks: {
+          ticket_box: emailInfoBox(`<strong>${escE(ticketNumber)} — ${escE(ticketTitle)}</strong>`),
+          ticket_details: `<table style="width:100%;border-collapse:collapse;margin:16px 0;">
           <tr><td style="padding:6px 12px;color:#666;">Type</td><td style="padding:6px 12px;font-weight:600;">${typeLabel}</td></tr>
-          <tr><td style="padding:6px 12px;color:#666;">Priorité</td><td style="padding:6px 12px;font-weight:600;">${prioLabel}</td></tr>
-          ${submittedByEmail ? `<tr><td style="padding:6px 12px;color:#666;">Soumis par</td><td style="padding:6px 12px;">${submittedByEmail}</td></tr>` : ""}
+          <tr><td style="padding:6px 12px;color:#666;">Priorité</td><td style="padding:6px 12px;font-weight:600;">${escE(prioLabel)}</td></tr>
+          ${submittedByEmail ? `<tr><td style="padding:6px 12px;color:#666;">Soumis par</td><td style="padding:6px 12px;">${escE(submittedByEmail)}</td></tr>` : ""}
         </table>
-        ${description ? `<p style="background:#f8f9fa;padding:12px;border-radius:8px;color:#333;">${description.slice(0, 500)}${description.length > 500 ? "…" : ""}</p>` : ""}
-        ${emailButton("Voir le ticket", `${APP_URL}/support`)}
-      `;
-
-      const htmlContent = wrapEmailHtml(bodyHtml, signature);
+        ${description ? `<p style="background:#f8f9fa;padding:12px;border-radius:8px;color:#333;">${escE(description.slice(0, 500))}${description.length > 500 ? "…" : ""}</p>` : ""}`,
+          ticket_button: emailButton("Voir le ticket", `${APP_URL}/support`),
+        },
+      });
+      const subject = ntR.subject;
+      const htmlContent = wrapEmailHtml(ntR.html, signature);
 
       const result = await sendEmail({
         from: senderFrom,
@@ -120,21 +123,20 @@ serve(async (req) => {
 
       console.log(`[${VERSION}] new ticket copy to=${copyRecipient} ticket=${copyNumber}`);
 
-      const copySubject = `${copyNumber} — Confirmation de votre signalement « ${copyTitle} »`;
-      const copyBodyHtml = `
-        <p>Bonjour,</p>
-        <p>Nous avons bien reçu votre signalement. Vous trouverez ci-dessous une copie des informations transmises pour votre suivi.</p>
-        ${emailInfoBox(`<strong>${copyNumber} — ${copyTitle}</strong>`)}
-        <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+      const cpR = await renderCatalogEmail(db, "support_new_ticket_copy", {
+        vars: { ticket_number: copyNumber, ticket_title: copyTitle },
+        blocks: {
+          ticket_box: emailInfoBox(`<strong>${escE(copyNumber)} — ${escE(copyTitle)}</strong>`),
+          ticket_details: `<table style="width:100%;border-collapse:collapse;margin:16px 0;">
           <tr><td style="padding:6px 12px;color:#666;">Type</td><td style="padding:6px 12px;font-weight:600;">${copyTypeLabel}</td></tr>
-          <tr><td style="padding:6px 12px;color:#666;">Priorité</td><td style="padding:6px 12px;font-weight:600;">${copyPrioLabel}</td></tr>
+          <tr><td style="padding:6px 12px;color:#666;">Priorité</td><td style="padding:6px 12px;font-weight:600;">${escE(copyPrioLabel)}</td></tr>
         </table>
-        ${copyDescription ? `<p style="background:#f8f9fa;padding:12px;border-radius:8px;color:#333;white-space:pre-wrap;">${copyDescription.slice(0, 2000)}${copyDescription.length > 2000 ? "…" : ""}</p>` : ""}
-        <p>Vous pouvez retrouver l'ensemble de vos signalements dans l'onglet « Mes tickets » de l'assistant Supertilt.</p>
-        ${emailButton("Voir mes tickets", `${APP_URL}/support`)}
-      `;
-
-      const copyHtmlContent = wrapEmailHtml(copyBodyHtml, signature);
+        ${copyDescription ? `<p style="background:#f8f9fa;padding:12px;border-radius:8px;color:#333;white-space:pre-wrap;">${escE(copyDescription.slice(0, 2000))}${copyDescription.length > 2000 ? "…" : ""}</p>` : ""}`,
+          tickets_button: emailButton("Voir mes tickets", `${APP_URL}/support`),
+        },
+      });
+      const copySubject = cpR.subject;
+      const copyHtmlContent = wrapEmailHtml(cpR.html, signature);
 
       const result = await sendEmail({
         from: senderFrom,
@@ -176,18 +178,16 @@ serve(async (req) => {
 
       console.log(`[${VERSION}] discussion request to=${discRecipient} ticket=${discNumber}`);
 
-      const discSubject = `${discNumber} — Échangeons de vive voix sur ta demande « ${discTitle} »`;
-      const discBodyHtml = `
-        <p>Bonjour,</p>
-        <p>Merci pour ta demande de support. Pour bien comprendre ton besoin et te proposer la meilleure solution, j'aimerais qu'on prenne quelques minutes pour en discuter de vive voix.</p>
-        ${emailInfoBox(`<strong>${discNumber} — ${discTitle}</strong>`)}
-        ${discDescription ? `<p style="background:#f8f9fa;padding:12px;border-radius:8px;color:#333;white-space:pre-wrap;">${discDescription.slice(0, 1500)}${discDescription.length > 1500 ? "…" : ""}</p>` : ""}
-        <p>Peux-tu me proposer un créneau qui te convient cette semaine ? Un simple mail en réponse avec 2 ou 3 disponibilités me permettra de bloquer un temps d'échange rapidement.</p>
-        <p>À très vite,</p>
-        ${emailButton("Voir le ticket", `${APP_URL}/support`)}
-      `;
-
-      const discHtmlContent = wrapEmailHtml(discBodyHtml, signature);
+      const dsR = await renderCatalogEmail(db, "support_discussion_request", {
+        vars: { ticket_number: discNumber, ticket_title: discTitle },
+        blocks: {
+          ticket_box: emailInfoBox(`<strong>${escE(discNumber)} — ${escE(discTitle)}</strong>`),
+          ticket_description: discDescription ? `<p style="background:#f8f9fa;padding:12px;border-radius:8px;color:#333;white-space:pre-wrap;">${escE(discDescription.slice(0, 1500))}${discDescription.length > 1500 ? "…" : ""}</p>` : "",
+          ticket_button: emailButton("Voir le ticket", `${APP_URL}/support`),
+        },
+      });
+      const discSubject = dsR.subject;
+      const discHtmlContent = wrapEmailHtml(dsR.html, signature);
 
       const result = await sendEmail({
         from: senderFrom,
@@ -245,18 +245,16 @@ serve(async (req) => {
       : `${APP_URL}/support`;
 
     const modulePrefix = moduleLabel ? `[${moduleLabel}] ` : "";
-    const subject = `${modulePrefix}${ticketNumber} — Votre demande "${ticketTitle}" a été traitée`;
-
-    const bodyHtml = `
-      <p>Bonjour,</p>
-      <p>Votre demande de support a été traitée et son statut est maintenant : <strong>${statusLabel}</strong>.</p>
-      ${emailInfoBox(`<strong>${ticketNumber} — ${ticketTitle}</strong>${descriptionPreview ? `<br><span style="color:#6b7280;font-size:0.9em">${descriptionPreview}</span>` : ""}`)}
-      ${resolutionNotes ? emailSuccessBox("Notes de résolution :", resolutionNotes) : ""}
-      <p>Si vous avez des questions, n'hésitez pas à créer un nouveau ticket de support.</p>
-      ${emailButton("Voir le ticket", ticketUrl)}
-    `;
-
-    const htmlContent = wrapEmailHtml(bodyHtml, signature);
+    const rsR = await renderCatalogEmail(db, "support_ticket_resolved", {
+      vars: { module_prefix: modulePrefix || null, ticket_number: ticketNumber, ticket_title: ticketTitle, status_label: statusLabel },
+      blocks: {
+        ticket_box: emailInfoBox(`<strong>${escE(ticketNumber)} — ${escE(ticketTitle)}</strong>${descriptionPreview ? `<br><span style="color:#6b7280;font-size:0.9em">${escE(descriptionPreview)}</span>` : ""}`),
+        resolution_notes: resolutionNotes ? emailSuccessBox("Notes de résolution :", resolutionNotes) : "",
+        ticket_button: emailButton("Voir le ticket", ticketUrl),
+      },
+    });
+    const subject = rsR.subject;
+    const htmlContent = wrapEmailHtml(rsR.html, signature);
 
     const result = await sendEmail({
       from: senderFrom,

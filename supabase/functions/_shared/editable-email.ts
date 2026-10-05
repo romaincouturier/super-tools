@@ -81,3 +81,29 @@ export async function renderEditableEmail(
 export function ctaButton(label: string, url: string): string {
   return `<p style="margin: 24px 0;"><a href="${url}" style="display:inline-block;padding:12px 24px;background-color:#ffd100;color:#101820;text-decoration:none;border-radius:8px;font-weight:bold;">${label}</a></p>`;
 }
+
+/** Render a catalogued email (EDITABLE_EMAIL_DEFAULTS key) with its code defaults as fallback. */
+export async function renderCatalogEmail(
+  // deno-lint-ignore no-explicit-any
+  supabase: any, // accepts clients from any supabase-js version
+
+  key: string,
+  opts: { vars?: TemplateVariables; blocks?: Record<string, string>; formal?: boolean | null } = {},
+): Promise<{ subject: string; html: string; fromTemplate: boolean }> {
+  const { EDITABLE_EMAIL_DEFAULTS } = await import("./editable-email-defaults.ts");
+  const d = EDITABLE_EMAIL_DEFAULTS[key];
+  if (!d) throw new Error(`Unknown editable email: ${key}`);
+  const mode = opts.formal === false ? "tu" : "vous";
+  return renderEditableEmail(supabase, {
+    type: key,
+    formal: opts.formal,
+    defaultSubject: d.subject[mode],
+    defaultContent: d.content[mode],
+    vars: opts.vars,
+    blocks: opts.blocks,
+  });
+}
+
+export function escapeEmailValue(v: unknown): string {
+  return String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}

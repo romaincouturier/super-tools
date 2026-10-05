@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { renderCatalogEmail, escapeEmailValue as escE } from "../_shared/editable-email.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { getBccList } from "../_shared/bcc-settings.ts";
@@ -81,25 +82,23 @@ Deno.serve(async (req) => {
 
     const managerFirstName = commManager.first_name || ""; 
 
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px;">
-        <h2 style="color: #10b981;">🎉 Session complète !</h2>
-        <p>${managerFirstName ? `Bonjour ${managerFirstName},` : "Bonjour,"}</p>
-        <p>La formation <strong>${training.training_name}</strong> a atteint son nombre maximum de participants.</p>
-        <table style="border-collapse: collapse; margin: 16px 0; width: 100%;">
-          <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: bold;">Formation</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${training.training_name}</td></tr>
-          <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: bold;">Date</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${startDate}</td></tr>
-          <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: bold;">Lieu</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${training.location || "—"}</td></tr>
-          <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: bold;">Participants</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${count} / ${training.max_participants}</td></tr>
-        </table>
-        <p>Tu peux maintenant préparer la communication pour cette session.</p>
-        ${signature}
-      </div>
-    `;
+    const cell = 'style="padding: 8px; border: 1px solid #e5e7eb;"';
+    const sfRendered = await renderCatalogEmail(supabase, "session_full_notification", {
+      vars: { first_name: managerFirstName || null, training_name: training.training_name, start_date: startDate },
+      blocks: {
+        session_table: `<table style="border-collapse: collapse; margin: 16px 0; width: 100%;">
+          <tr><td ${cell}><strong>Formation</strong></td><td ${cell}>${escE(training.training_name)}</td></tr>
+          <tr><td ${cell}><strong>Date</strong></td><td ${cell}>${startDate}</td></tr>
+          <tr><td ${cell}><strong>Lieu</strong></td><td ${cell}>${escE(training.location || "—")}</td></tr>
+          <tr><td ${cell}><strong>Participants</strong></td><td ${cell}>${count} / ${training.max_participants}</td></tr>
+        </table>`,
+      },
+    });
+    const html = `<div style="font-family: Arial, sans-serif; max-width: 600px;"><h2 style="color: #10b981;">🎉 Session complète !</h2>${sfRendered.html}${signature}</div>`;
 
     const result = await sendEmail({
       to: managerEmails,
-      subject: `🎉 Session complète — ${training.training_name} (${startDate})`,
+      subject: sfRendered.subject,
       html,
       bcc: bccList,
       _trainingId: trainingId,
