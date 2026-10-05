@@ -7,13 +7,12 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-const NOCRM_BCC = "supertilt@bcc.nocrm.io";
-
 interface EmailSettings {
   senderEmail: string;
   senderName: string;
   bccEnabled: boolean;
   contactEmail: string;
+  nocrmBccEmail: string;
 }
 
 let _cached: EmailSettings | null = null;

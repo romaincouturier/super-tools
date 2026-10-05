@@ -2383,6 +2383,7 @@ serve(async (req) => {
     // Sous-chemin après /mcp-server ("" pour la racine)
     const subPath = url.pathname.replace(/^.*?\/mcp-server/, "").replace(/\/$/, "");
     const supabase = getSupabaseClient();
+    await resolveAllowedEmail(supabase);
 
     if (subPath === "/.well-known/oauth-authorization-server") {
       return metadataAuthServer(baseUrl);
