@@ -611,7 +611,7 @@ async function executeTool(
               .insert({
                 card_id: params.card_id,
                 content: params.content,
-                author_email: params.author_email || "agent@supertools.ai",
+                author_email: params.author_email || await getAgentAuthorEmail(supabase),
               });
             if (error) return toolError(error.message);
             return JSON.stringify({ success: true, message: "Commentaire ajouté" });
