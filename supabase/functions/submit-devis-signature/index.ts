@@ -3,7 +3,9 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
-import { emailButton } from "../_shared/templates.ts";
+import { wrapEmailHtml } from "../_shared/templates.ts";
+import { renderEditableEmail, ctaButton } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 
@@ -420,24 +422,28 @@ serve(async (req: Request): Promise<Response> => {
       const crmCardId = (devisSignature as Record<string, unknown>).crm_card_id as string | undefined;
       const opportunityUrl = crmCardId ? `${appUrl}/crm/card/${crmCardId}` : null;
 
-      const confirmationHtml = `
-<p>Bonjour ${signerName},</p>
-<p>Nous confirmons la bonne réception de votre signature électronique pour le devis suivant :</p>
-<ul>
-  <li><strong>Formation :</strong> ${devisSignature.formation_name}</li>
-  <li><strong>Client :</strong> ${devisSignature.client_name}</li>
-  <li><strong>Type de devis :</strong> ${devisTypeLabel}</li>
-  <li><strong>Signé le :</strong> ${formatDateTime(signedAt)}</li>
-</ul>
-<p>Vous pouvez consulter le devis signé en cliquant sur le lien ci-dessous :</p>
-${emailButton("📄 Télécharger le devis signé", signedPdfUrl || devisSignature.pdf_url)}
-${opportunityUrl ? `<p>Vous pouvez également consulter l'opportunité associée dans SuperTools :</p>\n${emailButton("👁️ Voir l'opportunité dans SuperTools", opportunityUrl)}` : ""}
-${emailSig}`;
+      const tpl = EDITABLE_EMAIL_DEFAULTS.devis_signature_confirmation;
+      const rendered = await renderEditableEmail(supabase, {
+        type: "devis_signature_confirmation",
+        defaultSubject: tpl.subject.vous,
+        defaultContent: tpl.content.vous,
+        vars: {
+          signer_name: signerName,
+          formation_name: devisSignature.formation_name,
+        },
+        blocks: {
+          details_list: `<ul>\n  <li><strong>Formation :</strong> ${devisSignature.formation_name}</li>\n  <li><strong>Client :</strong> ${devisSignature.client_name}</li>\n  <li><strong>Type de devis :</strong> ${devisTypeLabel}</li>\n  <li><strong>Signé le :</strong> ${formatDateTime(signedAt)}</li>\n</ul>`,
+          download_button: ctaButton("📄 Télécharger le devis signé", signedPdfUrl || devisSignature.pdf_url),
+          opportunity_block: opportunityUrl
+            ? `<p>Vous pouvez également consulter l'opportunité associée dans SuperTools :</p>\n${ctaButton("👁️ Voir l'opportunité dans SuperTools", opportunityUrl)}`
+            : "",
+        },
+      });
 
       await sendEmail({
         to: devisSignature.recipient_email,
-        subject: `Confirmation de signature - Devis "${devisSignature.formation_name}"`,
-        html: confirmationHtml,
+        subject: rendered.subject,
+        html: wrapEmailHtml(rendered.html, emailSig),
         bcc: bccList,
       });
 

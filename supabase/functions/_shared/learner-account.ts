@@ -5,7 +5,9 @@ import { getAppUrls } from "./app-urls.ts";
 import { getSigniticSignature } from "./signitic.ts";
 import { getBccList } from "./email-settings.ts";
 import { sendEmail } from "./resend.ts";
-import { wrapEmailHtml, emailButton } from "./templates.ts";
+import { wrapEmailHtml } from "./templates.ts";
+import { renderEditableEmail, ctaButton } from "./editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "./editable-email-defaults.ts";
 
 /**
  * Provisionne le compte apprenant d'une adresse, sans mot de passe (W12).
@@ -115,18 +117,23 @@ export async function sendLearnerAccessEmail(
   const link = await learnerAccessLink(admin, normalized);
   if (!link) return { sent: false };
 
-  const trainingLabel = opts.trainingName ? ` pour la formation « ${opts.trainingName} »` : "";
   const cta = link.passwordSet ? "Accéder à mon espace" : "Créer mon mot de passe";
-  const subject = link.passwordSet ? "Accéder à votre espace SuperTools" : "Créez votre mot de passe SuperTools";
-  const intro = link.passwordSet
-    ? `Bonjour,</p><p>Votre espace apprenant${trainingLabel} est prêt. Connectez-vous avec votre adresse et votre mot de passe.`
-    : `Bonjour,</p><p>Votre espace apprenant${trainingLabel} est prêt. Créez votre mot de passe pour y accéder.`;
+  const tpl = EDITABLE_EMAIL_DEFAULTS.learner_access;
+  const rendered = await renderEditableEmail(admin, {
+    type: "learner_access",
+    defaultSubject: tpl.subject.vous,
+    defaultContent: tpl.content.vous,
+    vars: {
+      training_name: opts.trainingName ?? null,
+      password_set: link.passwordSet || null,
+      no_password: link.passwordSet ? null : true,
+    },
+    blocks: { access_button: ctaButton(cta, link.actionLink) },
+  });
 
   const signature = await getSigniticSignature();
-  const html = wrapEmailHtml(
-    [`<p>${intro}</p>`, emailButton(cta, link.actionLink)].join("\n"),
-    signature,
-  );
+  const html = wrapEmailHtml(rendered.html, signature);
+  const subject = rendered.subject;
 
   const bccList = await getBccList();
   const result = await sendEmail({

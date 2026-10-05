@@ -3,6 +3,9 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { wrapEmailHtml } from "../_shared/templates.ts";
+import { renderEditableEmail, ctaButton } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
@@ -420,24 +423,25 @@ serve(async (req: Request): Promise<Response> => {
       trainingDetails.push(`<li><strong>Client :</strong> ${conventionSig.client_name}</li>`);
       trainingDetails.push(`<li><strong>Signée le :</strong> ${formatDateTime(signedAt)}</li>`);
 
-      const confirmationHtml = `
-<p>Bonjour ${signerName},</p>
-<p>Nous confirmons la bonne réception de votre signature électronique pour la convention de formation suivante :</p>
-<ul>
-  ${trainingDetails.join("\n  ")}
-</ul>
-<p>Vous pouvez consulter la convention signée en cliquant sur le lien ci-dessous :</p>
-<p>
-  <a href="${signedPdfUrl || conventionSig.pdf_url}" style="display: inline-block; padding: 10px 20px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">
-    📄 Télécharger la convention signée
-  </a>
-</p>
-${signature}`;
+      const tpl = EDITABLE_EMAIL_DEFAULTS.convention_signature_confirmation;
+      const rendered = await renderEditableEmail(supabase, {
+        type: "convention_signature_confirmation",
+        defaultSubject: tpl.subject.vous,
+        defaultContent: tpl.content.vous,
+        vars: {
+          signer_name: signerName,
+          formation_name: conventionSig.formation_name,
+        },
+        blocks: {
+          details_list: `<ul>\n  ${trainingDetails.join("\n  ")}\n</ul>`,
+          download_button: ctaButton("📄 Télécharger la convention signée", signedPdfUrl || conventionSig.pdf_url),
+        },
+      });
 
       const confirmResult = await sendEmail({
         to: conventionSig.recipient_email,
-        subject: `Confirmation de signature - Convention ${conventionSig.formation_name}`,
-        html: confirmationHtml,
+        subject: rendered.subject,
+        html: wrapEmailHtml(rendered.html, signature),
         bcc: bccList,
       });
 

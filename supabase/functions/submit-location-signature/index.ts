@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { wrapEmailHtml } from "../_shared/templates.ts";
+import { renderEditableEmail, ctaButton } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
 import { formatDateTime } from "../_shared/date-utils.ts";
 import { generateHash, hashArrayBuffer, getClientIp } from "../_shared/crypto.ts";
@@ -310,25 +313,25 @@ serve(async (req: Request): Promise<Response> => {
         getBccSettings(supabase as any),
       ]);
 
-      const confirmHtml = `
-<p>Bonjour ${signerName},</p>
-<p>Nous confirmons la bonne réception de votre signature électronique pour le contrat de location suivant :</p>
-<ul>
-  <li><strong>Jeu :</strong> ${rec.game_name}</li>
-  <li><strong>Référence :</strong> ${rec.contrat_reference}</li>
-  <li><strong>Signé le :</strong> ${formatDateTime(signedAt)}</li>
-</ul>
-<p>
-  <a href="${signedPdfUrl || rec.pdf_url}" style="display:inline-block;padding:10px 20px;background:#e6bc00;color:#000;text-decoration:none;border-radius:6px;font-weight:bold">
-    📄 Télécharger le contrat signé
-  </a>
-</p>
-${sigBlock}`;
+      const tpl = EDITABLE_EMAIL_DEFAULTS.location_signature_confirmation;
+      const rendered = await renderEditableEmail(supabase, {
+        type: "location_signature_confirmation",
+        defaultSubject: tpl.subject.vous,
+        defaultContent: tpl.content.vous,
+        vars: {
+          signer_name: signerName,
+          contrat_reference: rec.contrat_reference,
+        },
+        blocks: {
+          details_list: `<ul>\n  <li><strong>Jeu :</strong> ${rec.game_name}</li>\n  <li><strong>Référence :</strong> ${rec.contrat_reference}</li>\n  <li><strong>Signé le :</strong> ${formatDateTime(signedAt)}</li>\n</ul>`,
+          download_button: ctaButton("📄 Télécharger le contrat signé", signedPdfUrl || rec.pdf_url),
+        },
+      });
 
       const confirmResult = await sendEmail({
         to: rec.recipient_email,
-        subject: `Confirmation de signature — Contrat ${rec.contrat_reference}`,
-        html: confirmHtml,
+        subject: rendered.subject,
+        html: wrapEmailHtml(rendered.html, sigBlock),
         bcc: bccList,
       });
 
