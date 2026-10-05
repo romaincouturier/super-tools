@@ -158,4 +158,206 @@ Merci de le contacter pour lui proposer une formule coachée adaptée.`),
 {{community_button}}`),
     variables: ["learner_name", "course_title", "lesson_title", "comment_block", "community_button"],
   },
+
+  learner_access: {
+    name: "Accès à l'espace apprenant",
+    audience: "client",
+    sendingInfo: "📤 Envoyé à l'apprenant quand son compte est créé ou qu'il redemande son accès",
+    subject: {
+      tu: "{{#password_set}}Accéder à ton espace SuperTools{{/password_set}}{{#no_password}}Crée ton mot de passe SuperTools{{/no_password}}",
+      vous: "{{#password_set}}Accéder à votre espace SuperTools{{/password_set}}{{#no_password}}Créez votre mot de passe SuperTools{{/no_password}}",
+    },
+    content: {
+      tu: `Bonjour,
+
+Ton espace apprenant{{#training_name}} pour la formation « {{training_name}} »{{/training_name}} est prêt.{{#no_password}} Crée ton mot de passe pour y accéder.{{/no_password}}{{#password_set}} Connecte-toi avec ton adresse et ton mot de passe.{{/password_set}}
+
+{{access_button}}`,
+      vous: `Bonjour,
+
+Votre espace apprenant{{#training_name}} pour la formation « {{training_name}} »{{/training_name}} est prêt.{{#no_password}} Créez votre mot de passe pour y accéder.{{/no_password}}{{#password_set}} Connectez-vous avec votre adresse et votre mot de passe.{{/password_set}}
+
+{{access_button}}`,
+    },
+    variables: ["training_name", "password_set", "no_password", "access_button"],
+  },
+
+  password_reset: {
+    name: "Réinitialisation du mot de passe",
+    audience: "client",
+    sendingInfo: "📤 Envoyé quand un utilisateur demande à réinitialiser son mot de passe",
+    subject: same("Réinitialisation de votre mot de passe SuperTools"),
+    content: same(`Bonjour,
+
+Vous avez demandé à réinitialiser votre mot de passe SuperTools.
+
+Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :
+
+{{reset_button}}
+
+Ce lien expire dans 1 heure.
+
+Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.`),
+    variables: ["reset_button"],
+  },
+
+  session_start_signature: {
+    name: "Émargement automatique (début de session)",
+    audience: "client",
+    sendingInfo: "📤 Envoyé automatiquement aux participants au démarrage de chaque demi-journée",
+    subject: same("✍️ Émargement – {{training_name}} – {{session_date}} {{period_label}}"),
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Merci de bien vouloir signer ta présence pour la formation **{{training_name}}**.
+
+📍 **Lieu :** {{location}}
+📅 **Date :** {{session_date}}
+🕐 **Horaire :** {{period_label}} ({{time_range}})
+
+{{signature_button}}
+
+Cette signature électronique a valeur légale conformément au règlement européen eIDAS.`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Merci de bien vouloir signer votre présence pour la formation **{{training_name}}**.
+
+📍 **Lieu :** {{location}}
+📅 **Date :** {{session_date}}
+🕐 **Horaire :** {{period_label}} ({{time_range}})
+
+{{signature_button}}
+
+Cette signature électronique a valeur légale conformément au règlement européen eIDAS.`,
+    },
+    variables: ["first_name", "training_name", "location", "session_date", "period_label", "time_range", "signature_button"],
+  },
+
+  session_start_trainer: {
+    name: "Début de session (formateur)",
+    audience: "internal",
+    sendingInfo: "🔔 Envoyé au formateur quand une demi-journée démarre et que les émargements sont partis",
+    subject: same("📋 Début de session – {{training_name}} – {{session_date}} {{period_label}}"),
+    content: same(`Bonjour {{trainer_first_name}},
+
+La session **{{period_label}}** de la formation **{{training_name}}** vient de démarrer.
+
+📍 **Lieu :** {{location}}
+📅 **Date :** {{session_date}}
+🕐 **Horaire :** {{period_label}} ({{time_range}})
+👥 **Participants :** {{signatures_sent}} demande(s) d'émargement envoyée(s)
+
+Les participants ont reçu leur lien de signature électronique par email.`),
+    variables: ["trainer_first_name", "training_name", "location", "session_date", "period_label", "time_range", "signatures_sent"],
+  },
+
+  group_matching: {
+    name: "Groupe de pratique constitué",
+    audience: "client",
+    sendingInfo: "📤 Envoyé à chaque membre quand un groupe de pratique entre pairs est formé",
+    subject: same("Votre groupe est formé 🎉"),
+    content: same(`Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Bonne nouvelle : votre groupe est constitué !
+
+{{post_quote}}
+
+**Membres du groupe :**
+
+{{members_list}}
+
+On vous laisse vous organiser pour trouver des créneaux ensemble. Vous pouvez vous retrouver via WhatsApp, par téléphone ou en visio (Jitsi, Google Meet, etc.).
+
+On vous invite à publier vos travaux sur la communauté.
+
+{{contact_button}}
+
+À très bientôt,
+L'équipe SuperTilt`),
+    variables: ["first_name", "post_quote", "members_list", "contact_button"],
+  },
+
+  practice_comment_admin: {
+    name: "Commentaire communauté (équipe)",
+    audience: "internal",
+    sendingInfo: "🔔 Envoyé à l'équipe quand un commentaire est posté dans la communauté",
+    subject: same("💬 Nouveau commentaire dans la communauté"),
+    content: same(`Bonjour,
+
+**{{commenter_name}}** a posté un commentaire dans la communauté :
+
+{{comment_quote}}
+
+{{discussion_button}}`),
+    variables: ["commenter_name", "comment_quote", "discussion_button"],
+  },
+
+  practice_comment_owner: {
+    name: "Commentaire sur votre publication",
+    audience: "client",
+    sendingInfo: "📤 Envoyé à l'auteur d'une publication quand quelqu'un la commente (si la notification est activée)",
+    subject: same("💬 Nouveau commentaire sur votre publication"),
+    content: same(`Bonjour,
+
+**{{commenter_name}}** a commenté votre publication dans la communauté :
+
+{{comment_quote}}
+
+{{discussion_button}}
+
+À bientôt,
+L'équipe SuperTilt`),
+    variables: ["commenter_name", "comment_quote", "discussion_button"],
+  },
+
+  convention_signature_confirmation: {
+    name: "Confirmation de signature de convention",
+    audience: "client",
+    sendingInfo: "📤 Envoyé au signataire juste après la signature électronique d'une convention",
+    subject: same("Confirmation de signature - Convention {{formation_name}}"),
+    content: same(`Bonjour {{signer_name}},
+
+Nous confirmons la bonne réception de votre signature électronique pour la convention de formation suivante :
+
+{{details_list}}
+
+Vous pouvez consulter la convention signée en cliquant sur le lien ci-dessous :
+
+{{download_button}}`),
+    variables: ["signer_name", "formation_name", "details_list", "download_button"],
+  },
+
+  devis_signature_confirmation: {
+    name: "Confirmation de signature de devis",
+    audience: "client",
+    sendingInfo: "📤 Envoyé au signataire juste après la signature électronique d'un devis",
+    subject: same("Confirmation de signature - Devis \"{{formation_name}}\""),
+    content: same(`Bonjour {{signer_name}},
+
+Nous confirmons la bonne réception de votre signature électronique pour le devis suivant :
+
+{{details_list}}
+
+Vous pouvez consulter le devis signé en cliquant sur le lien ci-dessous :
+
+{{download_button}}
+
+{{opportunity_block}}`),
+    variables: ["signer_name", "formation_name", "details_list", "download_button", "opportunity_block"],
+  },
+
+  location_signature_confirmation: {
+    name: "Confirmation de signature de contrat de location",
+    audience: "client",
+    sendingInfo: "📤 Envoyé au signataire juste après la signature électronique d'un contrat de location",
+    subject: same("Confirmation de signature — Contrat {{contrat_reference}}"),
+    content: same(`Bonjour {{signer_name}},
+
+Nous confirmons la bonne réception de votre signature électronique pour le contrat de location suivant :
+
+{{details_list}}
+
+{{download_button}}`),
+    variables: ["signer_name", "contrat_reference", "details_list", "download_button"],
+  },
 };
