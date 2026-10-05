@@ -53,6 +53,7 @@ async function fetchSettings(): Promise<EmailSettings> {
         if (s.setting_key === "sender_name" && s.setting_value) defaults.senderName = cleanName(s.setting_value);
         if (s.setting_key === "contact_email" && s.setting_value) defaults.contactEmail = cleanEmail(s.setting_value);
         if (s.setting_key === "bcc_enabled") defaults.bccEnabled = s.setting_value === "true";
+        if (s.setting_key === "nocrm_bcc_email" && s.setting_value) defaults.nocrmBccEmail = cleanEmail(s.setting_value);
       }
     }
 
@@ -97,7 +98,7 @@ export async function getBccList(): Promise<string[]> {
   if (s.bccEnabled && s.senderEmail) {
     list.push(s.senderEmail);
   }
-  list.push(NOCRM_BCC);
+  if (s.nocrmBccEmail) list.push(s.nocrmBccEmail);
   return list;
 }
 
