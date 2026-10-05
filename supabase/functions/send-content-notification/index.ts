@@ -92,7 +92,7 @@ serve(async (req) => {
       );
     }
     const ctRendered = await renderCatalogEmail(supabase, ct.key, {
-      vars: { card_title: cardTitle, author_name: authorName || null },
+      vars: { card_title: cardTitle, author_name: authorName || "Un utilisateur", author_subject: authorName || "Quelqu'un" },
       blocks: {
         card_box: emailInfoBox(`<strong>${escE(cardTitle)}</strong>`),
         external_link: externalUrl ? `<p>Lien externe : <a href="${escE(externalUrl)}">${escE(externalUrl)}</a></p>` : "",

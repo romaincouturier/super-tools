@@ -852,17 +852,17 @@ Le statut de la relecture a été mis à jour pour :
     name: "Contenu : mention dans un commentaire",
     audience: "internal",
     sendingInfo: "💬 Envoyé quand quelqu'un est mentionné dans un commentaire de contenu",
-    subject: same("💬 {{#author_name}}{{author_name}}{{/author_name}}{{^author_name}}Quelqu'un{{/author_name}} vous a mentionné — {{card_title}}"),
+    subject: same("💬 {{author_subject}} vous a mentionné — {{card_title}}"),
     content: same(`Bonjour,
 
-**{{#author_name}}{{author_name}}{{/author_name}}{{^author_name}}Un utilisateur{{/author_name}}** vous a mentionné dans un commentaire sur :
+**{{author_name}}** vous a mentionné dans un commentaire sur :
 
 {{card_box}}
 
 {{comment_quote}}
 
 {{card_button}}`),
-    variables: ["author_name", "card_title", "card_box", "comment_quote", "card_button"],
+    variables: ["author_name", "author_subject", "card_title", "card_box", "comment_quote", "card_button"],
   },
 
   deposit_trainer_notification: {
