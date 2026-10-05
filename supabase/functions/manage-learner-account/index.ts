@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { renderCatalogEmail, escapeEmailValue as escE } from "../_shared/editable-email.ts";
 import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
@@ -28,34 +29,27 @@ async function notifyEmailChange(oldEmail: string, newEmail: string): Promise<vo
     const [signature, urls] = await Promise.all([getSigniticSignature(), getAppUrls()]);
     const contactEmail = await getContactEmail();
     const loginUrl = `${urls.app_url}/connexion`;
+    const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const newR = await renderCatalogEmail(db, "learner_email_changed", {
+      vars: { new_email: newEmail },
+      blocks: { login_link: `<p><a href="${loginUrl}">Me connecter</a></p>` },
+    });
+    const oldR = await renderCatalogEmail(db, "learner_email_changed_notice", {
+      vars: { masked_email: maskEmail(newEmail), contact_email: contactEmail },
+      blocks: { contact_link: `<a href="mailto:${contactEmail}">${contactEmail}</a>` },
+    });
 
     await sendEmail({
       to: newEmail,
-      subject: "Votre nouvelle adresse de connexion",
-      html: wrapEmailHtml(
-        `<p>Bonjour,</p>
-         <p>L'adresse de votre espace apprenant est désormais <strong>${newEmail}</strong>.
-         Vos formations et votre progression sont inchangées.</p>
-         <p><a href="${loginUrl}">Me connecter</a></p>
-         <p>Vous n'avez pas de mot de passe à créer : indiquez votre adresse, nous vous
-         enverrons un lien de connexion.</p>`,
-        signature,
-      ),
+      subject: newR.subject,
+      html: wrapEmailHtml(newR.html, signature),
       _emailType: "learner_email_changed",
     });
 
     await sendEmail({
       to: oldEmail,
-      subject: "L'adresse de votre compte a été modifiée",
-      html: wrapEmailHtml(
-        `<p>Bonjour,</p>
-         <p>L'adresse de connexion de votre espace apprenant a été remplacée par
-         <strong>${maskEmail(newEmail)}</strong>. Les liens envoyés à cette ancienne
-         adresse ne fonctionnent plus.</p>
-         <p>Si vous n'êtes pas à l'origine de ce changement, écrivez-nous immédiatement à
-         <a href="mailto:${contactEmail}">${contactEmail}</a>.</p>`,
-        signature,
-      ),
+      subject: oldR.subject,
+      html: wrapEmailHtml(oldR.html, signature),
       _emailType: "learner_email_changed_notice",
     });
   } catch (err) {

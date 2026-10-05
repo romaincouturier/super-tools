@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderCatalogEmail, escapeEmailValue as escE } from "../_shared/editable-email.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_shared/email-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
@@ -181,40 +182,23 @@ serve(async (req: Request) => {
     const APP_URL = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
     
     const [senderFrom, senderName, bccList] = await Promise.all([getSenderFrom(), getSenderName(), getBccList()]);
+    const obRendered = await renderCatalogEmail(supabaseClient, "onboard_collaborator", {
+      vars: { sender_name: senderName },
+      blocks: {
+        app_link: `<p><strong>Accès à l'application :</strong> <a href="${APP_URL}" style="color: #e6bc00;">${APP_URL}</a></p>`,
+        credentials: `<p><strong>Email :</strong> ${escE(email)}</p>
+        <p><strong>Mot de passe temporaire :</strong> <code style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px;">${escE(tempPassword)}</code></p>
+        <p style="color: #e74c3c;"><strong>Important :</strong> Vous devrez changer ce mot de passe lors de votre première connexion.</p>`,
+        modules_list: `<ul>${moduleListHtml}</ul>`,
+        login_button: emailButton("Se connecter à SuperTools", `${APP_URL}/auth`),
+      },
+    });
     const emailResult = await sendEmail({
       from: senderFrom,
       to: [email],
       bcc: bccList,
-      subject: "Bienvenue sur SuperTools - Vos identifiants de connexion",
-      html: `
-        <h1>Bienvenue sur SuperTools !</h1>
-        <p>SuperTools est l'outil interne de Supertilt pour gérer les formations, évaluations et contenus marketing.</p>
-        <p><strong>Accès à l'application :</strong> <a href="${APP_URL}" style="color: #e6bc00;">${APP_URL}</a></p>
-        
-        <h2>Vos identifiants de connexion</h2>
-        <p><strong>Email :</strong> ${email}</p>
-        <p><strong>Mot de passe temporaire :</strong> <code style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px;">${tempPassword}</code></p>
-        <p style="color: #e74c3c;"><strong>Important :</strong> Vous devrez changer ce mot de passe lors de votre première connexion.</p>
-        
-        <h2>Vos accès</h2>
-        <p>Vous avez accès aux modules suivants :</p>
-        <ul>${moduleListHtml}</ul>
-        
-        ${emailButton("Se connecter à SuperTools", `${APP_URL}/auth`)}
-        
-        <p>Le nouveau mot de passe doit respecter les critères suivants :</p>
-        <ul>
-          <li>Au moins 8 caractères</li>
-          <li>Au moins une lettre majuscule</li>
-          <li>Au moins une lettre minuscule</li>
-          <li>Au moins un chiffre</li>
-          <li>Au moins un caractère spécial (!@#$%^&*)</li>
-        </ul>
-        <p>À bientôt sur SuperTools !</p>
-        <p>--<br>
-        <strong>${senderName}</strong><br>
-        Supertilt</p>
-      `,
+      subject: obRendered.subject,
+      html: obRendered.html,
       _emailType: "onboard_collaborator",
     });
 
