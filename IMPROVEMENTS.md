@@ -695,3 +695,10 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 - **Constat** : Octobre 2026, `contact@supertilt.fr` et `romain@supertilt.fr` restaient écrites en dur dans les écrans de connexion, l'accueil, le portail apprenant, un email de sécurité apprenant et l'auteur des posts de replay.
 - **Règle** : Toute adresse de l'organisation se lit dans `app_settings` : `useContactEmail()` côté front (lecture publique via `get_app_setting_public`), `getContactEmail()` / `getSenderEmail()` côté edge (`_shared/email-settings.ts`). Le seul repli autorisé est la constante de ces deux modules.
 - **Vérification** : check [074] de `scripts/check-rules.sh`.
+
+### [075] Emails automatiques — jamais de texte en dur, toujours un modèle éditable
+- **Constat** : Octobre 2026, une quarantaine d'emails (alertes, notifications, confirmations, certificats) avaient objet et corps écrits dans le code, impossibles à modifier depuis Paramètres > Emails.
+- **Règle** : Toute edge function qui envoie un email lit son objet et son corps via `renderCatalogEmail` / `renderEditableEmail` (`_shared/editable-email.ts`) ou `prepareTemplatedEmail`, avec le texte par défaut déclaré dans `_shared/editable-email-defaults.ts`. Boutons, liens tokenisés et tableaux passent en `blocks` protégés. Seules exceptions : les envois dont le contenu est rédigé par l'utilisateur (CRM, devis, diffusion, brouillons, renvoi).
+- **Vérification** : check [075] de `scripts/check-rules.sh`.
+- **Date** : 2026-10-05
+

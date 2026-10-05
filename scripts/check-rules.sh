@@ -787,6 +787,11 @@ check "069" "useResolvedStorageUrl ne rend pas l'URL d'un bucket prive avant sa 
        | grep -v '\\.test\\.' | grep -vE 'placeholder=|sample:|hooks/useContactEmail.ts|_shared/email-settings.ts|settingsConstants.ts|mcp-server/index.ts|_shared/gmail.ts|default_sender' \
        | sed 's/^/VIOLATION [074]: email en dur — /'"
 
+  # [075] Emails automatiques : objet/corps toujours issus d'un modèle éditable.
+  check "075" "Aucun email automatique au texte écrit en dur" \
+    "for f in \$(grep -rlE 'sendEmail\\(' supabase/functions --include='index.ts' 2>/dev/null | grep -vE '/(crm-send-email|send-quote-email|send-broadcast-email|send-mission-email-draft|resend-logged-email|send-training-survey)/'); do \
+       grep -qE 'renderEditableEmail|renderCatalogEmail|prepareTemplatedEmail|email_templates|processTemplate' \"\$f\" || echo \"VIOLATION [075]: email en dur — \$f\"; done"
+
   # [065] Mode démo — affichage identifiant non masqué dans un écran interne.
   # Le détail des violations : bash scripts/check-demo-mask.sh
   count_065=$(bash scripts/check-demo-mask.sh --count)
