@@ -23,6 +23,7 @@ import { useContactEmail } from "@/hooks/useContactEmail";
 type Step = "email" | "password" | "unknown" | "throttled" | "degraded";
 
 export default function Connexion() {
+  const contactEmail = useContactEmail();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const next = searchParams.get(REDIRECT_PARAM);

@@ -11,6 +11,7 @@ import { useContactEmail } from "@/hooks/useContactEmail";
  * ni boucle vers la connexion.
  */
 export default function CompteSansAcces() {
+  const contactEmail = useContactEmail();
   const { email, signOut } = useSession();
   const navigate = useNavigate();
 

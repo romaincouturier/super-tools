@@ -63,6 +63,7 @@ function PaidCourseCard({ course }: { course: AcademyCatalogCourse }) {
 }
 
 export default function Landing() {
+  const contactEmail = useContactEmail();
   const navigate = useNavigate();
   const { data, isLoading, isError } = useAcademyCatalog();
   const [menuOpen, setMenuOpen] = useState(false);

@@ -26,6 +26,7 @@ function maskEmail(email: string): string {
 async function notifyEmailChange(oldEmail: string, newEmail: string): Promise<void> {
   try {
     const [signature, urls] = await Promise.all([getSigniticSignature(), getAppUrls()]);
+    const contactEmail = await getContactEmail();
     const loginUrl = `${urls.app_url}/connexion`;
 
     await sendEmail({
