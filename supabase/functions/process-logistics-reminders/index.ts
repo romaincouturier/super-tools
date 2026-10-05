@@ -622,7 +622,7 @@ serve(async (req) => {
       // 19. Tickets support en codage automatique (admins uniquement)
       if (recipient.isAdmin && codingTickets.length > 0) {
         const statusLabels: Record<string, { label: string; color: string; icon: string }> = {
-          pending:          { label: "En attente",    color: COLORS.gray || "#6b7280", icon: "⏳" },
+          pending:          { label: "En attente",    color: (COLORS as Record<string, string>).gray || "#6b7280", icon: "⏳" },
           running:          { label: "En cours",      color: "#3b82f6",                icon: "⚙️" },
           ready_for_review: { label: "PR à relire",   color: "#8b5cf6",                icon: "👀" },
           done:             { label: "Terminé",       color: "#10b981",                icon: "✅" },
