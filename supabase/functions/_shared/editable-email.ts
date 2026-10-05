@@ -84,7 +84,9 @@ export function ctaButton(label: string, url: string): string {
 
 /** Render a catalogued email (EDITABLE_EMAIL_DEFAULTS key) with its code defaults as fallback. */
 export async function renderCatalogEmail(
-  supabase: SupabaseClient,
+  // deno-lint-ignore no-explicit-any
+  supabase: any, // accepts clients from any supabase-js version
+
   key: string,
   opts: { vars?: TemplateVariables; blocks?: Record<string, string>; formal?: boolean | null } = {},
 ): Promise<{ subject: string; html: string; fromTemplate: boolean }> {
