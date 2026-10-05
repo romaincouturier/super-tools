@@ -1,3 +1,4 @@
+import { EDITABLE_EMAIL_DEFAULTS } from "../../../supabase/functions/_shared/editable-email-defaults";
 // Shared types, default templates, and settings registry for the Settings page
 
 export interface EmailTemplate {
@@ -14,7 +15,7 @@ export type AddressMode = "tu" | "vous";
 // Template configuration with timing info
 export interface TemplateConfig {
   name: string;
-  timing: "before" | "during" | "after" | "manual" | "mission_after";
+  timing: "before" | "during" | "after" | "manual" | "mission_after" | "automatic" | "internal";
   sendingInfo: string; // Human-readable description of when/how the email is sent
   delayKey?: string; // Key in app_settings for delay
   subject: { tu: string; vous: string };
@@ -23,6 +24,16 @@ export interface TemplateConfig {
 }
 
 export const DEFAULT_TEMPLATES: Record<string, TemplateConfig> = {
+  ...Object.fromEntries(
+    Object.entries(EDITABLE_EMAIL_DEFAULTS).map(([k, d]) => [k, {
+      name: d.name,
+      timing: d.audience === "internal" ? "internal" : "automatic",
+      sendingInfo: d.sendingInfo,
+      subject: d.subject,
+      content: d.content,
+      variables: d.variables,
+    } satisfies TemplateConfig]),
+  ),
   // BEFORE TRAINING
   needs_survey: {
     name: "Questionnaire de recueil des besoins",
