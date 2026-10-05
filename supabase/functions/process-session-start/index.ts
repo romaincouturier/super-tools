@@ -658,29 +658,29 @@ serve(async (req) => {
               }
 
               const signatureUrl = `${baseUrl}/emargement/${token}`;
-              const firstName = participant.first_name || "";
-              const greeting = firstName ? `Bonjour ${firstName},` : "Bonjour,";
-
-              const htmlContent = `
-                <p>${greeting}</p>
-                <p>Merci de bien vouloir signer ta présence pour la formation <strong>"${training.training_name}"</strong>.</p>
-                <ul style="list-style: none; padding: 0; margin: 20px 0;">
-                  <li>📺 <strong>Live :</strong> ${live.title || "Session live"}</li>
-                  <li>📅 <strong>Date :</strong> ${formattedDate} à ${liveTime}</li>
-                </ul>
-                ${emailButton("✍️ Signer ma présence", signatureUrl)}
-                <p style="font-size: 12px; color: #666;">
-                  Cette signature électronique a valeur légale conformément au règlement européen eIDAS.
-                </p>
-                ${signature}
-              `;
+              const liveTpl = EDITABLE_EMAIL_DEFAULTS.session_start_signature_live;
+              const liveUseTu = (training as any).participants_formal_address === false;
+              const liveRendered = await renderEditableEmail(supabase, {
+                type: "session_start_signature_live",
+                defaultSubject: liveTpl.subject.vous,
+                defaultContent: liveUseTu ? liveTpl.content.tu : liveTpl.content.vous,
+                formal: !liveUseTu,
+                vars: {
+                  first_name: participant.first_name || null,
+                  training_name: training.training_name,
+                  live_title: live.title || "Session live",
+                  session_date: formattedDate,
+                  live_time: liveTime,
+                },
+                blocks: { signature_button: ctaButton("✍️ Signer ma présence", signatureUrl) },
+              });
 
               const result = await sendEmail({
                 from: senderFrom,
                 to: [participant.email],
                 bcc: bccList,
-                subject: `✍️ Émargement – ${training.training_name} – ${formattedDate}`,
-                html: htmlContent,
+                subject: liveRendered.subject,
+                html: wrapEmailHtml(liveRendered.html, signature),
                 _emailType: "attendance_signature_auto_live",
                 _trainingId: trainingId,
                 _participantId: participant.id,

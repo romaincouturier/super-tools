@@ -233,6 +233,36 @@ Cette signature électronique a valeur légale conformément au règlement europ
     variables: ["first_name", "training_name", "location", "session_date", "period_label", "time_range", "signature_button"],
   },
 
+  session_start_signature_live: {
+    name: "Émargement automatique (live)",
+    audience: "client",
+    sendingInfo: "📤 Envoyé automatiquement aux participants au démarrage d'un live",
+    subject: same("✍️ Émargement – {{training_name}} – {{session_date}}"),
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Merci de bien vouloir signer ta présence pour la formation **{{training_name}}**.
+
+📺 **Live :** {{live_title}}
+📅 **Date :** {{session_date}} à {{live_time}}
+
+{{signature_button}}
+
+Cette signature électronique a valeur légale conformément au règlement européen eIDAS.`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Merci de bien vouloir signer votre présence pour la formation **{{training_name}}**.
+
+📺 **Live :** {{live_title}}
+📅 **Date :** {{session_date}} à {{live_time}}
+
+{{signature_button}}
+
+Cette signature électronique a valeur légale conformément au règlement européen eIDAS.`,
+    },
+    variables: ["first_name", "training_name", "live_title", "session_date", "live_time", "signature_button"],
+  },
+
   session_start_trainer: {
     name: "Début de session (formateur)",
     audience: "internal",
