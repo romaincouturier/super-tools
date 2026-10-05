@@ -690,3 +690,8 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 - **Fichiers de référence** : `vite.config.ts` (config workbox corrigée)
 - **Origine** : production cassée — écran blanc après chaque deploy, Lovable en boucle sur 6 commits de recovery
 - **Date** : 2026-03-23
+
+### [074] Adresses email de l'organisation — jamais en dur, toujours dans Paramètres > Général
+- **Constat** : Octobre 2026, `contact@supertilt.fr` et `romain@supertilt.fr` restaient écrites en dur dans les écrans de connexion, l'accueil, le portail apprenant, un email de sécurité apprenant et l'auteur des posts de replay.
+- **Règle** : Toute adresse de l'organisation se lit dans `app_settings` : `useContactEmail()` côté front (lecture publique via `get_app_setting_public`), `getContactEmail()` / `getSenderEmail()` côté edge (`_shared/email-settings.ts`). Le seul repli autorisé est la constante de ces deux modules.
+- **Vérification** : check [074] de `scripts/check-rules.sh`.

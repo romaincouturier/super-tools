@@ -72,6 +72,7 @@ import { useCreateMatchingConfig } from "@/hooks/useGroupMatching";
 
 
 import { useRecommendedCourses, type RecoCourse } from "@/hooks/useRecommendedCourses";
+import { DEFAULT_CONTACT_EMAIL } from "@/hooks/useContactEmail";
 
 // Code promo de fidélité affiché sur les formations recommandées.
 // À créer côté WooCommerce (-10%). Mettre "" pour masquer le bandeau.
@@ -1985,7 +1986,7 @@ export default function LearnerPortal() {
         .select("setting_value")
         .eq("setting_key", "sender_email")
         .single();
-      const adminEmail = (settings?.setting_value as string) || "contact@supertilt.fr";
+      const adminEmail = (settings?.setting_value as string) || DEFAULT_CONTACT_EMAIL;
 
       await supabase.functions.invoke("request-coached-formula", {
         body: {

@@ -11,6 +11,7 @@ import { useIdentityResolution } from "@/hooks/useIdentityResolution";
 import { useSession } from "@/hooks/useSession";
 import { resolvePostLoginPath, REDIRECT_PARAM } from "@/lib/authRouting";
 import { normalizeEmail } from "@/lib/stringUtils";
+import { useContactEmail } from "@/hooks/useContactEmail";
 
 /**
  * Porte de connexion apprenant (W1 à W6, W9).
@@ -22,6 +23,7 @@ import { normalizeEmail } from "@/lib/stringUtils";
 type Step = "email" | "password" | "unknown" | "throttled" | "degraded";
 
 export default function Connexion() {
+  const contactEmail = useContactEmail();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const next = searchParams.get(REDIRECT_PARAM);
@@ -215,7 +217,7 @@ export default function Connexion() {
                 Essayer une autre adresse
               </button>
               <a
-                href={`mailto:contact@supertilt.fr?subject=${encodeURIComponent("Accès à mon espace apprenant")}&body=${encodeURIComponent(`Bonjour,\n\nJe n'arrive pas à accéder à mon espace apprenant avec l'adresse ${normalizedEmail}.\n\nMerci de votre aide.`)}`}
+                href={`mailto:${contactEmail}?subject=${encodeURIComponent("Accès à mon espace apprenant")}&body=${encodeURIComponent(`Bonjour,\n\nJe n'arrive pas à accéder à mon espace apprenant avec l'adresse ${normalizedEmail}.\n\nMerci de votre aide.`)}`}
                 className="text-[15px] underline underline-offset-[3px] text-muted-foreground"
               >
                 Écrire au support

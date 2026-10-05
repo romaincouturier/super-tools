@@ -91,6 +91,11 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
               <Input id="evaluation-notification-email" type="email" value={settings.evaluation_notification_email} onChange={(e) => updateSetting("evaluation_notification_email", e.target.value.replace(/\s+/g, ""))} placeholder="email@exemple.com" />
               <p className="text-xs text-muted-foreground">Reçoit un email à chaque soumission d'évaluation par un participant (avis, consentement publication).</p>
             </div>
+            <div className="space-y-2 max-w-lg">
+              <Label htmlFor="contact-email">Email de contact</Label>
+              <Input id="contact-email" type="email" value={settings.contact_email} onChange={(e) => updateSetting("contact_email", e.target.value.replace(/\s+/g, ""))} placeholder="contact@exemple.fr" />
+              <p className="text-xs text-muted-foreground">Adresse proposée aux apprenants et clients pour nous écrire (écrans de connexion, accueil, emails).</p>
+            </div>
           </div>
 
           <Separator />
