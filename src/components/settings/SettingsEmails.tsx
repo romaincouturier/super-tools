@@ -51,12 +51,14 @@ const SettingsEmails = ({ settings, loading, initialLoadDone }: SettingsEmailsPr
   );
 
   const matchesSearch = useCallback(
-    (type: string, defaultName: string) => {
+    (type: string, defaultName: string, sendingInfo?: string) => {
       if (searchTerms.length === 0) return true;
       const edited = editedTemplates[type];
       const haystack = normalize(
         [
           defaultName,
+          sendingInfo,
+          type.replace(/_/g, " "),
           edited?.tu?.subject,
           edited?.tu?.content,
           edited?.vous?.subject,
@@ -176,12 +178,12 @@ const SettingsEmails = ({ settings, loading, initialLoadDone }: SettingsEmailsPr
   const renderTimingSection = (timingFilter: TemplateConfig["timing"], title: string, badgeStyle: string, showDelay: boolean, delayPrefix: string) => {
     const entries = Object.entries(DEFAULT_TEMPLATES)
       .filter(([, t]) => t.timing === timingFilter)
-      .filter(([type, t]) => matchesSearch(type, t.name));
+      .filter(([type, t]) => matchesSearch(type, t.name, t.sendingInfo));
 
     if (entries.length === 0) return null;
 
     const accordionProps = searchTerms.length > 0
-      ? { type: "multiple" as const, value: entries.map(([type]) => type) }
+      ? { type: "multiple" as const, defaultValue: entries.map(([type]) => type), key: `search-${searchQuery}` }
       : { type: "single" as const, collapsible: true };
 
     return (
