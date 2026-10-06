@@ -942,7 +942,8 @@ async function triggerAndDownloadPgDump(
 const TICK_BUDGET_MS = 45_000;      // temps de travail max par invocation
 const RUN_LOCK_MS = 50_000;         // évite deux ticks simultanés sur le même run
 const STALE_RUN_MS = 15 * 60 * 1000; // run sans activité => repris
-const PAGE_SIZE = 1000;              // pagination par table
+const PAGE_SIZE = 200;               // pagination par table (petites pages : lignes HTML lourdes)
+const MAX_BYTES_PER_FILE = 8 * 1024 * 1024; // au-delà, fichier suivant (évite le dépassement mémoire du worker)
 const MAX_ROWS_PER_FILE = 50_000;    // découpage des grosses tables en plusieurs fichiers
 const MAX_TABLE_ATTEMPTS = 3;        // au-delà, la table est sautée (crash-loop)
 const MAX_RUNS_PER_DAY = 3;          // nombre de tentatives de run par journée
@@ -1059,10 +1060,11 @@ async function exportTableToDrive(
     `{"table":${JSON.stringify(tableName)},"part":${part},"offset":${startOffset},"exportedAt":${JSON.stringify(new Date().toISOString())},"rows":[`,
   ];
   let rows = 0;
+  let bytes = 0;
   let from = startOffset;
   let done = false;
 
-  while (rows < MAX_ROWS_PER_FILE) {
+  while (rows < MAX_ROWS_PER_FILE && bytes < MAX_BYTES_PER_FILE) {
     const { data, error } = await supabase
       .from(tableName)
       .select("*")
@@ -1071,7 +1073,9 @@ async function exportTableToDrive(
     const batch = data || [];
     for (const row of batch) {
       if (rows > 0) chunks.push(",");
-      chunks.push(JSON.stringify(row));
+      const json = JSON.stringify(row);
+      bytes += json.length;
+      chunks.push(json);
       rows++;
     }
     from += batch.length;
