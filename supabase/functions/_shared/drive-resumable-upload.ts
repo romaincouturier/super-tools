@@ -30,7 +30,8 @@ export interface StreamUploadOptions {
   chunkBytes?: number;
 }
 
-export async function streamFileToGoogleDrive(options: StreamUploadOptions): Promise<void> {
+/** Renvoie l'id du fichier Drive créé. */
+export async function streamFileToGoogleDrive(options: StreamUploadOptions): Promise<string> {
   const {
     accessToken,
     fileName,
@@ -97,8 +98,8 @@ export async function streamFileToGoogleDrive(options: StreamUploadOptions): Pro
       });
 
       if (putRes.status === 200 || putRes.status === 201) {
-        await putRes.text();
-        return;
+        const created = await putRes.json().catch(() => ({}));
+        return String((created as { id?: string }).id ?? "");
       }
       if (putRes.status !== 308) {
         throw new Error(`Drive chunk upload failed (${putRes.status}): ${await putRes.text()}`);

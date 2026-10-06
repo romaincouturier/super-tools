@@ -37,3 +37,7 @@ live_reminder_sends
 
 # Liens « J'aime » des mails formateur : éphémères (30 j).
 deposit_reaction_tokens
+
+# Manifeste de la synchro storage incrémentale : index des fichiers déjà copiés
+# dans le miroir Drive. Perdu, il provoque seulement une recopie complète.
+backup_storage_manifest

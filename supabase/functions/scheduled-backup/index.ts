@@ -372,91 +372,133 @@ const STREAM_FILE_BUDGET_MS = 90_000;
 // Doit rester < RUN_LOCK_MS pour que le run ne soit jamais vu comme inactif.
 const STREAM_HEARTBEAT_MS = 20_000;
 
-interface StorageBackupResult {
-  bucket: string;
-  filesCount: number;
-  totalSizeBytes: number;
-  uploadedFiles: number;
-  /** Sous-ensemble de uploadedFiles passé par le stream (fichiers > 25 Mo). */
-  streamedFiles: number;
+interface BucketFile {
+  name: string;
+  size?: number;
+  etag?: string;
+  updatedAt?: string;
+}
+
+interface ManifestRow {
+  path: string;
+  size_bytes: number | null;
+  etag: string | null;
+  drive_file_id: string | null;
+}
+
+/** Ligne technique du manifeste : id du dossier Drive miroir d'un bucket. */
+const FOLDER_MARKER = "";
+const MIRROR_ROOT_BUCKET = "__mirror_root__";
+
+async function loadManifest(supabase: any, bucket: string): Promise<Map<string, ManifestRow>> {
+  const map = new Map<string, ManifestRow>();
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("backup_storage_manifest")
+      .select("path, size_bytes, etag, drive_file_id")
+      .eq("bucket", bucket)
+      .range(from, from + 999);
+    if (error) throw new Error(`manifeste ${bucket}: ${error.message}`);
+    for (const r of data || []) map.set(r.path, r);
+    if (!data || data.length < 1000) break;
+  }
+  return map;
+}
+
+/** Fichier à copier : absent du manifeste, ou taille / etag différents. */
+function needsCopy(f: BucketFile, m: ManifestRow | undefined): boolean {
+  if (!m || !m.drive_file_id) return true;
+  if (f.size != null && m.size_bytes != null && Number(m.size_bytes) !== f.size) return true;
+  if (f.etag && m.etag && f.etag !== m.etag) return true;
+  return false;
+}
+
+async function getFolderId(
+  supabase: any,
+  accessToken: string,
+  bucket: string,
+  name: string,
+  parentId: string | undefined,
+): Promise<string> {
+  const { data } = await supabase
+    .from("backup_storage_manifest")
+    .select("drive_file_id")
+    .eq("bucket", bucket)
+    .eq("path", FOLDER_MARKER)
+    .maybeSingle();
+  if (data?.drive_file_id) return data.drive_file_id;
+  const id = await createGoogleDriveFolder(accessToken, name, parentId);
+  await supabase.from("backup_storage_manifest").upsert({
+    bucket, path: FOLDER_MARKER, drive_file_id: id, backed_up_at: new Date().toISOString(),
+  });
+  return id;
+}
+
+/** Nombre de fichiers à copier dans un bucket (nouveaux ou modifiés). */
+async function countPending(supabase: any, bucket: string): Promise<{ total: number; pending: number; pendingBytes: number }> {
+  const files = await listBucketFiles(supabase, bucket);
+  const manifest = await loadManifest(supabase, bucket);
+  let pending = 0;
+  let pendingBytes = 0;
+  for (const f of files) {
+    if (needsCopy(f, manifest.get(f.name))) {
+      pending++;
+      pendingBytes += f.size || 0;
+    }
+  }
+  return { total: files.length, pending, pendingBytes };
+}
+
+interface BucketSyncResult {
+  copied: number;
+  copiedBytes: number;
+  streamed: number;
   streamedBytes: number;
   errors: string[];
+  done: boolean;
 }
 
 /**
- * Sauvegarde une tranche d'un bucket. Reprend à `startIndex` et s'arrête dès
- * que `shouldStop()` est vrai, pour ne jamais dépasser le budget d'un tick.
+ * Synchro incrémentale d'un bucket vers son dossier miroir Drive. Chaque
+ * fichier copié est inscrit au manifeste immédiatement : c'est le checkpoint,
+ * un run coupé reprend donc exactement où il s'est arrêté.
  */
-async function backupStorageBucket(
+async function syncStorageBucket(
   supabase: any,
   accessToken: string,
   bucketName: string,
-  storageFolderId: string,
-  startIndex: number,
-  cachedBucketFolderId: string | null,
+  mirrorRootId: string,
   shouldStop: () => boolean,
   heartbeat: () => Promise<void>,
-): Promise<StorageBackupResult & { nextIndex: number; done: boolean; bucketFolderId: string | null }> {
-  const result: StorageBackupResult & { nextIndex: number; done: boolean; bucketFolderId: string | null } = {
-    bucket: bucketName,
-    filesCount: 0,
-    totalSizeBytes: 0,
-    uploadedFiles: 0,
-    streamedFiles: 0,
-    streamedBytes: 0,
-    errors: [],
-    nextIndex: startIndex,
-    done: false,
-    bucketFolderId: cachedBucketFolderId,
-  };
-
+): Promise<BucketSyncResult> {
+  const result: BucketSyncResult = { copied: 0, copiedBytes: 0, streamed: 0, streamedBytes: 0, errors: [], done: false };
   try {
-    const bucketFolderId =
-      cachedBucketFolderId || (await createGoogleDriveFolder(accessToken, bucketName, storageFolderId));
-    result.bucketFolderId = bucketFolderId;
-
+    const bucketFolderId = await getFolderId(supabase, accessToken, bucketName, bucketName, mirrorRootId);
     const files = await listBucketFiles(supabase, bucketName);
-    // filesCount n'est compté qu'au premier passage sur le bucket
-    result.filesCount = startIndex === 0 ? files.length : 0;
+    const manifest = await loadManifest(supabase, bucketName);
 
-    let i = startIndex;
-    while (i < files.length) {
-      if (shouldStop()) {
-        result.nextIndex = i;
-        result.done = false;
-        return result;
-      }
-
-      const file = files[i];
-      i++;
+    for (const file of files) {
+      const previous = manifest.get(file.name);
+      if (!needsCopy(file, previous)) continue;
+      if (shouldStop()) return result;
 
       try {
-        // Flatten path for Drive (replace / with ___)
         const driveName = file.name.replace(/\//g, "___");
         const mimeType = mimeTypeFromFileName(file.name);
+        let newId: string | null = null;
+        let size = file.size ?? 0;
 
-        // Gros fichier : streamé sans passer par la mémoire de l'edge function.
         if (file.size && file.size > INLINE_UPLOAD_MAX_BYTES) {
-          result.totalSizeBytes += file.size;
-
           if (file.size > STREAM_FILE_MAX_BYTES) {
-            result.errors.push(
-              `${bucketName}/${file.name}: skipped (${(file.size / 1024 / 1024).toFixed(1)}MB > ${STREAM_FILE_MAX_BYTES / 1024 / 1024}MB limit)`,
-            );
+            result.errors.push(`${bucketName}/${file.name}: ignoré (${(file.size / 1024 / 1024).toFixed(1)} Mo > ${STREAM_FILE_MAX_BYTES / 1024 / 1024} Mo)`);
             continue;
           }
-
-          const { data: signed, error: signError } = await supabase.storage
-            .from(bucketName)
-            .createSignedUrl(file.name, 3600);
+          const { data: signed, error: signError } = await supabase.storage.from(bucketName).createSignedUrl(file.name, 3600);
           if (signError || !signed?.signedUrl) {
-            result.errors.push(
-              `${bucketName}/${file.name}: signed URL failed (${signError?.message || "unknown error"})`,
-            );
+            result.errors.push(`${bucketName}/${file.name}: URL signée impossible (${signError?.message || "erreur inconnue"})`);
             continue;
           }
-
-          await streamFileToGoogleDrive({
+          newId = await streamFileToGoogleDrive({
             accessToken,
             fileName: driveName,
             mimeType,
@@ -467,47 +509,48 @@ async function backupStorageBucket(
             heartbeat,
             heartbeatIntervalMs: STREAM_HEARTBEAT_MS,
           });
-          result.uploadedFiles++;
-          result.streamedFiles++;
+          result.streamed++;
           result.streamedBytes += file.size;
-          continue;
+        } else {
+          const { data, error } = await supabase.storage.from(bucketName).download(file.name);
+          if (error || !data) {
+            result.errors.push(`${bucketName}/${file.name}: ${error?.message || "téléchargement impossible"}`);
+            continue;
+          }
+          size = data.size;
+          if (data.size > INLINE_UPLOAD_MAX_BYTES) {
+            result.errors.push(`${bucketName}/${file.name}: ignoré (${(data.size / 1024 / 1024).toFixed(1)} Mo, taille inconnue avant téléchargement)`);
+            continue;
+          }
+          const uploaded = await uploadBlobToGoogleDrive(accessToken, driveName, data, mimeType, bucketFolderId);
+          newId = uploaded.id;
         }
 
-        const { data, error } = await supabase.storage.from(bucketName).download(file.name);
-        if (error || !data) {
-          result.errors.push(`${bucketName}/${file.name}: ${error?.message || "download failed"}`);
-          continue;
+        // Fichier modifié : l'ancienne copie du miroir est remplacée.
+        if (previous?.drive_file_id && previous.drive_file_id !== newId) {
+          try { await deleteGoogleDriveFile(accessToken, previous.drive_file_id); } catch { /* non critique */ }
         }
-
-        result.totalSizeBytes += data.size;
-
-        // Taille absente des métadonnées : le fichier est déjà en mémoire, on ne
-        // peut plus basculer sur le stream.
-        if (data.size > INLINE_UPLOAD_MAX_BYTES) {
-          result.errors.push(
-            `${bucketName}/${file.name}: skipped (${(data.size / 1024 / 1024).toFixed(1)}MB, taille inconnue avant téléchargement)`,
-          );
-          continue;
-        }
-
-        await uploadBlobToGoogleDrive(accessToken, driveName, data, mimeType, bucketFolderId);
-        result.uploadedFiles++;
+        const { error: mErr } = await supabase.from("backup_storage_manifest").upsert({
+          bucket: bucketName,
+          path: file.name,
+          size_bytes: size,
+          etag: file.etag ?? null,
+          source_updated_at: file.updatedAt ?? null,
+          drive_file_id: newId,
+          backed_up_at: new Date().toISOString(),
+        });
+        if (mErr) result.errors.push(`${bucketName}/${file.name}: manifeste non mis à jour (${mErr.message})`);
+        result.copied++;
+        result.copiedBytes += size;
       } catch (fileErr) {
-        result.errors.push(
-          `${bucketName}/${file.name}: ${fileErr instanceof Error ? fileErr.message : "unknown error"}`,
-        );
+        result.errors.push(`${bucketName}/${file.name}: ${fileErr instanceof Error ? fileErr.message : "erreur inconnue"}`);
       }
     }
-
-    result.nextIndex = i;
     result.done = true;
   } catch (err) {
-    result.errors.push(
-      `${bucketName}: ${err instanceof Error ? err.message : "bucket backup failed"}`,
-    );
+    result.errors.push(`${bucketName}: ${err instanceof Error ? err.message : "synchro du bucket impossible"}`);
     result.done = true;
   }
-
   return result;
 }
 
@@ -515,31 +558,42 @@ async function listBucketFiles(
   supabase: ReturnType<typeof createClient>,
   bucketName: string,
   path = "",
-): Promise<{ name: string; size?: number }[]> {
-  const allFiles: { name: string; size?: number }[] = [];
-
-  try {
-    const { data, error } = await supabase.storage.from(bucketName).list(path, {
+): Promise<BucketFile[]> {
+  const allFiles: BucketFile[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    let { data, error } = await supabase.storage.from(bucketName).list(path, {
       limit: 1000,
+      offset,
       sortBy: { column: "name", order: "asc" },
     });
-
-    if (error || !data) return allFiles;
-
+    // Saturation passagère des connexions : on réessaie avant d'abandonner.
+    for (const delay of [2000, 5000, 10000]) {
+      if (!error || !/too many connections/i.test(error.message)) break;
+      await new Promise((r) => setTimeout(r, delay));
+      ({ data, error } = await supabase.storage.from(bucketName).list(path, {
+        limit: 1000,
+        offset,
+        sortBy: { column: "name", order: "asc" },
+      }));
+    }
+    if (error) throw new Error(`liste ${bucketName}/${path}: ${error.message}`);
+    if (!data) break;
     for (const item of data) {
       const fullPath = path ? `${path}/${item.name}` : item.name;
       if (item.id === null) {
-        // It's a folder, recurse
-        const subFiles = await listBucketFiles(supabase, bucketName, fullPath);
-        allFiles.push(...subFiles);
+        allFiles.push(...(await listBucketFiles(supabase, bucketName, fullPath)));
       } else {
-        allFiles.push({ name: fullPath, size: (item as any)?.metadata?.size });
+        const meta = (item as any)?.metadata || {};
+        allFiles.push({
+          name: fullPath,
+          size: meta.size,
+          etag: typeof meta.eTag === "string" ? meta.eTag.replace(/"/g, "") : undefined,
+          updatedAt: (item as any).updated_at || meta.lastModified,
+        });
       }
     }
-  } catch {
-    // Bucket might not exist or be empty
+    if (data.length < 1000) break;
   }
-
   return allFiles;
 }
 
@@ -655,6 +709,7 @@ async function verifyBackupIntegrityByCounts(
   supabase: any,
   tableRowCounts: Record<string, number>,
   tablesToBackup: string[],
+  liveCounts?: Record<string, number>,
 ): Promise<IntegrityResult> {
   const result: IntegrityResult = {
     passed: true,
@@ -688,10 +743,15 @@ async function verifyBackupIntegrityByCounts(
     if (backupRows === 0) result.checks.emptyTablesInBackup.push(table);
 
     try {
-      const { count } = await supabase
-        .from(table)
-        .select("*", { count: "exact", head: true });
-      const liveRows = count ?? 0;
+      let liveRows: number;
+      if (liveCounts && table in liveCounts) {
+        liveRows = liveCounts[table];
+      } else {
+        const { count } = await supabase
+          .from(table)
+          .select("*", { count: "exact", head: true });
+        liveRows = count ?? 0;
+      }
       result.checks.totalLiveRows += liveRows;
       // Le run dure plusieurs heures : des lignes ajoutées depuis l'export de la
       // table sont normales. Seule une croissance anormale ou une perte compte.
@@ -1047,7 +1107,6 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
   const counts = { ...run.table_row_counts };
   const fileIds = [...run.drive_file_ids];
   let folderId = run.drive_folder_id;
-  let storageFolderId = run.storage_folder_id;
   let phase = run.phase;
   let cursor = run.cursor_index;
   let chunks = run.chunks_done;
@@ -1092,7 +1151,9 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
         continue;
       }
       totals[attemptKey] = attempts;
-      await saveRun(supabase, run.id, { totals, cursor_index: cursor });
+      // Compteurs et fichiers persistés avec le curseur : si le worker meurt
+      // plus loin dans ce tick, les tables déjà exportées ne sont pas perdues.
+      await saveRun(supabase, run.id, { totals, cursor_index: cursor, table_row_counts: counts, drive_file_ids: fileIds });
 
       const startOffset = Number(totals[offsetKey] || 0);
       const part = Number(totals[partKey] || 0);
@@ -1129,7 +1190,7 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
     }
 
     if (cursor >= TABLES_TO_BACKUP.length) {
-      phase = "storage";
+      phase = "db_finalize";
       cursor = 0;
     }
     await saveRun(supabase, run.id, {
@@ -1145,193 +1206,256 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
   }
 
 
-  // ── PHASE 2 : storage ──
-  if (phase === "storage") {
-    if (!storageFolderId) {
-      storageFolderId = await createGoogleDriveFolder(accessToken, `storage_${run.run_date}`, folderId!);
-      await saveRun(supabase, run.id, { storage_folder_id: storageFolderId });
+  // ── PHASE 2 : finalisation de la base (intégrité, rotation GFS, statut base) ──
+  if (phase === "db_finalize") {
+    // Comptage des lignes live par tranches : 241 COUNT exacts ne tiennent pas
+    // dans un seul tick, la progression est persistée dans totals.
+    const live: Record<string, number> = JSON.parse(String(run.totals.integrityLive || "{}"));
+    while (cursor < TABLES_TO_BACKUP.length && !outOfBudget()) {
+      const table = TABLES_TO_BACKUP[cursor];
+      const backupRows = counts[table];
+      if (backupRows !== undefined && backupRows !== -1) {
+        const { count, error } = await supabase.from(table).select("*", { count: "exact", head: true });
+        if (!error) live[table] = count ?? 0;
+      }
+      cursor++;
+    }
+    if (cursor < TABLES_TO_BACKUP.length) {
+      await saveRun(supabase, run.id, {
+        cursor_index: cursor,
+        totals: { ...run.totals, integrityLive: JSON.stringify(live) },
+        chunks_done: chunks + 1,
+      });
+      return { phase, done: false };
     }
 
-    let uploaded = Number(run.totals.storageUploadedFiles || 0);
-    let totalFiles = Number(run.totals.storageTotalFiles || 0);
-    let totalBytes = Number(run.totals.storageTotalBytes || 0);
-    let fileCursor = Number(run.totals.storageFileCursor || 0);
-    let streamedFiles = Number(run.totals.storageStreamedFiles || 0);
-    let streamedBytes = Number(run.totals.storageStreamedBytes || 0);
-    const totals: Record<string, number | string> = { ...run.totals };
+    let integrityResult: IntegrityResult | null = null;
+    try {
+      integrityResult = await verifyBackupIntegrityByCounts(supabase, counts, TABLES_TO_BACKUP, live);
+      if (!integrityResult.passed) {
+        if (integrityResult.checks.tablesMissing.length > 0) {
+          errors.push(`[Integrity] Tables manquantes: ${integrityResult.checks.tablesMissing.slice(0, 10).join(", ")}`);
+        }
+        for (const m of integrityResult.checks.rowCountMismatches.slice(0, 5)) {
+          errors.push(`[Integrity] ${m.table}: backup=${m.backup} vs live=${m.live}`);
+        }
+      }
+    } catch (intErr) {
+      errors.push(`[Integrity] ${intErr instanceof Error ? intErr.message : "Verification failed"}`);
+    }
 
+    let deletedOldBackups = 0;
+    if (rootFolderId) {
+      try {
+        const dbBackups = await listFilesInFolder(accessToken, rootFolderId, "supertools_backup_");
+        const keepIds = computeGfsKeepSet(dbBackups);
+        for (const b of dbBackups) {
+          if (!keepIds.has(b.id)) {
+            try {
+              await deleteGoogleDriveFile(accessToken, b.id);
+              deletedOldBackups++;
+            } catch { /* non critique */ }
+          }
+        }
+      } catch (rotErr) {
+        console.warn("[scheduled-backup] Rotation error:", rotErr);
+      }
+    }
+
+    const totalRows = Object.values(counts).reduce((s, n) => s + (n > 0 ? n : 0), 0);
+    const dbErrors = errors.filter((e) => e.startsWith("[DB]")).length;
+    const dbSuccess = dbErrors === 0 && integrityResult?.passed !== false;
+    await saveRun(supabase, run.id, {
+      phase: "storage_scan",
+      cursor_index: 0,
+      errors,
+      db_status: dbSuccess ? "success" : "failed",
+      db_finished_at: new Date().toISOString(),
+      totals: {
+        ...run.totals,
+        integrityLive: "",
+        totalRows,
+        deletedOldBackups,
+        integrityPassed: integrityResult?.passed === false ? "non" : "oui",
+      },
+      chunks_done: chunks + 1,
+    });
+    return { phase: "storage_scan", done: false };
+  }
+
+  // ── PHASE 3 : inventaire des fichiers à copier (nouveaux ou modifiés) ──
+  if (phase === "storage_scan") {
+    const totals: Record<string, number | string> = { ...run.totals };
     while (cursor < STORAGE_BUCKETS.length && !outOfBudget()) {
       const bucket = STORAGE_BUCKETS[cursor];
-      const folderKey = `bucketFolder_${bucket}`;
-      const res = await backupStorageBucket(
-        supabase,
-        accessToken,
-        bucket,
-        storageFolderId!,
-        fileCursor,
-        (totals[folderKey] as string) || null,
-        outOfBudget,
-        () => saveRun(supabase, run.id, {}),
-      );
-      if (res.bucketFolderId) totals[folderKey] = res.bucketFolderId;
-      totalFiles += res.filesCount;
-      uploaded += res.uploadedFiles;
-      totalBytes += res.totalSizeBytes;
-      streamedFiles += res.streamedFiles;
-      streamedBytes += res.streamedBytes;
-      if (res.errors.length > 0) {
-        errors.push(...res.errors.slice(0, 3));
-        if (res.errors.length > 3) errors.push(`[Storage] ${bucket}: +${res.errors.length - 3} autres erreurs`);
+      try {
+        const c = await countPending(supabase, bucket);
+        totals.storageTotalFiles = Number(totals.storageTotalFiles || 0) + c.total;
+        totals.storagePendingAtStart = Number(totals.storagePendingAtStart || 0) + c.pending;
+        totals.storagePendingBytesAtStart = Number(totals.storagePendingBytesAtStart || 0) + c.pendingBytes;
+      } catch (err) {
+        errors.push(`[Storage] ${bucket}: inventaire impossible (${err instanceof Error ? err.message : "erreur"})`);
       }
+      cursor++;
       chunks++;
-
-      if (res.done) {
-        cursor++;
-        fileCursor = 0;
-      } else {
-        // budget épuisé au milieu du bucket : on reprendra à ce fichier
-        fileCursor = res.nextIndex;
-        break;
-      }
     }
-
-    totals.storageUploadedFiles = uploaded;
-    totals.storageTotalFiles = totalFiles;
-    totals.storageTotalBytes = totalBytes;
-    totals.storageFileCursor = fileCursor;
-    totals.storageStreamedFiles = streamedFiles;
-    totals.storageStreamedBytes = streamedBytes;
-
     if (cursor >= STORAGE_BUCKETS.length) {
-      phase = "finalize";
+      phase = "storage";
       cursor = 0;
     }
-    await saveRun(supabase, run.id, {
-      phase,
-      cursor_index: cursor,
-      totals,
-      errors,
-      chunks_done: chunks,
-    });
+    await saveRun(supabase, run.id, { phase, cursor_index: cursor, totals, errors, chunks_done: chunks });
     return { phase, done: false };
   }
 
-  // ── PHASE 3 : intégrité, rotation GFS, rapport ──
-  let integrityResult: IntegrityResult | null = null;
-  try {
-    integrityResult = await verifyBackupIntegrityByCounts(supabase, counts, TABLES_TO_BACKUP);
-    if (!integrityResult.passed) {
-      if (integrityResult.checks.tablesMissing.length > 0) {
-        errors.push(`[Integrity] Tables manquantes: ${integrityResult.checks.tablesMissing.slice(0, 10).join(", ")}`);
+  // ── PHASE 4 : synchro incrémentale du storage vers le miroir Drive ──
+  if (phase === "storage") {
+    const totals: Record<string, number | string> = { ...run.totals };
+    const mirrorRootId = await getFolderId(supabase, accessToken, MIRROR_ROOT_BUCKET, "supertools_storage_mirror", rootFolderId);
+
+    while (cursor < STORAGE_BUCKETS.length && !outOfBudget()) {
+      const bucket = STORAGE_BUCKETS[cursor];
+      const res = await syncStorageBucket(
+        supabase,
+        accessToken,
+        bucket,
+        mirrorRootId,
+        outOfBudget,
+        () => saveRun(supabase, run.id, {}),
+      );
+      totals.storageCopiedFiles = Number(totals.storageCopiedFiles || 0) + res.copied;
+      totals.storageCopiedBytes = Number(totals.storageCopiedBytes || 0) + res.copiedBytes;
+      totals.storageStreamedFiles = Number(totals.storageStreamedFiles || 0) + res.streamed;
+      totals.storageStreamedBytes = Number(totals.storageStreamedBytes || 0) + res.streamedBytes;
+      if (res.errors.length > 0) {
+        totals.storageErrorCount = Number(totals.storageErrorCount || 0) + res.errors.length;
+        errors.push(...res.errors.slice(0, 3).map((e) => `[Storage] ${e}`));
+        if (res.errors.length > 3) errors.push(`[Storage] ${bucket}: +${res.errors.length - 3} autres erreurs`);
       }
-      for (const m of integrityResult.checks.rowCountMismatches.slice(0, 5)) {
-        errors.push(`[Integrity] ${m.table}: backup=${m.backup} vs live=${m.live}`);
-      }
+      chunks++;
+      if (!res.done) break; // budget épuisé : le manifeste sert de point de reprise
+      cursor++;
     }
-  } catch (intErr) {
-    errors.push(`[Integrity] ${intErr instanceof Error ? intErr.message : "Verification failed"}`);
+
+    if (cursor >= STORAGE_BUCKETS.length) {
+      phase = "report";
+      cursor = 0;
+    }
+    await saveRun(supabase, run.id, { phase, cursor_index: cursor, totals, errors, chunks_done: chunks });
+    return { phase, done: false };
   }
 
-  let deletedOldBackups = 0;
-  if (rootFolderId) {
+  // ── PHASE 5 : rapport ──
+  const remaining = await countRemainingFiles(supabase);
+  const storageComplete = remaining.pending === 0 && Number(run.totals.storageErrorCount || 0) === 0;
+  return await finishRun(supabase, run, errors, chunks, storageComplete ? "success" : "partial", remaining);
+}
+
+/** Fichiers encore à copier, tous buckets confondus (relu en fin de run). */
+async function countRemainingFiles(supabase: any): Promise<{ pending: number; total: number; unknown: boolean }> {
+  let pending = 0;
+  let total = 0;
+  let unknown = false;
+  for (const bucket of STORAGE_BUCKETS) {
     try {
-      const dbBackups = await listFilesInFolder(accessToken, rootFolderId, "supertools_backup_");
-      const keepIds = computeGfsKeepSet(dbBackups);
-      for (const b of dbBackups) {
-        if (!keepIds.has(b.id)) {
-          try {
-            await deleteGoogleDriveFile(accessToken, b.id);
-            deletedOldBackups++;
-          } catch { /* non critique */ }
-        }
-      }
-    } catch (rotErr) {
-      console.warn("[scheduled-backup] Rotation error:", rotErr);
+      const c = await countPending(supabase, bucket);
+      pending += c.pending;
+      total += c.total;
+    } catch {
+      unknown = true;
     }
   }
+  return { pending, total, unknown };
+}
 
-  const totalRows = Object.values(counts).reduce((s, n) => s + (n > 0 ? n : 0), 0);
-  const dbErrors = errors.filter((e) => e.startsWith("[DB]")).length;
-  const success = dbErrors === 0 && integrityResult?.passed !== false;
-  const durationMs = Date.now() - new Date(run.started_at).getTime();
-  const storageMB = (Number(run.totals.storageTotalBytes || 0) / 1024 / 1024).toFixed(2);
-  const streamedFiles = Number(run.totals.storageStreamedFiles || 0);
-  const streamedMB = (Number(run.totals.storageStreamedBytes || 0) / 1024 / 1024).toFixed(2);
-
-  const details = {
-    success,
-    runId: run.id,
-    driveFolderId: folderId,
-    tablesCount: TABLES_TO_BACKUP.length,
-    filesUploaded: fileIds.length,
-    totalRows,
-    storage: {
-      bucketsCount: STORAGE_BUCKETS.length,
-      totalFiles: Number(run.totals.storageTotalFiles || 0),
-      uploadedFiles: Number(run.totals.storageUploadedFiles || 0),
-      totalSizeMB: storageMB,
-      streamedFiles,
-      streamedSizeMB: streamedMB,
-    },
-    deletedOldBackups,
-    gfsRetention: `${GFS_DAILY}d/${GFS_WEEKLY}w/${GFS_MONTHLY}m`,
-    integrity: integrityResult
-      ? {
-          passed: integrityResult.passed,
-          tablesPresent: integrityResult.checks.tablesPresent,
-          tablesMissing: integrityResult.checks.tablesMissing.length,
-          rowCountMatches: integrityResult.checks.rowCountMatches,
-          rowCountMismatches: integrityResult.checks.rowCountMismatches.length,
-        }
-      : null,
-    durationMs,
-    chunks: chunks,
-    errors: errors.length > 0 ? errors.slice(0, 50) : null,
-  };
+/**
+ * Clôt le run et envoie le rapport. Le statut du run suit la base : la synchro
+ * storage a son propre statut (success / partial / incomplete).
+ */
+async function finishRun(
+  supabase: any,
+  run: RunRow,
+  errors: string[],
+  chunks: number,
+  storageStatus: "success" | "partial" | "incomplete",
+  remaining: { pending: number; total: number; unknown: boolean } | null,
+) {
+  const { data: fresh } = await supabase.from("backup_runs").select("*").eq("id", run.id).single();
+  const r = (fresh || run) as RunRow & { db_status?: string | null };
+  const t = r.totals || {};
+  const dbOk = r.db_status === "success";
+  const totalRows = Number(t.totalRows || 0);
+  const durationMs = Date.now() - new Date(r.started_at).getTime();
+  const mb = (n: unknown) => (Number(n || 0) / 1024 / 1024).toFixed(0);
+  const copied = Number(t.storageCopiedFiles || 0);
+  const pendingStart = Number(t.storagePendingAtStart || 0);
+  const remainingLabel = remaining
+    ? `${remaining.pending}${remaining.unknown ? " (au moins)" : ""} sur ${remaining.total} fichiers`
+    : `≈ ${Math.max(pendingStart - copied, 0)} (estimation)`;
+  const storageLabel = { success: "à jour", partial: "partielle", incomplete: "interrompue" }[storageStatus];
+  const success = dbOk;
 
   await supabase.from("activity_logs").insert({
     action_type: "scheduled_backup",
     recipient_email: "system",
-    details,
+    details: {
+      success,
+      runId: r.id,
+      dbStatus: r.db_status,
+      storageStatus,
+      totalRows,
+      storage: { copied, copiedMB: mb(t.storageCopiedBytes), pendingAtStart: pendingStart, remaining: remaining?.pending ?? null },
+      durationMs,
+      chunks,
+      errors: errors.length > 0 ? errors.slice(0, 50) : null,
+    },
   });
 
-  await saveRun(supabase, run.id, {
+  await saveRun(supabase, r.id, {
     status: success ? "success" : "failed",
     phase: "done",
     cursor_index: 0,
     errors,
-    totals: { ...run.totals, totalRows, deletedOldBackups, durationMs },
+    storage_status: storageStatus,
+    storage_finished_at: new Date().toISOString(),
+    totals: { ...t, durationMs, storageRemaining: remaining?.pending ?? null },
     finished_at: new Date().toISOString(),
     chunks_done: chunks,
   });
 
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">${label}</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${value}</td></tr>`;
+  const icon = !dbOk ? "❌" : storageStatus === "success" ? "✅" : "⚠️";
   try {
     await sendBackupEmail(
-      `${success ? "✅" : "⚠️"} Sauvegarde SuperTools ${run.run_date} — ${TABLES_TO_BACKUP.length} tables, ${totalRows.toLocaleString("fr-FR")} lignes`,
-      `
-        <div style="font-family: sans-serif; max-width: 600px; text-align: left;">
-          <h2 style="color: ${success ? "#16a34a" : "#d97706"};">Sauvegarde automatique ${success ? "réussie" : "terminée avec avertissements"}</h2>
-          <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Date</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${run.run_date}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Tables</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${TABLES_TO_BACKUP.length} (${fileIds.length} fichiers)</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Lignes</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${totalRows.toLocaleString("fr-FR")}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Fichiers storage</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${Number(run.totals.storageUploadedFiles || 0)}/${Number(run.totals.storageTotalFiles || 0)} (${storageMB} Mo)</td></tr>
-            ${streamedFiles > 0 ? `<tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">dont gros fichiers streamés</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${streamedFiles} (${streamedMB} Mo)</td></tr>` : ""}
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Dossier Drive</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${folderId}</td></tr>
-            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Durée totale</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${(durationMs / 1000).toFixed(0)}s en ${chunks} tranches</td></tr>
-          </table>
-          ${errors.length > 0 ? `
-            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; margin-top: 16px;">
-              <h3 style="color: #dc2626; margin: 0 0 8px 0;">Avertissements (${errors.length})</h3>
-              <ul style="margin: 0; padding-left: 20px; color: #991b1b; font-size: 13px;">
-                ${errors.slice(0, 10).map((e) => "<li>" + escapeForHtml(e) + "</li>").join("")}
-              </ul>
-            </div>` : ""}
-          <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
-            Rétention GFS: ${GFS_DAILY}j / ${GFS_WEEKLY}s / ${GFS_MONTHLY}m — ${deletedOldBackups} anciennes sauvegardes supprimées
-          </p>
-        </div>
-      `,
+      `${icon} Sauvegarde SuperTools ${r.run_date} — base ${dbOk ? "OK" : "KO"}, fichiers ${storageLabel}`,
+      `<div style="font-family: sans-serif; max-width: 600px; text-align: left;">
+        <h2 style="color: ${dbOk ? "#16a34a" : "#dc2626"};">Base de données : ${dbOk ? "sauvegarde OK" : "sauvegarde KO"}</h2>
+        <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+          ${row("Date", r.run_date)}
+          ${row("Base de données", dbOk ? "✅ OK" : "❌ KO")}
+          ${row("Tables", `${TABLES_TO_BACKUP.length} (${(r.drive_file_ids || []).length} fichiers)`)}
+          ${row("Lignes", totalRows.toLocaleString("fr-FR"))}
+          ${row("Intégrité", String(t.integrityPassed || "?"))}
+        </table>
+        <h2 style="color: ${storageStatus === "success" ? "#16a34a" : "#d97706"};">Fichiers (storage) : synchro ${storageLabel}</h2>
+        <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+          ${row("À copier au début du run", `${pendingStart} fichiers (${mb(t.storagePendingBytesAtStart)} Mo)`)}
+          ${row("Copiés ce run", `${copied} fichiers (${mb(t.storageCopiedBytes)} Mo, dont ${Number(t.storageStreamedFiles || 0)} gros fichiers)`)}
+          ${row("Restant à copier", remainingLabel)}
+          ${row("Fichiers en erreur", String(Number(t.storageErrorCount || 0)))}
+        </table>
+        ${storageStatus !== "success" ? `<p style="color:#6b7280;">Les fichiers restants seront copiés au prochain run, sans recopier ceux déjà sauvegardés.</p>` : ""}
+        ${errors.length > 0 ? `
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; margin-top: 16px;">
+            <h3 style="color: #dc2626; margin: 0 0 8px 0;">Avertissements (${errors.length})</h3>
+            <ul style="margin: 0; padding-left: 20px; color: #991b1b; font-size: 13px;">
+              ${errors.slice(0, 10).map((e) => "<li>" + escapeForHtml(e) + "</li>").join("")}
+            </ul>
+          </div>` : ""}
+        <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
+          Durée ${(durationMs / 60000).toFixed(0)} min en ${chunks} tranches — rétention base GFS ${GFS_DAILY}j / ${GFS_WEEKLY}s / ${GFS_MONTHLY}m (${Number(t.deletedOldBackups || 0)} anciennes supprimées)
+        </p>
+      </div>`,
       "scheduled_backup",
     );
   } catch (emailErr) {
@@ -1348,26 +1472,23 @@ function escapeForHtml(value: string): string {
     .replace(/>/g, "&gt;");
 }
 
-/** Alerte si aucune sauvegarde réussie depuis plus de 26 h (max 1 alerte / 20 h). */
+/**
+ * Alerte si aucune sauvegarde de la BASE n'a réussi depuis plus de 26 h
+ * (max 1 alerte / 20 h). La synchro storage a sa propre alerte.
+ */
 async function checkMissingBackupAlert(supabase: any): Promise<boolean> {
   const { data: lastSuccess } = await supabase
     .from("backup_runs")
-    .select("finished_at")
-    .eq("status", "success")
-    .order("finished_at", { ascending: false })
+    .select("db_finished_at")
+    .eq("db_status", "success")
+    .order("db_finished_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  const lastMs = lastSuccess?.finished_at ? new Date(lastSuccess.finished_at).getTime() : 0;
+  const lastMs = lastSuccess?.db_finished_at ? new Date(lastSuccess.db_finished_at).getTime() : 0;
+  await checkStorageSyncAlert(supabase);
   if (Date.now() - lastMs < MISSING_BACKUP_ALERT_MS) return false;
-
-  const since = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
-  const { count } = await supabase
-    .from("activity_logs")
-    .select("*", { count: "exact", head: true })
-    .eq("action_type", "backup_missing_alert")
-    .gte("created_at", since);
-  if ((count ?? 0) > 0) return false;
+  if (await alertedRecently(supabase, "backup_missing_alert")) return false;
 
   const lastLabel = lastMs
     ? new Date(lastMs).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })
@@ -1375,12 +1496,12 @@ async function checkMissingBackupAlert(supabase: any): Promise<boolean> {
 
   try {
     await sendBackupEmail(
-      `🚨 Aucune sauvegarde SuperTools depuis plus de 24 h`,
+      `🚨 Aucune sauvegarde de la base SuperTools depuis plus de 24 h`,
       `
         <div style="font-family: sans-serif; max-width: 600px; text-align: left;">
-          <h2 style="color: #dc2626;">Alerte sauvegarde</h2>
-          <p>Aucune sauvegarde complète n'a abouti depuis plus de 24 heures.</p>
-          <p style="color: #6b7280;">Dernière sauvegarde réussie : <strong>${lastLabel}</strong></p>
+          <h2 style="color: #dc2626;">Alerte sauvegarde de la base</h2>
+          <p>Aucune sauvegarde complète de la base de données n'a abouti depuis plus de 24 heures.</p>
+          <p style="color: #6b7280;">Dernière sauvegarde de la base réussie : <strong>${lastLabel}</strong></p>
           <p style="color: #6b7280;">Vérifie la connexion Google Drive et le cron <code>daily-scheduled-backup</code>.</p>
         </div>
       `,
@@ -1393,9 +1514,76 @@ async function checkMissingBackupAlert(supabase: any): Promise<boolean> {
   await supabase.from("activity_logs").insert({
     action_type: "backup_missing_alert",
     recipient_email: "system",
-    details: { lastSuccessAt: lastSuccess?.finished_at || null },
+    details: { lastDbSuccessAt: lastSuccess?.db_finished_at || null },
   });
   return true;
+}
+
+async function alertedRecently(supabase: any, actionType: string): Promise<boolean> {
+  const since = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
+  const { count } = await supabase
+    .from("activity_logs")
+    .select("*", { count: "exact", head: true })
+    .eq("action_type", actionType)
+    .gte("created_at", since);
+  return (count ?? 0) > 0;
+}
+
+/**
+ * Alerte storage : aucune synchro complète des fichiers depuis 72 h. Tant
+ * qu'aucune synchro n'a jamais abouti, le délai court depuis le premier
+ * fichier inscrit au manifeste (la première copie intégrale prend plusieurs runs).
+ */
+const STORAGE_SYNC_ALERT_MS = 72 * 60 * 60 * 1000;
+async function checkStorageSyncAlert(supabase: any): Promise<void> {
+  const { data: lastOk } = await supabase
+    .from("backup_runs")
+    .select("storage_finished_at")
+    .eq("storage_status", "success")
+    .order("storage_finished_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  let refMs = lastOk?.storage_finished_at ? new Date(lastOk.storage_finished_at).getTime() : 0;
+  if (!refMs) {
+    const { data: first } = await supabase
+      .from("backup_storage_manifest")
+      .select("backed_up_at")
+      .order("backed_up_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (!first?.backed_up_at) return;
+    refMs = new Date(first.backed_up_at).getTime();
+  }
+  if (Date.now() - refMs < STORAGE_SYNC_ALERT_MS) return;
+  if (await alertedRecently(supabase, "backup_storage_sync_alert")) return;
+
+  const { data: lastRun } = await supabase
+    .from("backup_runs")
+    .select("run_date, storage_status, totals")
+    .not("storage_status", "is", null)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const remaining = lastRun?.totals?.storageRemaining;
+  try {
+    await sendBackupEmail(
+      `⚠️ Synchro des fichiers SuperTools incomplète depuis plus de 72 h`,
+      `<div style="font-family: sans-serif; max-width: 600px; text-align: left;">
+        <h2 style="color: #d97706;">Alerte synchro des fichiers</h2>
+        <p>La base de données est sauvegardée séparément ; cette alerte concerne uniquement la copie des fichiers vers Google Drive.</p>
+        <p style="color: #6b7280;">Dernière synchro complète : <strong>${lastOk?.storage_finished_at ? new Date(lastOk.storage_finished_at).toLocaleString("fr-FR", { timeZone: "Europe/Paris" }) : "jamais"}</strong></p>
+        <p style="color: #6b7280;">Dernier run : ${lastRun?.run_date ?? "?"} (${escapeForHtml(String(lastRun?.storage_status ?? "?"))})${remaining != null ? `, ${remaining} fichiers restant à copier` : ""}.</p>
+      </div>`,
+      "backup_storage_sync_alert",
+    );
+  } catch (err) {
+    console.error("[scheduled-backup] Alerte storage non envoyée:", err);
+  }
+  await supabase.from("activity_logs").insert({
+    action_type: "backup_storage_sync_alert",
+    recipient_email: "system",
+    details: { lastStorageSuccessAt: lastOk?.storage_finished_at || null, remaining: remaining ?? null },
+  });
 }
 
 // ─── Main handler ───────────────────────────────────────────────────────────
@@ -1484,6 +1672,13 @@ serve(async (req) => {
         return createJsonResponse({ skipped: true, reason: "run_in_progress", runId: run.id });
       }
       console.log(`[scheduled-backup] Reprise run ${run.id} phase=${run.phase} cursor=${run.cursor_index} (idle ${Math.round(idleMs / 1000)}s)`);
+      if (idleMs > STALE_RUN_MS * 4 && (runningRun as any).db_status === "success") {
+        // Base déjà sauvegardée : le run est réussi, seule la synchro storage
+        // est interrompue. Le manifeste garde le point de reprise.
+        await finishRun(supabase, run, [...(run.errors || [])], run.chunks_done, "incomplete", null);
+        await checkMissingBackupAlert(supabase);
+        return createJsonResponse({ finishedWithStorageIncomplete: true, runId: run.id });
+      }
       if (idleMs > STALE_RUN_MS * 4) {
         await saveRun(supabase, run.id, {
           status: "failed",
@@ -1496,7 +1691,7 @@ serve(async (req) => {
             `❌ ÉCHEC sauvegarde SuperTools ${run.run_date}`,
             `<div style="font-family: sans-serif; max-width: 600px; text-align: left;">
               <h2 style="color: #dc2626;">Sauvegarde automatique interrompue</h2>
-              <p>Le run du ${run.run_date} n'a pas terminé dans la fenêtre du cron (arrêté en phase <strong>${escapeForHtml(String(run.phase))}</strong>, étape ${run.cursor_index}).</p>
+              <p>La sauvegarde de la base du ${run.run_date} n'a pas terminé dans la fenêtre du cron (arrêtée en phase <strong>${escapeForHtml(String(run.phase))}</strong>, étape ${run.cursor_index}).</p>
             </div>`,
             "scheduled_backup_failure",
           );
