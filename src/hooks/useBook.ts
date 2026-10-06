@@ -98,16 +98,20 @@ export function useBookAlbums() {
 
       const countMap: Record<string, number> = {};
       const coverMap: Record<string, string> = {};
+      const thumbByFile: Record<string, string> = {};
+      const keyOf = (u: string) => extractStoragePath(u) ?? u.split("?")[0];
       for (const row of productions ?? []) {
         countMap[row.album_id] = (countMap[row.album_id] ?? 0) + 1;
-        if (!coverMap[row.album_id]) {
-          coverMap[row.album_id] = row.thumbnail_url ?? row.file_url;
-        }
+        const lightThumb = row.thumbnail_url && row.thumbnail_url !== row.file_url ? row.thumbnail_url : null;
+        if (lightThumb) thumbByFile[keyOf(row.file_url)] = lightThumb;
+        if (!coverMap[row.album_id] && lightThumb) coverMap[row.album_id] = lightThumb;
       }
 
-      const rawCovers = (albums ?? []).map(
-        (album) => album.cover_url ?? coverMap[album.id] ?? null,
-      );
+      // Couverture : toujours la vignette légère de la production, jamais le fichier original.
+      const rawCovers = (albums ?? []).map((album) => {
+        if (album.cover_url) return thumbByFile[keyOf(album.cover_url)] ?? album.cover_url;
+        return coverMap[album.id] ?? null;
+      });
       const signedCovers = await signBookUrls(rawCovers);
 
       return (albums ?? []).map((album, i) => ({
@@ -496,8 +500,8 @@ export function useAddMediaToAlbum() {
         user_id: userId,
         title: m.file_name.replace(/\.[^/.]+$/, ""),
         file_url: m.file_url,
-        // Une vidéo n'a pas d'image de vignette : la carte en extrait une frame.
-        thumbnail_url: m.file_type === "image" ? m.file_url : null,
+        // Vignette générée ensuite par useBackfillBookThumbnails (jamais l'original : trop lourd).
+        thumbnail_url: null,
         file_type: m.file_type as "image" | "video",
         original_filename: m.file_name,
         sort_order: startOrder + idx,
