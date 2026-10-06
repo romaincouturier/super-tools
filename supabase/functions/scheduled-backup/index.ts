@@ -561,11 +561,21 @@ async function listBucketFiles(
 ): Promise<BucketFile[]> {
   const allFiles: BucketFile[] = [];
   for (let offset = 0; ; offset += 1000) {
-    const { data, error } = await supabase.storage.from(bucketName).list(path, {
+    let { data, error } = await supabase.storage.from(bucketName).list(path, {
       limit: 1000,
       offset,
       sortBy: { column: "name", order: "asc" },
     });
+    // Saturation passagère des connexions : on réessaie avant d'abandonner.
+    for (const delay of [2000, 5000, 10000]) {
+      if (!error || !/too many connections/i.test(error.message)) break;
+      await new Promise((r) => setTimeout(r, delay));
+      ({ data, error } = await supabase.storage.from(bucketName).list(path, {
+        limit: 1000,
+        offset,
+        sortBy: { column: "name", order: "asc" },
+      }));
+    }
     if (error) throw new Error(`liste ${bucketName}/${path}: ${error.message}`);
     if (!data) break;
     for (const item of data) {
@@ -1141,7 +1151,9 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
         continue;
       }
       totals[attemptKey] = attempts;
-      await saveRun(supabase, run.id, { totals, cursor_index: cursor });
+      // Compteurs et fichiers persistés avec le curseur : si le worker meurt
+      // plus loin dans ce tick, les tables déjà exportées ne sont pas perdues.
+      await saveRun(supabase, run.id, { totals, cursor_index: cursor, table_row_counts: counts, drive_file_ids: fileIds });
 
       const startOffset = Number(totals[offsetKey] || 0);
       const part = Number(totals[partKey] || 0);
