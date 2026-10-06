@@ -826,3 +826,62 @@ export function useRecordView() {
     },
   });
 }
+
+// ---------------------------------------------------------------------------
+// Vignettes manquantes : les images importées depuis la médiathèque n'ont pas
+// de vignette légère, la grille chargeait donc l'original (jusqu'à ~10 Mo).
+// On en génère une une seule fois dans le navigateur, puis on la stocke.
+// ---------------------------------------------------------------------------
+
+const backfillRunning = new Set<string>();
+
+export function useBackfillBookThumbnails(albumId: string) {
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: ["book-thumbnail-backfill", albumId],
+    enabled: !!albumId,
+    staleTime: Infinity,
+    retry: false,
+    queryFn: async () => {
+      if (backfillRunning.has(albumId)) return 0;
+      backfillRunning.add(albumId);
+      try {
+        const userId = await getCurrentUserId();
+        const { data } = await supabase
+          .from("book_productions")
+          .select("id, file_url, thumbnail_url, original_filename, user_id")
+          .eq("album_id", albumId)
+          .eq("file_type", "image");
+        const todo = (data ?? []).filter(
+          (r) => r.user_id === userId && (!r.thumbnail_url || r.thumbnail_url === r.file_url),
+        );
+        if (todo.length === 0) return 0;
+        const { createThumbnailFromUrl } = await import("@/lib/bookThumbnail");
+        let done = 0;
+        for (const row of todo) {
+          try {
+            const [src] = await signBookUrls([row.file_url]);
+            const thumb = await createThumbnailFromUrl(src ?? row.file_url, row.original_filename ?? row.id);
+            if (!thumb) continue;
+            const path = `${userId}/${albumId}/thumbnails/${row.id}.jpg`;
+            const { error: upErr } = await supabase.storage
+              .from("book-productions")
+              .upload(path, thumb, { contentType: "image/jpeg", upsert: true });
+            if (upErr) continue;
+            const { error } = await supabase.from("book_productions").update({ thumbnail_url: path }).eq("id", row.id);
+            if (!error) done++;
+          } catch (e) {
+            console.warn("[book-thumbnail-backfill]", row.id, e);
+          }
+        }
+        if (done > 0) {
+          queryClient.invalidateQueries({ queryKey: ["book-productions", albumId] });
+          queryClient.invalidateQueries({ queryKey: ["book-albums"] });
+        }
+        return done;
+      } finally {
+        backfillRunning.delete(albumId);
+      }
+    },
+  });
+}
