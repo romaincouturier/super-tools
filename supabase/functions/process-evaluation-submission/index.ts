@@ -264,6 +264,18 @@ const handler = async (req: Request): Promise<Response> => {
     const firstName = evaluation.first_name || "";
     const lastName = evaluation.last_name || "";
     const company = evaluation.company || "";
+    const certificateCompany = await resolveCertificateCompany(supabase, {
+      participantId: evaluation.participant_id ?? null,
+      participantEmail: evaluation.email ?? null,
+      trainingId: training.id,
+      evaluationCompany: evaluation.company,
+      fallback: !["inter-entreprises", "e_learning"].includes(training.format_formation || "")
+        ? training.client_name
+        : null,
+    });
+    if (!certificateCompany) {
+      console.warn(`Certificate without employer company for evaluation ${evaluation.id}`);
+    }
     const email = evaluation.email || "";
     const fullName = formatName(firstName, lastName);
 
@@ -301,13 +313,7 @@ const handler = async (req: Request): Promise<Response> => {
         status: "pending",
         payload: {
           STAGIAIRE: fullName || "Participant",
-          ENTREPRISE: company
-            || (
-              !["inter-entreprises", "e_learning"].includes(training.format_formation || "")
-                ? (training.client_name || "")
-                : ""
-            )
-            || "—",
+          ENTREPRISE: certificateCompany,
           TITRE_FORMATION: training.training_name,
           DATE_FORMATION: dateFormation,
           DUREE: dureeStr,
