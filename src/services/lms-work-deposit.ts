@@ -140,11 +140,47 @@ export async function uploadDepositFile(
 }
 
 // ── Comments (Stage 2 surface) ──────────────────────────────────────
+//
+// Un dépôt partagé est publié dans la communauté (practice_posts.deposit_id).
+// Dans ce cas, le fil de commentaires unique est celui de la publication
+// communauté : lecture et écriture passent par practice_post_comments, pour
+// que leçon, communauté et écran Dépôts affichent la même conversation.
+
+/** Returns the community post id mirroring this deposit, if any. */
+export async function fetchDepositLinkedPostId(depositId: string): Promise<string | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any)
+    .from("practice_posts")
+    .select("id")
+    .eq("deposit_id", depositId)
+    .maybeSingle();
+  return (data?.id as string | undefined) ?? null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const postComments = (c: any) => c.from("practice_post_comments");
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function postCommentToDepositComment(row: any, depositId: string): DepositComment {
+  return {
+    id: row.id,
+    deposit_id: depositId,
+    author_email: row.author_email,
+    content: row.content,
+    status: "published",
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    author_display_name: row.author_display_name ?? null,
+  };
+}
 
 export async function fetchDepositComments(depositId: string, learnerEmail: string): Promise<DepositComment[]> {
   const c = clientFor(learnerEmail);
+  const postId = await fetchDepositLinkedPostId(depositId);
   const [commentsRes, learnerProfilesRes, staffProfilesRes] = await Promise.all([
-    comments(c).select("*").eq("deposit_id", depositId).order("created_at", { ascending: true }),
+    postId
+      ? postComments(c).select("*").eq("post_id", postId).order("created_at", { ascending: true })
+      : comments(c).select("*").eq("deposit_id", depositId).order("created_at", { ascending: true }),
     supabase.from("learner_profiles").select("email, first_name, last_name"),
     fetchStaffPublicProfiles(),
   ]);
@@ -158,11 +194,16 @@ export async function fetchDepositComments(depositId: string, learnerEmail: stri
   ((learnerProfilesRes.data as { email: string; first_name?: string | null; last_name?: string | null }[]) || [])
     .forEach((p) => { if (!profileMap.has(p.email)) profileMap.set(p.email, p); });
 
-  return ((commentsRes.data || []) as DepositComment[]).map((cm) => {
+  const rows: DepositComment[] = postId
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? ((commentsRes.data || []) as any[]).map((r) => postCommentToDepositComment(r, depositId))
+    : ((commentsRes.data || []) as DepositComment[]);
+
+  return rows.map((cm) => {
     const p = profileMap.get(cm.author_email);
     const name = p && (p.first_name || p.last_name)
       ? [p.first_name, p.last_name].filter(Boolean).join(" ")
-      : null;
+      : cm.author_display_name ?? null;
     return { ...cm, author_display_name: name };
   });
 }
@@ -173,6 +214,21 @@ export async function createDepositComment(
   content: string,
 ): Promise<DepositComment> {
   const c = clientFor(authorEmail);
+  const postId = await fetchDepositLinkedPostId(depositId);
+  if (postId) {
+    const { data, error } = await postComments(c)
+      .insert({ post_id: postId, author_email: authorEmail, content })
+      .select()
+      .single();
+    if (error) throw error;
+    // Même notification que depuis la communauté (préférences de l'auteur respectées).
+    supabase.functions
+      .invoke("notify-practice-comment", {
+        body: { postId, commentId: data?.id, commenterEmail: authorEmail },
+      })
+      .catch((err) => console.warn("notify-practice-comment failed:", err));
+    return postCommentToDepositComment(data, depositId);
+  }
   const { data, error } = await comments(c)
     .insert({ deposit_id: depositId, author_email: authorEmail, content })
     .select()
@@ -182,19 +238,26 @@ export async function createDepositComment(
 }
 
 export async function updateDepositComment(
+  depositId: string,
   id: string,
   authorEmail: string,
   content: string,
 ): Promise<DepositComment> {
   const c = clientFor(authorEmail);
+  if (await fetchDepositLinkedPostId(depositId)) {
+    const { data, error } = await postComments(c).update({ content }).eq("id", id).select().single();
+    if (error) throw error;
+    return postCommentToDepositComment(data, depositId);
+  }
   const { data, error } = await comments(c).update({ content }).eq("id", id).select().single();
   if (error) throw error;
   return data as DepositComment;
 }
 
-export async function deleteDepositComment(id: string, authorEmail: string): Promise<void> {
+export async function deleteDepositComment(depositId: string, id: string, authorEmail: string): Promise<void> {
   const c = clientFor(authorEmail);
-  const { error } = await comments(c).delete().eq("id", id);
+  const table = (await fetchDepositLinkedPostId(depositId)) ? postComments(c) : comments(c);
+  const { error } = await table.delete().eq("id", id);
   if (error) throw error;
 }
 
