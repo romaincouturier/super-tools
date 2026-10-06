@@ -1055,7 +1055,8 @@ async function exportTableToDrive(
   tableName: string,
   startOffset = 0,
   part = 0,
-): Promise<{ rows: number; fileId: string | null; error: string | null; nextOffset: number; done: boolean }> {
+  startLastId: string | null = null,
+): Promise<{ rows: number; fileId: string | null; error: string | null; nextOffset: number; done: boolean; lastId: string | null }> {
   const chunks: string[] = [
     `{"table":${JSON.stringify(tableName)},"part":${part},"offset":${startOffset},"exportedAt":${JSON.stringify(new Date().toISOString())},"rows":[`,
   ];
@@ -1063,14 +1064,32 @@ async function exportTableToDrive(
   let bytes = 0;
   let from = startOffset;
   let done = false;
+  // Pagination par clé (id) quand possible : l'OFFSET devient trop lent sur les
+  // grosses tables (statement timeout au-delà de ~500k lignes).
+  let lastId: string | null = startLastId;
+  let keyset = startOffset === 0 || startLastId !== null;
 
   while (rows < MAX_ROWS_PER_FILE && bytes < MAX_BYTES_PER_FILE) {
-    const { data, error } = await supabase
-      .from(tableName)
-      .select("*")
-      .range(from, from + PAGE_SIZE - 1);
-    if (error) return { rows, fileId: null, error: error.message, nextOffset: from, done: true };
+    let data: any[] | null = null;
+    let error: { message: string } | null = null;
+    if (keyset) {
+      let q = supabase.from(tableName).select("*").order("id", { ascending: true }).limit(PAGE_SIZE);
+      if (lastId !== null) q = q.gt("id", lastId);
+      ({ data, error } = await q);
+      if (error && from === startOffset && lastId === null) {
+        keyset = false; // pas de colonne id : retour à l'offset
+        error = null;
+      }
+    }
+    if (!keyset) {
+      ({ data, error } = await supabase
+        .from(tableName)
+        .select("*")
+        .range(from, from + PAGE_SIZE - 1));
+    }
+    if (error) return { rows, fileId: null, error: error.message, nextOffset: from, done: true, lastId };
     const batch = data || [];
+    if (keyset && batch.length > 0) lastId = String(batch[batch.length - 1].id);
     for (const row of batch) {
       if (rows > 0) chunks.push(",");
       const json = JSON.stringify(row);
@@ -1093,7 +1112,7 @@ async function exportTableToDrive(
     ? `table__${tableName}.json`
     : `table__${tableName}__part${part}.json`;
   const uploaded = await uploadJsonToGoogleDrive(accessToken, fileName, content, folderId);
-  return { rows, fileId: uploaded.id, error: null, nextOffset: from, done };
+  return { rows, fileId: uploaded.id, error: null, nextOffset: from, done, lastId: keyset ? lastId : null };
 }
 
 
@@ -1185,6 +1204,7 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
           tableName,
           startOffset,
           part,
+          (totals[`dbLastId_${tableName}`] as string | undefined) ?? null,
         );
         counts[tableName] = (startOffset > 0 ? Number(counts[tableName] || 0) : 0) + res.rows;
         if (res.fileId) fileIds.push(res.fileId);
@@ -1194,11 +1214,14 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
           delete totals[offsetKey];
           delete totals[partKey];
           delete totals[attemptKey];
+          delete totals[`dbLastId_${tableName}`];
           cursor++;
         } else {
           // Table trop grosse : on reprendra à cet offset au tick suivant.
           totals[offsetKey] = res.nextOffset;
           totals[partKey] = part + 1;
+          if (res.lastId !== null) totals[`dbLastId_${tableName}`] = res.lastId;
+          else delete totals[`dbLastId_${tableName}`];
           totals[attemptKey] = 0;
         }
       } catch (err) {
