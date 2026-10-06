@@ -6,6 +6,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import type {
   BookProfile,
   BookAlbum,
@@ -837,6 +838,7 @@ const backfillRunning = new Set<string>();
 
 export function useBackfillBookThumbnails(albumId: string) {
   const queryClient = useQueryClient();
+  const setThumbnail = useEdgeFunction<{ thumbnail_url: string }>("book-set-thumbnail", { silentOnError: true });
   return useQuery({
     queryKey: ["book-thumbnail-backfill", albumId],
     enabled: !!albumId,
@@ -866,8 +868,7 @@ export function useBackfillBookThumbnails(albumId: string) {
             const form = new FormData();
             form.append("thumbnail", thumb);
             form.append("productionId", row.id);
-            const { error } = await supabase.functions.invoke("book-set-thumbnail", { body: form });
-            if (!error) done++;
+            if (await setThumbnail.invoke(form)) done++;
           } catch (e) {
             console.warn("[book-thumbnail-backfill]", row.id, e);
           }
