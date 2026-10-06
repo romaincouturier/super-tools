@@ -1,6 +1,5 @@
 import { CheckSquare } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useStaffDisplayName } from "@/hooks/useStaffDisplayName";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
@@ -15,23 +14,6 @@ import {
 
 interface Props {
   depositId: string;
-}
-
-function useStaffDisplayName(userId: string | undefined, email: string) {
-  return useQuery({
-    queryKey: ["staff_display_name", userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase as any)
-        .from("profiles")
-        .select("first_name, last_name")
-        .eq("user_id", userId)
-        .maybeSingle();
-      const name = [data?.first_name, data?.last_name].filter(Boolean).join(" ").trim();
-      return name || (email ? email.split("@")[0] : null);
-    },
-  });
 }
 
 /**
@@ -77,16 +59,16 @@ export default function DepositCommunityPanel({ depositId }: Props) {
           try {
             await toggleReaction.mutateAsync({ postId, emoji, iReacted });
             if (!post.is_staff_treated) markTreated.mutate({ postId, treated: true });
-          } catch {
-            toastError(toast, "Action impossible.");
+          } catch (err) {
+            toastError(toast, err instanceof Error ? err : "Action impossible.");
           }
         }}
         onDelete={async (postId) => {
           if (!window.confirm("Retirer ce travail de la communauté ?")) return;
           try {
             await deletePost.mutateAsync(postId);
-          } catch {
-            toastError(toast, "Impossible de supprimer.");
+          } catch (err) {
+            toastError(toast, err instanceof Error ? err : "Impossible de supprimer.");
           }
         }}
         onVote={() => {}}
