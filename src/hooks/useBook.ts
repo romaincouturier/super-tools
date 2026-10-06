@@ -863,12 +863,10 @@ export function useBackfillBookThumbnails(albumId: string) {
             const [src] = await signBookUrls([row.file_url]);
             const thumb = await createThumbnailFromUrl(src ?? row.file_url, row.original_filename ?? row.id);
             if (!thumb) continue;
-            const path = `${userId}/${albumId}/thumbnails/${row.id}.jpg`;
-            const { error: upErr } = await supabase.storage
-              .from("book-productions")
-              .upload(path, thumb, { contentType: "image/jpeg", upsert: true });
-            if (upErr) continue;
-            const { error } = await supabase.from("book_productions").update({ thumbnail_url: path }).eq("id", row.id);
+            const form = new FormData();
+            form.append("thumbnail", thumb);
+            form.append("productionId", row.id);
+            const { error } = await supabase.functions.invoke("book-set-thumbnail", { body: form });
             if (!error) done++;
           } catch (e) {
             console.warn("[book-thumbnail-backfill]", row.id, e);
