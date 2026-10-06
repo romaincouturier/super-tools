@@ -23,6 +23,8 @@ vi.mock("./resend.ts", () => ({
 
 // Now import AFTER the mock is set up
 const { processTemplate, replaceVariables, textToHtml, templateTextToHtml, wrapEmailHtml } = await import("./templates");
+const { renderEmailText } = await import("./editable-email");
+const { EDITABLE_EMAIL_DEFAULTS } = await import("./editable-email-defaults");
 
 // ═══════════════════════════════════════════════════════════════════════
 // processTemplate (with HTML escaping by default)
@@ -192,6 +194,44 @@ describe("textToHtml", () => {
 // ═══════════════════════════════════════════════════════════════════════
 
 describe("templateTextToHtml", () => {
+  it("renders bold in paragraphs and bullet lists", () => {
+    const result = templateTextToHtml("Formation **Facilitation graphique**\n\n• **Lieu :** Paris\n- **Date :** demain");
+    expect(result).toContain("<p>Formation <strong>Facilitation graphique</strong></p>");
+    expect(result).toContain("<li><strong>Lieu :</strong> Paris</li>");
+    expect(result).toContain("<li><strong>Date :</strong> demain</li>");
+    expect(result).not.toContain("**");
+  });
+
+  it("leaves unmatched asterisks unchanged", () => {
+    expect(templateTextToHtml("Texte **inachevé * simple")).toBe("<p>Texte **inachevé * simple</p>");
+  });
+
+  it("renders editable email bold while preserving escaped values and protected blocks", () => {
+    const block = '<p><a href="https://example.com/?a=1&b=2">Signer **ici**</a></p>';
+    const result = renderEmailText("Formation {{training_name}}", "Formation **{{training_name}}**\n\n📍 **Lieu :** {{location}}\n\n{{cta}}", {
+      training_name: 'A & B <img src=x onerror="alert(1)">',
+      location: "Paris",
+    }, { cta: block });
+    expect(result.html).toContain('<strong>A &amp; B &lt;img src=x onerror=&quot;alert(1)&quot;&gt;</strong>');
+    expect(result.html).toContain("📍 <strong>Lieu :</strong> Paris");
+    expect(result.html).toContain(block);
+    expect(result.html).not.toContain("<img");
+    expect(result.html).not.toContain("&amp;amp;");
+    expect(result.subject).toBe('Formation A & B <img src=x onerror="alert(1)">');
+  });
+
+  it("renders bold markers in every catalog default in both language variants", () => {
+    for (const entry of Object.values(EDITABLE_EMAIL_DEFAULTS)) {
+      for (const mode of ["tu", "vous"] as const) {
+        const content = entry.content[mode];
+        const vars = Object.fromEntries([...content.matchAll(/\{\{[#/]?(\w+)\}\}/g)].map((match) => [match[1], "Valeur"]));
+        const result = renderEmailText(entry.subject[mode], content, vars);
+        expect(result.html, `${entry.subject[mode]} (${mode})`).not.toContain("**");
+        if (content.includes("**")) expect(result.html).toContain("<strong>");
+      }
+    }
+  });
+
   it("groups bullet lines into a single list even with blank lines", () => {
     const input = "Bonjour\n\n• Point 1\n\n• Point 2\n\nMerci";
     const result = templateTextToHtml(input);
