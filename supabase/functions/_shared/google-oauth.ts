@@ -39,9 +39,9 @@ export async function refreshGoogleAccessToken(
   });
 
   // Google renvoie parfois des erreurs transitoires (5xx, 429, "internal_failure",
-  // "backend_error") : on réessaie avec backoff 1s, 2s. Les refus définitifs
+  // "backend_error") : on réessaie avec backoff 2s, 5s, 15s. Les refus définitifs
   // (invalid_grant, invalid_client) ne sont pas réessayés.
-  const delays = [1000, 2000];
+  const delays = [2000, 5000, 15000];
   let data: Record<string, unknown> = {};
   for (let attempt = 0; ; attempt++) {
     let transient = false;

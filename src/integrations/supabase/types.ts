@@ -536,6 +536,8 @@ export type Database = {
           chunks_done: number
           created_at: string
           cursor_index: number
+          db_finished_at: string | null
+          db_status: string | null
           drive_file_ids: Json
           drive_folder_id: string | null
           errors: Json
@@ -546,7 +548,9 @@ export type Database = {
           run_date: string
           started_at: string
           status: string
+          storage_finished_at: string | null
           storage_folder_id: string | null
+          storage_status: string | null
           table_row_counts: Json
           totals: Json
           updated_at: string
@@ -555,6 +559,8 @@ export type Database = {
           chunks_done?: number
           created_at?: string
           cursor_index?: number
+          db_finished_at?: string | null
+          db_status?: string | null
           drive_file_ids?: Json
           drive_folder_id?: string | null
           errors?: Json
@@ -565,7 +571,9 @@ export type Database = {
           run_date?: string
           started_at?: string
           status?: string
+          storage_finished_at?: string | null
           storage_folder_id?: string | null
+          storage_status?: string | null
           table_row_counts?: Json
           totals?: Json
           updated_at?: string
@@ -574,6 +582,8 @@ export type Database = {
           chunks_done?: number
           created_at?: string
           cursor_index?: number
+          db_finished_at?: string | null
+          db_status?: string | null
           drive_file_ids?: Json
           drive_folder_id?: string | null
           errors?: Json
@@ -584,10 +594,42 @@ export type Database = {
           run_date?: string
           started_at?: string
           status?: string
+          storage_finished_at?: string | null
           storage_folder_id?: string | null
+          storage_status?: string | null
           table_row_counts?: Json
           totals?: Json
           updated_at?: string
+        }
+        Relationships: []
+      }
+      backup_storage_manifest: {
+        Row: {
+          backed_up_at: string
+          bucket: string
+          drive_file_id: string | null
+          etag: string | null
+          path: string
+          size_bytes: number | null
+          source_updated_at: string | null
+        }
+        Insert: {
+          backed_up_at?: string
+          bucket: string
+          drive_file_id?: string | null
+          etag?: string | null
+          path: string
+          size_bytes?: number | null
+          source_updated_at?: string | null
+        }
+        Update: {
+          backed_up_at?: string
+          bucket?: string
+          drive_file_id?: string | null
+          etag?: string | null
+          path?: string
+          size_bytes?: number | null
+          source_updated_at?: string | null
         }
         Relationships: []
       }
