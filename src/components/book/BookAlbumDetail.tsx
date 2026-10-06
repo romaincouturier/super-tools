@@ -36,6 +36,7 @@ import {
   useAlbumRawCover,
   useReorderProductions,
   extractStoragePath,
+  useBackfillBookThumbnails,
 } from '@/hooks/useBook';
 import BookProductionCard from './BookProductionCard';
 import BookProductionLightbox from './BookProductionLightbox';
@@ -106,6 +107,7 @@ export default function BookAlbumDetail({
 }: BookAlbumDetailProps) {
   const navigate = useNavigate();
   const { data: rawProductions = [], isLoading } = useBookProductions(albumId);
+  useBackfillBookThumbnails(albumId);
   const { data: rawCoverUrl } = useAlbumRawCover(albumId);
   const deleteProduction = useDeleteProduction();
   const updateProduction = useUpdateProduction();
