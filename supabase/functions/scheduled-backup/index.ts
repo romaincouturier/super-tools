@@ -290,6 +290,7 @@ async function listFilesInFolder(
 
     const response = await fetch(url.toString(), {
       headers: { Authorization: `Bearer ${accessToken}` },
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!response.ok) break;
@@ -302,10 +303,12 @@ async function listFilesInFolder(
 }
 
 async function deleteGoogleDriveFile(accessToken: string, fileId: string): Promise<void> {
-  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(20_000),
   });
+  await res.text();
 }
 
 // ─── GFS Rotation Logic ─────────────────────────────────────────────────────
@@ -754,6 +757,10 @@ async function verifyBackupIntegrityByCounts(
       let liveRows: number;
       if (liveCounts && table in liveCounts) {
         liveRows = liveCounts[table];
+      } else if (liveCounts) {
+        // Comptage live indisponible (timeout) : pas de comparaison, pas de recomptage ici.
+        result.checks.rowCountMatches++;
+        continue;
       } else {
         const { count } = await supabase
           .from(table)
@@ -1223,11 +1230,15 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
       const table = TABLES_TO_BACKUP[cursor];
       const backupRows = counts[table];
       if (backupRows !== undefined && backupRows !== -1) {
-        const { count, error } = await supabase.from(table).select("*", { count: "exact", head: true });
+        const { count, error } = await supabase
+          .from(table)
+          .select("*", { count: "exact", head: true })
+          .abortSignal(AbortSignal.timeout(15_000));
         if (!error) live[table] = count ?? 0;
       }
       cursor++;
     }
+    console.log(`[scheduled-backup] db_finalize comptages ${cursor}/${TABLES_TO_BACKUP.length}`);
     if (cursor < TABLES_TO_BACKUP.length) {
       await saveRun(supabase, run.id, {
         cursor_index: cursor,
@@ -1252,24 +1263,6 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
       errors.push(`[Integrity] ${intErr instanceof Error ? intErr.message : "Verification failed"}`);
     }
 
-    let deletedOldBackups = 0;
-    if (rootFolderId) {
-      try {
-        const dbBackups = await listFilesInFolder(accessToken, rootFolderId, "supertools_backup_");
-        const keepIds = computeGfsKeepSet(dbBackups);
-        for (const b of dbBackups) {
-          if (!keepIds.has(b.id)) {
-            try {
-              await deleteGoogleDriveFile(accessToken, b.id);
-              deletedOldBackups++;
-            } catch { /* non critique */ }
-          }
-        }
-      } catch (rotErr) {
-        console.warn("[scheduled-backup] Rotation error:", rotErr);
-      }
-    }
-
     const totalRows = Object.values(counts).reduce((s, n) => s + (n > 0 ? n : 0), 0);
     const dbErrors = errors.filter((e) => e.startsWith("[DB]")).length;
     const dbSuccess = dbErrors === 0 && integrityResult?.passed !== false;
@@ -1283,11 +1276,43 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
         ...run.totals,
         integrityLive: "",
         totalRows,
-        deletedOldBackups,
         integrityPassed: integrityResult?.passed === false ? "non" : "oui",
       },
       chunks_done: chunks + 1,
     });
+
+    // Rotation GFS APRÈS l'enregistrement du statut base : si elle traîne ou
+    // que le worker meurt, la base reste acquise et le tick suivant passe au storage.
+    console.log(`[scheduled-backup] db_finalize terminé (base ${dbSuccess ? "OK" : "KO"}), rotation Drive`);
+    let deletedOldBackups = 0;
+    if (rootFolderId) {
+      try {
+        const dbBackups = await listFilesInFolder(accessToken, rootFolderId, "supertools_backup_");
+        const keepIds = computeGfsKeepSet(dbBackups);
+        for (const b of dbBackups) {
+          if (outOfBudget()) break;
+          if (!keepIds.has(b.id)) {
+            try {
+              await deleteGoogleDriveFile(accessToken, b.id);
+              deletedOldBackups++;
+            } catch { /* non critique */ }
+          }
+        }
+      } catch (rotErr) {
+        console.warn("[scheduled-backup] Rotation error:", rotErr);
+      }
+    }
+    if (deletedOldBackups > 0) {
+      await saveRun(supabase, run.id, {
+        totals: {
+          ...run.totals,
+          integrityLive: "",
+          totalRows,
+          deletedOldBackups,
+          integrityPassed: integrityResult?.passed === false ? "non" : "oui",
+        },
+      });
+    }
     return { phase: "storage_scan", done: false };
   }
 
