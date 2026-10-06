@@ -512,7 +512,15 @@ async function syncStorageBucket(
           result.streamed++;
           result.streamedBytes += file.size;
         } else {
-          const { data, error } = await supabase.storage.from(bucketName).download(file.name);
+          // Erreurs transitoires (Too many connections, Bad Gateway) : 3 essais espacés.
+          let data: Blob | null = null;
+          let error: { message?: string } | null = null;
+          for (const wait of [0, 2000, 6000]) {
+            if (wait) await new Promise((r) => setTimeout(r, wait));
+            ({ data, error } = await supabase.storage.from(bucketName).download(file.name));
+            if (data && !error) break;
+            if (!/too many connections|bad gateway|gateway|timeout|502|503|504/i.test(error?.message ?? "")) break;
+          }
           if (error || !data) {
             result.errors.push(`${bucketName}/${file.name}: ${error?.message || "téléchargement impossible"}`);
             continue;
