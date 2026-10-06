@@ -35,9 +35,24 @@ serve(async (req) => {
     return redirect(`${target}&reaction=unavailable`);
   }
 
-  const { error } = await supabase
-    .from("lms_deposit_reactions")
-    .upsert({ deposit_id: row.deposit_id, author_email: row.trainer_email }, { onConflict: "deposit_id,author_email", ignoreDuplicates: true });
+  // Le travail partagé est une publication communauté : la réaction y est
+  // enregistrée (👍), comme depuis l'écran Communauté, et compte comme traitement.
+  const { data: post } = await supabase
+    .from("practice_posts")
+    .select("id")
+    .eq("deposit_id", row.deposit_id)
+    .maybeSingle();
+  const trainerEmail = String(row.trainer_email).toLowerCase();
+  const { error } = post
+    ? await supabase
+      .from("practice_post_reactions")
+      .upsert({ post_id: post.id, author_email: trainerEmail, reaction_type: "👍" }, { onConflict: "post_id,author_email,reaction_type", ignoreDuplicates: true })
+    : await supabase
+      .from("lms_deposit_reactions")
+      .upsert({ deposit_id: row.deposit_id, author_email: row.trainer_email }, { onConflict: "deposit_id,author_email", ignoreDuplicates: true });
+  if (!error && post) {
+    await supabase.from("practice_posts").update({ is_staff_treated: true }).eq("id", post.id);
+  }
   if (error) {
     console.error("deposit-email-reaction upsert failed", error);
     return redirect(`${target}&reaction=error`);

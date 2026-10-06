@@ -1,77 +1,93 @@
-import { useState } from "react";
-import { ThumbsUp, Send } from "lucide-react";
-import { useDepositReactions, useToggleStaffDepositReaction, useCreateStaffDepositComment } from "@/hooks/useDepositCommunity";
+import { CheckSquare } from "lucide-react";
+import { useStaffDisplayName } from "@/hooks/useStaffDisplayName";
 import { useAuth } from "@/hooks/useAuth";
-import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskEmail } from "@/lib/demoMask";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { Spinner } from "@/components/ui/spinner";
+import PracticePostCard from "@/components/learner/community/PracticePostCard";
+import {
+  usePracticePosts,
+  useTogglePracticeReaction,
+  useDeletePracticePost,
+  useMarkPostStaffTreated,
+} from "@/hooks/usePracticeFeed";
 
 interface Props {
   depositId: string;
 }
 
 /**
- * Réactions « J'aime » de la communauté sur un travail publié, avec réaction
- * et commentaire du membre de l'équipe connecté.
+ * Publication communauté du travail partagé : mêmes réactions, mêmes
+ * commentaires et même statut « traité » que l'écran Communauté, car c'est
+ * le même fil (practice_posts.deposit_id).
  */
 export default function DepositCommunityPanel({ depositId }: Props) {
   const { user } = useAuth();
   const myEmail = (user?.email || "").toLowerCase();
-  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
-  const [draft, setDraft] = useState("");
-  const { data: reactions = [] } = useDepositReactions(depositId);
-  const iReacted = reactions.some((r) => r.author_email.toLowerCase() === myEmail);
-  const toggle = useToggleStaffDepositReaction(depositId, myEmail);
-  const comment = useCreateStaffDepositComment(depositId, myEmail);
+  const { data: adminName = null } = useStaffDisplayName(user?.id, myEmail);
+  const { data: posts = [], isLoading } = usePracticePosts(myEmail || null, 1, { depositId }, true);
+  const toggleReaction = useTogglePracticeReaction(myEmail || null);
+  const deletePost = useDeletePracticePost(myEmail || null, true);
+  const markTreated = useMarkPostStaffTreated();
+  const post = posts[0];
 
-  const onToggle = () =>
-    toggle.mutate(iReacted, { onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur") });
-  const onComment = (content: string) =>
-    comment.mutate(content, {
-      onSuccess: () => { setDraft(""); toast({ title: "Commentaire publié" }); },
-      onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur"),
-    });
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-4">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <p className="text-xs text-muted-foreground italic">
+        Ce travail n'est pas publié dans la communauté (privé ou masqué).
+      </p>
+    );
+  }
 
   return (
-    <div className="space-y-3 rounded-md border p-3 bg-card">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          size="sm"
-          variant={iReacted ? "default" : "outline"}
-          onClick={onToggle}
-          disabled={toggle.isPending}
+    <div className="space-y-1">
+      <PracticePostCard
+        post={post}
+        currentEmail={myEmail}
+        isAdmin
+        currentUserName={adminName}
+        onReact={async (postId, emoji, iReacted) => {
+          try {
+            await toggleReaction.mutateAsync({ postId, emoji, iReacted });
+            if (!post.is_staff_treated) markTreated.mutate({ postId, treated: true });
+          } catch (err) {
+            toastError(toast, err instanceof Error ? err : "Action impossible.");
+          }
+        }}
+        onDelete={async (postId) => {
+          if (!window.confirm("Retirer ce travail de la communauté ?")) return;
+          try {
+            await deletePost.mutateAsync(postId);
+          } catch (err) {
+            toastError(toast, err instanceof Error ? err : "Impossible de supprimer.");
+          }
+        }}
+        onVote={() => {}}
+        onSelectTag={() => {}}
+      />
+      <div className="flex justify-end pr-1">
+        <button
+          onClick={() =>
+            markTreated
+              .mutateAsync({ postId: post.id, treated: !post.is_staff_treated })
+              .catch(() => toastError(toast, "Impossible de mettre à jour."))
+          }
+          className={`flex items-center gap-1.5 text-xs transition-colors ${
+            post.is_staff_treated ? "text-primary hover:text-muted-foreground" : "text-muted-foreground hover:text-primary"
+          }`}
         >
-          <ThumbsUp className="h-4 w-4 mr-2" />
-          {iReacted ? "Vous aimez" : "J'aime"}
-        </Button>
-        <span className="text-xs text-muted-foreground">
-          {reactions.length} J'aime
-          {reactions.length > 0 &&
-            ` · ${reactions.map((r) => (isDemoMode ? maskEmail(r.author_email) : r.author_email)).join(", ")}`}
-        </span>
-      </div>
-      <div className="space-y-2">
-        <Textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          rows={2}
-          placeholder="Écrire un commentaire visible dans la communauté…"
-        />
-        <div className="flex justify-end">
-          <Button
-            size="sm"
-            onClick={() => draft.trim() && onComment(draft.trim())}
-            disabled={!draft.trim() || comment.isPending}
-          >
-            {comment.isPending ? <Spinner className="mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-            Commenter
-          </Button>
-        </div>
+          <CheckSquare className="w-3.5 h-3.5" />
+          {post.is_staff_treated ? "Traité · marquer non traité" : "Marquer traité"}
+        </button>
       </div>
     </div>
   );

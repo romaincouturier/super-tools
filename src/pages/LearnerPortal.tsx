@@ -35,12 +35,9 @@ import {
 import {
   useLearnerWorkDeposits,
   useCreatePortfolioDeposit,
-  usePracticeDeposits,
   useLearnerReceivedFeedback,
   useCoursePageViews,
-  useToggleDepositReaction,
 } from "@/hooks/useLearnerPortalData";
-import { useDepositComments, useCreateDepositComment, useDeleteDeposit } from "@/hooks/useLmsWorkDeposit";
 import { useFaqItems } from "@/hooks/useFaq";
 import { useCreateSupportTicket } from "@/hooks/useSupport";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -735,166 +732,6 @@ function FormationsView({
   );
 }
 
-// ── Deposit feed card (shared work deposit surfaced in the community) ──────────
-function DepositFeedCard({
-  deposit,
-  currentEmail,
-  onReact,
-}: {
-  deposit: any;
-  currentEmail: string;
-  onReact: (depositId: string, iReacted: boolean) => void;
-}) {
-  const displayName = authorDisplayName(deposit.learner_email);
-  const initials = authorInitialsFromPost(deposit.learner_email);
-  const isImage = deposit.file_mime?.startsWith("image/");
-
-  const [showComments, setShowComments] = useState(false);
-  const [commentText, setCommentText] = useState("");
-  const { data: comments = [] } = useDepositComments(showComments ? deposit.id : undefined, currentEmail);
-  const createComment = useCreateDepositComment(deposit.id, currentEmail);
-  const { toast } = useToast();
-
-  const reactionCount = deposit.reaction_count ?? 0;
-  const iReacted = !!deposit.i_reacted;
-  const commentCount = deposit.comment_count ?? 0;
-
-  const handleComment = async () => {
-    if (!commentText.trim()) return;
-    try {
-      await createComment.mutateAsync(commentText.trim());
-      setCommentText("");
-    } catch {
-      toastError(toast, "Impossible d'envoyer le commentaire.");
-    }
-  };
-
-  return (
-    <div className="rounded-2xl border overflow-hidden"
-      style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
-      <div className="flex items-start gap-3 p-4">
-        <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-          style={{ background: "var(--st-yellow)", color: "#101820" }}>
-          {initials}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold leading-tight" style={{ color: "var(--st-ink)" }}>{displayName}</p>
-          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-            A partagé un travail · {formatDistanceToNow(new Date(deposit.created_at), { locale: fr, addSuffix: true })}
-          </p>
-        </div>
-      </div>
-      {deposit.comment && (
-        <p className="px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>
-          {deposit.comment}
-        </p>
-      )}
-      {deposit.file_url && (isImage ? (
-        <img
-          src={deposit.file_url}
-          alt={deposit.file_name ?? ""}
-          className="w-full"
-          style={{
-            maxHeight: 480,
-            objectFit: "cover",
-            transform: deposit.file_rotation ? `rotate(${(((deposit.file_rotation % 360) + 360) % 360)}deg)` : undefined,
-          }}
-        />
-      ) : (
-        <a href={deposit.file_url} target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-2 px-4 py-3 border-t text-sm font-medium hover:bg-black/5"
-          style={{ borderColor: "rgba(16,24,32,0.06)", color: "var(--st-ink)" }}>
-          <FileText size={16} /> {deposit.file_name ?? "Voir le fichier"}
-        </a>
-      ))}
-
-      {(deposit.lesson_title || deposit.course_title) && deposit.lesson_id && deposit.course_id && (
-        <Link
-          to={`/lms/${deposit.course_id}/player?email=${encodeURIComponent(currentEmail)}&lesson=${deposit.lesson_id}`}
-          className="block px-4 py-2.5 border-t text-xs hover:bg-black/5"
-          style={{ borderColor: "rgba(16,24,32,0.06)", color: "var(--st-ink-muted)" }}
-        >
-          Depuis la leçon · <span className="font-medium" style={{ color: "var(--st-ink)" }}>{deposit.lesson_title ?? deposit.course_title}</span>
-        </Link>
-      )}
-
-      {(reactionCount > 0 || commentCount > 0) && (
-        <div className="px-4 py-2 flex items-center gap-3 text-xs border-t" style={{ borderColor: "rgba(16,24,32,0.06)", color: "var(--st-ink-muted)" }}>
-          {reactionCount > 0 && <span>{reactionCount} J'aime</span>}
-          {commentCount > 0 && (
-            <button onClick={() => setShowComments((v) => !v)} className="hover:underline ml-auto">
-              {commentCount} commentaire{commentCount > 1 ? "s" : ""}
-            </button>
-          )}
-        </div>
-      )}
-
-      <div className="flex border-t" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
-        <button
-          onClick={() => onReact(deposit.id, iReacted)}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-black/5"
-          style={{ color: iReacted ? "var(--st-yellow, #FFD100)" : "var(--st-ink-muted)", fontFamily: "inherit" }}
-        >
-          <ThumbsUp size={16} fill={iReacted ? "currentColor" : "none"} />
-          J'aime
-        </button>
-        <button
-          onClick={() => setShowComments((v) => !v)}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-black/5 border-l"
-          style={{ color: "var(--st-ink-muted)", borderColor: "rgba(16,24,32,0.06)", fontFamily: "inherit" }}
-        >
-          <MessageSquare size={16} />
-          Commenter
-        </button>
-      </div>
-
-      {showComments && (
-        <div className="border-t px-4 py-3 space-y-3" style={{ borderColor: "rgba(16,24,32,0.06)", background: "var(--st-surface, #F2F4F4)" }}>
-          {comments.map((c: any) => {
-            const cName = authorDisplayName(c.author_email);
-            const cInitials = authorInitialsFromPost(c.author_email);
-            return (
-              <div key={c.id} className="flex items-start gap-2">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                  style={{ background: "var(--st-yellow)", color: "#101820" }}>
-                  {cInitials}
-                </div>
-                <div className="flex-1 rounded-xl px-3 py-2" style={{ background: "var(--st-white)" }}>
-                  <p className="text-xs font-semibold" style={{ color: "var(--st-ink)" }}>{cName}</p>
-                  <p className="text-sm mt-0.5" style={{ color: "var(--st-ink)" }}>{c.content}</p>
-                </div>
-              </div>
-            );
-          })}
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2 rounded-full border px-3 py-1.5"
-              style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.12)" }}>
-              <input
-                type="text"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleComment()}
-                placeholder="Ajouter un commentaire..."
-                className="flex-1 text-sm bg-transparent outline-none"
-                style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
-              />
-              <EmojiInsert onInsert={(e) => setCommentText((t) => t + e)} />
-            </div>
-            <button
-              onClick={handleComment}
-              disabled={!commentText.trim() || createComment.isPending}
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-40"
-              style={{ background: "var(--st-yellow)", color: "#101820" }}
-            >
-              <Send size={14} />
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── PratiqueView ──────────────────────────────────────────────────────────────
 
 function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, photoUrl, onNav }: {
@@ -954,9 +791,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
     return Object.keys(base).length ? base : undefined;
   }, [mode, selectedTag, email, activeCourseId, courseIds, canManageCommunity]);
 
-  const showDeposits = isFeed && !selectedTag;
   const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter, canManageCommunity);
-  const { data: deposits = [], isLoading: depositsLoading } = usePracticeDeposits(showDeposits ? courseIds : [], email);
   const { data: popularTopics = [] } = usePracticePopularHashtags(email, 5);
   const { data: allTopics = [] } = usePracticePopularHashtags(email, 200);
   const { data: myComments = [] } = useMyPracticeComments(mode === "comments" ? email : null);
@@ -964,30 +799,24 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
   const createPost = useCreatePracticePost(email);
   const createMatchingConfig = useCreateMatchingConfig();
   const toggleReaction = useTogglePracticeReaction(email);
-  const toggleDepositReaction = useToggleDepositReaction(email);
   const deletePost = useDeletePracticePost(email, canManageCommunity);
   const pinPost = usePinPracticePost();
   const votePoll = useVotePracticePoll(email);
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
 
+  // Les travaux partagés sont des publications communauté (deposit_id) :
+  // même fil de commentaires et mêmes réactions que côté équipe.
   const feed = useMemo(() => {
-    const items: Array<
-      | { kind: "post"; key: string; created_at: string; post: PracticePost }
-      | { kind: "deposit"; key: string; created_at: string; deposit: any }
-    > = [
-      // Exclude posts auto-synced from deposits to avoid duplicates with the deposit cards below
-      ...posts.filter((p) => !(p as any).deposit_id).map((p) => ({ kind: "post" as const, key: `post_${p.id}`, created_at: p.created_at, post: p })),
-      ...(showDeposits ? (deposits as any[]) : []).map((d) => ({ kind: "deposit" as const, key: `deposit_${d.id}`, created_at: d.created_at, deposit: d })),
-    ];
+    const items = posts.map((p) => ({ kind: "post" as const, key: `post_${p.id}`, created_at: p.created_at, post: p }));
     items.sort((a, b) => {
-      const aPin = a.kind === "post" && a.post.is_pinned ? 1 : 0;
-      const bPin = b.kind === "post" && b.post.is_pinned ? 1 : 0;
+      const aPin = a.post.is_pinned ? 1 : 0;
+      const bPin = b.post.is_pinned ? 1 : 0;
       if (bPin !== aPin) return bPin - aPin;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
     return items;
-  }, [posts, deposits, showDeposits]);
+  }, [posts]);
 
   // Deep-link: scroll to and highlight a specific post when ?post=<id> is present
   const targetPostId = searchParams.get("post");
@@ -1029,6 +858,10 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
   };
 
   const handleDelete = async (postId: string) => {
+    if (posts.find((p) => p.id === postId)?.deposit_id && !isAdmin) {
+      toast({ title: "Ce travail se gère depuis la leçon où il a été déposé." });
+      return;
+    }
     const ok = await confirm({
       title: "Supprimer ce post ?",
       description: "Cette action est irréversible.",
@@ -1040,7 +873,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
     catch { toastError(toast, "Impossible de supprimer."); }
   };
 
-  const loading = isLoading || (showDeposits && depositsLoading);
+  const loading = isLoading;
 
   const emptyState = (label: string) => (
     <div className="rounded-2xl border p-10 text-center space-y-3"
@@ -1057,8 +890,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
       emptyState(emptyLabel)
     ) : (
       <div className="space-y-4">
-        {feed.map((item) =>
-          item.kind === "post" ? (
+        {feed.map((item) => (
             <div key={item.key} id={`post-${item.post.id}`} className="scroll-mt-24 transition-shadow rounded-2xl">
               <PracticePostCard
                 post={item.post}
@@ -1071,19 +903,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
                 onPin={canManageCommunity ? (postId, pin) => pinPost.mutateAsync({ postId, pin }).catch(() => toastError(toast, pin ? "Impossible d'épingler." : "Impossible de désépingler.")) : undefined}
               />
             </div>
-          ) : (
-            <DepositFeedCard
-              key={item.key}
-              deposit={item.deposit}
-              currentEmail={email}
-              onReact={(depositId, iReacted) =>
-                toggleDepositReaction.mutateAsync({ depositId, iReacted }).catch(() =>
-                  toastError(toast, "Impossible de réagir."),
-                )
-              }
-            />
-          )
-        )}
+        ))}
       </div>
     )
   );
