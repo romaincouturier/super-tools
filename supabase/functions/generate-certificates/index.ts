@@ -1,3 +1,4 @@
+import { resolveCertificateCompany } from "../_shared/certificate-company.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { renderEditableEmail } from "../_shared/editable-email.ts";
 import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
@@ -677,11 +678,17 @@ serve(async (req: Request): Promise<Response> => {
               }
             }
 
+            const participantEntreprise = await resolveCertificateCompany(supabaseAdmin, {
+              participantId: participant.participantId ?? null,
+              participantEmail: participant.email ?? null,
+              trainingId: trainingId ?? null,
+              fallback: entreprise,
+            });
             // Generate PDF
             const result = await generatePdfWithPdfMonkey(
               participant,
               formationName,
-              entreprise,
+              participantEntreprise,
               effectiveDuree,
               dateDebut,
               dateFin

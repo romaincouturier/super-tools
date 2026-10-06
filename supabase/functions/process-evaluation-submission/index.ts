@@ -1,3 +1,4 @@
+import { resolveCertificateCompany } from "../_shared/certificate-company.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getBccList, getSenderEmail } from "../_shared/email-settings.ts";
