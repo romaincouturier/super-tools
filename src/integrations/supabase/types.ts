@@ -13007,6 +13007,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _backup_pk: {
+        Args: { p_table: string }
+        Returns: {
+          col: string
+          typ: string
+        }[]
+      }
       adjust_cron_timezones: { Args: never; Returns: Json }
       agent_sql_query:
         | { Args: { query_text: string }; Returns: Json }
@@ -13027,6 +13034,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      backup_auth_users_export: { Args: never; Returns: Json }
+      backup_changed_since: {
+        Args: { p_since: string; p_table: string }
+        Returns: number
+      }
+      backup_export_page: {
+        Args: {
+          p_after?: string[]
+          p_limit?: number
+          p_table: string
+          p_with_rows?: boolean
+        }
+        Returns: Json
+      }
+      backup_schema_inventory: { Args: never; Returns: Json }
       change_learner_email: {
         Args: { p_new_email: string; p_old_email: string; p_user_id?: string }
         Returns: Json
