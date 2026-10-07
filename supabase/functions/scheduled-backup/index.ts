@@ -1048,48 +1048,44 @@ async function getDriveAccess(supabase: any): Promise<{ accessToken: string; roo
  * `table__x__partN.json`, ce qui évite le WORKER_RESOURCE_LIMIT provoqué par la
  * construction d'un seul JSON de plusieurs centaines de Mo en mémoire.
  */
+/** Page ordonnée ; sur timeout (lignes lourdes : signatures, HTML), on réessaie avec une page plus petite. */
+async function exportPage(supabase: any, table: string, after: string[] | null, limit: number, withRows: boolean) {
+  let lim = limit;
+  for (;;) {
+    const { data, error } = await supabase.rpc("backup_export_page", {
+      p_table: table, p_after: after, p_limit: lim, p_with_rows: withRows,
+    });
+    if (!error) return { data, error: null, limit: lim };
+    if (!/timeout|canceling statement/i.test(error.message) || lim <= 5) return { data: null, error, limit: lim };
+    lim = Math.max(5, Math.floor(lim / 4));
+  }
+}
+
 async function exportTableToDrive(
   supabase: any,
   accessToken: string,
   folderId: string,
   tableName: string,
-  startOffset = 0,
-  part = 0,
-  startLastId: string | null = null,
-): Promise<{ rows: number; fileId: string | null; error: string | null; nextOffset: number; done: boolean; lastId: string | null }> {
+  part: number,
+  afterKey: string[] | null,
+): Promise<{ rows: number; fileId: string | null; error: string | null; done: boolean; lastKey: string[] | null; fp: bigint }> {
+  // Lecture ordonnée par clé primaire via RPC : ni doublon ni oubli entre pages,
+  // et chaque page renvoie l'empreinte de ses lignes (contrôle d'exactitude).
   const chunks: string[] = [
-    `{"table":${JSON.stringify(tableName)},"part":${part},"offset":${startOffset},"exportedAt":${JSON.stringify(new Date().toISOString())},"rows":[`,
+    `{"table":${JSON.stringify(tableName)},"part":${part},"after":${JSON.stringify(afterKey)},"exportedAt":${JSON.stringify(new Date().toISOString())},"rows":[`,
   ];
   let rows = 0;
   let bytes = 0;
-  let from = startOffset;
+  let fp = 0n;
+  let lastKey = afterKey;
   let done = false;
-  // Pagination par clé (id) quand possible : l'OFFSET devient trop lent sur les
-  // grosses tables (statement timeout au-delà de ~500k lignes).
-  let lastId: string | null = startLastId;
-  let keyset = startOffset === 0 || startLastId !== null;
+  let pageLimit = PAGE_SIZE;
 
   while (rows < MAX_ROWS_PER_FILE && bytes < MAX_BYTES_PER_FILE) {
-    let data: any[] | null = null;
-    let error: { message: string } | null = null;
-    if (keyset) {
-      let q = supabase.from(tableName).select("*").order("id", { ascending: true }).limit(PAGE_SIZE);
-      if (lastId !== null) q = q.gt("id", lastId);
-      ({ data, error } = await q);
-      if (error && from === startOffset && lastId === null) {
-        keyset = false; // pas de colonne id : retour à l'offset
-        error = null;
-      }
-    }
-    if (!keyset) {
-      ({ data, error } = await supabase
-        .from(tableName)
-        .select("*")
-        .range(from, from + PAGE_SIZE - 1));
-    }
-    if (error) return { rows, fileId: null, error: error.message, nextOffset: from, done: true, lastId };
-    const batch = data || [];
-    if (keyset && batch.length > 0) lastId = String(batch[batch.length - 1].id);
+    const { data, error, limit } = await exportPage(supabase, tableName, lastKey, pageLimit, true);
+    if (error) return { rows, fileId: null, error: error.message, done: true, lastKey, fp };
+    const batch: unknown[] = data?.rows || [];
+    const before = bytes;
     for (const row of batch) {
       if (rows > 0) chunks.push(",");
       const json = JSON.stringify(row);
@@ -1097,11 +1093,14 @@ async function exportTableToDrive(
       chunks.push(json);
       rows++;
     }
-    from += batch.length;
-    if (batch.length < PAGE_SIZE) {
+    const nextLimit = bytes - before < 1_000_000 ? Math.min(limit * 2, 5000) : limit;
+    fp += BigInt(data?.fp || "0");
+    if (batch.length > 0) lastKey = data.last;
+    if (batch.length < limit) {
       done = true;
       break;
     }
+    pageLimit = nextLimit;
   }
 
   chunks.push("]}");
@@ -1112,9 +1111,102 @@ async function exportTableToDrive(
     ? `table__${tableName}.json`
     : `table__${tableName}__part${part}.json`;
   const uploaded = await uploadJsonToGoogleDrive(accessToken, fileName, content, folderId);
-  return { rows, fileId: uploaded.id, error: null, nextOffset: from, done, lastId: keyset ? lastId : null };
+  return { rows, fileId: uploaded.id, error: null, done, lastKey, fp };
 }
 
+/** Empreinte de la table telle qu'elle est maintenant (même calcul que l'export). */
+async function liveFingerprint(supabase: any, tableName: string): Promise<{ n: number; fp: bigint }> {
+  let n = 0;
+  let fp = 0n;
+  let after: string[] | null = null;
+  for (;;) {
+    const { data, error, limit } = await exportPage(supabase, tableName, after, 20000, false);
+    if (error) throw new Error(error.message);
+    const got = Number(data?.n || 0);
+    n += got;
+    fp += BigInt(data?.fp || "0");
+    if (got < limit) break;
+    after = data.last;
+  }
+  return { n, fp };
+}
+
+type Exactness = { s: "exact" | "explained" | "unexplained" | "error"; b: number; l?: number; c?: number | null; e?: string };
+
+/** Compare l'export à la table live ; un écart n'est « expliqué » que par des lignes datées après l'export. */
+async function checkExactness(supabase: any, tableName: string, backupRows: number, backupFp: bigint, exportStart: string): Promise<Exactness> {
+  try {
+    const live = await liveFingerprint(supabase, tableName);
+    if (live.n === backupRows && live.fp === backupFp) return { s: "exact", b: backupRows };
+    const { data: changed } = await supabase.rpc("backup_changed_since", { p_table: tableName, p_since: exportStart });
+    const c = changed === null || changed === undefined ? null : Number(changed);
+    const explained = c !== null && c > 0 && live.n >= backupRows && live.n - backupRows <= c;
+    return { s: explained ? "explained" : "unexplained", b: backupRows, l: live.n, c };
+  } catch (err) {
+    return { s: "error", b: backupRows, e: err instanceof Error ? err.message : "erreur" };
+  }
+}
+
+/** Inventaire + comptes + structure : ce qu'il faut pour remonter SuperTools ailleurs. */
+async function writeMigrationKit(
+  supabase: any,
+  accessToken: string,
+  folderId: string,
+  counts: Record<string, number>,
+  exactness: Record<string, Exactness>,
+) {
+  const { data: users, error: uErr } = await supabase.rpc("backup_auth_users_export");
+  if (uErr) throw new Error(`comptes: ${uErr.message}`);
+  await uploadJsonToGoogleDrive(accessToken, "kit__auth_users.json", JSON.stringify(users), folderId);
+
+  const { data: schema, error: sErr } = await supabase.rpc("backup_schema_inventory");
+  if (sErr) throw new Error(`structure: ${sErr.message}`);
+  await uploadJsonToGoogleDrive(accessToken, "kit__schema.json", JSON.stringify(schema), folderId);
+
+  const secretNames = Object.keys(Deno.env.toObject())
+    .filter((k) => !/^(DENO_|PATH$|HOME$|HOSTNAME$|SB_|PWD$|LANG|TZ$)/.test(k))
+    .sort();
+  const inventory = {
+    generatedAt: new Date().toISOString(),
+    tables: TABLES_TO_BACKUP.map((t) => ({
+      table: t,
+      rows: counts[t] ?? null,
+      status: TABLES_SKIPPED_HEAVY.has(t) ? "sautée (régénérable)" : (exactness[t]?.s ?? "non contrôlée"),
+      detail: exactness[t] ?? null,
+    })),
+    excludedTables: EXCLUDED_TABLES_DOC,
+    authUsers: Array.isArray(users?.users) ? users.users.length : null,
+    storageBuckets: STORAGE_BUCKETS,
+    storageMirror: "dossier Drive supertools_storage_mirror (incrémental, voir backup_storage_manifest)",
+    secretsToReconfigure: secretNames,
+    notes: [
+      "Les valeurs des clés secrètes ne sont jamais sauvegardées : les reconfigurer sur la nouvelle plateforme.",
+      "Le code des fonctions serveur et les migrations SQL sont dans le dépôt Git (supabase/functions, supabase/migrations).",
+      "kit__auth_users.json contient les mots de passe chiffrés (bcrypt) : à importer tels quels pour conserver les connexions.",
+    ],
+  };
+  await uploadJsonToGoogleDrive(accessToken, "kit__inventaire.json", JSON.stringify(inventory, null, 1), folderId);
+}
+
+/** Tables volontairement hors sauvegarde (miroir de scripts/backup-exclusions.txt). */
+const EXCLUDED_TABLES_DOC: Record<string, string> = {
+  agent_embedding_cache: "cache IA régénérable",
+  mcp_oauth_records: "jetons OAuth éphémères",
+  formulaire_rate_limits: "limitation de débit éphémère",
+  indexation_queue: "file d'attente éphémère",
+  pictodico_rate_limit: "limitation de débit éphémère",
+  backup_runs: "suivi des sauvegardes",
+  okr_scheduled_emails: "table inexistante en production",
+  api_usage_events: "télémétrie purgée à 180 jours",
+  vhd_report_narratives: "récits VHD sensibles, ne quittent pas la base",
+  vhd_report_attachments: "métadonnées de pièces VHD non sauvegardées",
+  vhd_narrative_access: "journal de consultation VHD",
+  identity_resolution_log: "journal éphémère (30 jours)",
+  live_reminder_sends: "reconstructible depuis sent_emails_log",
+  deposit_reaction_tokens: "liens éphémères (30 jours)",
+  backup_storage_manifest: "index du miroir storage",
+  document_embeddings: "index IA sauté, régénérable",
+};
 
 async function sendBackupEmail(subject: string, html: string, type: string) {
   const adminEmail = await getSenderEmail();
@@ -1193,35 +1285,33 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
       // plus loin dans ce tick, les tables déjà exportées ne sont pas perdues.
       await saveRun(supabase, run.id, { totals, cursor_index: cursor, table_row_counts: counts, drive_file_ids: fileIds });
 
-      const startOffset = Number(totals[offsetKey] || 0);
       const part = Number(totals[partKey] || 0);
+      const keyKey = `dbKey_${tableName}`;
+      const fpKey = `dbFp_${tableName}`;
+      const startKey = `dbStart_${tableName}`;
+      if (part === 0) totals[startKey] = new Date().toISOString();
+      const afterKey = totals[keyKey] ? JSON.parse(String(totals[keyKey])) as string[] : null;
 
       try {
-        const res = await exportTableToDrive(
-          supabase,
-          accessToken,
-          folderId!,
-          tableName,
-          startOffset,
-          part,
-          (totals[`dbLastId_${tableName}`] as string | undefined) ?? null,
-        );
-        counts[tableName] = (startOffset > 0 ? Number(counts[tableName] || 0) : 0) + res.rows;
+        const res = await exportTableToDrive(supabase, accessToken, folderId!, tableName, part, afterKey);
+        counts[tableName] = (part > 0 ? Number(counts[tableName] || 0) : 0) + res.rows;
+        const fpTotal = (part > 0 ? BigInt(String(totals[fpKey] || "0")) : 0n) + res.fp;
         if (res.fileId) fileIds.push(res.fileId);
         if (res.error) errors.push(`[DB] ${tableName}: ${res.error}`);
 
         if (res.done) {
-          delete totals[offsetKey];
-          delete totals[partKey];
-          delete totals[attemptKey];
-          delete totals[`dbLastId_${tableName}`];
+          if (!res.error) {
+            const ex = await checkExactness(supabase, tableName, counts[tableName], fpTotal, String(totals[startKey]));
+            const map = JSON.parse(String(totals.exactness || "{}"));
+            map[tableName] = ex;
+            totals.exactness = JSON.stringify(map);
+          }
+          for (const k of [offsetKey, partKey, attemptKey, keyKey, fpKey, startKey]) delete totals[k];
           cursor++;
         } else {
-          // Table trop grosse : on reprendra à cet offset au tick suivant.
-          totals[offsetKey] = res.nextOffset;
+          totals[keyKey] = JSON.stringify(res.lastKey);
+          totals[fpKey] = fpTotal.toString();
           totals[partKey] = part + 1;
-          if (res.lastId !== null) totals[`dbLastId_${tableName}`] = res.lastId;
-          else delete totals[`dbLastId_${tableName}`];
           totals[attemptKey] = 0;
         }
       } catch (err) {
@@ -1250,49 +1340,30 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
 
   // ── PHASE 2 : finalisation de la base (intégrité, rotation GFS, statut base) ──
   if (phase === "db_finalize") {
-    // Comptage des lignes live par tranches : 241 COUNT exacts ne tiennent pas
-    // dans un seul tick, la progression est persistée dans totals.
-    const live: Record<string, number> = JSON.parse(String(run.totals.integrityLive || "{}"));
-    while (cursor < TABLES_TO_BACKUP.length && !outOfBudget()) {
-      const table = TABLES_TO_BACKUP[cursor];
-      const backupRows = counts[table];
-      if (backupRows !== undefined && backupRows !== -1) {
-        const { count, error } = await supabase
-          .from(table)
-          .select("*", { count: "exact", head: true })
-          .abortSignal(AbortSignal.timeout(15_000));
-        if (!error) live[table] = count ?? 0;
-      }
-      cursor++;
+    // Contrôle d'exactitude : chaque table a été comparée (nombre + empreinte)
+    // juste après son export. Ici on agrège et on ajoute le kit de migration.
+    const exactness: Record<string, Exactness> = JSON.parse(String(run.totals.exactness || "{}"));
+    const missing = TABLES_TO_BACKUP.filter((t) => !TABLES_SKIPPED_HEAVY.has(t) && (counts[t] === undefined || counts[t] < 0));
+    const unexplained = Object.entries(exactness).filter(([, e]) => e.s === "unexplained" || e.s === "error");
+    const notChecked = TABLES_TO_BACKUP.filter((t) => !TABLES_SKIPPED_HEAVY.has(t) && !exactness[t] && !missing.includes(t));
+    if (missing.length > 0) errors.push(`[Integrity] Tables manquantes: ${missing.slice(0, 10).join(", ")}`);
+    for (const [t, e] of unexplained.slice(0, 10)) {
+      errors.push(`[Exactitude] ${t}: ${e.s === "error" ? `contrôle impossible (${e.e})` : `sauvegarde=${e.b} lignes, base=${e.l}, modifiées depuis l'export=${e.c ?? "inconnu"}`}`);
     }
-    console.log(`[scheduled-backup] db_finalize comptages ${cursor}/${TABLES_TO_BACKUP.length}`);
-    if (cursor < TABLES_TO_BACKUP.length) {
-      await saveRun(supabase, run.id, {
-        cursor_index: cursor,
-        totals: { ...run.totals, integrityLive: JSON.stringify(live) },
-        chunks_done: chunks + 1,
-      });
-      return { phase, done: false };
-    }
+    if (notChecked.length > 0) errors.push(`[Exactitude] non contrôlées: ${notChecked.slice(0, 10).join(", ")}`);
+    const integrityResult = { passed: missing.length === 0 && unexplained.length === 0 && notChecked.length === 0 };
 
-    let integrityResult: IntegrityResult | null = null;
-    try {
-      integrityResult = await verifyBackupIntegrityByCounts(supabase, counts, TABLES_TO_BACKUP, live);
-      if (!integrityResult.passed) {
-        if (integrityResult.checks.tablesMissing.length > 0) {
-          errors.push(`[Integrity] Tables manquantes: ${integrityResult.checks.tablesMissing.slice(0, 10).join(", ")}`);
-        }
-        for (const m of integrityResult.checks.rowCountMismatches.slice(0, 5)) {
-          errors.push(`[Integrity] ${m.table}: backup=${m.backup} vs live=${m.live}`);
-        }
+    if (!run.totals.kitDone) {
+      try {
+        await writeMigrationKit(supabase, accessToken, folderId!, counts, exactness);
+      } catch (kitErr) {
+        errors.push(`[DB] kit de migration: ${kitErr instanceof Error ? kitErr.message : "échec"}`);
       }
-    } catch (intErr) {
-      errors.push(`[Integrity] ${intErr instanceof Error ? intErr.message : "Verification failed"}`);
     }
 
     const totalRows = Object.values(counts).reduce((s, n) => s + (n > 0 ? n : 0), 0);
     const dbErrors = errors.filter((e) => e.startsWith("[DB]")).length;
-    const dbSuccess = dbErrors === 0 && integrityResult?.passed !== false;
+    const dbSuccess = dbErrors === 0 && integrityResult.passed;
     await saveRun(supabase, run.id, {
       phase: "storage_scan",
       cursor_index: 0,
@@ -1301,9 +1372,12 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
       db_finished_at: new Date().toISOString(),
       totals: {
         ...run.totals,
-        integrityLive: "",
         totalRows,
-        integrityPassed: integrityResult?.passed === false ? "non" : "oui",
+        kitDone: 1,
+        exactCount: Object.values(exactness).filter((e) => e.s === "exact").length,
+        explainedCount: Object.values(exactness).filter((e) => e.s === "explained").length,
+        unexplainedCount: unexplained.length + notChecked.length,
+        integrityPassed: integrityResult.passed ? "oui" : "non",
       },
       chunks_done: chunks + 1,
     });
@@ -1333,10 +1407,10 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
       await saveRun(supabase, run.id, {
         totals: {
           ...run.totals,
-          integrityLive: "",
           totalRows,
           deletedOldBackups,
-          integrityPassed: integrityResult?.passed === false ? "non" : "oui",
+          kitDone: 1,
+          integrityPassed: integrityResult.passed ? "oui" : "non",
         },
       });
     }
@@ -1397,10 +1471,85 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
     }
 
     if (cursor >= STORAGE_BUCKETS.length) {
-      phase = "report";
+      // Relecture complète des fichiers Drive une fois par semaine (dimanche).
+      phase = new Date().toLocaleDateString("en-US", { timeZone: "Europe/Paris", weekday: "short" }) === "Sun"
+        ? "verify"
+        : "report";
       cursor = 0;
     }
     await saveRun(supabase, run.id, { phase, cursor_index: cursor, totals, errors, chunks_done: chunks });
+    return { phase, done: false };
+  }
+
+  // ── PHASE 4 bis : relecture des fichiers Drive (contrôle de restauration) ──
+  if (phase === "verify") {
+    const totals: Record<string, number | string> = { ...run.totals };
+    const seen: Record<string, number> = JSON.parse(String(totals.verifyRows || "{}"));
+    const pkCache: Record<string, string[]> = {};
+    let dup = Number(totals.verifyDuplicates || 0);
+    let bad = Number(totals.verifyBadFiles || 0);
+    while (cursor < fileIds.length && !outOfBudget()) {
+      try {
+        const resp = await fetch(`https://www.googleapis.com/drive/v3/files/${fileIds[cursor]}?alt=media`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const doc = JSON.parse(await resp.text());
+        const table = String(doc.table || "");
+        const rows: Record<string, unknown>[] = Array.isArray(doc.rows) ? doc.rows : [];
+        seen[table] = (seen[table] || 0) + rows.length;
+        if (!pkCache[table]) {
+          const { data } = await supabase.rpc("_backup_pk", { p_table: table });
+          pkCache[table] = (data || []).map((r: { col: string }) => r.col);
+        }
+        const keys = new Set<string>();
+        for (const r of rows) {
+          const key = pkCache[table].map((c) => String(r[c])).join("|");
+          if (keys.has(key)) dup++;
+          keys.add(key);
+        }
+      } catch (err) {
+        bad++;
+        errors.push(`[Relecture] fichier ${cursor + 1}: ${err instanceof Error ? err.message : "illisible"}`);
+      }
+      cursor++;
+    }
+    totals.verifyRows = JSON.stringify(seen);
+    totals.verifyDuplicates = dup;
+    totals.verifyBadFiles = bad;
+    if (cursor >= fileIds.length) {
+      const diffs = Object.entries(counts).filter(([t, n]) => n >= 0 && (seen[t] || 0) !== n);
+      for (const [t, n] of diffs.slice(0, 10)) errors.push(`[Relecture] ${t}: ${seen[t] || 0} lignes relues dans Drive au lieu de ${n}`);
+      // Échantillon tournant du miroir storage (1/30 par semaine relue).
+      let sampled = 0;
+      let sizeMismatch = 0;
+      try {
+        const day = new Date().getDate() % 30;
+        const { data: sample } = await supabase
+          .from("backup_storage_manifest")
+          .select("path, size_bytes, drive_file_id")
+          .not("drive_file_id", "is", null)
+          .order("path")
+          .range(day * 120, day * 120 + 119);
+        for (const m of sample || []) {
+          if (outOfBudget()) break;
+          const r = await fetch(`https://www.googleapis.com/drive/v3/files/${m.drive_file_id}?fields=size`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          sampled++;
+          const meta = r.ok ? await r.json() : null;
+          if (!meta || (m.size_bytes != null && Number(meta.size) !== Number(m.size_bytes))) {
+            sizeMismatch++;
+            if (sizeMismatch <= 3) errors.push(`[Relecture] storage ${m.path}: absent ou taille différente dans Drive`);
+          }
+        }
+      } catch { /* non bloquant */ }
+      totals.verifyStatus = diffs.length === 0 && dup === 0 && bad === 0 && sizeMismatch === 0 ? "ok" : "ko";
+      totals.verifySummary = `${fileIds.length} fichiers relus, ${dup} doublons, ${bad} illisibles, ${diffs.length} tables en écart ; storage : ${sampled} fichiers vérifiés, ${sizeMismatch} en écart`;
+      phase = "report";
+      cursor = 0;
+    }
+    await saveRun(supabase, run.id, { phase, cursor_index: cursor, totals, errors, chunks_done: chunks + 1 });
     return { phase, done: false };
   }
 
@@ -1496,6 +1645,9 @@ async function finishRun(
           ${row("Tables", `${TABLES_TO_BACKUP.length} (${(r.drive_file_ids || []).length} fichiers)`)}
           ${row("Lignes", totalRows.toLocaleString("fr-FR"))}
           ${row("Intégrité", String(t.integrityPassed || "?"))}
+          ${row("Exactitude", `${Number(t.exactCount || 0)} tables identiques, ${Number(t.explainedCount || 0)} écarts expliqués (modifiées après export), ${Number(t.unexplainedCount || 0)} écarts non expliqués`)}
+          ${row("Kit de migration", t.kitDone ? "comptes, structure et inventaire inclus" : "absent")}
+          ${row("Relecture Drive", t.verifySummary ? `${t.verifyStatus === "ok" ? "✅" : "❌"} ${escapeForHtml(String(t.verifySummary))}` : "hebdomadaire (dimanche)")}
         </table>
         <h2 style="color: ${storageStatus === "success" ? "#16a34a" : "#d97706"};">Fichiers (storage) : synchro ${storageLabel}</h2>
         <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
