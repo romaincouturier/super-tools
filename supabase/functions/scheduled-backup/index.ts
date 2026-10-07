@@ -1410,6 +1410,9 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
           totalRows,
           deletedOldBackups,
           kitDone: 1,
+          exactCount: Object.values(exactness).filter((e) => e.s === "exact").length,
+          explainedCount: Object.values(exactness).filter((e) => e.s === "explained").length,
+          unexplainedCount: unexplained.length + notChecked.length,
           integrityPassed: integrityResult.passed ? "oui" : "non",
         },
       });
