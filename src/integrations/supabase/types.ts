@@ -6447,6 +6447,7 @@ export type Database = {
       }
       media: {
         Row: {
+          assemblyai_transcript_id: string | null
           created_at: string | null
           created_by: string | null
           file_name: string
@@ -6462,8 +6463,14 @@ export type Database = {
           source_type: string
           tags: string[] | null
           transcript: string | null
+          transcription_audio_seconds: number | null
+          transcription_error: string | null
+          transcription_started_at: string | null
+          transcription_status: string | null
+          transcription_updated_at: string | null
         }
         Insert: {
+          assemblyai_transcript_id?: string | null
           created_at?: string | null
           created_by?: string | null
           file_name: string
@@ -6479,8 +6486,14 @@ export type Database = {
           source_type: string
           tags?: string[] | null
           transcript?: string | null
+          transcription_audio_seconds?: number | null
+          transcription_error?: string | null
+          transcription_started_at?: string | null
+          transcription_status?: string | null
+          transcription_updated_at?: string | null
         }
         Update: {
+          assemblyai_transcript_id?: string | null
           created_at?: string | null
           created_by?: string | null
           file_name?: string
@@ -6496,6 +6509,11 @@ export type Database = {
           source_type?: string
           tags?: string[] | null
           transcript?: string | null
+          transcription_audio_seconds?: number | null
+          transcription_error?: string | null
+          transcription_started_at?: string | null
+          transcription_status?: string | null
+          transcription_updated_at?: string | null
         }
         Relationships: [
           {

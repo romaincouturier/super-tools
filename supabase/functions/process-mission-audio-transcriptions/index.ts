@@ -258,6 +258,135 @@ async function processDocument(supabase: ReturnType<typeof createClient>, apiKey
   return "processing";
 }
 
+// ── Audios de la galerie média (événements, formations, CRM…) ───────────
+// Même circuit que les documents de mission : le serveur soumet et suit la
+// tâche, le navigateur n'a plus besoin de rester ouvert.
+type MediaRow = {
+  id: string;
+  file_url: string;
+  source_type: string;
+  source_id: string;
+  assemblyai_transcript_id: string | null;
+};
+
+async function submitMediaJob(apiKey: string, audioUrl: string): Promise<string> {
+  const response = await fetch("https://api.assemblyai.com/v2/transcript", {
+    method: "POST",
+    headers: { Authorization: apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      audio_url: audioUrl,
+      language_code: "fr",
+      punctuate: true,
+      format_text: true,
+      speaker_labels: true,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`AssemblyAI submit error ${response.status}: ${(await response.text()).slice(0, 300)}`);
+  }
+  const data = await response.json();
+  if (!data.id) throw new Error("AssemblyAI did not return a transcript id");
+  return data.id;
+}
+
+async function processMediaItem(supabase: ReturnType<typeof createClient>, apiKey: string, row: MediaRow) {
+  const now = () => new Date().toISOString();
+  let jobId = row.assemblyai_transcript_id;
+  if (!jobId) {
+    jobId = await submitMediaJob(apiKey, row.file_url);
+    await supabase.from("media").update({
+      transcription_status: "processing",
+      assemblyai_transcript_id: jobId,
+      transcription_started_at: now(),
+      transcription_updated_at: now(),
+      transcription_error: null,
+    }).eq("id", row.id);
+    return "processing";
+  }
+
+  const result = await pollAssemblyJob(apiKey, jobId);
+  if (result.status === "completed" || result.status === "error") {
+    await logAssemblyAiUsage({
+      origin: "process-media-transcriptions",
+      operation: "poll",
+      transcriptId: result.id,
+      audioSeconds: Math.round(result.audio_duration ?? 0),
+      trigger: "cron",
+      status: result.status === "error" ? "error" : "success",
+    });
+  }
+
+  if (result.status === "error") {
+    const err = String(result.error || "");
+    if (!/no spoken audio/i.test(err)) throw new Error(err || "AssemblyAI transcription error");
+    result.text = "";
+    result.utterances = [];
+  }
+
+  if (result.status === "completed" || result.status === "error") {
+    const built = buildTranscript(result);
+    const transcript = built === "[inaudible]" ? "" : built;
+    await supabase.from("media").update({
+      transcript: transcript || null,
+      transcription_status: transcript ? "completed" : "failed",
+      transcription_error: transcript ? null : "Aucune parole détectée dans l'enregistrement",
+      transcription_audio_seconds: Math.round(result.audio_duration ?? 0),
+      transcription_updated_at: now(),
+    }).eq("id", row.id);
+
+    if (transcript && row.source_type === "event") {
+      const { data: ev } = await supabase.from("events").select("summary_notes").eq("id", row.source_id).maybeSingle();
+      if (ev && !(ev as { summary_notes?: string | null }).summary_notes) {
+        await supabase.from("events").update({ summary_notes: transcript }).eq("id", row.source_id);
+      }
+    }
+    return "completed";
+  }
+
+  await supabase.from("media").update({ transcription_updated_at: now() }).eq("id", row.id);
+  return "processing";
+}
+
+async function processMediaQueue(
+  supabase: ReturnType<typeof createClient>,
+  apiKey: string,
+  deadline: number,
+  mediaId: string | null,
+) {
+  const stats = { processed: 0, completed: 0, processing: 0, failed: 0 };
+  let query = supabase
+    .from("media")
+    .select("id, file_url, source_type, source_id, assemblyai_transcript_id")
+    .in("transcription_status", ["pending", "processing"])
+    .order("transcription_updated_at", { ascending: true, nullsFirst: true })
+    .limit(mediaId ? 1 : 10);
+  if (mediaId) query = query.eq("id", mediaId);
+  const { data, error } = await query;
+  if (error) {
+    console.error("[process-media-transcriptions] fetch error", error);
+    return stats;
+  }
+  for (const row of (data || []) as MediaRow[]) {
+    if (Date.now() >= deadline) break;
+    stats.processed++;
+    try {
+      const r = await processMediaItem(supabase, apiKey, row);
+      if (r === "completed") stats.completed++;
+      else stats.processing++;
+    } catch (err) {
+      stats.failed++;
+      const message = err instanceof Error ? err.message : "Erreur inconnue";
+      console.error("[process-media-transcriptions] failed", row.id, message);
+      await supabase.from("media").update({
+        transcription_status: "failed",
+        transcription_error: message.slice(0, 500),
+        transcription_updated_at: new Date().toISOString(),
+      }).eq("id", row.id);
+    }
+  }
+  return stats;
+}
+
 serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
   if (preflight) return preflight;
@@ -285,7 +414,8 @@ serve(async (req) => {
 
     if (documentId) query = query.eq("id", documentId);
 
-    const { data: docs, error: fetchError } = await query;
+    const onlyMedia = typeof body.mediaId === "string";
+    const { data: docs, error: fetchError } = onlyMedia ? { data: [], error: null } : await query;
     if (fetchError) throw fetchError;
 
     let completed = 0;
@@ -315,7 +445,12 @@ serve(async (req) => {
       if (Date.now() >= deadline) break;
     }
 
-    return createJsonResponse({ processed: docs?.length || 0, completed, processing: stillProcessing, failed });
+    const mediaId = typeof body.mediaId === "string" ? body.mediaId : null;
+    const mediaStats = documentId
+      ? { processed: 0, completed: 0, processing: 0, failed: 0 }
+      : await processMediaQueue(supabase, assemblyKey, deadline, mediaId);
+
+    return createJsonResponse({ processed: docs?.length || 0, completed, processing: stillProcessing, failed, media: mediaStats });
   } catch (error) {
     console.error("[process-mission-audio-transcriptions] unexpected error", error);
     return new Response(

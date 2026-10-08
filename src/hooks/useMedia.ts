@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/invokeEdge";
 import { resolveContentType, assertMediaFileSupported } from "@/lib/file-utils";
 
 export type MediaSourceType = "mission" | "event" | "training" | "crm" | "content" | "lms";
@@ -18,6 +19,9 @@ export interface MediaItem {
   created_by: string | null;
   is_deliverable: boolean;
   transcript: string | null;
+  transcription_status?: "pending" | "processing" | "completed" | "failed" | null;
+  transcription_error?: string | null;
+  transcription_audio_seconds?: number | null;
   tags: string[];
   // Joined label for display in gallery
   source_label: string;
@@ -152,6 +156,12 @@ export const useEntityMedia = (sourceType: MediaSourceType, sourceId: string | u
   return useQuery({
     queryKey: [ENTITY_MEDIA_KEY, sourceType, sourceId],
     enabled: !!sourceId,
+    refetchInterval: (query) => {
+      const rows = (query.state.data as MediaItem[] | undefined) || [];
+      return rows.some((m) => m.transcription_status === "pending" || m.transcription_status === "processing")
+        ? 10_000
+        : false;
+    },
     queryFn: async () => {
       const { data, error } = await supabase
         .from("media")
@@ -388,6 +398,32 @@ export const useRenameMedia = () => {
     },
     onSuccess: () => {
       invalidateMediaCaches(queryClient);
+    },
+  });
+};
+
+// ── Request server-side transcription ────────────────────────────────
+/** Met l'audio en file d'attente ; le serveur soumet et suit la tâche. */
+export const useRequestMediaTranscription = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, sourceType, sourceId }: { id: string; sourceType: MediaSourceType; sourceId: string }) => {
+      const { error } = await supabase
+        .from("media")
+        .update({
+          transcription_status: "pending",
+          assemblyai_transcript_id: null,
+          transcription_error: null,
+          transcription_updated_at: null,
+        } as never)
+        .eq("id", id);
+      if (error) throw error;
+      // Lance tout de suite plutôt que d'attendre la tâche planifiée.
+      await invokeEdge("process-mission-audio-transcriptions", { mediaId: id });
+      return { sourceType, sourceId };
+    },
+    onSuccess: ({ sourceType, sourceId }) => {
+      invalidateMediaCaches(queryClient, sourceType, sourceId);
     },
   });
 };
