@@ -290,46 +290,13 @@ const EntityMediaManager = ({
   }, [sourceType, sourceId, addMedia, uploadEventMedia, uploadMissionMedia, queryClient, allowDocuments]);
 
   const handleTranscribe = async (item: MediaItem) => {
+    if (item.transcript && !confirm("Remplacer le transcript existant par une nouvelle transcription ?")) return;
     setTranscribingIds((prev) => new Set(prev).add(item.id));
     try {
-      toast.info("Transcription en cours...");
-      let transcript: string;
-      try {
-        transcript = await transcribeAudio(item.file_url);
-      } catch (err) {
-        toast.error(`Erreur lors de la transcription : ${err instanceof Error ? err.message : "inconnue"}`);
-        return;
-      }
-      if (!transcript || transcript === "[inaudible]") {
-        toast.error("Transcription impossible — audio inaudible ou vide");
-        return;
-      }
-
-      await updateTranscript.mutateAsync({
-        id: item.id,
-        transcript,
-        sourceType: item.source_type,
-        sourceId: item.source_id,
-      });
-
-      // For events: auto-fill summary_notes if empty, so the
-      // "compte-rendu manquant" alert disappears once transcription is done.
-      if (item.source_type === "event") {
-        const { data: ev } = await supabase
-          .from("events")
-          .select("summary_notes")
-          .eq("id", item.source_id)
-          .maybeSingle();
-        if (ev && !ev.summary_notes) {
-          await supabase
-            .from("events")
-            .update({ summary_notes: transcript })
-            .eq("id", item.source_id);
-          queryClient.invalidateQueries({ queryKey: ["events"] });
-        }
-      }
-
-      toast.success("Transcription terminée");
+      await requestTranscription.mutateAsync({ id: item.id, sourceType: item.source_type, sourceId: item.source_id });
+      toast.info("Transcription lancée — vous pouvez fermer la page, elle continue sur le serveur.");
+    } catch (err) {
+      toast.error(`Impossible de lancer la transcription : ${err instanceof Error ? err.message : "inconnue"}`);
     } finally {
       setTranscribingIds((prev) => {
         const next = new Set(prev);
