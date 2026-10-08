@@ -20,7 +20,6 @@ import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@d
 import { CSS } from "@dnd-kit/utilities";
 import { uploadEntityDocument } from "@/hooks/useEntityDocuments";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 const isTranscriptionRunning = (m: MediaItem) =>
   m.transcription_status === "pending" || m.transcription_status === "processing";
