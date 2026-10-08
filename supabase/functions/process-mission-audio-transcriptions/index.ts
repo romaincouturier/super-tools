@@ -315,7 +315,12 @@ serve(async (req) => {
       if (Date.now() >= deadline) break;
     }
 
-    return createJsonResponse({ processed: docs?.length || 0, completed, processing: stillProcessing, failed });
+    const mediaId = typeof body.mediaId === "string" ? body.mediaId : null;
+    const mediaStats = documentId
+      ? { processed: 0, completed: 0, processing: 0, failed: 0 }
+      : await processMediaQueue(supabase, assemblyKey, deadline, mediaId);
+
+    return createJsonResponse({ processed: docs?.length || 0, completed, processing: stillProcessing, failed, media: mediaStats });
   } catch (error) {
     console.error("[process-mission-audio-transcriptions] unexpected error", error);
     return new Response(
