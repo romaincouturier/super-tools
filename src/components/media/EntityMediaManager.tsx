@@ -6,7 +6,7 @@ import {
   useDeleteMedia,
   useToggleMediaDeliverable,
   useRenameMedia,
-  useUpdateMediaTranscript,
+  useRequestMediaTranscription,
   useUploadEventMedia,
   useUploadMissionMedia,
   useReorderMedia,
@@ -21,7 +21,15 @@ import { CSS } from "@dnd-kit/utilities";
 import { uploadEntityDocument } from "@/hooks/useEntityDocuments";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { transcribeAudio } from "@/services/lmsMediaImport";
+
+const isTranscriptionRunning = (m: MediaItem) =>
+  m.transcription_status === "pending" || m.transcription_status === "processing";
+/** Moins de 200 caractères pour plus d'une minute d'audio. */
+const isNearlySilent = (m: MediaItem) =>
+  !!m.transcript && m.transcript.length < 200 && (m.transcription_audio_seconds ?? 0) > 60;
+const canTranscribe = (m: MediaItem) =>
+  !isTranscriptionRunning(m) &&
+  (!m.transcript || m.transcription_status === "failed" || isNearlySilent(m) || m.transcript.length < 200);
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -669,7 +677,7 @@ const EntityMediaManager = ({
                             <FileAudio className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                             <span className="text-sm font-medium truncate">{isDemoMode ? maskFileName(item.file_name) : item.file_name}</span>
                             <div className="ml-auto flex items-center gap-1">
-                              {!item.transcript && (
+                              {canTranscribe(item) && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
@@ -684,7 +692,7 @@ const EntityMediaManager = ({
                                       ) : (
                                         <FileText className="h-3 w-3 mr-1" />
                                       )}
-                                      Transcrire
+                                      {item.transcript || item.transcription_status === "failed" ? "Relancer" : "Transcrire"}
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>Transcrire l'audio avec l'IA</TooltipContent>
@@ -718,11 +726,17 @@ const EntityMediaManager = ({
                               </div>
                             </div>
                           )}
-                          {transcribingIds.has(item.id) && (
+                          {(transcribingIds.has(item.id) || isTranscriptionRunning(item)) && (
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <Loader2 className="h-3 w-3 animate-spin" />
-                              Transcription en cours...
+                              Transcription en cours… (continue même si vous fermez la page)
                             </div>
+                          )}
+                          {item.transcription_status === "failed" && (
+                            <p className="text-xs text-destructive">Échec de la transcription : {item.transcription_error || "raison inconnue"}</p>
+                          )}
+                          {isNearlySilent(item) && (
+                            <p className="text-xs text-destructive">Audio quasi muet : très peu de texte reconnu. Vérifiez l'enregistrement.</p>
                           )}
                         </div>
                       ) : item.file_type === "document" ? (
