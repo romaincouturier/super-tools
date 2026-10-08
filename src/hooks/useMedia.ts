@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient, QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeEdge } from "@/lib/invokeEdge";
 import { resolveContentType, assertMediaFileSupported } from "@/lib/file-utils";
 
 export type MediaSourceType = "mission" | "event" | "training" | "crm" | "content" | "lms";
@@ -418,7 +419,7 @@ export const useRequestMediaTranscription = () => {
         .eq("id", id);
       if (error) throw error;
       // Lance tout de suite plutôt que d'attendre la tâche planifiée.
-      await supabase.functions.invoke("process-mission-audio-transcriptions", { body: { mediaId: id } });
+      await invokeEdge("process-mission-audio-transcriptions", { mediaId: id });
       return { sourceType, sourceId };
     },
     onSuccess: ({ sourceType, sourceId }) => {
