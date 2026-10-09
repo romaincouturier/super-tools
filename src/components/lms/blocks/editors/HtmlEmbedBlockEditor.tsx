@@ -132,8 +132,7 @@ export default function HtmlEmbedBlockEditor({ content, onChange, slim }: Props)
       )}
 
       <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--st-ink-50)" }}>
-        Accepte tout code HTML valide : iframes LinkedIn, YouTube, cartes, widgets externes…
-        Le contenu est isolé dans un cadre sécurisé.
+        HTML et CSS uniquement. Les scripts et les actions de formulaire sont bloqués.
       </p>
     </div>
   );

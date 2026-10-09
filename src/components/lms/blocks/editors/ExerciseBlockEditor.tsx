@@ -275,7 +275,7 @@ function InteractiveHtmlEditor({
     <div className="space-y-2">
       <div className="rounded-lg border overflow-hidden">
         <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
-          <span className="text-xs font-semibold font-mono text-muted-foreground">HTML / CSS / JS</span>
+          <span className="text-xs font-semibold font-mono text-muted-foreground">HTML / CSS</span>
           <button
             type="button"
             onClick={() => setPreviewOpen((v) => !v)}
@@ -291,7 +291,7 @@ function InteractiveHtmlEditor({
           rows={8}
           spellCheck={false}
           className="font-mono text-xs border-none rounded-none focus-visible:ring-0"
-          placeholder="Collez votre HTML/CSS/JS… (ex: <style>…</style> <div>…</div> <script>…</script>)"
+          placeholder={'<style>label { cursor: pointer; }</style> <input type="checkbox" id="choix"> <label for="choix">Choix</label>'}
         />
       </div>
       {previewOpen && (
@@ -305,8 +305,7 @@ function InteractiveHtmlEditor({
         </div>
       )}
       <p className="text-xs text-muted-foreground m-0">
-        Le module s'exécute isolé dans un cadre sécurisé (sandbox) : son CSS et son JS n'affectent pas le reste de la
-        page. Les scripts inline (JS) sont autorisés ; les accès au stockage/cookies du site restent bloqués.
+        HTML et CSS uniquement. Les scripts et les actions de formulaire sont bloqués.
       </p>
     </div>
   );
@@ -528,7 +527,7 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
         />
       </div>
 
-      {/* Bloc HTML interactif (optionnel) — module HTML/CSS/JS isolé, ST-2026-0249 */}
+      {/* Bloc HTML interactif (optionnel) — module HTML/CSS isolé, ST-2026-0249 */}
       <div className="rounded-lg border p-3 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
