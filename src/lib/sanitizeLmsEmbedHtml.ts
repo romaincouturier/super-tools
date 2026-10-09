@@ -4,6 +4,7 @@ import { EMBED_ATTRS, EMBED_INPUT_TYPES, EMBED_SANDBOX, EMBED_TAGS } from "../..
 export function sanitizeLmsEmbedHtml(value: string, depth = 0): string {
   if (depth > 4) return "";
   const purify = DOMPurify(window);
+  const nestedDocuments = new WeakMap<Element, string>();
   purify.addHook("uponSanitizeElement", (node, data) => {
     if (data.tagName === "input" && node instanceof Element) {
       const type = (node.getAttribute("type") || "text").toLowerCase();
@@ -13,13 +14,15 @@ export function sanitizeLmsEmbedHtml(value: string, depth = 0): string {
   purify.addHook("uponSanitizeAttribute", (node, data) => {
     if (data.attrName.startsWith("on")) data.keepAttr = false;
     if (node.nodeName === "IFRAME" && data.attrName === "srcdoc") {
-      data.attrValue = sanitizeLmsEmbedHtml(data.attrValue, depth + 1);
-      data.forceKeepAttr = true;
+      if (node instanceof Element) nestedDocuments.set(node, sanitizeLmsEmbedHtml(data.attrValue, depth + 1));
+      data.keepAttr = false;
     }
   });
   purify.addHook("afterSanitizeAttributes", (node) => {
     if (node.nodeName === "IFRAME" && node instanceof Element) {
       node.setAttribute("sandbox", EMBED_SANDBOX);
+      const nested = nestedDocuments.get(node);
+      if (nested !== undefined) node.setAttribute("srcdoc", nested);
     }
   });
   return purify.sanitize(value, {
