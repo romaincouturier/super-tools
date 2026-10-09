@@ -13,6 +13,9 @@ import {
   X,
   RefreshCw,
   ExternalLink,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -45,7 +48,10 @@ interface PictoWord {
   is_chosen: boolean | null;
   received_at: string | null;
   created_at: string;
+  request_count: number | null;
 }
+
+type SortKey = "date" | "count" | "word";
 
 interface PictoChallenge {
   id: string;
@@ -117,6 +123,7 @@ function WordsTab() {
   const [search, setSearch] = useState("");
   const [filterSource, setFilterSource] = useState<"all" | "webhook" | "manual">("all");
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "date", dir: "desc" });
 
   const { data: words = [], isLoading } = useQuery<PictoWord[]>({
     queryKey: ["pictodico_words"],
@@ -160,12 +167,38 @@ function WordsTab() {
   });
 
   const filtered = useMemo(() => {
-    return words.filter((w) => {
+    const list = words.filter((w) => {
       const matchSearch = decodeWord(w.word).toLowerCase().includes(search.toLowerCase());
       const matchSource = filterSource === "all" || w.source === filterSource;
       return matchSearch && matchSource;
     });
-  }, [words, search, filterSource]);
+    const dir = sort.dir === "asc" ? 1 : -1;
+    const dateOf = (w: PictoWord) => w.received_at ?? w.created_at ?? "";
+    return [...list].sort((a, b) => {
+      let cmp = 0;
+      if (sort.key === "count") cmp = (a.request_count ?? 1) - (b.request_count ?? 1);
+      else if (sort.key === "word") cmp = decodeWord(a.word).localeCompare(decodeWord(b.word), "fr", { sensitivity: "base" });
+      if (cmp === 0) cmp = dateOf(a).localeCompare(dateOf(b));
+      return cmp * dir;
+    });
+  }, [words, search, filterSource, sort]);
+
+  const sortHeader = (key: SortKey, label: string) => (
+    <button
+      type="button"
+      className="inline-flex items-center gap-1 hover:text-primary"
+      onClick={() =>
+        setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: key === "word" ? "asc" : "desc" }))
+      }
+    >
+      {label}
+      {sort.key === key ? (
+        sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+      ) : (
+        <ArrowUpDown className="h-3 w-3 opacity-50" />
+      )}
+    </button>
+  );
 
   return (
     <div className="space-y-4">
@@ -237,10 +270,11 @@ function WordsTab() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left font-medium">Mot</th>
+                    <th className="px-4 py-3 text-left font-medium">{sortHeader("word", "Mot")}</th>
                     <th className="px-4 py-3 text-left font-medium">Type</th>
                     <th className="px-4 py-3 text-left font-medium">Source</th>
-                    <th className="px-4 py-3 text-left font-medium">Date</th>
+                    <th className="px-4 py-3 text-right font-medium">{sortHeader("count", "Demandes")}</th>
+                    <th className="px-4 py-3 text-left font-medium">{sortHeader("date", "Première demande")}</th>
                     <th className="px-4 py-3 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
@@ -282,9 +316,16 @@ function WordsTab() {
                           {word.source === "webhook" ? "Webhook" : "Manuel"}
                         </Badge>
                       </td>
+                      <td className="px-4 py-3 text-right tabular-nums">
+                        {(word.request_count ?? 1) > 1 ? (
+                          <Badge variant="secondary" className="text-xs">{word.request_count}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">1</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {word.created_at
-                          ? format(parseISO(word.created_at), "d MMM yyyy", { locale: fr })
+                        {(word.received_at ?? word.created_at)
+                          ? format(parseISO(word.received_at ?? word.created_at), "d MMM yyyy", { locale: fr })
                           : "—"}
                       </td>
                       <td className="px-4 py-3 text-right">
