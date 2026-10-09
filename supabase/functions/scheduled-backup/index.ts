@@ -1364,7 +1364,7 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
     // les contrôles impossibles (timeout) et tables sans date restent des avertissements.
     const unexplained = Object.entries(exactness).filter(([, e]) => e.s === "unexplained");
     for (const [t, e] of Object.entries(exactness).filter(([, e]) => e.s === "error" || e.s === "undatable").slice(0, 10)) {
-      warnings.push(`[Exactitude] ${t}: ${e.s === "error" ? `contrôle impossible (${e.e})` : `écart non datable (sauvegarde=${e.b}, base=${e.l})`}`);
+      errors.push(`[Exactitude] ${t}: ${e.s === "error" ? `contrôle impossible (${e.e})` : `écart non datable (sauvegarde=${e.b}, base=${e.l})`}`);
     }
     const notChecked = TABLES_TO_BACKUP.filter((t) => !TABLES_SKIPPED_HEAVY.has(t) && !exactness[t] && !missing.includes(t));
     if (missing.length > 0) errors.push(`[Integrity] Tables manquantes: ${missing.slice(0, 10).join(", ")}`);
