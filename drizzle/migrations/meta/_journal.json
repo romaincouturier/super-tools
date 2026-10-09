@@ -8,6 +8,13 @@
       "when": 1791460452278,
       "tag": "0000_media_transcription_status",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791579886314,
+      "tag": "0001_pictodico_mcp_registry",
+      "breakpoints": true
     }
   ]
 }

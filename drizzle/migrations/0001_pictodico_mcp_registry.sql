@@ -1,0 +1,4 @@
+INSERT INTO public.agent_schema_registry (table_name, description, display_order) VALUES
+  ('pictodico_words', 'Picto-Dico : backlog des mots demandés par les visiteurs du site (request_type = demande_ajout ou erreur_signalee ; source = webhook, manual ou mcp ; error_description = commentaire ; received_at = date de la demande ; is_chosen = mot retenu dans un défi). Ce n''est pas la liste des pictos publiés.', 170),
+  ('pictodico_challenges', 'Picto-Dico : défis de dessin programmés (numéro, date et horaires, thème, mots du défi en JSON, picto d''échauffement, année scolaire)', 171)
+ON CONFLICT (table_name) DO NOTHING;
