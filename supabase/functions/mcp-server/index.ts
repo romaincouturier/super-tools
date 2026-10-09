@@ -328,7 +328,7 @@ QUEL OUTIL POUR QUELLE QUESTION
 - Conférence, salon, CFP, réécriture d'un pitch déjà soumis : get_event_history. Il rend le pitch (description), les notes de préparation, le bilan (summary_notes) et l'issue déduite. Ne jamais annoncer qu'un événement a été « accepté » : le modèle ne stocke que held / not_selected / cancelled / upcoming, et le refus se lit sur cancellation_reason.
 - Veille (articles, podcasts, sorties produit suivis par SuperTilt) : list_watch_items pour lire ce qui est déjà couvert, save_watch_item pour y déposer un nouveau contenu.
 - LMS (cours en ligne) : list_lms_courses donne les cours ; list_lms_lessons les leçons d'un cours (avec leur module) ; read_lms_lesson renvoie les blocs avec leur empreinte ; list_lms_block_types catalogue les types de blocs pédagogiques et leur pertinence ; create_lms_lesson crée une leçon vide dans un module ; update_lms_block modifie un seul bloc texte/HTML sans changer son type ; apply_lesson_restructure remplace les blocs de contenu d'une leçon après validation humaine ; list_lesson_versions et restore_lesson_version gèrent l'historique. Utiliser read_lms_lesson avant toute proposition de restructuration pour obtenir l'empreinte (fingerprint) exacte.
-- Picto-Dico : le backlog des mots demandés par les visiteurs est la table pictodico_words (query_database) ; check_picto_entries vérifie si des mots y existent déjà ; add_picto_requests y ajoute des demandes sans doublon. La liste des pictos publiés n'est PAS dans SuperTools.
+- Picto-Dico : le backlog des mots demandés par les visiteurs est la table pictodico_words (query_database) ; check_picto_entries vérifie si des mots y existent déjà ; add_picto_requests y ajoute des demandes (un mot déjà présent incrémente request_count). La liste des pictos publiés n'est PAS dans SuperTools.
 - query_database reste disponible pour tout le reste (SELECT, allowlist de tables) mais les outils agrégés ci-dessus sont plus fiables que du SQL improvisé.
 
 MÉTHODE ATTENDUE
@@ -627,7 +627,7 @@ const MCP_TOOLS = [
   {
     name: "add_picto_requests",
     description:
-      "Record words requested by Picto-Dico visitors into the Picto-Dico backlog (table pictodico_words, shown in the Picto-Dico screen of SuperTools). Additive only. Duplicates are skipped: same word (case- and accent-insensitive) with the same request_type already in the backlog. Returns per word: created (with id), duplicate (with existing_id) or rejected (with reason).",
+      "Record words requested by Picto-Dico visitors into the Picto-Dico backlog (table pictodico_words, shown in the Picto-Dico screen of SuperTools). Additive only. Words are URL-decoded. If the same word (case- and accent-insensitive) with the same request_type exists, its request_count is incremented instead of creating a duplicate. Returns per word: created or incremented (with id and request_count), or rejected (with reason).",
     inputSchema: {
       type: "object",
       properties: {
@@ -1675,7 +1675,7 @@ async function callTool(
     case "add_picto_requests": {
       try {
         const res = await addPictoRequests(supabase, args.requests as PictoRequestInput[]);
-        await log(`add_picto_requests: ${res.created} créés, ${res.duplicates} doublons`);
+        await log(`add_picto_requests: ${res.created} créés, ${res.incremented} incrémentés`);
         return textResult(JSON.stringify(res));
       } catch (e) {
         return textResult(`Picto-Dico error: ${e instanceof Error ? e.message : "failed"}`, true);
