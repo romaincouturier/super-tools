@@ -1663,6 +1663,15 @@ async function callTool(
         return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "check_picto_entries": {
+      try {
+        const res = await checkPictoEntries(supabase, args.words as string[]);
+        await log(`check_picto_entries: ${res.found}/${res.checked} trouvés`);
+        return textResult(JSON.stringify(res));
+      } catch (e) {
+        return textResult(`Picto-Dico error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "add_picto_requests": {
       try {
         const res = await addPictoRequests(supabase, args.requests as PictoRequestInput[]);
