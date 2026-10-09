@@ -1,11 +1,11 @@
 # Roadmap
 
 ## Blocs LMS (2026-10-09)
-- [ ] Équilibrer la grille des cartes : desktop 3 colonnes (2 pour 2/4 cartes), tablette 2, mobile 1, dernière ligne centrée
-- [ ] Agrandir cartes/images et rendre la frise interactive dans les deux vues
-- [ ] Ajouter glisser-déposer souris/tactile, retrait et correction par case
-- [ ] Autoriser les widgets HTML/CSS sans scripts dans les iframes et le MCP
-- [ ] Vérifier les interactions, la sécurité et les tests sans modifier les leçons
+- [x] Équilibrer la grille des cartes : desktop 3 colonnes (2 pour 2/4 cartes), tablette 2, mobile 1, dernière ligne centrée
+- [x] Agrandir cartes/images et rendre la frise interactive dans les deux vues
+- [x] Ajouter glisser-déposer souris/tactile, retrait et correction par case
+- [x] Autoriser les widgets HTML/CSS sans scripts dans les iframes et le MCP
+- [x] Vérifier les interactions, la sécurité et les tests sans modifier les leçons
 
 ## Emails modifiables (plan approuvé 2026-10-05)
 - [x] Lot 1 : erratum e-learning, message formateur, retour dépôt, formule coachée, commentaire e-learning
