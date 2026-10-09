@@ -73,6 +73,10 @@ import {
 import {
   applyLessonRestructure,
   createLmsLesson,
+  createLmsQuiz,
+  createLmsAssignment,
+  readLmsQuiz,
+  updateLmsLesson,
   getLmsBlockCatalog,
   listLessonVersions,
   listLmsCourses,
@@ -344,6 +348,8 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - refresh_transcripts / list_unassigned_transcripts / assign_transcript / unassign_transcript : récupèrent les nouveaux transcripts, listent ceux non affectés, les associent à une opportunité ou une mission (page créée) ou retirent le lien. Proposer l'association à l'utilisateur avant de l'appliquer ; si le transcript est déjà affecté ailleurs, demander avant d'utiliser allow_multiple.
 - prepare_newsletter : compose le sommaire ordonné d'une newsletter en BROUILLON (création du brouillon ou reprise d'un brouillon existant), à partir de cartes existantes et/ou de nouveaux contenus créés au passage. Remplace le sommaire du brouillon visé uniquement ; refuse toute newsletter déjà envoyée. Aucun envoi n'est possible d'ici : ne jamais prétendre avoir envoyé une newsletter. Récapituler le sommaire et obtenir l'accord de l'utilisateur avant d'écraser le sommaire d'un brouillon existant.
 - update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre « type » doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
+- create_lms_quiz / create_lms_assignment : créent un quiz (avec ses questions) ou un devoir dans un cours et renvoient le bloc prêt à insérer ({type:"quiz",content:{quiz_id}} ou {type:"assignment",content:{assignment_id}}). Créer d'abord le quiz/devoir, puis référencer son id dans apply_lesson_restructure ou create_lms_lesson. read_lms_quiz relit un quiz.
+- update_lms_lesson : modifie uniquement titre, durée estimée, position dans le module ou caractère obligatoire d'une leçon, sans toucher aux blocs. Annoncer le changement à l'utilisateur.
 - create_lms_lesson : crée une leçon dans un module, avec éventuellement ses blocs de contenu initiaux (paramètre « blocks », même schéma que apply_lesson_restructure). Position facultative : si elle est fournie, les leçons suivantes du module sont décalées d'un rang. Écriture additive : aucune leçon existante n'est modifiée dans son contenu. Retourne l'id et l'empreinte de la leçon créée.
 - apply_lesson_restructure : remplace TOUS les blocs de premier niveau d'une leçon par une nouvelle structure proposée. Tous les types du menu « Ajouter un bloc » sont acceptés : blocs de contenu (texte, tableau, encadré, points clés, liste, checklist, synthèse, accordéon, frise, cartes à retourner, code, exercice, auto-évaluation, texte à trous, mots à glisser, quiz, devoir, dépôt de travail, vidéo, image, galerie, fichier, image interactive, avant/après, bouton, CTA, intégration HTML, shortcode) et blocs de mise en page (section, colonnes, conteneur, contenu progressif, séparateur, espace) qui peuvent porter un tableau « children » de blocs de contenu (un seul niveau d'imbrication). EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
 Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress n'est possible depuis ici.
@@ -1002,6 +1008,84 @@ const MCP_TOOLS = [
         patch: { type: "object", description: "Object with the fields to update" },
       },
       required: ["block_id", "type", "patch"],
+    },
+  },
+  {
+    name: "create_lms_quiz",
+    description:
+      "Create a quiz (lms_quizzes + its questions) in an LMS course, in one all-or-nothing operation. Returns quiz_id and a ready-to-use block {type: 'quiz', content: {quiz_id}} to insert with apply_lesson_restructure or create_lms_lesson. Additive: no existing quiz is modified.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        course_id: { type: "string", description: "UUID of the course (from list_lms_courses)" },
+        title: { type: "string" },
+        description: { type: "string" },
+        passing_score: { type: "number", description: "Optional passing score in percent (0-100)" },
+        max_attempts: { type: "number" },
+        time_limit_minutes: { type: "number" },
+        shuffle_questions: { type: "boolean" },
+        show_correct_answers: { type: "boolean" },
+        questions: {
+          type: "array",
+          description: "1 to 50 questions. single_choice: exactly one correct option; multiple_choice: at least one. 2 to 10 options each.",
+          items: {
+            type: "object",
+            properties: {
+              question: { type: "string" },
+              type: { type: "string", enum: ["single_choice", "multiple_choice"] },
+              options: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: { text: { type: "string" }, is_correct: { type: "boolean" }, feedback: { type: "string" } },
+                  required: ["text", "is_correct"],
+                },
+              },
+              explanation: { type: "string" },
+              points: { type: "number", description: "Default 1" },
+            },
+            required: ["question", "type", "options"],
+          },
+        },
+      },
+      required: ["course_id", "title", "questions"],
+    },
+  },
+  {
+    name: "read_lms_quiz",
+    description: "Read a quiz and its ordered questions (options with correct answers). Read-only.",
+    inputSchema: { type: "object", properties: { quiz_id: { type: "string" } }, required: ["quiz_id"] },
+  },
+  {
+    name: "create_lms_assignment",
+    description:
+      "Create an assignment (lms_assignments) in an LMS course. Returns assignment_id and a ready-to-use block {type: 'assignment', content: {assignment_id}}. Additive.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        course_id: { type: "string" },
+        title: { type: "string" },
+        instructions_html: { type: "string", description: "Sanitized HTML instructions" },
+        max_score: { type: "number" },
+        due_after_days: { type: "number", description: "Days after enrollment" },
+        allow_late_submission: { type: "boolean" },
+        allowed_file_types: { type: "array", items: { type: "string" }, description: "e.g. ['.pdf', 'image/*']" },
+        max_file_size_mb: { type: "number" },
+      },
+      required: ["course_id", "title"],
+    },
+  },
+  {
+    name: "update_lms_lesson",
+    description:
+      "Update the metadata of an LMS lesson without touching its blocks (fingerprint unchanged). Allowed patch fields: title, estimated_minutes (0-600 or null), position (inside the same module; siblings are re-ordered), is_mandatory. Any other field is rejected. Returns the lesson and before/after values of changed fields.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        lesson_id: { type: "string" },
+        patch: { type: "object", description: "e.g. {\"estimated_minutes\": 15, \"title\": \"...\"}" },
+      },
+      required: ["lesson_id", "patch"],
     },
   },
   {
@@ -1983,6 +2067,59 @@ async function callTool(
         return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "create_lms_quiz": {
+      try {
+        await log("create_lms_quiz");
+        const result = await createLmsQuiz({
+          courseId: (args.course_id as string) || "",
+          title: (args.title as string) || "",
+          description: args.description as string | undefined,
+          passingScore: args.passing_score as number | undefined,
+          maxAttempts: args.max_attempts as number | undefined,
+          timeLimitMinutes: args.time_limit_minutes as number | undefined,
+          shuffleQuestions: args.shuffle_questions as boolean | undefined,
+          showCorrectAnswers: args.show_correct_answers as boolean | undefined,
+          questions: Array.isArray(args.questions) ? args.questions : [],
+        });
+        return textResult(JSON.stringify(result));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "read_lms_quiz": {
+      try {
+        await log("read_lms_quiz");
+        return textResult(JSON.stringify(await readLmsQuiz((args.quiz_id as string) || "")));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "create_lms_assignment": {
+      try {
+        await log("create_lms_assignment");
+        const result = await createLmsAssignment({
+          courseId: (args.course_id as string) || "",
+          title: (args.title as string) || "",
+          instructionsHtml: args.instructions_html as string | undefined,
+          maxScore: args.max_score as number | undefined,
+          dueAfterDays: args.due_after_days as number | undefined,
+          allowLateSubmission: args.allow_late_submission as boolean | undefined,
+          allowedFileTypes: args.allowed_file_types,
+          maxFileSizeMb: args.max_file_size_mb as number | undefined,
+        });
+        return textResult(JSON.stringify(result));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_lms_lesson": {
+      try {
+        await log("update_lms_lesson");
+        return textResult(JSON.stringify(await updateLmsLesson((args.lesson_id as string) || "", args.patch)));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "create_lms_lesson": {
       try {
         await log("create_lms_lesson");
@@ -2097,7 +2234,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.8.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.9.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }
