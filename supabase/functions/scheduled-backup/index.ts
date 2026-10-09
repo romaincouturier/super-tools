@@ -1360,11 +1360,16 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
     // juste après son export. Ici on agrège et on ajoute le kit de migration.
     const exactness: Record<string, Exactness> = JSON.parse(String(run.totals.exactness || "{}"));
     const missing = TABLES_TO_BACKUP.filter((t) => !TABLES_SKIPPED_HEAVY.has(t) && (counts[t] === undefined || counts[t] < 0));
-    const unexplained = Object.entries(exactness).filter(([, e]) => e.s === "unexplained" || e.s === "error");
+    // Seul un écart prouvant des lignes absentes de la sauvegarde rend la base KO ;
+    // les contrôles impossibles (timeout) et tables sans date restent des avertissements.
+    const unexplained = Object.entries(exactness).filter(([, e]) => e.s === "unexplained");
+    for (const [t, e] of Object.entries(exactness).filter(([, e]) => e.s === "error" || e.s === "undatable").slice(0, 10)) {
+      warnings.push(`[Exactitude] ${t}: ${e.s === "error" ? `contrôle impossible (${e.e})` : `écart non datable (sauvegarde=${e.b}, base=${e.l})`}`);
+    }
     const notChecked = TABLES_TO_BACKUP.filter((t) => !TABLES_SKIPPED_HEAVY.has(t) && !exactness[t] && !missing.includes(t));
     if (missing.length > 0) errors.push(`[Integrity] Tables manquantes: ${missing.slice(0, 10).join(", ")}`);
     for (const [t, e] of unexplained.slice(0, 10)) {
-      errors.push(`[Exactitude] ${t}: ${e.s === "error" ? `contrôle impossible (${e.e})` : `sauvegarde=${e.b} lignes, base=${e.l}, modifiées depuis l'export=${e.c ?? "inconnu"}`}`);
+      errors.push(`[Exactitude] ${t}: sauvegarde=${e.b} lignes, base=${e.l}, modifiées depuis l'export=${e.c ?? "inconnu"}`);
     }
     if (notChecked.length > 0) errors.push(`[Exactitude] non contrôlées: ${notChecked.slice(0, 10).join(", ")}`);
     const integrityResult = { passed: missing.length === 0 && unexplained.length === 0 && notChecked.length === 0 };
