@@ -63,7 +63,7 @@ import {
   type GameType,
 } from "@/hooks/useSupertiltOrders";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskAmount, maskEmail, maskName, demoBlur } from "@/lib/demoMask";
+import { maskAmount, maskEmail, maskName, maskText, demoBlur } from "@/lib/demoMask";
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -697,6 +697,12 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
             <Send className="h-3 w-3" />
             Email envoyé le {DATE(item.email_sent_at)}
           </p>
+        )}
+        {item.tracking_url?.startsWith("https://") && (
+          <a href={item.tracking_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-indigo-700 hover:underline">
+            <Truck className="h-3 w-3" />
+            Suivi {isDemoMode ? maskText(item.tracking_number) : item.tracking_number ?? "Sendcloud"}
+          </a>
         )}
       </div>
 
