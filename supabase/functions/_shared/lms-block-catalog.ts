@@ -432,10 +432,10 @@ const CATALOG: CatalogEntry[] = [
     blockKind: "content",
     labelFr: "Quiz",
     editableViaMcp: true,
-    fields: [f("quiz_id", "string", true, "ID d'un quiz existant (lms_quizzes) — le quiz doit déjà exister")],
+    fields: [f("quiz_id", "string", true, "ID d'un quiz existant (lms_quizzes) — créé via create_lms_quiz ou l'éditeur")],
     guidance: {
-      whenToUse: "Insérer un quiz déjà créé dans l'éditeur pour valider les acquis.",
-      whenNotToUse: "Le MCP ne crée pas les questions : créer le quiz dans l'éditeur puis référencer son ID.",
+      whenToUse: "Valider les acquis avec un quiz créé via create_lms_quiz (ou dans l'éditeur).",
+      whenNotToUse: "Créer d'abord le quiz avec create_lms_quiz, puis référencer le quiz_id renvoyé.",
     },
   },
   {
@@ -450,7 +450,7 @@ const CATALOG: CatalogEntry[] = [
     ],
     guidance: {
       whenToUse: "Travail à rendre et à évaluer par le formateur.",
-      whenNotToUse: "Le devoir lui-même doit être créé dans l'éditeur au préalable.",
+      whenNotToUse: "Créer d'abord le devoir avec create_lms_assignment, puis référencer l'assignment_id renvoyé.",
     },
   },
   {
