@@ -3,6 +3,9 @@ import { getSenderFrom } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { renderEditableEmail } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 interface RequestBody {
@@ -23,17 +26,21 @@ serve(async (req: Request) => {
       getSenderFrom(),
     ]);
 
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const tpl = EDITABLE_EMAIL_DEFAULTS.lms_message_notification;
+    const email = await renderEditableEmail(supabase, {
+      type: "lms_message_notification",
+      defaultSubject: tpl.subject.vous,
+      defaultContent: tpl.content.vous,
+      vars: { course_title: courseTitle },
+      blocks: { message_button: emailButton("Voir mon message", portalUrl) },
+    });
+
     await sendEmail({
       from: senderFrom,
       to: [learnerEmail],
-      subject: `Nouveau message dans votre espace — ${courseTitle}`,
-      html: `
-        <p>Bonjour,</p>
-        <p>Vous avez reçu un nouveau message de votre formateur concernant votre e-learning <strong>${courseTitle}</strong>.</p>
-        ${emailButton("Voir mon message", portalUrl)}
-        <p style="color:#666;font-size:14px;">Si vous ne souhaitez plus recevoir ces notifications, contactez votre formateur.</p>
-        ${signature}
-      `,
+      subject: email.subject,
+      html: `${email.html}\n${signature}`,
       _emailType: "lms_message_notification",
     });
 

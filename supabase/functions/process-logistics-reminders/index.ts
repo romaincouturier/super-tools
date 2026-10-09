@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderCatalogEmail } from "../_shared/editable-email.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
@@ -621,7 +622,7 @@ serve(async (req) => {
       // 19. Tickets support en codage automatique (admins uniquement)
       if (recipient.isAdmin && codingTickets.length > 0) {
         const statusLabels: Record<string, { label: string; color: string; icon: string }> = {
-          pending:          { label: "En attente",    color: COLORS.gray || "#6b7280", icon: "⏳" },
+          pending:          { label: "En attente",    color: (COLORS as Record<string, string>).gray || "#6b7280", icon: "⏳" },
           running:          { label: "En cours",      color: "#3b82f6",                icon: "⚙️" },
           ready_for_review: { label: "PR à relire",   color: "#8b5cf6",                icon: "👀" },
           done:             { label: "Terminé",       color: "#10b981",                icon: "✅" },
@@ -644,6 +645,10 @@ serve(async (req) => {
       // Skip if no alerts
       if (sections.length === 0) continue;
 
+      const ldR = await renderCatalogEmail(supabase, "logistics_digest", {
+        vars: { first_name: recipient.firstName, alert_count: String(alertCount), plural_s: alertCount > 1 ? "s" : "" },
+        blocks: { alert_sections: sections.join("") },
+      });
       const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -659,8 +664,7 @@ serve(async (req) => {
       </p>
     </div>
     <div style="background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px; padding: 28px;">
-      <p style="margin: 0 0 24px 0; font-size: 15px; color: #374151;">Bonjour ${recipient.firstName},</p>
-      ${sections.join("")}
+      <div style="font-size: 15px; color: #374151;">${ldR.html}</div>
       <div style="text-align: center; margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
         <a href="${appUrl}" style="display: inline-block; background-color: ${COLORS.accent}; color: ${COLORS.primary}; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
           Ouvrir SuperTools
@@ -680,7 +684,7 @@ serve(async (req) => {
           from: senderFrom,
           to: [recipient.email],
           bcc: bccList,
-          subject: `🔔 ${alertCount} alerte${alertCount > 1 ? "s" : ""} — Récapitulatif quotidien`,
+          subject: ldR.subject,
           html: htmlContent,
           _emailType: "logistics_digest",
         });

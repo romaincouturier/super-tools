@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderEditableEmail } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
@@ -49,25 +51,26 @@ serve(async (req) => {
         ? `le ${startDateFormatted}`
         : "";
 
-    const html = `
-      <p>Bonjour ${trainerName || ""},</p>
-      <p>
-        La formation « <strong>${trainingName}</strong> »
-        ${clientName ? `pour <strong>${clientName}</strong>` : ""}
-        ${dateLine ? `(${dateLine})` : ""}
-        est maintenant terminée.
-      </p>
-      <p>Merci de prendre quelques minutes pour donner votre retour sur cette session en cliquant sur le lien ci-dessous :</p>
-      ${emailButton("Donner mon retour", evaluationLink)}
-      <p>Ce formulaire prend environ 2 minutes.</p>
-      <p>Merci,<br/>L'équipe SuperTilt</p>
-      ${signature}
-    `;
+    const supabase = getSupabaseClient();
+    const tpl = EDITABLE_EMAIL_DEFAULTS.trainer_evaluation_request;
+    const rendered = await renderEditableEmail(supabase, {
+      type: "trainer_evaluation_request",
+      defaultSubject: tpl.subject.vous,
+      defaultContent: tpl.content.vous,
+      vars: {
+        trainer_name: trainerName || "",
+        training_name: trainingName,
+        client_name: clientName || null,
+        date_line: dateLine || null,
+      },
+      blocks: { evaluation_button: emailButton("Donner mon retour", evaluationLink) },
+    });
+    const html = `${rendered.html}${signature}`;
 
     const result = await sendEmail({
       to: [trainerEmail],
       bcc: bccList,
-      subject: `Votre retour – ${trainingName}${clientName ? ` (${clientName})` : ""}${dateLine ? ` – ${dateLine}` : ""}`,
+      subject: rendered.subject,
       html,
     });
 
@@ -76,7 +79,6 @@ serve(async (req) => {
     }
 
     // Log activity
-    const supabase = getSupabaseClient();
     await supabase.from("activity_logs").insert({
       action_type: "trainer_evaluation_sent",
       recipient_email: trainerEmail,

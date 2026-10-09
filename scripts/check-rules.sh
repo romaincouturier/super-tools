@@ -649,6 +649,15 @@ if [ "$STAGED_MODE" = "false" ]; then
          && echo \"VIOLATION [055c]: \$c (\$m) coûte \$cur dans l'Arena et \$ref côté serveur\"; \
      done; true"
 
+  # [073] Listes BPF — la contrainte en base fait foi ; le code qui en garde une
+  # copie (outil MCP) doit porter exactement les mêmes valeurs.
+  check "073" "Listes BPF du MCP alignées sur la contrainte en base" \
+    "mig=\$(grep -l 'training_participants_source_financement_bpf_check' supabase/migrations/*.sql | tail -1); \
+     [ -n \"\$mig\" ] || echo 'VIOLATION [073]: contrainte BPF absente des migrations'; \
+     for v in \$(sed -n '/TYPE_STAGIAIRE_BPF =/,/as const;/p;/SOURCE_FINANCEMENT_BPF =/,/as const;/p' supabase/functions/_shared/participant-tools.ts | grep -oE '\"[a-z_]+\"' | tr -d '\"'); do \
+       grep -q \"'\$v'\" \"\$mig\" || echo \"VIOLATION [073]: valeur BPF \$v absente de la contrainte (\$mig)\"; \
+     done"
+
   # [072] Prompt caching — un cache_control ne vaut que s'il est relu : rien de
   # variable avant le point de cache, un bloc par message d'historique.
   check "072" "Prompt caching : préfixes stables (Arena, OKR, agent-chat)" \
@@ -771,6 +780,18 @@ check "069" "useResolvedStorageUrl ne rend pas l'URL d'un bucket prive avant sa 
 
   count_037b=$(grep -rn 'JSON.stringify({ error\|JSON.stringify({error' supabase/functions/ --include='index.ts' 2>/dev/null | wc -l)
   ratchet "037b" "Ratchet réponses d'erreur manuelles dans les edge functions (utiliser createErrorResponse)" "$count_037b"
+
+  # [074] Adresses email de l'organisation : jamais en dur, toujours depuis
+  # Paramètres > Général (app_settings : contact_email, sender_email...).
+  check "074" "Aucune adresse email de l'organisation écrite en dur" \
+    "grep -rnE '(contact|romain|noreply)@supertilt\\.fr' src/ supabase/functions/ --include='*.ts' --include='*.tsx' 2>/dev/null \
+       | grep -v '\\.test\\.' | grep -vE 'placeholder=|sample:|hooks/useContactEmail.ts|_shared/email-settings.ts|settingsConstants.ts|mcp-server/index.ts|_shared/gmail.ts|default_sender' \
+       | sed 's/^/VIOLATION [074]: email en dur — /'"
+
+  # [075] Emails automatiques : objet/corps toujours issus d'un modèle éditable.
+  check "075" "Aucun email automatique au texte écrit en dur" \
+    "for f in \$(grep -rlE 'sendEmail\\(' supabase/functions --include='index.ts' 2>/dev/null | grep -vE '/(crm-send-email|send-quote-email|send-broadcast-email|send-mission-email-draft|resend-logged-email|send-training-survey)/'); do \
+       grep -qE 'renderEditableEmail|renderCatalogEmail|prepareTemplatedEmail|email_templates|processTemplate' \"\$f\" || echo \"VIOLATION [075]: email en dur — \$f\"; done"
 
   # [065] Mode démo — affichage identifiant non masqué dans un écran interne.
   # Le détail des violations : bash scripts/check-demo-mask.sh

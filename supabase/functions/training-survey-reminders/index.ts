@@ -5,6 +5,7 @@ import {
   createJsonResponse,
   getSupabaseClient,
 } from "../_shared/mod.ts";
+import { recipientsWithoutSubmittedResponse } from "../_shared/reminder-filters.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -34,19 +35,18 @@ serve(async (req) => {
       // Find recipients who have no response yet and have not been reminded
       const { data: recipients } = await (supabase as any)
         .from("training_survey_recipients")
-        .select("id, sent_at, last_reminded_at")
+        .select("id, email, sent_at, last_reminded_at")
         .eq("survey_id", survey.id);
 
       if (!recipients || recipients.length === 0) continue;
 
       const { data: responses } = await (supabase as any)
         .from("training_survey_responses")
-        .select("recipient_id")
+        .select("recipient_id, respondent_email, submitted_at")
         .eq("survey_id", survey.id);
 
-      const respondedSet = new Set((responses ?? []).map((r: any) => r.recipient_id));
-      const toRemind = recipients.filter(
-        (r: any) => r.sent_at && !r.last_reminded_at && !respondedSet.has(r.id),
+      const toRemind = recipientsWithoutSubmittedResponse(recipients, responses ?? []).filter(
+        (r: any) => r.sent_at && !r.last_reminded_at,
       );
 
       if (toRemind.length === 0) continue;

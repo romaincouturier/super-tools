@@ -1,3 +1,4 @@
+import { resolveCertificateCompany } from "../_shared/certificate-company.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getBccList, getSenderEmail } from "../_shared/email-settings.ts";
@@ -8,6 +9,7 @@ import { sendEmail } from "../_shared/resend.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateFr } from "../_shared/date-utils.ts";
 import { resolveCertificateHours } from "../_shared/certificate-duration.ts";
+import { getValidDriveAccessToken } from "../_shared/google-drive-helper.ts";
 
 
 const PDFMONKEY_API_KEY = Deno.env.get("PDFMONKEY_API_KEY");
@@ -264,6 +266,18 @@ const handler = async (req: Request): Promise<Response> => {
     const firstName = evaluation.first_name || "";
     const lastName = evaluation.last_name || "";
     const company = evaluation.company || "";
+    const certificateCompany = await resolveCertificateCompany(supabase, {
+      participantId: evaluation.participant_id ?? null,
+      participantEmail: evaluation.email ?? null,
+      trainingId: training.id,
+      evaluationCompany: evaluation.company,
+      fallback: !["inter-entreprises", "e_learning"].includes(training.format_formation || "")
+        ? training.client_name
+        : null,
+    });
+    if (!certificateCompany) {
+      console.warn(`Certificate without employer company for evaluation ${evaluation.id}`);
+    }
     const email = evaluation.email || "";
     const fullName = formatName(firstName, lastName);
 
@@ -301,13 +315,7 @@ const handler = async (req: Request): Promise<Response> => {
         status: "pending",
         payload: {
           STAGIAIRE: fullName || "Participant",
-          ENTREPRISE: company
-            || (
-              !["inter-entreprises", "e_learning"].includes(training.format_formation || "")
-                ? (training.client_name || "")
-                : ""
-            )
-            || "—",
+          ENTREPRISE: certificateCompany,
           TITRE_FORMATION: training.training_name,
           DATE_FORMATION: dateFormation,
           DUREE: dureeStr,
@@ -408,7 +416,16 @@ const handler = async (req: Request): Promise<Response> => {
     let driveUrl = "";
     try {
       console.log("Uploading to Google Drive...");
-      const accessToken = await getGoogleAccessToken();
+      // Compte de service si configuré, sinon (ou s'il est invalide) le compte
+      // Drive connecté en OAuth, déjà utilisé par les sauvegardes.
+      let accessToken: string | null = null;
+      try {
+        accessToken = await getGoogleAccessToken();
+      } catch (saErr) {
+        console.warn("Service account unavailable, falling back to OAuth Drive token:", saErr instanceof Error ? saErr.message : saErr);
+        accessToken = await getValidDriveAccessToken(supabase as any);
+      }
+      if (!accessToken) throw new Error("Aucun accès Google Drive (compte de service invalide et aucun compte Drive connecté)");
       const fileName = `Certificat_${fullName.replace(/\s+/g, "_")}_${training.training_name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
       // Folder ID from the URL: 1efGGvd1PPABHOfw2Yk6MXKn6HBlgabLD
       driveUrl = await uploadToDrive(accessToken, fileName, pdfBytes, "1efGGvd1PPABHOfw2Yk6MXKn6HBlgabLD");

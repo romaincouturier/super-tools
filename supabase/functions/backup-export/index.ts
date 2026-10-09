@@ -97,7 +97,6 @@ const TABLES_TO_BACKUP = [
   "ideas",
   "improvements",
   "inbound_emails",
-  "learner_magic_links",
   "learner_notifications",
   "learner_profiles",
   "lms_assignment_submissions",

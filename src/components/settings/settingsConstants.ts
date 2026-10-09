@@ -1,3 +1,4 @@
+import { EDITABLE_EMAIL_DEFAULTS } from "../../../supabase/functions/_shared/editable-email-defaults";
 // Shared types, default templates, and settings registry for the Settings page
 
 export interface EmailTemplate {
@@ -14,7 +15,7 @@ export type AddressMode = "tu" | "vous";
 // Template configuration with timing info
 export interface TemplateConfig {
   name: string;
-  timing: "before" | "during" | "after" | "manual" | "mission_after";
+  timing: "before" | "during" | "after" | "manual" | "mission_after" | "automatic" | "internal";
   sendingInfo: string; // Human-readable description of when/how the email is sent
   delayKey?: string; // Key in app_settings for delay
   subject: { tu: string; vous: string };
@@ -23,6 +24,16 @@ export interface TemplateConfig {
 }
 
 export const DEFAULT_TEMPLATES: Record<string, TemplateConfig> = {
+  ...Object.fromEntries(
+    Object.entries(EDITABLE_EMAIL_DEFAULTS).map(([k, d]) => [k, {
+      name: d.name,
+      timing: d.audience === "internal" ? "internal" : "automatic",
+      sendingInfo: d.sendingInfo,
+      subject: d.subject,
+      content: d.content,
+      variables: d.variables,
+    } satisfies TemplateConfig]),
+  ),
   // BEFORE TRAINING
   needs_survey: {
     name: "Questionnaire de recueil des besoins",
@@ -429,7 +440,7 @@ Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des é
 
 Pourrais-tu prendre 2 minutes pour remplir ce questionnaire en ligne ?
 
-👉 Remplir le questionnaire : https://forms.gle/Hm4TvAVUSvzuWeBJ6
+{{evaluation_link}}
 
 Merci énormément pour ton soutien :-)
 
@@ -444,7 +455,7 @@ Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des é
 
 Pourriez-vous prendre 2 minutes pour remplir ce questionnaire en ligne ?
 
-👉 Remplir le questionnaire : https://forms.gle/Hm4TvAVUSvzuWeBJ6
+{{evaluation_link}}
 
 Merci infiniment pour votre soutien.
 
@@ -452,7 +463,7 @@ Merci infiniment pour votre soutien.
 
 PS : nous pouvons continuer à rester en contact sur LinkedIn (https://www.linkedin.com/in/romaincouturier/) et sur Instagram (https://www.instagram.com/supertilt.ledeclic/) pour d'autres contenus sur le sujet de la formation.`,
     },
-    variables: ["first_name", "training_name"],
+    variables: ["first_name", "training_name", "evaluation_link"],
   },
   evaluation_reminder_1: {
     name: "Relance évaluation - 1ère",
@@ -542,50 +553,16 @@ Je vous remercie sincèrement pour votre aide et vous souhaite une excellente co
 
 Il faut que tu prennes contact avec {{financeur_name}}, à cette adresse : {{financeur_url}}
 
-Voici le message type à envoyer :
-
----
-
-Bonjour,
-
-Comment allez-vous ?
-
-Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des évaluations à froid de mes formations pour les financeurs.
-
-Pouvez-vous prendre 2 minutes pour remplir ce questionnaire en ligne sur la formation "{{training_name}}" ?
-
-👉 Remplir le questionnaire : https://forms.gle/Hm4TvAVUSvzuWeBJ6
-
-Merci énormément pour votre soutien :-)
-
-À bientôt
-
-PS : on peut continuer à rester en contact sur LinkedIn (https://www.linkedin.com/in/romaincouturier/) et sur Instagram (https://www.instagram.com/supertilt.ledeclic/) pour d'autres contenus sur le sujet de la formation.`,
+Retrouve le suivi qualité et les évaluations SuperTools depuis la fiche de la formation :
+{{training_url}}`,
       vous: `Bonjour,
 
 Il faut prendre contact avec {{financeur_name}}, à cette adresse : {{financeur_url}}
 
-Voici le message type à envoyer :
-
----
-
-Bonjour,
-
-Comment allez-vous ?
-
-Dans le cadre de mon processus qualité (Qualiopi), je propose désormais des évaluations à froid de mes formations pour les financeurs.
-
-Pouvez-vous prendre 2 minutes pour remplir ce questionnaire en ligne sur la formation "{{training_name}}" ?
-
-👉 Remplir le questionnaire : https://forms.gle/Hm4TvAVUSvzuWeBJ6
-
-Merci énormément pour votre soutien.
-
-À bientôt,
-
-PS : on peut continuer à rester en contact sur LinkedIn (https://www.linkedin.com/in/romaincouturier/) et sur Instagram (https://www.instagram.com/supertilt.ledeclic/) pour d'autres contenus sur le sujet de la formation.`,
+Retrouvez le suivi qualité et les évaluations SuperTools depuis la fiche de la formation :
+{{training_url}}`,
     },
-    variables: ["financeur_name", "financeur_url", "training_name"],
+    variables: ["financeur_name", "financeur_url", "training_name", "training_url"],
   },
   follow_up_news: {
     name: "Prise de nouvelles informelle",
@@ -1359,6 +1336,10 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   sender_email: { default: "", description: "Adresse email de l'expéditeur pour tous les envois" },
   sender_name: { default: "", description: "Nom de l'expéditeur pour tous les envois" },
   evaluation_notification_email: { default: "", description: "Email qui reçoit les notifications de nouvelles évaluations" },
+  contact_email: { default: "contact@supertilt.fr", description: "Adresse de contact affichée aux apprenants et clients" },
+  mcp_allowed_email: { default: "romain@supertilt.fr", description: "Adresse email autorisée à utiliser le serveur MCP" },
+  nocrm_bcc_email: { default: "supertilt@bcc.nocrm.io", description: "Adresse de copie cachée (BCC) vers noCRM ajoutée à tous les envois" },
+  agent_author_email: { default: "agent@supertools.ai", description: "Adresse email d'auteur utilisée par l'agent IA pour ses commentaires" },
   
   bcc_email: { default: "", description: "Adresse email en copie cachée (BCC) pour tous les envois" },
   bcc_enabled: { default: "true", description: "Activer ou désactiver l'envoi en copie cachée (BCC)" },

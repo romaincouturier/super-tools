@@ -429,6 +429,16 @@ serve(async (req: Request): Promise<Response> => {
 
 
     // Build the payload for PDFMonkey
+
+    const conventionDates = training.format_formation === "e_learning"
+      ? (training.start_date ? "ok" : "")
+      : formatDateRange(scheduleList);
+    if (!conventionDates) {
+      return new Response(JSON.stringify({
+        error: "Dates de formation manquantes : renseignez la date de début (e-learning) ou le planning avant de générer la convention (mention exigée par les OPCO).",
+      }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const payload = {
       CLIENT: clientName,
       ADRESSE: clientAddress,

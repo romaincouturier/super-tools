@@ -3,13 +3,13 @@ import type { BookProduction } from '@/types/book';
 export type BookSortMode = 'recent' | 'oldest' | 'custom';
 
 export const BOOK_SORT_OPTIONS: { value: BookSortMode; label: string }[] = [
-  { value: 'recent', label: 'Plus récent d\'abord' },
-  { value: 'oldest', label: 'Plus ancien d\'abord' },
+  { value: 'recent', label: 'Derniers importés d\'abord' },
+  { value: 'oldest', label: 'Premiers importés d\'abord' },
   { value: 'custom', label: 'Ordre manuel' },
 ];
 
 function timestamp(p: BookProduction): number {
-  const raw = p.exif_date ?? p.created_at;
+  const raw = p.created_at;
   const t = raw ? Date.parse(raw) : NaN;
   return Number.isFinite(t) ? t : 0;
 }

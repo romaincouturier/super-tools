@@ -3,8 +3,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
-import { emailButton, emailInfoBox, wrapEmailHtml } from "../_shared/templates.ts";
+import { emailButton, wrapEmailHtml } from "../_shared/templates.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { renderEditableEmail } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { learnerHasNotifEnabled } from "../_shared/learner-prefs.ts";
 
 const VERSION = "send-deposit-feedback-notification@2026-04-27.1";
@@ -81,16 +83,15 @@ serve(async (req) => {
     const signature = await getSigniticSignature();
     const bccList = await getBccList();
 
-    const subject = "Un retour SuperTilt est disponible sur votre travail";
     const courseTitle = course?.title || "votre formation";
-    const bodyHtml = `
-      <p>Bonjour${displayName ? " " + displayName : ""},</p>
-      <p>Un retour SuperTilt est disponible sur le travail que vous avez déposé dans la formation
-      <strong>${courseTitle}</strong>.</p>
-      ${emailInfoBox("Vous pouvez le consulter en cliquant sur le bouton ci-dessous.")}
-      ${emailButton("Voir mon retour", lessonLink)}
-      <p>À bientôt,<br>L'équipe SuperTilt</p>
-    `;
+    const tpl = EDITABLE_EMAIL_DEFAULTS.deposit_feedback_notification;
+    const { subject, html: bodyHtml } = await renderEditableEmail(supabase, {
+      type: "deposit_feedback_notification",
+      defaultSubject: tpl.subject.vous,
+      defaultContent: tpl.content.vous,
+      vars: { first_name: displayName, course_title: courseTitle },
+      blocks: { feedback_button: emailButton("Voir mon retour", lessonLink) },
+    });
     const html = wrapEmailHtml(bodyHtml, signature);
 
     const result = await sendEmail({

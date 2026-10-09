@@ -108,7 +108,7 @@ export async function transcribeAudio(audioUrl: string): Promise<string> {
   if (!transcriptId) throw new Error("Aucun transcript_id reçu de transcribe-audio-long");
 
   // Step 2: poll until completion (client-side, no wall-time issue)
-  const MAX_POLLS = 180; // 180 * 5s = 15 min
+  const MAX_POLLS = 720; // 720 * 5s = 60 min (enregistrements d'1h+)
   const POLL_INTERVAL = 5000;
 
   for (let i = 0; i < MAX_POLLS; i++) {
@@ -123,7 +123,7 @@ export async function transcribeAudio(audioUrl: string): Promise<string> {
     // queued / processing -> keep polling
   }
 
-  throw new Error("Transcription timeout après 15 minutes");
+  throw new Error("Transcription timeout après 60 minutes");
 }
 
 export async function analyzeAudioForLessons(

@@ -24,7 +24,7 @@ export default function BookPublicPage() {
 
   const rawProductions = data?.productions ?? [];
   const productions = useMemo(
-    () => sortProductions(rawProductions as BookProduction[], 'custom'),
+    () => sortProductions(rawProductions as BookProduction[], 'recent'),
     [rawProductions],
   );
 

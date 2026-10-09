@@ -184,7 +184,8 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
       const courseId = (training as { supports_lms_course_id?: string | null } | null)?.supports_lms_course_id;
       if (!courseId) return;
 
-      const authorEmail = user?.email || "romain@supertilt.fr";
+      const authorEmail = user?.email;
+      if (!authorEmail) return;
       const calendarUrl = `${window.location.origin}/lms/${courseId}/home?view=calendar`;
       const content = `🎬 Le replay du live « ${meetingTitle} » est disponible ! 🎉\n\nVous pouvez le retrouver dès maintenant dans le [calendrier des lives](${calendarUrl}).\n\nBon visionnage 👀`;
 

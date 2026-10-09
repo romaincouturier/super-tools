@@ -252,12 +252,7 @@ serve(async (req: Request): Promise<Response> => {
           ? pending.map(n => `<li>⏳ ${n}</li>`).join("")
           : "<li>Tous les participants ont signé !</li>";
 
-        const trainerHtml = `
-          <p>Bonjour ${trainerFirstName},</p>
-          <p><strong>${participantName}</strong> vient de signer sa feuille d'émargement pour la formation <strong>"${training?.training_name || "Formation"}"</strong>.</p>
-          <ul style="list-style: none; padding: 0; margin: 10px 0;">
-            <li>📅 <strong>Date :</strong> ${formattedDate} – ${periodLabel}</li>
-          </ul>
+        const statusBlock = `
           <p><strong>✅ Ont signé (${signed.length}) :</strong></p>
           <ul style="margin: 5px 0;">${signedList}</ul>
           ${pending.length > 0 ? `<p><strong>⏳ En attente (${pending.length}) :</strong></p><ul style="margin: 5px 0;">${pendingList}</ul>` : `<p style="color: #16a34a; font-weight: bold;">🎉 Tous les participants ont signé !</p>`}
@@ -267,6 +262,9 @@ serve(async (req: Request): Promise<Response> => {
         const { sendEmail: sendTrainerEmail } = await import("../_shared/resend.ts");
         const { getSigniticSignature } = await import("../_shared/signitic.ts");
         const { getSenderFrom: getFrom, getBccList: getBcc } = await import("../_shared/email-settings.ts");
+        const { renderEditableEmail } = await import("../_shared/editable-email.ts");
+        const { EDITABLE_EMAIL_DEFAULTS } = await import("../_shared/editable-email-defaults.ts");
+        const { wrapEmailHtml } = await import("../_shared/templates.ts");
 
         const [senderFrom, bccList, sigHtml] = await Promise.all([
           getFrom(),
@@ -274,17 +272,31 @@ serve(async (req: Request): Promise<Response> => {
           getSigniticSignature(),
         ]);
 
-        const subjectEmoji = pending.length === 0 ? "🎉" : "✍️";
-        const subjectStatus = pending.length === 0
-          ? "Tous les émargements reçus"
-          : `${signed.length}/${signed.length + pending.length} émargements reçus`;
+        const trainerTpl = EDITABLE_EMAIL_DEFAULTS.attendance_signed_trainer;
+        const rendered = await renderEditableEmail(supabase, {
+          type: "attendance_signed_trainer",
+          defaultSubject: trainerTpl.subject.vous,
+          defaultContent: trainerTpl.content.vous,
+          vars: {
+            trainer_first_name: trainerFirstName,
+            participant_name: participantName,
+            training_name: training?.training_name || "Formation",
+            session_date: formattedDate,
+            period_label: periodLabel,
+            all_signed: pending.length === 0 || null,
+            some_pending: pending.length > 0 || null,
+            signed_count: String(signed.length),
+            total_count: String(signed.length + pending.length),
+          },
+          blocks: { status_block: statusBlock },
+        });
 
         await sendTrainerEmail({
           from: senderFrom,
           to: [trainerEmail],
           bcc: bccList,
-          subject: `${subjectEmoji} ${subjectStatus} – ${training?.training_name || "Formation"} – ${formattedDate} ${periodLabel}`,
-          html: trainerHtml + sigHtml,
+          subject: rendered.subject,
+          html: wrapEmailHtml(rendered.html, sigHtml),
           _emailType: "attendance_signature_trainer_notify",
           _trainingId: signature.training_id,
         });

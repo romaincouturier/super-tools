@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderCatalogEmail, escapeEmailValue as escE } from "../_shared/editable-email.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
@@ -72,79 +73,37 @@ serve(async (req) => {
     // Build the card link
     const cardLink = cardId ? `${APP_URL}/contenu?card=${cardId}` : `${APP_URL}/contenu`;
 
-    switch (normalizedType) {
-      case "review_requested":
-        subject = `🔍 Nouvelle demande de relecture : ${cardTitle}`;
-        htmlContent = `
-          <p>Bonjour,</p>
-          <p>Tu as reçu une demande de relecture pour le contenu :</p>
-          ${emailInfoBox(`<strong>${cardTitle}</strong>`)}
-          ${externalUrl ? `<p>Lien externe : <a href="${externalUrl}">${externalUrl}</a></p>` : ""}
-          ${emailButton("Commencer la relecture", cardLink)}
-          ${signature}
-        `;
-        break;
-
-      case "review_reminder":
-        subject = `🔔 Rappel — relecture attendue : ${cardTitle}`;
-        htmlContent = `
-          <p>Bonjour,</p>
-          <p>Petit rappel courtois : une relecture est toujours en attente sur :</p>
-          ${emailInfoBox(`<strong>${cardTitle}</strong>`)}
-          <p>Si tu es disponible, merci de traiter cette relecture dès que possible. Si ce n'est pas le bon moment, un simple retour (même bref) nous aide à nous organiser.</p>
-          ${emailButton("Ouvrir la carte", cardLink)}
-          ${signature}
-        `;
-        break;
-
-      case "comment_added":
-        subject = `💬 Nouveau commentaire sur : ${cardTitle}`;
-        htmlContent = `
-          <p>Bonjour,</p>
-          <p>Un nouveau commentaire a été ajouté sur la relecture :</p>
-          ${emailInfoBox(`<strong>${cardTitle}</strong>`)}
-          ${emailButton("Voir le commentaire", cardLink)}
-          ${signature}
-        `;
-        break;
-
-      case "review_status_changed":
-        subject = `✅ Statut de relecture modifié : ${cardTitle}`;
-        htmlContent = `
-          <p>Bonjour,</p>
-          <p>Le statut de la relecture a été mis à jour pour :</p>
-          ${emailInfoBox(`<strong>${cardTitle}</strong>`)}
-          ${emailButton("Voir les détails", cardLink)}
-          ${signature}
-        `;
-        break;
-
-      case "mention":
-        subject = `💬 ${authorName || "Quelqu'un"} vous a mentionné — ${cardTitle}`;
-        htmlContent = `
-          <p>Bonjour,</p>
-          <p><strong>${authorName || "Un utilisateur"}</strong> vous a mentionné dans un commentaire sur :</p>
-          ${emailInfoBox(`<strong>${cardTitle}</strong>`)}
-          ${commentText ? `
-          <div style="background-color: #f0f4ff; padding: 15px; border-left: 4px solid #3b82f6; border-radius: 4px; margin: 20px 0;">
-            <p style="margin: 0; color: #1e3a5f; font-style: italic;">"${commentText}"</p>
-          </div>
-          ` : ""}
-          ${emailButton("Voir le commentaire", cardLink)}
-          ${signature}
-        `;
-        break;
-
-      default:
-        return new Response(
-          JSON.stringify({
-            error: "Unknown notification type",
-            received_type: normalizedType,
-            _version: VERSION,
-          }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+    const CONTENT_TYPES: Record<string, { key: string; button: string }> = {
+      review_requested: { key: "content_review_requested", button: "Commencer la relecture" },
+      review_reminder: { key: "content_review_reminder", button: "Ouvrir la carte" },
+      comment_added: { key: "content_comment_added", button: "Voir le commentaire" },
+      review_status_changed: { key: "content_review_status_changed", button: "Voir les détails" },
+      mention: { key: "content_mention", button: "Voir le commentaire" },
+    };
+    const ct = CONTENT_TYPES[normalizedType];
+    if (!ct) {
+      return new Response(
+        JSON.stringify({
+          error: "Unknown notification type",
+          received_type: normalizedType,
+          _version: VERSION,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+    const ctRendered = await renderCatalogEmail(supabase, ct.key, {
+      vars: { card_title: cardTitle, author_name: authorName || "Un utilisateur", author_subject: authorName || "Quelqu'un" },
+      blocks: {
+        card_box: emailInfoBox(`<strong>${escE(cardTitle)}</strong>`),
+        external_link: externalUrl ? `<p>Lien externe : <a href="${escE(externalUrl)}">${escE(externalUrl)}</a></p>` : "",
+        comment_quote: commentText
+          ? `<div style="background-color: #f0f4ff; padding: 15px; border-left: 4px solid #3b82f6; border-radius: 4px; margin: 20px 0;"><p style="margin: 0; color: #1e3a5f; font-style: italic;">"${escE(commentText)}"</p></div>`
+          : "",
+        card_button: emailButton(ct.button, cardLink),
+      },
+    });
+    subject = ctRendered.subject;
+    htmlContent = `${ctRendered.html}${signature}`;
 
     const result = await sendEmail({
       from: senderFrom,

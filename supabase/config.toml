@@ -734,3 +734,9 @@ verify_jwt = false
 
 [functions.create-location-extension]
 verify_jwt = false
+
+[functions.deposit-email-reaction]
+verify_jwt = false
+
+[functions.book-set-thumbnail]
+verify_jwt = false

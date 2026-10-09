@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderEditableEmail, ctaButton } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
@@ -172,54 +174,32 @@ serve(async (req) => {
       );
 
       // Build email
-      const subject = `⚠️ Alerte : aucun participant pour « ${training.training_name} » (J-${daysRemaining})`;
-
-      const bodyHtml = `
-<!DOCTYPE html>
-<html lang="fr">
-<head><meta charset="UTF-8"></head>
-<body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333;">
-  <p>Bonjour ${trainerFirstName},</p>
-
-  <p>Petit rappel amical 😊 — la formation <strong>« ${training.training_name} »</strong> pour <strong>${training.client_name}</strong> démarre le <strong>${formatDateWithDayFr(startDate)}</strong> (dans ${daysRemaining} jours) et <strong>aucun participant n'est encore inscrit</strong>.</p>
-
-  <p>Il serait bon de :</p>
-  <ul>
-    <li>🔍 Relancer le client pour obtenir la liste des participants</li>
-    <li>📋 Vérifier si la formation est toujours maintenue</li>
-    <li>❌ Envisager une annulation si aucun retour ne vient</li>
-  </ul>
-
-  <table style="margin: 20px 0; border-collapse: collapse; width: 100%;">
-    <tr style="background: #f8f9fa;">
-      <td style="padding: 8px 12px; border: 1px solid #dee2e6; font-weight: bold;">Formation</td>
-      <td style="padding: 8px 12px; border: 1px solid #dee2e6;">${training.training_name}</td>
-    </tr>
-    <tr>
-      <td style="padding: 8px 12px; border: 1px solid #dee2e6; font-weight: bold;">Client</td>
-      <td style="padding: 8px 12px; border: 1px solid #dee2e6;">${training.client_name}</td>
-    </tr>
-    <tr style="background: #f8f9fa;">
-      <td style="padding: 8px 12px; border: 1px solid #dee2e6; font-weight: bold;">Date de début</td>
-      <td style="padding: 8px 12px; border: 1px solid #dee2e6;">${formatDateWithDayFr(startDate)}</td>
-    </tr>
-    <tr>
-      <td style="padding: 8px 12px; border: 1px solid #dee2e6; font-weight: bold;">Lieu</td>
-      <td style="padding: 8px 12px; border: 1px solid #dee2e6;">${training.location || "Non défini"}</td>
-    </tr>
-    <tr style="background: #fff3cd;">
-      <td style="padding: 8px 12px; border: 1px solid #dee2e6; font-weight: bold;">Participants inscrits</td>
-      <td style="padding: 8px 12px; border: 1px solid #dee2e6; color: #dc3545; font-weight: bold;">0</td>
-    </tr>
-  </table>
-
-  <p>Ce message est envoyé automatiquement tous les 2 jours ouvrés tant qu'aucun participant n'est ajouté.</p>
-
-  <p>Bonne journée ! 🚀</p>
-
-  ${signature}
-</body>
-</html>`;
+      const row = (label: string, value: string, bg = "") => `<tr${bg ? ` style="background: ${bg};"` : ""}><td style="padding: 8px 12px; border: 1px solid #dee2e6; font-weight: bold;">${label}</td><td style="padding: 8px 12px; border: 1px solid #dee2e6;">${value}</td></tr>`;
+      const esc = (v: unknown) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const trainingTable = `<table style="margin: 20px 0; border-collapse: collapse; width: 100%;">
+    ${row("Formation", esc(training.training_name), "#f8f9fa")}
+    ${row("Client", esc(training.client_name))}
+    ${row("Date de début", formatDateWithDayFr(startDate), "#f8f9fa")}
+    ${row("Lieu", esc(training.location || "Non défini"))}
+    <tr style="background: #fff3cd;"><td style="padding: 8px 12px; border: 1px solid #dee2e6; font-weight: bold;">Participants inscrits</td><td style="padding: 8px 12px; border: 1px solid #dee2e6; color: #dc3545; font-weight: bold;">0</td></tr>
+  </table>`;
+      const tpl = EDITABLE_EMAIL_DEFAULTS.participant_list_reminder;
+      const rendered = await renderEditableEmail(supabase, {
+        type: "participant_list_reminder",
+        defaultSubject: tpl.subject.vous,
+        defaultContent: tpl.content.vous,
+        vars: {
+          trainer_first_name: trainerFirstName,
+          training_name: training.training_name,
+          client_name: training.client_name,
+          start_date: formatDateWithDayFr(startDate),
+          days_remaining: String(daysRemaining),
+        },
+        blocks: { training_table: trainingTable },
+      });
+      const subject = rendered.subject;
+      const bodyHtml = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"></head>
+<body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333;">${rendered.html}${signature}</body></html>`;
 
       // Send email via Resend
       const resendApiKey = Deno.env.get("RESEND_API_KEY");

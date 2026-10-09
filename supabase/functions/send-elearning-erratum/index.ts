@@ -8,6 +8,8 @@ import {
   sendEmail,
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
+import { renderEditableEmail, ctaButton } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { learnerAccessLink } from "../_shared/learner-account.ts";
 
 // Erratum: annule et remplace le lien erroné (panier WooCommerce) envoyé dans
@@ -60,22 +62,15 @@ serve(async (req) => {
 
     const firstName = participant.first_name || "";
     const trainingName = training.training_name || "";
-    const subject = `Erratum : le bon lien pour reprendre ${trainingName}`;
-
-    const paragraphs = [
-      `Bonjour ${firstName},`,
-      `Je reviens vers vous suite au message que je vous ai adressé ce matin au sujet de la formation en ligne « ${trainingName} ».`,
-      `Le lien qu'il contenait était erroné : il renvoyait vers une page de commande, alors que votre inscription est bien enregistrée et réglée. Toutes mes excuses pour la confusion. Ce message annule et remplace le précédent.`,
-      `Toute votre formation se trouve dans votre espace apprenant SuperTilt. Pour y accéder, c'est très simple :`,
-      `<ol><li>Cliquez sur le bouton ci-dessous</li><li>Créez votre mot de passe (ou connectez-vous si vous avez déjà un compte)</li><li>Vous arrivez directement sur votre tableau de bord, avec votre formation</li></ol>`,
-      `<p style="margin: 24px 0;"><a href="${accessLink}" style="display:inline-block;padding:12px 24px;background-color:#ffd100;color:#101820;text-decoration:none;border-radius:8px;font-weight:bold;">Accéder à ma formation</a></p>`,
-      `Ce lien est personnel. S'il ne fonctionne plus, rendez-vous sur la page de connexion : nous vous en enverrons un nouveau en quelques secondes.`,
-      `Le rythme reste totalement libre, vous avancez à votre convenance. Si le moindre point vous freine, répondez simplement à ce mail.`,
-      `À très vite,`,
-    ];
-
-
-    const html = `${paragraphs.map((p) => `<p>${p}</p>`).join("\n")}\n${await getSigniticSignature()}`;
+    const tpl = EDITABLE_EMAIL_DEFAULTS.elearning_erratum;
+    const { subject, html: bodyHtml } = await renderEditableEmail(supabase, {
+      type: "elearning_erratum",
+      defaultSubject: tpl.subject.vous,
+      defaultContent: tpl.content.vous,
+      vars: { first_name: firstName, training_name: trainingName },
+      blocks: { access_button: ctaButton("Accéder à ma formation", accessLink) },
+    });
+    const html = `${bodyHtml}\n${await getSigniticSignature()}`;
 
     const to = test_recipient ? [test_recipient] : [participant.email];
     const bccList = test_recipient ? [] : await getBccList();

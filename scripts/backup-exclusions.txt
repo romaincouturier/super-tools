@@ -31,3 +31,13 @@ vhd_narrative_access
 # Journal de résolution d'identité : données éphémères (purge à 30 jours),
 # empreintes d'adresses et IP, sans valeur de restauration.
 identity_resolution_log
+
+# Suivi anti-doublon des rappels de live : reconstructible depuis sent_emails_log.
+live_reminder_sends
+
+# Liens « J'aime » des mails formateur : éphémères (30 j).
+deposit_reaction_tokens
+
+# Manifeste de la synchro storage incrémentale : index des fichiers déjà copiés
+# dans le miroir Drive. Perdu, il provoque seulement une recopie complète.
+backup_storage_manifest

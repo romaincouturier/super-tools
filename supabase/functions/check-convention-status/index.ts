@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderCatalogEmail, escapeEmailValue as escE } from "../_shared/editable-email.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { sendEmail } from "../_shared/resend.ts";
 import { getSenderEmail } from "../_shared/email-settings.ts";
@@ -216,34 +217,32 @@ serve(async (req: Request): Promise<Response> => {
       })
       .join("");
 
-    const htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 700px;">
-      <div style="background-color: #dc2626; color: white; padding: 16px 24px; border-radius: 8px 8px 0 0;">
-        <h2 style="margin: 0;">⚠️ ALERTE — Conventions de formation manquantes</h2>
-      </div>
-      <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
-        <p>${issuesList.length} formation${issuesList.length > 1 ? "s" : ""} à venir ${issuesList.length > 1 ? "nécessitent" : "nécessite"} une action sur la convention :</p>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
-          <thead>
-            <tr style="background-color: #f9fafb;">
-              <th style="padding: 10px 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Formation</th>
-              <th style="padding: 10px 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Date</th>
-              <th style="padding: 10px 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Problème</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows}
-          </tbody>
-        </table>
-        <p style="margin-top: 20px; color: #6b7280; font-size: 13px;">
-          Ce contrôle est effectué automatiquement chaque jour à 6h00.
-        </p>
-      </div>
+    const n = issuesList.length;
+    const convRendered = await renderCatalogEmail(supabase, "convention_missing_alert", {
+      vars: {
+        count: String(n),
+        plural_s: n > 1 ? "s" : "",
+        verb: n > 1 ? "nécessitent" : "nécessite",
+      },
+      blocks: {
+        conventions_table: `<table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
+          <thead><tr style="background-color: #f9fafb;">
+            <th style="padding: 10px 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Formation</th>
+            <th style="padding: 10px 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Date</th>
+            <th style="padding: 10px 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Problème</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`,
+      },
+    });
+    const htmlContent = `<div style="font-family: Arial, sans-serif; max-width: 700px;">
+      <div style="background-color: #dc2626; color: white; padding: 16px 24px; border-radius: 8px 8px 0 0;"><h2 style="margin: 0;">⚠️ ALERTE — Conventions de formation manquantes</h2></div>
+      <div style="padding: 20px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">${convRendered.html}</div>
     </div>`;
 
     const result = await sendEmail({
       to: ALERT_EMAIL,
-      subject: `🚨 URGENT — ${issuesList.length} convention${issuesList.length > 1 ? "s" : ""} manquante${issuesList.length > 1 ? "s" : ""} pour des formations à venir`,
+      subject: convRendered.subject,
       html: htmlContent,
     });
 

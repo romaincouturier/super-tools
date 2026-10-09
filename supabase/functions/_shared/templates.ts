@@ -189,7 +189,7 @@ export function templateTextToHtml(text: string): string {
 
   const lines = text.replace(/\r\n/g, "\n").split("\n");
   for (const rawLine of lines) {
-    const line = rawLine.trim();
+    const line = rawLine.trim().replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 
     if (!line) {
       if (bulletLines.length > 0) {

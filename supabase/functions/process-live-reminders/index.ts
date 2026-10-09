@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { claimLiveReminder, releaseLiveReminder } from "../_shared/live-reminder-claim.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
@@ -245,6 +246,12 @@ serve(async (req) => {
         // y compris ceux collés en dur dans un template custom.
         htmlContent = personalizeSupportsLinks(htmlContent, p.email);
 
+        if (!(await claimLiveReminder(supabase, liveId, p.id, "process-live-reminders"))) {
+          skippedAlreadySent++;
+          console.log(`[process-live-reminders] already sent (claim): ${p.email}`);
+          continue;
+        }
+
         const result = await sendEmail({
           to: p.email,
           bcc: bccList,
@@ -267,6 +274,8 @@ serve(async (req) => {
             participant_id: p.id,
             participant_email: p.email,
           });
+        } else {
+          await releaseLiveReminder(supabase, liveId, p.id);
         }
       }
 

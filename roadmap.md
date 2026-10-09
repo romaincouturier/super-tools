@@ -1,18 +1,17 @@
 # Roadmap
 
-## Terminé (18/09)
-- [x] Mot de passe obligatoire à la première ouverture du lien apprenant
-  - [x] Écran de création de mot de passe centré, conforme à la charte
-  - [x] Suppression de la sortie « Plus tard » dans `ConnexionLien.tsx`
-  - [x] Garde-fou pour les sessions déjà ouvertes sans mot de passe (`/connexion/definir-mot-de-passe`)
-  - [x] Réécriture des modèles d'email `elearning_magic_link_tu/vous`
-  - [x] Renvoi du mail corrigé à Colette Nico
-- [x] Nom affiché dans le cours en ligne : plus jamais « Administrateur » pour un apprenant connecté
-- [x] Nom et prénom repris de l'inscription dans les informations personnelles (+ reprise automatique à chaque inscription)
-- [x] Lien « Créer un compte gratuitement » : écran de création de compte avec choix de la formation gratuite
+## Blocs LMS (2026-10-09)
+- [x] Équilibrer la grille des cartes : desktop 3 colonnes (2 pour 2/4 cartes), tablette 2, mobile 1, dernière ligne centrée
+- [x] Agrandir cartes/images et rendre la frise interactive dans les deux vues
+- [x] Ajouter glisser-déposer souris/tactile, retrait et correction par case
+- [x] Autoriser les widgets HTML/CSS sans scripts dans les iframes et le MCP
+- [x] Vérifier les interactions, la sécurité et les tests sans modifier les leçons
 
-- [x] Retry/backoff sur le refresh Google (internal_failure) + échec géré proprement
-- [ ] Bandeau réassort ECHO : bloqué, mail envoyé par AutomateWoo (boutique), accès admin requis
-
-## En cours (28/09)
-- [ ] Relance questionnaire de préparation : modèles tu/vous, bouton compatible, tests avant déploiement
+## Emails modifiables (plan approuvé 2026-10-05)
+- [x] Lot 1 : erratum e-learning, message formateur, retour dépôt, formule coachée, commentaire e-learning
+- [x] Lot 2 (clients) : accès apprenant, mot de passe, démarrage session (émargement auto/live + formateur), groupe, commentaire pratique, signatures (convention, devis, location, émargement reçu) — questionnaire et émargement manuel déjà modifiables
+- [x] Lot 3 : rappel et partage/modif évènement, réservation salle, alerte sans participant, devis jeux, retour formateur, commentaire mission, certificats (participant, copie, commanditaire x2) — devis formation, email CRM et certificat commanditaire manuel déjà rédigés/modifiables
+- [x] Lot 4 (internes) : erreur formulaire, connexion, support, tickets archivés, conventions, session complète, réponse questionnaire, veille, rappel d'action, contenu, dépôt formateur, collaborateur
+- [x] Règle [075] + contrôle check-rules.sh (après lot 4)
+- [x] À la fin (après lot 4) : envoyer à romain un email de test pour chacun des ~40 emails migrés
+- Attente : validation du rendu des 53 emails de test par l'utilisateur

@@ -36,8 +36,10 @@ import {
   type DepositPedagogicalStatus,
   type DepositPublicationStatus,
 } from "@/types/lms-work-deposit";
-import type { AdminDepositRow } from "@/services/lms-work-deposit";
+import { fetchDepositLinkedPostId, type AdminDepositRow } from "@/services/lms-work-deposit";
+import { useQuery } from "@tanstack/react-query";
 import DepositFilePreview from "@/components/lms/DepositFilePreview";
+import DepositCommunityPanel from "@/components/lms/DepositCommunityPanel";
 
 interface Props {
   deposit: AdminDepositRow | null;
@@ -59,6 +61,11 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
   const { confirm, ConfirmDialog } = useConfirm();
   const updateDeposit = useAdminUpdateDeposit();
   const { data: comments = [] } = useAdminDepositComments(deposit?.id);
+  const { data: linkedPostId = null } = useQuery({
+    queryKey: ["deposit_linked_post", deposit?.id],
+    enabled: !!deposit?.id,
+    queryFn: () => fetchDepositLinkedPostId(deposit!.id),
+  });
   const { data: feedback = [] } = useAdminDepositFeedback(deposit?.id);
   const moderateComment = useAdminCommentStatus(deposit?.id || "");
   const createFeedback = useCreateDepositFeedback(deposit?.id || "");
@@ -166,6 +173,8 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
             </div>
           )}
 
+          <DepositCommunityPanel depositId={deposit.id} />
+
           {/* Status + publication */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -272,9 +281,11 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
             </div>
           </div>
 
-          {/* Comments moderation */}
+          {/* Comments moderation — only for deposits not mirrored in the community
+              (otherwise comments live on the community post shown above). */}
+          {!linkedPostId && (
           <div className="border-t pt-4 space-y-3">
-            <h3 className="font-semibold text-sm">Commentaires apprenants ({comments.length})</h3>
+            <h3 className="font-semibold text-sm">Commentaires ({comments.length})</h3>
             {comments.length === 0 && <p className="text-xs text-muted-foreground italic">Aucun commentaire.</p>}
             <ul className="space-y-2">
               {comments.map((c) => (
@@ -326,6 +337,7 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
               ))}
             </ul>
           </div>
+          )}
         </div>
 
         <ConfirmDialog />

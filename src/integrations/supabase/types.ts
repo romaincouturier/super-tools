@@ -536,6 +536,8 @@ export type Database = {
           chunks_done: number
           created_at: string
           cursor_index: number
+          db_finished_at: string | null
+          db_status: string | null
           drive_file_ids: Json
           drive_folder_id: string | null
           errors: Json
@@ -546,7 +548,9 @@ export type Database = {
           run_date: string
           started_at: string
           status: string
+          storage_finished_at: string | null
           storage_folder_id: string | null
+          storage_status: string | null
           table_row_counts: Json
           totals: Json
           updated_at: string
@@ -555,6 +559,8 @@ export type Database = {
           chunks_done?: number
           created_at?: string
           cursor_index?: number
+          db_finished_at?: string | null
+          db_status?: string | null
           drive_file_ids?: Json
           drive_folder_id?: string | null
           errors?: Json
@@ -565,7 +571,9 @@ export type Database = {
           run_date?: string
           started_at?: string
           status?: string
+          storage_finished_at?: string | null
           storage_folder_id?: string | null
+          storage_status?: string | null
           table_row_counts?: Json
           totals?: Json
           updated_at?: string
@@ -574,6 +582,8 @@ export type Database = {
           chunks_done?: number
           created_at?: string
           cursor_index?: number
+          db_finished_at?: string | null
+          db_status?: string | null
           drive_file_ids?: Json
           drive_folder_id?: string | null
           errors?: Json
@@ -584,10 +594,42 @@ export type Database = {
           run_date?: string
           started_at?: string
           status?: string
+          storage_finished_at?: string | null
           storage_folder_id?: string | null
+          storage_status?: string | null
           table_row_counts?: Json
           totals?: Json
           updated_at?: string
+        }
+        Relationships: []
+      }
+      backup_storage_manifest: {
+        Row: {
+          backed_up_at: string
+          bucket: string
+          drive_file_id: string | null
+          etag: string | null
+          path: string
+          size_bytes: number | null
+          source_updated_at: string | null
+        }
+        Insert: {
+          backed_up_at?: string
+          bucket: string
+          drive_file_id?: string | null
+          etag?: string | null
+          path: string
+          size_bytes?: number | null
+          source_updated_at?: string | null
+        }
+        Update: {
+          backed_up_at?: string
+          bucket?: string
+          drive_file_id?: string | null
+          etag?: string | null
+          path?: string
+          size_bytes?: number | null
+          source_updated_at?: string | null
         }
         Relationships: []
       }
@@ -2339,6 +2381,41 @@ export type Database = {
           total_size_bytes?: number
         }
         Relationships: []
+      }
+      deposit_reaction_tokens: {
+        Row: {
+          created_at: string
+          deposit_id: string
+          expires_at: string
+          token: string
+          trainer_email: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          deposit_id: string
+          expires_at: string
+          token: string
+          trainer_email: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          deposit_id?: string
+          expires_at?: string
+          token?: string
+          trainer_email?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposit_reaction_tokens_deposit_id_fkey"
+            columns: ["deposit_id"]
+            isOneToOne: false
+            referencedRelation: "lms_work_deposits"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       devis_signatures: {
         Row: {
@@ -4726,6 +4803,42 @@ export type Database = {
         }
         Relationships: []
       }
+      live_reminder_sends: {
+        Row: {
+          created_at: string
+          live_meeting_id: string
+          participant_id: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          live_meeting_id: string
+          participant_id: string
+          source: string
+        }
+        Update: {
+          created_at?: string
+          live_meeting_id?: string
+          participant_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_reminder_sends_live_meeting_id_fkey"
+            columns: ["live_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "training_live_meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_reminder_sends_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_assignment_submissions: {
         Row: {
           comment: string | null
@@ -5981,6 +6094,7 @@ export type Database = {
           pedagogical_status: string
           publication_status: string
           trainer_notified_at: string | null
+          trainer_notify_requested_at: string | null
           updated_at: string
           visibility: string
           visibility_changed_at: string | null
@@ -6002,6 +6116,7 @@ export type Database = {
           pedagogical_status?: string
           publication_status?: string
           trainer_notified_at?: string | null
+          trainer_notify_requested_at?: string | null
           updated_at?: string
           visibility?: string
           visibility_changed_at?: string | null
@@ -6023,6 +6138,7 @@ export type Database = {
           pedagogical_status?: string
           publication_status?: string
           trainer_notified_at?: string | null
+          trainer_notify_requested_at?: string | null
           updated_at?: string
           visibility?: string
           visibility_changed_at?: string | null
@@ -6331,6 +6447,7 @@ export type Database = {
       }
       media: {
         Row: {
+          assemblyai_transcript_id: string | null
           created_at: string | null
           created_by: string | null
           file_name: string
@@ -6346,8 +6463,14 @@ export type Database = {
           source_type: string
           tags: string[] | null
           transcript: string | null
+          transcription_audio_seconds: number | null
+          transcription_error: string | null
+          transcription_started_at: string | null
+          transcription_status: string | null
+          transcription_updated_at: string | null
         }
         Insert: {
+          assemblyai_transcript_id?: string | null
           created_at?: string | null
           created_by?: string | null
           file_name: string
@@ -6363,8 +6486,14 @@ export type Database = {
           source_type: string
           tags?: string[] | null
           transcript?: string | null
+          transcription_audio_seconds?: number | null
+          transcription_error?: string | null
+          transcription_started_at?: string | null
+          transcription_status?: string | null
+          transcription_updated_at?: string | null
         }
         Update: {
+          assemblyai_transcript_id?: string | null
           created_at?: string | null
           created_by?: string | null
           file_name?: string
@@ -6380,6 +6509,11 @@ export type Database = {
           source_type?: string
           tags?: string[] | null
           transcript?: string | null
+          transcription_audio_seconds?: number | null
+          transcription_error?: string | null
+          transcription_started_at?: string | null
+          transcription_status?: string | null
+          transcription_updated_at?: string | null
         }
         Relationships: [
           {
@@ -12891,6 +13025,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _backup_pk: {
+        Args: { p_table: string }
+        Returns: {
+          col: string
+          typ: string
+        }[]
+      }
       adjust_cron_timezones: { Args: never; Returns: Json }
       agent_sql_query:
         | { Args: { query_text: string }; Returns: Json }
@@ -12911,6 +13052,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      backup_auth_users_export: { Args: never; Returns: Json }
+      backup_changed_since: {
+        Args: { p_since: string; p_table: string }
+        Returns: number
+      }
+      backup_export_page: {
+        Args: {
+          p_after?: string[]
+          p_limit?: number
+          p_table: string
+          p_with_rows?: boolean
+        }
+        Returns: Json
+      }
+      backup_schema_inventory: { Args: never; Returns: Json }
       change_learner_email: {
         Args: { p_new_email: string; p_old_email: string; p_user_id?: string }
         Returns: Json
@@ -13318,6 +13474,15 @@ export type Database = {
           email: string
           last_sign_in_at: string
         }[]
+      }
+      lms_enrollment_removal_decision: {
+        Args: {
+          _course_id: string
+          _email: string
+          _exclude_participant_id?: string
+          _repositioned_to?: string
+        }
+        Returns: Json
       }
       lms_learner_is_enrolled: {
         Args: { _course_id: string }

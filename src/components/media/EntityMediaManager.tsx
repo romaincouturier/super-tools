@@ -6,7 +6,7 @@ import {
   useDeleteMedia,
   useToggleMediaDeliverable,
   useRenameMedia,
-  useUpdateMediaTranscript,
+  useRequestMediaTranscription,
   useUploadEventMedia,
   useUploadMissionMedia,
   useReorderMedia,
@@ -20,8 +20,15 @@ import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@d
 import { CSS } from "@dnd-kit/utilities";
 import { uploadEntityDocument } from "@/hooks/useEntityDocuments";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useEdgeFunction } from "@/hooks/useEdgeFunction";
+
+const isTranscriptionRunning = (m: MediaItem) =>
+  m.transcription_status === "pending" || m.transcription_status === "processing";
+/** Moins de 200 caractères pour plus d'une minute d'audio. */
+const isNearlySilent = (m: MediaItem) =>
+  !!m.transcript && m.transcript.length < 200 && (m.transcription_audio_seconds ?? 0) > 60;
+const canTranscribe = (m: MediaItem) =>
+  !isTranscriptionRunning(m) &&
+  (!m.transcript || m.transcription_status === "failed" || isNearlySilent(m) || m.transcript.length < 200);
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -34,6 +41,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import MediaLightbox from "@/components/media/MediaLightbox";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskFileName, demoBlur } from "@/lib/demoMask";
+import { todayAsISO } from "@/lib/dateFormatters";
 
 function SortableThumb({ id, children }: { id: string; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -84,7 +92,7 @@ const EntityMediaManager = ({
   const deleteMutation = useDeleteMedia();
   const toggleDeliverable = useToggleMediaDeliverable();
   const renameMedia = useRenameMedia();
-  const updateTranscript = useUpdateMediaTranscript();
+  const requestTranscription = useRequestMediaTranscription();
   const uploadEventMedia = useUploadEventMedia();
   const uploadMissionMedia = useUploadMissionMedia();
   const reorderMedia = useReorderMedia();
@@ -102,10 +110,6 @@ const EntityMediaManager = ({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { invoke: invokeTranscribe } = useEdgeFunction<{ transcript?: string }>(
-    "transcribe-audio-long",
-    { silentOnError: true },
-  );
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   // Filter out video_link for display/download purposes
@@ -293,45 +297,13 @@ const EntityMediaManager = ({
   }, [sourceType, sourceId, addMedia, uploadEventMedia, uploadMissionMedia, queryClient, allowDocuments]);
 
   const handleTranscribe = async (item: MediaItem) => {
+    if (item.transcript && !confirm("Remplacer le transcript existant par une nouvelle transcription ?")) return;
     setTranscribingIds((prev) => new Set(prev).add(item.id));
     try {
-      toast.info("Transcription en cours...");
-      const data = await invokeTranscribe({ audio_url: item.file_url });
-      if (!data) {
-        toast.error("Erreur lors de la transcription");
-        return;
-      }
-      const transcript = data.transcript;
-      if (!transcript || transcript === "[inaudible]") {
-        toast.error("Transcription impossible — audio inaudible ou vide");
-        return;
-      }
-
-      await updateTranscript.mutateAsync({
-        id: item.id,
-        transcript,
-        sourceType: item.source_type,
-        sourceId: item.source_id,
-      });
-
-      // For events: auto-fill summary_notes if empty, so the
-      // "compte-rendu manquant" alert disappears once transcription is done.
-      if (item.source_type === "event") {
-        const { data: ev } = await supabase
-          .from("events")
-          .select("summary_notes")
-          .eq("id", item.source_id)
-          .maybeSingle();
-        if (ev && !ev.summary_notes) {
-          await supabase
-            .from("events")
-            .update({ summary_notes: transcript })
-            .eq("id", item.source_id);
-          queryClient.invalidateQueries({ queryKey: ["events"] });
-        }
-      }
-
-      toast.success("Transcription terminée");
+      await requestTranscription.mutateAsync({ id: item.id, sourceType: item.source_type, sourceId: item.source_id });
+      toast.info("Transcription lancée — vous pouvez fermer la page, elle continue sur le serveur.");
+    } catch (err) {
+      toast.error(`Impossible de lancer la transcription : ${err instanceof Error ? err.message : "inconnue"}`);
     } finally {
       setTranscribingIds((prev) => {
         const next = new Set(prev);
@@ -420,6 +392,28 @@ const EntityMediaManager = ({
       setDownloading(false);
     }
   };
+
+  const selectedImages = downloadableMedia.filter((m) => selectedIds.has(m.id) && m.file_type === "image");
+
+  const handleExportPdf = async () => {
+    if (selectedImages.length === 0) return;
+    setDownloading(true);
+    try {
+      const { exportImagesToPdf } = await import("@/lib/exportImagesPdf");
+      const n = await exportImagesToPdf(
+        selectedImages.map((m) => ({ url: m.file_url, name: m.file_name })),
+        `selection-${todayAsISO()}.pdf`,
+      );
+      if (n === 0) toast.error("Aucune image n'a pu être ajoutée au PDF");
+      else toast.success(n === 1 ? "PDF créé avec 1 image" : `PDF créé avec ${n} images`);
+    } catch (err) {
+      console.error("PDF export failed", err);
+      toast.error("Erreur lors de la création du PDF");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
 
   const toggleSelected = (id: string) => {
     setSelectedIds((prev) => {
@@ -605,6 +599,15 @@ const EntityMediaManager = ({
                     )}
                     Télécharger la sélection
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleExportPdf}
+                    disabled={downloading || selectedImages.length === 0}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Exporter en PDF
+                  </Button>
                 </>
               )}
             </div>
@@ -673,7 +676,7 @@ const EntityMediaManager = ({
                             <FileAudio className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                             <span className="text-sm font-medium truncate">{isDemoMode ? maskFileName(item.file_name) : item.file_name}</span>
                             <div className="ml-auto flex items-center gap-1">
-                              {!item.transcript && (
+                              {canTranscribe(item) && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button
@@ -688,7 +691,7 @@ const EntityMediaManager = ({
                                       ) : (
                                         <FileText className="h-3 w-3 mr-1" />
                                       )}
-                                      Transcrire
+                                      {item.transcript || item.transcription_status === "failed" ? "Relancer" : "Transcrire"}
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>Transcrire l'audio avec l'IA</TooltipContent>
@@ -722,11 +725,17 @@ const EntityMediaManager = ({
                               </div>
                             </div>
                           )}
-                          {transcribingIds.has(item.id) && (
+                          {(transcribingIds.has(item.id) || isTranscriptionRunning(item)) && (
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <Loader2 className="h-3 w-3 animate-spin" />
-                              Transcription en cours...
+                              Transcription en cours… (continue même si vous fermez la page)
                             </div>
+                          )}
+                          {item.transcription_status === "failed" && (
+                            <p className="text-xs text-destructive">Échec de la transcription : {item.transcription_error || "raison inconnue"}</p>
+                          )}
+                          {isNearlySilent(item) && (
+                            <p className="text-xs text-destructive">Audio quasi muet : très peu de texte reconnu. Vérifiez l'enregistrement.</p>
                           )}
                         </div>
                       ) : item.file_type === "document" ? (

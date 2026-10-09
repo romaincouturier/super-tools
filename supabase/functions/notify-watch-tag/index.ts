@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderCatalogEmail, escapeEmailValue as escE } from "../_shared/editable-email.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getSenderFrom } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
@@ -60,16 +61,15 @@ serve(async (req) => {
     let sent = 0;
     let errors = 0;
     for (const p of profiles) {
-      const greeting = p.first_name ? `Bonjour ${p.first_name},` : "Bonjour,";
-      const htmlBody = `
-        <p>${greeting}</p>
-        <p>Tu as été tagué(e) sur un élément de veille : <strong>${escapeHtml(displayTitle)}</strong>.</p>
-        <p><a href="${watchUrl}">Voir la carte dans SuperTools →</a></p>
-      `;
+      const wtRendered = await renderCatalogEmail(supabase, "watch_tag_notification", {
+        vars: { first_name: p.first_name || null, item_title: displayTitle },
+        blocks: { watch_link: `<p><a href="${watchUrl}">Voir la carte dans SuperTools →</a></p>` },
+      });
+      const htmlBody = wtRendered.html;
       const result = await sendEmail({
         from: senderFrom,
         to: [p.email],
-        subject: `Tu es tagué sur « ${displayTitle} »`,
+        subject: wtRendered.subject,
         html: `${htmlBody}\n${signature}`,
         _emailType: "watch_tag_notification",
       });

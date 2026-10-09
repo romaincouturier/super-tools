@@ -7,12 +7,12 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-const NOCRM_BCC = "supertilt@bcc.nocrm.io";
-
 interface EmailSettings {
   senderEmail: string;
   senderName: string;
   bccEnabled: boolean;
+  contactEmail: string;
+  nocrmBccEmail: string;
 }
 
 let _cached: EmailSettings | null = null;
@@ -28,6 +28,8 @@ async function fetchSettings(): Promise<EmailSettings> {
     senderEmail: "romain@supertilt.fr",
     senderName: "Romain Couturier",
     bccEnabled: true,
+    contactEmail: "contact@supertilt.fr",
+    nocrmBccEmail: "supertilt@bcc.nocrm.io",
   };
 
   try {
@@ -39,7 +41,7 @@ async function fetchSettings(): Promise<EmailSettings> {
     const { data } = await supabase
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", ["bcc_email", "bcc_enabled", "sender_email", "sender_name"]);
+      .in("setting_key", ["bcc_email", "bcc_enabled", "sender_email", "sender_name", "contact_email", "nocrm_bcc_email"]);
 
     if (data) {
       // Strip ALL whitespace from email values — a stray space breaks Resend's `from` validation
@@ -49,7 +51,9 @@ async function fetchSettings(): Promise<EmailSettings> {
         if (s.setting_key === "bcc_email" && s.setting_value) defaults.senderEmail = cleanEmail(s.setting_value);
         if (s.setting_key === "sender_email" && s.setting_value) defaults.senderEmail = cleanEmail(s.setting_value);
         if (s.setting_key === "sender_name" && s.setting_value) defaults.senderName = cleanName(s.setting_value);
+        if (s.setting_key === "contact_email" && s.setting_value) defaults.contactEmail = cleanEmail(s.setting_value);
         if (s.setting_key === "bcc_enabled") defaults.bccEnabled = s.setting_value === "true";
+        if (s.setting_key === "nocrm_bcc_email" && s.setting_value) defaults.nocrmBccEmail = cleanEmail(s.setting_value);
       }
     }
 
@@ -94,7 +98,7 @@ export async function getBccList(): Promise<string[]> {
   if (s.bccEnabled && s.senderEmail) {
     list.push(s.senderEmail);
   }
-  list.push(NOCRM_BCC);
+  if (s.nocrmBccEmail) list.push(s.nocrmBccEmail);
   return list;
 }
 
@@ -104,4 +108,12 @@ export async function getBccList(): Promise<string[]> {
 export async function getSigniticUrl(): Promise<string> {
   const s = await fetchSettings();
   return `https://api.signitic.app/signatures/${s.senderEmail}/html`;
+}
+
+/**
+ * Adresse de contact affichée aux apprenants et clients (Paramètres > Général).
+ */
+export async function getContactEmail(): Promise<string> {
+  const s = await fetchSettings();
+  return s.contactEmail;
 }

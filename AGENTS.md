@@ -43,4 +43,10 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 
 # Architecture rules
 
+- HTML/embed and exercise interactive HTML share an explicit HTML/CSS allowlist across MCP writes and browser rendering, and render only in script-disabled iframes with parent-side resize observation, because author CSS must stay isolated and no author JavaScript may run.
+- Interactive LMS blocks use the same viewers in learner pages and builder previews; drag words use dnd-kit with uniquely identified word instances, because touch accessibility and repeated words must behave consistently.
+
 - Preparation-questionnaire reminder templates use `{{questionnaire_link}}` as a protected CTA placeholder, rendered server-side as an email-safe button plus fallback link, because editable templates must not inject arbitrary HTML.
+- Evaluation templates must never contain Google Forms URLs; participant and sponsor links are tokenized SuperTools URLs generated at send time, because external forms bypass evaluation tracking.- Storage backup is an incremental Drive mirror driven by `backup_storage_manifest` (one row per copied file, checkpoint for resume); DB and storage have separate statuses on `backup_runs`, and the "no backup" alert reads `db_status` only, because a full storage copy no longer fits in one cron window.
+- A shared work deposit and its community post (`practice_posts.deposit_id`) are one thread: comments and reactions are read/written on the community post tables everywhere (lesson, community, Dépôts screen, email like), because two parallel stores made staff replies invisible to learners.
+- Backup tables are exported in primary-key order via the `backup_export_page` RPC, which returns a per-row hash sum; each table is re-fingerprinted live right after export. Only a gap showing rows missing from the backup and not covered by rows dated after the export marks the DB backup KO; deletions (backup is a superset), tables with no date column and failed checks are reported as warnings, because keyset export cannot duplicate rows and normal activity during the run must not fail the nightly backup.

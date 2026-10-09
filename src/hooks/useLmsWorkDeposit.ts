@@ -106,7 +106,7 @@ export function useUpdateDepositComment(depositId: string, learnerEmail: string)
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, content }: { id: string; content: string }) =>
-      updateDepositComment(id, learnerEmail, content),
+      updateDepositComment(depositId, id, learnerEmail, content),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.comments(depositId) }),
   });
 }
@@ -114,7 +114,7 @@ export function useUpdateDepositComment(depositId: string, learnerEmail: string)
 export function useDeleteDepositComment(depositId: string, learnerEmail: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteDepositComment(id, learnerEmail),
+    mutationFn: (id: string) => deleteDepositComment(depositId, id, learnerEmail),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.comments(depositId) }),
   });
 }

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderCatalogEmail, escapeEmailValue as escE } from "../_shared/editable-email.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
@@ -88,13 +89,12 @@ serve(async (req) => {
     const signature = await getSigniticSignature();
     const bccList = await getBccList();
 
-    const subject = `📝 Nouvelle réponse au sondage « ${survey.title} »`;
-    const bodyHtml = `
-      <p>Bonjour,</p>
-      <p><strong>${respondentLabel}</strong> vient de répondre à votre sondage <strong>« ${survey.title} »</strong>.</p>
-      ${emailButton("Voir les résultats du sondage", link)}
-      <p>À bientôt,<br>L'équipe SuperTilt</p>
-    `;
+    const srRendered = await renderCatalogEmail(supabase, "survey_response_notification", {
+      vars: { respondent: respondentLabel, survey_title: survey.title },
+      blocks: { results_button: emailButton("Voir les résultats du sondage", link) },
+    });
+    const subject = srRendered.subject;
+    const bodyHtml = srRendered.html;
     const html = wrapEmailHtml(bodyHtml, signature);
 
     const result = await sendEmail({

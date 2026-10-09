@@ -66,6 +66,7 @@ export const SETTINGS_CATALOG: SettingsCatalogEntry[] = [
   { id: "sender_email", label: "Email de l'expéditeur", keywords: "expéditeur email envoi from", tab: "general", anchorId: "sender-email" },
   { id: "sender_name", label: "Nom de l'expéditeur", keywords: "expéditeur nom", tab: "general", anchorId: "sender-name" },
   { id: "evaluation_notification_email", label: "Email de notification des évaluations", keywords: "évaluation notification email", tab: "general", anchorId: "evaluation-notification-email" },
+  { id: "contact_email", label: "Email de contact", keywords: "contact support aide email apprenant", tab: "general", anchorId: "contact-email" },
   { id: "app_url", label: "URL de l'application", keywords: "url lien application email", tab: "general", anchorId: "app-url" },
   { id: "google_maps_api_key", label: "Clé API Google Maps", keywords: "google maps carte api clé", tab: "general", anchorId: "google-maps-api-key" },
   { id: "qualiopi_certificate_path", label: "Chemin certificat Qualiopi", keywords: "qualiopi certificat", tab: "general", anchorId: "qualiopi-path" },

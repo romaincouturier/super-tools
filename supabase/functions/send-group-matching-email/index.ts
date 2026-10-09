@@ -9,6 +9,9 @@ import {
   getSupabaseClient,
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
+import { renderEditableEmail } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
+import { wrapEmailHtml } from "../_shared/templates.ts";
 
 serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
@@ -74,14 +77,14 @@ serve(async (req) => {
     // Send one email per member
     const bccList = await getBccList();
 
+    const tpl = EDITABLE_EMAIL_DEFAULTS.group_matching;
+
     for (const recipientEmail of emails) {
       const firstName = profileMap.get(recipientEmail)?.first_name;
-      const greeting = firstName ? `Bonjour ${escapeHtml(firstName)},` : "Bonjour,";
 
       const otherEmails = emails.filter((e) => e !== recipientEmail);
       const mailtoTo = otherEmails.join(",");
       const mailtoSubject = encodeURIComponent("Retrouvons-nous ensemble bientôt");
-      const otherNames = otherEmails.map(displayName);
       const isSingular = otherEmails.length === 1;
       const mailtoBody = isSingular
         ? encodeURIComponent(`Salut,\n\nJe suis ravi(e) qu'on puisse travailler ensemble. Quand es-tu disponible ?\n\nBonne journée !`)
@@ -89,28 +92,25 @@ serve(async (req) => {
 
       const mailtoHref = `mailto:${mailtoTo}?subject=${mailtoSubject}&body=${mailtoBody}`;
 
-      const html = `
-<p>${greeting}</p>
-<p>Bonne nouvelle : votre groupe est constitué !</p>
-${postSnippet ? `<p style="border-left:3px solid #FFD100;padding-left:12px;color:#555;font-style:italic">${postSnippet}</p>` : ""}
-<p><strong>Membres du groupe :</strong></p>
-<ul style="padding-left:20px">${membersHtml}</ul>
-<p>On vous laisse vous organiser pour trouver des créneaux ensemble. Vous pouvez vous retrouver via WhatsApp, par téléphone ou en visio (Jitsi, Google Meet, etc.).</p>
-<p>On vous invite à publier vos travaux sur la communauté.</p>
-<p style="margin-top:24px">
-  <a href="${mailtoHref}"
-     style="display:inline-block;padding:12px 24px;background:#FFD100;color:#101820;font-weight:600;text-decoration:none;border-radius:8px;font-size:15px">
-    Contacter le groupe
-  </a>
-</p>
-<p style="margin-top:24px">À très bientôt,<br>L'équipe SuperTilt</p>
-`;
+      const rendered = await renderEditableEmail(supabase, {
+        type: "group_matching",
+        defaultSubject: tpl.subject.vous,
+        defaultContent: tpl.content.vous,
+        vars: { first_name: firstName ?? null },
+        blocks: {
+          post_quote: postSnippet
+            ? `<p style="border-left:3px solid #FFD100;padding-left:12px;color:#555;font-style:italic">${postSnippet}</p>`
+            : "",
+          members_list: `<ul style="padding-left:20px">${membersHtml}</ul>`,
+          contact_button: `<p style="margin-top:24px"><a href="${mailtoHref}" style="display:inline-block;padding:12px 24px;background:#FFD100;color:#101820;font-weight:600;text-decoration:none;border-radius:8px;font-size:15px">Contacter le groupe</a></p>`,
+        },
+      });
 
       await sendEmail({
         to: [recipientEmail],
         bcc: bccList,
-        subject: "Votre groupe est formé 🎉",
-        html,
+        subject: rendered.subject,
+        html: wrapEmailHtml(rendered.html, ""),
         _emailType: "group_matching",
       });
       await new Promise((r) => setTimeout(r, 400));

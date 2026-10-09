@@ -3,6 +3,7 @@ import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_sh
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { claimLiveReminder, releaseLiveReminder } from "../_shared/live-reminder-claim.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import { isInternalOrAuthenticated } from "../_shared/cron-auth.ts";
@@ -14,6 +15,7 @@ import {
 } from "../_shared/supports-url.ts";
 import { logLovableUsage } from "../_shared/api-usage.ts";
 import { resolveSessionDate } from "../_shared/training-date.ts";
+import { isEvaluationSubmitted, isNeedsSurveySubmitted } from "../_shared/reminder-filters.ts";
 
 interface ForceSendRequest {
   scheduledEmailId: string;
@@ -208,6 +210,7 @@ const handler = async (req: Request): Promise<Response> => {
     let recipientEmail = "";
     let subject = "";
     let htmlContent = "";
+    let liveClaim: { liveId: string; participantId: string } | null = null;
 
     // Build email based on type
     switch (scheduledEmail.email_type) {
@@ -321,13 +324,13 @@ const handler = async (req: Request): Promise<Response> => {
           throw new Error("needs_survey_reminder requires a participant_id");
         }
         // Skip if questionnaire already submitted
-        const { data: questionnaire } = await supabase
+        const { data: questionnaires, error: qErr } = await supabase
           .from("questionnaire_besoins")
-          .select("etat")
+          .select("etat, date_soumission")
           .eq("participant_id", scheduledEmail.participant_id)
-          .eq("training_id", scheduledEmail.training_id)
-          .maybeSingle();
-        if (questionnaire && questionnaire.etat && questionnaire.etat !== "envoye") {
+          .eq("training_id", scheduledEmail.training_id);
+        if (qErr) throw new Error(`questionnaire_besoins lookup failed: ${qErr.message}`);
+        if (isNeedsSurveySubmitted(questionnaires ?? [])) {
           await supabase
             .from("scheduled_emails")
             .update({ status: "cancelled", error_message: "Questionnaire déjà complété" })
@@ -862,14 +865,16 @@ Règles :
         recipientEmail = participant?.email || "";
         
         // Check if evaluation already submitted
-        const { data: evalCheck } = await supabase
+        const { data: evalRows, error: evErr } = await supabase
           .from("training_evaluations")
-          .select("id, etat, token")
+          .select("id, etat, token, date_soumission, created_at")
           .eq("training_id", training.id)
           .eq("participant_id", participant?.id)
-          .single();
+          .order("created_at", { ascending: false });
+        if (evErr) throw new Error(`training_evaluations lookup failed: ${evErr.message}`);
+        const evalCheck = (evalRows ?? [])[0] ?? null;
 
-        if (evalCheck && evalCheck.etat === "soumis") {
+        if (isEvaluationSubmitted(evalRows ?? [])) {
           await supabase
             .from("scheduled_emails")
             .update({ status: "cancelled", error_message: "Évaluation déjà soumise" })
@@ -983,6 +988,20 @@ Règles :
                 JSON.stringify({ success: true, message: "Reminder cancelled - live cancelled" }),
                 { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
               );
+            }
+            if (scheduledEmail.participant_id) {
+              const claimed = await claimLiveReminder(supabase, liveMeetingId, scheduledEmail.participant_id, "scheduled_emails");
+              if (!claimed) {
+                await supabase
+                  .from("scheduled_emails")
+                  .update({ status: "cancelled", error_message: `live:${liveMeetingId} | Déjà envoyé` })
+                  .eq("id", scheduledEmailId);
+                return new Response(
+                  JSON.stringify({ success: true, message: "Skipped: live reminder already sent" }),
+                  { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+                );
+              }
+              liveClaim = { liveId: liveMeetingId, participantId: scheduledEmail.participant_id };
             }
             liveTitle = liveMeeting.title;
             const liveDateTime = new Date(liveMeeting.scheduled_at);
@@ -1204,7 +1223,9 @@ Règles :
     // dans un template custom) — le player LMS exige ?email=<destinataire>.
     htmlContent = personalizeSupportsLinks(htmlContent, recipientEmail);
 
-    const emailResponse = await sendEmail({
+    let emailResponse;
+    try {
+      emailResponse = await sendEmail({
       from: senderFrom,
       to: [recipientEmail],
       bcc: bccList,
@@ -1213,7 +1234,14 @@ Règles :
       _emailType: `scheduled_${scheduledEmail.email_type}`,
       _trainingId: training.id,
       _participantId: scheduledEmail.participant_id || undefined,
-    });
+      });
+    } catch (e) {
+      if (liveClaim) await releaseLiveReminder(supabase, liveClaim.liveId, liveClaim.participantId);
+      throw e;
+    }
+    if (!emailResponse.success && liveClaim) {
+      await releaseLiveReminder(supabase, liveClaim.liveId, liveClaim.participantId);
+    }
 
     console.log("Email sent successfully:", emailResponse);
 

@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderEditableEmail } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
@@ -272,18 +274,25 @@ async function notify(supabase: any, ctx: { page: any; comment: any; author: Aut
 
   const [urls, signature] = await Promise.all([getAppUrls(), getSigniticSignature()]);
   const pageTitle = page.title || "Sans titre";
-  const subject = `Nouveau commentaire sur « ${pageTitle} » - ${mission.title}`;
+  const tpl = EDITABLE_EMAIL_DEFAULTS.mission_page_comment;
+  const commentBlock = `${comment.quoted_text ? `<blockquote style="margin:16px 0;padding:8px 16px;border-left:3px solid #ddd;color:#666;font-style:italic;">${escapeHtml(comment.quoted_text)}</blockquote>` : ""}
+       <p style="margin:16px 0;padding:12px 16px;background:#f6f6f6;border-radius:6px;">${escapeHtml(comment.body).replace(/\n/g, "<br>")}</p>`;
 
   for (const email of emails) {
     const token = tokenByEmail.get(email);
     const link = `${urls.app_url}/mission-info/${mission.id}${token ? `?c=${token}` : ""}`;
-    const html = wrapEmailHtml(
-      `<p><strong>${escapeHtml(author.name)}</strong> a commenté la page « ${escapeHtml(pageTitle)} » de la mission « ${escapeHtml(mission.title)} ».</p>
-       ${comment.quoted_text ? `<blockquote style="margin:16px 0;padding:8px 16px;border-left:3px solid #ddd;color:#666;font-style:italic;">${escapeHtml(comment.quoted_text)}</blockquote>` : ""}
-       <p style="margin:16px 0;padding:12px 16px;background:#f6f6f6;border-radius:6px;">${escapeHtml(comment.body).replace(/\n/g, "<br>")}</p>
-       <p style="margin:24px 0;"><a href="${link}" style="display:inline-block;padding:12px 24px;background-color:#e6bc00;color:#000;text-decoration:none;border-radius:6px;font-weight:bold;">Voir et répondre</a></p>`,
-      signature,
-    );
+    const rendered = await renderEditableEmail(supabase, {
+      type: "mission_page_comment",
+      defaultSubject: tpl.subject.vous,
+      defaultContent: tpl.content.vous,
+      vars: { author_name: author.name, page_title: pageTitle, mission_title: mission.title },
+      blocks: {
+        comment_block: commentBlock,
+        reply_button: `<p style="margin:24px 0;"><a href="${link}" style="display:inline-block;padding:12px 24px;background-color:#e6bc00;color:#000;text-decoration:none;border-radius:6px;font-weight:bold;">Voir et répondre</a></p>`,
+      },
+    });
+    const subject = rendered.subject;
+    const html = wrapEmailHtml(rendered.html, signature);
     await sendEmail({ to: email, subject, html });
   }
 }

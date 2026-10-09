@@ -4,6 +4,7 @@
  * Toutes les écritures sont additives, sauf la case logistique (booléen).
  */
 import { fetchGmailMessage } from "./gmail.ts";
+import { sanitizeFileName } from "./file-utils.ts";
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
@@ -11,6 +12,8 @@ type Log = (message: string) => Promise<void>;
 
 export const RECORD_TYPES = ["mission", "training", "opportunity"] as const;
 export type RecordType = (typeof RECORD_TYPES)[number];
+export const ATTACH_RECORD_TYPES = [...RECORD_TYPES, "participant"] as const;
+export const DOCUMENT_ROLES = ["signed_convention", "other"] as const;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
@@ -65,22 +68,154 @@ async function storeFile(
   return { file_name: fileName, size: bytes.length };
 }
 
+async function loadParticipant(db: Db, id: string) {
+  if (!UUID_RE.test(id)) throw new Error("record_id doit être un UUID");
+  const { data, error } = await db.from("training_participants")
+    .select("id, first_name, last_name, email, training_id, signed_convention_url, trainings(training_name)")
+    .eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error(`participant introuvable : ${id}`);
+  const name = [data.first_name, data.last_name].filter(Boolean).join(" ") || data.email || id;
+  return { ...data, name, training_name: data.trainings?.training_name ?? data.training_id };
+}
+
+/** Pièce jointe du participant : bucket et table de l'onglet Fichiers de la fiche participant. */
+async function storeParticipantFile(db: Db, trainingId: string, participantId: string, fileName: string, mime: string, bytes: Uint8Array) {
+  if (bytes.length > MAX_FILE_BYTES) throw new Error(`Fichier trop lourd : ${fileName}`);
+  const bucket = "participant-files";
+  const path = `${trainingId}/participant_${participantId}/fichier_${Date.now()}_${sanitizeFileName(fileName || "fichier")}`;
+  const { error: upErr } = await db.storage.from(bucket).upload(path, bytes, { contentType: mime, upsert: false });
+  if (upErr) throw new Error(`Upload ${fileName} : ${upErr.message}`);
+  const url = db.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+  const { error } = await db.from("participant_files").insert({ participant_id: participantId, file_url: url, file_name: fileName });
+  if (error) {
+    await db.storage.from(bucket).remove([path]);
+    throw new Error(`Enregistrement ${fileName} : ${error.message}`);
+  }
+  return { file_name: fileName, size: bytes.length };
+}
+
+/** Même bucket, nommage et mise à jour que upload-participant-convention (dépôt depuis la fiche participant). */
+async function storeSignedConvention(db: Db, trainingId: string, participantId: string, fileName: string, bytes: Uint8Array): Promise<string> {
+  if (bytes.length > MAX_FILE_BYTES) throw new Error(`Fichier trop lourd : ${fileName}`);
+  const fileExt = fileName.split(".").pop() || "pdf";
+  const baseName = fileName.replace(`.${fileExt}`, "");
+  const path = `${trainingId}/participant_${participantId}/convention_signee_${Date.now()}_${sanitizeFileName(baseName)}.${fileExt}`;
+  const { error: upErr } = await db.storage.from("training-documents").upload(path, bytes, { contentType: "application/pdf", upsert: false });
+  if (upErr) throw new Error(`Upload convention : ${upErr.message}`);
+  const url = db.storage.from("training-documents").getPublicUrl(path).data.publicUrl;
+  const { error } = await db.from("training_participants").update({ signed_convention_url: url }).eq("id", participantId);
+  if (error) {
+    await db.storage.from("training-documents").remove([path]);
+    throw new Error(`Mise à jour convention : ${error.message}`);
+  }
+  return url;
+}
+
 export async function attachEmailToRecord(
   db: Db,
-  input: { record_type: string; record_id: string; gmail_message_id: string; include_email?: boolean; note?: string },
+  input: {
+    record_type: string; record_id: string; gmail_message_id: string; include_email?: boolean; note?: string;
+    document_role?: string; attachment_filename?: string;
+  },
   log: Log,
   actorEmail: string,
 ): Promise<string> {
-  const type = input.record_type as RecordType;
-  if (!RECORD_TYPES.includes(type)) throw new Error(`record_type invalide : ${RECORD_TYPES.join(", ")}`);
+  const type = input.record_type as (typeof ATTACH_RECORD_TYPES)[number];
+  if (!ATTACH_RECORD_TYPES.includes(type)) throw new Error(`record_type invalide : ${ATTACH_RECORD_TYPES.join(", ")}`);
   if (!input.gmail_message_id?.trim()) throw new Error("gmail_message_id est requis");
+  const role = input.document_role ?? "other";
+  if (!DOCUMENT_ROLES.includes(role as (typeof DOCUMENT_ROLES)[number])) throw new Error(`document_role invalide : ${DOCUMENT_ROLES.join(", ")}`);
+  if (role === "signed_convention" && type !== "participant") throw new Error("document_role=signed_convention exige record_type=participant");
+
+  if (type !== "participant") return attachToRecord(db, { ...input, record_type: type }, log, actorEmail);
+
+  const p = await loadParticipant(db, input.record_id);
+  const msg = await fetchGmailMessage(input.gmail_message_id, MAX_FILE_BYTES);
+
+  let conventionName: string | null = null;
+  if (role === "signed_convention") {
+    const pdfs = msg.attachments.filter((a) => a.mimeType.includes("pdf") || a.fileName.toLowerCase().endsWith(".pdf"));
+    const wanted = input.attachment_filename?.trim().toLowerCase();
+    const pick = wanted ? pdfs.find((a) => a.fileName.toLowerCase() === wanted) : pdfs[0];
+    if (!pick) {
+      throw new Error(wanted
+        ? `Aucune pièce jointe PDF nommée « ${input.attachment_filename} ». PDF disponibles : ${pdfs.map((a) => a.fileName).join(", ") || "aucun"}`
+        : "Aucune pièce jointe PDF dans ce mail : impossible d'enregistrer la convention signée");
+    }
+    conventionName = pick.fileName;
+  }
+
+  const saved: Array<{ file_name: string; size: number }> = [];
+  let emlError: string | null = null;
+  if (input.include_email !== false) {
+    const emlName = `${todayParis()}_${(msg.subject || "mail").slice(0, 80)}.eml`;
+    const r = await storeEml((m) => storeParticipantFile(db, p.training_id, p.id, emlName, m, msg.raw));
+    if (r.file) saved.push(r.file); else emlError = r.error!;
+  }
+  let conventionUrl: string | null = null;
+  for (const a of msg.attachments) {
+    if (a.fileName === conventionName && !conventionUrl) {
+      conventionUrl = await storeSignedConvention(db, p.training_id, p.id, a.fileName, a.bytes);
+      saved.push({ file_name: a.fileName, size: a.bytes.length });
+    } else {
+      saved.push(await storeParticipantFile(db, p.training_id, p.id, a.fileName, a.mimeType, a.bytes));
+    }
+  }
+
+  await logClientInteraction(db, {
+    record_type: "training",
+    record_id: p.training_id,
+    summary: `Mail de/concernant ${p.name} (participant) rattaché : « ${msg.subject} » de ${msg.from} (${msg.date})`,
+    action_taken: input.note ||
+      `${saved.length} fichier(s) archivé(s) sur la fiche participant : ${saved.map((s) => s.file_name).join(", ")}${conventionUrl ? ` ; convention signée enregistrée (${conventionName})` : ""}`,
+  }, async () => {}, actorEmail);
+
+  await log(`attach_email_to_record participant ${p.id} gmail:${msg.id} (${saved.length} fichiers${conventionUrl ? ", convention signée" : ""})`);
+  return JSON.stringify({
+    attached: true,
+    record: `${p.name} — ${p.training_name}`,
+    participant_id: p.id,
+    training_id: p.training_id,
+    email: { subject: msg.subject, from: msg.from, date: msg.date, gmail_id: msg.id },
+    files: saved,
+    email_file_error: emlError ?? undefined,
+    signed_convention_url: conventionUrl,
+    previous_signed_convention_url: conventionUrl ? p.signed_convention_url ?? null : undefined,
+  });
+}
+
+/** Le .eml ne doit jamais bloquer : types de repli si le bucket refuse message/rfc822, puis échec signalé. */
+const EML_MIMES = ["message/rfc822", "application/octet-stream", "text/plain"];
+async function storeEml(
+  store: (mime: string) => Promise<{ file_name: string; size: number }>,
+): Promise<{ file?: { file_name: string; size: number }; error?: string }> {
+  let last = "";
+  for (const mime of EML_MIMES) {
+    try { return { file: await store(mime) }; } catch (e) {
+      last = e instanceof Error ? e.message : String(e);
+      if (!/mime type/i.test(last)) break;
+    }
+  }
+  return { error: last };
+}
+
+async function attachToRecord(
+  db: Db,
+  input: { record_type: RecordType; record_id: string; gmail_message_id: string; include_email?: boolean; note?: string },
+  log: Log,
+  actorEmail: string,
+): Promise<string> {
+  const type = input.record_type;
   const recLabel = await recordLabel(db, type, input.record_id);
 
   const msg = await fetchGmailMessage(input.gmail_message_id, MAX_FILE_BYTES);
   const saved: Array<{ file_name: string; size: number }> = [];
+  let emlError: string | null = null;
   if (input.include_email !== false) {
     const emlName = `${todayParis()}_${(msg.subject || "mail").slice(0, 80)}.eml`;
-    saved.push(await storeFile(db, type, input.record_id, emlName, "message/rfc822", msg.raw, actorEmail));
+    const r = await storeEml((m) => storeFile(db, type, input.record_id, emlName, m, msg.raw, actorEmail));
+    if (r.file) saved.push(r.file); else emlError = r.error!;
   }
   for (const a of msg.attachments) {
     saved.push(await storeFile(db, type, input.record_id, a.fileName, a.mimeType, a.bytes, actorEmail));
@@ -99,6 +234,7 @@ export async function attachEmailToRecord(
     record: recLabel,
     email: { subject: msg.subject, from: msg.from, date: msg.date, gmail_id: msg.id },
     files: saved,
+    email_file_error: emlError ?? undefined,
   });
 }
 

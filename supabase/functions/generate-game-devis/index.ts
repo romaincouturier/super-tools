@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderEditableEmail } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
@@ -90,6 +92,7 @@ async function generatePdf(data: RequestBody): Promise<{ pdfUrl: string; documen
   throw new Error("PdfMonkey timed out");
 }
 
+const escH = (v: unknown) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 serve(async (req) => {
   const corsRes = handleCorsPreflightIfNeeded(req);
   if (corsRes) return corsRes;
@@ -166,26 +169,29 @@ serve(async (req) => {
     const bccList = await getBccList();
 
     const itemsHtml = body.items
-      .map((i) => `<li>${i.title} × ${i.quantity}</li>`)
+      .map((i) => `<li>${escH(i.title)} × ${i.quantity}</li>`)
       .join("\n");
 
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 640px; padding: 20px; font-size:14px; line-height:1.6; color:#222;">
-        <p>Bonjour ${body.adresseCommanditaire || body.emailCommanditaire},</p>
-        <p>Veuillez trouver ci-joint votre devis pour les jeux suivants :</p>
-        <ul style="margin:8px 0;padding-left:20px;">${itemsHtml}</ul>
-        ${body.noteDevis ? `<p style="margin-top:12px;"><em>${body.noteDevis}</em></p>` : ""}
-        <p>N'hésitez pas à nous contacter pour toute question.</p>
-        <p>À très bientôt,</p>
-        ${emailSignature || ""}
-      </div>
-    `;
+    const tplGd = EDITABLE_EMAIL_DEFAULTS.game_devis;
+    const renderedGd = await renderEditableEmail(supabase, {
+      type: "game_devis",
+      defaultSubject: tplGd.subject.vous,
+      defaultContent: tplGd.content.vous,
+      vars: {
+        recipient_name: body.adresseCommanditaire || body.emailCommanditaire,
+        client_name: body.nomClient,
+        note: body.noteDevis || null,
+      },
+      blocks: { items_list: `<ul style="margin:8px 0;padding-left:20px;">${itemsHtml}</ul>` },
+    });
+    const devisSubject = renderedGd.subject;
+    const htmlContent = `<div style="font-family: Arial, sans-serif; max-width: 640px; padding: 20px; font-size:14px; line-height:1.6; color:#222;">${renderedGd.html}${emailSignature || ""}</div>`;
 
     await sendEmail({
       from: senderFrom,
       to: [body.emailCommanditaire],
       bcc: bccList,
-      subject: `Votre devis jeux — ${body.nomClient}`,
+      subject: devisSubject,
       html: htmlContent,
       attachments: [
         {
@@ -256,7 +262,7 @@ serve(async (req) => {
           card_id: body.crmCardId,
           sender_email: actorEmail,
           recipient_email: body.emailCommanditaire,
-          subject: `Votre devis jeux — ${body.nomClient}`,
+          subject: devisSubject,
           body_html: htmlContent,
           attachment_names: [`Devis_jeux_${body.nomClient.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`],
         });

@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderEditableEmail, ctaButton } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import {
@@ -111,48 +113,32 @@ serve(async (req) => {
 
     let sent = 0;
     for (const share of shares) {
-      const greeting = share.recipient_name
-        ? `Bonjour ${escapeHtml(share.recipient_name)},`
-        : "Bonjour,";
-
-      const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+      const tpl = EDITABLE_EMAIL_DEFAULTS.event_update;
+      const rendered = await renderEditableEmail(supabase, {
+        type: "event_update",
+        defaultSubject: tpl.subject.vous,
+        defaultContent: tpl.content.vous,
+        vars: { recipient_name: share.recipient_name || null, sender_name: senderName, event_title: event.title },
+        blocks: {
+          changes_table: `<table style="width: 100%; border-collapse: collapse; margin: 16px 0; background: #f9fafb; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb;">
+      <thead><tr style="background: #f3f4f6;">
+        <th style="padding: 8px 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #666;">Champ</th>
+        <th style="padding: 8px 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #666;">Avant</th>
+        <th style="padding: 8px 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #666;">Après</th>
+      </tr></thead>
+      <tbody>${changesRows}</tbody>
+    </table>`,
+          event_button: emailButton("Voir l'événement →", eventLink),
+        },
+      });
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333; margin: 0; padding: 0;">
-  <div style="max-width: 600px; padding: 20px;">
-    <p style="margin: 0 0 10px 0;">${greeting}</p>
-    <p style="margin: 0 0 16px 0;">
-      ${escapeHtml(senderName)} a modifié l'événement <strong>${escapeHtml(event.title)}</strong> qui avait été partagé avec toi. Voici ce qui a changé :
-    </p>
-
-    <table style="width: 100%; border-collapse: collapse; margin: 16px 0; background: #f9fafb; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb;">
-      <thead>
-        <tr style="background: #f3f4f6;">
-          <th style="padding: 8px 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #666;">Champ</th>
-          <th style="padding: 8px 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #666;">Avant</th>
-          <th style="padding: 8px 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #666;">Après</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${changesRows}
-      </tbody>
-    </table>
-
-    ${emailButton("Voir l'événement →", eventLink)}
-
-    <p style="margin: 20px 0 0 0; color: #999; font-size: 12px;">
-      Cet email a été envoyé depuis SuperTools.
-    </p>
-
-    <div style="margin-top: 20px;">${emailSignature}</div>
-  </div>
-</body>
-</html>`;
+  <div style="max-width: 600px; padding: 20px;">${rendered.html}<div style="margin-top: 20px;">${emailSignature}</div></div>
+</body></html>`;
 
       const result = await sendEmail({
         to: [share.recipient_email],
-        subject: `🔄 Événement modifié : ${event.title}`,
+        subject: rendered.subject,
         html,
         bcc: bccList,
       });

@@ -32,6 +32,8 @@ export interface PracticePost {
   is_pinned: boolean;
   is_staff_treated: boolean;
   file_rotation: number;
+  /** Set when the post mirrors a shared work deposit (single thread for both). */
+  deposit_id?: string | null;
   created_at: string;
   updated_at: string;
   // enriched client-side
@@ -186,7 +188,10 @@ export interface PracticePostsFilter {
   likedBy?: string | null;
   /** Only posts carrying this hashtag. */
   tag?: string | null;
+  /** Only the post mirroring this work deposit. */
+  depositId?: string | null;
 }
+
 
 export function usePracticePosts(
   learnerEmail: string | null,
@@ -200,8 +205,9 @@ export function usePracticePosts(
   const authorFilter = options?.authorEmail ?? null;
   const likedByFilter = options?.likedBy ?? null;
   const tagFilter = options?.tag ?? null;
+  const depositFilter = options?.depositId ?? null;
   return useQuery({
-    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, courseIdsFilter, authorFilter, likedByFilter, tagFilter, isAdmin],
+    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, courseIdsFilter, authorFilter, likedByFilter, tagFilter, depositFilter, isAdmin],
     queryFn: async (): Promise<PracticePost[]> => {
       if (!learnerEmail) return [];
       const c = clientDb(learnerEmail, isAdmin);
@@ -226,6 +232,7 @@ export function usePracticePosts(
       if (courseFilter) postsQuery = postsQuery.eq("course_id", courseFilter);
       if (courseIdsFilter && courseIdsFilter.length > 0) postsQuery = postsQuery.in("course_id", courseIdsFilter);
       if (authorFilter) postsQuery = postsQuery.eq("author_email", authorFilter);
+      if (depositFilter) postsQuery = postsQuery.eq("deposit_id", depositFilter);
       if (restrictIds !== null) postsQuery = postsQuery.in("id", restrictIds);
 
       const [postsRes, reactionsRes, commentsRes, profilesRes, staffProfilesRes, hashtagsRes, pollsRes, optionsRes, votesRes] = await Promise.all([

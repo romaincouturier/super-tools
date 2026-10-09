@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { renderEditableEmail, ctaButton } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
@@ -112,15 +114,17 @@ serve(async (req) => {
       scheduleLinesHtml = `<ul style="margin: 8px 0; padding-left: 20px;">${lines.join("")}</ul>`;
     }
 
-    const subject = `Demande de réservation de salle — ${training.training_name}`;
-
-    const bodyHtml = `
-      <p>${bonjour}</p>
-      <p>Je ${vous ? "me permets de" : "me permets de"} ${vous ? "vous contacter" : "te contacter"} afin de ${vous ? "vous" : "te"} soumettre une demande de réservation de salle pour une session de formation.</p>
-      <p>Nous souhaiterions réserver ${roomRef} pour la formation <strong>${training.training_name}</strong> aux dates et horaires suivants :</p>
-      ${scheduleLinesHtml || "<p><em>(Dates à confirmer)</em></p>"}
-      <p>Est-ce possible ? Merci beaucoup et bonne journée.</p>
-    `;
+    const tpl = EDITABLE_EMAIL_DEFAULTS.venue_booking_request;
+    const rendered = await renderEditableEmail(supabase, {
+      type: "venue_booking_request",
+      formal: !!vous,
+      defaultSubject: vous ? tpl.subject.vous : tpl.subject.tu,
+      defaultContent: vous ? tpl.content.vous : tpl.content.tu,
+      vars: { training_name: training.training_name, room_ref: roomRef },
+      blocks: { schedule_list: scheduleLinesHtml || "<p><em>(Dates à confirmer)</em></p>" },
+    });
+    const subject = rendered.subject;
+    const bodyHtml = rendered.html;
 
     const signature = await getSigniticSignature();
     const senderFrom = await getSenderFrom();

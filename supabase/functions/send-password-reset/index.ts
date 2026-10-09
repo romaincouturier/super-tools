@@ -3,7 +3,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
-import { emailButton } from "../_shared/templates.ts";
+import { wrapEmailHtml } from "../_shared/templates.ts";
+import { renderEditableEmail, ctaButton } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { generateHash, getClientIp } from "../_shared/crypto.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
@@ -92,20 +94,19 @@ serve(async (req: Request) => {
       getSenderFrom(),
       getBccList(),
     ]);
+    const tpl = EDITABLE_EMAIL_DEFAULTS.password_reset;
+    const rendered = await renderEditableEmail(supabaseClient, {
+      type: "password_reset",
+      defaultSubject: tpl.subject.vous,
+      defaultContent: tpl.content.vous,
+      blocks: { reset_button: ctaButton("Réinitialiser mon mot de passe", resetLink) },
+    });
     const emailResponse = await sendEmail({
       from: senderFrom,
       to: [email],
       bcc: bccList,
-      subject: "Réinitialisation de votre mot de passe SuperTools",
-      html: `
-        <p>Bonjour,</p>
-        <p>Vous avez demandé à réinitialiser votre mot de passe SuperTools.</p>
-        <p>Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :</p>
-        ${emailButton("Réinitialiser mon mot de passe", resetLink)}
-        <p style="color: #666; font-size: 14px;">Ce lien expire dans 1 heure.</p>
-        <p style="color: #666; font-size: 14px;">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
-        ${signature}
-      `,
+      subject: rendered.subject,
+      html: wrapEmailHtml(rendered.html, signature),
       _emailType: "password_reset",
     });
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useTranscriptAssignments, type TranscriptAssignment } from "@/hooks/useTranscriptAssignments";
+import { useTranscriptAssignments, useUnassignTranscript, ASSIGNMENT_KIND_LABELS, type TranscriptAssignment } from "@/hooks/useTranscriptAssignments";
 import TranscriptAssignmentMarker from "@/components/transcripts/TranscriptAssignmentMarker";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
@@ -41,6 +41,7 @@ import {
 const SOURCE_LABELS: Record<TranscriptSource, string> = {
   google_drive: "Google Drive",
   fireflies: "Fireflies",
+  dictation: "Dictée",
 };
 
 const STATUS_ICONS: Record<TranscriptStatus, React.ReactNode> = {
@@ -281,6 +282,9 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
   const queryClient = useQueryClient();
   const trashMutation = useTrashTranscript();
   const restoreMutation = useRestoreTranscript();
+  const { data: allAssignments } = useTranscriptAssignments();
+  const unassign = useUnassignTranscript();
+  const myAssignments = allAssignments?.get(id) ?? [];
 
   const regenerateTitle = async () => {
     if (!t) return;
@@ -370,6 +374,30 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
                 {STATUS_ICONS[t.status]}{t.status}
               </Badge>
               {t.duration_seconds && <span className="text-xs text-muted-foreground">{formatDuration(t.duration_seconds)}</span>}
+            </div>
+          )}
+          {myAssignments.length > 0 && (
+            <div className="flex flex-col gap-1 text-left">
+              {myAssignments.map((a) => (
+                <div key={`${a.kind}-${a.entity_id}`} className="flex items-center gap-2 text-xs bg-accent text-accent-foreground rounded px-2 py-1">
+                  <span className="truncate flex-1">{ASSIGNMENT_KIND_LABELS[a.kind]} : {a.label}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs shrink-0"
+                    disabled={unassign.isPending}
+                    onClick={() => {
+                      if (!confirm(`Dissocier ce transcript de « ${a.label} » ?`)) return;
+                      unassign.mutate(a, {
+                        onSuccess: () => toast.success("Transcript dissocié"),
+                        onError: (e: any) => toast.error(e?.message ?? "Erreur"),
+                      });
+                    }}
+                  >
+                    Dissocier
+                  </Button>
+                </div>
+              ))}
             </div>
           )}
         </SheetHeader>

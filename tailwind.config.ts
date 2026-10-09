@@ -17,6 +17,9 @@ export default {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        success: "hsl(var(--success))",
+        "success-surface": "hsl(var(--success-surface))",
+        "error-surface": "hsl(var(--error-surface))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {

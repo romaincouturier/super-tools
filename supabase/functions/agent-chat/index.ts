@@ -112,6 +112,30 @@ async function getBusinessContext(supabase: ReturnType<typeof getSupabaseClient>
   }
 }
 
+// Adresse d'auteur des commentaires de l'agent — app_settings
+// (agent_author_email, Paramètres > Général) ; repli si illisible.
+let _cachedAuthorEmail: { email: string; fetchedAt: number } | null = null;
+
+async function getAgentAuthorEmail(supabase: ReturnType<typeof getSupabaseClient>): Promise<string> {
+  const now = Date.now();
+  if (_cachedAuthorEmail && now - _cachedAuthorEmail.fetchedAt < SCHEMA_CACHE_TTL_MS) {
+    return _cachedAuthorEmail.email;
+  }
+  const fallback = "agent@supertools.ai";
+  try {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "agent_author_email")
+      .maybeSingle();
+    const email = (data as { setting_value?: string } | null)?.setting_value?.trim() || fallback;
+    _cachedAuthorEmail = { email, fetchedAt: now };
+    return email;
+  } catch {
+    return _cachedAuthorEmail?.email ?? fallback;
+  }
+}
+
 // ── System prompt ────────────────────────────────────────────
 
 // La date vit dans un bloc system séparé, placé après le point de cache : le
@@ -587,7 +611,7 @@ async function executeTool(
               .insert({
                 card_id: params.card_id,
                 content: params.content,
-                author_email: params.author_email || "agent@supertools.ai",
+                author_email: params.author_email || await getAgentAuthorEmail(supabase),
               });
             if (error) return toolError(error.message);
             return JSON.stringify({ success: true, message: "Commentaire ajouté" });

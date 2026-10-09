@@ -1,173 +1,52 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { FlipCardsBlockContent, FlipCard } from "@/types/lms-blocks";
 
-interface Props {
-  content: FlipCardsBlockContent;
-}
-
-const GRID_COLS = ["grid-cols-1", "grid-cols-2", "grid-cols-3", "grid-cols-4"];
-
-function textFontSize(text: string): string {
-  if (text.length > 220) return "0.75rem";
-  if (text.length > 110) return "0.8125rem";
-  return "0.875rem";
-}
-
-export default function FlipCardsBlockViewer({ content }: Props) {
+export default function FlipCardsBlockViewer({ content }: { content: FlipCardsBlockContent }) {
   const [flipped, setFlipped] = useState<Set<string>>(new Set());
   const cards = content.cards ?? [];
-  const height = content.card_height_px ?? 180;
-  if (cards.length === 0) return null;
-
-  const gridClass = GRID_COLS[Math.min(cards.length, 4) - 1];
-
-  const toggle = (id: string) =>
-    setFlipped((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-
+  const height = content.card_height_px ?? 260;
+  const twoColumns = cards.length === 2 || cards.length === 4;
+  if (!cards.length) return null;
   return (
-    <div className={`grid gap-4 ${gridClass}`}>
+    <div className="flex min-w-0 flex-wrap justify-center gap-4">
       {cards.map((card) => (
-        <FlipCardItem
-          key={card.id}
-          card={card}
-          height={height}
-          isFlipped={flipped.has(card.id)}
-          onFlip={() => toggle(card.id)}
-        />
+        <Button key={card.id} type="button" variant="ghost"
+          aria-label={flipped.has(card.id) ? "Retourner (recto)" : "Retourner (verso)"}
+          aria-pressed={flipped.has(card.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setFlipped((prev) => {
+              const next = new Set(prev);
+              next.has(card.id) ? next.delete(card.id) : next.add(card.id);
+              return next;
+            });
+          }}
+          className={cn("group block min-w-0 basis-full shrink-0 whitespace-normal p-0 hover:bg-transparent sm:basis-[calc((100%-1rem)/2)] [perspective:1000px]", !twoColumns && "lg:basis-[calc((100%-2rem)/3)]")}
+          style={{ height }}>
+          <span className="relative block h-full w-full transition-transform duration-500 motion-reduce:transition-none [transform-style:preserve-3d]"
+            style={{ transform: flipped.has(card.id) ? "rotateY(180deg)" : "rotateY(0deg)" }}>
+            <CardFace card={card} isBack={false} hidden={flipped.has(card.id)} />
+            <CardFace card={card} isBack hidden={!flipped.has(card.id)} />
+          </span>
+        </Button>
       ))}
     </div>
   );
 }
 
-function FlipCardItem({
-  card,
-  height,
-  isFlipped,
-  onFlip,
-}: {
-  card: FlipCard;
-  height: number;
-  isFlipped: boolean;
-  onFlip: () => void;
-}) {
-  const [hovered, setHovered] = useState(false);
-
+function CardFace({ card, isBack, hidden }: { card: FlipCard; isBack: boolean; hidden: boolean }) {
+  const image = isBack ? card.back_image_url : card.front_image_url;
+  const text = isBack ? card.back_text : card.front_text;
   return (
-    <div
-      onClick={onFlip}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="cursor-pointer select-none"
-      style={{ perspective: "1000px", minHeight: height }}
-      aria-label={isFlipped ? "Retourner (recto)" : "Retourner (verso)"}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" || e.key === " " ? onFlip() : undefined}
-    >
-      {/* Inner — rotates */}
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          minHeight: height,
-          transformStyle: "preserve-3d",
-          transition: "transform 0.55s cubic-bezier(0.4,0.2,0.2,1)",
-          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-        }}
-      >
-        {/* Front */}
-        <CardFace
-          text={card.front_text}
-          imageUrl={card.front_image_url}
-          height={height}
-          highlighted={hovered && !isFlipped}
-          transform="rotateY(0deg)"
-        />
-        {/* Back */}
-        <CardFace
-          text={card.back_text}
-          imageUrl={card.back_image_url}
-          height={height}
-          highlighted={hovered && isFlipped}
-          transform="rotateY(180deg)"
-          isBack
-        />
-      </div>
-    </div>
-  );
-}
-
-function CardFace({
-  text,
-  imageUrl,
-  height,
-  highlighted,
-  transform,
-  isBack = false,
-}: {
-  text?: string | null;
-  imageUrl?: string | null;
-  height: number;
-  highlighted: boolean;
-  transform: string;
-  isBack?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        minHeight: height,
-        backfaceVisibility: "hidden",
-        WebkitBackfaceVisibility: "hidden",
-        transform,
-        borderRadius: 16,
-        border: `2px solid ${highlighted ? "#FFD100" : "#e5e7eb"}`,
-        backgroundColor: isBack ? "#fffef5" : "#ffffff",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1.25rem 1rem",
-        gap: 8,
-        transition: "border-color 0.15s",
-        boxSizing: "border-box",
-      }}
-    >
-      {imageUrl && (
-        <img
-          src={imageUrl}
-          alt=""
-          style={{ maxWidth: "100%", maxHeight: 80, objectFit: "contain", borderRadius: 8, flexShrink: 0 }}
-        />
-      )}
-      {text && (
-        <div style={{ width: "100%", minHeight: 0, overflowY: "auto" }}>
-          <p
-            style={{
-              margin: 0,
-              textAlign: "center",
-              fontSize: textFontSize(text),
-              fontWeight: isBack ? 400 : 600,
-              color: "#101820",
-              lineHeight: 1.4,
-              whiteSpace: "pre-line",
-              overflowWrap: "break-word",
-            }}
-          >
-            {text}
-          </p>
-        </div>
-      )}
-      {!text && !imageUrl && (
-        <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.75rem" }}>
-          {isBack ? "Verso" : "Recto"}
-        </p>
-      )}
-    </div>
+    <span aria-hidden={hidden} className={cn(
+      "absolute inset-0 flex h-full min-w-0 flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border-2 border-border px-4 py-3 text-card-foreground [backface-visibility:hidden] [-webkit-backface-visibility:hidden] group-hover:border-accent",
+      isBack ? "bg-accent/10 [transform:rotateY(180deg)]" : "bg-card",
+    )}>
+      {image && <img src={image} alt="" className={cn("w-full min-h-0 shrink-0 object-contain", !text ? "h-full" : isBack ? "h-[45%]" : "h-[68%]")} />}
+      {text ? <span className={cn("block w-full min-h-0 overflow-y-auto whitespace-pre-line break-words", isBack ? "text-[1.05rem] font-normal leading-relaxed" : "text-xl font-bold leading-snug")}>{text}</span>
+        : !image && <span className="text-base text-muted-foreground">{isBack ? "Verso" : "Recto"}</span>}
+    </span>
   );
 }

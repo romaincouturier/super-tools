@@ -372,6 +372,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 - **Origine** : alerte Anthropic « taux de cache bas, jusqu'à 27 % d'économie possible », audit de tous les appels Claude du repo
 - **Date** : 2026-09-28
 
+### [073] Liste de valeurs métier (BPF) — la contrainte en base fait foi, jamais seulement le code
+- **Constat** : 29/09/2026, outil MCP `add_training_participant`. Les listes `type_stagiaire_bpf` et `source_financement_bpf` n'existaient que dans le code (écran, puis copie dans l'outil MCP). Rien en base : 17 participants avaient été enregistrés en « Particulier » (majuscule), valeur invisible pour le bilan BPF. Chaque nouvel appelant (MCP, import, edge function) recopiait la liste, avec risque de divergence.
+- **Règle** : Une colonne à valeurs fermées qui alimente un reporting réglementaire (BPF, Qualiopi) porte une contrainte CHECK en base. Toute copie de la liste dans le code (validation anticipée, aperçu) doit être strictement identique à la contrainte ; en cas d'ajout de valeur, migration d'abord, code ensuite.
+- **Vérification** : check [073] de `check-rules.sh` : chaque valeur de `TYPE_STAGIAIRE_BPF` et `SOURCE_FINANCEMENT_BPF` (`_shared/participant-tools.ts`) figure dans la migration qui crée `training_participants_source_financement_bpf_check`.
+- **Fichiers de référence** : `supabase/functions/_shared/participant-tools.ts`, migration `training_participants_*_bpf_check`
+- **Origine** : question « tu n'as pas dupliqué de code ? » sur l'ajout de participant via MCP
+- **Date** : 2026-09-29
+
 ### [051] Filtre multi-sources — un réglage par source quand le volume diffère, et ne jamais filtrer sur une dimension que la source neutralise
 - **Constat** : 05/08/2026, mise en service de la source TED à côté du BOAMP dans le module marchés publics. Les deux sources partageaient un unique filtre (codes CPV, mots-clés, exclusions), sur l'hypothèse « un seul filtre, deux sources, moins de surface à calibrer ». La première ingestion TED a ramené 248 avis pour une poignée attendue. Mesure de `matched_on` : les six codes CPV de formation partagés faisaient 262 des 265 retenues, les mots-clés seulement 6. Ces mêmes codes donnaient 19 avis sur le BOAMP. La cause n'était pas le filtre mais l'échelle : un code de « séminaires de formation » tient à l'échelle de la France, il inonde à l'échelle de l'Europe. Second constat le même jour : le filtre de langue ajouté « pour ne garder que le français et l'anglais » était inerte — le TED traduit chaque avis dans les 24 langues officielles, donc « existe en fra ou eng » est vrai pour 100 % des avis, et `unreadable` valait 0. Le repointer sur la langue d'origine (`links.pdfs`) aurait été pire : il aurait écarté un avis polonais parfaitement lisible dans la traduction anglaise que le TED fournit.
 - **Règle** : Deux sources qui alimentent la même table ne partagent un réglage que si sa bonne valeur est la même pour les deux. Dès qu'une dimension de filtrage a un volume ou une sémantique différents selon la source (un code CPV étroit sur un périmètre national, large sur un périmètre continental), lui donner un réglage PAR SOURCE (`tender_ted_cpv_codes` distinct de `tender_cpv_codes`), pas un réglage commun — sinon calibrer pour une source dérègle l'autre. Ce qui est vraiment commun (ici les mots-clés métier, le vrai signal) reste partagé. Corollaire, aussi important : ne jamais filtrer sur une dimension que la source neutralise. Avant d'ajouter un filtre, vérifier sur les données réelles qu'il discrimine (un compteur dédié qui reste à zéro le prouve inerte) ; un filtre qui laisse tout passer n'est pas un garde-fou mais une fausse assurance, et un filtre qu'on « corrige » pour qu'il morde peut se mettre à écarter ce qu'on voulait garder. Mesurer la répartition (`matched_on`, compteurs par cause de rejet) avant de resserrer, jamais couper à l'aveugle.
@@ -682,3 +690,15 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 - **Fichiers de référence** : `vite.config.ts` (config workbox corrigée)
 - **Origine** : production cassée — écran blanc après chaque deploy, Lovable en boucle sur 6 commits de recovery
 - **Date** : 2026-03-23
+
+### [074] Adresses email de l'organisation — jamais en dur, toujours dans Paramètres > Général
+- **Constat** : Octobre 2026, `contact@supertilt.fr` et `romain@supertilt.fr` restaient écrites en dur dans les écrans de connexion, l'accueil, le portail apprenant, un email de sécurité apprenant et l'auteur des posts de replay.
+- **Règle** : Toute adresse de l'organisation se lit dans `app_settings` : `useContactEmail()` côté front (lecture publique via `get_app_setting_public`), `getContactEmail()` / `getSenderEmail()` côté edge (`_shared/email-settings.ts`). Le seul repli autorisé est la constante de ces deux modules.
+- **Vérification** : check [074] de `scripts/check-rules.sh`.
+
+### [075] Emails automatiques — jamais de texte en dur, toujours un modèle éditable
+- **Constat** : Octobre 2026, une quarantaine d'emails (alertes, notifications, confirmations, certificats) avaient objet et corps écrits dans le code, impossibles à modifier depuis Paramètres > Emails.
+- **Règle** : Toute edge function qui envoie un email lit son objet et son corps via `renderCatalogEmail` / `renderEditableEmail` (`_shared/editable-email.ts`) ou `prepareTemplatedEmail`, avec le texte par défaut déclaré dans `_shared/editable-email-defaults.ts`. Boutons, liens tokenisés et tableaux passent en `blocks` protégés. Seules exceptions : les envois dont le contenu est rédigé par l'utilisateur (CRM, devis, diffusion, brouillons, renvoi).
+- **Vérification** : check [075] de `scripts/check-rules.sh`.
+- **Date** : 2026-10-05
+

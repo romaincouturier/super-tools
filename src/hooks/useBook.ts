@@ -6,6 +6,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import type {
   BookProfile,
   BookAlbum,
@@ -90,8 +91,7 @@ export function useBookAlbums() {
           supabase
             .from("book_productions")
             .select("album_id, file_url, thumbnail_url, file_type, sort_order, created_at")
-            .order("sort_order", { ascending: true })
-            .order("created_at", { ascending: true }),
+            .order("created_at", { ascending: false }),
         ]);
 
       if (albumsError) throw albumsError;
@@ -99,16 +99,20 @@ export function useBookAlbums() {
 
       const countMap: Record<string, number> = {};
       const coverMap: Record<string, string> = {};
+      const thumbByFile: Record<string, string> = {};
+      const keyOf = (u: string) => extractStoragePath(u) ?? u.split("?")[0];
       for (const row of productions ?? []) {
         countMap[row.album_id] = (countMap[row.album_id] ?? 0) + 1;
-        if (!coverMap[row.album_id]) {
-          coverMap[row.album_id] = row.thumbnail_url ?? row.file_url;
-        }
+        const lightThumb = row.thumbnail_url && row.thumbnail_url !== row.file_url ? row.thumbnail_url : null;
+        if (lightThumb) thumbByFile[keyOf(row.file_url)] = lightThumb;
+        if (!coverMap[row.album_id] && lightThumb) coverMap[row.album_id] = lightThumb;
       }
 
-      const rawCovers = (albums ?? []).map(
-        (album) => album.cover_url ?? coverMap[album.id] ?? null,
-      );
+      // Couverture : toujours la vignette légère de la production, jamais le fichier original.
+      const rawCovers = (albums ?? []).map((album) => {
+        if (album.cover_url) return thumbByFile[keyOf(album.cover_url)] ?? album.cover_url;
+        return coverMap[album.id] ?? null;
+      });
       const signedCovers = await signBookUrls(rawCovers);
 
       return (albums ?? []).map((album, i) => ({
@@ -497,8 +501,8 @@ export function useAddMediaToAlbum() {
         user_id: userId,
         title: m.file_name.replace(/\.[^/.]+$/, ""),
         file_url: m.file_url,
-        // Une vidéo n'a pas d'image de vignette : la carte en extrait une frame.
-        thumbnail_url: m.file_type === "image" ? m.file_url : null,
+        // Vignette générée ensuite par useBackfillBookThumbnails (jamais l'original : trop lourd).
+        thumbnail_url: null,
         file_type: m.file_type as "image" | "video",
         original_filename: m.file_name,
         sort_order: startOrder + idx,
@@ -820,6 +824,63 @@ export function useRecordView() {
         body: { token, productionId },
       });
       if (error) throw error;
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Vignettes manquantes : les images importées depuis la médiathèque n'ont pas
+// de vignette légère, la grille chargeait donc l'original (jusqu'à ~10 Mo).
+// On en génère une une seule fois dans le navigateur, puis on la stocke.
+// ---------------------------------------------------------------------------
+
+const backfillRunning = new Set<string>();
+
+export function useBackfillBookThumbnails(albumId: string) {
+  const queryClient = useQueryClient();
+  const setThumbnail = useEdgeFunction<{ thumbnail_url: string }>("book-set-thumbnail", { silentOnError: true });
+  return useQuery({
+    queryKey: ["book-thumbnail-backfill", albumId],
+    enabled: !!albumId,
+    staleTime: Infinity,
+    retry: false,
+    queryFn: async () => {
+      if (backfillRunning.has(albumId)) return 0;
+      backfillRunning.add(albumId);
+      try {
+        const userId = await getCurrentUserId();
+        const { data } = await supabase
+          .from("book_productions")
+          .select("id, file_url, thumbnail_url, original_filename, user_id")
+          .eq("album_id", albumId)
+          .eq("file_type", "image");
+        const todo = (data ?? []).filter(
+          (r) => r.user_id === userId && (!r.thumbnail_url || r.thumbnail_url === r.file_url),
+        );
+        if (todo.length === 0) return 0;
+        const { createThumbnailFromUrl } = await import("@/lib/bookThumbnail");
+        let done = 0;
+        for (const row of todo) {
+          try {
+            const [src] = await signBookUrls([row.file_url]);
+            const thumb = await createThumbnailFromUrl(src ?? row.file_url, row.original_filename ?? row.id);
+            if (!thumb) continue;
+            const form = new FormData();
+            form.append("thumbnail", thumb);
+            form.append("productionId", row.id);
+            if (await setThumbnail.invoke(form)) done++;
+          } catch (e) {
+            console.warn("[book-thumbnail-backfill]", row.id, e);
+          }
+        }
+        if (done > 0) {
+          queryClient.invalidateQueries({ queryKey: ["book-productions", albumId] });
+          queryClient.invalidateQueries({ queryKey: ["book-albums"] });
+        }
+        return done;
+      } finally {
+        backfillRunning.delete(albumId);
+      }
     },
   });
 }
