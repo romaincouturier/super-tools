@@ -86,3 +86,31 @@ export async function addPictoRequests(supabase: Supabase, items: PictoRequestIn
     results,
   };
 }
+
+export async function checkPictoEntries(supabase: Supabase, words: string[]) {
+  if (!Array.isArray(words) || words.length === 0) throw new Error("words doit contenir au moins un mot");
+  if (words.length > 200) throw new Error("200 mots maximum par appel");
+  const existing = await loadBacklog(supabase);
+  const byWord = new Map<string, any[]>();
+  for (const r of existing) {
+    const key = normalizePictoWord(r.word);
+    if (!byWord.has(key)) byWord.set(key, []);
+    byWord.get(key)!.push(r);
+  }
+  const results = words.map((raw) => {
+    const word = (raw ?? "").trim().slice(0, 200);
+    const matches = (byWord.get(normalizePictoWord(word)) ?? []).map((r) => ({
+      id: r.id,
+      word: r.word,
+      request_type: r.request_type,
+      received_at: r.received_at,
+    }));
+    return { word, exists: matches.length > 0, matches };
+  });
+  return {
+    checked: results.length,
+    found: results.filter((r) => r.exists).length,
+    missing: results.filter((r) => !r.exists).map((r) => r.word),
+    results,
+  };
+}
