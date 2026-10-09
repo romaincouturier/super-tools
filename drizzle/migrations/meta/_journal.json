@@ -15,6 +15,13 @@
       "when": 1791579886314,
       "tag": "0001_pictodico_mcp_registry",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791581539182,
+      "tag": "0002_pictodico_request_count",
+      "breakpoints": true
     }
   ]
 }

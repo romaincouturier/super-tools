@@ -37,11 +37,6 @@ async function loadBacklog(supabase: Supabase) {
 export async function addPictoRequests(supabase: Supabase, items: PictoRequestInput[]) {
   if (!Array.isArray(items) || items.length === 0) throw new Error("requests doit contenir au moins un mot");
   if (items.length > 200) throw new Error("200 mots maximum par appel");
-  const existing = await loadBacklog(supabase);
-  const seen = new Map<string, string>();
-  for (const r of existing) seen.set(`${r.request_type}|${normalizePictoWord(r.word)}`, r.id);
-
-  const toInsert: any[] = [];
   const results: any[] = [];
   for (const it of items) {
     const word = (it?.word ?? "").trim().slice(0, 200);
@@ -57,31 +52,27 @@ export async function addPictoRequests(supabase: Supabase, items: PictoRequestIn
       if (isNaN(d.getTime())) { results.push({ word, status: "rejected", reason: "requested_at invalide" }); continue; }
       receivedAt = d.toISOString();
     }
-    const key = `${type}|${normalizePictoWord(word)}`;
-    if (seen.has(key)) { results.push({ word, request_type: type, status: "duplicate", existing_id: seen.get(key) }); continue; }
-    seen.set(key, "pending");
-    toInsert.push({
-      word,
-      language: "fr",
-      source: "mcp",
-      request_type: type,
-      source_url: it.source_url?.slice(0, 1000) || null,
-      error_description: it.comment?.slice(0, 2000) || null,
-      received_at: receivedAt,
+    const { data, error } = await supabase.rpc("pictodico_register_request", {
+      p_word: word,
+      p_request_type: type,
+      p_source: "mcp",
+      p_source_url: it.source_url ?? null,
+      p_error_description: it.comment ?? null,
+      p_received_at: receivedAt,
     });
-    results.push({ word, request_type: type, status: "created" });
-  }
-  if (toInsert.length) {
-    const { data, error } = await supabase.from("pictodico_words").insert(toInsert).select("id, word, request_type");
-    if (error) throw new Error(error.message);
-    for (const row of data ?? []) {
-      const r = results.find((x) => x.status === "created" && !x.id && x.word === row.word && x.request_type === row.request_type);
-      if (r) r.id = row.id;
-    }
+    if (error) { results.push({ word, status: "rejected", reason: error.message }); continue; }
+    const row = Array.isArray(data) ? data[0] : data;
+    results.push({
+      word: row.word,
+      request_type: row.request_type,
+      status: row.created ? "created" : "incremented",
+      id: row.id,
+      request_count: row.request_count,
+    });
   }
   return {
     created: results.filter((r) => r.status === "created").length,
-    duplicates: results.filter((r) => r.status === "duplicate").length,
+    incremented: results.filter((r) => r.status === "incremented").length,
     rejected: results.filter((r) => r.status === "rejected").length,
     results,
   };

@@ -159,13 +159,13 @@ serve(async (req) => {
 
   const word = extractWordFromUrl(pageUrl);
 
-  const { error: insertError } = await supabase.from("pictodico_words").insert({
-    word: word || pageUrl,
-    language: "fr",
-    source: "webhook",
-    request_type: type,
-    source_url: pageUrl,
-    error_description: erreur || null,
+  // Décodage + dédoublonnage (casse/accents/type) + compteur côté SQL
+  const { error: insertError } = await supabase.rpc("pictodico_register_request", {
+    p_word: word || pageUrl,
+    p_request_type: type,
+    p_source: "webhook",
+    p_source_url: pageUrl,
+    p_error_description: erreur || null,
   });
 
   if (insertError) {
