@@ -609,6 +609,22 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "check_picto_entries",
+    description:
+      "Check whether words already exist in the Picto-Dico backlog (table pictodico_words). Matching is case- and accent-insensitive. Returns per word: exists (true/false) and, when found, the matching entries (id, word, request_type, received_at). Note: the backlog only tracks requested/reported words, not the pictos published on the WordPress site. Use add_picto_requests to add the missing ones.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        words: {
+          type: "array",
+          maxItems: 200,
+          items: { type: "string", description: "Word to check" },
+        },
+      },
+      required: ["words"],
+    },
+  },
+  {
     name: "add_picto_requests",
     description:
       "Record words requested by Picto-Dico visitors into the Picto-Dico backlog (table pictodico_words, shown in the Picto-Dico screen of SuperTools). Additive only. Duplicates are skipped: same word (case- and accent-insensitive) with the same request_type already in the backlog. Returns per word: created (with id), duplicate (with existing_id) or rejected (with reason).",
