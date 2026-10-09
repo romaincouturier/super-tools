@@ -21,7 +21,7 @@ cd "$(dirname "$0")/.."
 # `submitted_by_email`) : la racine dit la nature de la donnee. EXACT liste les
 # champs d'identite, ou un prefixe change tout (`client_name` identifie,
 # `training_name` non).
-PREFIXED='email|phone|telephone|mobile|company|societe|amount|montant|price|price_ht|price_ttc|total_ht|total_ttc|estimated_value|address|adresse|postal_code|iban|siret|siren'
+PREFIXED='email|phone|telephone|mobile|company|societe|amount|montant|price|price_ht|price_ttc|total_ht|total_ttc|estimated_value|address|adresse|postal_code|iban|siret|siren|tracking_number'
 EXACT='first_name|last_name|full_name|contact_name|client_name|customer_name|learner_name|participant_name|author_name|sponsor_name|trainer_name|assigned_name|buyer_name|company_name|client_contact|nom|prenom|prix|clientName|contactName|customerName|authorName|clientCompany|clientEmail|contactEmail|totalHt'
 
 # Ecrans publics / apprenant / partenaire : hors perimetre du mode demo.
