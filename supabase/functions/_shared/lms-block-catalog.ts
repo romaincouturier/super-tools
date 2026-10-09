@@ -9,6 +9,9 @@
  * (`children`, un seul niveau de contenu).
  */
 
+import { sanitizeEmbedHtml } from "./lms-embed-sanitizer.ts";
+export { sanitizeEmbedHtml } from "./lms-embed-sanitizer.ts";
+
 export type FieldType =
   | "html"
   | "embed_html"
@@ -115,11 +118,6 @@ function sanitizeMarkup(value: string, allowEmbed: boolean): string {
  */
 export function sanitizeHtml(value: string): string {
   return sanitizeMarkup(value, false);
-}
-
-/** Variante pour les intégrations (iframe/vidéo) — jamais de <script>. */
-export function sanitizeEmbedHtml(value: string): string {
-  return sanitizeMarkup(value, true);
 }
 
 /**
