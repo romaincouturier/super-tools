@@ -17,5 +17,5 @@
 - Attente : validation du rendu des 53 emails de test par l'utilisateur
 
 ## MCP Picto-Dico (2026-10-09)
-- [ ] Ajouter l'outil `check_picto_entries` (vérif backlog pictodico_words)
-- [ ] Vérifier que le déploiement mcp-server sert bien les 4 outils LMS (tools/list)
+- [x] Ajouter l'outil `check_picto_entries` (vérif backlog pictodico_words)
+- [x] Vérifier que le déploiement mcp-server sert bien les 4 outils LMS (tools/list)
