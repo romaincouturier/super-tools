@@ -126,7 +126,7 @@ export const AGENT_COLORS = [
 export const AVAILABLE_MODELS: Record<Provider, { id: string; label: string }[]> = {
   claude: [
     { id: CLAUDE_DEFAULT, label: "Claude Haiku 4.5 (eco)" },
-    { id: CLAUDE_ADVANCED, label: "Claude Sonnet 5" },
+    { id: CLAUDE_ADVANCED, label: "Claude Sonnet 5.5" },
   ],
   openai: [
     { id: "gpt-4o-mini", label: "GPT-4o Mini (eco)" },
@@ -149,6 +149,7 @@ export const MODEL_COSTS: Record<string, { input: number; output: number }> = {
   // inconnu, et les sessions gardent en base le modèle avec lequel elles ont
   // tourné.
   "claude-sonnet-4-6": { input: 3, output: 15 },
+  "claude-sonnet-5": { input: 2, output: 10 },
   "gpt-4o": { input: 2.5, output: 10 },
   "gpt-4o-mini": { input: 0.15, output: 0.6 },
   "gemini-2.0-flash": { input: 0.10, output: 0.40 },
