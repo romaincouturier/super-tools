@@ -1,11 +1,15 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import DragWordsBlockViewer from "./DragWordsBlockViewer";
 import TimelineBlockViewer from "./TimelineBlockViewer";
 import FlipCardsBlockViewer from "./FlipCardsBlockViewer";
 import HtmlEmbedBlockViewer from "./HtmlEmbedBlockViewer";
 
 afterEach(cleanup);
+beforeAll(() => vi.stubGlobal("ResizeObserver", class {
+  observe() {}
+  disconnect() {}
+}));
 describe("interactive LMS viewers", () => {
   it("opens first timeline detail and switches on the whole step button", () => {
     render(<TimelineBlockViewer content={{ steps: [
@@ -39,7 +43,7 @@ describe("interactive LMS viewers", () => {
       fireEvent.click(screen.getByRole("button", { name: `Case ${idx}` }));
     }
     fireEvent.click(screen.getByRole("button", { name: "Vérifier" }));
-    expect(screen.getByRole("status")).toHaveTextContent("2 / 2 corrects");
+    expect(screen.getByText("2 / 2 corrects")).toHaveAttribute("role", "status");
     expect(screen.getAllByLabelText("Correct")).toHaveLength(2);
     fireEvent.click(screen.getAllByRole("button", { name: "Retirer chat de la case" })[0]);
     expect(screen.queryByText("2 / 2 corrects")).not.toBeInTheDocument();

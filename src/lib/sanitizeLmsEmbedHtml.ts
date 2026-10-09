@@ -14,6 +14,7 @@ export function sanitizeLmsEmbedHtml(value: string, depth = 0): string {
     if (data.attrName.startsWith("on")) data.keepAttr = false;
     if (node.nodeName === "IFRAME" && data.attrName === "srcdoc") {
       data.attrValue = sanitizeLmsEmbedHtml(data.attrValue, depth + 1);
+      data.forceKeepAttr = true;
     }
   });
   purify.addHook("afterSanitizeAttributes", (node) => {
