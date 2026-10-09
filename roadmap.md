@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Blocs LMS (2026-10-09)
+- [ ] Équilibrer la grille des cartes : desktop 3 colonnes (2 pour 2/4 cartes), tablette 2, mobile 1, dernière ligne centrée
 - [ ] Agrandir cartes/images et rendre la frise interactive dans les deux vues
 - [ ] Ajouter glisser-déposer souris/tactile, retrait et correction par case
 - [ ] Autoriser les widgets HTML/CSS sans scripts dans les iframes et le MCP

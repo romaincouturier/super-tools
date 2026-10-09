@@ -3,15 +3,14 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { FlipCardsBlockContent, FlipCard } from "@/types/lms-blocks";
 
-const GRID_COLS = ["grid-cols-1", "grid-cols-1 sm:grid-cols-2", "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3", "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"];
-
 export default function FlipCardsBlockViewer({ content }: { content: FlipCardsBlockContent }) {
   const [flipped, setFlipped] = useState<Set<string>>(new Set());
   const cards = content.cards ?? [];
   const height = content.card_height_px ?? 260;
+  const twoColumns = cards.length === 2 || cards.length === 4;
   if (!cards.length) return null;
   return (
-    <div className={cn("grid gap-4 min-w-0", GRID_COLS[Math.min(cards.length, 4) - 1])}>
+    <div className="flex min-w-0 flex-wrap justify-center gap-4">
       {cards.map((card) => (
         <Button key={card.id} type="button" variant="ghost"
           aria-label={flipped.has(card.id) ? "Retourner (recto)" : "Retourner (verso)"}
@@ -24,7 +23,7 @@ export default function FlipCardsBlockViewer({ content }: { content: FlipCardsBl
               return next;
             });
           }}
-          className="group block w-full min-w-0 whitespace-normal p-0 hover:bg-transparent [perspective:1000px]"
+          className={cn("group block min-w-0 basis-full shrink-0 whitespace-normal p-0 hover:bg-transparent sm:basis-[calc((100%-1rem)/2)] [perspective:1000px]", !twoColumns && "lg:basis-[calc((100%-2rem)/3)]")}
           style={{ height }}>
           <span className="relative block h-full w-full transition-transform duration-500 motion-reduce:transition-none [transform-style:preserve-3d]"
             style={{ transform: flipped.has(card.id) ? "rotateY(180deg)" : "rotateY(0deg)" }}>
