@@ -30,6 +30,7 @@ import {
   updateTraining,
 } from "../_shared/record-tools.ts";
 import { getEventHistory } from "../_shared/event-tools.ts";
+import { addPictoRequests, type PictoRequestInput } from "../_shared/pictodico-tools.ts";
 import { enrollLmsLearner, unenrollLmsLearner } from "../_shared/lms-enrollment-tools.ts";
 import { addTrainingParticipant, removeTrainingParticipant, SOURCE_FINANCEMENT_BPF, TYPE_STAGIAIRE_BPF } from "../_shared/participant-tools.ts";
 import {
@@ -604,6 +605,32 @@ const MCP_TOOLS = [
         notes: { type: "string", description: "New internal notes" },
       },
       required: ["activity_id"],
+    },
+  },
+  {
+    name: "add_picto_requests",
+    description:
+      "Record words requested by Picto-Dico visitors into the Picto-Dico backlog (table pictodico_words, shown in the Picto-Dico screen of SuperTools). Additive only. Duplicates are skipped: same word (case- and accent-insensitive) with the same request_type already in the backlog. Returns per word: created (with id), duplicate (with existing_id) or rejected (with reason).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        requests: {
+          type: "array",
+          maxItems: 200,
+          items: {
+            type: "object",
+            properties: {
+              word: { type: "string", description: "Requested word" },
+              requested_at: { type: "string", description: "Date of the request (ISO 8601). Defaults to now." },
+              request_type: { type: "string", enum: ["demande_ajout", "erreur_signalee"], description: "demande_ajout (add request, default) or erreur_signalee (reported error)" },
+              comment: { type: "string", description: "Visitor comment / error description" },
+              source_url: { type: "string", description: "Optional page URL where the request was made" },
+            },
+            required: ["word"],
+          },
+        },
+      },
+      required: ["requests"],
     },
   },
   {
@@ -1617,6 +1644,15 @@ async function callTool(
         );
       } catch (e) {
         return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "add_picto_requests": {
+      try {
+        const res = await addPictoRequests(supabase, args.requests as PictoRequestInput[]);
+        await log(`add_picto_requests: ${res.created} créés, ${res.duplicates} doublons`);
+        return textResult(JSON.stringify(res));
+      } catch (e) {
+        return textResult(`Picto-Dico error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "save_watch_item": {
