@@ -1131,20 +1131,36 @@ async function liveFingerprint(supabase: any, tableName: string): Promise<{ n: n
   return { n, fp };
 }
 
-type Exactness = { s: "exact" | "explained" | "unexplained" | "error"; b: number; l?: number; c?: number | null; e?: string };
+type Exactness = { s: "exact" | "explained" | "undatable" | "unexplained" | "error"; b: number; l?: number; c?: number | null; e?: string };
 
-/** Compare l'export à la table live ; un écart n'est « expliqué » que par des lignes datées après l'export. */
+/**
+ * Compare l'export à la table live.
+ * - explained : lignes datées après l'export, ou suppressions (l'export par clé
+ *   primaire ne peut pas dupliquer : plus de lignes sauvegardées que live =
+ *   lignes supprimées depuis, la sauvegarde reste un sur-ensemble).
+ * - undatable : écart sur une table sans colonne de date, non prouvable mais
+ *   pas une perte démontrée → avertissement, pas KO.
+ * - unexplained : lignes en moins dans la sauvegarde non couvertes par des
+ *   lignes datées après l'export → KO.
+ */
 async function checkExactness(supabase: any, tableName: string, backupRows: number, backupFp: bigint, exportStart: string): Promise<Exactness> {
-  try {
-    const live = await liveFingerprint(supabase, tableName);
-    if (live.n === backupRows && live.fp === backupFp) return { s: "exact", b: backupRows };
-    const { data: changed } = await supabase.rpc("backup_changed_since", { p_table: tableName, p_since: exportStart });
-    const c = changed === null || changed === undefined ? null : Number(changed);
-    const explained = c !== null && c > 0 && live.n >= backupRows && live.n - backupRows <= c;
-    return { s: explained ? "explained" : "unexplained", b: backupRows, l: live.n, c };
-  } catch (err) {
-    return { s: "error", b: backupRows, e: err instanceof Error ? err.message : "erreur" };
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const live = await liveFingerprint(supabase, tableName);
+      if (live.n === backupRows && live.fp === backupFp) return { s: "exact", b: backupRows };
+      const { data: changed } = await supabase.rpc("backup_changed_since", { p_table: tableName, p_since: exportStart });
+      const c = changed === null || changed === undefined ? null : Number(changed);
+      if (live.n < backupRows) return { s: "explained", b: backupRows, l: live.n, c };
+      if (c === null) return { s: "undatable", b: backupRows, l: live.n, c };
+      const explained = c > 0 && live.n - backupRows <= c;
+      return { s: explained ? "explained" : "unexplained", b: backupRows, l: live.n, c };
+    } catch (err) {
+      lastErr = err;
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 3000));
+    }
   }
+  return { s: "error", b: backupRows, e: lastErr instanceof Error ? lastErr.message : "erreur" };
 }
 
 /** Inventaire + comptes + structure : ce qu'il faut pour remonter SuperTools ailleurs. */
