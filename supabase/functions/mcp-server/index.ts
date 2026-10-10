@@ -94,6 +94,18 @@ import {
   WATCH_COMMENT_MAX_CHARS,
   WATCH_TAGS_MAX,
 } from "../_shared/watch-tools.ts";
+import {
+  addContentCard,
+  addSupportNote,
+  getBusinessHealth,
+  MISSION_FIELDS,
+  MISSION_STATUSES,
+  QUOTE_STATUSES,
+  TICKET_STATUSES,
+  updateMission,
+  updateQuoteStatus,
+  updateTicketStatus,
+} from "../_shared/ops-tools.ts";
 
 /**
  * Serveur MCP SuperTools — lecture seule, mono-utilisateur.
@@ -325,6 +337,7 @@ QUEL OUTIL POUR QUELLE QUESTION
 - Newsletter, point éditorial, arbitrage de sommaire : get_editorial_brief d'abord, puis get_content_performance pour justifier les choix.
 - Question simple sur le kanban éditorial ou l'historique des newsletters (« qu'a-t-on déjà envoyé », « quelles idées sur tel thème ») : list_newsletters et list_content_board, plus légers que get_editorial_brief ; get_content_card pour lire un contenu en entier.
 - Client, mission, formation, devis, évaluation : get_client_dossier, get_mission_dossier, read_mission_documents, search_content.
+- État général de l'activité (formations, taux d'évaluation, pipeline sur 30 jours) : get_business_health.
 - Conférence, salon, CFP, réécriture d'un pitch déjà soumis : get_event_history. Il rend le pitch (description), les notes de préparation, le bilan (summary_notes) et l'issue déduite. Ne jamais annoncer qu'un événement a été « accepté » : le modèle ne stocke que held / not_selected / cancelled / upcoming, et le refus se lit sur cancellation_reason.
 - Veille (articles, podcasts, sorties produit suivis par SuperTilt) : list_watch_items pour lire ce qui est déjà couvert, save_watch_item pour y déposer un nouveau contenu.
 - LMS (cours en ligne) : list_lms_courses donne les cours ; list_lms_lessons les leçons d'un cours (avec leur module) ; read_lms_lesson renvoie les blocs avec leur empreinte ; list_lms_block_types catalogue les types de blocs pédagogiques et leur pertinence ; create_lms_lesson crée une leçon vide dans un module ; update_lms_block modifie un seul bloc texte/HTML sans changer son type ; apply_lesson_restructure remplace les blocs de contenu d'une leçon après validation humaine ; list_lesson_versions et restore_lesson_version gèrent l'historique. Utiliser read_lms_lesson avant toute proposition de restructuration pour obtenir l'empreinte (fingerprint) exacte.
@@ -354,6 +367,10 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - update_lms_lesson : modifie uniquement titre, durée estimée, position dans le module ou caractère obligatoire d'une leçon, sans toucher aux blocs. Annoncer le changement à l'utilisateur.
 - create_lms_lesson : crée une leçon dans un module, avec éventuellement ses blocs de contenu initiaux (paramètre « blocks », même schéma que apply_lesson_restructure). Position facultative : si elle est fournie, les leçons suivantes du module sont décalées d'un rang. Écriture additive : aucune leçon existante n'est modifiée dans son contenu. Retourne l'id et l'empreinte de la leçon créée.
 - apply_lesson_restructure : remplace TOUS les blocs de premier niveau d'une leçon par une nouvelle structure proposée. Tous les types du menu « Ajouter un bloc » sont acceptés : blocs de contenu (texte, tableau, encadré, points clés, liste, checklist, synthèse, accordéon, frise, cartes à retourner, code, exercice, auto-évaluation, texte à trous, mots à glisser, quiz, devoir, dépôt de travail, vidéo, image, galerie, fichier, image interactive, avant/après, bouton, CTA, intégration HTML, shortcode) et blocs de mise en page (section, colonnes, conteneur, contenu progressif, séparateur, espace) qui peuvent porter un tableau « children » de blocs de contenu (un seul niveau d'imbrication). EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
+- add_support_note, update_ticket_status : ajoute une note datée à un ticket support, ou change son statut (nouveau, qualification, vibe_coding, resolu).
+- add_content_card : crée une carte dans le kanban éditorial (colonne Idées par défaut). Écriture additive.
+- update_mission : modifie les champs descriptifs, le statut, les dates ou la prochaine action d'une mission ; jamais les montants. Rend les valeurs précédentes.
+- update_quote_status : change le statut d'un devis SuperTools (table quotes, pas Pennylane). Rien n'est envoyé au client.
 Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress n'est possible depuis ici.
 
 VEILLE
@@ -1456,6 +1473,88 @@ const MCP_TOOLS = [
       required: ["record_type", "record_id", "summary"],
     },
   },
+  {
+    name: "get_business_health",
+    description:
+      "Business health report for the last 30 days: trainings, participants, needs-survey and evaluation rates, CRM pipeline, with an AI-written diagnosis and recommendations. Takes about 10 seconds.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "add_support_note",
+    description:
+      "Append a dated note to a support ticket's resolution notes. Existing notes are kept; the new note is added after them.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ticket_id: { type: "string" },
+        content: { type: "string" },
+      },
+      required: ["ticket_id", "content"],
+    },
+  },
+  {
+    name: "update_ticket_status",
+    description:
+      "Change a support ticket's status. 'resolu' also sets the resolution date. resolution_notes, if given, replaces the ticket's notes: use add_support_note to append instead.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ticket_id: { type: "string" },
+        status: { type: "string", enum: [...TICKET_STATUSES] },
+        resolution_notes: { type: "string" },
+      },
+      required: ["ticket_id", "status"],
+    },
+  },
+  {
+    name: "add_content_card",
+    description:
+      "Create a card in the editorial content kanban. column is a column name (partial match) or id; default is 'Idées'. Additive only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        description: { type: "string" },
+        tags: { type: "array", items: { type: "string" } },
+        column: { type: "string" },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "update_mission",
+    description:
+      `Update a mission. Only these fields can change: ${MISSION_FIELDS.join(", ")}. Amounts and billing dates are never writable here. status is one of ${MISSION_STATUSES.join(", ")}. Returns the previous values.`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        mission_id: { type: "string" },
+        title: { type: "string" },
+        description: { type: "string" },
+        client_contact: { type: "string" },
+        status: { type: "string", enum: [...MISSION_STATUSES] },
+        start_date: { type: "string", description: "YYYY-MM-DD" },
+        end_date: { type: "string", description: "YYYY-MM-DD" },
+        tags: { type: "array", items: { type: "string" } },
+        waiting_next_action_date: { type: "string", description: "YYYY-MM-DD" },
+        waiting_next_action_text: { type: "string" },
+      },
+      required: ["mission_id"],
+    },
+  },
+  {
+    name: "update_quote_status",
+    description:
+      "Change the status of a quote stored in SuperTools (quotes table, not Pennylane). Nothing is sent to the client.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        quote_id: { type: "string" },
+        status: { type: "string", enum: [...QUOTE_STATUSES] },
+      },
+      required: ["quote_id", "status"],
+    },
+  },
 ];
 
 // ── Dossiers agrégés (lecture seule, journalisés) ────────────
@@ -2030,6 +2129,33 @@ async function callTool(
         return textResult(`Logistics error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "get_business_health": {
+      try {
+        return textResult(await getBusinessHealth(log));
+      } catch (e) {
+        return textResult(`get_business_health error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "add_support_note":
+    case "update_ticket_status":
+    case "add_content_card":
+    case "update_mission":
+    case "update_quote_status": {
+      try {
+        const result = name === "add_support_note"
+          ? await addSupportNote(supabase, args, log)
+          : name === "update_ticket_status"
+          ? await updateTicketStatus(supabase, args, log)
+          : name === "add_content_card"
+          ? await addContentCard(supabase, args, log, await getAllowedUserId(supabase))
+          : name === "update_mission"
+          ? await updateMission(supabase, args, log)
+          : await updateQuoteStatus(supabase, args, log);
+        return textResult(result);
+      } catch (e) {
+        return textResult(`${name} error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "enroll_lms_learner": {
       try {
         return textResult(await enrollLmsLearner(supabase, args as unknown as Parameters<typeof enrollLmsLearner>[1], log, ALLOWED_EMAIL));
@@ -2296,7 +2422,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.11.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.12.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }
