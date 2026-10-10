@@ -9,4 +9,4 @@
  */
 
 export const CLAUDE_DEFAULT = "claude-haiku-4-5-20251001";
-export const CLAUDE_ADVANCED = "claude-sonnet-5";
+export const CLAUDE_ADVANCED = "claude-sonnet-5-5";

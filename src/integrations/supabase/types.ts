@@ -8426,6 +8426,7 @@ export type Database = {
           is_chosen: boolean
           language: string
           received_at: string
+          request_count: number
           request_type: string | null
           source: string
           source_url: string | null
@@ -8438,6 +8439,7 @@ export type Database = {
           is_chosen?: boolean
           language?: string
           received_at?: string
+          request_count?: number
           request_type?: string | null
           source: string
           source_url?: string | null
@@ -8450,6 +8452,7 @@ export type Database = {
           is_chosen?: boolean
           language?: string
           received_at?: string
+          request_count?: number
           request_type?: string | null
           source?: string
           source_url?: string | null
@@ -13635,6 +13638,25 @@ export type Database = {
       move_stale_tickets_to_boite_a_idees: { Args: never; Returns: undefined }
       next_location_contract_ref: { Args: { p_year: number }; Returns: string }
       normalize_url: { Args: { u: string }; Returns: string }
+      pictodico_norm_key: { Args: { t: string }; Returns: string }
+      pictodico_register_request: {
+        Args: {
+          p_error_description?: string
+          p_received_at?: string
+          p_request_type: string
+          p_source: string
+          p_source_url?: string
+          p_word: string
+        }
+        Returns: {
+          created: boolean
+          id: string
+          request_count: number
+          request_type: string
+          word: string
+        }[]
+      }
+      pictodico_url_decode: { Args: { t: string }; Returns: string }
       practice_popular_hashtags: {
         Args: { p_limit?: number }
         Returns: {

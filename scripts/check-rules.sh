@@ -521,6 +521,13 @@ if [ "$STAGED_MODE" = "false" ]; then
   check "064" "Pas d'import statique de supabase-client dans _shared/cron-auth.ts" \
     "grep -nE '^import .*from \"\\./supabase-client' supabase/functions/_shared/cron-auth.ts"
 
+  # [064b] Les dossiers joués par vitest n'acceptent pas de test écrit pour
+  # Deno : Deno.test et un import https (deno.land/std) cassent le chargement
+  # du fichier (« no tests »). Cinq fichiers ainsi poussés sur main ont mis la
+  # CI au rouge entre le 28/09 et le 10/10/2026.
+  check "064b" "Pas de test Deno (Deno.test, import https) dans les dossiers joués par vitest" \
+    "grep -rnE 'Deno\\.test\\(|^import .* from \"https://' --include='*.test.ts' --include='*.test.tsx' src supabase/functions/_shared supabase/tests 2>/dev/null"
+
   # [044] Aucun CREATE POLICY ne doit lire auth.users : le rôle `authenticated`
   # n'a pas SELECT dessus, la policy échoue en 403 / 42501 et l'écran reste vide
   # (constat du 03/08/2026 sur inbound_emails). Le contrôle de droits passe par

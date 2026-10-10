@@ -30,6 +30,7 @@ import {
   updateTraining,
 } from "../_shared/record-tools.ts";
 import { getEventHistory } from "../_shared/event-tools.ts";
+import { addPictoRequests, checkPictoEntries, type PictoRequestInput } from "../_shared/pictodico-tools.ts";
 import { enrollLmsLearner, unenrollLmsLearner } from "../_shared/lms-enrollment-tools.ts";
 import { addTrainingParticipant, removeTrainingParticipant, SOURCE_FINANCEMENT_BPF, TYPE_STAGIAIRE_BPF } from "../_shared/participant-tools.ts";
 import {
@@ -73,6 +74,10 @@ import {
 import {
   applyLessonRestructure,
   createLmsLesson,
+  createLmsQuiz,
+  createLmsAssignment,
+  readLmsQuiz,
+  updateLmsLesson,
   getLmsBlockCatalog,
   listLessonVersions,
   listLmsCourses,
@@ -336,6 +341,7 @@ QUEL OUTIL POUR QUELLE QUESTION
 - Conférence, salon, CFP, réécriture d'un pitch déjà soumis : get_event_history. Il rend le pitch (description), les notes de préparation, le bilan (summary_notes) et l'issue déduite. Ne jamais annoncer qu'un événement a été « accepté » : le modèle ne stocke que held / not_selected / cancelled / upcoming, et le refus se lit sur cancellation_reason.
 - Veille (articles, podcasts, sorties produit suivis par SuperTilt) : list_watch_items pour lire ce qui est déjà couvert, save_watch_item pour y déposer un nouveau contenu.
 - LMS (cours en ligne) : list_lms_courses donne les cours ; list_lms_lessons les leçons d'un cours (avec leur module) ; read_lms_lesson renvoie les blocs avec leur empreinte ; list_lms_block_types catalogue les types de blocs pédagogiques et leur pertinence ; create_lms_lesson crée une leçon vide dans un module ; update_lms_block modifie un seul bloc texte/HTML sans changer son type ; apply_lesson_restructure remplace les blocs de contenu d'une leçon après validation humaine ; list_lesson_versions et restore_lesson_version gèrent l'historique. Utiliser read_lms_lesson avant toute proposition de restructuration pour obtenir l'empreinte (fingerprint) exacte.
+- Picto-Dico : le backlog des mots demandés par les visiteurs est la table pictodico_words (query_database) ; check_picto_entries vérifie si des mots y existent déjà ; add_picto_requests y ajoute des demandes (un mot déjà présent incrémente request_count). La liste des pictos publiés n'est PAS dans SuperTools.
 - query_database reste disponible pour tout le reste (SELECT, allowlist de tables) mais les outils agrégés ci-dessus sont plus fiables que du SQL improvisé.
 
 MÉTHODE ATTENDUE
@@ -357,6 +363,8 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - refresh_transcripts / list_unassigned_transcripts / assign_transcript / unassign_transcript : récupèrent les nouveaux transcripts, listent ceux non affectés, les associent à une opportunité ou une mission (page créée) ou retirent le lien. Proposer l'association à l'utilisateur avant de l'appliquer ; si le transcript est déjà affecté ailleurs, demander avant d'utiliser allow_multiple.
 - prepare_newsletter : compose le sommaire ordonné d'une newsletter en BROUILLON (création du brouillon ou reprise d'un brouillon existant), à partir de cartes existantes et/ou de nouveaux contenus créés au passage. Remplace le sommaire du brouillon visé uniquement ; refuse toute newsletter déjà envoyée. Aucun envoi n'est possible d'ici : ne jamais prétendre avoir envoyé une newsletter. Récapituler le sommaire et obtenir l'accord de l'utilisateur avant d'écraser le sommaire d'un brouillon existant.
 - update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre « type » doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
+- create_lms_quiz / create_lms_assignment : créent un quiz (avec ses questions) ou un devoir dans un cours et renvoient le bloc prêt à insérer ({type:"quiz",content:{quiz_id}} ou {type:"assignment",content:{assignment_id}}). Créer d'abord le quiz/devoir, puis référencer son id dans apply_lesson_restructure ou create_lms_lesson. read_lms_quiz relit un quiz.
+- update_lms_lesson : modifie uniquement titre, durée estimée, position dans le module ou caractère obligatoire d'une leçon, sans toucher aux blocs. Annoncer le changement à l'utilisateur.
 - create_lms_lesson : crée une leçon dans un module, avec éventuellement ses blocs de contenu initiaux (paramètre « blocks », même schéma que apply_lesson_restructure). Position facultative : si elle est fournie, les leçons suivantes du module sont décalées d'un rang. Écriture additive : aucune leçon existante n'est modifiée dans son contenu. Retourne l'id et l'empreinte de la leçon créée.
 - apply_lesson_restructure : remplace TOUS les blocs de premier niveau d'une leçon par une nouvelle structure proposée. Tous les types du menu « Ajouter un bloc » sont acceptés : blocs de contenu (texte, tableau, encadré, points clés, liste, checklist, synthèse, accordéon, frise, cartes à retourner, code, exercice, auto-évaluation, texte à trous, mots à glisser, quiz, devoir, dépôt de travail, vidéo, image, galerie, fichier, image interactive, avant/après, bouton, CTA, intégration HTML, shortcode) et blocs de mise en page (section, colonnes, conteneur, contenu progressif, séparateur, espace) qui peuvent porter un tableau « children » de blocs de contenu (un seul niveau d'imbrication). EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
 - add_support_note, update_ticket_status : ajoute une note datée à un ticket support, ou change son statut (nouveau, qualification, vibe_coding, resolu).
@@ -615,6 +623,48 @@ const MCP_TOOLS = [
         notes: { type: "string", description: "New internal notes" },
       },
       required: ["activity_id"],
+    },
+  },
+  {
+    name: "check_picto_entries",
+    description:
+      "Check whether words already exist in the Picto-Dico backlog (table pictodico_words). Matching is case- and accent-insensitive. Returns per word: exists (true/false) and, when found, the matching entries (id, word, request_type, received_at). Note: the backlog only tracks requested/reported words, not the pictos published on the WordPress site. Use add_picto_requests to add the missing ones.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        words: {
+          type: "array",
+          maxItems: 200,
+          items: { type: "string", description: "Word to check" },
+        },
+      },
+      required: ["words"],
+    },
+  },
+  {
+    name: "add_picto_requests",
+    description:
+      "Record words requested by Picto-Dico visitors into the Picto-Dico backlog (table pictodico_words, shown in the Picto-Dico screen of SuperTools). Additive only. Words are URL-decoded. If the same word (case- and accent-insensitive) with the same request_type exists, its request_count is incremented instead of creating a duplicate. Returns per word: created or incremented (with id and request_count), or rejected (with reason).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        requests: {
+          type: "array",
+          maxItems: 200,
+          items: {
+            type: "object",
+            properties: {
+              word: { type: "string", description: "Requested word" },
+              requested_at: { type: "string", description: "Date of the request (ISO 8601). Defaults to now." },
+              request_type: { type: "string", enum: ["demande_ajout", "erreur_signalee"], description: "demande_ajout (add request, default) or erreur_signalee (reported error)" },
+              comment: { type: "string", description: "Visitor comment / error description" },
+              source_url: { type: "string", description: "Optional page URL where the request was made" },
+            },
+            required: ["word"],
+          },
+        },
+      },
+      required: ["requests"],
     },
   },
   {
@@ -1019,6 +1069,84 @@ const MCP_TOOLS = [
         patch: { type: "object", description: "Object with the fields to update" },
       },
       required: ["block_id", "type", "patch"],
+    },
+  },
+  {
+    name: "create_lms_quiz",
+    description:
+      "Create a quiz (lms_quizzes + its questions) in an LMS course, in one all-or-nothing operation. Returns quiz_id and a ready-to-use block {type: 'quiz', content: {quiz_id}} to insert with apply_lesson_restructure or create_lms_lesson. Additive: no existing quiz is modified.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        course_id: { type: "string", description: "UUID of the course (from list_lms_courses)" },
+        title: { type: "string" },
+        description: { type: "string" },
+        passing_score: { type: "number", description: "Optional passing score in percent (0-100)" },
+        max_attempts: { type: "number" },
+        time_limit_minutes: { type: "number" },
+        shuffle_questions: { type: "boolean" },
+        show_correct_answers: { type: "boolean" },
+        questions: {
+          type: "array",
+          description: "1 to 50 questions. single_choice: exactly one correct option; multiple_choice: at least one. 2 to 10 options each.",
+          items: {
+            type: "object",
+            properties: {
+              question: { type: "string" },
+              type: { type: "string", enum: ["single_choice", "multiple_choice"] },
+              options: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: { text: { type: "string" }, is_correct: { type: "boolean" }, feedback: { type: "string" } },
+                  required: ["text", "is_correct"],
+                },
+              },
+              explanation: { type: "string" },
+              points: { type: "number", description: "Default 1" },
+            },
+            required: ["question", "type", "options"],
+          },
+        },
+      },
+      required: ["course_id", "title", "questions"],
+    },
+  },
+  {
+    name: "read_lms_quiz",
+    description: "Read a quiz and its ordered questions (options with correct answers). Read-only.",
+    inputSchema: { type: "object", properties: { quiz_id: { type: "string" } }, required: ["quiz_id"] },
+  },
+  {
+    name: "create_lms_assignment",
+    description:
+      "Create an assignment (lms_assignments) in an LMS course. Returns assignment_id and a ready-to-use block {type: 'assignment', content: {assignment_id}}. Additive.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        course_id: { type: "string" },
+        title: { type: "string" },
+        instructions_html: { type: "string", description: "Sanitized HTML instructions" },
+        max_score: { type: "number" },
+        due_after_days: { type: "number", description: "Days after enrollment" },
+        allow_late_submission: { type: "boolean" },
+        allowed_file_types: { type: "array", items: { type: "string" }, description: "e.g. ['.pdf', 'image/*']" },
+        max_file_size_mb: { type: "number" },
+      },
+      required: ["course_id", "title"],
+    },
+  },
+  {
+    name: "update_lms_lesson",
+    description:
+      "Update the metadata of an LMS lesson without touching its blocks (fingerprint unchanged). Allowed patch fields: title, estimated_minutes (0-600 or null), position (inside the same module; siblings are re-ordered), is_mandatory. Any other field is rejected. Returns the lesson and before/after values of changed fields.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        lesson_id: { type: "string" },
+        patch: { type: "object", description: "e.g. {\"estimated_minutes\": 15, \"title\": \"...\"}" },
+      },
+      required: ["lesson_id", "patch"],
     },
   },
   {
@@ -1634,6 +1762,24 @@ async function callTool(
         return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "check_picto_entries": {
+      try {
+        const res = await checkPictoEntries(supabase, args.words as string[]);
+        await log(`check_picto_entries: ${res.found}/${res.checked} trouvés`);
+        return textResult(JSON.stringify(res));
+      } catch (e) {
+        return textResult(`Picto-Dico error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "add_picto_requests": {
+      try {
+        const res = await addPictoRequests(supabase, args.requests as PictoRequestInput[]);
+        await log(`add_picto_requests: ${res.created} créés, ${res.incremented} incrémentés`);
+        return textResult(JSON.stringify(res));
+      } catch (e) {
+        return textResult(`Picto-Dico error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "save_watch_item": {
       try {
         return textResult(
@@ -2109,6 +2255,59 @@ async function callTool(
         return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "create_lms_quiz": {
+      try {
+        await log("create_lms_quiz");
+        const result = await createLmsQuiz({
+          courseId: (args.course_id as string) || "",
+          title: (args.title as string) || "",
+          description: args.description as string | undefined,
+          passingScore: args.passing_score as number | undefined,
+          maxAttempts: args.max_attempts as number | undefined,
+          timeLimitMinutes: args.time_limit_minutes as number | undefined,
+          shuffleQuestions: args.shuffle_questions as boolean | undefined,
+          showCorrectAnswers: args.show_correct_answers as boolean | undefined,
+          questions: Array.isArray(args.questions) ? args.questions : [],
+        });
+        return textResult(JSON.stringify(result));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "read_lms_quiz": {
+      try {
+        await log("read_lms_quiz");
+        return textResult(JSON.stringify(await readLmsQuiz((args.quiz_id as string) || "")));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "create_lms_assignment": {
+      try {
+        await log("create_lms_assignment");
+        const result = await createLmsAssignment({
+          courseId: (args.course_id as string) || "",
+          title: (args.title as string) || "",
+          instructionsHtml: args.instructions_html as string | undefined,
+          maxScore: args.max_score as number | undefined,
+          dueAfterDays: args.due_after_days as number | undefined,
+          allowLateSubmission: args.allow_late_submission as boolean | undefined,
+          allowedFileTypes: args.allowed_file_types,
+          maxFileSizeMb: args.max_file_size_mb as number | undefined,
+        });
+        return textResult(JSON.stringify(result));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_lms_lesson": {
+      try {
+        await log("update_lms_lesson");
+        return textResult(JSON.stringify(await updateLmsLesson((args.lesson_id as string) || "", args.patch)));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "create_lms_lesson": {
       try {
         await log("create_lms_lesson");
@@ -2223,7 +2422,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.10.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.12.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }
