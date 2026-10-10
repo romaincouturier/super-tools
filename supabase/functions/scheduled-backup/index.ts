@@ -1578,13 +1578,13 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
   }
 
   // ── PHASE 5 : rapport ──
-  const remaining = await countRemainingFiles(supabase);
+  const remaining = await countRemainingFiles(supabase, run.id);
   const storageComplete = remaining.pending === 0 && Number(run.totals.storageErrorCount || 0) === 0;
   return await finishRun(supabase, run, errors, chunks, storageComplete ? "success" : "partial", remaining);
 }
 
 /** Fichiers encore à copier, tous buckets confondus (relu en fin de run). */
-async function countRemainingFiles(supabase: any): Promise<{ pending: number; total: number; unknown: boolean }> {
+async function countRemainingFiles(supabase: any, runId?: string): Promise<{ pending: number; total: number; unknown: boolean }> {
   let pending = 0;
   let total = 0;
   let unknown = false;
@@ -1596,6 +1596,8 @@ async function countRemainingFiles(supabase: any): Promise<{ pending: number; to
     } catch {
       unknown = true;
     }
+    // Heartbeat : la phase rapport ne doit jamais paraître inactive.
+    if (runId) await saveRun(supabase, runId, {});
   }
   return { pending, total, unknown };
 }
@@ -1627,6 +1629,31 @@ async function finishRun(
   const storageLabel = { success: "à jour", partial: "partielle", incomplete: "interrompue" }[storageStatus];
   const success = dbOk;
 
+  // Clôture conditionnelle : seul le tick qui fait passer le run de « running »
+  // à son statut final écrit le log et envoie le rapport (un seul mail par run).
+  const nowIso = new Date().toISOString();
+  const { data: closed } = await supabase
+    .from("backup_runs")
+    .update({
+      status: success ? "success" : "failed",
+      phase: "done",
+      cursor_index: 0,
+      errors,
+      storage_status: storageStatus,
+      storage_finished_at: nowIso,
+      totals: { ...t, durationMs, storageRemaining: remaining?.pending ?? null },
+      finished_at: nowIso,
+      chunks_done: chunks,
+      last_activity_at: nowIso,
+    })
+    .eq("id", r.id)
+    .eq("status", "running")
+    .select("id");
+  if (!closed || closed.length === 0) {
+    console.log(`[scheduled-backup] Run ${r.id} déjà clôturé par un autre tick, rapport non renvoyé`);
+    return { phase: "done", done: true, success, alreadyFinished: true };
+  }
+
   await supabase.from("activity_logs").insert({
     action_type: "scheduled_backup",
     recipient_email: "system",
@@ -1641,18 +1668,6 @@ async function finishRun(
       chunks,
       errors: errors.length > 0 ? errors.slice(0, 50) : null,
     },
-  });
-
-  await saveRun(supabase, r.id, {
-    status: success ? "success" : "failed",
-    phase: "done",
-    cursor_index: 0,
-    errors,
-    storage_status: storageStatus,
-    storage_finished_at: new Date().toISOString(),
-    totals: { ...t, durationMs, storageRemaining: remaining?.pending ?? null },
-    finished_at: new Date().toISOString(),
-    chunks_done: chunks,
   });
 
   const row = (label: string, value: string) =>
@@ -1903,8 +1918,18 @@ serve(async (req) => {
       run = created as RunRow;
       console.log(`[scheduled-backup] Nouveau run ${run.id} (${today})`);
     } else {
-      const idleMs = Date.now() - new Date((runningRun as any).last_activity_at).getTime();
-      if (idleMs < RUN_LOCK_MS) {
+      const lastActivity = (runningRun as any).last_activity_at as string | null;
+      const idleMs = lastActivity ? Date.now() - new Date(lastActivity).getTime() : Number.MAX_SAFE_INTEGER;
+      // Prise atomique : un seul tick peut réclamer le run inactif.
+      const lockBefore = new Date(Date.now() - RUN_LOCK_MS).toISOString();
+      const { data: claimed } = await supabase
+        .from("backup_runs")
+        .update({ last_activity_at: new Date().toISOString() })
+        .eq("id", run.id)
+        .eq("status", "running")
+        .or(`last_activity_at.is.null,last_activity_at.lt.${lockBefore}`)
+        .select("id");
+      if (!claimed || claimed.length === 0) {
         return createJsonResponse({ skipped: true, reason: "run_in_progress", runId: run.id });
       }
       console.log(`[scheduled-backup] Reprise run ${run.id} phase=${run.phase} cursor=${run.cursor_index} (idle ${Math.round(idleMs / 1000)}s)`);
