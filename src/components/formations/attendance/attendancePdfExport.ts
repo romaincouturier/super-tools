@@ -496,23 +496,25 @@ export async function exportAttendancePdf({
     return { success: true, message: "La feuille d'émargement a été téléchargée." };
   }
 
-  // Full session: upload to storage via edge function (service role bypasses RLS)
+  // Full session: download immediately, then keep a copy on the training
+  doc.save(filename);
   const pdfBlob = doc.output("blob");
   const pdfFile = new File([pdfBlob], `emargement_electronique_${Date.now()}.pdf`, { type: "application/pdf" });
 
   const formData = new FormData();
   formData.append("trainingId", trainingId);
   formData.append("field", "attendance_sheets_urls");
-  formData.append("filterPattern", "/emargement_electronique_");
+  formData.append("filterPattern", "_emargement_electronique_");
   formData.append("file", pdfFile);
 
   const { error: uploadError } = await supabase.functions.invoke("upload-training-document-field", {
     body: formData,
   });
 
-  if (!uploadError) {
-    onUpdate?.();
+  if (uploadError) {
+    console.error("[attendancePdfExport] upload failed:", uploadError);
+    return { success: true, message: "PDF téléchargé, mais il n'a pas pu être enregistré dans la formation." };
   }
-
-  return { success: true, message: "Le document a été ajouté aux documents de la formation." };
+  onUpdate?.();
+  return { success: true, message: "PDF téléchargé et enregistré dans Documents et communication > Feuilles d'émargement." };
 }
