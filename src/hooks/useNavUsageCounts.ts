@@ -11,7 +11,11 @@ export function useNavUsageCounts(): Map<string, number> {
     queryKey: ["nav-usage-counts"],
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc("get_nav_usage_counts");
-      if (error) throw error;
+      // Tri de confort : en cas d'échec, la sidebar garde son ordre par défaut.
+      if (error) {
+        console.warn("[nav-usage-counts] indisponible:", error.message);
+        return [];
+      }
       return (data || []) as Array<{ segment: string; clicks: number }>;
     },
     staleTime: 10 * 60 * 1000,

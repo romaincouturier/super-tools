@@ -102,6 +102,7 @@ const Formations = () => {
   const { user, loading: authLoading, logout } = useAuth();
   const { isDemoMode } = useDemoMode();
   const [dataLoading, setDataLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [trainingActions, setTrainingActions] = useState<TrainingAction[]>([]);
   const [participantsByTraining, setParticipantsByTraining] = useState<Map<string, ParticipantSearchData[]>>(new Map());
@@ -150,6 +151,15 @@ const Formations = () => {
         .from("training_participants")
         .select("training_id, first_name, last_name, email, sponsor_first_name, sponsor_last_name, sponsor_email, invoice_file_url, payment_mode, source_financement_bpf, type_stagiaire_bpf, sold_price_ht"),
     ]);
+
+    const firstError = trainingsResult.error || participantsResult.error || actionsResult.error;
+    setLoadError(
+      firstError
+        ? (firstError as { code?: string }).code === "57014"
+          ? "Le chargement des formations a pris trop de temps. Réessaie dans un instant."
+          : "Impossible de charger toutes les données des formations."
+        : null,
+    );
 
     if (trainingsResult.error) {
       console.error("Error fetching trainings:", trainingsResult.error);
@@ -496,6 +506,15 @@ const Formations = () => {
             </div>
           }
         />
+
+        {loadError && (
+          <div role="alert" className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <span>{loadError}</span>
+            <Button variant="outline" size="sm" onClick={() => { setDataLoading(true); fetchTrainings(); }}>
+              Réessayer
+            </Button>
+          </div>
+        )}
 
         {/* Tabs and table */}
         <Card>
