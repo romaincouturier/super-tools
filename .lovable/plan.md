@@ -1,28 +1,24 @@
-# Outil MCP `check_picto_entries` (backlog SuperTools)
+# Make the attendance-sheet export visible
 
-## Objectif
-Depuis le connecteur MCP SuperTools : vérifier si des mots existent déjà dans le backlog Picto-Dico, et pouvoir les ajouter sinon. L'ajout existe déjà (`add_picto_requests`, déployé au tour précédent). Il manque seulement la vérification.
+## What happens today (AI4Product, Apicil, 4 participants)
 
-## Ce qui existe déjà
-- Table `pictodico_words` : backlog des mots (publiés sur le site ou demandés), visible dans l'écran Picto-Dico.
-- Tables `pictodico_words`, `pictodico_challenges`, `pictodico_rate_limit` déjà dans l'allowlist de `query_database` et `list_schema`.
-- Outil `add_picto_requests` déjà déployé : enregistre des demandes (mot, type, commentaire) sans doublon.
+In the attendance-signature block, "Exporter PDF" then "toute la session" (whole session) creates the PDF but does not download it. It only saves it on the training. The message "Le document a été ajouté aux documents de la formation" (the document was added to the training's documents) never says where it is.
 
-## Travail à faire
-1. **`supabase/functions/_shared/pictodico-tools.ts`** : ajouter la fonction `checkPictoEntries(words: string[])` :
-   - normalise chaque mot (minuscules, trim, accents) ;
-   - cherche dans `pictodico_words` (insensible à la casse/accents) ;
-   - retourne pour chaque mot : `exists: true/false`, et si trouvé l'`id`, le libellé exact et le statut (ex. publié / demandé / en attente selon les colonnes réelles de la table).
-2. **`supabase/functions/mcp-server/index.ts`** : déclarer l'outil `check_picto_entries` (input : liste de mots, 1 à 50), le dispatcher, l'ajouter aux instructions du serveur, incrémenter la version.
-3. Déployer `mcp-server` et vérifier que l'outil apparaît dans la liste des outils.
+The file is saved: it appears under "Documents et communication" > "Feuilles d'émargement" (attendance sheets), much higher up the page. On this training there are even 2 copies, generated tonight a few seconds apart.
 
-## Usage combiné
-L'assistant pourra alors faire : `check_picto_entries(["chien","chat"])` → pour les mots absents, `add_picto_requests([...])`.
+Two defects:
+- The success message appears even when saving fails, because the error is not checked.
+- Each new export adds another copy instead of replacing the previous one, because the rule meant to replace the old version never matches the file name.
 
-## Limite assumée (validée)
-La vérification porte sur le backlog SuperTools uniquement, pas sur les pictos publiés du site WordPress. Un picto publié mais jamais entré dans le backlog sera rapporté comme inexistant.
+## Changes
 
-## Vérifications
-- Tests unitaires de la normalisation/recherche.
-- `bash scripts/check-rules.sh`.
-- Appel MCP réel de `check_picto_entries` sur quelques mots connus après déploiement.
+1. **Direct download**: exporting the whole session downloads the PDF straight away, like the per-participant export does. A copy is still saved on the training.
+2. **Clear message**: "PDF téléchargé et enregistré dans Documents et communication > Feuilles d'émargement" (PDF downloaded and saved in Documents et communication > Feuilles d'émargement). If saving fails, the message says the file is downloaded but not saved.
+3. **No more duplicates**: a new export replaces the previous electronic sheet. Sheets uploaded by hand stay untouched.
+4. **Cleanup on the Apicil training**: delete the older of the 2 copies and keep the most recent one.
+
+## Technical details
+
+- `src/components/formations/attendance/attendancePdfExport.ts`: call `doc.save(filename)` for the whole session too. Check `uploadError` and return a distinct message.
+- `filterPattern`: replace `"/emargement_electronique_"` with `"_emargement_electronique_"`. The stored name is `attendance_sheets_urls_<ts>_emargement_electronique_<ts>.pdf`, so the old pattern never matches.
+- Data: remove the older URL (`..._1791750523523_...`) from `attendance_sheets_urls` on training `724bba99`, and delete the matching storage file.
