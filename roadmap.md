@@ -20,5 +20,5 @@
 - [x] Ajouter l'outil `check_picto_entries` (vérif backlog pictodico_words)
 - [x] Vérifier que le déploiement mcp-server sert bien les 4 outils LMS (tools/list)
 
-- [ ] Location : relance auto signature contrat (analyse livrée, attente validation)
+- [x] Location : relances signature J+3/J+7, badge À expédier, bouton Jeu expédié
 - [x] Relance questionnaire : prénom, bouton, apostrophes corrigés
