@@ -1749,6 +1749,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     inProgressRestocks,
     elearningIntegrationIssues,
     unassignedTranscripts,
+    locationSignatureAlerts,
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),

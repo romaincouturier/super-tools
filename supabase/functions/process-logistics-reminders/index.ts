@@ -564,7 +564,7 @@ serve(async (req) => {
       // 15d-quater. Contrats de location non signés
       add("✍️", "Contrats de location non signés", COLORS.red,
         data.locationSignatureAlerts.map(a =>
-          `<li>${linkHtml(`${appUrl}/supertilt/commandes`, `${a.contratReference} · ${a.gameName}`)} : ${a.recipientName}, envoyé il y a ${a.daysSinceSent} j, expire le ${a.expiresLabel}. À appeler.</li>`
+          `<li>${linkHtml(`${appUrl}/commandes-jeux`, `${a.contratReference} · ${a.gameName}`)} : ${a.recipientName}, envoyé il y a ${a.daysSinceSent} j, expire le ${a.expiresLabel}. À appeler.</li>`
         )
       );
 
