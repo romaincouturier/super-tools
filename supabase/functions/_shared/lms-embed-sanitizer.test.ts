@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-vi.mock("https://esm.sh/sanitize-html@2.17.0", async () => ({ default: (await import("sanitize-html")).default }));
+vi.mock("https://esm.sh/sanitize-html@2.17.0?deps=postcss@8.5.6", async () => ({ default: (await import("sanitize-html")).default }));
 import { sanitizeEmbedHtml, sanitizeUpdatePatch, sanitizeRestructureBlocks } from "./lms-block-catalog";
 
 const widget = '<style>input:checked+label{font-weight:bold}</style><input type="radio" id="q" name="answer"><label for="q">Oui</label><details><summary>Réponse</summary>Bravo</details>';
