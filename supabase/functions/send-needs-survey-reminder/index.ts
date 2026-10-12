@@ -194,9 +194,21 @@ serve(async (req) => {
     const { sessionStart } = resolveSessionDate(schedules, training.start_date, training.end_date);
     const formattedDate = sessionStart ? formatDateWithDayFr(sessionStart) : "";
 
+    // Prénom : fiche participant, sinon autre fiche/questionnaire du même email
+    let firstName: string | null = participant.first_name?.trim() || null;
+    if (!firstName && participant.email) {
+      const [{ data: other }, { data: q }] = await Promise.all([
+        supabase.from("training_participants").select("first_name")
+          .ilike("email", participant.email).not("first_name", "is", null).limit(1),
+        supabase.from("questionnaire_besoins").select("prenom")
+          .ilike("email", participant.email).not("prenom", "is", null).limit(1),
+      ]);
+      firstName = other?.[0]?.first_name?.trim() || q?.[0]?.prenom?.trim() || null;
+    }
+
     // Process template
     const variables = {
-      first_name: participant.first_name || null,
+      first_name: firstName,
       training_name: training.training_name,
       training_date: formattedDate || null,
       training_location: training.location || "",
@@ -204,13 +216,18 @@ serve(async (req) => {
     };
 
     const ctaMarker = "NEEDS_SURVEY_QUESTIONNAIRE_CTA";
-    const safeContentTemplate = contentTemplate.replaceAll("{{questionnaire_link}}", ctaMarker);
-    const emailSubject = processTemplate(subjectTemplate, variables, false);
-    const contentText = processTemplate(safeContentTemplate, variables, false);
+    // Isoler le placeholder dans son propre paragraphe, quel que soit le modèle
+    const safeContentTemplate = contentTemplate.replaceAll("{{questionnaire_link}}", `\n\n${ctaMarker}\n\n`);
+    const tidy = (s: string) => s.replace(/[ \t]+([,.!?])/g, "$1");
+    const emailSubject = tidy(processTemplate(subjectTemplate, variables, false));
+    const contentText = tidy(processTemplate(safeContentTemplate, variables, false));
     const questionnaireButton = `<table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 20px 0;"><tr><td align="center" bgcolor="#e6bc00" style="border-radius: 6px;"><a href="${questionnaireUrl}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #1a1a1a; text-decoration: none; border-radius: 6px; font-weight: bold;">Répondre au questionnaire de préparation</a></td></tr></table>`;
     const questionnaireCta = `${questionnaireButton}
 <p style="margin: 8px 0 20px; font-size: 12px; color: #555555;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br><a href="${questionnaireUrl}" style="color: #555555; text-decoration: underline; word-break: break-all;">${questionnaireUrl}</a></p>`;
-    const contentHtml = textToHtml(contentText).replace(`<p>${ctaMarker}</p>`, questionnaireCta);
+    const contentHtml = textToHtml(contentText)
+      .split(`<p>${ctaMarker}</p>`).join(questionnaireCta)
+      .split(ctaMarker).join(questionnaireCta);
+    if (contentHtml.includes(ctaMarker)) throw new Error("CTA placeholder not rendered");
     const htmlContent = `${contentHtml}\n${signature}`;
 
     // Send email
