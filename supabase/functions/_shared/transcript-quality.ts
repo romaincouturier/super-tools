@@ -3,7 +3,7 @@
 const PARASITE_PATTERNS: RegExp[] = [
   /sous[- ]?titrage\s+(soci[eé]t[eé]\s+)?radio[- ]?canada/gi,
   /sous[- ]?titrage\s+st\s*'?\s*\d+/gi,
-  /sous[- ]?titres?\s+r[eé]alis[eé]s?\s+par\s+la\s+communaut[eé]\s+d'?\s*amara(\.org)?/gi,
+  /sous[- ]?titres?\s+r[eé]alis[eé]s?\s+para?\s+la\s+communaut[eé]\s+d'?\s*amara(\.org)?/gi,
   /sous[- ]?titres?\s+par\s+.{0,40}amara(\.org)?/gi,
 ];
 
