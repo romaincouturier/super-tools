@@ -149,6 +149,14 @@ serve(async (req) => {
     const appUrl = urls.app_url;
     const supabase = getSupabaseClient();
 
+    // Rental contract signature reminders (J+3 / J+7) ride on this daily cron.
+    try {
+      const { error: remErr } = await supabase.functions.invoke("send-location-signature-reminders", { body: {} });
+      if (remErr) console.error("[location-signature-reminders]", remErr.message);
+    } catch (e) {
+      console.error("[location-signature-reminders]", e instanceof Error ? e.message : e);
+    }
+
     // Skip on non-working days (weekends by default)
     const skip = await skipIfNonWorkingDay(supabase, VERSION, corsHeaders);
     if (skip) return skip;
@@ -550,6 +558,13 @@ serve(async (req) => {
       add("🎙️", "Transcripts à affecter", COLORS.teal,
         data.unassignedTranscripts.map(t =>
           `<li>${linkHtml(`${appUrl}/transcripts?affectation=non`, t.title)} — à affecter à une mission, une opportunité ou un événement</li>`
+        )
+      );
+
+      // 15d-quater. Contrats de location non signés
+      add("✍️", "Contrats de location non signés", COLORS.red,
+        data.locationSignatureAlerts.map(a =>
+          `<li>${linkHtml(`${appUrl}/supertilt/commandes`, `${a.contratReference} · ${a.gameName}`)} : ${a.recipientName}, envoyé il y a ${a.daysSinceSent} j, expire le ${a.expiresLabel}. À appeler.</li>`
         )
       );
 
