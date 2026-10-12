@@ -11,6 +11,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { isEmptyOrParasiteTranscript, PARASITE_TRANSCRIPT_ERROR } from "../_shared/transcript-quality.ts";
 import {
   assertDriveFolderAccessible,
   getModifiedAfterWithLookback,
@@ -89,6 +90,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
       // Auto-trash empty transcripts (no speech detected — not a processing error)
       const isEmpty = !result.text || result.text.trim().length < 10;
+      if (!isEmpty && isEmptyOrParasiteTranscript(result.text)) {
+        await (admin as any).from("transcripts").update({
+          status: "error",
+          raw_text: result.text ?? "",
+          duration_seconds: result.duration,
+          error_message: PARASITE_TRANSCRIPT_ERROR,
+          assemblyai_id: null,
+        }).eq("id", row.id);
+        results.errors++;
+        continue;
+      }
       if (isEmpty) {
         await (admin as any).from("transcripts").update({
           status: "trashed",
