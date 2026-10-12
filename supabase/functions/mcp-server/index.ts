@@ -72,6 +72,7 @@ import {
   type AuditFn,
   type ExtractedPart,
 } from "../_shared/mission-tools.ts";
+import { updateOrderItem, ORDER_KANBAN_STATUSES } from "../_shared/order-tools.ts";
 import {
   applyLessonRestructure,
   createLmsLesson,
@@ -345,6 +346,7 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
 - save_mission_activity : ajoute une activité au journal d'une mission (description + date obligatoires, durée en heures/jours/demi-journées, montant facturable facultatif). Une durée de 0 correspond à une action programmée sans temps consommé. Écriture additive.
 - update_mission_activity : corrige une activité existante à partir de son id (listé par get_mission_dossier). Seuls les champs transmis sont modifiés ; aucune activité ne peut être supprimée ni déplacée vers une autre mission.
+- update_order_item : annote une ligne de commande de jeux (notes, kanban_status, remise en main propre, date d'expédition confirmée). Seuls les champs transmis changent ; renvoie l'avant/après.
 - update_mission : modifie titre, statut, dates de début/fin, montant initial ou contact client d'une mission. Seuls les champs transmis changent ; renvoie l'avant/après.
 - save_watch_item : dépose un contenu dans le module Veille (un contenu par appel : lien de la source, résumé dans body, angle dans comment, 2 à 5 tags). Écriture additive, doublons refusés : même URL déjà présente ou contenu sémantiquement quasi identique, l'appel ne crée rien et rend l'élément existant.
 - create_quote : crée un devis en BROUILLON dans Pennylane (comptabilité SuperTilt). Aucun envoi au client, aucune validation, aucune transformation en facture n'est possible depuis ici : le brouillon reste à relire et à envoyer manuellement dans Pennylane.
@@ -584,6 +586,22 @@ const MCP_TOOLS = [
         notes: { type: "string", description: "Optional internal notes about the activity" },
       },
       required: ["mission_id", "description", "activity_date"],
+    },
+  },
+  {
+    name: "update_order_item",
+    description:
+      "Annotate one game order line (order_items) in SuperTools. Pass order_item_id and only the fields to change; everything else is untouched. Editable: notes, kanban_status, hand_delivered (true = handed over in person, no carrier shipment expected; false clears it; an ISO date sets that date), shipped_confirmed_at (ISO date or null). A line that is shipped or hand-delivered leaves the daily alerts and shipment follow-up. Database guards still apply (a running rental cannot be closed early, an unsigned rental contract cannot be shipped). Returns the line before and after.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        order_item_id: { type: "string", description: "UUID of the order line" },
+        notes: { type: ["string", "null"], description: "Internal note (replaces the existing note), or null to clear" },
+        kanban_status: { type: "string", enum: ORDER_KANBAN_STATUSES, description: "New kanban column" },
+        hand_delivered: { type: ["boolean", "string", "null"], description: "true / ISO date = handed over in person; false or null = clear" },
+        shipped_confirmed_at: { type: ["string", "null"], description: "Confirmed shipment date (ISO), or null to clear" },
+      },
+      required: ["order_item_id"],
     },
   },
   {
@@ -1670,6 +1688,15 @@ async function callTool(
         return textResult(`Save error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "update_order_item": {
+      try {
+        const { order_item_id, ...fields } = args as Record<string, unknown>;
+        if (fields.hand_delivered === null) fields.hand_delivered = false;
+        return textResult(await updateOrderItem(supabase, (order_item_id as string) || "", fields, log));
+      } catch (e) {
+        return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "update_mission": {
       try {
         const { mission_id, ...fields } = args as Record<string, unknown>;
@@ -2325,7 +2352,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.12.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.13.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }
