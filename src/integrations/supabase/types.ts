@@ -8053,6 +8053,7 @@ export type Database = {
           email_sent_to: string | null
           game_id: string | null
           game_type: string | null
+          hand_delivered_at: string | null
           id: string
           invoice_received_at: string | null
           kanban_status: string
@@ -8083,6 +8084,7 @@ export type Database = {
           email_sent_to?: string | null
           game_id?: string | null
           game_type?: string | null
+          hand_delivered_at?: string | null
           id?: string
           invoice_received_at?: string | null
           kanban_status?: string
@@ -8113,6 +8115,7 @@ export type Database = {
           email_sent_to?: string | null
           game_id?: string | null
           game_type?: string | null
+          hand_delivered_at?: string | null
           id?: string
           invoice_received_at?: string | null
           kanban_status?: string
