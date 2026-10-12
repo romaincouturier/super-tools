@@ -2,7 +2,7 @@ import DOMPurify from "dompurify";
 import { useState, useEffect } from "react";
 import {
   LayoutGrid, Package, ShoppingCart, Settings, Mail, AlertTriangle,
-  CheckCircle, Clock, Truck, RefreshCw, Ban, Loader2, Plus,
+  CheckCircle, Clock, Truck, HandHeart, RefreshCw, Ban, Loader2, Plus,
   Pencil, Trash2, Send, Eye, FileText, Search, Download,
   Euro, Users, BarChart3, ExternalLink,
 } from "lucide-react";
@@ -789,7 +789,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
             {item.shipped_confirmed_at ? `Expédié ${DATE(item.shipped_confirmed_at)}` : locationSigned ? "Jeu expédié" : "Contrat non signé"}
           </Button>
         )}
-        {item.game_type !== "formation" && !item.shipped_confirmed_at && item.kanban_status !== "to_validate" && item.kanban_status !== "blocked" && (
+        {(item.game_type as string) !== "formation" && !item.shipped_confirmed_at && item.kanban_status !== "to_validate" && item.kanban_status !== "blocked" && (
           <Button
             variant="ghost"
             size="sm"
