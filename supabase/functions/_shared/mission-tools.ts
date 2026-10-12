@@ -1090,6 +1090,83 @@ export async function updateMissionActivity(
   });
 }
 
+const MISSION_EDIT_COLUMNS = "id, title, status, start_date, end_date, initial_amount, client_name, client_contact, updated_at";
+const MISSION_STATUSES = ["not_started", "in_progress", "completed", "cancelled"];
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export interface MissionUpdateInput {
+  title?: unknown;
+  status?: unknown;
+  start_date?: unknown;
+  end_date?: unknown;
+  initial_amount?: unknown;
+  client_name?: unknown;
+  client_contact?: unknown;
+}
+
+/**
+ * Met à jour les champs principaux d'UNE mission. Seuls les champs fournis
+ * sont modifiés ; null efface une date, un montant ou un contact.
+ */
+export async function updateMission(
+  supabase: Supabase,
+  missionId: string,
+  input: MissionUpdateInput,
+  audit: AuditFn,
+): Promise<string> {
+  const id = (missionId || "").trim();
+  if (!UUID_RE.test(id)) throw new Error("mission_id doit être un UUID");
+
+  const { data: existing } = await supabase.from("missions").select(MISSION_EDIT_COLUMNS).eq("id", id).maybeSingle();
+  if (!existing) throw new Error("Mission introuvable");
+
+  const patch: Record<string, unknown> = {};
+  if (input.title !== undefined) {
+    const t = String(input.title ?? "").trim();
+    if (!t) throw new Error("title ne peut pas être vide");
+    patch.title = t;
+  }
+  if (input.status !== undefined) {
+    if (!MISSION_STATUSES.includes(String(input.status))) throw new Error(`status doit valoir : ${MISSION_STATUSES.join(", ")}`);
+    patch.status = input.status;
+  }
+  for (const k of ["start_date", "end_date"] as const) {
+    if (input[k] === undefined) continue;
+    if (input[k] !== null && !DATE_RE.test(String(input[k]))) throw new Error(`${k} doit être au format YYYY-MM-DD ou null`);
+    patch[k] = input[k];
+  }
+  if (input.initial_amount !== undefined) {
+    if (input.initial_amount !== null && (typeof input.initial_amount !== "number" || !isFinite(input.initial_amount) || input.initial_amount < 0)) {
+      throw new Error("initial_amount doit être un nombre positif ou null");
+    }
+    patch.initial_amount = input.initial_amount;
+  }
+  for (const k of ["client_name", "client_contact"] as const) {
+    if (input[k] === undefined) continue;
+    patch[k] = input[k] === null ? null : String(input[k]).trim() || null;
+  }
+  if (Object.keys(patch).length === 0) {
+    throw new Error("Aucun champ à modifier : fournir au moins un champ (title, status, start_date, end_date, initial_amount, client_name, client_contact)");
+  }
+  const start = (patch.start_date ?? (existing as any).start_date) as string | null;
+  const end = (patch.end_date ?? (existing as any).end_date) as string | null;
+  if (start && end && end < start) throw new Error("end_date ne peut pas précéder start_date");
+
+  patch.updated_at = new Date().toISOString();
+  await audit(`update_mission ${id}: ${Object.keys(patch).filter((k) => k !== "updated_at").join(", ")}`);
+
+  const { data: updated, error } = await supabase.from("missions").update(patch).eq("id", id).select(MISSION_EDIT_COLUMNS).single();
+  if (error) throw new Error(error.message);
+
+  return JSON.stringify({
+    saved: true,
+    updated: true,
+    before: existing,
+    mission: updated,
+    hint: "Seuls les champs fournis ont été modifiés. La mission ne peut pas être supprimée depuis ici.",
+  });
+}
+
 export async function getClientDossier(
   supabase: Supabase,
   client: string,

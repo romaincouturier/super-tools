@@ -67,6 +67,7 @@ import {
   saveMissionDocument,
   saveMissionNote,
   updateMissionActivity,
+  updateMission,
   type ActivityInput,
   type AuditFn,
   type ExtractedPart,
@@ -344,6 +345,7 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
 - save_mission_activity : ajoute une activité au journal d'une mission (description + date obligatoires, durée en heures/jours/demi-journées, montant facturable facultatif). Une durée de 0 correspond à une action programmée sans temps consommé. Écriture additive.
 - update_mission_activity : corrige une activité existante à partir de son id (listé par get_mission_dossier). Seuls les champs transmis sont modifiés ; aucune activité ne peut être supprimée ni déplacée vers une autre mission.
+- update_mission : modifie titre, statut, dates de début/fin, montant initial ou contact client d'une mission. Seuls les champs transmis changent ; renvoie l'avant/après.
 - save_watch_item : dépose un contenu dans le module Veille (un contenu par appel : lien de la source, résumé dans body, angle dans comment, 2 à 5 tags). Écriture additive, doublons refusés : même URL déjà présente ou contenu sémantiquement quasi identique, l'appel ne crée rien et rend l'élément existant.
 - create_quote : crée un devis en BROUILLON dans Pennylane (comptabilité SuperTilt). Aucun envoi au client, aucune validation, aucune transformation en facture n'est possible depuis ici : le brouillon reste à relire et à envoyer manuellement dans Pennylane.
 - create_content_card : dépose une carte (idée ou article rédigé) dans le kanban éditorial, au stade choisi (colonne, « Idées » par défaut), avec titre, contenu et thèmes. Écriture additive. Réutiliser les thèmes existants (list_content_board) plutôt que d'en inventer.
@@ -582,6 +584,25 @@ const MCP_TOOLS = [
         notes: { type: "string", description: "Optional internal notes about the activity" },
       },
       required: ["mission_id", "description", "activity_date"],
+    },
+  },
+  {
+    name: "update_mission",
+    description:
+      "Update the main fields of an existing mission in SuperTools. Pass the mission id and only the fields to change: everything else is left untouched (null clears a date, amount or contact). Editable: title, status, start_date, end_date, initial_amount, client_name, client_contact. Cannot delete a mission. The answer returns the mission before and after the change.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mission_id: { type: "string", description: "UUID of the mission (from list/get mission tools)" },
+        title: { type: "string", description: "New title" },
+        status: { type: "string", enum: ["not_started", "in_progress", "completed", "cancelled"], description: "New status" },
+        start_date: { type: ["string", "null"], description: "Start date YYYY-MM-DD, or null to clear" },
+        end_date: { type: ["string", "null"], description: "End date YYYY-MM-DD, or null to clear" },
+        initial_amount: { type: ["number", "null"], description: "Initial amount in euros excl. tax, or null to clear" },
+        client_name: { type: ["string", "null"], description: "Client name" },
+        client_contact: { type: ["string", "null"], description: "Client contact (free text)" },
+      },
+      required: ["mission_id"],
     },
   },
   {
@@ -1649,6 +1670,14 @@ async function callTool(
         return textResult(`Save error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "update_mission": {
+      try {
+        const { mission_id, ...fields } = args as Record<string, unknown>;
+        return textResult(await updateMission(supabase, (mission_id as string) || "", fields, log));
+      } catch (e) {
+        return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "update_mission_activity": {
       try {
         return textResult(
@@ -2296,7 +2325,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.11.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.12.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }
