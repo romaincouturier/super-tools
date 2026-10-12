@@ -73,6 +73,7 @@ import {
   type ExtractedPart,
 } from "../_shared/mission-tools.ts";
 import { updateOrderItem, ORDER_KANBAN_STATUSES } from "../_shared/order-tools.ts";
+import { updateEvent } from "../_shared/event-update-tool.ts";
 import {
   applyLessonRestructure,
   createLmsLesson,
@@ -346,12 +347,13 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
 - save_mission_activity : ajoute une activité au journal d'une mission (description + date obligatoires, durée en heures/jours/demi-journées, montant facturable facultatif). Une durée de 0 correspond à une action programmée sans temps consommé. Écriture additive.
 - update_mission_activity : corrige une activité existante à partir de son id (listé par get_mission_dossier). Seuls les champs transmis sont modifiés ; aucune activité ne peut être supprimée ni déplacée vers une autre mission.
+- update_event : modifie un événement (summary_notes = note de synthèse, notes, description, statut, date, horaires, lieu, liens). Seuls les champs transmis changent ; renvoie l'avant/après.
 - update_order_item : annote une ligne de commande de jeux (notes, kanban_status, remise en main propre, date d'expédition confirmée). Seuls les champs transmis changent ; renvoie l'avant/après.
 - update_mission : modifie titre, statut, dates de début/fin, montant initial ou contact client d'une mission. Seuls les champs transmis changent ; renvoie l'avant/après.
 - save_watch_item : dépose un contenu dans le module Veille (un contenu par appel : lien de la source, résumé dans body, angle dans comment, 2 à 5 tags). Écriture additive, doublons refusés : même URL déjà présente ou contenu sémantiquement quasi identique, l'appel ne crée rien et rend l'élément existant.
 - create_quote : crée un devis en BROUILLON dans Pennylane (comptabilité SuperTilt). Aucun envoi au client, aucune validation, aucune transformation en facture n'est possible depuis ici : le brouillon reste à relire et à envoyer manuellement dans Pennylane.
 - create_content_card : dépose une carte (idée ou article rédigé) dans le kanban éditorial, au stade choisi (colonne, « Idées » par défaut), avec titre, contenu et thèmes. Écriture additive. Réutiliser les thèmes existants (list_content_board) plutôt que d'en inventer.
-- refresh_transcripts / list_unassigned_transcripts / assign_transcript / unassign_transcript : récupèrent les nouveaux transcripts, listent ceux non affectés, les associent à une opportunité ou une mission (page créée) ou retirent le lien. Proposer l'association à l'utilisateur avant de l'appliquer ; si le transcript est déjà affecté ailleurs, demander avant d'utiliser allow_multiple.
+- refresh_transcripts / list_unassigned_transcripts / assign_transcript / unassign_transcript : récupèrent les nouveaux transcripts, listent ceux non affectés, les associent à une opportunité, un événement ou une mission (page créée) ou retirent le lien. Proposer l'association à l'utilisateur avant de l'appliquer ; si le transcript est déjà affecté ailleurs, demander avant d'utiliser allow_multiple.
 - prepare_newsletter : compose le sommaire ordonné d'une newsletter en BROUILLON (création du brouillon ou reprise d'un brouillon existant), à partir de cartes existantes et/ou de nouveaux contenus créés au passage. Remplace le sommaire du brouillon visé uniquement ; refuse toute newsletter déjà envoyée. Aucun envoi n'est possible d'ici : ne jamais prétendre avoir envoyé une newsletter. Récapituler le sommaire et obtenir l'accord de l'utilisateur avant d'écraser le sommaire d'un brouillon existant.
 - update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre « type » doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
 - create_lms_quiz / create_lms_assignment : créent un quiz (avec ses questions) ou un devoir dans un cours et renvoient le bloc prêt à insérer ({type:"quiz",content:{quiz_id}} ou {type:"assignment",content:{assignment_id}}). Créer d'abord le quiz/devoir, puis référencer son id dans apply_lesson_restructure ou create_lms_lesson. read_lms_quiz relit un quiz.
@@ -586,6 +588,32 @@ const MCP_TOOLS = [
         notes: { type: "string", description: "Optional internal notes about the activity" },
       },
       required: ["mission_id", "description", "activity_date"],
+    },
+  },
+  {
+    name: "update_event",
+    description:
+      "Update an existing SuperTools event. Pass event_id and only the fields to change; everything else is untouched (null clears an optional field). Use summary_notes to write the event's summary note (clears the daily 'events without summary note' alert). Cannot delete an event. Returns the event before and after.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        event_id: { type: "string", description: "UUID of the event" },
+        title: { type: "string" },
+        description: { type: ["string", "null"] },
+        summary_notes: { type: ["string", "null"], description: "Summary note written after the event" },
+        notes: { type: ["string", "null"], description: "Internal notes" },
+        status: { type: "string", enum: ["active", "cancelled"] },
+        cancellation_reason: { type: ["string", "null"] },
+        event_date: { type: "string", description: "YYYY-MM-DD" },
+        event_time: { type: ["string", "null"], description: "Start time HH:MM" },
+        event_end_time: { type: ["string", "null"], description: "End time HH:MM" },
+        location: { type: ["string", "null"] },
+        location_type: { type: "string", enum: ["physical", "visio"] },
+        event_type: { type: "string", enum: ["internal", "external"] },
+        event_url: { type: ["string", "null"] },
+        private_group_url: { type: ["string", "null"] },
+      },
+      required: ["event_id"],
     },
   },
   {
@@ -853,13 +881,13 @@ const MCP_TOOLS = [
   {
     name: "assign_transcript",
     description:
-      "Assign a transcript to a CRM opportunity (link) or to a mission (creates a mission page from the transcript, like the app does). If the transcript is already assigned elsewhere, nothing is done and current assignments are returned: confirm with the user, then retry with allow_multiple=true.",
+      "Assign a transcript to a CRM opportunity (link), to an event (link) or to a mission (creates a mission page from the transcript, like the app does). If the transcript is already assigned elsewhere, nothing is done and current assignments are returned: confirm with the user, then retry with allow_multiple=true.",
     inputSchema: {
       type: "object",
       properties: {
         transcript_id: { type: "string" },
-        target_type: { type: "string", enum: ["opportunity", "mission"] },
-        target_id: { type: "string", description: "crm_cards id or missions id" },
+        target_type: { type: "string", enum: ["opportunity", "mission", "event"] },
+        target_id: { type: "string", description: "crm_cards id, missions id or events id" },
         allow_multiple: { type: "boolean", description: "Keep existing assignments and add this one. Default false." },
       },
       required: ["transcript_id", "target_type", "target_id"],
@@ -868,12 +896,12 @@ const MCP_TOOLS = [
   {
     name: "unassign_transcript",
     description:
-      "Remove the link between a transcript and an opportunity or a mission. For a mission, the page created from the transcript is kept; only its link is removed.",
+      "Remove the link between a transcript and an opportunity, an event or a mission. For a mission, the page created from the transcript is kept; only its link is removed.",
     inputSchema: {
       type: "object",
       properties: {
         transcript_id: { type: "string" },
-        target_type: { type: "string", enum: ["opportunity", "mission"] },
+        target_type: { type: "string", enum: ["opportunity", "mission", "event"] },
         target_id: { type: "string" },
       },
       required: ["transcript_id", "target_type", "target_id"],
@@ -1688,6 +1716,14 @@ async function callTool(
         return textResult(`Save error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "update_event": {
+      try {
+        const { event_id, ...fields } = args as Record<string, unknown>;
+        return textResult(await updateEvent(supabase, (event_id as string) || "", fields, log));
+      } catch (e) {
+        return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "update_order_item": {
       try {
         const { order_item_id, ...fields } = args as Record<string, unknown>;
@@ -2352,7 +2388,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.13.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.14.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }
