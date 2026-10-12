@@ -19,3 +19,6 @@
 ## MCP Picto-Dico (2026-10-09)
 - [x] Ajouter l'outil `check_picto_entries` (vérif backlog pictodico_words)
 - [x] Vérifier que le déploiement mcp-server sert bien les 4 outils LMS (tools/list)
+
+- [ ] Location : relance auto signature contrat (analyse livrée, attente validation)
+- [x] Relance questionnaire : prénom, bouton, apostrophes corrigés
