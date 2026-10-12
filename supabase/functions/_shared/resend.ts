@@ -54,7 +54,7 @@ export function htmlToPlainText(html: string): string {
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
-    .replace(/&#39;|&rsquo;/g, "'")
+    .replace(/&#0*39;|&apos;|&rsquo;/g, "'")
     .replace(/&quot;/g, '"')
     .replace(/\n{3,}/g, "\n\n")
     .split("\n")
