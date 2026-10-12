@@ -1,6 +1,6 @@
 # Architecture rules
 
-- HTML/embed and exercise interactive HTML share an explicit HTML/CSS allowlist across MCP writes and browser rendering, and render only in script-disabled iframes with parent-side resize observation, because author CSS must stay isolated and no author JavaScript may run.
+- HTML/embed and exercise interactive HTML share an explicit HTML/CSS allowlist across MCP writes and browser rendering, render in an isolated iframe whose CSP forbids all scripts (nested srcdoc frames are script-free sandboxes, only third-party `src` players get script flags), with parent-side resize observation, because author CSS must stay isolated, no author JavaScript may run, and YouTube/Vimeo/LinkedIn players must still work.
 - Interactive LMS blocks use the same viewers in learner pages and builder previews; drag words use dnd-kit with uniquely identified word instances, because touch accessibility and repeated words must behave consistently.
 
 - Preparation-questionnaire reminder templates use `{{questionnaire_link}}` as a protected CTA placeholder, rendered server-side as an email-safe button plus fallback link, because editable templates must not inject arbitrary HTML.
