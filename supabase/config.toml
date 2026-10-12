@@ -746,3 +746,6 @@ verify_jwt = false
 
 [functions.book-set-thumbnail]
 verify_jwt = false
+
+[functions.send-location-signature-reminders]
+verify_jwt = false
