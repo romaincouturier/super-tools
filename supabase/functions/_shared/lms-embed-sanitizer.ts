@@ -1,4 +1,4 @@
-import sanitize from "https://esm.sh/sanitize-html@2.17.0?deps=postcss@8.5.6";
+import sanitize from "npm:sanitize-html@2.17.0";
 import { EMBED_ATTRS, EMBED_INPUT_TYPES, EMBED_TAGS, iframeSandboxFor } from "./lms-embed-policy.ts";
 
 export function sanitizeEmbedHtml(value: string, depth = 0): string {
