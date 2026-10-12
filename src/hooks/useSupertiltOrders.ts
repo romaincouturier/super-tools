@@ -127,6 +127,7 @@ export interface OrderItem {
   email_sent_to: string | null;
   invoice_received_at: string | null;
   shipped_confirmed_at: string | null;
+  hand_delivered_at: string | null;
   location_contract_file_url: string | null;
   location_document_id: string | null;
   contrat_reference: string | null;
@@ -575,6 +576,23 @@ export function useMarkShippedConfirmed() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-log"] });
+      qc.invalidateQueries({ queryKey: ["order-items"] });
+      qc.invalidateQueries({ queryKey: ["order-items-all"] });
+    },
+  });
+}
+
+/** Remise en main propre : sort la ligne des alertes et du suivi d'expédition. */
+export function useMarkHandDelivered() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, delivered, isLocation }: { id: string; delivered: boolean; isLocation: boolean }) => {
+      const patch: Record<string, unknown> = { hand_delivered_at: delivered ? new Date().toISOString() : null };
+      if (delivered && !isLocation) patch.kanban_status = "processed";
+      const { error } = await db.from("order_items").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["order-items"] });
       qc.invalidateQueries({ queryKey: ["order-items-all"] });
     },

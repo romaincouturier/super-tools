@@ -154,6 +154,26 @@ serve(async (req) => {
       }
     }
 
+    // SuperTilt order lines: resolved once the line is no longer awaiting action
+    const orderItemIds = pendingActions
+      .filter((a) => a.entity_type === "supertilt_order_item")
+      .map((a) => a.entity_id);
+    const orderItems = new Map<string, any>();
+    if (orderItemIds.length > 0) {
+      const { data } = await supabase
+        .from("order_items")
+        .select("id, kanban_status, archived_at, shipped_confirmed_at, hand_delivered_at")
+        .in("id", orderItemIds);
+      for (const o of data || []) orderItems.set(o.id as string, o);
+    }
+    const ORDER_CATEGORY_STATUS: Record<string, string> = {
+      supertilt_a_valider: "to_validate",
+      supertilt_formation_a_router: "to_validate",
+      supertilt_recues: "received",
+      supertilt_dropshipping: "dropshipping",
+      supertilt_dropshipping_relance: "dropshipping",
+    };
+
     // Check each pending action
     const toComplete: string[] = [];
     const now = new Date().toISOString();
@@ -325,6 +345,14 @@ serve(async (req) => {
           const ev = eventsMap.get(action.entity_id);
           if (!ev || ev.cfp_submitted_at || ev.status === "cancelled") resolved = true;
           break;
+        }
+      }
+
+      if (action.entity_type === "supertilt_order_item") {
+        const o = orderItems.get(action.entity_id);
+        const expected = ORDER_CATEGORY_STATUS[action.category];
+        if (!o || o.archived_at || o.shipped_confirmed_at || o.hand_delivered_at || (expected && o.kanban_status !== expected)) {
+          resolved = true;
         }
       }
 
