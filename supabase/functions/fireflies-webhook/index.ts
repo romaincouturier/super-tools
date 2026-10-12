@@ -7,6 +7,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { isEmptyOrParasiteTranscript, PARASITE_TRANSCRIPT_ERROR } from "../_shared/transcript-quality.ts";
 import { analyzeTranscript, notifySlack } from "../_shared/google-drive-helper.ts";
 import { timingSafeEqualSecret } from "../_shared/crypto.ts";
 
@@ -154,7 +155,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       ? t.sentences.map((s) => `${s.speaker_name}: ${s.text}`).join("\n")
       : t.summary?.overview ?? "";
 
-    const analysis = rawText
+    const parasite = !!rawText && isEmptyOrParasiteTranscript(rawText);
+    const analysis = rawText && !parasite
       ? await analyzeTranscript(rawText)
       : { summary: t.summary?.overview ?? "", tags: [] };
 
@@ -171,7 +173,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
         duration_seconds: Number.isFinite(Number(t.duration))
           ? Math.round(Number(t.duration) * 60)
           : null,
-        status: "ready",
+        status: parasite ? "error" : "ready",
+        error_message: parasite ? PARASITE_TRANSCRIPT_ERROR : null,
         metadata: {
           fireflies_date: new Date(t.date).toISOString(),
           event_type: body.eventType,
