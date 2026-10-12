@@ -29,3 +29,12 @@ describe("isolated LMS HTML/CSS widgets", () => {
     expect(frame?.getAttribute("srcdoc")).not.toContain("script");
   });
 });
+
+describe("third-party players", () => {
+  it("lets https players run their own scripts while srcdoc stays script-free", () => {
+    const html = sanitizeLmsEmbedHtml('<iframe src="https://www.youtube.com/embed/x" sandbox="" allowfullscreen></iframe>');
+    const frame = new DOMParser().parseFromString(html, "text/html").querySelector("iframe");
+    expect(frame?.getAttribute("sandbox")).toContain("allow-scripts");
+    expect(frame?.getAttribute("src")).toBe("https://www.youtube.com/embed/x");
+  });
+});
