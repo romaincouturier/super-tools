@@ -6180,6 +6180,7 @@ export type Database = {
           id: string
           ip_address: string | null
           journey_events: Json | null
+          last_reminder_at: string | null
           location_extension_id: string | null
           order_item_id: string | null
           pdf_hash: string | null
@@ -6188,6 +6189,7 @@ export type Database = {
           proof_hash: string | null
           recipient_email: string
           recipient_name: string | null
+          reminder_count: number
           signature_data: string | null
           signed_at: string | null
           signed_pdf_url: string | null
@@ -6208,6 +6210,7 @@ export type Database = {
           id?: string
           ip_address?: string | null
           journey_events?: Json | null
+          last_reminder_at?: string | null
           location_extension_id?: string | null
           order_item_id?: string | null
           pdf_hash?: string | null
@@ -6216,6 +6219,7 @@ export type Database = {
           proof_hash?: string | null
           recipient_email: string
           recipient_name?: string | null
+          reminder_count?: number
           signature_data?: string | null
           signed_at?: string | null
           signed_pdf_url?: string | null
@@ -6236,6 +6240,7 @@ export type Database = {
           id?: string
           ip_address?: string | null
           journey_events?: Json | null
+          last_reminder_at?: string | null
           location_extension_id?: string | null
           order_item_id?: string | null
           pdf_hash?: string | null
@@ -6244,6 +6249,7 @@ export type Database = {
           proof_hash?: string | null
           recipient_email?: string
           recipient_name?: string | null
+          reminder_count?: number
           signature_data?: string | null
           signed_at?: string | null
           signed_pdf_url?: string | null

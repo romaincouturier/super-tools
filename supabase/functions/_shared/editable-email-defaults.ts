@@ -406,6 +406,25 @@ Nous confirmons la bonne réception de votre signature électronique pour le con
     variables: ["signer_name", "contrat_reference", "details_list", "download_button"],
   },
 
+  location_signature_reminder: {
+    name: "Relance signature de contrat de location",
+    audience: "client",
+    sendingInfo: "⏰ Envoyé automatiquement 3 puis 7 jours après l'envoi d'un contrat de location non signé (2 relances maximum)",
+    subject: same("Rappel : contrat de location {{contrat_reference}} à signer"),
+    content: same(`Bonjour {{signer_name}},
+
+Nous n'avons pas encore reçu votre signature pour le contrat de location du jeu « {{game_name}} » (référence {{contrat_reference}}).
+
+Le jeu vous sera expédié dès la signature du contrat. Elle ne prend qu'une minute :
+
+{{signature_button}}
+
+Le lien de signature reste valable jusqu'au {{expires_at}}.
+
+Merci et à bientôt !`),
+    variables: ["signer_name", "game_name", "contrat_reference", "expires_at", "signature_button"],
+  },
+
   event_reminder: {
     name: "Rappel d'évènement (veille et jour J)",
     audience: "internal",
