@@ -2325,7 +2325,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.11.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.12.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }
