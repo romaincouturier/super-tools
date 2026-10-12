@@ -5,9 +5,10 @@ import { renderCatalogEmail, ctaButton, escapeEmailValue } from "../_shared/edit
 /**
  * Daily: reminds clients who have not signed their rental contract.
  * Reminder #1 at J+3, #2 at J+7 after the contract email; max 2 per contract.
+ * Extension amendments (location_extension_id) are excluded.
  * Each reminder is reserved by a conditional UPDATE so it is sent once.
  */
-const VERSION = "send-location-signature-reminders@1.0.0";
+const VERSION = "send-location-signature-reminders@1.1.0";
 const STEPS = [3, 7];
 const DAY = 86_400_000;
 
@@ -21,6 +22,7 @@ serve(async (req) => {
       .from("location_contract_signatures" as any)
       .select("id, token, recipient_email, recipient_name, game_name, contrat_reference, email_sent_at, expires_at, reminder_count")
       .eq("status", "pending")
+      .is("location_extension_id", null)
       .lt("reminder_count", STEPS.length)
       .gt("expires_at", new Date().toISOString());
     if (error) throw error;

@@ -1660,6 +1660,7 @@ export interface DailyData {
   inProgressRestocks: InProgressRestockItem[];
   elearningIntegrationIssues: ElearningIntegrationIssueItem[];
   unassignedTranscripts: UnassignedTranscriptItem[];
+  locationSignatureAlerts: LocationSignatureAlertItem[];
 }
 
 export interface UnassignedTranscriptItem {
@@ -1680,6 +1681,37 @@ export async function fetchUnassignedTranscripts(supabase: SupabaseClient): Prom
   return ((rows ?? []) as { id: string; title: string | null; ai_title: string | null; created_at: string }[])
     .filter((t) => !assigned.has(t.id))
     .map((t) => ({ id: t.id, title: t.ai_title || t.title || "Sans titre", createdAt: t.created_at }));
+}
+
+export interface LocationSignatureAlertItem {
+  id: string;
+  contratReference: string;
+  gameName: string;
+  recipientName: string;
+  daysSinceSent: number;
+  expiresLabel: string;
+}
+
+/** Contrats de location en attente depuis plus de 10 jours ou expirant dans moins de 5 jours. */
+export async function fetchLocationSignatureAlerts(supabase: SupabaseClient): Promise<LocationSignatureAlertItem[]> {
+  const now = Date.now();
+  const { data } = await (supabase as any).from("location_contract_signatures")
+    .select("id, contrat_reference, game_name, recipient_name, recipient_email, email_sent_at, created_at, expires_at")
+    .eq("status", "pending").gt("expires_at", new Date(now).toISOString());
+  return ((data ?? []) as any[]).flatMap((r) => {
+    const sent = new Date(r.email_sent_at || r.created_at).getTime();
+    const days = Math.floor((now - sent) / 86400000);
+    const expiresSoon = new Date(r.expires_at).getTime() - now < 5 * 86400000;
+    if (days <= 10 && !expiresSoon) return [];
+    return [{
+      id: r.id,
+      contratReference: r.contrat_reference || "Contrat",
+      gameName: r.game_name || "Jeu",
+      recipientName: r.recipient_name || r.recipient_email || "Client",
+      daysSinceSent: days,
+      expiresLabel: new Date(r.expires_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" }),
+    }];
+  });
 }
 
 export async function fetchAllDailyData(supabase: SupabaseClient, today: string): Promise<DailyData> {
@@ -1717,6 +1749,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     inProgressRestocks,
     elearningIntegrationIssues,
     unassignedTranscripts,
+    locationSignatureAlerts,
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),
@@ -1748,6 +1781,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchInProgressRestocks(supabase),
     fetchElearningIntegrationIssues(supabase),
     fetchUnassignedTranscripts(supabase),
+    fetchLocationSignatureAlerts(supabase),
   ]);
 
 
@@ -1762,6 +1796,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     inProgressRestocks,
     elearningIntegrationIssues,
     unassignedTranscripts,
+    locationSignatureAlerts,
   };
 
 }
