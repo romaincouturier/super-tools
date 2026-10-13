@@ -476,12 +476,38 @@ export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, s
     throw new Error("URL signée d'upload introuvable");
   }
 
-  const { error: uploadError } = await supabase.storage
-    .from(bucket)
-    .uploadToSignedUrl(path, token, normalizedFile, { contentType: resolvedContentType });
-  if (uploadError) throw uploadError;
+  // Large files: resumable chunked upload on the same signed token, because a
+  // single request of tens of MB drops on Safari/mobile networks ("Load failed").
+  if (normalizedFile.size > 6 * 1024 * 1024) {
+    const { Upload } = await import("tus-js-client");
+    await new Promise<void>((resolve, reject) => {
+      const upload = new Upload(normalizedFile, {
+        endpoint: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/upload/resumable/sign`,
+        retryDelays: [0, 1000, 3000, 5000, 10000, 20000],
+        chunkSize: 6 * 1024 * 1024,
+        headers: {
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          "x-signature": token,
+        },
+        metadata: { bucketName: bucket, objectName: path, contentType: resolvedContentType, cacheControl: "3600" },
+        onError: (err) => reject(new Error(err.message || "Upload réseau échoué")),
+        onSuccess: () => resolve(),
+      });
+      upload.start();
+    });
+    return publicUrl;
+  }
 
-  return publicUrl;
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .uploadToSignedUrl(path, token, normalizedFile, { contentType: resolvedContentType, upsert: true });
+    if (!uploadError) return publicUrl;
+    lastError = uploadError;
+    await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+  }
+  throw lastError;
 };
 
 /**
