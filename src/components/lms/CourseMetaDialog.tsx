@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -33,6 +34,7 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
   const [formationConfigId, setFormationConfigId] = useState(NO_FORMATION);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [landingPosition, setLandingPosition] = useState("");
   const [saving, setSaving] = useState(false);
   const { data: formationConfigs = [] } = useActiveFormationConfigs();
 
@@ -46,10 +48,17 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
     setFormationConfigId(course.formation_config_id ?? NO_FORMATION);
     setCoverUrl(course.cover_image_url ?? null);
     setCoverFile(null);
+    setLandingPosition(course.landing_position != null ? String(course.landing_position) : "");
   }, [course]);
 
   const handleSave = async () => {
     if (!course || saving) return;
+    const trimmedPosition = landingPosition.trim();
+    const parsedPosition = trimmedPosition === "" ? null : Number(trimmedPosition);
+    if (parsedPosition !== null && (!Number.isInteger(parsedPosition) || parsedPosition < 1)) {
+      toast({ title: "Ordre sur la landing invalide", description: "Indiquez un nombre entier à partir de 1, ou laissez vide.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       const imageUrl = coverFile ? await uploadCourseCover(coverFile, course.id) : coverUrl;
@@ -63,6 +72,7 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
         access_type: access,
         status,
         is_featured: isFeatured,
+        landing_position: parsedPosition,
         formation_config_id: formationConfigId === NO_FORMATION ? null : formationConfigId,
       });
       toast({ title: "Cours mis à jour" });
@@ -157,6 +167,21 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
               <p className="text-xs text-muted-foreground">Afficher ce cours dans la sélection « Aller plus loin » de l’Academy.</p>
             </div>
             <Switch id="course-featured" checked={isFeatured} onCheckedChange={setIsFeatured} />
+          </div>
+          <div>
+            <Label htmlFor="course-landing-position">Ordre sur la landing</Label>
+            <Input
+              id="course-landing-position"
+              type="number"
+              min={1}
+              step={1}
+              inputMode="numeric"
+              value={landingPosition}
+              onChange={(e) => setLandingPosition(e.target.value)}
+              placeholder="Vide = en fin de liste"
+              disabled={saving}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">Position dans « Commencez gratuitement » (cours gratuits publiés). 1 = en premier.</p>
           </div>
           {course && <CourseIntegrationStatus courseId={course.id} />}
           <Button onClick={handleSave} disabled={saving} className="w-full">
