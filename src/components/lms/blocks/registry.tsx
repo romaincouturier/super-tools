@@ -32,6 +32,7 @@ import {
   ClipboardList,
   Megaphone,
   FileCode2,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 import type { LessonBlockType, LessonBlockKind } from "@/types/lms-blocks";
@@ -93,6 +94,7 @@ export const CONTENT_BLOCKS: BlockTypeMeta[] = [
   { type: "summary", label: "Résumé interactif", icon: ClipboardList, kind: "content", editable: true },
   { type: "cta", label: "Appel à l'action (CTA)", icon: Megaphone, kind: "content", editable: true },
   { type: "code", label: "Bloc de code", icon: FileCode2, kind: "content", editable: true },
+  { type: "upcoming_sessions", label: "Sessions à venir", icon: CalendarDays, kind: "content", editable: true },
 ];
 
 /** Combined registry; previously exported as BLOCK_TYPES. */

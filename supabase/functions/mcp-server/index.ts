@@ -18,6 +18,7 @@ import {
   createOpportunity,
   LOSS_REASONS,
   markOpportunityLost,
+  markOpportunityWon,
   SERVICE_TYPES,
   updateOpportunity,
 } from "../_shared/crm-tools.ts";
@@ -67,10 +68,13 @@ import {
   saveMissionDocument,
   saveMissionNote,
   updateMissionActivity,
+  updateMission,
   type ActivityInput,
   type AuditFn,
   type ExtractedPart,
 } from "../_shared/mission-tools.ts";
+import { updateOrderItem, ORDER_KANBAN_STATUSES } from "../_shared/order-tools.ts";
+import { updateEvent } from "../_shared/event-update-tool.ts";
 import {
   applyLessonRestructure,
   createLmsLesson,
@@ -98,11 +102,8 @@ import {
   addContentCard,
   addSupportNote,
   getBusinessHealth,
-  MISSION_FIELDS,
-  MISSION_STATUSES,
   QUOTE_STATUSES,
   TICKET_STATUSES,
-  updateMission,
   updateQuoteStatus,
   updateTicketStatus,
 } from "../_shared/ops-tools.ts";
@@ -357,10 +358,13 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
 - save_mission_activity : ajoute une activité au journal d'une mission (description + date obligatoires, durée en heures/jours/demi-journées, montant facturable facultatif). Une durée de 0 correspond à une action programmée sans temps consommé. Écriture additive.
 - update_mission_activity : corrige une activité existante à partir de son id (listé par get_mission_dossier). Seuls les champs transmis sont modifiés ; aucune activité ne peut être supprimée ni déplacée vers une autre mission.
+- update_event : modifie un événement (summary_notes = note de synthèse, notes, description, statut, date, horaires, lieu, liens). Seuls les champs transmis changent ; renvoie l'avant/après.
+- update_order_item : annote une ligne de commande de jeux (notes, kanban_status, remise en main propre, date d'expédition confirmée). Seuls les champs transmis changent ; renvoie l'avant/après.
+- update_mission : modifie titre, statut, dates de début/fin, montant initial ou contact client d'une mission. Seuls les champs transmis changent ; renvoie l'avant/après.
 - save_watch_item : dépose un contenu dans le module Veille (un contenu par appel : lien de la source, résumé dans body, angle dans comment, 2 à 5 tags). Écriture additive, doublons refusés : même URL déjà présente ou contenu sémantiquement quasi identique, l'appel ne crée rien et rend l'élément existant.
 - create_quote : crée un devis en BROUILLON dans Pennylane (comptabilité SuperTilt). Aucun envoi au client, aucune validation, aucune transformation en facture n'est possible depuis ici : le brouillon reste à relire et à envoyer manuellement dans Pennylane.
 - create_content_card : dépose une carte (idée ou article rédigé) dans le kanban éditorial, au stade choisi (colonne, « Idées » par défaut), avec titre, contenu et thèmes. Écriture additive. Réutiliser les thèmes existants (list_content_board) plutôt que d'en inventer.
-- refresh_transcripts / list_unassigned_transcripts / assign_transcript / unassign_transcript : récupèrent les nouveaux transcripts, listent ceux non affectés, les associent à une opportunité ou une mission (page créée) ou retirent le lien. Proposer l'association à l'utilisateur avant de l'appliquer ; si le transcript est déjà affecté ailleurs, demander avant d'utiliser allow_multiple.
+- refresh_transcripts / list_unassigned_transcripts / assign_transcript / unassign_transcript : récupèrent les nouveaux transcripts, listent ceux non affectés, les associent à une opportunité, un événement ou une mission (page créée) ou retirent le lien. Proposer l'association à l'utilisateur avant de l'appliquer ; si le transcript est déjà affecté ailleurs, demander avant d'utiliser allow_multiple.
 - prepare_newsletter : compose le sommaire ordonné d'une newsletter en BROUILLON (création du brouillon ou reprise d'un brouillon existant), à partir de cartes existantes et/ou de nouveaux contenus créés au passage. Remplace le sommaire du brouillon visé uniquement ; refuse toute newsletter déjà envoyée. Aucun envoi n'est possible d'ici : ne jamais prétendre avoir envoyé une newsletter. Récapituler le sommaire et obtenir l'accord de l'utilisateur avant d'écraser le sommaire d'un brouillon existant.
 - update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre « type » doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
 - create_lms_quiz / create_lms_assignment : créent un quiz (avec ses questions) ou un devoir dans un cours et renvoient le bloc prêt à insérer ({type:"quiz",content:{quiz_id}} ou {type:"assignment",content:{assignment_id}}). Créer d'abord le quiz/devoir, puis référencer son id dans apply_lesson_restructure ou create_lms_lesson. read_lms_quiz relit un quiz.
@@ -369,7 +373,6 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - apply_lesson_restructure : remplace TOUS les blocs de premier niveau d'une leçon par une nouvelle structure proposée. Tous les types du menu « Ajouter un bloc » sont acceptés : blocs de contenu (texte, tableau, encadré, points clés, liste, checklist, synthèse, accordéon, frise, cartes à retourner, code, exercice, auto-évaluation, texte à trous, mots à glisser, quiz, devoir, dépôt de travail, vidéo, image, galerie, fichier, image interactive, avant/après, bouton, CTA, intégration HTML, shortcode) et blocs de mise en page (section, colonnes, conteneur, contenu progressif, séparateur, espace) qui peuvent porter un tableau « children » de blocs de contenu (un seul niveau d'imbrication). EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
 - add_support_note, update_ticket_status : ajoute une note datée à un ticket support, ou change son statut (nouveau, qualification, vibe_coding, resolu).
 - add_content_card : crée une carte dans le kanban éditorial (colonne Idées par défaut). Écriture additive.
-- update_mission : modifie les champs descriptifs, le statut, les dates ou la prochaine action d'une mission ; jamais les montants. Rend les valeurs précédentes.
 - update_quote_status : change le statut d'un devis SuperTools (table quotes, pas Pennylane). Rien n'est envoyé au client.
 Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress n'est possible depuis ici.
 
@@ -602,6 +605,69 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "update_event",
+    description:
+      "Update an existing SuperTools event. Pass event_id and only the fields to change; everything else is untouched (null clears an optional field). Use summary_notes to write the event's summary note (clears the daily 'events without summary note' alert). Cannot delete an event. Returns the event before and after.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        event_id: { type: "string", description: "UUID of the event" },
+        title: { type: "string" },
+        description: { type: ["string", "null"] },
+        summary_notes: { type: ["string", "null"], description: "Summary note written after the event" },
+        notes: { type: ["string", "null"], description: "Internal notes" },
+        status: { type: "string", enum: ["active", "cancelled"] },
+        cancellation_reason: { type: ["string", "null"] },
+        event_date: { type: "string", description: "YYYY-MM-DD" },
+        event_time: { type: ["string", "null"], description: "Start time HH:MM" },
+        event_end_time: { type: ["string", "null"], description: "End time HH:MM" },
+        location: { type: ["string", "null"] },
+        location_type: { type: "string", enum: ["physical", "visio"] },
+        event_type: { type: "string", enum: ["internal", "external"] },
+        event_url: { type: ["string", "null"] },
+        private_group_url: { type: ["string", "null"] },
+      },
+      required: ["event_id"],
+    },
+  },
+  {
+    name: "update_order_item",
+    description:
+      "Annotate one game order line (order_items) in SuperTools. Pass order_item_id and only the fields to change; everything else is untouched. Editable: notes, kanban_status, hand_delivered (true = handed over in person, no carrier shipment expected; false clears it; an ISO date sets that date), shipped_confirmed_at (ISO date or null). A line that is shipped or hand-delivered leaves the daily alerts and shipment follow-up. Database guards still apply (a running rental cannot be closed early, an unsigned rental contract cannot be shipped). Returns the line before and after.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        order_item_id: { type: "string", description: "UUID of the order line" },
+        notes: { type: ["string", "null"], description: "Internal note (replaces the existing note), or null to clear" },
+        kanban_status: { type: "string", enum: ORDER_KANBAN_STATUSES, description: "New kanban column" },
+        hand_delivered: { type: ["boolean", "string", "null"], description: "true / ISO date = handed over in person; false or null = clear" },
+        shipped_confirmed_at: { type: ["string", "null"], description: "Confirmed shipment date (ISO), or null to clear" },
+      },
+      required: ["order_item_id"],
+    },
+  },
+  {
+    name: "update_mission",
+    description:
+      "Update the main fields of an existing mission in SuperTools. Pass the mission id and only the fields to change: everything else is left untouched (null clears a date, amount or contact). Editable: title, status, start_date, end_date, initial_amount, client_name, client_contact, waiting_next_action_text, waiting_next_action_date (the scheduled next action shown in the daily recap). Cannot delete a mission. The answer returns the mission before and after the change.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mission_id: { type: "string", description: "UUID of the mission (from list/get mission tools)" },
+        title: { type: "string", description: "New title" },
+        status: { type: "string", enum: ["not_started", "in_progress", "completed", "cancelled"], description: "New status" },
+        start_date: { type: ["string", "null"], description: "Start date YYYY-MM-DD, or null to clear" },
+        end_date: { type: ["string", "null"], description: "End date YYYY-MM-DD, or null to clear" },
+        initial_amount: { type: ["number", "null"], description: "Initial amount in euros excl. tax, or null to clear" },
+        client_name: { type: ["string", "null"], description: "Client name" },
+        client_contact: { type: ["string", "null"], description: "Client contact (free text)" },
+        waiting_next_action_text: { type: ["string", "null"], description: "Scheduled next action text, or null to clear" },
+        waiting_next_action_date: { type: ["string", "null"], description: "Scheduled next action date YYYY-MM-DD, or null to clear" },
+      },
+      required: ["mission_id"],
+    },
+  },
+  {
     name: "update_mission_activity",
     description:
       "Correct an existing mission activity in SuperTools. Pass the activity id (listed with each activity by get_mission_dossier) and only the fields to change: everything else is left untouched. Typical uses: fix the duration, add the billable amount, mark it as invoiced with its invoice number, refine the description. This tool can never delete an activity, nor move it to another mission. The answer returns the activity before and after the change.",
@@ -831,13 +897,13 @@ const MCP_TOOLS = [
   {
     name: "assign_transcript",
     description:
-      "Assign a transcript to a CRM opportunity (link) or to a mission (creates a mission page from the transcript, like the app does). If the transcript is already assigned elsewhere, nothing is done and current assignments are returned: confirm with the user, then retry with allow_multiple=true.",
+      "Assign a transcript to a CRM opportunity (link), to an event (link) or to a mission (creates a mission page from the transcript, like the app does). If the transcript is already assigned elsewhere, nothing is done and current assignments are returned: confirm with the user, then retry with allow_multiple=true.",
     inputSchema: {
       type: "object",
       properties: {
         transcript_id: { type: "string" },
-        target_type: { type: "string", enum: ["opportunity", "mission"] },
-        target_id: { type: "string", description: "crm_cards id or missions id" },
+        target_type: { type: "string", enum: ["opportunity", "mission", "event"] },
+        target_id: { type: "string", description: "crm_cards id, missions id or events id" },
         allow_multiple: { type: "boolean", description: "Keep existing assignments and add this one. Default false." },
       },
       required: ["transcript_id", "target_type", "target_id"],
@@ -846,12 +912,12 @@ const MCP_TOOLS = [
   {
     name: "unassign_transcript",
     description:
-      "Remove the link between a transcript and an opportunity or a mission. For a mission, the page created from the transcript is kept; only its link is removed.",
+      "Remove the link between a transcript and an opportunity, an event or a mission. For a mission, the page created from the transcript is kept; only its link is removed.",
     inputSchema: {
       type: "object",
       properties: {
         transcript_id: { type: "string" },
-        target_type: { type: "string", enum: ["opportunity", "mission"] },
+        target_type: { type: "string", enum: ["opportunity", "mission", "event"] },
         target_id: { type: "string" },
       },
       required: ["transcript_id", "target_type", "target_id"],
@@ -1010,6 +1076,23 @@ const MCP_TOOLS = [
         comment: { type: "string", description: "Optional comment added to the opportunity's discussion thread (defaults to detail)" },
       },
       required: ["loss_reason"],
+    },
+  },
+  {
+    name: "mark_opportunity_won",
+    description:
+      "Mark ONE CRM opportunity as won, as the « Gagné » column does in the interface: sales_status WON, won_at (signature date, defaults to today), optional final amount (euros HT, updates estimated_value), optional quote reference and comment added to the discussion thread, and an activity log entry. With create_mission=true and no linked mission yet, also creates a « À démarrer » mission (title, client, amount) linked to the card; ask the user before setting it. The response suggests creating the mission when the opportunity is of type mission. CALL ONLY AFTER the user has said this specific opportunity is won. Identify by card_id, or search (ambiguous searches return candidates without writing). An opportunity already won is left untouched.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        card_id: { type: "string", description: "UUID of the crm_cards row (preferred when known)" },
+        search: { type: "string", description: "Company, contact or opportunity name, used when card_id is unknown" },
+        won_at: { type: "string", description: "Signature date YYYY-MM-DD (defaults to today)" },
+        amount: { type: "number", description: "Final signed amount in euros HT" },
+        quote_reference: { type: "string", description: "Signed quote reference, e.g. D-2026-10127" },
+        comment: { type: "string", description: "Optional comment added to the opportunity thread" },
+        create_mission: { type: "boolean", description: "Create and link a mission when none is linked (ask the user first)" },
+      },
     },
   },
   {
@@ -1172,7 +1255,7 @@ const MCP_TOOLS = [
   {
     name: "apply_lesson_restructure",
     description:
-      "Replace ALL top-level blocks of an LMS lesson with a new structure. Requires the exact lesson fingerprint from read_lms_lesson. Every block type offered by the editor's 'Ajouter un bloc' menu is accepted: content blocks (text, table, callout, key_points, bullet_list, checklist, summary, accordion, timeline, flip_cards, code, exercise, self_assessment, fill_blanks, drag_words, quiz, assignment, work_deposit, video, image, gallery, file, image_hotspot, before_after, button, cta, html_embed, shortcode) and layout blocks (section, row, container, reveal, divider, spacer) which may carry a `children` array of content blocks (one nesting level). The payload describes the whole lesson body: blocks absent from it are removed. A snapshot is created automatically before writing. MUST only be called after the user has explicitly approved the proposed structure in the conversation.",
+      "Replace ALL top-level blocks of an LMS lesson with a new structure. Requires the exact lesson fingerprint from read_lms_lesson. Every block type offered by the editor's 'Ajouter un bloc' menu is accepted: content blocks (text, table, callout, key_points, bullet_list, checklist, summary, accordion, timeline, flip_cards, code, exercise, self_assessment, fill_blanks, drag_words, quiz, assignment, work_deposit, video, image, gallery, file, image_hotspot, before_after, button, cta, upcoming_sessions, html_embed, shortcode) and layout blocks (section, row, container, reveal, divider, spacer) which may carry a `children` array of content blocks (one nesting level). The payload describes the whole lesson body: blocks absent from it are removed. A snapshot is created automatically before writing. MUST only be called after the user has explicitly approved the proposed structure in the conversation.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1315,7 +1398,7 @@ const MCP_TOOLS = [
   {
     name: "update_opportunity",
     description:
-      "Update an existing CRM opportunity: move to a column, set the next action and/or follow-up date, change the estimated value, add a comment. Only provided fields change. Find the card by card_id or search (company, contact, email, title); ambiguous searches return candidates without writing. To mark as lost use mark_opportunity_lost.",
+      "Update an existing CRM opportunity: move to a column, set the next action and/or follow-up date, change the estimated value, add a comment. Only provided fields change. Find the card by card_id or search (company, contact, email, title); ambiguous searches return candidates without writing. To mark as lost use mark_opportunity_lost, as won use mark_opportunity_won.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1522,27 +1605,6 @@ const MCP_TOOLS = [
     },
   },
   {
-    name: "update_mission",
-    description:
-      `Update a mission. Only these fields can change: ${MISSION_FIELDS.join(", ")}. Amounts and billing dates are never writable here. status is one of ${MISSION_STATUSES.join(", ")}. Returns the previous values.`,
-    inputSchema: {
-      type: "object",
-      properties: {
-        mission_id: { type: "string" },
-        title: { type: "string" },
-        description: { type: "string" },
-        client_contact: { type: "string" },
-        status: { type: "string", enum: [...MISSION_STATUSES] },
-        start_date: { type: "string", description: "YYYY-MM-DD" },
-        end_date: { type: "string", description: "YYYY-MM-DD" },
-        tags: { type: "array", items: { type: "string" } },
-        waiting_next_action_date: { type: "string", description: "YYYY-MM-DD" },
-        waiting_next_action_text: { type: "string" },
-      },
-      required: ["mission_id"],
-    },
-  },
-  {
     name: "update_quote_status",
     description:
       "Change the status of a quote stored in SuperTools (quotes table, not Pennylane). Nothing is sent to the client.",
@@ -1746,6 +1808,31 @@ async function callTool(
         );
       } catch (e) {
         return textResult(`Save error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_event": {
+      try {
+        const { event_id, ...fields } = args as Record<string, unknown>;
+        return textResult(await updateEvent(supabase, (event_id as string) || "", fields, log));
+      } catch (e) {
+        return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_order_item": {
+      try {
+        const { order_item_id, ...fields } = args as Record<string, unknown>;
+        if (fields.hand_delivered === null) fields.hand_delivered = false;
+        return textResult(await updateOrderItem(supabase, (order_item_id as string) || "", fields, log));
+      } catch (e) {
+        return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_mission": {
+      try {
+        const { mission_id, ...fields } = args as Record<string, unknown>;
+        return textResult(await updateMission(supabase, (mission_id as string) || "", fields, log));
+      } catch (e) {
+        return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "update_mission_activity": {
@@ -2075,6 +2162,26 @@ async function callTool(
         return textResult(`Tender decision error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "mark_opportunity_won": {
+      try {
+        return textResult(await markOpportunityWon(
+          supabase,
+          {
+            card_id: (args.card_id as string) || undefined,
+            search: (args.search as string) || undefined,
+            won_at: (args.won_at as string) || undefined,
+            amount: typeof args.amount === "number" ? args.amount : undefined,
+            quote_reference: (args.quote_reference as string) || undefined,
+            comment: (args.comment as string) || undefined,
+            create_mission: args.create_mission === true,
+          },
+          log,
+          ALLOWED_EMAIL,
+        ));
+      } catch (e) {
+        return textResult(`CRM error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "mark_opportunity_lost": {
       try {
         const res = await markOpportunityLost(
@@ -2139,7 +2246,6 @@ async function callTool(
     case "add_support_note":
     case "update_ticket_status":
     case "add_content_card":
-    case "update_mission":
     case "update_quote_status": {
       try {
         const result = name === "add_support_note"
@@ -2148,8 +2254,6 @@ async function callTool(
           ? await updateTicketStatus(supabase, args, log)
           : name === "add_content_card"
           ? await addContentCard(supabase, args, log, await getAllowedUserId(supabase))
-          : name === "update_mission"
-          ? await updateMission(supabase, args, log)
           : await updateQuoteStatus(supabase, args, log);
         return textResult(result);
       } catch (e) {
@@ -2422,7 +2526,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.12.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.15.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }

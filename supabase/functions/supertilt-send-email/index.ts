@@ -255,7 +255,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     let toEmails: string[] = [];
     let ccEmails: string[] = [];
 
-    const gameType: string = game.game_type ?? "dropshipping";
+    // The line's type wins: a rental variant of a SuperTilt game is stored as "location" on the line.
+    const gameType: string = (item as any).game_type ?? game.game_type ?? "dropshipping";
 
     if (templateKeyOverride === "shipment_followup") {
       // Manual shipment follow-up: customer is the recipient, author in CC

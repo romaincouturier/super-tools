@@ -1,7 +1,7 @@
 /**
  * Transcripts exposés au connecteur MCP : rafraîchissement des sources,
  * liste des transcripts non affectés, association / dissociation à une
- * opportunité CRM ou à une mission.
+ * opportunité CRM, à une mission ou à un événement (event_transcripts).
  *
  * Mêmes règles que l'interface : une opportunité est liée via
  * crm_card_transcripts ; une mission via une page créée depuis le transcript
@@ -13,7 +13,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4
 type Supabase = SupabaseClient;
 type Assignment = { transcript_id: string; kind: string; entity_id: string; label: string };
 
-export const TRANSCRIPT_TARGETS = ["opportunity", "mission"] as const;
+export const TRANSCRIPT_TARGETS = ["opportunity", "mission", "event"] as const;
 export type TranscriptTarget = typeof TRANSCRIPT_TARGETS[number];
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -117,7 +117,7 @@ export async function assignTranscript(
   if (t.status !== "ready") throw new Error(`Transcript is not ready (status: ${t.status})`);
 
   const existing = (await loadAssignments(supabase)).get(transcriptId) ?? [];
-  const kind = target === "opportunity" ? "opportunity" : "mission";
+  const kind = target;
   if (existing.some((a) => a.kind === kind && a.entity_id === targetId)) {
     return { status: "already_assigned", transcript_id: transcriptId, target_type: target, target_id: targetId };
   }
@@ -140,6 +140,17 @@ export async function assignTranscript(
       .upsert({ card_id: targetId, transcript_id: transcriptId }, { onConflict: "card_id,transcript_id", ignoreDuplicates: true });
     if (error) throw new Error(error.message);
     return { status: "assigned", transcript: title, opportunity: card, previous_assignments: elsewhere };
+  }
+
+  if (target === "event") {
+    const { data: ev, error: eErr } = await supabase.from("events").select("id, title, event_date").eq("id", targetId).maybeSingle();
+    if (eErr) throw new Error(eErr.message);
+    if (!ev) throw new Error("Event not found");
+    const { error } = await supabase
+      .from("event_transcripts")
+      .upsert({ event_id: targetId, transcript_id: transcriptId }, { onConflict: "event_id,transcript_id", ignoreDuplicates: true });
+    if (error) throw new Error(error.message);
+    return { status: "assigned", transcript: title, event: ev, previous_assignments: elsewhere };
   }
 
   const { data: mission, error: mErr } = await supabase.from("missions").select("id, title, client_name").eq("id", targetId).maybeSingle();
@@ -179,6 +190,8 @@ export async function unassignTranscript(
   const targetId = requireUuid(args.target_id, "target_id");
   const res = target === "opportunity"
     ? await supabase.from("crm_card_transcripts").delete().eq("card_id", targetId).eq("transcript_id", transcriptId).select("id")
+    : target === "event"
+    ? await supabase.from("event_transcripts").delete().eq("event_id", targetId).eq("transcript_id", transcriptId).select("id")
     : await supabase.from("mission_pages").update({ source_transcript_id: null }).eq("mission_id", targetId).eq("source_transcript_id", transcriptId).select("id");
   if (res.error) throw new Error(res.error.message);
   const n = res.data?.length ?? 0;

@@ -35,6 +35,7 @@ import type {
   DragWordsBlockContent,
   SummaryBlockContent,
   CtaBlockContent,
+  UpcomingSessionsBlockContent,
   CodeBlockContent,
 } from "@/types/lms-blocks";
 import { buildBlockTree, splitRowColumns, type BlockTreeNode } from "@/services/lms-blocks";
@@ -70,6 +71,7 @@ import FillBlanksBlockViewer from "./viewers/FillBlanksBlockViewer";
 import DragWordsBlockViewer from "./viewers/DragWordsBlockViewer";
 import SummaryBlockViewer from "./viewers/SummaryBlockViewer";
 import CtaBlockViewer from "./viewers/CtaBlockViewer";
+import UpcomingSessionsBlockViewer from "./viewers/UpcomingSessionsBlockViewer";
 import CodeBlockViewer from "./viewers/CodeBlockViewer";
 
 interface Props {
@@ -291,6 +293,8 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit, l
       return <SummaryBlockViewer content={block.content as SummaryBlockContent} />;
     case "cta":
       return <CtaBlockViewer content={block.content as CtaBlockContent} />;
+    case "upcoming_sessions":
+      return <UpcomingSessionsBlockViewer content={block.content as UpcomingSessionsBlockContent} />;
     case "code":
       return <CodeBlockViewer content={block.content as CodeBlockContent} />;
     default:

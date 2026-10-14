@@ -1,5 +1,5 @@
 import DOMPurify from "dompurify";
-import { EMBED_ATTRS, EMBED_INPUT_TYPES, EMBED_SANDBOX, EMBED_TAGS } from "../../supabase/functions/_shared/lms-embed-policy";
+import { EMBED_ATTRS, EMBED_INPUT_TYPES, EMBED_TAGS, iframeSandboxFor } from "../../supabase/functions/_shared/lms-embed-policy";
 
 export function sanitizeLmsEmbedHtml(value: string, depth = 0): string {
   if (depth > 4) return "";
@@ -20,9 +20,9 @@ export function sanitizeLmsEmbedHtml(value: string, depth = 0): string {
   });
   purify.addHook("afterSanitizeAttributes", (node) => {
     if (node.nodeName === "IFRAME" && node instanceof Element) {
-      node.setAttribute("sandbox", EMBED_SANDBOX);
       const nested = nestedDocuments.get(node);
       if (nested !== undefined) node.setAttribute("srcdoc", nested);
+      node.setAttribute("sandbox", iframeSandboxFor(nested !== undefined));
     }
   });
   return purify.sanitize(value, {

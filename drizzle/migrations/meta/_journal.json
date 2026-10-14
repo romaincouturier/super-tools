@@ -22,6 +22,34 @@
       "when": 1791581539182,
       "tag": "0002_pictodico_request_count",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791742156859,
+      "tag": "0003_nav_usage_counts_fast",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791811300365,
+      "tag": "0004_location_signature_reminders_and_ship_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791837049294,
+      "tag": "0005_order_items_hand_delivered",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791962700161,
+      "tag": "0006_lms_upcoming_sessions_rpc",
+      "breakpoints": true
     }
   ]
 }

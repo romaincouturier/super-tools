@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -6180,6 +6180,7 @@ export type Database = {
           id: string
           ip_address: string | null
           journey_events: Json | null
+          last_reminder_at: string | null
           location_extension_id: string | null
           order_item_id: string | null
           pdf_hash: string | null
@@ -6188,6 +6189,7 @@ export type Database = {
           proof_hash: string | null
           recipient_email: string
           recipient_name: string | null
+          reminder_count: number
           signature_data: string | null
           signed_at: string | null
           signed_pdf_url: string | null
@@ -6208,6 +6210,7 @@ export type Database = {
           id?: string
           ip_address?: string | null
           journey_events?: Json | null
+          last_reminder_at?: string | null
           location_extension_id?: string | null
           order_item_id?: string | null
           pdf_hash?: string | null
@@ -6216,6 +6219,7 @@ export type Database = {
           proof_hash?: string | null
           recipient_email: string
           recipient_name?: string | null
+          reminder_count?: number
           signature_data?: string | null
           signed_at?: string | null
           signed_pdf_url?: string | null
@@ -6236,6 +6240,7 @@ export type Database = {
           id?: string
           ip_address?: string | null
           journey_events?: Json | null
+          last_reminder_at?: string | null
           location_extension_id?: string | null
           order_item_id?: string | null
           pdf_hash?: string | null
@@ -6244,6 +6249,7 @@ export type Database = {
           proof_hash?: string | null
           recipient_email?: string
           recipient_name?: string | null
+          reminder_count?: number
           signature_data?: string | null
           signed_at?: string | null
           signed_pdf_url?: string | null
@@ -8047,6 +8053,7 @@ export type Database = {
           email_sent_to: string | null
           game_id: string | null
           game_type: string | null
+          hand_delivered_at: string | null
           id: string
           invoice_received_at: string | null
           kanban_status: string
@@ -8077,6 +8084,7 @@ export type Database = {
           email_sent_to?: string | null
           game_id?: string | null
           game_type?: string | null
+          hand_delivered_at?: string | null
           id?: string
           invoice_received_at?: string | null
           kanban_status?: string
@@ -8107,6 +8115,7 @@ export type Database = {
           email_sent_to?: string | null
           game_id?: string | null
           game_type?: string | null
+          hand_delivered_at?: string | null
           id?: string
           invoice_received_at?: string | null
           kanban_status?: string
@@ -13229,6 +13238,21 @@ export type Database = {
       get_learner_portal_training_details: {
         Args: { p_email: string }
         Returns: Json
+      }
+      get_lms_catalog_page_url: {
+        Args: { _catalog_id: string }
+        Returns: string
+      }
+      get_lms_upcoming_sessions: {
+        Args: { _catalog_ids: string[]; _max_items?: number }
+        Returns: {
+          city: string
+          day_dates: string[]
+          end_date: string
+          is_full: boolean
+          session_id: string
+          start_date: string
+        }[]
       }
       get_location_signature_by_token: {
         Args: { p_token: string }

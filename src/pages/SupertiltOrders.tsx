@@ -2,7 +2,7 @@ import DOMPurify from "dompurify";
 import { useState, useEffect } from "react";
 import {
   LayoutGrid, Package, ShoppingCart, Settings, Mail, AlertTriangle,
-  CheckCircle, Clock, Truck, RefreshCw, Ban, Loader2, Plus,
+  CheckCircle, Clock, Truck, HandHeart, RefreshCw, Ban, Loader2, Plus,
   Pencil, Trash2, Send, Eye, FileText, Search, Download,
   Euro, Users, BarChart3, ExternalLink,
 } from "lucide-react";
@@ -48,6 +48,7 @@ import {
   useOrderItemEmailLog,
   useMarkInvoiceReceived,
   useMarkShippedConfirmed,
+  useMarkHandDelivered,
   useSupertiltSettings,
   useUpsertSupertiltSetting,
   useOrderKpis,
@@ -619,6 +620,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
   const { mutateAsync: updateStatus, isPending: updatingStatus } = useUpdateOrderItemStatus();
   const { mutateAsync: sendEmail, isPending: sendingEmail } = useSendOrderEmail();
   const { mutateAsync: markShipped, isPending: markingShipped } = useMarkShippedConfirmed();
+  const { mutateAsync: markHandDelivered, isPending: markingHand } = useMarkHandDelivered();
   const { mutateAsync: archiveItem, isPending: archiving } = useArchiveOrderItem();
   const { confirm, ConfirmDialog } = useConfirm();
   const { toast } = useToast();
@@ -634,6 +636,8 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
 
   const todayParis = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date());
   const locationRunning = !!item.contrat_reference && (!item.location_end_date || item.location_end_date > todayParis);
+  // La signature fait passer la carte en « Location en cours » et fixe l'échéance.
+  const locationSigned = item.game_type === "location" && !!item.contrat_reference && item.kanban_status !== "location_pending" && !!item.location_end_date;
 
   const handleMarkProcessed = async () => {
     try {
@@ -681,11 +685,16 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
           <p className="font-medium text-sm truncate">{item.product_name ?? `Produit #${item.wc_product_id}`}</p>
           <p className="text-xs text-muted-foreground truncate">{customerName}</p>
         </div>
-        {item.game_type && (
-          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${GAME_TYPE_COLORS[item.game_type]}`}>
-            {GAME_TYPE_LABELS[item.game_type]}
-          </span>
-        )}
+        <div className="flex flex-col items-end gap-1">
+          {item.game_type && (
+            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${GAME_TYPE_COLORS[item.game_type]}`}>
+              {GAME_TYPE_LABELS[item.game_type]}
+            </span>
+          )}
+          {item.game_type === "location" && locationSigned && !item.shipped_confirmed_at && !item.hand_delivered_at && (
+            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">À expédier</Badge>
+          )}
+        </div>
       </div>
 
       <div className="text-xs text-muted-foreground space-y-0.5">
@@ -760,6 +769,42 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
           >
             <Truck className="h-3 w-3 mr-1" />
             {item.shipped_confirmed_at ? `Envoyé ${DATE(item.shipped_confirmed_at)}` : "Confirmé envoyé"}
+          </Button>
+        )}
+        {item.game_type === "location" && item.contrat_reference && item.kanban_status !== "blocked" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-6 text-xs px-2 ${item.shipped_confirmed_at ? "text-green-700" : "text-indigo-700"}`}
+            disabled={markingShipped || !locationSigned}
+            title={locationSigned ? undefined : "Contrat non signé : le jeu ne peut pas encore être expédié"}
+            onClick={async () => {
+              try {
+                await markShipped({ id: item.id, confirmed: !item.shipped_confirmed_at });
+                toast({ title: item.shipped_confirmed_at ? "Expédition annulée" : "Jeu marqué comme expédié" });
+              } catch (e: any) { toastError(toast, e?.message || "Erreur"); }
+            }}
+          >
+            <Truck className="h-3 w-3 mr-1" />
+            {item.shipped_confirmed_at ? `Expédié ${DATE(item.shipped_confirmed_at)}` : locationSigned ? "Jeu expédié" : "Contrat non signé"}
+          </Button>
+        )}
+        {(item.game_type as string) !== "formation" && !item.shipped_confirmed_at && item.kanban_status !== "to_validate" && item.kanban_status !== "blocked" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-6 text-xs px-2 ${item.hand_delivered_at ? "text-green-700" : "text-muted-foreground"}`}
+            disabled={markingHand || (item.game_type === "location" && !locationSigned && !item.hand_delivered_at)}
+            title="Remis en main propre : aucun envoi transporteur attendu"
+            onClick={async () => {
+              try {
+                await markHandDelivered({ id: item.id, delivered: !item.hand_delivered_at, isLocation: item.game_type === "location" });
+                toast({ title: item.hand_delivered_at ? "Remise en main propre annulée" : "Commande remise en main propre" });
+              } catch (e: any) { toastError(toast, e?.message || "Erreur"); }
+            }}
+          >
+            <HandHeart className="h-3 w-3 mr-1" />
+            {item.hand_delivered_at ? `Remis en main propre ${DATE(item.hand_delivered_at)}` : "Main propre"}
           </Button>
         )}
         <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setShowNote(true)}>

@@ -141,8 +141,10 @@ if [ "$STAGED_MODE" = "true" ]; then
   check "017" "Utiliser <Spinner> au lieu de <Loader2 animate-spin> (lignes ajoutées)" \
     "search_added_lines '<Loader2[^>]*animate-spin' | grep -v 'components/ui/spinner.tsx'"
 
+  # useEdgeFunction est un hook React : la règle ne vise que le front, comme le
+  # ratchet [020] du mode complet, qui ne compte que src/.
   check "020" "Préférer useEdgeFunction() au lieu de supabase.functions.invoke() inline (lignes ajoutées)" \
-    "search_added_lines 'supabase\\.functions\\.invoke' | grep -v 'src/services/' | grep -v 'src/lib/' | grep -v 'src/hooks/useEdgeFunction.ts'"
+    "search_added_lines 'supabase\\.functions\\.invoke' | grep -v '^supabase/functions/' | grep -v 'src/services/' | grep -v 'src/lib/' | grep -v 'src/hooks/useEdgeFunction.ts'"
 fi
 
 # ==========================================================
@@ -526,7 +528,7 @@ if [ "$STAGED_MODE" = "false" ]; then
   # du fichier (« no tests »). Cinq fichiers ainsi poussés sur main ont mis la
   # CI au rouge entre le 28/09 et le 10/10/2026.
   check "064b" "Pas de test Deno (Deno.test, import https) dans les dossiers joués par vitest" \
-    "grep -rnE 'Deno\\.test\\(|^import .* from \"https://' --include='*.test.ts' --include='*.test.tsx' src supabase/functions/_shared supabase/tests 2>/dev/null"
+    "grep -rnE 'Deno\\.test\\(|^import .* from \"(https://|jsr:)' --include='*.test.ts' --include='*.test.tsx' src supabase/functions/_shared supabase/tests 2>/dev/null"
 
   # [044] Aucun CREATE POLICY ne doit lire auth.users : le rôle `authenticated`
   # n'a pas SELECT dessus, la policy échoue en 403 / 42501 et l'écran reste vide

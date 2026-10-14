@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { sanitizeLmsEmbedHtml } from "@/lib/sanitizeLmsEmbedHtml";
-import { EMBED_CSP, EMBED_SANDBOX } from "../../../../../supabase/functions/_shared/lms-embed-policy";
+import { EMBED_CSP, EMBED_HOST_SANDBOX as EMBED_SANDBOX } from "../../../../../supabase/functions/_shared/lms-embed-policy";
 import type { HtmlEmbedBlockContent } from "@/types/lms-blocks";
 
 export default function HtmlEmbedBlockViewer({ content, previewMode = false }: { content: HtmlEmbedBlockContent; previewMode?: boolean }) {

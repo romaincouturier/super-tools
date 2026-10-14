@@ -9,6 +9,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { isEmptyOrParasiteTranscript, PARASITE_TRANSCRIPT_ERROR } from "../_shared/transcript-quality.ts";
 import { analyzeTranscript } from "../_shared/google-drive-helper.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -92,7 +93,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
         : t.summary?.overview ?? "";
 
       try {
-        const analysis = rawText
+        const parasite = !!rawText && isEmptyOrParasiteTranscript(rawText);
+        const analysis = rawText && !parasite
           ? await analyzeTranscript(rawText)
           : { summary: t.summary?.overview ?? "", tags: [] };
 
@@ -105,7 +107,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
           tags: analysis.tags,
           duration_seconds: Number.isFinite(Number(t.duration))
             ? Math.round(Number(t.duration) * 60) : null,
-          status: rawText && rawText.length < 10 ? "trashed" : "ready",
+          status: rawText && rawText.length < 10 ? "trashed" : parasite ? "error" : "ready",
+          error_message: parasite ? PARASITE_TRANSCRIPT_ERROR : null,
           metadata: { fireflies_date: new Date(t.date).toISOString(), backfill: true },
         });
         if (insErr) throw new Error(insErr.message);
