@@ -1,5 +1,10 @@
 # Roadmap
 
+## Couverture des cours LMS (2026-10-14)
+- [ ] Import PNG/JPG/WebP, maximum 5 Mo, aperçu 16:9, remplacement et suppression
+- [ ] Mise à jour partielle de cover_image_url depuis le MCP
+- [ ] Tests ciblés et vérification du parcours
+
 ## Blocs LMS (2026-10-09)
 - [x] Équilibrer la grille des cartes : desktop 3 colonnes (2 pour 2/4 cartes), tablette 2, mobile 1, dernière ligne centrée
 - [x] Agrandir cartes/images et rendre la frise interactive dans les deux vues
