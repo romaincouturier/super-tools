@@ -43,6 +43,13 @@
       "when": 1791837049294,
       "tag": "0005_order_items_hand_delivered",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791962700161,
+      "tag": "0006_lms_upcoming_sessions_rpc",
+      "breakpoints": true
     }
   ]
 }

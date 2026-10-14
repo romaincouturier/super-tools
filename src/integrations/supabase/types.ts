@@ -13239,6 +13239,21 @@ export type Database = {
         Args: { p_email: string }
         Returns: Json
       }
+      get_lms_catalog_page_url: {
+        Args: { _catalog_id: string }
+        Returns: string
+      }
+      get_lms_upcoming_sessions: {
+        Args: { _catalog_ids: string[]; _max_items?: number }
+        Returns: {
+          city: string
+          day_dates: string[]
+          end_date: string
+          is_full: boolean
+          session_id: string
+          start_date: string
+        }[]
+      }
       get_location_signature_by_token: {
         Args: { p_token: string }
         Returns: Json
