@@ -10,7 +10,7 @@ import { useAcademyEnrollment } from "@/hooks/useAcademyEnrollment";
 import { useToast } from "@/hooks/use-toast";
 import { useSession } from "@/hooks/useSession";
 import { toastError } from "@/lib/toastError";
-import { HIDDEN_FREE_COURSE_IDS } from "@/lib/academyFreeCourses";
+import { HIDDEN_FREE_COURSE_IDS, sortFreeCourses } from "@/lib/academyFreeCourses";
 
 /**
  * Choix des formations gratuites, après création de compte (Flux B). Un
@@ -34,7 +34,7 @@ export default function AcademyCourseSelection() {
   }, [authLoading, user, navigate]);
 
   const freeCourses = useMemo(
-    () => (data?.courses ?? []).filter((c) => c.access_type === "gratuit" && !HIDDEN_FREE_COURSE_IDS.has(c.id)),
+    () => sortFreeCourses((data?.courses ?? []).filter((c) => c.access_type === "gratuit" && !HIDDEN_FREE_COURSE_IDS.has(c.id))),
     [data?.courses],
   );
 

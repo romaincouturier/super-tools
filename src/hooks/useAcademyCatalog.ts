@@ -10,6 +10,8 @@ export type AcademyCatalogCourse = {
   access_type: "gratuit" | "payant";
   expertise: string | null;
   is_featured: boolean;
+  landing_position: number | null;
+  created_at: string;
   formation_config_id: string | null;
   formation_configs: {
     formation_name: string;
@@ -25,7 +27,7 @@ export function useAcademyCatalog() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lms_courses")
-        .select("id, title, description, cover_image_url, estimated_duration_minutes, access_type, expertise, is_featured, formation_config_id, formation_configs(formation_name, supertilt_link, prix, duree_heures)")
+        .select("id, title, description, cover_image_url, estimated_duration_minutes, access_type, expertise, is_featured, landing_position, created_at, formation_config_id, formation_configs(formation_name, supertilt_link, prix, duree_heures)")
         .eq("status", "published")
         .in("access_type", ["gratuit", "payant"])
         .order("is_featured", { ascending: false });
