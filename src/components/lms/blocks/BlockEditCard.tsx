@@ -41,6 +41,7 @@ import type {
   DragWordsBlockContent,
   SummaryBlockContent,
   CtaBlockContent,
+  UpcomingSessionsBlockContent,
   CodeBlockContent,
 } from "@/types/lms-blocks";
 import { BLOCK_META } from "./registry";
@@ -78,6 +79,7 @@ import FillBlanksBlockEditor from "./editors/FillBlanksBlockEditor";
 import DragWordsBlockEditor from "./editors/DragWordsBlockEditor";
 import SummaryBlockEditor from "./editors/SummaryBlockEditor";
 import CtaBlockEditor from "./editors/CtaBlockEditor";
+import UpcomingSessionsBlockEditor from "./editors/UpcomingSessionsBlockEditor";
 import CodeBlockEditor from "./editors/CodeBlockEditor";
 
 interface Props {
@@ -520,6 +522,14 @@ function BlockEditorBody({
       return (
         <SummaryBlockEditor
           content={content as SummaryBlockContent}
+          onChange={(c) => onChange(c)}
+          slim={slim}
+        />
+      );
+    case "upcoming_sessions":
+      return (
+        <UpcomingSessionsBlockEditor
+          content={content as UpcomingSessionsBlockContent}
           onChange={(c) => onChange(c)}
           slim={slim}
         />

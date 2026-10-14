@@ -351,6 +351,34 @@ const CATALOG: CatalogEntry[] = [
       whenNotToUse: "Pas pour du texte courant.",
     },
   },
+  {
+    type: "upcoming_sessions",
+    kind: "content",
+    blockKind: "content",
+    labelFr: "Sessions à venir",
+    editableViaMcp: true,
+    fields: [
+      f("catalog_ids", "string[]", true, "UUID des formations du catalogue (formation_configs.id) dont lister les sessions inter à venir"),
+      f("max_items", "number", false, "Nombre max de sessions affichées (défaut 4)"),
+      f("title", "plain", false, "Titre de la liste (défaut « 📍 Prochaines sessions »)"),
+      f("footer_text", "plain", false, "Texte sous la liste, ex. « Aussi en intra, chez vous · Certifié Qualiopi »"),
+      f("fallback_url", "url", false, "Lien si aucune date (défaut : page programme de la formation)"),
+      f("layout", "enum", false, "list = carte seule ; cta = CTA complet avec la liste à droite", ["list", "cta"]),
+      f("theme", "enum", false, "Thème du CTA : yellow (fond jaune) ou dark (fond anthracite)", ["yellow", "dark"]),
+      f("cta_label", "plain", false, "CTA : petit label au-dessus du titre"),
+      f("cta_title", "plain", false, "CTA : titre"),
+      f("body_html", "html", false, "CTA : texte"),
+      f("button_label", "plain", false, "CTA : libellé du bouton principal"),
+      f("button_url", "url", false, "CTA : URL du bouton principal"),
+      f("secondary_label", "plain", false, "CTA : libellé du lien secondaire"),
+      f("secondary_url", "url", false, "CTA : URL du lien secondaire"),
+    ],
+    guidance: {
+      whenToUse: "Afficher les prochaines dates d'une formation inter (ville, dates, badge Complet/Inscriptions ouvertes), générées automatiquement depuis le planning : remplace toute liste de dates écrite en dur dans un CTA ou un HTML.",
+      whenNotToUse: "Pas pour des dates intra ou des lives e-learning ; ne jamais recopier les dates à la main dans un autre bloc.",
+      example: '{"type":"upcoming_sessions","content":{"catalog_ids":["21648e11-61cb-4e81-89f1-0cfcba4498ee"],"layout":"cta","theme":"yellow","cta_title":"Envie d\'aller plus loin ?","button_label":"Découvrir la formation","button_url":"https://www.supertilt.fr/","footer_text":"Aussi en intra, chez vous · Certifié Qualiopi"}}',
+    },
+  },
 
   // ── Exercices et évaluation ───────────────────────────────────────
   {

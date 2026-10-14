@@ -50,7 +50,8 @@ export type ContentBlockType =
   | "drag_words"
   | "summary"
   | "cta"
-  | "code";
+  | "code"
+  | "upcoming_sessions";
 
 export type LessonBlockType = LayoutBlockType | ContentBlockType;
 
@@ -394,6 +395,27 @@ export interface CtaBlockContent {
   accent_color?: string | null;
 }
 
+// ── Upcoming sessions block ───────────────────────────────────────────
+
+export interface UpcomingSessionsBlockContent {
+  /** Identifiants catalogue (formation_configs.id) dont on liste les sessions inter. */
+  catalog_ids: string[];
+  max_items?: number | null;
+  title?: string | null;
+  footer_text?: string | null;
+  /** Lien affiché quand aucune session n'est programmée (défaut : page du programme). */
+  fallback_url?: string | null;
+  layout?: "list" | "cta";
+  theme?: "yellow" | "dark";
+  cta_label?: string | null;
+  cta_title?: string | null;
+  body_html?: string | null;
+  button_label?: string | null;
+  button_url?: string | null;
+  secondary_label?: string | null;
+  secondary_url?: string | null;
+}
+
 // ── Code block ────────────────────────────────────────────────────────
 
 export interface CodeBlockContent {
@@ -533,7 +555,8 @@ export type LessonBlockContent =
   | DragWordsBlockContent
   | SummaryBlockContent
   | CtaBlockContent
-  | CodeBlockContent;
+  | CodeBlockContent
+  | UpcomingSessionsBlockContent;
 
 export interface LessonBlock {
   id: string;
@@ -691,6 +714,16 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
       };
     case "code":
       return { code: "", language: "javascript", showLineNumbers: true, title: null };
+    case "upcoming_sessions":
+      return {
+        catalog_ids: [],
+        max_items: 4,
+        title: "📍 Prochaines sessions",
+        footer_text: null,
+        fallback_url: null,
+        layout: "list",
+        theme: "yellow",
+      };
   }
 }
 
