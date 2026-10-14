@@ -5077,6 +5077,7 @@ export type Database = {
           home_config: Json
           id: string
           is_featured: boolean
+          landing_position: number | null
           org_id: string | null
           status: string
           tags: string[] | null
@@ -5100,6 +5101,7 @@ export type Database = {
           home_config?: Json
           id?: string
           is_featured?: boolean
+          landing_position?: number | null
           org_id?: string | null
           status?: string
           tags?: string[] | null
@@ -5123,6 +5125,7 @@ export type Database = {
           home_config?: Json
           id?: string
           is_featured?: boolean
+          landing_position?: number | null
           org_id?: string | null
           status?: string
           tags?: string[] | null

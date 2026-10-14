@@ -769,3 +769,54 @@ export async function updateLmsLesson(lessonId: string, rawPatch: unknown) {
   }
   return { lesson: after, changes };
 }
+
+const COURSE_PATCH_FIELDS = ["cover_image_url", "landing_position"] as const;
+
+export function validateCoursePatch(raw: unknown): { cover_image_url?: string | null; landing_position?: number | null } {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("patch must be an object");
+  const entries = Object.entries(raw as Record<string, unknown>);
+  if (entries.length === 0) throw new Error(`patch is empty. Allowed fields: ${COURSE_PATCH_FIELDS.join(", ")}`);
+  const out: { cover_image_url?: string | null; landing_position?: number | null } = {};
+  for (const [k, v] of entries) {
+    if (k === "cover_image_url") {
+      if (v === null) { out.cover_image_url = null; continue; }
+      if (typeof v !== "string" || !/^https:\/\/\S+$/i.test(v.trim()) || v.length > 2000) {
+        throw new Error("cover_image_url must be an https URL or null");
+      }
+      out.cover_image_url = v.trim();
+    } else if (k === "landing_position") {
+      if (v === null) { out.landing_position = null; continue; }
+      if (typeof v !== "number" || !Number.isInteger(v) || v < 1 || v > 1000) {
+        throw new Error("landing_position must be an integer between 1 and 1000, or null (end of list)");
+      }
+      out.landing_position = v;
+    } else {
+      throw new Error(`Field '${k}' is not allowed. Allowed fields: ${COURSE_PATCH_FIELDS.join(", ")}`);
+    }
+  }
+  return out;
+}
+
+export async function updateLmsCourse(courseId: string, rawPatch: unknown) {
+  if (!isValidUuid(courseId)) throw new Error("Invalid course_id");
+  const patch = validateCoursePatch(rawPatch);
+  await requireStaffOrService();
+  const supabase = getSupabaseClient();
+  const cols = "id, title, status, access_type, cover_image_url, landing_position";
+  const { data: before } = await supabase.from("lms_courses").select(cols).eq("id", courseId).maybeSingle();
+  if (!before) throw new Error(`Course ${courseId} not found`);
+  const { data: after, error } = await supabase
+    .from("lms_courses")
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq("id", courseId)
+    .select(cols)
+    .single();
+  if (error) throw new Error(`Failed to update course: ${error.message}`);
+  const changes: Record<string, { before: unknown; after: unknown }> = {};
+  for (const k of COURSE_PATCH_FIELDS) {
+    const b = (before as Record<string, unknown>)[k];
+    const a = (after as Record<string, unknown>)[k];
+    if (b !== a) changes[k] = { before: b, after: a };
+  }
+  return { course: after, changes };
+}

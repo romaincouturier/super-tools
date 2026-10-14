@@ -50,6 +50,13 @@
       "when": 1791962700161,
       "tag": "0006_lms_upcoming_sessions_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791990385329,
+      "tag": "0007_lms_courses_landing_position",
+      "breakpoints": true
     }
   ]
 }

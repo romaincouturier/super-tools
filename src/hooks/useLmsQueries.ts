@@ -74,6 +74,7 @@ export interface LmsCourse {
   expertise: string | null;
   access_type: string;
   is_featured?: boolean;
+  landing_position?: number | null;
   difficulty_level: string | null;
   estimated_duration_minutes: number;
   tags: string[];
