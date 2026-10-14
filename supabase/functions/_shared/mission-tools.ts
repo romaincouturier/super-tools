@@ -1090,7 +1090,7 @@ export async function updateMissionActivity(
   });
 }
 
-const MISSION_EDIT_COLUMNS = "id, title, status, start_date, end_date, initial_amount, client_name, client_contact, updated_at";
+const MISSION_EDIT_COLUMNS = "id, title, status, start_date, end_date, initial_amount, client_name, client_contact, waiting_next_action_text, waiting_next_action_date, updated_at";
 const MISSION_STATUSES = ["not_started", "in_progress", "completed", "cancelled"];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -1102,6 +1102,8 @@ export interface MissionUpdateInput {
   initial_amount?: unknown;
   client_name?: unknown;
   client_contact?: unknown;
+  waiting_next_action_text?: unknown;
+  waiting_next_action_date?: unknown;
 }
 
 /**
