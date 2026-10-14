@@ -1147,8 +1147,17 @@ export async function updateMission(
     if (input[k] === undefined) continue;
     patch[k] = input[k] === null ? null : String(input[k]).trim() || null;
   }
+  if (input.waiting_next_action_text !== undefined) {
+    patch.waiting_next_action_text = input.waiting_next_action_text === null ? null : String(input.waiting_next_action_text).trim() || null;
+  }
+  if (input.waiting_next_action_date !== undefined) {
+    if (input.waiting_next_action_date !== null && !DATE_RE.test(String(input.waiting_next_action_date))) {
+      throw new Error("waiting_next_action_date doit être au format YYYY-MM-DD ou null");
+    }
+    patch.waiting_next_action_date = input.waiting_next_action_date;
+  }
   if (Object.keys(patch).length === 0) {
-    throw new Error("Aucun champ à modifier : fournir au moins un champ (title, status, start_date, end_date, initial_amount, client_name, client_contact)");
+    throw new Error("Aucun champ à modifier : fournir au moins un champ (title, status, start_date, end_date, initial_amount, client_name, client_contact, waiting_next_action_text, waiting_next_action_date)");
   }
   const start = (patch.start_date ?? (existing as any).start_date) as string | null;
   const end = (patch.end_date ?? (existing as any).end_date) as string | null;
