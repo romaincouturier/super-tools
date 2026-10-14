@@ -82,6 +82,7 @@ import {
   createLmsAssignment,
   readLmsQuiz,
   updateLmsLesson,
+  updateLmsCourse,
   getLmsBlockCatalog,
   listLessonVersions,
   listLmsCourses,
@@ -358,6 +359,7 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - prepare_newsletter : compose le sommaire ordonné d'une newsletter en BROUILLON (création du brouillon ou reprise d'un brouillon existant), à partir de cartes existantes et/ou de nouveaux contenus créés au passage. Remplace le sommaire du brouillon visé uniquement ; refuse toute newsletter déjà envoyée. Aucun envoi n'est possible d'ici : ne jamais prétendre avoir envoyé une newsletter. Récapituler le sommaire et obtenir l'accord de l'utilisateur avant d'écraser le sommaire d'un brouillon existant.
 - update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre « type » doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
 - create_lms_quiz / create_lms_assignment : créent un quiz (avec ses questions) ou un devoir dans un cours et renvoient le bloc prêt à insérer ({type:"quiz",content:{quiz_id}} ou {type:"assignment",content:{assignment_id}}). Créer d'abord le quiz/devoir, puis référencer son id dans apply_lesson_restructure ou create_lms_lesson. read_lms_quiz relit un quiz.
+- update_lms_course : modifie uniquement l'image de couverture (URL https) et l'ordre sur la landing Academy (landing_position) d'un cours. Annoncer le changement.
 - update_lms_lesson : modifie uniquement titre, durée estimée, position dans le module ou caractère obligatoire d'une leçon, sans toucher aux blocs. Annoncer le changement à l'utilisateur.
 - create_lms_lesson : crée une leçon dans un module, avec éventuellement ses blocs de contenu initiaux (paramètre « blocks », même schéma que apply_lesson_restructure). Position facultative : si elle est fournie, les leçons suivantes du module sont décalées d'un rang. Écriture additive : aucune leçon existante n'est modifiée dans son contenu. Retourne l'id et l'empreinte de la leçon créée.
 - apply_lesson_restructure : remplace TOUS les blocs de premier niveau d'une leçon par une nouvelle structure proposée. Tous les types du menu « Ajouter un bloc » sont acceptés : blocs de contenu (texte, tableau, encadré, points clés, liste, checklist, synthèse, accordéon, frise, cartes à retourner, code, exercice, auto-évaluation, texte à trous, mots à glisser, quiz, devoir, dépôt de travail, vidéo, image, galerie, fichier, image interactive, avant/après, bouton, CTA, sessions à venir, intégration HTML, shortcode) et blocs de mise en page (section, colonnes, conteneur, contenu progressif, séparateur, espace) qui peuvent porter un tableau « children » de blocs de contenu (un seul niveau d'imbrication). EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
@@ -1204,6 +1206,19 @@ const MCP_TOOLS = [
         max_file_size_mb: { type: "number" },
       },
       required: ["course_id", "title"],
+    },
+  },
+  {
+    name: "update_lms_course",
+    description:
+      "Update the Academy display settings of an LMS course. Allowed patch fields: cover_image_url (https URL of a 16:9 image, 1200x675 recommended, or null to remove), landing_position (integer >= 1 = order in the 'Commencez gratuitement' section of the Academy landing for free published courses; null = end of list, sorted by creation date). Any other field is rejected. Returns the course and before/after values of changed fields.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        course_id: { type: "string" },
+        patch: { type: "object", description: "e.g. {\"landing_position\": 1, \"cover_image_url\": \"https://...\"}" },
+      },
+      required: ["course_id", "patch"],
     },
   },
   {
@@ -2306,6 +2321,14 @@ async function callTool(
         return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "update_lms_course": {
+      try {
+        await log("update_lms_course");
+        return textResult(JSON.stringify(await updateLmsCourse((args.course_id as string) || "", args.patch)));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "update_lms_lesson": {
       try {
         await log("update_lms_lesson");
@@ -2428,7 +2451,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.14.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.15.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }
