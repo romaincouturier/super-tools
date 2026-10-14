@@ -18,6 +18,7 @@ import {
   createOpportunity,
   LOSS_REASONS,
   markOpportunityLost,
+  markOpportunityWon,
   SERVICE_TYPES,
   updateOpportunity,
 } from "../_shared/crm-tools.ts";
@@ -1065,6 +1066,23 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "mark_opportunity_won",
+    description:
+      "Mark ONE CRM opportunity as won, as the « Gagné » column does in the interface: sales_status WON, won_at (signature date, defaults to today), optional final amount (euros HT, updates estimated_value), optional quote reference and comment added to the discussion thread, and an activity log entry. With create_mission=true and no linked mission yet, also creates a « À démarrer » mission (title, client, amount) linked to the card; ask the user before setting it. The response suggests creating the mission when the opportunity is of type mission. CALL ONLY AFTER the user has said this specific opportunity is won. Identify by card_id, or search (ambiguous searches return candidates without writing). An opportunity already won is left untouched.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        card_id: { type: "string", description: "UUID of the crm_cards row (preferred when known)" },
+        search: { type: "string", description: "Company, contact or opportunity name, used when card_id is unknown" },
+        won_at: { type: "string", description: "Signature date YYYY-MM-DD (defaults to today)" },
+        amount: { type: "number", description: "Final signed amount in euros HT" },
+        quote_reference: { type: "string", description: "Signed quote reference, e.g. D-2026-10127" },
+        comment: { type: "string", description: "Optional comment added to the opportunity thread" },
+        create_mission: { type: "boolean", description: "Create and link a mission when none is linked (ask the user first)" },
+      },
+    },
+  },
+  {
     name: "list_lms_courses",
     description:
       "List the LMS courses the current staff member can access, with id, title, status, and updated_at. Use this as the entry point before listing lessons.",
@@ -1367,7 +1385,7 @@ const MCP_TOOLS = [
   {
     name: "update_opportunity",
     description:
-      "Update an existing CRM opportunity: move to a column, set the next action and/or follow-up date, change the estimated value, add a comment. Only provided fields change. Find the card by card_id or search (company, contact, email, title); ambiguous searches return candidates without writing. To mark as lost use mark_opportunity_lost.",
+      "Update an existing CRM opportunity: move to a column, set the next action and/or follow-up date, change the estimated value, add a comment. Only provided fields change. Find the card by card_id or search (company, contact, email, title); ambiguous searches return candidates without writing. To mark as lost use mark_opportunity_lost, as won use mark_opportunity_won.",
     inputSchema: {
       type: "object",
       properties: {
@@ -2068,6 +2086,26 @@ async function callTool(
         return textResult(`decision doit valoir "go" ou "no_go" (reçu : "${decision}").`, true);
       } catch (e) {
         return textResult(`Tender decision error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "mark_opportunity_won": {
+      try {
+        return textResult(await markOpportunityWon(
+          supabase,
+          {
+            card_id: (args.card_id as string) || undefined,
+            search: (args.search as string) || undefined,
+            won_at: (args.won_at as string) || undefined,
+            amount: typeof args.amount === "number" ? args.amount : undefined,
+            quote_reference: (args.quote_reference as string) || undefined,
+            comment: (args.comment as string) || undefined,
+            create_mission: args.create_mission === true,
+          },
+          log,
+          ALLOWED_EMAIL,
+        ));
+      } catch (e) {
+        return textResult(`CRM error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "mark_opportunity_lost": {
