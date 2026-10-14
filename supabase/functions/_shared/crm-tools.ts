@@ -183,6 +183,135 @@ export async function markOpportunityLost(
   });
 }
 
+export interface MarkOpportunityWonInput {
+  card_id?: string;
+  search?: string;
+  won_at?: string;
+  amount?: number;
+  quote_reference?: string;
+  comment?: string;
+  create_mission?: boolean;
+}
+
+/** Passe UNE opportunité en gagnée (mêmes champs que l'interface : sales_status WON, won_at). */
+export async function markOpportunityWon(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  input: MarkOpportunityWonInput,
+  log: (message: string) => Promise<void>,
+  actorEmail: string,
+): Promise<string> {
+  if (!input.card_id && !input.search) {
+    throw new Error("Fournir card_id ou search (nom de la société, du contact ou de l'opportunité).");
+  }
+  if (input.won_at && !/^\d{4}-\d{2}-\d{2}/.test(input.won_at)) throw new Error("won_at doit être au format YYYY-MM-DD");
+  if (input.amount !== undefined && (typeof input.amount !== "number" || !isFinite(input.amount) || input.amount < 0)) {
+    throw new Error("amount doit être un nombre positif (euros HT)");
+  }
+
+  let card: CardRow;
+  if (input.card_id) {
+    const { data, error } = await supabase.from("crm_cards").select(CARD_FIELDS).eq("id", input.card_id).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error(`Aucune opportunité avec l'id ${input.card_id}`);
+    card = data as CardRow;
+  } else {
+    const matches = await findCards(supabase, input.search!);
+    if (matches.length === 0) return JSON.stringify({ updated: false, reason: "not_found", search: input.search });
+    if (matches.length > 1) {
+      return JSON.stringify({
+        updated: false,
+        reason: "ambiguous",
+        message: "Plusieurs opportunités correspondent : rappeler l'outil avec card_id.",
+        candidates: matches.map((m) => ({ card_id: m.id, label: label(m), sales_status: m.sales_status })),
+      });
+    }
+    card = matches[0];
+  }
+
+  const { data: extra } = await supabase
+    .from("crm_cards")
+    .select("estimated_value, service_type, linked_mission_id, won_at")
+    .eq("id", card.id)
+    .single();
+  if (card.sales_status === "WON") {
+    return JSON.stringify({ updated: false, reason: "already_won", card_id: card.id, label: label(card), won_at: extra?.won_at ?? null });
+  }
+
+  const wonAt = input.won_at ? new Date(`${input.won_at.slice(0, 10)}T12:00:00Z`).toISOString() : new Date().toISOString();
+  const updates: Record<string, unknown> = {
+    sales_status: "WON",
+    won_at: wonAt,
+    lost_at: null,
+    loss_reason: null,
+    loss_reason_detail: null,
+  };
+  if (input.amount !== undefined) updates.estimated_value = input.amount;
+
+  const { error: updateError } = await supabase.from("crm_cards").update(updates).eq("id", card.id);
+  if (updateError) throw new Error(updateError.message);
+
+  await supabase.from("crm_activity_log").insert([{
+    card_id: card.id,
+    action_type: "sales_status_changed",
+    old_value: card.sales_status,
+    new_value: "WON",
+    actor_email: actorEmail,
+    metadata: { via: "mcp", quote_reference: input.quote_reference || null },
+  }]);
+  const amount = input.amount ?? Number(extra?.estimated_value ?? 0);
+  if (input.amount !== undefined && Number(extra?.estimated_value ?? 0) !== input.amount) {
+    await supabase.from("crm_activity_log").insert([{
+      card_id: card.id,
+      action_type: "estimated_value_changed",
+      old_value: String(extra?.estimated_value ?? 0),
+      new_value: String(input.amount),
+      actor_email: actorEmail,
+      metadata: { via: "mcp" },
+    }]);
+  }
+
+  const commentText = [input.quote_reference ? `Devis ${input.quote_reference} signé` : "", input.comment || ""]
+    .filter(Boolean).join(". ").trim();
+  if (commentText) {
+    await supabase.from("crm_comments").insert([{ card_id: card.id, content: commentText, author_email: actorEmail }]);
+  }
+
+  let missionId: string | null = extra?.linked_mission_id ?? null;
+  let missionCreated = false;
+  if (input.create_mission && !missionId) {
+    const { data: mission, error: mErr } = await supabase
+      .from("missions")
+      .insert([{ title: card.title, client_name: card.company, status: "not_started", initial_amount: amount || null }])
+      .select("id")
+      .single();
+    if (mErr) throw new Error(`Opportunité gagnée, mais mission non créée : ${mErr.message}`);
+    missionId = mission.id;
+    missionCreated = true;
+    await supabase.from("crm_cards").update({ linked_mission_id: missionId }).eq("id", card.id);
+  }
+
+  await log(`mark_opportunity_won ${card.id}${missionCreated ? ` mission ${missionId}` : ""}`);
+
+  const serviceType = extra?.service_type ?? null;
+  return JSON.stringify({
+    updated: true,
+    card_id: card.id,
+    label: label(card),
+    sales_status: "WON",
+    won_at: wonAt,
+    montant_ht: amount,
+    commentaire_ajoute: Boolean(commentText),
+    mission_liee: missionId,
+    mission_creee: missionCreated,
+    suggestion: !missionId && serviceType === "mission"
+      ? "Opportunité de type mission sans mission liée : proposer à l'utilisateur de rappeler l'outil avec create_mission=true."
+      : !missionId && (serviceType === "formation" || !serviceType)
+        ? "Opportunité de type formation : la session se crée depuis l'interface (Formations), comme lors du passage en Gagné dans le CRM."
+        : null,
+  });
+}
+
 // ── Création / mise à jour d'opportunité ─────────────────────
 
 export const SERVICE_TYPES = ["formation", "mission", "jeu"] as const;
