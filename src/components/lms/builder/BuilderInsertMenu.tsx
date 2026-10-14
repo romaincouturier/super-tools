@@ -35,6 +35,7 @@ const BLOCK_META: Partial<Record<LessonBlockType, { desc: string; kbd?: string }
   summary:         { desc: "Cocher les affirmations correctes", kbd: "/ résumé" },
   cta:             { desc: "Carte promo : label, bénéfices, bouton, image", kbd: "/ cta" },
   code:            { desc: "Code avec coloration syntaxique", kbd: "/ code" },
+  upcoming_sessions: { desc: "Dates des prochaines sessions inter, toujours à jour", kbd: "/ sessions" },
   section:         { desc: "Conteneur pleine largeur", kbd: "/ section" },
   row:             { desc: "Colonnes côte à côte", kbd: "/ colonnes" },
   divider:         { desc: "Trait fin entre sections", kbd: "/ ---" },
@@ -48,7 +49,7 @@ const ACTIVE_CONTENT_TYPES: LessonBlockType[] = [
   "quiz", "checklist", "bullet_list", "button", "exercise",
   "self_assessment", "work_deposit", "assignment", "table", "shortcode",
   "gallery", "html_embed", "timeline", "flip_cards",
-  "accordion", "image_hotspot", "before_after", "fill_blanks", "drag_words", "summary", "cta", "code",
+  "accordion", "image_hotspot", "before_after", "fill_blanks", "drag_words", "summary", "cta", "code", "upcoming_sessions",
 ];
 
 const ACTIVE_LAYOUT_TYPES: LessonBlockType[] = [
