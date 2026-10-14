@@ -335,11 +335,19 @@ export default function LmsCoursePlayer() {
       });
       return;
     }
-    await markComplete.mutateAsync({
-      course_id: courseId,
-      lesson_id: selectedLesson.id,
-      learner_email: learnerEmail,
-    });
+    try {
+      await markComplete.mutateAsync({
+        course_id: courseId,
+        lesson_id: selectedLesson.id,
+        learner_email: learnerEmail,
+      });
+    } catch (err) {
+      toast({
+        title: "Progression non enregistrée",
+        description: err instanceof Error ? err.message : "Réessayez dans un instant.",
+        variant: "destructive",
+      });
+    }
   };
 
   const scrollToTop = () => {
