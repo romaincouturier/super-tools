@@ -14,7 +14,7 @@ import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 import { DemoModeProvider } from "@/contexts/DemoModeContext";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
-import AgentCommandDialog from "@/components/AgentCommandDialog";
+import SettingsCommandDialog from "@/components/SettingsCommandDialog";
 import { RequireStaff } from "@/components/RequireStaff";
 import { RequireLearner } from "@/components/RequireLearner";
 import { SessionProvider } from "@/contexts/SessionProvider";
@@ -115,7 +115,6 @@ const ElearningIntegrations = lazy(() => import("./pages/ElearningIntegrations")
 const LessonBuilderPage = lazy(() => import("./pages/LessonBuilderPage"));
 const Reseau = lazy(() => import("./pages/Reseau"));
 const Watch = lazy(() => import("./pages/Watch"));
-const AgentChat = lazy(() => import("./pages/AgentChat"));
 const SuperTilt = lazy(() => import("./pages/SuperTilt"));
 const WebAnalytics = lazy(() => import("./pages/WebAnalytics"));
 const Finances = lazy(() => import("./pages/Finances"));
@@ -195,7 +194,7 @@ const App = () => {
       <BrowserRouter>
         <SessionProvider>
         <PageViewTracker />
-        <AgentCommandDialog />
+        <SettingsCommandDialog />
         <Suspense fallback={<PageLoader />}>
           <RouteErrorBoundary>
             <Routes>
@@ -262,7 +261,7 @@ const App = () => {
               {/* Back-office routes — staff only, learners redirected to /espace-apprenant */}
               <Route element={<RequireStaff />}>
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/agent" element={<AgentChat />} />
+                <Route path="/agent" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/certificates" element={<CertificateGenerator />} />
                 <Route path="/micro-devis" element={<MicroDevis />} />
                 <Route path="/historique" element={<Historique />} />

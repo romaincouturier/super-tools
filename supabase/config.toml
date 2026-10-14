@@ -142,9 +142,6 @@ verify_jwt = false
 [functions.send-event-share-email]
 verify_jwt = false
 
-[functions.record-db-size]
-verify_jwt = false
-
 [functions.generate-convention-formation]
 verify_jwt = false
 
@@ -706,9 +703,6 @@ verify_jwt = true
 
 [functions.upload-idea-file]
 verify_jwt = true
-
-[functions.test-sheet-append]
-verify_jwt = false
 
 [functions.update-ticket-coding-status]
 verify_jwt = false

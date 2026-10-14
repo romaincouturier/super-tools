@@ -6,7 +6,6 @@ export interface AddParticipantResponse {
   ongoing: boolean;
   welcomeSent: boolean;
   welcomeFailed: boolean;
-  welcomeScheduled: boolean;
   needsSurveyScheduled: boolean;
   trainerSummaryScheduled: boolean;
   attendanceCatchUp: { sentSlots: number; errors: number } | null;

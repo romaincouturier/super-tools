@@ -1,0 +1,6 @@
+[workflow]
+persistent_facts = [
+  "file:{project-root}/AGENTS.md",
+  "Avant de coder, lire les règles de IMPROVEMENTS.md qui touchent les fichiers modifiés : ce sont des invariants.",
+  "Avant tout commit : bash scripts/check-rules.sh, npm run typecheck, npm test. Corriger toute violation, ne jamais la contourner.",
+]

@@ -10,9 +10,9 @@ Lire ces documents dans cet ordre :
 
 1. [README.md](./README.md)
 2. [PRD.md](./PRD.md)
-3. [docs/cleanup-plan.md](./docs\cleanup-plan.md)
+3. [docs/cleanup-plan.md](./docs/cleanup-plan.md)
 4. [IMPROVEMENTS.md](./IMPROVEMENTS.md)
-5. [docs/architecture.md](./docs\architecture.md)
+5. [docs/architecture.md](./docs/architecture.md)
 
 ## Ce qu'on attend d'une bonne contribution
 
@@ -145,8 +145,8 @@ Les documents de référence sont :
 
 - [README.md](./README.md)
 - [PRD.md](./PRD.md)
-- [docs/architecture.md](./docs\architecture.md)
-- [docs/cleanup-plan.md](./docs\cleanup-plan.md)
+- [docs/architecture.md](./docs/architecture.md)
+- [docs/cleanup-plan.md](./docs/cleanup-plan.md)
 
 ## Règles de style utiles
 

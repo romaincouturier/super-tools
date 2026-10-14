@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
-import { Bug, Lightbulb, Sparkles, Copy, Check, Bot, GitBranch } from "lucide-react";
+import { Bug, Lightbulb, Sparkles, Copy, Check, GitBranch } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
 import {
   SUPPORT_COLUMNS,
@@ -39,7 +38,6 @@ interface Props {
 }
 
 export default function TicketDetail({ ticket, onUpdate }: Props) {
-  const navigate = useNavigate();
   const typeConf = TICKET_TYPE_CONFIG[ticket.type];
   const [resolutionNotes, setResolutionNotes] = useState(ticket.resolution_notes || "");
   const [description, setDescription] = useState(ticket.description || "");
@@ -129,15 +127,6 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
           </Badge>
           <span className="text-sm font-mono text-muted-foreground">{ticket.ticket_number}</span>
           <div className="flex items-center gap-1 ml-auto">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 gap-1.5 text-xs"
-              onClick={() => navigate(`/agent?q=${encodeURIComponent(`Analyse le ticket support "${ticket.title}" (${ticket.ticket_number}) : description, statut, et propose une solution ou prochaine action.`)}`)}
-              title="Demander à l'agent"
-            >
-              <Bot className="h-3.5 w-3.5" />
-            </Button>
             <Button variant="ghost" size="sm" className="h-7 px-2 gap-1.5 text-xs" onClick={handleCopyAll}>
               {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? "Copié" : "Tout copier"}

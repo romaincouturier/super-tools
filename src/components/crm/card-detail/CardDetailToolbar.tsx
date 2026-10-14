@@ -12,10 +12,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { X, Calendar, CalendarPlus, MoreVertical, Wand2, ChevronDown, Trophy, XCircle, Undo2, Calculator, Bot, UserPlus } from "lucide-react";
+import { X, Calendar, CalendarPlus, MoreVertical, Wand2, ChevronDown, Trophy, XCircle, Undo2, Calculator, UserPlus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
 import { useFeatureTracking } from "@/hooks/useFeatureTracking";
 import type { CardDetailState, CardDetailHandlers } from "./types";
 import { useDemoMode } from "@/contexts/DemoModeContext";
@@ -29,7 +28,6 @@ interface Props {
 
 const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
   const { trackFeature } = useFeatureTracking();
-  const navigate = useNavigate();
   const { isDemoMode } = useDemoMode();
   const {
     card: _card, allColumns, columnId, estimatedValue, setEstimatedValue,
@@ -54,14 +52,6 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
           <DropdownMenuItem onClick={() => { trackFeature("ai_suggestion", "crm"); handlers.handleSuggestNextAction(); }} disabled={nextActionSuggesting}>
             {nextActionSuggesting ? <Spinner className="mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
             Suggestion IA
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => {
-            const cardTitle = state.title || "cette carte";
-            const cardId = state.card.id;
-            navigate(`/agent?q=${encodeURIComponent(`Analyse la carte CRM "${cardTitle}" (id: ${cardId}) et donne-moi un résumé complet : historique, emails, commentaires, prochaines actions recommandées.`)}`);
-          }}>
-            <Bot className="h-4 w-4 mr-2" />
-            Demander à l'agent
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => { trackFeature("new_opportunity_from_contact", "crm"); handlers.handleCreateOpportunityFromContact(); }}>
             <UserPlus className="h-4 w-4 mr-2" />

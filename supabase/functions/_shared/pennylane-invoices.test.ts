@@ -49,8 +49,8 @@ describe("buildMissionInvoicePayload", () => {
     const payload = buildMissionInvoicePayload(ACTIVITIES, 42, "FR_200", "2026-09-23");
     expect(payload).toMatchObject({ customer_id: 42, date: "2026-09-23", deadline: "2026-10-23", currency: "EUR", draft: true });
     expect(payload.invoice_lines).toEqual([
-      { label: "Atelier de cadrage", description: "02/09/2026 · 1 jour", quantity: 1, raw_currency_unit_price: "1450.00", vat_rate: "FR_200" },
-      { label: "Restitution", description: "10/09/2026 · 3,5 h", quantity: 1, raw_currency_unit_price: "600.00", vat_rate: "FR_200" },
+      { label: "Atelier de cadrage", description: "02/09/2026 · 1 jour", quantity: 1, raw_currency_unit_price: "1450.00", vat_rate: "FR_200", unit: "piece" },
+      { label: "Restitution", description: "10/09/2026 · 3,5 h", quantity: 1, raw_currency_unit_price: "600.00", vat_rate: "FR_200", unit: "piece" },
     ]);
   });
 

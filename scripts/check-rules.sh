@@ -141,8 +141,10 @@ if [ "$STAGED_MODE" = "true" ]; then
   check "017" "Utiliser <Spinner> au lieu de <Loader2 animate-spin> (lignes ajoutées)" \
     "search_added_lines '<Loader2[^>]*animate-spin' | grep -v 'components/ui/spinner.tsx'"
 
+  # useEdgeFunction est un hook React : la règle ne vise que le front, comme le
+  # ratchet [020] du mode complet, qui ne compte que src/.
   check "020" "Préférer useEdgeFunction() au lieu de supabase.functions.invoke() inline (lignes ajoutées)" \
-    "search_added_lines 'supabase\\.functions\\.invoke' | grep -v 'src/services/' | grep -v 'src/lib/' | grep -v 'src/hooks/useEdgeFunction.ts'"
+    "search_added_lines 'supabase\\.functions\\.invoke' | grep -v '^supabase/functions/' | grep -v 'src/services/' | grep -v 'src/lib/' | grep -v 'src/hooks/useEdgeFunction.ts'"
 fi
 
 # ==========================================================
@@ -306,9 +308,10 @@ check "040" "Évaluations : filtre formation côté client (pas de refetch .eq(t
   "grep -n 'eq(\"training_id\"' src/pages/Evaluations.tsx; grep -q 'trainingOptions' src/pages/Evaluations.tsx || echo 'VIOLATION: trainingOptions absent de src/pages/Evaluations.tsx'"
 
 # [041] Agent — chaque extracteur d'indexation doit apparaître dans la liste
-# source_types du tool search_content de agent-chat (référentiels synchronisés).
-check "041" "Agent : extracteurs index-documents tous listés dans source_types de agent-chat" \
-  "st_line=\$(grep -A2 'Optional filter by source type' supabase/functions/agent-chat/index.ts); for ex in \$(grep -oE '^  async [a-z_]+\(' supabase/functions/index-documents/index.ts | sed 's/  async //;s/(//'); do echo \"\$st_line\" | grep -qE \"(: |, )\$ex(,|\\\"|\$)\" || echo \"VIOLATION: extracteur '\$ex' absent de source_types dans agent-chat\"; done"
+# source_types du tool search_content du serveur MCP (référentiels synchronisés).
+# agent-chat est gelé depuis le 2026-09-28 : le connecteur MCP est l'agent.
+check "041" "Agent : extracteurs index-documents tous listés dans source_types du serveur MCP" \
+  "st_line=\$(grep 'Optional filter: crm_card' supabase/functions/mcp-server/index.ts); for ex in \$(grep -oE '^  async [a-z_]+\(' supabase/functions/index-documents/index.ts | sed 's/  async //;s/(//'); do echo \"\$st_line\" | grep -qE \"(: |, )\$ex(,|\\\"|\$)\" || echo \"VIOLATION: extracteur '\$ex' absent de source_types dans mcp-server\"; done"
 
 # [041b] Agent — le prompt de schéma doit rester généré depuis le catalogue
 # PostgreSQL. Une liste de colonnes figée dérive (422 colonnes manquantes
@@ -519,6 +522,13 @@ if [ "$STAGED_MODE" = "false" ]; then
   # dynamique (await import). Voir règle [062] d'IMPROVEMENTS.md.
   check "064" "Pas d'import statique de supabase-client dans _shared/cron-auth.ts" \
     "grep -nE '^import .*from \"\\./supabase-client' supabase/functions/_shared/cron-auth.ts"
+
+  # [064b] Les dossiers joués par vitest n'acceptent pas de test écrit pour
+  # Deno : Deno.test et un import https (deno.land/std) cassent le chargement
+  # du fichier (« no tests »). Cinq fichiers ainsi poussés sur main ont mis la
+  # CI au rouge entre le 28/09 et le 10/10/2026.
+  check "064b" "Pas de test Deno (Deno.test, import https) dans les dossiers joués par vitest" \
+    "grep -rnE 'Deno\\.test\\(|^import .* from \"(https://|jsr:)' --include='*.test.ts' --include='*.test.tsx' src supabase/functions/_shared supabase/tests 2>/dev/null"
 
   # [044] Aucun CREATE POLICY ne doit lire auth.users : le rôle `authenticated`
   # n'a pas SELECT dessus, la policy échoue en 403 / 42501 et l'écran reste vide

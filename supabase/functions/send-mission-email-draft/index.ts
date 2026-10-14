@@ -6,14 +6,19 @@
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { getSupabaseClient, sendEmail, corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/mod.ts";
+import { getSupabaseClient, sendEmail, corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/mod.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
+import { isStaffCaller } from "../_shared/cron-auth.ts";
 
 const VERSION = "send-mission-email-draft@1.0.0";
 
 serve(async (req: Request) => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
+
+  if (!(await isStaffCaller(req, "missions"))) {
+    return createErrorResponse("Unauthorized", 401);
+  }
 
   try {
     const body = await req.json();
