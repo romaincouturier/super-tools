@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useActiveFormationConfigs } from "@/hooks/useFormationConfigs";
 import CourseIntegrationStatus from "@/components/lms/CourseIntegrationStatus";
+import CourseCoverField from "@/components/lms/CourseCoverField";
+import { uploadCourseCover } from "@/lib/lmsCourseCover";
 
 const NO_EXPERTISE = "none";
 const NO_FORMATION = "none";
@@ -29,6 +31,9 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
   const [status, setStatus] = useState("draft");
   const [isFeatured, setIsFeatured] = useState(false);
   const [formationConfigId, setFormationConfigId] = useState(NO_FORMATION);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
   const { data: formationConfigs = [] } = useActiveFormationConfigs();
 
   useEffect(() => {
@@ -39,13 +44,20 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
     setStatus(course.status);
     setIsFeatured(course.is_featured ?? false);
     setFormationConfigId(course.formation_config_id ?? NO_FORMATION);
+    setCoverUrl(course.cover_image_url ?? null);
+    setCoverFile(null);
   }, [course]);
 
   const handleSave = async () => {
-    if (!course) return;
+    if (!course || saving) return;
+    setSaving(true);
     try {
+      const imageUrl = coverFile ? await uploadCourseCover(coverFile, course.id) : coverUrl;
+      setCoverUrl(imageUrl);
+      setCoverFile(null);
       await updateCourse.mutateAsync({
         id: course.id,
+        cover_image_url: imageUrl,
         description: description.trim() || null,
         expertise: expertise === NO_EXPERTISE ? null : expertise,
         access_type: access,
@@ -57,16 +69,25 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
       onClose();
     } catch (err) {
       toastError(toast, err);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <Dialog open={!!course} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="w-full sm:max-w-lg">
+    <Dialog open={!!course} onOpenChange={(o) => { if (!o && !saving) onClose(); }}>
+      <DialogContent className="max-h-[90dvh] w-full overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Paramètres du cours</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <CourseCoverField
+            key={course?.id}
+            url={coverUrl}
+            file={coverFile}
+            disabled={saving}
+            onChange={(url, file) => { setCoverUrl(url); setCoverFile(file); }}
+          />
           <div>
             <Label>Description courte</Label>
             <Textarea
@@ -138,8 +159,8 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
             <Switch id="course-featured" checked={isFeatured} onCheckedChange={setIsFeatured} />
           </div>
           {course && <CourseIntegrationStatus courseId={course.id} />}
-          <Button onClick={handleSave} disabled={updateCourse.isPending} className="w-full">
-            {updateCourse.isPending ? "Enregistrement..." : "Enregistrer"}
+          <Button onClick={handleSave} disabled={saving} className="w-full">
+            {saving ? "Enregistrement..." : "Enregistrer"}
           </Button>
         </div>
       </DialogContent>
