@@ -635,7 +635,7 @@ const MCP_TOOLS = [
   {
     name: "update_mission",
     description:
-      "Update the main fields of an existing mission in SuperTools. Pass the mission id and only the fields to change: everything else is left untouched (null clears a date, amount or contact). Editable: title, status, start_date, end_date, initial_amount, client_name, client_contact. Cannot delete a mission. The answer returns the mission before and after the change.",
+      "Update the main fields of an existing mission in SuperTools. Pass the mission id and only the fields to change: everything else is left untouched (null clears a date, amount or contact). Editable: title, status, start_date, end_date, initial_amount, client_name, client_contact, waiting_next_action_text, waiting_next_action_date (the scheduled next action shown in the daily recap). Cannot delete a mission. The answer returns the mission before and after the change.",
     inputSchema: {
       type: "object",
       properties: {
@@ -647,6 +647,8 @@ const MCP_TOOLS = [
         initial_amount: { type: ["number", "null"], description: "Initial amount in euros excl. tax, or null to clear" },
         client_name: { type: ["string", "null"], description: "Client name" },
         client_contact: { type: ["string", "null"], description: "Client contact (free text)" },
+        waiting_next_action_text: { type: ["string", "null"], description: "Scheduled next action text, or null to clear" },
+        waiting_next_action_date: { type: ["string", "null"], description: "Scheduled next action date YYYY-MM-DD, or null to clear" },
       },
       required: ["mission_id"],
     },
