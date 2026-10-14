@@ -382,12 +382,27 @@ export function useSubmitQuizAttempt() {
 
 // ---- Progress mutations ----
 
+export class LearnerSessionExpiredError extends Error {
+  constructor() {
+    super("Votre session a expiré : reconnectez-vous pour enregistrer votre progression.");
+    this.name = "LearnerSessionExpiredError";
+  }
+}
+
 export function useMarkLessonComplete() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { course_id: string; lesson_id: string; learner_email: string }) => {
       const client = supabase;
-      const { data, error } = await client
+      // Les policies de lms_progress identifient l'apprenant par le JWT : sans
+      // session valide (jeton expiré, lien ?email= ouvert hors connexion),
+      // l'écriture est refusée en 42501. On rafraîchit la session et on retente.
+      const { data: { session } } = await client.auth.getSession();
+      if (!session || (session.expires_at ?? 0) * 1000 < Date.now() + 30_000) {
+        const { data: refreshed } = await client.auth.refreshSession();
+        if (!refreshed.session) throw new LearnerSessionExpiredError();
+      }
+      const write = () => client
         .from("lms_progress")
         .upsert(
           {
@@ -402,6 +417,13 @@ export function useMarkLessonComplete() {
         )
         .select()
         .single();
+      let { data, error } = await write();
+      if (error?.code === "42501") {
+        const { data: refreshed } = await client.auth.refreshSession();
+        if (!refreshed.session) throw new LearnerSessionExpiredError();
+        ({ data, error } = await write());
+        if (error?.code === "42501") throw new LearnerSessionExpiredError();
+      }
       if (error) throw error;
       return data;
     },
