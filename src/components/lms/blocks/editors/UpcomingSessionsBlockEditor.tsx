@@ -1,10 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import RichTextEditor from "@/components/content/RichTextEditor";
-import { supabase } from "@/integrations/supabase/client";
+import { useFormationCatalogOptions } from "@/hooks/useLmsUpcomingSessions";
 import type { UpcomingSessionsBlockContent } from "@/types/lms-blocks";
 import UpcomingSessionsBlockViewer from "../viewers/UpcomingSessionsBlockViewer";
 
@@ -15,14 +14,7 @@ interface Props {
 }
 
 export default function UpcomingSessionsBlockEditor({ content, onChange, slim }: Props) {
-  const { data: catalog = [] } = useQuery({
-    queryKey: ["lms-upcoming-sessions-catalog"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("formation_configs").select("id, formation_name").order("formation_name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const { data: catalog = [] } = useFormationCatalogOptions();
   const ids = content.catalog_ids ?? [];
   const set = (patch: Partial<UpcomingSessionsBlockContent>) => onChange({ ...content, ...patch });
   const text = (k: keyof UpcomingSessionsBlockContent, label: string, placeholder?: string) => (

@@ -1,9 +1,8 @@
 import DOMPurify from "dompurify";
-import { useQuery } from "@tanstack/react-query";
 import { ArrowRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useLmsUpcomingSessions } from "@/hooks/useLmsUpcomingSessions";
 import type { UpcomingSessionsBlockContent } from "@/types/lms-blocks";
-import { extractCity, formatSessionDays, type UpcomingSessionRow } from "@/lib/lmsUpcomingSessions";
+import { extractCity, formatSessionDays } from "@/lib/lmsUpcomingSessions";
 
 interface Props {
   content: UpcomingSessionsBlockContent;
@@ -14,28 +13,10 @@ const YELLOW = "#FFD100";
 const INK = "#101820";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function useUpcomingSessions(catalogIds: string[], maxItems: number) {
-  return useQuery({
-    queryKey: ["lms-upcoming-sessions", catalogIds.join(","), maxItems],
-    enabled: catalogIds.length > 0,
-    staleTime: 5 * 60_000,
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rpc = supabase.rpc as any;
-      const [{ data, error }, page] = await Promise.all([
-        rpc("get_lms_upcoming_sessions", { _catalog_ids: catalogIds, _max_items: maxItems }),
-        rpc("get_lms_catalog_page_url", { _catalog_id: catalogIds[0] }),
-      ]);
-      if (error) throw error;
-      return { sessions: (data ?? []) as UpcomingSessionRow[], pageUrl: (page?.data as string | null) ?? null };
-    },
-  });
-}
-
 function SessionsCard({ content }: Props) {
   const ids = (content.catalog_ids ?? []).filter((id) => UUID_RE.test(id));
   const max = Math.min(Math.max(Number(content.max_items) || 4, 1), 20);
-  const { data, isLoading, isError } = useUpcomingSessions(ids, max);
+  const { data, isLoading, isError } = useLmsUpcomingSessions(ids, max);
   const title = content.title ?? "📍 Prochaines sessions";
   const fallbackUrl = content.fallback_url || data?.pageUrl || null;
 
