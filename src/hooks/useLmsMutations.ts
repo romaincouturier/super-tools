@@ -80,6 +80,7 @@ export function useUpdateCourse() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["lms-courses"] });
       qc.invalidateQueries({ queryKey: ["lms-course", vars.id] });
+      qc.invalidateQueries({ queryKey: ["academy-catalog"] });
     },
   });
 }
