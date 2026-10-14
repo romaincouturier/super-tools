@@ -141,6 +141,8 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   download_button: { label: "Bouton de téléchargement", description: "Bouton qui télécharge le document signé.", sample: "[Télécharger le document]", isBlock: true },
   opportunity_block: { label: "Encadré opportunité", description: "Informations sur l'opportunité commerciale liée au devis.", sample: "Opportunité : Acme - Facilitation", isBlock: true },
   contrat_reference: { label: "Référence du contrat", description: "Numéro du contrat de location signé.", sample: "LOC-2026-014" },
+  game_name: { label: "Nom du jeu", description: "Nom du jeu loué, concerné par le contrat de location.", sample: "Pictodico" },
+  expires_at: { label: "Date d'expiration du lien", description: "Date jusqu'à laquelle le lien de signature reste valable, formatée en français.", sample: "24 octobre 2026" },
   items_list: { label: "Jeux du devis", description: "Liste des jeux figurant sur le devis.", sample: "Pictodico x2, Echo x1", isBlock: true },
   note: { label: "Note", description: "Note facultative ajoutée au devis ; le texte entre {{#note}} et {{/note}} n'apparaît que si elle existe.", sample: "Livraison sous 5 jours" },
 

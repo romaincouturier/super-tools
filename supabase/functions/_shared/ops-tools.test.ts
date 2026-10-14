@@ -12,7 +12,6 @@ const {
   addSupportNote,
   updateTicketStatus,
   addContentCard,
-  updateMission,
   updateQuoteStatus,
 } = await import("./ops-tools.ts");
 
@@ -97,22 +96,6 @@ describe("addContentCard", () => {
   it("refuse une colonne inexistante sans rien écrire", async () => {
     const { db, calls } = makeDb({}, columns);
     await expect(addContentCard(db, { title: "A", column: "zzz" }, log, ID)).rejects.toThrow("Colonne introuvable");
-    expect(calls).toHaveLength(0);
-  });
-});
-
-describe("updateMission", () => {
-  it("n'écrit que les champs autorisés", async () => {
-    const { db, calls } = makeDb({ missions: { id: ID, title: "M", status: "in_progress" } });
-    await updateMission(db, { mission_id: ID, status: "completed", initial_amount: 99999 }, log);
-    expect(calls[0].payload).toMatchObject({ status: "completed" });
-    expect(calls[0].payload).not.toHaveProperty("initial_amount");
-  });
-
-  it("refuse un appel sans champ modifiable ou avec un statut inconnu", async () => {
-    const { db, calls } = makeDb({ missions: { id: ID } });
-    await expect(updateMission(db, { mission_id: ID, daily_rate: 1 }, log)).rejects.toThrow("Aucun champ");
-    await expect(updateMission(db, { mission_id: ID, status: "done" }, log)).rejects.toThrow("invalide");
     expect(calls).toHaveLength(0);
   });
 });

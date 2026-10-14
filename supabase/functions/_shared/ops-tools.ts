@@ -1,6 +1,6 @@
 /**
  * Outils MCP repris de l'agent intégré (agent-chat) avant son gel : bilan
- * d'activité, tickets support, cartes de contenu, missions et statut de devis.
+ * d'activité, tickets support, cartes de contenu et statut de devis.
  * Chaque écriture ne modifie que les champs transmis et relit la ligne écrite.
  */
 
@@ -12,22 +12,7 @@ type Log = (message: string) => Promise<void>;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const TICKET_STATUSES = ["nouveau", "qualification", "vibe_coding", "resolu"] as const;
-export const MISSION_STATUSES = ["not_started", "in_progress", "completed", "cancelled"] as const;
 export const QUOTE_STATUSES = ["draft", "generated", "sent", "signed", "expired", "canceled"] as const;
-
-// Une mission porte aussi des montants et des dates de facturation : seuls ces
-// champs sont modifiables depuis le connecteur.
-export const MISSION_FIELDS = [
-  "title",
-  "description",
-  "client_contact",
-  "status",
-  "start_date",
-  "end_date",
-  "tags",
-  "waiting_next_action_date",
-  "waiting_next_action_text",
-] as const;
 
 function requireUuid(value: unknown, name: string): string {
   if (typeof value !== "string" || !UUID_RE.test(value)) throw new Error(`${name} doit être un UUID`);
@@ -146,35 +131,6 @@ export async function addContentCard(
   if (error) throw new Error(error.message);
   await log(`add_content_card ${data.id}`);
   return JSON.stringify({ success: true, card: { ...data, column: column.name } });
-}
-
-export async function updateMission(
-  db: Db,
-  args: Record<string, unknown>,
-  log: Log,
-): Promise<string> {
-  const id = requireUuid(args.mission_id, "mission_id");
-  const updates: Record<string, unknown> = {};
-  for (const field of MISSION_FIELDS) {
-    if (args[field] !== undefined) updates[field] = args[field];
-  }
-  if (Object.keys(updates).length === 0) {
-    throw new Error(`Aucun champ modifiable fourni. Champs autorisés : ${MISSION_FIELDS.join(", ")}`);
-  }
-  if (updates.status !== undefined) requireOneOf(updates.status, MISSION_STATUSES, "status");
-
-  const before = await readBack(db, "missions", id, Object.keys(updates).join(", "));
-  const { error } = await db
-    .from("missions")
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  await log(`update_mission ${id} (${Object.keys(updates).join(", ")})`);
-  return JSON.stringify({
-    success: true,
-    previous: before,
-    mission: await readBack(db, "missions", id, [...new Set(["id", "title", ...Object.keys(updates), "updated_at"])].join(", ")),
-  });
 }
 
 export async function updateQuoteStatus(
