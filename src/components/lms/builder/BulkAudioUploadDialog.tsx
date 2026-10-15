@@ -532,6 +532,17 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
                   {audio.status === "error" && (
                     <span className="text-xs text-destructive shrink-0">Transcription échouée</span>
                   )}
+                  {audio.status === "done" && audio.transcript && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs shrink-0"
+                      onClick={() => downloadTranscript(audio.file.name, audio.transcript)}
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                      Transcript
+                    </Button>
+                  )}
                 </div>
                 {audio.status === "error" && audio.error && (
                   <p className="text-xs text-destructive/80 whitespace-pre-wrap break-words font-mono">{audio.error}</p>
