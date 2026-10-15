@@ -421,7 +421,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
               onClick={() => fileInputRef.current?.click()}
             >
               {uploading ? (
-                <><Spinner /><p className="text-sm text-muted-foreground">Upload en cours…</p></>
+                <><Spinner /><p className="text-sm text-muted-foreground">{currentAction ?? "Upload en cours…"}</p></>
               ) : (
                 <>
                   <Upload className="h-10 w-10 text-muted-foreground/50" />
