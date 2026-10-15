@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 import { useState, useRef, useCallback } from "react";
 import { Mic, Upload, ChevronDown, Loader2, CheckCircle2, AlertCircle, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -217,6 +218,9 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
             throw new Error(`Upload de "${file.name}" a échoué : ${msg}`);
           }
         }
+
+        // Copie lisible des originaux dans Google Drive, sans bloquer l'import
+        void supabase.functions.invoke("archive-lms-audio", { body: {} }).catch(() => undefined);
 
         setAudios((prev) => [...prev, ...newItems]);
         setStep("transcribing");
