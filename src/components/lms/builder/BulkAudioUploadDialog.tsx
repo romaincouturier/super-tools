@@ -296,7 +296,9 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         }),
       );
       setStep("validate");
+      setCurrentAction(null);
     } catch (err) {
+      setCurrentAction(null);
       const msg = err instanceof Error ? err.message : "Erreur lors de l'analyse IA.";
       setGlobalError(`Analyse IA : ${msg}`);
       toastError(toast, msg);
@@ -313,6 +315,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
 
   const handleConfirm = async () => {
     setStep("confirming");
+    setCurrentAction("Création des blocs dans les leçons…");
     try {
       // Find or create "Ressources" lesson for segments without a target lesson
       let ressourcesLessonId: string | null = null;
@@ -378,6 +381,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
       resetAndClose();
     } catch (err) {
       setStep("validate");
+      setCurrentAction(null);
       toastError(toast, err instanceof Error ? err : "Erreur lors de la création des blocs.");
     }
   };
