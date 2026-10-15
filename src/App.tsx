@@ -58,7 +58,7 @@ const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
 const TrainingSupportPage = lazy(() => import("./pages/TrainingSupportPage"));
 const ChatbotAdmin = lazy(() => import("./pages/ChatbotAdmin"));
 const InboundEmails = lazy(() => import("./pages/InboundEmails"));
-const EmailsAValider = lazy(() => import("./pages/EmailsAValider"));
+const AvisADemander = lazy(() => import("./pages/AvisADemander"));
 const Crm = lazy(() => import("./pages/Crm"));
 const CrmReports = lazy(() => import("./pages/CrmReports"));
 const CrmTenders = lazy(() => import("./pages/CrmTenders"));
@@ -279,7 +279,8 @@ const App = () => {
                 <Route path="/contenu" element={<ContentBoard />} />
                 <Route path="/chatbot-admin" element={<ChatbotAdmin />} />
                 <Route path="/emails" element={<InboundEmails />} />
-                <Route path="/emails-a-valider" element={<EmailsAValider />} />
+                <Route path="/avis-a-demander" element={<AvisADemander />} />
+                <Route path="/emails-a-valider" element={<Navigate to="/avis-a-demander" replace />} />
                 <Route path="/emails-erreur" element={<FailedEmails />} />
                 <Route path="/web-analytics" element={<WebAnalytics />} />
                 <Route path="/crm" element={<Crm />} />
