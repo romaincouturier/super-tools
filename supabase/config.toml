@@ -743,3 +743,6 @@ verify_jwt = false
 
 [functions.send-location-signature-reminders]
 verify_jwt = false
+
+[functions.archive-lms-audio]
+verify_jwt = false
