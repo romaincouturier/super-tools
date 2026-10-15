@@ -38,11 +38,19 @@ export function useSirenSearch() {
       });
 
       if (response.error) {
-        const errorData = response.data;
-        if (errorData?.error) {
+        let apiError: string | undefined = response.data?.error;
+        if (!apiError) {
+          try {
+            const ctx = (response.error as { context?: Response })?.context;
+            if (ctx) apiError = (await ctx.json())?.error;
+          } catch {
+            // body not readable
+          }
+        }
+        if (apiError) {
           toast({
-            title: "Service temporairement indisponible",
-            description: `${errorData.error} Vous pouvez saisir les informations manuellement.`,
+            title: "Recherche SIREN",
+            description: `${apiError} Vous pouvez saisir les informations manuellement.`,
             variant: "default",
           });
         } else {
