@@ -42,13 +42,16 @@ serve(async (req: Request) => {
         contact_name: [c.first_name, c.last_name].filter(Boolean).join(" ") || null,
         source: "auto",
       }));
-      if (rows.length === 0) continue;
-      const { error: insErr } = await (supabase as any)
-        .from("testimonial_requests")
-        .upsert(rows, { onConflict: "mission_id,contact_email", ignoreDuplicates: true });
+      const { data: existing } = await (supabase as any)
+        .from("testimonial_requests").select("contact_email").eq("mission_id", mission.id);
+      const seen = new Set((existing || []).map((e: any) => String(e.contact_email).toLowerCase()));
+      const fresh = rows.filter((r: any) => !seen.has(r.contact_email.toLowerCase()) && seen.add(r.contact_email.toLowerCase()));
+      const { error: insErr } = fresh.length
+        ? await (supabase as any).from("testimonial_requests").insert(fresh)
+        : { error: null };
       if (insErr) { console.error(`mission ${mission.id}:`, insErr.message); continue; }
       await (supabase as any).from("missions").update({ testimonial_status: "completed" }).eq("id", mission.id);
-      created += rows.length;
+      created += fresh.length;
     }
     return json({ success: true, signalsCreated: created });
   } catch (e) {
