@@ -108,6 +108,24 @@ interface AudioItem {
 
 type Step = "upload" | "transcribing" | "validate" | "confirming";
 
+/** Indicateur d'action en cours, façon agent IA (libellé + points animés). */
+function ActivityIndicator({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-lg border bg-muted/40 px-3 py-2.5 mb-3">
+      <span className="flex gap-1 shrink-0">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce"
+            style={{ animationDelay: `${i * 150}ms` }}
+          />
+        ))}
+      </span>
+      <span className="text-sm text-muted-foreground truncate">{label}</span>
+    </div>
+  );
+}
+
 /** Recolle les segments d'un audio en un seul, quand le découpage IA ne convient pas. */
 function mergeSegments(segments: AudioSegment[]): AudioSegment[] {
   if (segments.length <= 1) return segments;
@@ -144,12 +162,14 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
   const [uploading, setUploading] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [currentAction, setCurrentAction] = useState<string | null>(null);
 
   const resetAndClose = () => {
     setStep("upload");
     setAudios([]);
     setGlobalError(null);
     setUploadError(null);
+    setCurrentAction(null);
     onClose();
   };
 
@@ -171,6 +191,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
       try {
         for (const file of audioFiles) {
           try {
+            setCurrentAction(`Envoi de ${file.name}…`);
             const url = await uploadMediaFile(file, "lms", courseId);
             const media = await addMedia.mutateAsync({
               file_url: url,
@@ -221,6 +242,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
 
     for (let i = 0; i < updated.length; i++) {
       try {
+        setCurrentAction(`Transcription de ${updated[i].file.name} (${i + 1}/${updated.length})…`);
         const transcript = await transcribeAudio(updated[i].url);
         if (!transcript || !transcript.trim()) {
           updated[i] = {
@@ -261,6 +283,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
     }
 
     try {
+      setCurrentAction("Analyse IA des sujets et affectation aux leçons…");
       const assignments = await analyzeAudioForLessons(
         successAudios.map((a) => ({ id: a.id, file_name: a.file.name, text: a.transcript })),
         allLessons,
@@ -274,7 +297,9 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         }),
       );
       setStep("validate");
+      setCurrentAction(null);
     } catch (err) {
+      setCurrentAction(null);
       const msg = err instanceof Error ? err.message : "Erreur lors de l'analyse IA.";
       setGlobalError(`Analyse IA : ${msg}`);
       toastError(toast, msg);
@@ -291,6 +316,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
 
   const handleConfirm = async () => {
     setStep("confirming");
+    setCurrentAction("Création des blocs dans les leçons…");
     try {
       // Find or create "Ressources" lesson for segments without a target lesson
       let ressourcesLessonId: string | null = null;
@@ -356,6 +382,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
       resetAndClose();
     } catch (err) {
       setStep("validate");
+      setCurrentAction(null);
       toastError(toast, err instanceof Error ? err : "Erreur lors de la création des blocs.");
     }
   };
@@ -394,7 +421,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
               onClick={() => fileInputRef.current?.click()}
             >
               {uploading ? (
-                <><Spinner /><p className="text-sm text-muted-foreground">Upload en cours…</p></>
+                <><Spinner /><p className="text-sm text-muted-foreground">{currentAction ?? "Upload en cours…"}</p></>
               ) : (
                 <>
                   <Upload className="h-10 w-10 text-muted-foreground/50" />
@@ -411,9 +438,13 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         {/* Transcription progress */}
         {step === "transcribing" && (
           <div className="flex-1 overflow-y-auto space-y-2 py-2">
-            <p className="text-sm text-muted-foreground mb-3">
-              Transcription en cours… L'analyse IA démarrera une fois tous les audios traités.
-            </p>
+            {currentAction ? (
+              <ActivityIndicator label={currentAction} />
+            ) : (
+              <p className="text-sm text-muted-foreground mb-3">
+                Transcription en cours… L'analyse IA démarrera une fois tous les audios traités.
+              </p>
+            )}
             {globalError && (
               <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-2 mb-2">
                 <div className="flex items-start gap-2">
@@ -457,9 +488,13 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         {/* Validation */}
         {(step === "validate" || step === "confirming") && (
           <div className="flex-1 overflow-y-auto space-y-4 pr-1 py-2">
-            <p className="text-sm text-muted-foreground">
-              Vérifiez et ajustez le texte et l'affectation de chaque audio avant de créer les blocs.
-            </p>
+            {step === "confirming" && currentAction ? (
+              <ActivityIndicator label={currentAction} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Vérifiez et ajustez le texte et l'affectation de chaque audio avant de créer les blocs.
+              </p>
+            )}
             {audios.map((audio, idx) => (
               <div key={audio.id} className="border rounded-lg p-4 space-y-3">
                 <div className="flex items-center gap-2">
