@@ -28,6 +28,7 @@ function moduleLabelFromPageUrl(pageUrl: string | null | undefined): string | nu
     "contenu": "contenu",
     "emails": "emails",
     "emails-a-valider": "emails",
+    "avis-a-demander": "emails",
     "emails-erreur": "emails",
     "web-analytics": "web_analytics",
     "crm": "crm",

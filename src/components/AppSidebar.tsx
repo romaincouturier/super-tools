@@ -445,11 +445,11 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
         {hasAccess("emails") && (
           <RailItem
             icon={MailCheck}
-            label="Emails à valider"
-            active={isActive("/emails-a-valider")}
+            label="Avis à demander"
+            active={isActive("/avis-a-demander")}
             showLabels={showLabels}
             alert={emailDraftsAlert}
-            onClick={() => go("/emails-a-valider")}
+            onClick={() => go("/avis-a-demander")}
           />
         )}
       </div>

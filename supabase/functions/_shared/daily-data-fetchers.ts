@@ -1179,37 +1179,33 @@ export async function fetchOkrInitiatives(supabase: SupabaseClient): Promise<Okr
 /**
  * Fetch pending mission email drafts awaiting validation by the comms manager.
  */
+/** Signaux « demander un avis / témoignage » encore à faire (remplacent les brouillons d'emails). */
 export async function fetchPendingEmailDrafts(supabase: SupabaseClient): Promise<MissionEmailDraftItem[]> {
-  const { data: drafts, error } = await supabase
-    .from("mission_email_drafts")
-    .select("id, mission_id, email_type, contact_email, contact_name, subject, created_at, status, scheduled_for")
-    .in("status", ["pending", "scheduled"])
+  const { data: rows, error } = await (supabase as any)
+    .from("testimonial_requests")
+    .select("id, mission_id, contact_email, contact_name, created_at, status")
+    .eq("status", "todo")
+    .not("mission_id", "is", null)
     .order("created_at", { ascending: true });
-
   if (error) {
     console.error("fetchPendingEmailDrafts error:", error.message);
     return [];
   }
-  if (!drafts || drafts.length === 0) return [];
-
-  const missionIds = [...new Set(drafts.map((d: any) => d.mission_id))];
-  const { data: missions } = await supabase
-    .from("missions")
-    .select("id, title")
-    .in("id", missionIds);
+  if (!rows || rows.length === 0) return [];
+  const missionIds = [...new Set(rows.map((d: any) => d.mission_id))];
+  const { data: missions } = await supabase.from("missions").select("id, title").in("id", missionIds);
   const missionMap = new Map((missions || []).map((m: any) => [m.id, m.title]));
-
-  return drafts.map((d: any) => ({
+  return rows.map((d: any) => ({
     id: d.id,
     missionId: d.mission_id,
     missionTitle: missionMap.get(d.mission_id) || "Mission",
-    emailType: d.email_type,
+    emailType: "testimonial",
     contactEmail: d.contact_email,
     contactName: d.contact_name,
-    subject: d.subject,
+    subject: "",
     createdAt: d.created_at?.slice(0, 10) || "",
     status: d.status,
-    scheduledFor: d.scheduled_for || null,
+    scheduledFor: null,
   }));
 }
 

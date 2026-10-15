@@ -2,7 +2,8 @@
 
 ## Récap quotidien (2026-10-15)
 - [x] Rubrique « Missions sans prochaine action » après « Missions — Actions à traiter »
-- [ ] Refonte avis Google / témoignages : analyse d’impact prête, en attente de validation du plan
+- [x] Avis missions : signaux au lieu d’emails, file des 21 convertie, écran « Avis à demander », outils MCP
+- [ ] Avis formations (emails automatiques par participant) : en attente de décision
 
 ## Couverture des cours LMS (2026-10-14)
 - [x] Import PNG/JPG/WebP, maximum 5 Mo, aperçu 16:9, remplacement et suppression

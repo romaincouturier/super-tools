@@ -612,20 +612,14 @@ serve(async (req) => {
         })
       );
 
-      // 17. Emails à valider (communication manager)
+      // 17. Avis / témoignages à demander (communication manager)
       const userEmailDrafts = data.pendingEmailDrafts.filter(() =>
         recipient.isAdmin || recipient.userId === commsManagerId
       );
       if (userEmailDrafts.length > 0) {
-        const typeLabels: Record<string, string> = { google_review: "Avis Google", video_testimonial: "Témoignage vidéo" };
-        add("📧", "Emails à valider", COLORS.teal,
-          userEmailDrafts.map(d => {
-            const typeLabel = typeLabels[d.emailType] || d.emailType;
-            const when = d.status === "scheduled" && d.scheduledFor
-              ? ` — programmé le ${formatDateFr(d.scheduledFor.slice(0, 10))}`
-              : "";
-            return `<li>${linkHtml(`${appUrl}/emails-a-valider`, `${d.missionTitle} — ${typeLabel}`)} — pour ${d.contactName || d.contactEmail}${when}</li>`;
-          })
+        add("🌟", "Avis / témoignages à demander", COLORS.teal,
+          userEmailDrafts.map(d =>
+            `<li>Demander un avis / témoignage à <strong>${d.contactName || d.contactEmail}</strong>${d.contactName && d.contactEmail ? ` (${d.contactEmail})` : ""} — ${linkHtml(`${appUrl}/missions/${d.missionId}`, `mission ${d.missionTitle}`)} · ${linkHtml(`${appUrl}/avis-a-demander`, "marquer comme fait")}</li>`)
         );
       }
 

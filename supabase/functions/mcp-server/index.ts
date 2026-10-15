@@ -870,6 +870,31 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "list_testimonial_requests",
+    description:
+      "List signals 'ask for a review / testimonial' (Google review, recommendation, written or video testimonial) to write by hand for a contact, with mission id/title. Default status todo. Use read tools on the mission for context, then mark_testimonial_request.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: ["todo", "done", "dismissed"], description: "Default todo" },
+        mission_id: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "mark_testimonial_request",
+    description: "Mark a testimonial request as done (request sent by hand) or dismissed, with an optional note. Returns before/after.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        status: { type: "string", enum: ["done", "dismissed", "todo"] },
+        note: { type: "string" },
+      },
+      required: ["id", "status"],
+    },
+  },
+  {
     name: "list_unassigned_transcripts",
     description:
       "List ready transcripts not yet assigned to any opportunity, mission, event or e-learning lesson, most recent first: id, title, date, source, summary excerpt. Use it to find which call belongs where, then assign_transcript.",
@@ -1976,6 +2001,29 @@ async function callTool(
       } catch (e) {
         return textResult(`Card error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
+    }
+    case "list_testimonial_requests": {
+      let q = (supabase as any).from("testimonial_requests")
+        .select("id, status, contact_name, contact_email, mission_id, note, done_at, created_at, missions(title, client_name)")
+        .eq("status", (args.status as string) || "todo").order("created_at").limit(200);
+      if (args.mission_id) q = q.eq("mission_id", args.mission_id);
+      const { data, error } = await q;
+      if (error) return textResult(`Error: ${error.message}`, true);
+      await log("list_testimonial_requests");
+      return textResult(JSON.stringify(data));
+    }
+    case "mark_testimonial_request": {
+      const status = args.status as string;
+      if (!["done", "dismissed", "todo"].includes(status)) return textResult("Invalid status", true);
+      const { data: before } = await (supabase as any).from("testimonial_requests").select("*").eq("id", args.id).maybeSingle();
+      if (!before) return textResult("Request not found", true);
+      const now = new Date().toISOString();
+      const patch: Record<string, unknown> = { status, updated_at: now, done_at: status === "todo" ? null : now };
+      if (typeof args.note === "string") patch.note = args.note;
+      const { data: after, error } = await (supabase as any).from("testimonial_requests").update(patch).eq("id", args.id).select("*").single();
+      if (error) return textResult(`Error: ${error.message}`, true);
+      await log("mark_testimonial_request");
+      return textResult(JSON.stringify({ before, after }));
     }
     case "list_unassigned_transcripts": {
       try {
