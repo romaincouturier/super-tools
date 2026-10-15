@@ -1465,13 +1465,16 @@ const MCP_TOOLS = [
   },
   {
     name: "enroll_lms_learner",
-    description: "Open access to an e-learning course (lms_enrollments) for one email or a list of emails, without going through a training session. No email is sent. Without confirm=true it only returns a preview (to enroll, already enrolled, invalid emails) and writes nothing; call again with confirm=true after explicit user approval. Logged in activity history.",
+    description: "Open access to an e-learning course (lms_enrollments) for one email or a list of emails, and optionally set or change the learner's formula (e.g. Solo, Communauté, Coaché). The preview lists available_formulas, linked_sessions and current_formulas. Like in the app, the formula is stored on the learner's participation in a session linked to the course: an already-participant learner gets their formula (and coaching sessions count) updated; a learner who is not yet participant must be added with add_training_participant (training_id + formula_name). No email is sent unless send_access_email=true (sends the 'Accéder à votre espace SuperTools' email). Without confirm=true it only returns a preview and writes nothing; call again with confirm=true after explicit user approval. Access, formula changes and emails are logged in activity history.",
     inputSchema: {
       type: "object",
       properties: {
         course_id: { type: "string" },
         email: { type: "string" },
         emails: { type: "array", items: { type: "string" }, description: "Up to 200 emails" },
+        formula: { type: "string", description: "Formula name or id among available_formulas (works for already enrolled learners too)" },
+        training_id: { type: "string", description: "Linked session holding the formula, required if the learner is participant of several linked sessions" },
+        send_access_email: { type: "boolean", description: "Send the learner-space access email. Default false." },
         confirm: { type: "boolean" },
       },
       required: ["course_id"],
