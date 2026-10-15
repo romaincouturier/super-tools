@@ -4945,6 +4945,53 @@ export type Database = {
           },
         ]
       }
+      lms_audio_archives: {
+        Row: {
+          archived_at: string | null
+          attempts: number
+          course_id: string | null
+          created_at: string
+          drive_file_id: string | null
+          drive_file_name: string | null
+          drive_folder_name: string | null
+          last_error: string | null
+          media_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          attempts?: number
+          course_id?: string | null
+          created_at?: string
+          drive_file_id?: string | null
+          drive_file_name?: string | null
+          drive_folder_name?: string | null
+          last_error?: string | null
+          media_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          attempts?: number
+          course_id?: string | null
+          created_at?: string
+          drive_file_id?: string | null
+          drive_file_name?: string | null
+          drive_folder_name?: string | null
+          last_error?: string | null
+          media_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_audio_archives_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: true
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_badge_awards: {
         Row: {
           awarded_at: string
