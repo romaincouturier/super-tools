@@ -169,6 +169,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
     setAudios([]);
     setGlobalError(null);
     setUploadError(null);
+    setCurrentAction(null);
     onClose();
   };
 
@@ -437,9 +438,13 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         {/* Transcription progress */}
         {step === "transcribing" && (
           <div className="flex-1 overflow-y-auto space-y-2 py-2">
-            <p className="text-sm text-muted-foreground mb-3">
-              Transcription en cours… L'analyse IA démarrera une fois tous les audios traités.
-            </p>
+            {currentAction ? (
+              <ActivityIndicator label={currentAction} />
+            ) : (
+              <p className="text-sm text-muted-foreground mb-3">
+                Transcription en cours… L'analyse IA démarrera une fois tous les audios traités.
+              </p>
+            )}
             {globalError && (
               <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-2 mb-2">
                 <div className="flex items-start gap-2">
@@ -483,9 +488,13 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         {/* Validation */}
         {(step === "validate" || step === "confirming") && (
           <div className="flex-1 overflow-y-auto space-y-4 pr-1 py-2">
-            <p className="text-sm text-muted-foreground">
-              Vérifiez et ajustez le texte et l'affectation de chaque audio avant de créer les blocs.
-            </p>
+            {step === "confirming" && currentAction ? (
+              <ActivityIndicator label={currentAction} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Vérifiez et ajustez le texte et l'affectation de chaque audio avant de créer les blocs.
+              </p>
+            )}
             {audios.map((audio, idx) => (
               <div key={audio.id} className="border rounded-lg p-4 space-y-3">
                 <div className="flex items-center gap-2">
