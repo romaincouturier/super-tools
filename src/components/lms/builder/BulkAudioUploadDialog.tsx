@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useRef, useCallback } from "react";
-import { Mic, Upload, ChevronDown, Loader2, CheckCircle2, AlertCircle, Layers } from "lucide-react";
+import { Mic, Upload, ChevronDown, Loader2, CheckCircle2, AlertCircle, Layers, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
@@ -125,6 +125,18 @@ function ActivityIndicator({ label }: { label: string }) {
       <span className="text-sm text-muted-foreground truncate">{label}</span>
     </div>
   );
+}
+
+/** Télécharge le transcript brut d'un audio en fichier .txt. */
+function downloadTranscript(fileName: string, transcript: string) {
+  const base = fileName.replace(/\.[^.]+$/, "");
+  const blob = new Blob([transcript], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${base} - transcript.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 /** Recolle les segments d'un audio en un seul, quand le découpage IA ne convient pas. */
@@ -256,6 +268,8 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
           };
         } else {
           updated[i] = { ...updated[i], status: "done", transcript };
+          // Conserve le transcript en base pour pouvoir le retraiter plus tard.
+          supabase.from("media").update({ transcript }).eq("id", updated[i].mediaId).then(() => undefined);
         }
       } catch (err) {
         updated[i] = { ...updated[i], status: "error", error: err instanceof Error ? err.message : "Erreur" };
@@ -517,6 +531,17 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
                   <span className="text-sm font-medium truncate flex-1">{audio.file.name}</span>
                   {audio.status === "error" && (
                     <span className="text-xs text-destructive shrink-0">Transcription échouée</span>
+                  )}
+                  {audio.status === "done" && audio.transcript && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs shrink-0"
+                      onClick={() => downloadTranscript(audio.file.name, audio.transcript)}
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                      Transcript
+                    </Button>
                   )}
                 </div>
                 {audio.status === "error" && audio.error && (
