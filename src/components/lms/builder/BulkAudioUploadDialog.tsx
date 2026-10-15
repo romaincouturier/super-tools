@@ -190,6 +190,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
       try {
         for (const file of audioFiles) {
           try {
+            setCurrentAction(`Envoi de ${file.name}…`);
             const url = await uploadMediaFile(file, "lms", courseId);
             const media = await addMedia.mutateAsync({
               file_url: url,
@@ -240,6 +241,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
 
     for (let i = 0; i < updated.length; i++) {
       try {
+        setCurrentAction(`Transcription de ${updated[i].file.name} (${i + 1}/${updated.length})…`);
         const transcript = await transcribeAudio(updated[i].url);
         if (!transcript || !transcript.trim()) {
           updated[i] = {
@@ -280,6 +282,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
     }
 
     try {
+      setCurrentAction("Analyse IA des sujets et affectation aux leçons…");
       const assignments = await analyzeAudioForLessons(
         successAudios.map((a) => ({ id: a.id, file_name: a.file.name, text: a.transcript })),
         allLessons,
