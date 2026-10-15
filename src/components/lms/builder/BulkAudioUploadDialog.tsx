@@ -127,6 +127,18 @@ function ActivityIndicator({ label }: { label: string }) {
   );
 }
 
+/** Télécharge le transcript brut d'un audio en fichier .txt. */
+function downloadTranscript(fileName: string, transcript: string) {
+  const base = fileName.replace(/\.[^.]+$/, "");
+  const blob = new Blob([transcript], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${base} - transcript.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /** Recolle les segments d'un audio en un seul, quand le découpage IA ne convient pas. */
 function mergeSegments(segments: AudioSegment[]): AudioSegment[] {
   if (segments.length <= 1) return segments;
@@ -256,6 +268,8 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
           };
         } else {
           updated[i] = { ...updated[i], status: "done", transcript };
+          // Conserve le transcript en base pour pouvoir le retraiter plus tard.
+          supabase.from("media").update({ transcript }).eq("id", updated[i].mediaId).then(() => undefined);
         }
       } catch (err) {
         updated[i] = { ...updated[i], status: "error", error: err instanceof Error ? err.message : "Erreur" };
