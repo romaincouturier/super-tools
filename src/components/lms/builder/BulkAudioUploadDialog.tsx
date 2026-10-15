@@ -283,11 +283,22 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
     }
 
     try {
-      setCurrentAction("Analyse IA des sujets et affectation aux leçons…");
-      const assignments = await analyzeAudioForLessons(
-        successAudios.map((a) => ({ id: a.id, file_name: a.file.name, text: a.transcript })),
-        allLessons,
-      );
+      // One audio per AI call: a single call for many audios exceeds the AI output limit.
+      const assignments: Awaited<ReturnType<typeof analyzeAudioForLessons>> = [];
+      for (let i = 0; i < successAudios.length; i++) {
+        const a = successAudios[i];
+        setCurrentAction(`Analyse IA de ${a.file.name} (${i + 1}/${successAudios.length})…`);
+        try {
+          const res = await analyzeAudioForLessons(
+            [{ id: a.id, file_name: a.file.name, text: a.transcript }],
+            allLessons,
+          );
+          assignments.push(...res);
+        } catch (err) {
+          const m = err instanceof Error ? err.message : "Erreur lors de l'analyse IA.";
+          throw new Error(`${a.file.name} : ${m}`);
+        }
+      }
 
       setAudios((prev) =>
         prev.map((a) => {
