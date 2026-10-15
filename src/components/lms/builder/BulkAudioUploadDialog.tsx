@@ -108,6 +108,24 @@ interface AudioItem {
 
 type Step = "upload" | "transcribing" | "validate" | "confirming";
 
+/** Indicateur d'action en cours, façon agent IA (libellé + points animés). */
+function ActivityIndicator({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-lg border bg-muted/40 px-3 py-2.5 mb-3">
+      <span className="flex gap-1 shrink-0">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce"
+            style={{ animationDelay: `${i * 150}ms` }}
+          />
+        ))}
+      </span>
+      <span className="text-sm text-muted-foreground truncate">{label}</span>
+    </div>
+  );
+}
+
 /** Recolle les segments d'un audio en un seul, quand le découpage IA ne convient pas. */
 function mergeSegments(segments: AudioSegment[]): AudioSegment[] {
   if (segments.length <= 1) return segments;
@@ -144,6 +162,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
   const [uploading, setUploading] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [currentAction, setCurrentAction] = useState<string | null>(null);
 
   const resetAndClose = () => {
     setStep("upload");
