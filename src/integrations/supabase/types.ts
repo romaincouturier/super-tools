@@ -10336,6 +10336,62 @@ export type Database = {
           },
         ]
       }
+      testimonial_requests: {
+        Row: {
+          contact_email: string | null
+          contact_name: string | null
+          created_at: string
+          done_at: string | null
+          done_by: string | null
+          id: string
+          mission_id: string | null
+          note: string | null
+          source: string
+          source_draft_id: string | null
+          status: string
+          training_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          mission_id?: string | null
+          note?: string | null
+          source?: string
+          source_draft_id?: string | null
+          status?: string
+          training_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          mission_id?: string | null
+          note?: string | null
+          source?: string
+          source_draft_id?: string | null
+          status?: string
+          training_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "testimonial_requests_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       testimonials: {
         Row: {
           client_name: string | null

@@ -57,6 +57,13 @@
       "when": 1791990385329,
       "tag": "0007_lms_courses_landing_position",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792096556757,
+      "tag": "0008_testimonial_requests",
+      "breakpoints": true
     }
   ]
 }
