@@ -24,9 +24,6 @@ verify_jwt = false
 [functions.retry-testimonial-transcript]
 verify_jwt = true
 
-[functions.cleanup-pending-email-drafts]
-verify_jwt = false
-
 [functions.send-venue-booking-request]
 verify_jwt = false
 
@@ -416,9 +413,6 @@ verify_jwt = false
 
 [functions.trigger-ticket-processing]
 verify_jwt = true
-
-[functions.send-mission-email-draft]
-verify_jwt = false
 
 [functions.send-support-notification]
 verify_jwt = false
