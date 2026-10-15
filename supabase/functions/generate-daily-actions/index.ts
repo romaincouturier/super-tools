@@ -372,7 +372,7 @@ serve(async (req) => {
       });
     }
 
-    // 15. Email drafts pending validation (assigned to comms manager)
+    // 15. Testimonial requests to write by hand (assigned to comms manager)
     if (data.pendingEmailDrafts.length > 0) {
       const { data: settingRow } = await supabase
         .from("app_settings")
@@ -381,17 +381,13 @@ serve(async (req) => {
         .maybeSingle();
       const commsManagerId = settingRow?.setting_value || null;
 
-      const typeLabels: Record<string, string> = { google_review: "Avis Google", video_testimonial: "Témoignage vidéo" };
       for (const draft of data.pendingEmailDrafts) {
-        const typeLabel = typeLabels[draft.emailType] || draft.emailType;
         actions.push({
-          category: "emails_a_valider",
-          title: `📧 ${draft.missionTitle} — ${typeLabel}`,
-          description: draft.status === "scheduled" && draft.scheduledFor
-            ? `Email programmé le ${draft.scheduledFor.slice(0, 10)} pour ${draft.contactName || draft.contactEmail}`
-            : `Email à valider pour ${draft.contactName || draft.contactEmail}`,
-          link: `${appUrl}/emails-a-valider`,
-          entityType: "mission_email_draft", entityId: draft.id,
+          category: "avis_a_demander",
+          title: `🌟 Demander un avis / témoignage à ${draft.contactName || draft.contactEmail}`,
+          description: `Mission ${draft.missionTitle} · ${draft.contactEmail || ""}`,
+          link: `${appUrl}/missions/${draft.missionId}`,
+          entityType: "testimonial_request", entityId: draft.id,
           assignedTo: commsManagerId, scope: "perUser",
         });
       }
