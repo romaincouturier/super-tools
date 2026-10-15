@@ -1661,6 +1661,35 @@ export interface DailyData {
   elearningIntegrationIssues: ElearningIntegrationIssueItem[];
   unassignedTranscripts: UnassignedTranscriptItem[];
   locationSignatureAlerts: LocationSignatureAlertItem[];
+  missionsNoNextAction: MissionNoNextActionItem[];
+}
+
+export interface MissionNoNextActionItem {
+  id: string;
+  title: string;
+  clientName: string | null;
+  emoji: string | null;
+  assignedTo: string | null;
+  missingText: boolean;
+  missingDate: boolean;
+}
+
+/** Missions actives (non démarrées ou en cours, non archivées) sans prochaine action datée. */
+export async function fetchMissionsNoNextAction(supabase: SupabaseClient): Promise<MissionNoNextActionItem[]> {
+  const { data } = await supabase
+    .from("missions")
+    .select("id, title, client_name, emoji, assigned_to, waiting_next_action_text, waiting_next_action_date")
+    .in("status", ["in_progress", "not_started"])
+    .or("archived.is.null,archived.eq.false");
+  return ((data ?? []) as any[]).flatMap((m) => {
+    const missingText = !m.waiting_next_action_text?.trim();
+    const missingDate = !m.waiting_next_action_date;
+    if (!missingText && !missingDate) return [];
+    return [{
+      id: m.id, title: m.title, clientName: m.client_name, emoji: m.emoji,
+      assignedTo: m.assigned_to, missingText, missingDate,
+    }];
+  });
 }
 
 export interface UnassignedTranscriptItem {
@@ -1750,6 +1779,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     elearningIntegrationIssues,
     unassignedTranscripts,
     locationSignatureAlerts,
+    missionsNoNextAction,
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),
@@ -1782,6 +1812,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchElearningIntegrationIssues(supabase),
     fetchUnassignedTranscripts(supabase),
     fetchLocationSignatureAlerts(supabase),
+    fetchMissionsNoNextAction(supabase),
   ]);
 
 
@@ -1797,6 +1828,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     elearningIntegrationIssues,
     unassignedTranscripts,
     locationSignatureAlerts,
+    missionsNoNextAction,
   };
 
 }

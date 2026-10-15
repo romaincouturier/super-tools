@@ -279,6 +279,19 @@ serve(async (req) => {
           })
       );
 
+      // 0b. Missions sans prochaine action datée
+      add("🎯", "Missions sans prochaine action", COLORS.red,
+        data.missionsNoNextAction
+          .filter(m => userCanSee(recipient, m.assignedTo))
+          .map(m => {
+            const label = formatLabel(m.clientName, m.title);
+            const emojiP = m.emoji ? `${m.emoji} ` : "";
+            const missing = m.missingText && m.missingDate ? "aucune prochaine action"
+              : m.missingText ? "action non renseignée" : "action sans date";
+            return `<li style="margin-bottom: 6px;">${emojiP}${linkHtml(`${appUrl}/missions/${m.id}`, label, true)} — ${missing}</li>`;
+          })
+      );
+
       // 1. Factures à émettre (formations)
       add("🧾", "Factures à émettre", COLORS.red,
         data.pastTrainingsNoInvoice
