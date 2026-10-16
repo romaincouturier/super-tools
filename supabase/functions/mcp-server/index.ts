@@ -351,7 +351,7 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - update_mission_activity : corrige une activité existante à partir de son id (listé par get_mission_dossier). Seuls les champs transmis sont modifiés ; aucune activité ne peut être supprimée ni déplacée vers une autre mission.
 - update_event : modifie un événement (summary_notes = note de synthèse, notes, description, statut, date, horaires, lieu, liens). Seuls les champs transmis changent ; renvoie l'avant/après.
 - update_order_item : annote une ligne de commande de jeux (notes, kanban_status, remise en main propre, date d'expédition confirmée). Seuls les champs transmis changent ; renvoie l'avant/après.
-- update_mission : modifie titre, statut, dates de début/fin, montant initial ou contact client d'une mission. Seuls les champs transmis changent ; renvoie l'avant/après.
+- update_mission : modifie titre, statut, dates de début/fin, montant initial, contact client, ou l'indicateur « Facture à émettre » (invoice_to_issue + texte et montant optionnels, distinct de la prochaine action) d'une mission. Seuls les champs transmis changent ; renvoie l'avant/après.
 - save_watch_item : dépose un contenu dans le module Veille (un contenu par appel : lien de la source, résumé dans body, angle dans comment, 2 à 5 tags). Écriture additive, doublons refusés : même URL déjà présente ou contenu sémantiquement quasi identique, l'appel ne crée rien et rend l'élément existant.
 - create_quote : crée un devis en BROUILLON dans Pennylane (comptabilité SuperTilt). Aucun envoi au client, aucune validation, aucune transformation en facture n'est possible depuis ici : le brouillon reste à relire et à envoyer manuellement dans Pennylane.
 - create_content_card : dépose une carte (idée ou article rédigé) dans le kanban éditorial, au stade choisi (colonne, « Idées » par défaut), avec titre, contenu et thèmes. Écriture additive. Réutiliser les thèmes existants (list_content_board) plutôt que d'en inventer.
@@ -638,7 +638,7 @@ const MCP_TOOLS = [
   {
     name: "update_mission",
     description:
-      "Update the main fields of an existing mission in SuperTools. Pass the mission id and only the fields to change: everything else is left untouched (null clears a date, amount or contact). Editable: title, status, start_date, end_date, initial_amount, client_name, client_contact, waiting_next_action_text, waiting_next_action_date (the scheduled next action shown in the daily recap). Cannot delete a mission. The answer returns the mission before and after the change.",
+      "Update the main fields of an existing mission in SuperTools. Pass the mission id and only the fields to change: everything else is left untouched (null clears a date, amount or contact). Editable: title, status, start_date, end_date, initial_amount, client_name, client_contact, waiting_next_action_text, waiting_next_action_date (the scheduled next action shown in the daily recap), invoice_to_issue (flag 'Facture à émettre' for an intermediate invoice, listed in the daily recap under Factures à émettre and cleared automatically once an invoice number is recorded on an activity) with optional invoice_to_issue_note and invoice_to_issue_amount. Cannot delete a mission. The answer returns the mission before and after the change.",
     inputSchema: {
       type: "object",
       properties: {
@@ -652,6 +652,9 @@ const MCP_TOOLS = [
         client_contact: { type: ["string", "null"], description: "Client contact (free text)" },
         waiting_next_action_text: { type: ["string", "null"], description: "Scheduled next action text, or null to clear" },
         waiting_next_action_date: { type: ["string", "null"], description: "Scheduled next action date YYYY-MM-DD, or null to clear" },
+        invoice_to_issue: { type: "boolean", description: "true flags 'Facture à émettre' (does not touch the next action); false clears the flag, its note and amount" },
+        invoice_to_issue_note: { type: ["string", "null"], description: "Optional free text for the invoice to issue, e.g. 'acompte 50 %'" },
+        invoice_to_issue_amount: { type: ["number", "null"], description: "Optional amount in euros excl. tax to invoice" },
       },
       required: ["mission_id"],
     },

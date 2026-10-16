@@ -89,7 +89,7 @@ export async function getMissionDossier(
   const resolved = await resolveMission(
     supabase,
     missionQuery,
-    "id, title, client_name, client_contact, status, initial_amount, consumed_amount, billed_amount, total_amount, created_at",
+    "id, title, client_name, client_contact, status, initial_amount, consumed_amount, billed_amount, total_amount, invoice_to_issue, invoice_to_issue_note, invoice_to_issue_amount, invoice_to_issue_set_at, created_at",
   );
   if ("problem" in resolved) return resolved.problem;
   const mission = resolved.mission;
@@ -1064,6 +1064,22 @@ export async function updateMissionActivity(
   if (!existing) throw new Error("Activité introuvable");
 
   const patch = normalizeActivityFields(input);
+  if (input.invoice_to_issue !== undefined && input.invoice_to_issue !== null) {
+    if (typeof input.invoice_to_issue !== "boolean") throw new Error("invoice_to_issue doit être true ou false");
+    patch.invoice_to_issue = input.invoice_to_issue;
+    if (input.invoice_to_issue) patch.invoice_to_issue_set_at = new Date().toISOString();
+    else Object.assign(patch, { invoice_to_issue_note: null, invoice_to_issue_amount: null, invoice_to_issue_set_at: null });
+  }
+  if (input.invoice_to_issue !== false) {
+    if (input.invoice_to_issue_note !== undefined) {
+      patch.invoice_to_issue_note = input.invoice_to_issue_note === null ? null : String(input.invoice_to_issue_note).trim() || null;
+    }
+    if (input.invoice_to_issue_amount !== undefined) {
+      const a = input.invoice_to_issue_amount;
+      if (a !== null && (typeof a !== "number" || !isFinite(a) || a < 0)) throw new Error("invoice_to_issue_amount doit être un nombre positif ou null");
+      patch.invoice_to_issue_amount = a;
+    }
+  }
   if (Object.keys(patch).length === 0) {
     throw new Error("Aucun champ à modifier : fournir au moins un champ (description, activity_date, duration, duration_type, billable_amount, is_billed, invoice_number, notes)");
   }
@@ -1090,7 +1106,7 @@ export async function updateMissionActivity(
   });
 }
 
-const MISSION_EDIT_COLUMNS = "id, title, status, start_date, end_date, initial_amount, client_name, client_contact, waiting_next_action_text, waiting_next_action_date, updated_at";
+const MISSION_EDIT_COLUMNS = "id, title, status, start_date, end_date, initial_amount, client_name, client_contact, waiting_next_action_text, waiting_next_action_date, invoice_to_issue, invoice_to_issue_note, invoice_to_issue_amount, invoice_to_issue_set_at, updated_at";
 const MISSION_STATUSES = ["not_started", "in_progress", "completed", "cancelled"];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -1104,6 +1120,9 @@ export interface MissionUpdateInput {
   client_contact?: unknown;
   waiting_next_action_text?: unknown;
   waiting_next_action_date?: unknown;
+  invoice_to_issue?: unknown;
+  invoice_to_issue_note?: unknown;
+  invoice_to_issue_amount?: unknown;
 }
 
 /**
@@ -1157,7 +1176,7 @@ export async function updateMission(
     patch.waiting_next_action_date = input.waiting_next_action_date;
   }
   if (Object.keys(patch).length === 0) {
-    throw new Error("Aucun champ à modifier : fournir au moins un champ (title, status, start_date, end_date, initial_amount, client_name, client_contact, waiting_next_action_text, waiting_next_action_date)");
+    throw new Error("Aucun champ à modifier : fournir au moins un champ (title, status, start_date, end_date, initial_amount, client_name, client_contact, waiting_next_action_text, waiting_next_action_date, invoice_to_issue, invoice_to_issue_note, invoice_to_issue_amount)");
   }
   const start = (patch.start_date ?? (existing as any).start_date) as string | null;
   const end = (patch.end_date ?? (existing as any).end_date) as string | null;

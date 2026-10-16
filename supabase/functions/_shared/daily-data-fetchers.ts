@@ -1805,6 +1805,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     unassignedTranscripts,
     locationSignatureAlerts,
     missionsNoNextAction,
+    missionInvoiceFlags,
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),
@@ -1855,6 +1856,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     unassignedTranscripts,
     locationSignatureAlerts,
     missionsNoNextAction,
+    missionInvoiceFlags,
   };
 
 }

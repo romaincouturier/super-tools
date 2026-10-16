@@ -278,6 +278,21 @@ serve(async (req) => {
       });
     }
 
+    // 10b. Missions signalées « Facture à émettre »
+    for (const m of data.missionInvoiceFlags || []) {
+      const label = m.clientName ? `${m.clientName} — ${m.title}` : m.title;
+      const emoji = m.emoji ? `${m.emoji} ` : "";
+      const details = [m.note, m.amount !== null ? `${m.amount.toLocaleString("fr-FR")} €` : null].filter(Boolean).join(" — ");
+      actions.push({
+        category: "formations_facture",
+        title: `${emoji}${label}`,
+        description: details || "Facture à émettre",
+        link: `${appUrl}/missions/${m.id}`,
+        entityType: "mission", entityId: m.id,
+        assignedTo: m.assignedTo, scope: "perUser",
+      });
+    }
+
     // 11. OKR Initiatives (global)
     for (const init of data.okrInitiatives) {
       actions.push({
