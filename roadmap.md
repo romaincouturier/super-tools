@@ -32,3 +32,5 @@
 
 - [x] Location : relances signature J+3/J+7, badge À expédier, bouton Jeu expédié
 - [x] Relance questionnaire : prénom, bouton, apostrophes corrigés
+
+- [ ] Avis/témoignages formations : google_review, evaluation_reminder et video_testimonial à 1 jour d intervalle saturent les participants (cas Abobkar Benabdellaoui, refus explicite). A intégrer à la refonte en signaux.
