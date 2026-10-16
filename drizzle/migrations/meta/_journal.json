@@ -78,6 +78,13 @@
       "when": 1792101330999,
       "tag": "0010_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792169212319,
+      "tag": "0011_mission_invoice_flag",
+      "breakpoints": true
     }
   ]
 }
