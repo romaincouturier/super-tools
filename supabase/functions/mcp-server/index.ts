@@ -1095,7 +1095,7 @@ const MCP_TOOLS = [
   {
     name: "mark_opportunity_won",
     description:
-      "Mark ONE CRM opportunity as won, as the « Gagné » column does in the interface: sales_status WON, won_at (signature date, defaults to today), optional final amount (euros HT, updates estimated_value), optional quote reference and comment added to the discussion thread, and an activity log entry. With create_mission=true and no linked mission yet, also creates a « À démarrer » mission (title, client, amount) linked to the card; ask the user before setting it. The response suggests creating the mission when the opportunity is of type mission. CALL ONLY AFTER the user has said this specific opportunity is won. Identify by card_id, or search (ambiguous searches return candidates without writing). An opportunity already won is left untouched.",
+      "Mark ONE CRM opportunity as won, as the « Gagné » column does in the interface: sales_status WON, won_at (signature date, defaults to today), optional final amount (euros HT, updates estimated_value), optional quote reference and comment added to the discussion thread, and an activity log entry. For an opportunity of type mission, a « À démarrer » mission (title, client, amount, primary contact, checklist, history page) is created and linked by default, as the interface does; pass create_mission=false to skip. For other types, create_mission=true forces it. If the card is already won without a linked mission, create_mission=true (or type mission) creates the missing mission. CALL ONLY AFTER the user has said this specific opportunity is won. Identify by card_id, or search (ambiguous searches return candidates without writing). An opportunity already won is left untouched.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1105,7 +1105,7 @@ const MCP_TOOLS = [
         amount: { type: "number", description: "Final signed amount in euros HT" },
         quote_reference: { type: "string", description: "Signed quote reference, e.g. D-2026-10127" },
         comment: { type: "string", description: "Optional comment added to the opportunity thread" },
-        create_mission: { type: "boolean", description: "Create and link a mission when none is linked (ask the user first)" },
+        create_mission: { type: "boolean", description: "Create and link a mission when none is linked. Defaults to true for opportunities of type mission; false to skip." },
       },
     },
   },
@@ -2165,7 +2165,7 @@ async function callTool(
             amount: typeof args.amount === "number" ? args.amount : undefined,
             quote_reference: (args.quote_reference as string) || undefined,
             comment: (args.comment as string) || undefined,
-            create_mission: args.create_mission === true,
+            create_mission: typeof args.create_mission === "boolean" ? args.create_mission : undefined,
           },
           log,
           ALLOWED_EMAIL,
