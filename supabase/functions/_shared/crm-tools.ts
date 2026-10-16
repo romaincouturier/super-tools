@@ -183,6 +183,81 @@ export async function markOpportunityLost(
   });
 }
 
+const MISSION_EMOJIS = ["🚀", "🎯", "💡", "🌟", "🧭", "🛠️", "📈", "🤝", "🎨", "🧩"];
+const MISSION_CHECKLIST_FALLBACK = [
+  { label: "Train réservé", legacy_field: "train_booked" },
+  { label: "Hôtel réservé", legacy_field: "hotel_booked" },
+];
+
+/**
+ * Crée la mission liée à une carte CRM gagnée, comme l'interface
+ * (CreateMissionDialog + createMission + linkMissionToCrmCard) : mission « À démarrer »,
+ * contact principal issu de la carte, checklist logistique, lien carte, page historique.
+ */
+// deno-lint-ignore no-explicit-any
+export async function createMissionFromCard(supabase: any, cardId: string, amount: number): Promise<string> {
+  const { data: c, error } = await supabase
+    .from("crm_cards")
+    .select("title, company, first_name, last_name, email, phone, description_html, linked_mission_id")
+    .eq("id", cardId)
+    .single();
+  if (error) throw new Error(error.message);
+  if (c.linked_mission_id) return c.linked_mission_id;
+
+  const { data: last } = await supabase
+    .from("missions").select("position").eq("status", "not_started")
+    .order("position", { ascending: false }).limit(1).maybeSingle();
+  const contact = [[c.first_name, c.last_name].filter(Boolean).join(" "), c.email].filter(Boolean).join(" ");
+
+  const { data: mission, error: mErr } = await supabase
+    .from("missions")
+    .insert([{
+      title: c.title,
+      client_name: c.company || null,
+      client_contact: contact || null,
+      status: "not_started",
+      initial_amount: amount || null,
+      emoji: MISSION_EMOJIS[Math.floor(Math.random() * MISSION_EMOJIS.length)],
+      position: (last?.position ?? -1) + 1,
+    }])
+    .select("id")
+    .single();
+  if (mErr) throw new Error(`Mission non créée : ${mErr.message}`);
+
+  if (c.first_name || c.last_name || c.email || c.phone) {
+    await supabase.from("mission_contacts").insert([{
+      mission_id: mission.id, first_name: c.first_name || null, last_name: c.last_name || null,
+      email: c.email || null, phone: c.phone || null, is_primary: true, language: "fr", position: 0,
+    }]);
+  }
+
+  try {
+    const { data: s } = await supabase.from("app_settings").select("setting_value").eq("setting_key", "logistics_templates").maybeSingle();
+    const templates = s?.setting_value ? JSON.parse(s.setting_value) : null;
+    const items: { label: string; legacy_field?: string; due_date?: string; notify_days_before?: number }[] =
+      templates?.["mission.presentiel"] ?? MISSION_CHECKLIST_FALLBACK;
+    const due = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    if (items.length) {
+      await supabase.from("logistics_checklist_items").insert(items.map((it, idx) => ({
+        entity_type: "mission", entity_id: mission.id, label: it.label, position: idx,
+        legacy_field: it.legacy_field ?? null, due_date: it.due_date ?? due,
+        notify_days_before: it.notify_days_before ?? 14, is_done: false,
+      })));
+    }
+  } catch (err) {
+    console.warn("createMissionFromCard checklist failed:", err);
+  }
+
+  await supabase.from("crm_cards").update({ linked_mission_id: mission.id }).eq("id", cardId);
+  const content = c.description_html?.trim();
+  if (content) {
+    await supabase.from("mission_pages").insert([{
+      mission_id: mission.id, title: "Historique de l'opportunité", icon: "📋", content, position: 1,
+    }]);
+  }
+  return mission.id;
+}
+
 export interface MarkOpportunityWonInput {
   card_id?: string;
   search?: string;
