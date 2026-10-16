@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { renderCatalogEmail } from "../_shared/editable-email.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
-import { sendEmail } from "../_shared/resend.ts";
+import { sendEmail, escapeHtml } from "../_shared/resend.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
 import { formatDateFr, formatDateWithDayFr } from "../_shared/date-utils.ts";
