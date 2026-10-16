@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import MissionActivityTracker from "./MissionActivityTracker";
 import MissionPages from "./MissionPages";
 import MissionSettingsTab from "./MissionSettingsTab";
+import InvoiceToIssueFlag from "./InvoiceToIssueFlag";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
@@ -351,6 +352,11 @@ const MissionDetailDrawer = ({
             <ExternalLink className="h-3 w-3" />
           </a>
         )}
+
+        <InvoiceToIssueFlag
+          mission={mission}
+          onSave={(updates) => updateMission.mutateAsync({ id: mission.id, updates })}
+        />
 
         {/* Schedule action button + Next Action Scheduler (same UX as CRM) */}
         <div className="mt-3 flex items-start gap-2">

@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { renderCatalogEmail } from "../_shared/editable-email.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
-import { sendEmail } from "../_shared/resend.ts";
+import { sendEmail, escapeHtml } from "../_shared/resend.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
 import { formatDateFr, formatDateWithDayFr } from "../_shared/date-utils.ts";
@@ -297,6 +297,16 @@ serve(async (req) => {
         data.pastTrainingsNoInvoice
           .filter(a => userCanSee(recipient, a.assignedTo))
           .map(t => `<li>${linkHtml(`${appUrl}/formations/${t.trainingId}`, t.trainingName)} — terminée le ${formatDateFr(t.endDate)} (il y a ${t.daysAgo}j)</li>`)
+          .concat(
+            (data.missionInvoiceFlags || [])
+              .filter(m => userCanSee(recipient, m.assignedTo))
+              .map(m => {
+                const label = formatLabel(m.clientName, m.title);
+                const emojiP = m.emoji ? `${m.emoji} ` : "";
+                const details = [m.note ? escapeHtml(m.note) : null, m.amount !== null ? `<strong>${m.amount.toLocaleString("fr-FR")} €</strong>` : null].filter(Boolean).join(" — ");
+                return `<li>${emojiP}${linkHtml(`${appUrl}/missions/${m.id}`, label)} — mission${details ? ` : ${details}` : ""}</li>`;
+              }),
+          )
       );
 
       // 2. Missions à facturer

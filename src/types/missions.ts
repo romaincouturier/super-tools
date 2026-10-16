@@ -34,6 +34,10 @@ export interface Mission {
   created_by: string | null;
   assigned_to: string | null;
   share_activities_with_client?: boolean;
+  invoice_to_issue?: boolean;
+  invoice_to_issue_note?: string | null;
+  invoice_to_issue_amount?: number | null;
+  invoice_to_issue_set_at?: string | null;
 }
 
 export interface CreateMissionInput {
@@ -81,6 +85,10 @@ export interface UpdateMissionInput {
   waiting_next_action_text?: string | null;
   assigned_to?: string | null;
   share_activities_with_client?: boolean;
+  invoice_to_issue?: boolean;
+  invoice_to_issue_note?: string | null;
+  invoice_to_issue_amount?: number | null;
+  invoice_to_issue_set_at?: string | null;
 }
 
 export interface MissionContact {

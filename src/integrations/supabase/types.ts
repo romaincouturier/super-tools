@@ -7412,6 +7412,10 @@ export type Database = {
           hotel_booked: boolean | null
           id: string
           initial_amount: number | null
+          invoice_to_issue: boolean
+          invoice_to_issue_amount: number | null
+          invoice_to_issue_note: string | null
+          invoice_to_issue_set_at: string | null
           language: string | null
           location: string | null
           org_id: string | null
@@ -7448,6 +7452,10 @@ export type Database = {
           hotel_booked?: boolean | null
           id?: string
           initial_amount?: number | null
+          invoice_to_issue?: boolean
+          invoice_to_issue_amount?: number | null
+          invoice_to_issue_note?: string | null
+          invoice_to_issue_set_at?: string | null
           language?: string | null
           location?: string | null
           org_id?: string | null
@@ -7484,6 +7492,10 @@ export type Database = {
           hotel_booked?: boolean | null
           id?: string
           initial_amount?: number | null
+          invoice_to_issue?: boolean
+          invoice_to_issue_amount?: number | null
+          invoice_to_issue_note?: string | null
+          invoice_to_issue_set_at?: string | null
           language?: string | null
           location?: string | null
           org_id?: string | null
