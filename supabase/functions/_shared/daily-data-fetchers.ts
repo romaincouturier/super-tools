@@ -45,6 +45,34 @@ export interface MissionInvoiceItem {
   remaining: number;
 }
 
+export interface MissionInvoiceFlagItem {
+  id: string;
+  title: string;
+  clientName: string | null;
+  emoji: string | null;
+  assignedTo: string | null;
+  note: string | null;
+  amount: number | null;
+}
+
+/** Missions signalées « Facture à émettre » (facturation intermédiaire). */
+export async function fetchMissionInvoiceFlags(supabase: SupabaseClient): Promise<MissionInvoiceFlagItem[]> {
+  const { data } = await supabase
+    .from("missions")
+    .select("id, title, client_name, emoji, assigned_to, invoice_to_issue_note, invoice_to_issue_amount")
+    .eq("invoice_to_issue", true)
+    .or("archived.is.null,archived.eq.false");
+  return (data || []).map((m: any) => ({
+    id: m.id,
+    title: m.title,
+    clientName: m.client_name,
+    emoji: m.emoji,
+    assignedTo: m.assigned_to,
+    note: m.invoice_to_issue_note,
+    amount: m.invoice_to_issue_amount === null ? null : Number(m.invoice_to_issue_amount),
+  }));
+}
+
 export interface UnbilledActivityItem {
   missionId: string;
   title: string;
@@ -1630,6 +1658,7 @@ export interface DailyData {
   missionActions: MissionActionItem[];
   elearningGroups: ElearningGroupItem[];
   missionsToInvoice: MissionInvoiceItem[];
+  missionInvoiceFlags: MissionInvoiceFlagItem[];
   unbilledActivities: UnbilledActivityItem[];
   missionsNoStartDate: MissionNoDateItem[];
   crmCards: CrmCardItem[];
@@ -1809,6 +1838,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchUnassignedTranscripts(supabase),
     fetchLocationSignatureAlerts(supabase),
     fetchMissionsNoNextAction(supabase),
+    fetchMissionInvoiceFlags(supabase),
   ]);
 
 
