@@ -234,8 +234,22 @@ export async function markOpportunityWon(
     .select("estimated_value, service_type, linked_mission_id, won_at")
     .eq("id", card.id)
     .single();
+  // Mission par défaut pour une opportunité de type mission, sauf refus explicite.
+  const wantMission = input.create_mission ?? extra?.service_type === "mission";
   if (card.sales_status === "WON") {
-    return JSON.stringify({ updated: false, reason: "already_won", card_id: card.id, label: label(card), won_at: extra?.won_at ?? null });
+    if (wantMission && !extra?.linked_mission_id) {
+      const amountWon = input.amount ?? Number(extra?.estimated_value ?? 0);
+      const createdId = await createMissionFromCard(supabase, card.id, amountWon);
+      await log(`mark_opportunity_won ${card.id} (déjà gagnée) mission ${createdId}`);
+      return JSON.stringify({
+        updated: false, reason: "already_won", card_id: card.id, label: label(card),
+        won_at: extra?.won_at ?? null, mission_liee: createdId, mission_creee: true,
+      });
+    }
+    return JSON.stringify({
+      updated: false, reason: "already_won", card_id: card.id, label: label(card),
+      won_at: extra?.won_at ?? null, mission_liee: extra?.linked_mission_id ?? null, mission_creee: false,
+    });
   }
 
   const wonAt = input.won_at ? new Date(`${input.won_at.slice(0, 10)}T12:00:00Z`).toISOString() : new Date().toISOString();
@@ -279,16 +293,9 @@ export async function markOpportunityWon(
 
   let missionId: string | null = extra?.linked_mission_id ?? null;
   let missionCreated = false;
-  if (input.create_mission && !missionId) {
-    const { data: mission, error: mErr } = await supabase
-      .from("missions")
-      .insert([{ title: card.title, client_name: card.company, status: "not_started", initial_amount: amount || null }])
-      .select("id")
-      .single();
-    if (mErr) throw new Error(`Opportunité gagnée, mais mission non créée : ${mErr.message}`);
-    missionId = mission.id;
+  if (wantMission && !missionId) {
+    missionId = await createMissionFromCard(supabase, card.id, amount);
     missionCreated = true;
-    await supabase.from("crm_cards").update({ linked_mission_id: missionId }).eq("id", card.id);
   }
 
   await log(`mark_opportunity_won ${card.id}${missionCreated ? ` mission ${missionId}` : ""}`);
