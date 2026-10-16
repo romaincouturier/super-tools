@@ -34,6 +34,6 @@
 - [x] Relance questionnaire : prénom, bouton, apostrophes corrigés
 
 - [ ] Avis/témoignages formations : google_review, evaluation_reminder et video_testimonial à 1 jour d intervalle saturent les participants (cas Abobkar Benabdellaoui, refus explicite). A intégrer à la refonte en signaux.
-- [ ] CRM Corse 829e60ef : créer mission liée
-- [ ] MCP mark_opportunity_won : create_mission par défaut pour missions + création si déjà WON sans mission
-- [ ] Audit cartes WON mission sans mission liée
+- [x] CRM Corse 829e60ef : créer mission liée
+- [x] MCP mark_opportunity_won : create_mission par défaut pour missions + création si déjà WON sans mission
+- [x] Audit cartes WON mission sans mission liée
