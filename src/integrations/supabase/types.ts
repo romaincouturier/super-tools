@@ -8127,7 +8127,10 @@ export type Database = {
           product_name: string | null
           quantity: number
           raw_line_item: Json | null
+          sendcloud_parcel_id: number | null
           shipped_confirmed_at: string | null
+          tracking_number: string | null
+          tracking_url: string | null
           unit_price: number | null
           updated_at: string
           validation_status: string
@@ -8158,7 +8161,10 @@ export type Database = {
           product_name?: string | null
           quantity?: number
           raw_line_item?: Json | null
+          sendcloud_parcel_id?: number | null
           shipped_confirmed_at?: string | null
+          tracking_number?: string | null
+          tracking_url?: string | null
           unit_price?: number | null
           updated_at?: string
           validation_status?: string
@@ -8189,7 +8195,10 @@ export type Database = {
           product_name?: string | null
           quantity?: number
           raw_line_item?: Json | null
+          sendcloud_parcel_id?: number | null
           shipped_confirmed_at?: string | null
+          tracking_number?: string | null
+          tracking_url?: string | null
           unit_price?: number | null
           updated_at?: string
           validation_status?: string
