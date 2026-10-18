@@ -63,3 +63,44 @@ export async function isInternalOrAuthenticated(
   const user = await verifyAuth(authHeader);
   return user !== null;
 }
+
+type StaffLookup = {
+  rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>;
+  from: (table: string) => {
+    select: (cols: string) => {
+      eq: (col: string, value: string) => {
+        limit: (n: number) => PromiseLike<{ data: unknown[] | null; error: unknown }>;
+      };
+    };
+  };
+};
+
+/**
+ * Staff = admin (profiles.is_admin) ou au moins une ligne dans
+ * user_module_access. Un apprenant a une session et une ligne profiles : ni
+ * l'une ni l'autre ne prouve un droit (règle [063]). Une erreur de lecture
+ * vaut refus.
+ */
+export async function isStaffUser(admin: StaffLookup, userId: string): Promise<boolean> {
+  const { data: isAdmin, error } = await admin.rpc("is_admin", { _user_id: userId });
+  if (!error && isAdmin === true) return true;
+  const { data: modules, error: modError } = await admin
+    .from("user_module_access")
+    .select("module")
+    .eq("user_id", userId)
+    .limit(1);
+  return !modError && Array.isArray(modules) && modules.length > 0;
+}
+
+/**
+ * Garde staff d'une edge function appelée par le frontend. Renvoie l'appelant
+ * (id vérifié par getUser(), jamais lu dans le corps) ou null : l'appelant
+ * répond alors 403. Les appels cron / fonction-à-fonction ne passent pas ici,
+ * les combiner explicitement avec isInternalCall si besoin.
+ */
+export async function requireStaff(req: Request): Promise<{ id: string; email?: string } | null> {
+  const { verifyAuth, getSupabaseClient } = await import("./supabase-client.ts");
+  const user = await verifyAuth(req.headers.get("Authorization"));
+  if (!user) return null;
+  return (await isStaffUser(getSupabaseClient(), user.id)) ? user : null;
+}

@@ -94,7 +94,7 @@ const DocumentsManager = ({
             trainingId={trainingId} trainingName={trainingName} startDate={startDate} endDate={endDate}
             isInterEntreprise={isInterEntreprise} invoiceFileUrl={invoiceFileUrl}
             attendanceSheetsUrls={attendanceSheetsUrls} certificateUrls={certificateUrls}
-            sponsorEmail={sponsorEmail} sponsorName={sponsorName} sponsorFirstName={sponsorFirstName}
+            sponsorEmail={sponsorEmail}
             sponsorFormalAddress={sponsorFormalAddress} documentsSentInfo={documentsSentInfo}
             setDocumentsSentInfo={setDocumentsSentInfo} evaluationCount={evaluationCount} signatureCount={signatureCount}
             participants={participants} clientName={clientName} trainingDuree={trainingDuree}
