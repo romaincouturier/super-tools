@@ -177,7 +177,14 @@ export async function setMediaTranscription(
   },
 ): Promise<void> {
   if (!mediaIds.length) return;
-  const update: Record<string, unknown> = {
+  const update: {
+    transcription_status: string;
+    transcription_updated_at: string;
+    transcription_error: string | null;
+    transcript?: string;
+    transcription_audio_seconds?: number | null;
+    transcription_started_at?: string;
+  } = {
     transcription_status: patch.status,
     transcription_updated_at: new Date().toISOString(),
     transcription_error: patch.error ?? null,
