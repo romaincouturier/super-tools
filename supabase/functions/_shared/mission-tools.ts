@@ -1064,22 +1064,6 @@ export async function updateMissionActivity(
   if (!existing) throw new Error("Activité introuvable");
 
   const patch = normalizeActivityFields(input);
-  if (input.invoice_to_issue !== undefined && input.invoice_to_issue !== null) {
-    if (typeof input.invoice_to_issue !== "boolean") throw new Error("invoice_to_issue doit être true ou false");
-    patch.invoice_to_issue = input.invoice_to_issue;
-    if (input.invoice_to_issue) patch.invoice_to_issue_set_at = new Date().toISOString();
-    else Object.assign(patch, { invoice_to_issue_note: null, invoice_to_issue_amount: null, invoice_to_issue_set_at: null });
-  }
-  if (input.invoice_to_issue !== false) {
-    if (input.invoice_to_issue_note !== undefined) {
-      patch.invoice_to_issue_note = input.invoice_to_issue_note === null ? null : String(input.invoice_to_issue_note).trim() || null;
-    }
-    if (input.invoice_to_issue_amount !== undefined) {
-      const a = input.invoice_to_issue_amount;
-      if (a !== null && (typeof a !== "number" || !isFinite(a) || a < 0)) throw new Error("invoice_to_issue_amount doit être un nombre positif ou null");
-      patch.invoice_to_issue_amount = a;
-    }
-  }
   if (Object.keys(patch).length === 0) {
     throw new Error("Aucun champ à modifier : fournir au moins un champ (description, activity_date, duration, duration_type, billable_amount, is_billed, invoice_number, notes)");
   }
@@ -1174,6 +1158,22 @@ export async function updateMission(
       throw new Error("waiting_next_action_date doit être au format YYYY-MM-DD ou null");
     }
     patch.waiting_next_action_date = input.waiting_next_action_date;
+  }
+  if (input.invoice_to_issue !== undefined && input.invoice_to_issue !== null) {
+    if (typeof input.invoice_to_issue !== "boolean") throw new Error("invoice_to_issue doit être true ou false");
+    patch.invoice_to_issue = input.invoice_to_issue;
+    if (input.invoice_to_issue) patch.invoice_to_issue_set_at = new Date().toISOString();
+    else Object.assign(patch, { invoice_to_issue_note: null, invoice_to_issue_amount: null, invoice_to_issue_set_at: null });
+  }
+  if (input.invoice_to_issue !== false) {
+    if (input.invoice_to_issue_note !== undefined) {
+      patch.invoice_to_issue_note = input.invoice_to_issue_note === null ? null : String(input.invoice_to_issue_note).trim() || null;
+    }
+    if (input.invoice_to_issue_amount !== undefined) {
+      const a = input.invoice_to_issue_amount;
+      if (a !== null && (typeof a !== "number" || !isFinite(a) || a < 0)) throw new Error("invoice_to_issue_amount doit être un nombre positif ou null");
+      patch.invoice_to_issue_amount = a;
+    }
   }
   if (Object.keys(patch).length === 0) {
     throw new Error("Aucun champ à modifier : fournir au moins un champ (title, status, start_date, end_date, initial_amount, client_name, client_contact, waiting_next_action_text, waiting_next_action_date, invoice_to_issue, invoice_to_issue_note, invoice_to_issue_amount)");
