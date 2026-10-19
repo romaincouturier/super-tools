@@ -820,3 +820,74 @@ export async function updateLmsCourse(courseId: string, rawPatch: unknown) {
   }
   return { course: after, changes };
 }
+
+// ── Audios de cours : statuts et transcriptions (lecture seule) ───────────
+
+export async function listLmsCourseAudios(courseId: string) {
+  if (!isValidUuid(courseId)) throw new Error("Invalid course_id");
+  await requireStaffOrService();
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("media")
+    .select("id, file_name, file_size, transcript, transcription_status, transcription_error, transcription_audio_seconds, created_at")
+    .eq("source_type", "lms").eq("source_id", courseId).eq("file_type", "audio")
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(`Failed to list audios: ${error.message}`);
+  const rows = data ?? [];
+  const ids = rows.map((r) => r.id);
+  const { data: blocks } = ids.length
+    ? await supabase.from("lms_lesson_blocks").select("id, lesson_id, source_media_id").in("source_media_id", ids)
+    : { data: [] as { id: string; lesson_id: string; source_media_id: string }[] };
+  const groups = new Map<string, typeof rows>();
+  for (const r of rows) {
+    const k = `${r.file_name}::${r.file_size ?? ""}`;
+    groups.set(k, [...(groups.get(k) ?? []), r]);
+  }
+  const audios = [...groups.values()].map((copies) => {
+    const best = copies.find((c) => c.transcript?.trim()) ?? copies[0];
+    const linked = (blocks ?? []).filter((b) => copies.some((c) => c.id === b.source_media_id));
+    const processed = linked.length > 0 || copies.some((c) => c.transcription_status === "processed");
+    const status = processed ? "processed" : best.transcription_status === "error" ? "error"
+      : best.transcript?.trim() ? "transcribed" : "pending";
+    return {
+      media_id: best.id,
+      duplicate_media_ids: copies.filter((c) => c.id !== best.id).map((c) => c.id),
+      file_name: best.file_name,
+      uploaded_at: copies[0].created_at,
+      status,
+      audio_seconds: best.transcription_audio_seconds,
+      transcript_chars: best.transcript?.length ?? 0,
+      error: best.transcription_error,
+      blocks_count: linked.length,
+      lesson_ids: [...new Set(linked.map((b) => b.lesson_id))],
+    };
+  });
+  return { course_id: courseId, count: audios.length, audios };
+}
+
+export async function readLmsAudioTranscript(mediaId: string, offset = 0, limit = 50000) {
+  if (!isValidUuid(mediaId)) throw new Error("Invalid media_id");
+  await requireStaffOrService();
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase
+    .from("media")
+    .select("id, file_name, source_type, source_id, transcript, transcription_status, transcription_audio_seconds, created_at")
+    .eq("id", mediaId).maybeSingle();
+  if (error) throw new Error(`Failed to read transcript: ${error.message}`);
+  if (!data || data.source_type !== "lms") throw new Error("Audio not found");
+  const text = data.transcript ?? "";
+  const start = Math.max(0, Math.floor(offset));
+  const size = Math.min(Math.max(1000, Math.floor(limit)), 100000);
+  const chunk = text.slice(start, start + size);
+  return {
+    media_id: data.id,
+    course_id: data.source_id,
+    file_name: data.file_name,
+    status: data.transcription_status,
+    audio_seconds: data.transcription_audio_seconds,
+    total_chars: text.length,
+    offset: start,
+    next_offset: start + chunk.length < text.length ? start + chunk.length : null,
+    transcript: chunk,
+  };
+}

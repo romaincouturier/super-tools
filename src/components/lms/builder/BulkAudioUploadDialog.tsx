@@ -13,7 +13,7 @@ import { useCourseModules, useModuleLessons, useCourseLessons, useCreateLesson }
 import { useCreateLessonBlock } from "@/hooks/useLmsBlocks";
 import { uploadMediaFile, useAddMedia } from "@/hooks/useMedia";
 import { resolveContentType } from "@/lib/file-utils";
-import { transcribeAudio, analyzeAudioForLessons, type AudioSegment } from "@/services/lmsMediaImport";
+import { transcribeAudio, analyzeAudioForLessons, setMediaTranscription, sha256Hex, findDuplicateAudio, type AudioSegment, type ExistingAudio } from "@/services/lmsMediaImport";
 import { createLessonBlock } from "@/services/lms-blocks";
 import type { LmsModule, LmsLesson } from "@/hooks/useLms";
 import {
@@ -202,8 +202,38 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
       const newItems: AudioItem[] = [];
 
       try {
+        const { data: existingRows } = await supabase
+          .from("media")
+          .select("id, file_name, file_size, file_url, content_hash, transcript, created_at")
+          .eq("source_type", "lms")
+          .eq("source_id", courseId)
+          .eq("file_type", "audio");
+        const existing = (existingRows ?? []) as ExistingAudio[];
+
         for (const file of audioFiles) {
           try {
+            setCurrentAction(`Empreinte de ${file.name}…`);
+            const hash = await sha256Hex(file);
+            const dup = findDuplicateAudio(existing, file, hash);
+            if (dup) {
+              const when = new Date(dup.created_at).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" });
+              const reuse = window.confirm(
+                `« ${file.name} » a déjà été importé le ${when}.\n\nOK : réutiliser ce fichier${dup.transcript ? " et sa transcription" : ""}.\nAnnuler : l'ignorer.`,
+              );
+              if (!reuse) continue;
+              if (!dup.content_hash) await supabase.from("media").update({ content_hash: hash }).eq("id", dup.id);
+              const hasText = !!dup.transcript?.trim();
+              newItems.push({
+                id: crypto.randomUUID(),
+                file,
+                mediaId: dup.id,
+                url: dup.file_url,
+                status: hasText ? "done" : "pending",
+                transcript: dup.transcript ?? "",
+                segments: [],
+              });
+              continue;
+            }
             setCurrentAction(`Envoi de ${file.name}…`);
             const url = await uploadMediaFile(file, "lms", courseId);
             const media = await addMedia.mutateAsync({
@@ -216,6 +246,8 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
               source_type: "lms",
               source_id: courseId,
             });
+            await supabase.from("media").update({ content_hash: hash }).eq("id", media.id);
+            existing.push({ id: media.id, file_name: file.name, file_size: file.size, file_url: url, content_hash: hash, transcript: null, created_at: new Date().toISOString() });
             newItems.push({
               id: crypto.randomUUID(),
               file,
@@ -229,6 +261,11 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
             const msg = err instanceof Error ? err.message : "Erreur inconnue";
             throw new Error(`Upload de "${file.name}" a échoué : ${msg}`);
           }
+        }
+        if (!newItems.length) {
+          setUploading(false);
+          setCurrentAction(null);
+          return;
         }
 
         // Copie lisible des originaux dans Google Drive, sans bloquer l'import
@@ -254,25 +291,26 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
     const updated = [...items];
     setGlobalError(null);
 
-    setAudios(updated.map((a) => ({ ...a, status: "transcribing" as TranscriptionStatus })));
+    setAudios(updated.map((a) => (a.status === "done" && a.transcript ? a : { ...a, status: "transcribing" as TranscriptionStatus })));
 
     for (let i = 0; i < updated.length; i++) {
+      if (updated[i].status === "done" && updated[i].transcript) continue; // réutilisé, déjà transcrit
       try {
         setCurrentAction(`Transcription de ${updated[i].file.name} (${i + 1}/${updated.length})…`);
-        const transcript = await transcribeAudio(updated[i].url);
+        await setMediaTranscription([updated[i].mediaId], { status: "pending" });
+        const { text: transcript, seconds } = await transcribeAudio(updated[i].url);
         if (!transcript || !transcript.trim()) {
-          updated[i] = {
-            ...updated[i],
-            status: "error",
-            error: "Transcription vide — aucune voix détectée ou fichier illisible.",
-          };
+          const error = "Transcription vide — aucune voix détectée ou fichier illisible.";
+          updated[i] = { ...updated[i], status: "error", error };
+          await setMediaTranscription([updated[i].mediaId], { status: "error", error, seconds });
         } else {
           updated[i] = { ...updated[i], status: "done", transcript };
-          // Conserve le transcript en base pour pouvoir le retraiter plus tard.
-          supabase.from("media").update({ transcript }).eq("id", updated[i].mediaId).then(() => undefined);
+          await setMediaTranscription([updated[i].mediaId], { status: "transcribed", transcript, seconds });
         }
       } catch (err) {
-        updated[i] = { ...updated[i], status: "error", error: err instanceof Error ? err.message : "Erreur" };
+        const error = err instanceof Error ? err.message : "Erreur";
+        updated[i] = { ...updated[i], status: "error", error };
+        await setMediaTranscription([updated[i].mediaId], { status: "error", error }).catch(() => undefined);
       }
       setAudios([...updated]);
     }
@@ -376,6 +414,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
       }
 
       let blocksCreated = 0;
+      const producedMedia = new Set<string>();
       for (const audio of audios) {
         if (audio.status !== "done") continue;
         for (const seg of audio.segments) {
@@ -400,10 +439,14 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
             parent_block_id: null,
             position: 9999,
             content: { html: htmlContent },
-          });
+            source_media_id: audio.mediaId,
+          } as Parameters<typeof createLessonBlock>[0]);
           blocksCreated++;
+          producedMedia.add(audio.mediaId);
         }
       }
+      await setMediaTranscription([...producedMedia], { status: "processed" });
+      qc.invalidateQueries({ queryKey: ["lms-course-audios", courseId] });
 
       toast({
         title: `${blocksCreated} bloc${blocksCreated > 1 ? "s" : ""} créé${blocksCreated > 1 ? "s" : ""} dans les leçons`,

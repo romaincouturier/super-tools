@@ -1,0 +1,2 @@
+ALTER TABLE public.media DROP CONSTRAINT IF EXISTS media_transcription_status_check;
+ALTER TABLE public.media ADD CONSTRAINT media_transcription_status_check CHECK (transcription_status IS NULL OR transcription_status = ANY (ARRAY['pending','processing','completed','failed','transcribed','processed','error']));
