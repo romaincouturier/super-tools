@@ -86,6 +86,8 @@ import {
   getLmsBlockCatalog,
   listLessonVersions,
   listLmsCourses,
+  listLmsCourseAudios,
+  readLmsAudioTranscript,
   listLmsLessons,
   readLmsLesson,
   restoreLessonVersion,
@@ -332,7 +334,7 @@ QUEL OUTIL POUR QUELLE QUESTION
 - Client, mission, formation, devis, évaluation : get_client_dossier, get_mission_dossier, read_mission_documents, search_content.
 - Conférence, salon, CFP, réécriture d'un pitch déjà soumis : get_event_history. Il rend le pitch (description), les notes de préparation, le bilan (summary_notes) et l'issue déduite. Ne jamais annoncer qu'un événement a été « accepté » : le modèle ne stocke que held / not_selected / cancelled / upcoming, et le refus se lit sur cancellation_reason.
 - Veille (articles, podcasts, sorties produit suivis par SuperTilt) : list_watch_items pour lire ce qui est déjà couvert, save_watch_item pour y déposer un nouveau contenu.
-- LMS (cours en ligne) : list_lms_courses donne les cours ; list_lms_lessons les leçons d'un cours (avec leur module) ; read_lms_lesson renvoie les blocs avec leur empreinte ; list_lms_block_types catalogue les types de blocs pédagogiques et leur pertinence ; create_lms_lesson crée une leçon vide dans un module ; update_lms_block modifie un seul bloc texte/HTML sans changer son type ; apply_lesson_restructure remplace les blocs de contenu d'une leçon après validation humaine ; list_lesson_versions et restore_lesson_version gèrent l'historique. Utiliser read_lms_lesson avant toute proposition de restructuration pour obtenir l'empreinte (fingerprint) exacte.
+- LMS (cours en ligne) : list_lms_courses donne les cours ; list_lms_lessons les leçons d'un cours (avec leur module) ; list_lms_course_audios les enregistrements audio d'un cours et leur statut, read_lms_audio_transcript leur transcription intégrale ; read_lms_lesson renvoie les blocs avec leur empreinte ; list_lms_block_types catalogue les types de blocs pédagogiques et leur pertinence ; create_lms_lesson crée une leçon vide dans un module ; update_lms_block modifie un seul bloc texte/HTML sans changer son type ; apply_lesson_restructure remplace les blocs de contenu d'une leçon après validation humaine ; list_lesson_versions et restore_lesson_version gèrent l'historique. Utiliser read_lms_lesson avant toute proposition de restructuration pour obtenir l'empreinte (fingerprint) exacte.
 - Picto-Dico : le backlog des mots demandés par les visiteurs est la table pictodico_words (query_database) ; check_picto_entries vérifie si des mots y existent déjà ; add_picto_requests y ajoute des demandes (un mot déjà présent incrémente request_count). La liste des pictos publiés n'est PAS dans SuperTools.
 - query_database reste disponible pour tout le reste (SELECT, allowlist de tables) mais les outils agrégés ci-dessus sont plus fiables que du SQL improvisé.
 
@@ -1123,6 +1125,30 @@ const MCP_TOOLS = [
         page: { type: "number", description: "Page number (default 1)" },
         limit: { type: "number", description: "Page size (default 25, max 100)" },
       },
+    },
+  },
+  {
+    name: "list_lms_course_audios",
+    description:
+      "Read-only. List the audio recordings uploaded to an LMS course (duplicate copies grouped), with status (pending, transcribed, processed = produced lesson blocks, error), duration, transcript length, and linked blocks/lessons.",
+    inputSchema: {
+      type: "object",
+      properties: { course_id: { type: "string", description: "UUID of the course" } },
+      required: ["course_id"],
+    },
+  },
+  {
+    name: "read_lms_audio_transcript",
+    description:
+      "Read-only. Return the full transcript of an LMS course audio (media_id from list_lms_course_audios). Paginated by characters: pass next_offset as offset to continue.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        media_id: { type: "string", description: "UUID of the audio media" },
+        offset: { type: "number", description: "Character offset (default 0)" },
+        limit: { type: "number", description: "Max characters (default 50000, max 100000)" },
+      },
+      required: ["media_id"],
     },
   },
   {
@@ -2285,6 +2311,26 @@ async function callTool(
           page: args.page as number | undefined,
           limit: args.limit as number | undefined,
         })));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "list_lms_course_audios": {
+      try {
+        await log("list_lms_course_audios");
+        return textResult(JSON.stringify(await listLmsCourseAudios((args.course_id as string) || "")));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "read_lms_audio_transcript": {
+      try {
+        await log("read_lms_audio_transcript");
+        return textResult(JSON.stringify(await readLmsAudioTranscript(
+          (args.media_id as string) || "",
+          (args.offset as number | undefined) ?? 0,
+          (args.limit as number | undefined) ?? 50000,
+        )));
       } catch (e) {
         return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
