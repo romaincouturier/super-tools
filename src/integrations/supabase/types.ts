@@ -5444,6 +5444,7 @@ export type Database = {
           lesson_id: string
           parent_block_id: string | null
           position: number
+          source_media_id: string | null
           source_transcript_id: string | null
           type: string
           updated_at: string
@@ -5457,6 +5458,7 @@ export type Database = {
           lesson_id: string
           parent_block_id?: string | null
           position?: number
+          source_media_id?: string | null
           source_transcript_id?: string | null
           type: string
           updated_at?: string
@@ -5470,6 +5472,7 @@ export type Database = {
           lesson_id?: string
           parent_block_id?: string | null
           position?: number
+          source_media_id?: string | null
           source_transcript_id?: string | null
           type?: string
           updated_at?: string
@@ -5487,6 +5490,13 @@ export type Database = {
             columns: ["parent_block_id"]
             isOneToOne: false
             referencedRelation: "lms_lesson_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_lesson_blocks_source_media_id_fkey"
+            columns: ["source_media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
             referencedColumns: ["id"]
           },
           {
@@ -6504,6 +6514,7 @@ export type Database = {
       media: {
         Row: {
           assemblyai_transcript_id: string | null
+          content_hash: string | null
           created_at: string | null
           created_by: string | null
           file_name: string
@@ -6527,6 +6538,7 @@ export type Database = {
         }
         Insert: {
           assemblyai_transcript_id?: string | null
+          content_hash?: string | null
           created_at?: string | null
           created_by?: string | null
           file_name: string
@@ -6550,6 +6562,7 @@ export type Database = {
         }
         Update: {
           assemblyai_transcript_id?: string | null
+          content_hash?: string | null
           created_at?: string | null
           created_by?: string | null
           file_name?: string
