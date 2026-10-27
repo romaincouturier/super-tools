@@ -1,5 +1,7 @@
 # Architecture rules
 
+- Participant BPF normalization stays in a pure helper local to add-training-participant and is tested against database CHECK values, because draft and normal inserts must accept legacy shop labels without writing invalid classifications.
+
 - Watch sources canonicalize URLs with a database trigger and a matching browser helper; watch-item source links adjust counts through a database trigger, because imports and UI writes must preserve the same identity and counters.
 
 - Course covers use authenticated native Storage uploads in the existing public LMS bucket and are uploaded on save, because cancelling the settings dialog must not upload files or change the course.

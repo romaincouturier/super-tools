@@ -22,6 +22,7 @@ import { reportEdgeError } from "../_shared/sentry.ts";
 import { fetchWorkingDays, subtractWorkingDays, addWorkingDays } from "../_shared/working-days.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
 import { ensureLearnerAccount, sendLearnerAccessEmail } from "../_shared/learner-account.ts";
+import { normalizeTypeStagiaireBpf } from "./bpf.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -142,15 +143,6 @@ export interface AddParticipantResponse {
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
-
-const TYPE_STAGIAIRE_BPF_VALUES = ["salarie_prive", "apprenti", "demandeur_emploi", "particulier", "autre"];
-const TYPE_STAGIAIRE_BPF_ALIASES: Record<string, string> = { entreprise: "salarie_prive", salarie: "salarie_prive" };
-function normalizeTypeStagiaireBpf(v: string | null | undefined): string | null {
-  if (!v) return null;
-  const k = v.trim().toLowerCase();
-  const mapped = TYPE_STAGIAIRE_BPF_ALIASES[k] ?? k;
-  return TYPE_STAGIAIRE_BPF_VALUES.includes(mapped) ? mapped : null;
-}
 
 Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
