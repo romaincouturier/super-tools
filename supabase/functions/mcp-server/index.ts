@@ -96,9 +96,16 @@ import {
 import { createDraftQuote, type CustomerInput, type QuoteLineInput } from "../_shared/pennylane-quotes.ts";
 import {
   listWatchItems,
+  listWatchSources,
+  proposeWatchSource,
   saveWatchItem,
+  updateWatchSource,
   WATCH_BODY_MAX_CHARS,
   WATCH_COMMENT_MAX_CHARS,
+  WATCH_SOURCE_EXPERTS,
+  WATCH_SOURCE_LANGUAGES,
+  WATCH_SOURCE_STATUSES,
+  WATCH_SOURCE_TYPES,
   WATCH_TAGS_MAX,
 } from "../_shared/watch-tools.ts";
 
@@ -144,6 +151,11 @@ import {
  *   - save_watch_item        : écriture additive — dépose un contenu de veille
  *                           (lien, résumé, commentaire, tags) dans le module
  *                           Veille, doublons refusés
+ *   - list_watch_sources     : registre des sources de veille (par expert,
+ *                           statut, type, langue)
+ *   - propose_watch_source   : propose une source (statut « proposed »,
+ *                           doublon d'URL refusé)
+ *   - update_watch_source    : statut, utilité, notes d'une source
  *   - create_quote        : écriture externe — crée un devis en BROUILLON
  *                           dans Pennylane. Aucun envoi, aucune validation,
  *                           aucune transformation en facture.
@@ -333,7 +345,7 @@ QUEL OUTIL POUR QUELLE QUESTION
 - Question simple sur le kanban éditorial ou l'historique des newsletters (« qu'a-t-on déjà envoyé », « quelles idées sur tel thème ») : list_newsletters et list_content_board, plus légers que get_editorial_brief ; get_content_card pour lire un contenu en entier.
 - Client, mission, formation, devis, évaluation : get_client_dossier, get_mission_dossier, read_mission_documents, search_content.
 - Conférence, salon, CFP, réécriture d'un pitch déjà soumis : get_event_history. Il rend le pitch (description), les notes de préparation, le bilan (summary_notes) et l'issue déduite. Ne jamais annoncer qu'un événement a été « accepté » : le modèle ne stocke que held / not_selected / cancelled / upcoming, et le refus se lit sur cancellation_reason.
-- Veille (articles, podcasts, sorties produit suivis par SuperTilt) : list_watch_items pour lire ce qui est déjà couvert, save_watch_item pour y déposer un nouveau contenu.
+- Veille (articles, podcasts, sorties produit suivis par SuperTilt) : list_watch_items pour lire ce qui est déjà couvert, save_watch_item pour y déposer un nouveau contenu. Le registre des sources se gère avec list_watch_sources (quelles sources suivre), propose_watch_source (nouvelle source, statut « proposed », doublon d'URL refusé) et update_watch_source (statut, utilité, notes).
 - LMS (cours en ligne) : list_lms_courses donne les cours ; list_lms_lessons les leçons d'un cours (avec leur module) ; list_lms_course_audios les enregistrements audio d'un cours et leur statut, read_lms_audio_transcript leur transcription intégrale ; read_lms_lesson renvoie les blocs avec leur empreinte ; list_lms_block_types catalogue les types de blocs pédagogiques et leur pertinence ; create_lms_lesson crée une leçon vide dans un module ; update_lms_block modifie un seul bloc texte/HTML sans changer son type ; apply_lesson_restructure remplace les blocs de contenu d'une leçon après validation humaine ; list_lesson_versions et restore_lesson_version gèrent l'historique. Utiliser read_lms_lesson avant toute proposition de restructuration pour obtenir l'empreinte (fingerprint) exacte.
 - Picto-Dico : le backlog des mots demandés par les visiteurs est la table pictodico_words (query_database) ; check_picto_entries vérifie si des mots y existent déjà ; add_picto_requests y ajoute des demandes (un mot déjà présent incrémente request_count). La liste des pictos publiés n'est PAS dans SuperTools.
 - query_database reste disponible pour tout le reste (SELECT, allowlist de tables) mais les outils agrégés ci-dessus sont plus fiables que du SQL improvisé.
@@ -774,6 +786,63 @@ const MCP_TOOLS = [
         days: { type: "number", description: "Only items added in the last N days" },
         shared_only: { type: "boolean", description: "Only items flagged « à partager »" },
         limit: { type: "number", description: "Number of items (default 20, max 100)" },
+      },
+    },
+  },
+  {
+    name: "list_watch_sources",
+    description:
+      "List the sources registered in the SuperTools watch module (newsletters, podcasts, YouTube channels, blogs...), with all their fields: expert, theme, type, language, url, status (proposed / to_subscribe / followed / dropped), usefulness, items_count, last_useful_at, notes. A scheduled watch agent calls this first to know which sources it must follow. Read-only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        expert: { type: "string", enum: WATCH_SOURCE_EXPERTS, description: "Only this expert's sources" },
+        status: {
+          oneOf: [{ type: "string", enum: WATCH_SOURCE_STATUSES }, { type: "array", items: { type: "string", enum: WATCH_SOURCE_STATUSES } }],
+          description: "One or several statuses to keep (e.g. ['followed', 'to_subscribe'])",
+        },
+        type: { type: "string", enum: WATCH_SOURCE_TYPES, description: "Only this kind of source" },
+        language: { type: "string", enum: WATCH_SOURCE_LANGUAGES, description: "Only this language" },
+        search: { type: "string", description: "Case-insensitive filter on name, theme and rationale" },
+        limit: { type: "number", description: "Number of sources (default 100, max 500)" },
+      },
+    },
+  },
+  {
+    name: "propose_watch_source",
+    description:
+      "Propose a new source in the watch module registry, created with status « proposed » (a human validates it in the Sources tab before it is followed). Pass the expert it belongs to, its name, type, language, the absolute http(s) url, why it is worth following and how to follow it. DUPLICATES: if the normalized URL is already registered, nothing is created and the existing source is returned (saved: false, reason: 'duplicate') — same behaviour as save_watch_item.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        expert: { type: "string", enum: WATCH_SOURCE_EXPERTS, description: "The watch expert this source belongs to" },
+        theme: { type: "string", description: "Short theme label (max 160 chars), e.g. 'IA générative pour la formation'" },
+        name: { type: "string", description: "Source name, e.g. 'Newsletter Lenny'" },
+        type: { type: "string", enum: WATCH_SOURCE_TYPES },
+        language: { type: "string", enum: WATCH_SOURCE_LANGUAGES },
+        url: { type: "string", description: "Absolute http(s) URL of the source (normalized before comparison)" },
+        why: { type: "string", description: "Why this source is worth following" },
+        how_to_follow: { type: "string", description: "How to follow it (RSS, subscription, manual check...)" },
+        proposed_by: { type: "string", description: "Who proposes it (agent or person name)" },
+      },
+      required: ["expert", "name", "type", "language", "url"],
+    },
+  },
+  {
+    name: "update_watch_source",
+    description:
+      "Update a source of the watch registry, located by id or by url. Modifiable fields: status (proposed / to_subscribe / followed / dropped), usefulness (1-5), notes, theme, last_useful_at, items_count. Only the provided fields are changed.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Source id (provide id or url)" },
+        url: { type: "string", description: "Source URL, normalized before lookup (provide id or url)" },
+        status: { type: "string", enum: WATCH_SOURCE_STATUSES },
+        usefulness: { type: "number", description: "Usefulness rating, integer 1 to 5" },
+        notes: { type: "string", description: "Free notes" },
+        theme: { type: "string", description: "Short theme label (max 160 chars)" },
+        last_useful_at: { type: "string", description: "ISO timestamp of the last useful item from this source" },
+        items_count: { type: "number", description: "Number of watch items produced by this source" },
       },
     },
   },
@@ -1906,6 +1975,71 @@ async function callTool(
         return textResult(`Watch error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "list_watch_sources": {
+      try {
+        return textResult(
+          await listWatchSources(
+            supabase,
+            {
+              expert: args.expert as string | undefined,
+              status: args.status as string | string[] | undefined,
+              type: args.type as string | undefined,
+              language: args.language as string | undefined,
+              search: args.search as string | undefined,
+              limit: args.limit as number | undefined,
+            },
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Watch error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "propose_watch_source": {
+      try {
+        return textResult(
+          await proposeWatchSource(
+            supabase,
+            {
+              expert: args.expert as string | undefined,
+              theme: args.theme as string | undefined,
+              name: args.name as string | undefined,
+              type: args.type as string | undefined,
+              language: args.language as string | undefined,
+              url: args.url as string | undefined,
+              why: args.why as string | undefined,
+              how_to_follow: args.how_to_follow as string | undefined,
+              proposed_by: args.proposed_by as string | undefined,
+            },
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Watch error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_watch_source": {
+      try {
+        return textResult(
+          await updateWatchSource(
+            supabase,
+            {
+              id: args.id as string | undefined,
+              url: args.url as string | undefined,
+              status: args.status as string | undefined,
+              usefulness: args.usefulness as number | undefined,
+              notes: args.notes as string | undefined,
+              theme: args.theme as string | undefined,
+              last_useful_at: args.last_useful_at as string | undefined,
+              items_count: args.items_count as number | undefined,
+            },
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Watch error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "create_quote": {
       try {
         const quote = await createDraftQuote(
@@ -2551,7 +2685,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.15.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.16.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }

@@ -304,3 +304,219 @@ export async function listWatchItems(
       : undefined,
   });
 }
+
+// ── Registre des sources de veille ──────────────────────────────────────
+//
+// Les agents de veille planifiés gèrent leurs sources via watch_sources :
+// ils listent ce qui est suivi, proposent de nouvelles sources et mettent à
+// jour le statut / l'utilité. L'URL est canonisée par la fonction SQL
+// normalize_watch_source_url (aussi appliquée par le trigger de la table) :
+// la détection de doublon passe par elle, jamais par la chaîne brute.
+
+export const WATCH_SOURCE_EXPERTS = [
+  "strategie", "commercial-reseau", "marketing-seo", "ic-facilitation",
+  "pedagogie-qualite", "ia-supertools", "productivite", "daf-juridique",
+  "evenements", "concurrence", "newsletters",
+] as const;
+export const WATCH_SOURCE_TYPES = [
+  "newsletter", "podcast", "youtube", "tiktok", "linkedin", "blog", "revue", "site", "autre",
+] as const;
+export const WATCH_SOURCE_LANGUAGES = ["fr", "en", "autre"] as const;
+export const WATCH_SOURCE_STATUSES = ["proposed", "to_subscribe", "followed", "dropped"] as const;
+
+const SOURCES_DEFAULT_LIMIT = 100;
+const SOURCES_MAX_LIMIT = 500;
+
+export interface WatchSourceListInput {
+  expert?: string;
+  status?: string | string[];
+  type?: string;
+  language?: string;
+  search?: string;
+  limit?: number;
+}
+
+export interface WatchSourceProposeInput {
+  expert?: string;
+  theme?: string;
+  name?: string;
+  type?: string;
+  language?: string;
+  url?: string;
+  why?: string;
+  how_to_follow?: string;
+  proposed_by?: string;
+}
+
+export interface WatchSourceUpdateInput {
+  id?: string;
+  url?: string;
+  status?: string;
+  usefulness?: number;
+  notes?: string;
+  theme?: string;
+  last_useful_at?: string;
+  items_count?: number;
+}
+
+function checkEnum(value: string, allowed: readonly string[], field: string): string {
+  if (!allowed.includes(value)) {
+    throw new Error(`${field} invalide (« ${value} »). Valeurs acceptées : ${allowed.join(", ")}`);
+  }
+  return value;
+}
+
+/** Canonise une URL comme le trigger de la table (doublons cohérents). */
+async function normalizeWatchSourceUrl(supabase: Supabase, raw: string): Promise<string> {
+  const { data, error } = await supabase.rpc("normalize_watch_source_url", { value: raw });
+  if (error) throw new Error(`url invalide : ${error.message}`);
+  return String(data);
+}
+
+export async function listWatchSources(
+  supabase: Supabase,
+  input: WatchSourceListInput,
+  audit: AuditFn,
+): Promise<string> {
+  const limit = Math.min(Math.max(Number(input.limit) || SOURCES_DEFAULT_LIMIT, 1), SOURCES_MAX_LIMIT);
+
+  let query = supabase.from("watch_sources").select("*");
+
+  if (input.expert) query = query.eq("expert", checkEnum(input.expert, WATCH_SOURCE_EXPERTS, "expert"));
+  if (input.type) query = query.eq("type", checkEnum(input.type, WATCH_SOURCE_TYPES, "type"));
+  if (input.language) query = query.eq("language", checkEnum(input.language, WATCH_SOURCE_LANGUAGES, "language"));
+  if (input.status) {
+    const statuses = (Array.isArray(input.status) ? input.status : [input.status])
+      .map((s) => checkEnum(String(s), WATCH_SOURCE_STATUSES, "status"));
+    query = statuses.length === 1 ? query.eq("status", statuses[0]) : query.in("status", statuses);
+  }
+  if (input.search) {
+    const term = String(input.search).replace(/[%,()]/g, " ").trim();
+    if (term) query = query.or(`name.ilike.%${term}%,why.ilike.%${term}%,theme.ilike.%${term}%`);
+  }
+
+  const { data, error } = await query.order("expert").order("name").limit(limit);
+  if (error) throw new Error(error.message);
+
+  await audit(`list_watch_sources (${input.expert ?? "tous experts"}, ${limit} max)`);
+
+  const sources = (data as Array<Record<string, unknown>> | null) ?? [];
+  return JSON.stringify({
+    count: sources.length,
+    sources,
+    hint: sources.length === limit
+      ? `Liste tronquée à ${limit} sources : affiner avec expert, status, type ou search.`
+      : undefined,
+  });
+}
+
+/**
+ * Propose une nouvelle source (statut « proposed »). Si l'URL canonisée
+ * existe déjà, rien n'est créé et la source existante est rendue — même
+ * comportement que save_watch_item face à un doublon.
+ */
+export async function proposeWatchSource(
+  supabase: Supabase,
+  input: WatchSourceProposeInput,
+  audit: AuditFn,
+): Promise<string> {
+  const name = (input.name || "").trim();
+  if (!name) throw new Error("name est obligatoire");
+  const expert = checkEnum(String(input.expert || ""), WATCH_SOURCE_EXPERTS, "expert");
+  const type = checkEnum(String(input.type || ""), WATCH_SOURCE_TYPES, "type");
+  const language = checkEnum(String(input.language || ""), WATCH_SOURCE_LANGUAGES, "language");
+  const rawUrl = (input.url || "").trim();
+  if (!rawUrl) throw new Error("url est obligatoire");
+  const url = await normalizeWatchSourceUrl(supabase, rawUrl);
+
+  const { data: existingRows, error: findError } = await supabase
+    .from("watch_sources")
+    .select("*")
+    .eq("url", url)
+    .limit(1);
+  if (findError) throw new Error(findError.message);
+  const existing = (existingRows as Array<Record<string, unknown>> | null)?.[0];
+  if (existing) {
+    await audit(`propose_watch_source refusé (doublon) : ${name.slice(0, 120)}`);
+    return JSON.stringify({
+      saved: false,
+      reason: "duplicate",
+      existing,
+      hint: "Cette URL est déjà dans le registre des sources. Utiliser update_watch_source pour la modifier.",
+    });
+  }
+
+  const row: Record<string, unknown> = {
+    expert,
+    name: name.slice(0, 300),
+    type,
+    language,
+    url,
+    status: "proposed",
+    theme: (input.theme || "").slice(0, 160),
+    why: input.why || "",
+    how_to_follow: input.how_to_follow || "",
+  };
+  if (input.proposed_by) row.proposed_by = String(input.proposed_by).slice(0, 120);
+
+  await audit(`propose_watch_source : ${name.slice(0, 120)} (${url})`);
+
+  const { data: created, error } = await supabase
+    .from("watch_sources")
+    .insert(row)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+
+  return JSON.stringify({
+    saved: true,
+    source: created,
+    hint: "Source proposée dans le registre (statut « proposed »). Elle passe en « followed » après validation humaine dans l'onglet Sources du module Veille.",
+  });
+}
+
+/** Met à jour une source, repérée par id ou par url. */
+export async function updateWatchSource(
+  supabase: Supabase,
+  input: WatchSourceUpdateInput,
+  audit: AuditFn,
+): Promise<string> {
+  const patch: Record<string, unknown> = {};
+  if (input.status !== undefined) patch.status = checkEnum(String(input.status), WATCH_SOURCE_STATUSES, "status");
+  if (input.usefulness !== undefined) {
+    const u = Number(input.usefulness);
+    if (!Number.isInteger(u) || u < 1 || u > 5) throw new Error("usefulness doit être un entier entre 1 et 5");
+    patch.usefulness = u;
+  }
+  if (input.notes !== undefined) patch.notes = String(input.notes);
+  if (input.theme !== undefined) patch.theme = String(input.theme).slice(0, 160);
+  if (input.last_useful_at !== undefined) patch.last_useful_at = String(input.last_useful_at);
+  if (input.items_count !== undefined) {
+    const n = Number(input.items_count);
+    if (!Number.isInteger(n) || n < 0) throw new Error("items_count doit être un entier positif ou nul");
+    patch.items_count = n;
+  }
+  if (Object.keys(patch).length === 0) throw new Error("Aucun champ à modifier");
+
+  let locator;
+  if (input.id) {
+    locator = { column: "id", value: String(input.id) };
+  } else if (input.url) {
+    locator = { column: "url", value: await normalizeWatchSourceUrl(supabase, String(input.url)) };
+  } else {
+    throw new Error("Fournir id ou url pour repérer la source");
+  }
+
+  await audit(`update_watch_source (${locator.column}=${locator.value}) : ${Object.keys(patch).join(", ")}`);
+
+  const { data, error } = await supabase
+    .from("watch_sources")
+    .update(patch)
+    .eq(locator.column, locator.value)
+    .select("*");
+  if (error) throw new Error(error.message);
+  const updated = (data as Array<Record<string, unknown>> | null) ?? [];
+  if (updated.length === 0) throw new Error(`Aucune source trouvée pour ${locator.column}=${locator.value}`);
+
+  return JSON.stringify({ saved: true, source: updated[0] });
+}
