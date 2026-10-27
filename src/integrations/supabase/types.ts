@@ -12762,6 +12762,7 @@ export type Database = {
           is_shared: boolean
           mime_type: string | null
           relevance_score: number
+          source_id: string | null
           source_url: string | null
           tags: string[]
           title: string
@@ -12786,6 +12787,7 @@ export type Database = {
           is_shared?: boolean
           mime_type?: string | null
           relevance_score?: number
+          source_id?: string | null
           source_url?: string | null
           tags?: string[]
           title?: string
@@ -12810,6 +12812,7 @@ export type Database = {
           is_shared?: boolean
           mime_type?: string | null
           relevance_score?: number
+          source_id?: string | null
           source_url?: string | null
           tags?: string[]
           title?: string
@@ -12831,7 +12834,74 @@ export type Database = {
             referencedRelation: "watch_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "watch_items_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "watch_sources"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      watch_sources: {
+        Row: {
+          created_at: string
+          expert: string
+          how_to_follow: string
+          id: string
+          items_count: number
+          language: string
+          last_useful_at: string | null
+          name: string
+          notes: string
+          proposed_by: string
+          status: string
+          theme: string
+          type: string
+          updated_at: string
+          url: string
+          usefulness: number | null
+          why: string
+        }
+        Insert: {
+          created_at?: string
+          expert: string
+          how_to_follow?: string
+          id?: string
+          items_count?: number
+          language: string
+          last_useful_at?: string | null
+          name: string
+          notes?: string
+          proposed_by?: string
+          status?: string
+          theme?: string
+          type: string
+          updated_at?: string
+          url: string
+          usefulness?: number | null
+          why?: string
+        }
+        Update: {
+          created_at?: string
+          expert?: string
+          how_to_follow?: string
+          id?: string
+          items_count?: number
+          language?: string
+          last_useful_at?: string | null
+          name?: string
+          notes?: string
+          proposed_by?: string
+          status?: string
+          theme?: string
+          type?: string
+          updated_at?: string
+          url?: string
+          usefulness?: number | null
+          why?: string
+        }
+        Relationships: []
       }
       webhook_logs: {
         Row: {
@@ -13793,6 +13863,7 @@ export type Database = {
       move_stale_tickets_to_boite_a_idees: { Args: never; Returns: undefined }
       next_location_contract_ref: { Args: { p_year: number }; Returns: string }
       normalize_url: { Args: { u: string }; Returns: string }
+      normalize_watch_source_url: { Args: { value: string }; Returns: string }
       pictodico_norm_key: { Args: { t: string }; Returns: string }
       pictodico_register_request: {
         Args: {
