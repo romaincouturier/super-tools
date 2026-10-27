@@ -1,5 +1,11 @@
 # Roadmap
 
+## Registre des sources de veille (2026-10-27)
+- [ ] Données, URL canonique unique et rattachement des fiches
+- [ ] Onglet Sources, filtres, validation, utilité et ajout manuel
+- [ ] Trois outils MCP et documentation : support de maintenance du serveur historique à établir
+- [ ] Tests et parcours réel
+
 ## Récap quotidien (2026-10-15)
 - [x] Rubrique « Missions sans prochaine action » après « Missions — Actions à traiter »
 - [x] Avis missions : signaux au lieu d’emails, file des 21 convertie, écran « Avis à demander », outils MCP
