@@ -13,7 +13,7 @@ import { toast } from "@/lib/toast";
 
 const initial: ProposeWatchSourceInput = { expert: "strategie", theme: "", name: "", type: "site", language: "fr", url: "", why: "", how_to_follow: "", proposed_by: "romain" };
 const schema = z.object({
-  expert: z.string().refine((v) => Object.hasOwn(WATCH_EXPERTS, v)),
+  expert: z.string().refine((v) => Object.prototype.hasOwnProperty.call(WATCH_EXPERTS, v)),
   name: z.string().trim().min(1).max(300), theme: z.string().trim().max(160),
   url: z.string().max(4000).transform(normalizeWatchSourceUrl),
   type: z.enum(WATCH_SOURCE_TYPES), language: z.enum(["fr", "en", "autre"]),
