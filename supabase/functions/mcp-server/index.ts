@@ -151,6 +151,11 @@ import {
  *   - save_watch_item        : écriture additive — dépose un contenu de veille
  *                           (lien, résumé, commentaire, tags) dans le module
  *                           Veille, doublons refusés
+ *   - list_watch_sources     : registre des sources de veille (par expert,
+ *                           statut, type, langue)
+ *   - propose_watch_source   : propose une source (statut « proposed »,
+ *                           doublon d'URL refusé)
+ *   - update_watch_source    : statut, utilité, notes d'une source
  *   - create_quote        : écriture externe — crée un devis en BROUILLON
  *                           dans Pennylane. Aucun envoi, aucune validation,
  *                           aucune transformation en facture.
