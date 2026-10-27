@@ -13,6 +13,7 @@ export interface WatchItem {
   comment: string;
   content_type: WatchContentType;
   source_url: string | null;
+  source_id?: string | null;
   file_url: string | null;
   file_name: string | null;
   file_size: number | null;
@@ -144,6 +145,7 @@ interface AddWatchItemInput {
   comment?: string;
   content_type: WatchContentType;
   source_url?: string | null;
+  source_id?: string | null;
   file_url?: string | null;
   file_name?: string | null;
   file_size?: number | null;

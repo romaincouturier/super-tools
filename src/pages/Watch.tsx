@@ -8,6 +8,7 @@ import WatchAddDialog from "@/components/watch/WatchAddDialog";
 import WatchFilters from "@/components/watch/WatchFilters";
 import WatchItemCard from "@/components/watch/WatchItemCard";
 import WatchClusterCard from "@/components/watch/WatchClusterCard";
+import WatchSourcesTab from "@/components/watch/WatchSourcesTab";
 import { useWatchItems, useWatchTags, useWatchClusters, useWatchDigests } from "@/hooks/useWatch";
 import type { WatchContentType } from "@/hooks/useWatch";
 import { Card } from "@/components/ui/card";
@@ -108,7 +109,7 @@ const Watch = () => {
         />
 
         <Tabs defaultValue="feed">
-          <TabsList>
+          <TabsList className="flex flex-wrap h-auto justify-start">
             <TabsTrigger value="feed" className="gap-1.5">
               <Eye className="h-4 w-4" />
               Fil de veille
@@ -124,7 +125,10 @@ const Watch = () => {
               <CalendarDays className="h-4 w-4" />
               Digests
             </TabsTrigger>
+            <TabsTrigger value="sources" className="gap-1.5">Sources</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="sources" className="mt-4"><WatchSourcesTab /></TabsContent>
 
           {/* Feed tab */}
           <TabsContent value="feed" className="space-y-4 mt-4">

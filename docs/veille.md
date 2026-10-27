@@ -6,6 +6,28 @@ publier depuis un agent »).
 
 ## Ce qui compose le module
 
+### Registre des sources
+
+L’onglet « Sources » gère `watch_sources` : expert, thème, nom, type, langue,
+URL canonique unique, justification, abonnement, statut, utilité, notes et
+historique. Les propositions apparaissent avant les autres statuts. Les actions
+« À abonner », « Suivie » et « Abandonner » changent le statut ; les étoiles
+notent l’utilité de 1 à 5 (recliquer la note l’efface).
+
+Les URL sont mises en minuscules, sans paramètres `utm_*`, fragment ni slash
+final du chemin. Les autres paramètres sont conservés. Un ajout manuel d’une
+URL existante est signalé sans créer une seconde source. Les permissions sont
+identiques à celles des fiches : comptes staff uniquement, aucun accès anonyme.
+
+`watch_items.source_id` est optionnel. Son rattachement, changement ou retrait
+met à jour `items_count` automatiquement, y compris lors de la suppression d’une
+fiche. `last_useful_at` reste une date explicite : une fiche n’est pas présumée
+utile du seul fait qu’elle existe.
+
+Les outils MCP du registre ne sont pas encore disponibles : l’extension du
+serveur historique attend la confirmation de son chemin de maintenance pris
+en charge, sans migration de serveur ni changement d’authentification implicite.
+
 | Objet | Rôle |
 | --- | --- |
 | `watch_items` | Les contenus : titre, corps, commentaire, tags, lien source, fichier, embedding, score de fraîcheur |
