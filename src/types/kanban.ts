@@ -52,6 +52,12 @@ export interface GenericKanbanBoardProps<
 }
 
 /** Item format for kanban statistics (CFD + control chart). */
+export interface KanbanStatsMove {
+  at: string;
+  from: string | null;
+  to: string;
+}
+
 export interface KanbanStatsItem {
   id: string;
   columnId: string;
@@ -60,4 +66,6 @@ export interface KanbanStatsItem {
   completedAt?: string | null;
   /** Monetary value of the item (e.g. opportunity amount), for the value-weighted CFD. */
   value?: number | null;
+  /** Chronological column moves, replayed by the CFD when present. */
+  moves?: KanbanStatsMove[];
 }
