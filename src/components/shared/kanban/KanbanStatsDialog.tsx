@@ -52,6 +52,17 @@ const CHART_COLORS = [
  * Since we don't have full move history, we use a simplified model:
  * items are counted in their CURRENT column from their creation date onward.
  */
+/**
+ * Column an item occupied at the end of a given day. Closed items (with a
+ * completedAt) only enter their done column on their closure date; before that
+ * they are counted in the first column, since move history is not available.
+ */
+function columnAtDay(item: KanbanStatsItem, dayEnd: Date, entryColumnId: string | undefined): string | null {
+  if (new Date(item.createdAt) > dayEnd) return null;
+  if (item.completedAt && new Date(item.completedAt) > dayEnd) return entryColumnId ?? item.columnId;
+  return item.columnId;
+}
+
 function buildCFDData(
   items: KanbanStatsItem[],
   columns: KanbanColumnDef[],
@@ -93,9 +104,7 @@ function buildCFDForRange(
     // Count items that existed by this day, grouped by their current column
     for (const col of sortedCols) {
       const count = items.filter(
-        (item) =>
-          item.columnId === col.id &&
-          new Date(item.createdAt) <= dayEnd,
+        (item) => columnAtDay(item, dayEnd, sortedCols[0]?.id) === col.id,
       ).length;
       row[col.id] = count;
     }
@@ -140,9 +149,7 @@ function buildValueCFDData(
     for (const col of sortedCols) {
       const sum = items
         .filter(
-          (item) =>
-            item.columnId === col.id &&
-            new Date(item.createdAt) <= dayEnd,
+          (item) => columnAtDay(item, dayEnd, sortedCols[0]?.id) === col.id,
         )
         .reduce((acc, item) => acc + (item.value ?? 0), 0);
       row[col.id] = sum;
@@ -401,7 +408,11 @@ export default function KanbanStatsDialog({
                   <ScatterChart data={controlChart.points} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis
-                      dataKey="name"
+                      dataKey="date"
+                      type="number"
+                      scale="time"
+                      domain={["dataMin", "dataMax"]}
+                      tickFormatter={(v: number) => format(new Date(v), "dd/MM/yy", { locale: fr })}
                       tick={{ fontSize: 11 }}
                       name="Date"
                     />
@@ -414,7 +425,7 @@ export default function KanbanStatsDialog({
                     <ZAxis range={[40, 40]} />
                     <Tooltip
                       contentStyle={{ fontSize: 12 }}
-                      formatter={(value: number) => [`${value} jours`, "Temps de cycle"]}
+                      formatter={(value: number, name: string) => name === "Date" ? [format(new Date(value), "dd/MM/yyyy", { locale: fr }), "Clôture"] : [`${value} jours`, "Temps de cycle"]}
                     />
                     <Legend verticalAlign="top" height={30} />
                     <ReferenceLine
