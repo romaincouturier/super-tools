@@ -293,3 +293,150 @@ describe("listWatchItems", () => {
     expect(calls.eq[0]).toEqual(["is_shared", true]);
   });
 });
+
+// ── Registre des sources (list/propose/update) ──────────────────────────
+
+const {
+  listWatchSources,
+  proposeWatchSource,
+  updateWatchSource,
+} = await import("./watch-tools.ts");
+
+/**
+ * Faux client pour watch_sources : chaîne select/eq/in/or/order/limit, rpc
+ * qui canonise l'URL (minuscules, sans slash final), insert et update.
+ */
+function makeSourcesSupabase(options: {
+  selectRows?: Array<Record<string, unknown>>;
+  inserted?: Record<string, unknown>;
+  updated?: Array<Record<string, unknown>>;
+} = {}) {
+  const calls: Record<string, unknown[][]> = { eq: [], in: [], or: [], limit: [], update: [] };
+  const chain: Record<string, unknown> = {
+    then: (ok: (v: unknown) => unknown, ko?: (e: unknown) => unknown) =>
+      Promise.resolve({ data: options.selectRows ?? [], error: null }).then(ok, ko),
+  };
+  for (const method of ["select", "eq", "in", "or", "order", "limit"]) {
+    chain[method] = (...args: unknown[]) => {
+      calls[method]?.push(args);
+      return chain;
+    };
+  }
+  const insert = vi.fn(() => ({
+    select: () => ({
+      single: async () => ({ data: options.inserted ?? { id: "src-1" }, error: null }),
+    }),
+  }));
+  const update = vi.fn((patch: Record<string, unknown>) => {
+    calls.update.push([patch]);
+    return {
+      eq: () => ({
+        select: async () => ({ data: options.updated ?? [], error: null }),
+      }),
+    };
+  });
+  const rpc = vi.fn(async (_fn: string, { value }: { value: string }) => ({
+    data: value.trim().toLowerCase().replace(/\/+$/, ""),
+    error: null,
+  }));
+  return { client: { from: vi.fn(() => ({ ...chain, insert, update })), rpc }, insert, update, rpc, calls };
+}
+
+const SOURCE = {
+  expert: "ia-supertools",
+  name: "Newsletter Lenny",
+  type: "newsletter",
+  language: "en",
+  url: "https://Lenny.example.com/",
+  why: "Produit et growth.",
+};
+
+describe("proposeWatchSource", () => {
+  it("refuse un doublon d'URL canonisée et ne crée rien", async () => {
+    const existing = { id: "src-9", url: "https://lenny.example.com", name: "Lenny" };
+    const { client, insert, rpc } = makeSourcesSupabase({ selectRows: [existing] });
+
+    const out = JSON.parse(await proposeWatchSource(client as never, SOURCE, audit));
+
+    expect(rpc).toHaveBeenCalledWith("normalize_watch_source_url", { value: SOURCE.url });
+    expect(out.saved).toBe(false);
+    expect(out.reason).toBe("duplicate");
+    expect(out.existing).toEqual(existing);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("crée la source en statut proposed avec l'URL canonisée", async () => {
+    const { client, insert } = makeSourcesSupabase({ selectRows: [], inserted: { id: "src-1", status: "proposed" } });
+
+    const out = JSON.parse(await proposeWatchSource(client as never, SOURCE, audit));
+
+    expect(out.saved).toBe(true);
+    const row = insert.mock.calls[0][0] as Record<string, unknown>;
+    expect(row.status).toBe("proposed");
+    expect(row.url).toBe("https://lenny.example.com");
+    expect(row.expert).toBe("ia-supertools");
+  });
+
+  it("refuse un expert ou un type hors liste", async () => {
+    const { client, insert } = makeSourcesSupabase();
+    await expect(proposeWatchSource(client as never, { ...SOURCE, expert: "inconnu" }, audit))
+      .rejects.toThrow(/expert invalide/);
+    await expect(proposeWatchSource(client as never, { ...SOURCE, type: "rss" }, audit))
+      .rejects.toThrow(/type invalide/);
+    expect(insert).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateWatchSource", () => {
+  it("exige id ou url et au moins un champ à modifier", async () => {
+    const { client } = makeSourcesSupabase();
+    await expect(updateWatchSource(client as never, { status: "followed" }, audit))
+      .rejects.toThrow(/id ou url/);
+    await expect(updateWatchSource(client as never, { id: "src-1" }, audit))
+      .rejects.toThrow(/Aucun champ/);
+  });
+
+  it("valide status et usefulness", async () => {
+    const { client, update } = makeSourcesSupabase();
+    await expect(updateWatchSource(client as never, { id: "s", status: "archive" }, audit))
+      .rejects.toThrow(/status invalide/);
+    await expect(updateWatchSource(client as never, { id: "s", usefulness: 7 }, audit))
+      .rejects.toThrow(/usefulness/);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("repère par url canonisée et n'envoie que les champs fournis", async () => {
+    const { client, calls, rpc } = makeSourcesSupabase({ updated: [{ id: "src-1", status: "followed" }] });
+
+    const out = JSON.parse(
+      await updateWatchSource(client as never, { url: "HTTPS://Lenny.example.com/", status: "followed", usefulness: 4 }, audit),
+    );
+
+    expect(rpc).toHaveBeenCalledWith("normalize_watch_source_url", { value: "HTTPS://Lenny.example.com/" });
+    expect(calls.update[0][0]).toEqual({ status: "followed", usefulness: 4 });
+    expect(out.saved).toBe(true);
+  });
+
+  it("signale une source introuvable", async () => {
+    const { client } = makeSourcesSupabase({ updated: [] });
+    await expect(updateWatchSource(client as never, { id: "absent", status: "dropped" }, audit))
+      .rejects.toThrow(/Aucune source/);
+  });
+});
+
+describe("listWatchSources", () => {
+  it("filtre sur plusieurs statuts et plafonne la limite", async () => {
+    const { client, calls } = makeSourcesSupabase({ selectRows: [] });
+
+    await listWatchSources(client as never, { status: ["followed", "to_subscribe"], limit: 9999 }, audit);
+
+    expect(calls.in[0]).toEqual(["status", ["followed", "to_subscribe"]]);
+    expect(calls.limit[0]).toEqual([500]);
+  });
+
+  it("refuse un statut hors liste", async () => {
+    const { client } = makeSourcesSupabase();
+    await expect(listWatchSources(client as never, { status: "archive" }, audit))
+      .rejects.toThrow(/status invalide/);
+  });
+});
