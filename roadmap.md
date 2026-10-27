@@ -1,5 +1,11 @@
 # Roadmap
 
+## Registre des sources de veille (2026-10-27)
+- [x] Données, URL canonique unique et rattachement des fiches
+- [x] Onglet Sources, filtres, validation, utilité et ajout manuel
+- [ ] Trois outils MCP, descriptions et nouvelle version : bloqués, aucune procédure compatible confirmée pour étendre le serveur historique sans migration implicite ; serveur inchangé (1.15.0)
+- [x] 8 tests SQL/métier ; ajout, changements de statut, note persistée après rechargement, doublon et recherche vérifiés avec le compte demandeur ; vues ordinateur/mobile contrôlées ; source temporaire supprimée
+
 ## Récap quotidien (2026-10-15)
 - [x] Rubrique « Missions sans prochaine action » après « Missions — Actions à traiter »
 - [x] Avis missions : signaux au lieu d’emails, file des 21 convertie, écran « Avis à demander », outils MCP
