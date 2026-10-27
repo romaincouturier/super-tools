@@ -532,7 +532,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           companyAddress: [billingAddr?.address_1, billingAddr?.address_2].filter(Boolean).join(", ") || null,
           companyCity: billingAddr?.city ?? null,
           companyZip: billingAddr?.postcode ?? null,
-          typeStagiaireBpf: billingCompany ? "Entreprise" : "Particulier",
+          typeStagiaireBpf: billingCompany ? "salarie_prive" : "particulier",
           sponsorEmail: customerEmail,
           sponsorFirstName: order.billing?.first_name ?? null,
           sponsorLastName: order.billing?.last_name ?? null,

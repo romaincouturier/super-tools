@@ -143,6 +143,15 @@ export interface AddParticipantResponse {
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 
+const TYPE_STAGIAIRE_BPF_VALUES = ["salarie_prive", "apprenti", "demandeur_emploi", "particulier", "autre"];
+const TYPE_STAGIAIRE_BPF_ALIASES: Record<string, string> = { entreprise: "salarie_prive", salarie: "salarie_prive" };
+function normalizeTypeStagiaireBpf(v: string | null | undefined): string | null {
+  if (!v) return null;
+  const k = v.trim().toLowerCase();
+  const mapped = TYPE_STAGIAIRE_BPF_ALIASES[k] ?? k;
+  return TYPE_STAGIAIRE_BPF_VALUES.includes(mapped) ? mapped : null;
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
@@ -248,7 +257,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           company_address: companyAddress?.trim() || null,
           company_city: companyCity?.trim() || null,
           company_zip: companyZip?.trim() || null,
-          type_stagiaire_bpf: isFreeTraining ? null : (typeStagiaireBpf || null),
+          type_stagiaire_bpf: isFreeTraining ? null : normalizeTypeStagiaireBpf(typeStagiaireBpf),
           source_financement_bpf: isFreeTraining ? null : (sourceFinancementBpf || null),
           sold_price_ht: isFreeTraining ? null : (soldPriceHt ? parseFloat(String(soldPriceHt)) : null),
           payment_mode: paymentMode,
@@ -365,7 +374,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           company_address: companyAddress?.trim() || null,
           company_city: companyCity?.trim() || null,
           company_zip: companyZip?.trim() || null,
-          type_stagiaire_bpf: isFreeTraining ? null : (typeStagiaireBpf || null),
+          type_stagiaire_bpf: isFreeTraining ? null : normalizeTypeStagiaireBpf(typeStagiaireBpf),
           source_financement_bpf: isFreeTraining ? null : (sourceFinancementBpf || null),
           sold_price_ht: isFreeTraining ? null : (soldPriceHt ? parseFloat(String(soldPriceHt)) : null),
           payment_mode: paymentMode,
