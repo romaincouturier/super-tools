@@ -1970,6 +1970,71 @@ async function callTool(
         return textResult(`Watch error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "list_watch_sources": {
+      try {
+        return textResult(
+          await listWatchSources(
+            supabase,
+            {
+              expert: args.expert as string | undefined,
+              status: args.status as string | string[] | undefined,
+              type: args.type as string | undefined,
+              language: args.language as string | undefined,
+              search: args.search as string | undefined,
+              limit: args.limit as number | undefined,
+            },
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Watch error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "propose_watch_source": {
+      try {
+        return textResult(
+          await proposeWatchSource(
+            supabase,
+            {
+              expert: args.expert as string | undefined,
+              theme: args.theme as string | undefined,
+              name: args.name as string | undefined,
+              type: args.type as string | undefined,
+              language: args.language as string | undefined,
+              url: args.url as string | undefined,
+              why: args.why as string | undefined,
+              how_to_follow: args.how_to_follow as string | undefined,
+              proposed_by: args.proposed_by as string | undefined,
+            },
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Watch error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_watch_source": {
+      try {
+        return textResult(
+          await updateWatchSource(
+            supabase,
+            {
+              id: args.id as string | undefined,
+              url: args.url as string | undefined,
+              status: args.status as string | undefined,
+              usefulness: args.usefulness as number | undefined,
+              notes: args.notes as string | undefined,
+              theme: args.theme as string | undefined,
+              last_useful_at: args.last_useful_at as string | undefined,
+              items_count: args.items_count as number | undefined,
+            },
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Watch error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "create_quote": {
       try {
         const quote = await createDraftQuote(
@@ -2615,7 +2680,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.15.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.16.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }
