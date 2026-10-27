@@ -25,6 +25,7 @@ import { fr } from "date-fns/locale";
 import type { KanbanColumnDef, KanbanStatsItem } from "@/types/kanban";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskAmount } from "@/lib/demoMask";
+import { columnAtDay } from "@/lib/kanbanColumnAtDay";
 
 interface KanbanStatsDialogProps {
   open: boolean;
@@ -49,20 +50,9 @@ const CHART_COLORS = [
  * For each day, count how many items exist in each column
  * (an item "exists" if its created_at <= that day, and it's assigned to a column).
  *
- * Since we don't have full move history, we use a simplified model:
+ * Items without move history use a simplified model:
  * items are counted in their CURRENT column from their creation date onward.
  */
-/**
- * Column an item occupied at the end of a given day. Closed items (with a
- * completedAt) only enter their done column on their closure date; before that
- * they are counted in the first column, since move history is not available.
- */
-function columnAtDay(item: KanbanStatsItem, dayEnd: Date, entryColumnId: string | undefined): string | null {
-  if (new Date(item.createdAt) > dayEnd) return null;
-  if (item.completedAt && new Date(item.completedAt) > dayEnd) return entryColumnId ?? item.columnId;
-  return item.columnId;
-}
-
 function buildCFDData(
   items: KanbanStatsItem[],
   columns: KanbanColumnDef[],

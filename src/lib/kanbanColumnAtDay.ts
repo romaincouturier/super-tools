@@ -3,7 +3,8 @@ import type { KanbanStatsItem } from "@/types/kanban";
 /**
  * Column an item occupied at the end of a given day.
  * Closed items enter their done column on their closure date. Before that, the
- * recorded move history is replayed; without history, the entry column is used.
+ * recorded move history is replayed; without history, closed items fall back to
+ * the entry column and open items to their current column.
  */
 export function columnAtDay(
   item: KanbanStatsItem,
@@ -11,15 +12,7 @@ export function columnAtDay(
   entryColumnId: string | undefined,
 ): string | null {
   if (new Date(item.createdAt) > dayEnd) return null;
-  const closedLater = item.completedAt && new Date(item.completedAt) > dayEnd;
-  if (!item.completedAt || !closedLater) {
-    if (!item.completedAt) {
-      // Open item: current column is authoritative for today, history for the past.
-      if (!item.moves?.length) return item.columnId;
-    } else {
-      return item.columnId;
-    }
-  }
+  if (item.completedAt && new Date(item.completedAt) <= dayEnd) return item.columnId;
   const moves = item.moves ?? [];
   let col: string | null = null;
   for (const m of moves) {
@@ -27,7 +20,6 @@ export function columnAtDay(
     else break;
   }
   if (col) return col;
-  const firstFrom = moves[0]?.from;
-  if (firstFrom) return firstFrom;
+  if (moves[0]?.from) return moves[0].from;
   return item.completedAt ? (entryColumnId ?? item.columnId) : item.columnId;
 }

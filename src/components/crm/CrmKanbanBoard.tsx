@@ -23,6 +23,7 @@ import { celebrateWin } from "@/lib/celebrateWin";
 import { isWonColumnName, isLostColumnName } from "@/lib/crmColumnStatus";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
 import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
+import { useCardMoveHistory } from "@/hooks/crm/useCardMoveHistory";
 import KanbanToolbar from "@/components/shared/kanban/KanbanToolbar";
 import type { KanbanColumnDef, KanbanCardDef, KanbanDropResult, KanbanStatsItem } from "@/types/kanban";
 import { supabase } from "@/integrations/supabase/client";
@@ -265,8 +266,11 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     ];
   }, [boardData?.columns]);
 
+  const { data: moveHistory } = useCardMoveHistory(showStats);
+
   const statsItems: KanbanStatsItem[] = useMemo(() => {
     if (!boardData?.cards) return [];
+    const statsColIds = new Set(statsColumns.map((col) => col.id));
     return boardData.cards.map((c) => {
       const columnId =
         c.sales_status === "WON" ? STATS_WON_COL_ID
@@ -278,9 +282,12 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         createdAt: c.created_at,
         completedAt: c.won_at || c.lost_at,
         value: c.estimated_value,
+        moves: (moveHistory?.get(c.id) ?? [])
+          .filter((m) => statsColIds.has(m.to))
+          .map((m) => ({ ...m, from: m.from && statsColIds.has(m.from) ? m.from : null })),
       };
     });
-  }, [boardData?.cards]);
+  }, [boardData?.cards, statsColumns, moveHistory]);
 
   const wonColumnIds = useMemo(() => [STATS_WON_COL_ID], []);
   const lostColumnIds = useMemo(() => [STATS_LOST_COL_ID], []);
