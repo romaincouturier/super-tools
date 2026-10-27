@@ -96,9 +96,16 @@ import {
 import { createDraftQuote, type CustomerInput, type QuoteLineInput } from "../_shared/pennylane-quotes.ts";
 import {
   listWatchItems,
+  listWatchSources,
+  proposeWatchSource,
   saveWatchItem,
+  updateWatchSource,
   WATCH_BODY_MAX_CHARS,
   WATCH_COMMENT_MAX_CHARS,
+  WATCH_SOURCE_EXPERTS,
+  WATCH_SOURCE_LANGUAGES,
+  WATCH_SOURCE_STATUSES,
+  WATCH_SOURCE_TYPES,
   WATCH_TAGS_MAX,
 } from "../_shared/watch-tools.ts";
 
@@ -774,6 +781,63 @@ const MCP_TOOLS = [
         days: { type: "number", description: "Only items added in the last N days" },
         shared_only: { type: "boolean", description: "Only items flagged « à partager »" },
         limit: { type: "number", description: "Number of items (default 20, max 100)" },
+      },
+    },
+  },
+  {
+    name: "list_watch_sources",
+    description:
+      "List the sources registered in the SuperTools watch module (newsletters, podcasts, YouTube channels, blogs...), with all their fields: expert, theme, type, language, url, status (proposed / to_subscribe / followed / dropped), usefulness, items_count, last_useful_at, notes. A scheduled watch agent calls this first to know which sources it must follow. Read-only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        expert: { type: "string", enum: WATCH_SOURCE_EXPERTS, description: "Only this expert's sources" },
+        status: {
+          oneOf: [{ type: "string", enum: WATCH_SOURCE_STATUSES }, { type: "array", items: { type: "string", enum: WATCH_SOURCE_STATUSES } }],
+          description: "One or several statuses to keep (e.g. ['followed', 'to_subscribe'])",
+        },
+        type: { type: "string", enum: WATCH_SOURCE_TYPES, description: "Only this kind of source" },
+        language: { type: "string", enum: WATCH_SOURCE_LANGUAGES, description: "Only this language" },
+        search: { type: "string", description: "Case-insensitive filter on name, theme and rationale" },
+        limit: { type: "number", description: "Number of sources (default 100, max 500)" },
+      },
+    },
+  },
+  {
+    name: "propose_watch_source",
+    description:
+      "Propose a new source in the watch module registry, created with status « proposed » (a human validates it in the Sources tab before it is followed). Pass the expert it belongs to, its name, type, language, the absolute http(s) url, why it is worth following and how to follow it. DUPLICATES: if the normalized URL is already registered, nothing is created and the existing source is returned (saved: false, reason: 'duplicate') — same behaviour as save_watch_item.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        expert: { type: "string", enum: WATCH_SOURCE_EXPERTS, description: "The watch expert this source belongs to" },
+        theme: { type: "string", description: "Short theme label (max 160 chars), e.g. 'IA générative pour la formation'" },
+        name: { type: "string", description: "Source name, e.g. 'Newsletter Lenny'" },
+        type: { type: "string", enum: WATCH_SOURCE_TYPES },
+        language: { type: "string", enum: WATCH_SOURCE_LANGUAGES },
+        url: { type: "string", description: "Absolute http(s) URL of the source (normalized before comparison)" },
+        why: { type: "string", description: "Why this source is worth following" },
+        how_to_follow: { type: "string", description: "How to follow it (RSS, subscription, manual check...)" },
+        proposed_by: { type: "string", description: "Who proposes it (agent or person name)" },
+      },
+      required: ["expert", "name", "type", "language", "url"],
+    },
+  },
+  {
+    name: "update_watch_source",
+    description:
+      "Update a source of the watch registry, located by id or by url. Modifiable fields: status (proposed / to_subscribe / followed / dropped), usefulness (1-5), notes, theme, last_useful_at, items_count. Only the provided fields are changed.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Source id (provide id or url)" },
+        url: { type: "string", description: "Source URL, normalized before lookup (provide id or url)" },
+        status: { type: "string", enum: WATCH_SOURCE_STATUSES },
+        usefulness: { type: "number", description: "Usefulness rating, integer 1 to 5" },
+        notes: { type: "string", description: "Free notes" },
+        theme: { type: "string", description: "Short theme label (max 160 chars)" },
+        last_useful_at: { type: "string", description: "ISO timestamp of the last useful item from this source" },
+        items_count: { type: "number", description: "Number of watch items produced by this source" },
       },
     },
   },
