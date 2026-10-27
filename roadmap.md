@@ -1,10 +1,10 @@
 # Roadmap
 
 ## Registre des sources de veille (2026-10-27)
-- [ ] Données, URL canonique unique et rattachement des fiches
-- [ ] Onglet Sources, filtres, validation, utilité et ajout manuel
-- [ ] Trois outils MCP et documentation : support de maintenance du serveur historique à établir
-- [ ] Tests et parcours réel
+- [x] Données, URL canonique unique et rattachement des fiches
+- [x] Onglet Sources, filtres, validation, utilité et ajout manuel
+- [ ] Trois outils MCP, descriptions et nouvelle version : bloqués, aucune procédure compatible confirmée pour étendre le serveur historique sans migration implicite ; serveur inchangé (1.15.0)
+- [x] 8 tests SQL/métier ; ajout, changements de statut, note persistée après rechargement, doublon et recherche vérifiés avec le compte demandeur ; vues ordinateur/mobile contrôlées ; source temporaire supprimée
 
 ## Récap quotidien (2026-10-15)
 - [x] Rubrique « Missions sans prochaine action » après « Missions — Actions à traiter »
