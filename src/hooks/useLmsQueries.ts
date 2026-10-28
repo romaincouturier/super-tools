@@ -294,9 +294,10 @@ export function useCourse(id: string | undefined) {
         .from("lms_courses")
         .select("*, formation_configs(formation_name)")
         .eq("id", id!)
-        .single();
+        .maybeSingle();
       if (error) throw error;
-      return data as LmsCourse;
+      // null = cours supprimé ou non publié (masqué par RLS pour les apprenants)
+      return (data as LmsCourse | null) ?? null;
     },
   });
 }

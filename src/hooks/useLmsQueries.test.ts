@@ -80,6 +80,13 @@ describe("useCourse", () => {
     expect(result.current.data).toMatchObject({ id: "c1", title: "Formation Excel" });
   });
 
+  it("returns null instead of failing when the course is hidden or missing", async () => {
+    setTableResult("lms_courses", { data: null, error: null });
+    const { result } = renderHook(() => useCourse("c-draft"), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toBeNull();
+  });
+
   it("propagates errors", async () => {
     setTableResult("lms_courses", { data: null, error: { message: "not found" } });
     const { result } = renderHook(() => useCourse("c-missing"), { wrapper });
