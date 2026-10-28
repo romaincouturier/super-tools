@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { WifiOff } from "lucide-react";
+import { BookOpen, WifiOff } from "lucide-react";
 
 type Props = {
   /** true tant que la requête tourne */
@@ -8,6 +8,8 @@ type Props = {
   /** erreur de la requête (réseau, RLS, timeout…) */
   error?: unknown;
   onRetry: () => void;
+  /** requête terminée sans cours : supprimé ou pas encore publié */
+  notFound?: boolean;
 };
 
 /**
@@ -16,7 +18,7 @@ type Props = {
  * Filet supplémentaire : au-delà de 15s sans réponse, on propose "Réessayer"
  * même si React Query n'a pas encore rendu la main.
  */
-export default function CourseLoadState({ isLoading, error, onRetry }: Props) {
+export default function CourseLoadState({ isLoading, error, onRetry, notFound }: Props) {
   const [tooSlow, setTooSlow] = useState(false);
 
   useEffect(() => {
@@ -31,7 +33,16 @@ export default function CourseLoadState({ isLoading, error, onRetry }: Props) {
       className="min-h-screen flex items-center justify-center p-6"
       style={{ background: "var(--st-white)", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}
     >
-      {isLoading && !error && !tooSlow ? (
+      {notFound && !isLoading && !error ? (
+        <div className="max-w-sm w-full text-center space-y-4">
+          <BookOpen className="w-10 h-10 mx-auto text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Formation pas encore disponible</h2>
+          <p className="text-sm text-muted-foreground">
+            Ce cours n'est pas encore publié ou n'est plus accessible. Réessayez plus tard ou
+            contactez votre formateur.
+          </p>
+        </div>
+      ) : isLoading && !error && !tooSlow ? (
         <p className="text-sm text-muted-foreground">Chargement…</p>
       ) : (
 

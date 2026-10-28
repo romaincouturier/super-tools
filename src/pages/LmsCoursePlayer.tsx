@@ -374,6 +374,7 @@ export default function LmsCoursePlayer() {
       <CourseLoadState
         isLoading={courseLoading || !identityResolved}
         error={courseError}
+        notFound={!courseLoading && !courseError && course === null}
         onRetry={() => refetchCourse()}
       />
     );
