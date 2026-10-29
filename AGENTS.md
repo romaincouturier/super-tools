@@ -1,5 +1,7 @@
 # Architecture rules
 
+- Login submissions read named fields from FormData rather than React state, because browser and password-manager autofill can update inputs without firing change events.
+
 - Participant BPF normalization stays in a pure helper local to add-training-participant and is tested against database CHECK values, because draft and normal inserts must accept legacy shop labels without writing invalid classifications.
 
 - Watch sources canonicalize URLs with a database trigger and a matching browser helper; watch-item source links adjust counts through a database trigger, because imports and UI writes must preserve the same identity and counters.

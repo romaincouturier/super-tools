@@ -63,8 +63,11 @@ export default function Connexion() {
 
   const handleEmailStep = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!normalizedEmail.includes("@")) return;
-    await resolveAndRoute(normalizedEmail);
+    const fields = new FormData(e.currentTarget as HTMLFormElement);
+    const submittedEmail = String(fields.get("email") ?? "").trim().toLowerCase();
+    if (!submittedEmail.includes("@")) return;
+    setEmail(submittedEmail);
+    await resolveAndRoute(submittedEmail);
   };
 
   // Lien reçu par email (Flux A, W12) : préremplit seulement l'adresse et
@@ -82,6 +85,10 @@ export default function Connexion() {
 
   const handlePasswordStep = async (e: React.FormEvent) => {
     e.preventDefault();
+    const fields = new FormData(e.currentTarget as HTMLFormElement);
+    const normalizedEmail = String(fields.get("email") ?? "").trim().toLowerCase();
+    const password = String(fields.get("password") ?? "");
+    if (!normalizedEmail.includes("@") || !password) return;
     setSubmitting(true);
     setErrorMsg(null);
     setShowAttemptFeedback(false);
