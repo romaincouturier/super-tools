@@ -33,6 +33,8 @@ import { v4 as uuid } from "uuid";
 import { htmlToPlainText, cleanHtmlOutput } from "@/lib/htmlUtils";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskAmount, demoBlur } from "@/lib/demoMask";
+import TrainingFollowupBlock from "./TrainingFollowupBlock";
+import { buildFollowupLines, mergeManagedLines, totalHours, averageHourlyPrice, stripCoaching, type TrainingFollowup } from "@/lib/quoteFollowup";
 
 interface Props {
   quote: Quote;
@@ -102,6 +104,17 @@ export default function Step3QuoteGeneration({
   );
   const [rightsEnabled, setRightsEnabled] = useState(quote.rights_transfer_enabled);
   const [rightsRate, setRightsRate] = useState(quote.rights_transfer_rate ?? 15);
+  const [followup, setFollowup] = useState<TrainingFollowup | null>(
+    ((quote as unknown as { training_followup?: TrainingFollowup | null }).training_followup) ?? null
+  );
+  const s2 = settings as unknown as { default_followup_hourly_rate?: number; hourly_price_alert_threshold?: number } | undefined;
+  const followupRate = Number(s2?.default_followup_hourly_rate ?? 150);
+  const hourlyThreshold = Number(s2?.hourly_price_alert_threshold ?? 60);
+
+  const handleFollowupChange = (f: TrainingFollowup | null) => {
+    setFollowup(f);
+    setLines((prev) => mergeManagedLines(prev, f ? buildFollowupLines(f, defaultVat) : []));
+  };
 
   // Recalculate totals
   const totals = useMemo(() => {
@@ -308,7 +321,8 @@ export default function Step3QuoteGeneration({
 
   const handleSave = async () => {
     const updates = {
-      line_items: lines,
+      line_items: lines.map((l) => ({ ...l, product: stripCoaching(l.product), description: stripCoaching(l.description || "") })),
+      training_followup: followup,
       total_ht: totals.totalHt,
       total_vat: totals.totalVat,
       total_ttc: totals.totalTtc,
@@ -466,6 +480,15 @@ export default function Step3QuoteGeneration({
         const rowH = line.description ? 14 : 10;
         y += rowH;
         if (y > pageH - 60) { doc.addPage(); y = 15; }
+      }
+
+      if (followup) {
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30);
+        y += 5;
+        doc.text(`Durée totale de la formation : ${String(totalHours(followup)).replace(".", ",")} h`, margin + 3, y);
+        y += 3;
       }
 
       // Table bottom line
@@ -642,6 +665,17 @@ export default function Step3QuoteGeneration({
             </div>
           ) : (
             <>
+              {crmCard.service_type === "formation" && (
+                <TrainingFollowupBlock
+                  value={followup}
+                  defaultRate={followupRate}
+                  initialTitle={crmCard.title}
+                  alertThreshold={hourlyThreshold}
+                  averageHourly={followup ? averageHourlyPrice(totals.totalHt, totalHours(followup)) : null}
+                  onChange={handleFollowupChange}
+                />
+              )}
+
               {/* Line items — card layout for readability */}
               <div className="space-y-3">
                 {lines.map((line, idx) => (
