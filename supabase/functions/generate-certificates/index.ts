@@ -799,6 +799,12 @@ serve(async (req: Request): Promise<Response> => {
               }
             }
 
+            if (generateOnly) {
+              if (certificateUrls.length === i + 1) successCount++;
+              sendEvent({ type: "participant_done", data: { participant: participantName, success: certificateUrls.length === i + 1, index: i + 1, total: participants.length } });
+              continue;
+            }
+
             // Upload to Google Drive
             sendEvent({ 
               type: "step", 
@@ -921,7 +927,7 @@ serve(async (req: Request): Promise<Response> => {
         }
 
         // Send ZIP to commanditaire if email is set and we have PDFs
-        if (emailCommanditaire && pdfDataList.length > 0) {
+        if (!generateOnly && emailCommanditaire && pdfDataList.length > 0) {
           sendEvent({ 
             type: "step", 
             data: { 
@@ -968,6 +974,7 @@ serve(async (req: Request): Promise<Response> => {
           data: { 
             successCount,
             totalCount: participants.length,
+            certificateUrls,
             message: `${successCount} certificat(s) généré(s) avec succès`
           } 
         });
