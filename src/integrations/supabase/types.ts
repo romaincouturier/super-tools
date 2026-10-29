@@ -9222,11 +9222,13 @@ export type Database = {
           company_phone: string
           company_zip: string
           created_at: string
+          default_followup_hourly_rate: number
           default_sale_type: string
           default_unit: string
           default_validity_days: number
           default_vat_rate: number
           early_payment_discount: string
+          hourly_price_alert_threshold: number
           id: string
           insurance_coverage_zone: string
           insurance_name: string
@@ -9265,11 +9267,13 @@ export type Database = {
           company_phone?: string
           company_zip?: string
           created_at?: string
+          default_followup_hourly_rate?: number
           default_sale_type?: string
           default_unit?: string
           default_validity_days?: number
           default_vat_rate?: number
           early_payment_discount?: string
+          hourly_price_alert_threshold?: number
           id?: string
           insurance_coverage_zone?: string
           insurance_name?: string
@@ -9308,11 +9312,13 @@ export type Database = {
           company_phone?: string
           company_zip?: string
           created_at?: string
+          default_followup_hourly_rate?: number
           default_sale_type?: string
           default_unit?: string
           default_validity_days?: number
           default_vat_rate?: number
           early_payment_discount?: string
+          hourly_price_alert_threshold?: number
           id?: string
           insurance_coverage_zone?: string
           insurance_name?: string
@@ -9376,6 +9382,7 @@ export type Database = {
           total_ht: number
           total_ttc: number
           total_vat: number
+          training_followup: Json | null
           travel_data: Json | null
           updated_at: string
           workflow_step: number | null
@@ -9415,6 +9422,7 @@ export type Database = {
           total_ht?: number
           total_ttc?: number
           total_vat?: number
+          training_followup?: Json | null
           travel_data?: Json | null
           updated_at?: string
           workflow_step?: number | null
@@ -9454,6 +9462,7 @@ export type Database = {
           total_ht?: number
           total_ttc?: number
           total_vat?: number
+          training_followup?: Json | null
           travel_data?: Json | null
           updated_at?: string
           workflow_step?: number | null

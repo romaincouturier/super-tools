@@ -113,6 +113,13 @@
       "when": 1793085379947,
       "tag": "0015_watch_source_registry",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793291583034,
+      "tag": "0016_quote_training_followup",
+      "breakpoints": true
     }
   ]
 }
