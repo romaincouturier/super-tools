@@ -436,7 +436,7 @@ const MicroDevis = () => {
     const dossierFee = withSubrogation ? DOSSIER_FEE_WITH_SUBROGATION : DOSSIER_FEE_WITHOUT_SUBROGATION;
     return {
       requestPayload: { nomClient, adresseClient, codePostalClient, villeClient, pays: fp, emailCommanditaire, adresseCommanditaire, noteDevis, formationDemandee: label, dateFormation, lieu: fl, includeCadeau, prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: np, participants },
-      pdfMonkeyPayload: { client: { name: nomClient, address: adresseClient, zip: codePostalClient, city: villeClient, country: fp }, note: noteDevis || "", cadeau: ct, items: [{ name: label, participant_name: pl.length > 0 ? pl : [`${adresseCommanditaire} ${emailCommanditaire}`], date: dateFormation, place: fl, duration: `${ed}h`, quantity: np, unit_price: ep }].map((base) => buildMicroDevisItems({ name: label, unitPrice: ep, baseHours: ed, quantity: np, adminFee: 0, followup }).map((it) => ({ ...base, ...it }))).flat() },
+      pdfMonkeyPayload: { client: { name: nomClient, address: adresseClient, zip: codePostalClient, city: villeClient, country: fp }, note: noteDevis || "", cadeau: ct, items: [{ name: label, participant_name: pl.length > 0 ? pl : [`${adresseCommanditaire} ${emailCommanditaire}`], date: dateFormation, place: fl, duration: `${ed}h`, quantity: np, unit_price: ep }].map((base) => buildMicroDevisItems({ name: label, unitPrice: ep, baseHours: ed, quantity: np, adminFee: 0, includedSessions: formulasHook.activeFormula?.coaching_sessions_count ?? 0, followup }).map((it) => ({ ...base, ...it }))).flat() },
     };
   };
 

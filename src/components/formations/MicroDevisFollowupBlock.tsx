@@ -4,7 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import {
-  averageHourlyPrice, followupAmount, totalHours, type MicroDevisFollowup,
+  averageHourlyPrice, followupAmount, totalHours, totalFollowupSessions, type MicroDevisFollowup,
 } from "../../../supabase/functions/_shared/micro-devis-followup";
 
 interface Props {
@@ -44,6 +44,7 @@ export default function MicroDevisFollowupBlock({ value, onChange, includedSessi
           <p className="h-10 flex items-center font-medium">{fmt(amount)}</p>
         </div>
       </div>
+      <p className="text-sm">Total du suivi / participant : <strong>{h(totalFollowupSessions(includedSessions, value))}</strong> ({h(includedSessions)} incluses + {h(value.addedSessions)} ajoutées)</p>
       <div className="flex items-center gap-2">
         <Checkbox id="fu-single" checked={value.singleLine} onCheckedChange={(c) => onChange({ ...value, singleLine: c === true })} />
         <Label htmlFor="fu-single" className="font-normal cursor-pointer">Afficher sur une seule ligne</Label>
