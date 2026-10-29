@@ -33,7 +33,6 @@ import { v4 as uuid } from "uuid";
 import { htmlToPlainText, cleanHtmlOutput } from "@/lib/htmlUtils";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskAmount, demoBlur } from "@/lib/demoMask";
-import TrainingFollowupBlock from "./TrainingFollowupBlock";
 import { buildFollowupLines, mergeManagedLines, totalHours, averageHourlyPrice, stripCoaching, type TrainingFollowup } from "@/lib/quoteFollowup";
 
 interface Props {
@@ -665,16 +664,6 @@ export default function Step3QuoteGeneration({
             </div>
           ) : (
             <>
-              {crmCard.service_type === "formation" && (
-                <TrainingFollowupBlock
-                  value={followup}
-                  defaultRate={followupRate}
-                  initialTitle={crmCard.title}
-                  alertThreshold={hourlyThreshold}
-                  averageHourly={followup ? averageHourlyPrice(totals.totalHt, totalHours(followup)) : null}
-                  onChange={handleFollowupChange}
-                />
-              )}
 
               {/* Line items — card layout for readability */}
               <div className="space-y-3">
