@@ -65,6 +65,7 @@ interface RequestBody {
   participants: Participant[];
   trainingId?: string; // For storing certificate_url in training_evaluations
   forceRegenerate?: boolean; // Ignore le PDF déjà stocké et régénère l'attestation
+  generateOnly?: boolean;
 }
 
 interface PdfData {
@@ -577,7 +578,8 @@ serve(async (req: Request): Promise<Response> => {
     // --- End authentication check ---
 
     const body: RequestBody = await req.json();
-    const { formationName, entreprise, duree, dateDebut, dateFin, emailDestinataire, emailCommanditaire, participants, userId, trainingId, forceRegenerate } = body;
+    const { formationName, entreprise, duree, dateDebut, dateFin, emailDestinataire, emailCommanditaire, participants, userId, trainingId, forceRegenerate, generateOnly = false } = body;
+    if (generateOnly && !trainingId) throw new Error("Training ID required for generation-only mode");
 
     console.log(`Processing ${participants.length} participants for formation: ${formationName}`);
     if (userId) {
@@ -597,6 +599,7 @@ serve(async (req: Request): Promise<Response> => {
         const encoder = new TextEncoder();
         const pdfDataList: PdfData[] = [];
         let successCount = 0;
+        const certificateUrls: string[] = [];
 
         // Helper to send a streaming event
         const sendEvent = (event: { type: string; data: any }) => {
@@ -639,6 +642,11 @@ serve(async (req: Request): Promise<Response> => {
           }
 
           if (existingPdfBuffer) {
+            if (generateOnly && trainingId) {
+              const path = `${trainingId}/${participant.participantId || participant.email}.pdf`;
+              const { data, error } = await supabaseAdmin.storage.from("certificates").createSignedUrl(path, 3600);
+              if (!error && data?.signedUrl) certificateUrls.push(data.signedUrl);
+            }
             if (emailCommanditaire) {
               const fileName = buildCertificateFileName(participant.prenom, participant.nom, entreprise);
               pdfDataList.push({ fileName, pdfBuffer: existingPdfBuffer });
@@ -737,9 +745,15 @@ serve(async (req: Request): Promise<Response> => {
                 const participantId = participant.participantId || participant.email;
                 const storagePath = `${trainingId}/${participantId}.pdf`;
 
-                await supabaseAdmin.storage
+                const { error: storageError } = await supabaseAdmin.storage
                   .from("certificates")
                   .upload(storagePath, pdfBuffer, { contentType: "application/pdf", upsert: true });
+                if (storageError) throw storageError;
+                if (generateOnly) {
+                  const { data, error } = await supabaseAdmin.storage.from("certificates").createSignedUrl(storagePath, 3600);
+                  if (error || !data?.signedUrl) throw error || new Error("Certificate unavailable");
+                  certificateUrls.push(data.signedUrl);
+                }
 
                 const { data: publicData } = supabaseAdmin.storage
                   .from("certificates")
