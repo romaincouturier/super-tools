@@ -46,6 +46,8 @@ export interface QuoteSettings {
   vat_exempt: boolean;
   vat_exempt_text: string;
   default_unit: string;
+  default_followup_hourly_rate?: number;
+  hourly_price_alert_threshold?: number;
   // Timestamps
   created_at: string;
   updated_at: string;
@@ -96,6 +98,7 @@ export interface Quote {
   // Loom
   loom_url: string | null;
   loom_script: string | null;
+  training_followup?: import('@/lib/quoteFollowup').TrainingFollowup | null;
   // Email
   email_subject: string | null;
   email_body: string | null;
