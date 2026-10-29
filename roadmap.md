@@ -1,5 +1,10 @@
 # Roadmap
 
+## Erreurs des fonctions et documents formation (2026-10-29)
+- [ ] Diagnostiquer l’erreur d’envoi/import dans une formation
+- [ ] Contrôler la disponibilité de toutes les fonctions sans déclencher leurs actions
+- [ ] Corriger les causes confirmées et vérifier le parcours concerné
+
 ## Registre des sources de veille (2026-10-27)
 - [x] Données, URL canonique unique et rattachement des fiches
 - [x] Onglet Sources, filtres, validation, utilité et ajout manuel
