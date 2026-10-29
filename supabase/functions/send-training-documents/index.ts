@@ -6,6 +6,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { isInternalOrAuthenticated } from "../_shared/cron-auth.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 // Format date range for display (e.g., "du 15 au 17 janvier 2025")
@@ -86,6 +87,11 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const user = await verifyAuth(req);
+    if (user) {
+      const { data: allowed, error } = await supabase.rpc("has_module_access", { _user_id: user.id, _module: "formations" });
+      if (error || !allowed) return new Response(JSON.stringify({ error: "Accès formations requis" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     if (documentType === "all" || documentType === "sheets") {
       const { data: slots, error: slotError } = await supabase.from("attendance_signatures").select("schedule_date, period").eq("training_id", trainingId);

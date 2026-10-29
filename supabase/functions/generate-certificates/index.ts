@@ -575,6 +575,8 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     console.log(`Authenticated user: ${claimsData.claims.sub}`);
+    const { data: allowed, error: permissionError } = await supabaseAdmin.rpc("has_module_access", { _user_id: claimsData.claims.sub, _module: "formations" });
+    if (permissionError || !allowed) return new Response(JSON.stringify({ error: "Accès formations requis" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     // --- End authentication check ---
 
     const body: RequestBody = await req.json();
