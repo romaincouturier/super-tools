@@ -45,6 +45,10 @@ export function averageHourlyPrice(unitPrice: number, baseHours: number, f?: Mic
 
 const sessionsLabel = (n: number) => `${n} séance${n > 1 ? "s" : ""} de suivi pédagogique individuel`;
 
+export function totalFollowupSessions(includedSessions: number, f?: MicroDevisFollowup | null): number {
+  return Math.max(0, Math.floor(Number(includedSessions) || 0)) + addedSessions(f);
+}
+
 /** Lignes PDF : frais de dossier fondus dans la ligne formation. */
 export function buildMicroDevisItems(p: {
   name: string;
@@ -52,23 +56,26 @@ export function buildMicroDevisItems(p: {
   baseHours: number;
   quantity: number;
   adminFee: number;
+  includedSessions?: number;
   followup?: MicroDevisFollowup | null;
 }): MicroDevisItem[] {
   const qty = Math.max(1, p.quantity);
   const n = addedSessions(p.followup);
+  const totalSessions = totalFollowupSessions(p.includedSessions ?? 0, p.followup);
+  const includedCount = totalFollowupSessions(p.includedSessions ?? 0);
   const amount = followupAmount(p.followup);
   const name = stripCoaching(p.name);
   const feePerUnit = p.adminFee / qty;
   if (n === 0 || p.followup?.singleLine) {
     return [{
-      name: n > 0 ? `${name} (dont ${sessionsLabel(n)} (${fmtH(n)}))` : name,
+      name: totalSessions > 0 ? `${name} (dont ${sessionsLabel(totalSessions)} (${fmtH(totalSessions)}))` : name,
       duration: fmtH(totalHours(p.baseHours, p.followup)),
       quantity: qty,
       unit_price: round2(p.unitPrice + amount + feePerUnit),
     }];
   }
   return [
-    { name, duration: fmtH(Number(p.baseHours) || 0), quantity: qty, unit_price: round2(p.unitPrice + feePerUnit) },
+    { name: includedCount > 0 ? `${name} (dont ${sessionsLabel(includedCount)} (${fmtH(includedCount)}))` : name, duration: fmtH(Number(p.baseHours) || 0), quantity: qty, unit_price: round2(p.unitPrice + feePerUnit) },
     { name: `Suivi pédagogique individuel : ${sessionsLabel(n)} d'1h`, duration: fmtH(n), quantity: qty, unit_price: amount },
   ];
 }

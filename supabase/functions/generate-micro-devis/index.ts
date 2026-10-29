@@ -31,6 +31,8 @@ interface RequestBody {
   prix: number;
   dureeHeures: number;
   followup?: MicroDevisFollowup;
+  selectedFormulaId?: string;
+  includedSessions?: number;
   programmeUrl: string | null;
   nbParticipants: number;
   participants: string; // Liste des participants (texte brut)
@@ -94,7 +96,7 @@ async function generatePdfWithPdfMonkey(
     cadeau: cadeauText,
     items: buildMicroDevisItems({
       name: data.formationDemandee, unitPrice: data.prix, baseHours: data.dureeHeures,
-      quantity: qty, adminFee: adminFeeAmount, followup: data.followup,
+      quantity: qty, adminFee: adminFeeAmount, includedSessions: data.includedSessions, followup: data.followup,
     }).map((it) => ({
       ...it,
       participant_name: participantsList.length > 0 ? participantsList : [`${data.adresseCommanditaire} ${data.emailCommanditaire}`],
@@ -560,6 +562,23 @@ serve(async (req: Request): Promise<Response> => {
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    body.includedSessions = 0;
+    if (body.selectedFormulaId) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.selectedFormulaId)) {
+        return new Response(JSON.stringify({ error: "Formule invalide" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const { data: formula, error: formulaError } = await getSupabaseClient()
+        .from("formation_formulas")
+        .select("coaching_sessions_count")
+        .eq("id", body.selectedFormulaId)
+        .maybeSingle();
+      if (formulaError) throw formulaError;
+      if (!formula) {
+        return new Response(JSON.stringify({ error: "Formule introuvable" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      body.includedSessions = formula.coaching_sessions_count ?? 0;
     }
 
     // Default to "les2" for backward compatibility
