@@ -31,6 +31,7 @@ vi.mock("@/hooks/useLoginAttempts", () => ({ useLoginAttempts: () => ({
   formatTimeRemaining: () => "",
 }) }));
 vi.mock("@/components/ForgotPasswordDialog", () => ({ default: () => null }));
+vi.mock("@/components/auth/MaintenanceBanner", () => ({ default: () => null }));
 
 function autofill(label: string, value: string) {
   const input = screen.getByLabelText(label) as HTMLInputElement;
