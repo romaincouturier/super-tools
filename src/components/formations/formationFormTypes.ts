@@ -79,5 +79,7 @@ export interface FormationFormSectionProps {
   publicSectorNotice?: string | null;
   setRemiseFraisAdmin: (v: number) => void;
   getSelectedFormationConfig: () => FormationConfig | undefined;
+  followupBlock?: import("react").ReactNode;
+  followupAmount?: number;
   onSelectInterSession?: (d: import("@/types/formations").FormationDate) => void;
 }

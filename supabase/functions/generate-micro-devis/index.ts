@@ -1,3 +1,4 @@
+import { buildMicroDevisItems, followupAmount, stripCoaching, type MicroDevisFollowup } from "../_shared/micro-devis-followup.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
@@ -29,6 +30,7 @@ interface RequestBody {
   remiseFraisAdmin?: number;
   prix: number;
   dureeHeures: number;
+  followup?: MicroDevisFollowup;
   programmeUrl: string | null;
   nbParticipants: number;
   participants: string; // Liste des participants (texte brut)
@@ -79,8 +81,6 @@ async function generatePdfWithPdfMonkey(
 
   const qty = Math.max(1, data.nbParticipants);
   const adminFeeAmount = getDossierFeeAmount(data, subrogation);
-  // Frais de dossier fondus dans le prix unitaire (le total = prix * qty + frais).
-  const unitPriceWithFee = data.prix + adminFeeAmount / qty;
 
   const payload = {
     client: {
@@ -92,17 +92,15 @@ async function generatePdfWithPdfMonkey(
     },
     note: data.noteDevis || "",
     cadeau: cadeauText,
-    items: [
-      {
-        name: data.formationDemandee,
-        participant_name: participantsList.length > 0 ? participantsList : [`${data.adresseCommanditaire} ${data.emailCommanditaire}`],
-        date: data.dateFormation,
-        place: data.lieu,
-        duration: `${data.dureeHeures}h`,
-        quantity: qty,
-        unit_price: unitPriceWithFee,
-      },
-    ],
+    items: buildMicroDevisItems({
+      name: data.formationDemandee, unitPrice: data.prix, baseHours: data.dureeHeures,
+      quantity: qty, adminFee: adminFeeAmount, followup: data.followup,
+    }).map((it) => ({
+      ...it,
+      participant_name: participantsList.length > 0 ? participantsList : [`${data.adresseCommanditaire} ${data.emailCommanditaire}`],
+      date: data.dateFormation,
+      place: data.lieu,
+    })),
   };
 
   console.log(`PDF Monkey payload:`, JSON.stringify(payload));
@@ -618,7 +616,7 @@ serve(async (req: Request): Promise<Response> => {
     // Compute total amount (HT) for opportunity estimation sync.
     // Micro-devis pricing = prix × nb_participants (+ 350€ frais de dossier).
     const microDevisTotal =
-      (body.prix || 0) * (body.nbParticipants || 1) +
+      ((body.prix || 0) + followupAmount(body.followup)) * (body.nbParticipants || 1) +
       getDossierFeeAmount(body, typeSubrogation === "avec" || typeSubrogation === "les2");
 
     // Insert activity_logs FIRST so we have an id to link to devis_signatures
@@ -680,8 +678,8 @@ serve(async (req: Request): Promise<Response> => {
     const appUrl = appUrls.app_url || appUrls.website_url || "";
 
     const signatureTokens: { sans?: string; avec?: string } = {};
-    const totalSans = (body.prix || 0) * (body.nbParticipants || 1) + getDossierFeeAmount(body, false);
-    const totalAvec = (body.prix || 0) * (body.nbParticipants || 1) + getDossierFeeAmount(body, true);
+    const totalSans = ((body.prix || 0) + followupAmount(body.followup)) * (body.nbParticipants || 1) + getDossierFeeAmount(body, false);
+    const totalAvec = ((body.prix || 0) + followupAmount(body.followup)) * (body.nbParticipants || 1) + getDossierFeeAmount(body, true);
     if (activityLogId && storageSansPath) {
       try {
         const tokenSans = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
@@ -745,7 +743,7 @@ serve(async (req: Request): Promise<Response> => {
       supabase,
       body.emailCommanditaire,
       body.adresseCommanditaire,
-      body.formationDemandee,
+      stripCoaching(body.formationDemandee),
       body.programmeUrl,
       pdfSansSubrogation?.pdfUrl || null,
       pdfAvecSubrogation?.pdfUrl || null,
