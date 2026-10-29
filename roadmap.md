@@ -1,5 +1,11 @@
 # Roadmap
 
+## Envoi des documents Agirc-Arrco (2026-10-29)
+- [ ] Empêcher les doubles soumissions pendant la préparation et l’envoi
+- [ ] Vérifier les signatures formateur et bloquer les envois incomplets
+- [ ] Inclure les attestations dans « Tous les documents » sans emails de génération supplémentaires
+- [ ] Tester et déployer les fonctions modifiées, sans renvoyer les documents réels
+
 ## Erreurs des fonctions et documents formation (2026-10-29)
 - [x] Diagnostiquer les erreurs récentes : convention globale expirée sur AI4Product, session inter, régénération refusée sans participant
 - [x] Contrôler la disponibilité de toutes les fonctions sans déclencher leurs actions : 246/246 répondent aux pré-vérifications OPTIONS
