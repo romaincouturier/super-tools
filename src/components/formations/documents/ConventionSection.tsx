@@ -110,6 +110,10 @@ const ConventionSection = ({
 
   const handleDownloadConvention = async () => {
     if (!conventionFileUrl) return;
+    if (isInterEntreprise) {
+      toastError(toast, "Cette ancienne convention globale ne s’applique plus à cette session inter-entreprises. Utilisez la convention de l’entreprise depuis la liste des participants.", { title: "Convention par entreprise" });
+      return;
+    }
     const fileName = lastGeneratedConventionFileName || `convention_${trainingId}.pdf`;
     try {
       let url = conventionFileUrl;
@@ -128,6 +132,7 @@ const ConventionSection = ({
   };
 
   const handleSendConvention = async () => {
+    if (isInterEntreprise) return;
     if (!conventionFileUrl || !recipientEmail) {
       toastError(toast, !conventionFileUrl ? "Aucune convention générée." : "Aucun email de commanditaire défini.", { title: "Impossible" });
       return;
@@ -236,7 +241,7 @@ const ConventionSection = ({
                 </div>
                 {conventionSignatureStatus.signed_pdf_url && (
                   <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1"
-                    onClick={() => openStorageUrl(conventionSignatureStatus.signed_pdf_url!)}>
+                    onClick={() => { if (conventionSignatureStatus.signed_pdf_url) openStorageUrl(conventionSignatureStatus.signed_pdf_url); }}>
                     <FileDown className="h-3 w-3" /> PDF signé
                   </Button>
                 )}
