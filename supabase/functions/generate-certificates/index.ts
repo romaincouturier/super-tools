@@ -65,6 +65,7 @@ interface RequestBody {
   participants: Participant[];
   trainingId?: string; // For storing certificate_url in training_evaluations
   forceRegenerate?: boolean; // Ignore le PDF déjà stocké et régénère l'attestation
+  generateOnly?: boolean;
 }
 
 interface PdfData {
@@ -574,10 +575,13 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     console.log(`Authenticated user: ${claimsData.claims.sub}`);
+    const { data: allowed, error: permissionError } = await supabaseAdmin.rpc("has_module_access", { _user_id: claimsData.claims.sub, _module: "formations" });
+    if (permissionError || !allowed) return new Response(JSON.stringify({ error: "Accès formations requis" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     // --- End authentication check ---
 
     const body: RequestBody = await req.json();
-    const { formationName, entreprise, duree, dateDebut, dateFin, emailDestinataire, emailCommanditaire, participants, userId, trainingId, forceRegenerate } = body;
+    const { formationName, entreprise, duree, dateDebut, dateFin, emailDestinataire, emailCommanditaire, participants, userId, trainingId, forceRegenerate, generateOnly = false } = body;
+    if (generateOnly && !trainingId) throw new Error("Training ID required for generation-only mode");
 
     console.log(`Processing ${participants.length} participants for formation: ${formationName}`);
     if (userId) {
@@ -597,6 +601,7 @@ serve(async (req: Request): Promise<Response> => {
         const encoder = new TextEncoder();
         const pdfDataList: PdfData[] = [];
         let successCount = 0;
+        const certificateUrls: string[] = [];
 
         // Helper to send a streaming event
         const sendEvent = (event: { type: string; data: any }) => {
@@ -639,6 +644,11 @@ serve(async (req: Request): Promise<Response> => {
           }
 
           if (existingPdfBuffer) {
+            if (generateOnly && trainingId) {
+              const path = `${trainingId}/${participant.participantId || participant.email}.pdf`;
+              const { data, error } = await supabaseAdmin.storage.from("certificates").createSignedUrl(path, 3600);
+              if (!error && data?.signedUrl) certificateUrls.push(data.signedUrl);
+            }
             if (emailCommanditaire) {
               const fileName = buildCertificateFileName(participant.prenom, participant.nom, entreprise);
               pdfDataList.push({ fileName, pdfBuffer: existingPdfBuffer });
@@ -737,9 +747,15 @@ serve(async (req: Request): Promise<Response> => {
                 const participantId = participant.participantId || participant.email;
                 const storagePath = `${trainingId}/${participantId}.pdf`;
 
-                await supabaseAdmin.storage
+                const { error: storageError } = await supabaseAdmin.storage
                   .from("certificates")
                   .upload(storagePath, pdfBuffer, { contentType: "application/pdf", upsert: true });
+                if (storageError) throw storageError;
+                if (generateOnly) {
+                  const { data, error } = await supabaseAdmin.storage.from("certificates").createSignedUrl(storagePath, 3600);
+                  if (error || !data?.signedUrl) throw error || new Error("Certificate unavailable");
+                  certificateUrls.push(data.signedUrl);
+                }
 
                 const { data: publicData } = supabaseAdmin.storage
                   .from("certificates")
@@ -783,6 +799,12 @@ serve(async (req: Request): Promise<Response> => {
                   console.warn(`Failed to download PDF for ZIP: ${error.message}`);
                 }
               }
+            }
+
+            if (generateOnly) {
+              if (certificateUrls.length === i + 1) successCount++;
+              sendEvent({ type: "participant_done", data: { participant: participantName, success: certificateUrls.length === i + 1, index: i + 1, total: participants.length } });
+              continue;
             }
 
             // Upload to Google Drive
@@ -907,7 +929,7 @@ serve(async (req: Request): Promise<Response> => {
         }
 
         // Send ZIP to commanditaire if email is set and we have PDFs
-        if (emailCommanditaire && pdfDataList.length > 0) {
+        if (!generateOnly && emailCommanditaire && pdfDataList.length > 0) {
           sendEvent({ 
             type: "step", 
             data: { 
@@ -954,6 +976,7 @@ serve(async (req: Request): Promise<Response> => {
           data: { 
             successCount,
             totalCount: participants.length,
+            certificateUrls,
             message: `${successCount} certificat(s) généré(s) avec succès`
           } 
         });

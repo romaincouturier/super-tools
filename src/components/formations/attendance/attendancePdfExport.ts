@@ -62,6 +62,7 @@ interface ExportOptions {
   startDate: string | null;
   participantId?: string;
   onUpdate?: () => void;
+  download?: boolean;
 }
 
 export async function exportAttendancePdf({
@@ -70,6 +71,7 @@ export async function exportAttendancePdf({
   startDate,
   participantId,
   onUpdate,
+  download = true,
 }: ExportOptions): Promise<{ success: boolean; message: string }> {
   const { data, error } = await supabase.functions.invoke("generate-attendance-pdf", {
     body: { trainingId, participantId },
@@ -497,7 +499,7 @@ export async function exportAttendancePdf({
   }
 
   // Full session: download immediately, then keep a copy on the training
-  doc.save(filename);
+  if (download) doc.save(filename);
   const pdfBlob = doc.output("blob");
   const pdfFile = new File([pdfBlob], `emargement_electronique_${Date.now()}.pdf`, { type: "application/pdf" });
 
@@ -513,6 +515,7 @@ export async function exportAttendancePdf({
 
   if (uploadError) {
     console.error("[attendancePdfExport] upload failed:", uploadError);
+    if (!download) throw uploadError;
     return { success: true, message: "PDF téléchargé, mais il n'a pas pu être enregistré dans la formation." };
   }
   onUpdate?.();

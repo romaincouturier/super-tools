@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Send, FileText, Receipt, ClipboardList, Mail, Award, Star } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { exportAttendancePdf } from "../attendance/attendancePdfExport";
@@ -20,6 +20,7 @@ import type { DocumentSentInfo, DocumentType } from "./types";
 import SendRecipientDialog from "./SendRecipientDialog";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskEmail } from "@/lib/demoMask";
+import { missingTrainerSlots, readCertificateGeneration } from "@/lib/trainingDocumentDelivery";
 
 interface DocumentDeliverySectionProps {
   trainingId: string;
@@ -78,6 +79,10 @@ const DocumentDeliverySection = ({
   );
 
   const [generatingCerts, setGeneratingCerts] = useState(false);
+  const [preparingDocuments, setPreparingDocuments] = useState(false);
+  const deliveryLock = useRef(false);
+  const requestId = useRef(crypto.randomUUID());
+  const busy = sendingDocuments || preparingDocuments || generatingCerts;
   const hasCertificates = certificateUrls.length > 0;
   const hasEvaluations = evaluationCount > 0;
   const hasSheets = attendanceSheetsUrls.length > 0 || signatureCount > 0;
@@ -85,12 +90,11 @@ const DocumentDeliverySection = ({
   const hasDocuments = invoiceFileUrl || hasSheets || hasCertificates || hasEvaluations || canGenerateCerts;
   const docCount = (invoiceFileUrl ? 1 : 0) + (hasSheets ? 1 : 0) + (hasCertificates || canGenerateCerts ? 1 : 0) + (hasEvaluations ? 1 : 0);
 
-  const handleGenerateAndSendCertificates = async (recipientEmail: string) => {
-    if (!canGenerateCerts) return;
-    setGeneratingCerts(true);
-    try {
+  const generateCertificates = async (recipientEmail: string, generateOnly = false): Promise<string[]> => {
+    if (!canGenerateCerts) throw new Error("Les informations nécessaires aux attestations sont manquantes.");
       const session = await supabase.auth.getSession();
       const accessToken = session.data.session?.access_token;
+      if (!accessToken) throw new Error("Session expirée. Reconnectez-vous avant l'envoi.");
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-certificates`,
         {
@@ -116,20 +120,19 @@ const DocumentDeliverySection = ({
             })),
             userId: session.data.session?.user?.id,
             trainingId,
+            generateOnly,
           }),
         },
       );
-      if (!response.ok) throw new Error(`Erreur serveur: ${response.status}`);
-      // Drain stream
-      const reader = response.body?.getReader();
-      if (reader) {
-        const decoder = new TextDecoder();
-        while (true) {
-          const { done } = await reader.read();
-          if (done) break;
-        }
-        void decoder;
-      }
+      return readCertificateGeneration(response, participants.length);
+  };
+
+  const handleGenerateAndSendCertificates = async (recipientEmail: string) => {
+    if (deliveryLock.current) return;
+    deliveryLock.current = true;
+    setGeneratingCerts(true);
+    try {
+      await generateCertificates(recipientEmail);
       toast({
         title: "Attestations envoyées",
         description: `Les attestations ont été générées et envoyées à ${isDemoMode ? maskEmail(recipientEmail) : recipientEmail}.`,
@@ -140,26 +143,32 @@ const DocumentDeliverySection = ({
       toastError(toast, error instanceof Error ? error.message : "Erreur lors de la génération des attestations.");
     } finally {
       setGeneratingCerts(false);
+      deliveryLock.current = false;
     }
   };
 
 
   const ensureAttendanceSheetsUrls = async (): Promise<string[]> => {
-    if (attendanceSheetsUrls.length > 0) return attendanceSheetsUrls;
-    if (signatureCount === 0) return [];
-    // Generate PDF on the fly from electronic signatures
-    try {
-      await exportAttendancePdf({ trainingId, trainingName, startDate });
-    } catch (e) {
-      console.error("Failed to generate attendance PDF:", e);
-      toastError(toast, "Impossible de générer la feuille d'émargement.");
-      return [];
+    const { data, error } = await supabase.functions.invoke("generate-attendance-pdf", { body: { trainingId } });
+    if (error) throw error;
+    if (!data?.success) throw new Error("Impossible de vérifier les signatures d'émargement.");
+    const missing = missingTrainerSlots(data.signatures || [], data.trainerSignatures || []);
+    if (missing.length > 0) {
+      throw new Error(`Signez d'abord les ${missing.length} demi-journée(s) dans la rubrique Émargement en tant que formateur. Aucun document n'a été envoyé.`);
     }
-    const { data } = await supabase.from("trainings").select("attendance_sheets_urls").eq("id", trainingId).single();
-    return ((data?.attendance_sheets_urls as string[]) || []);
+    if (attendanceSheetsUrls.length > 0) return attendanceSheetsUrls;
+    if (!data.signatures?.length) return [];
+    const exported = await exportAttendancePdf({ trainingId, trainingName, startDate, download: false });
+    if (!exported.success) throw new Error(exported.message);
+    const { data: training, error: trainingError } = await supabase.from("trainings").select("attendance_sheets_urls").eq("id", trainingId).single();
+    if (trainingError) throw trainingError;
+    const urls = (training?.attendance_sheets_urls as string[]) || [];
+    if (urls.length === 0) throw new Error("La feuille d'émargement n'a pas été enregistrée. Aucun document n'a été envoyé.");
+    return urls;
   };
 
   const handleSendDocuments = async (type: DocumentType, recipientEmail?: string, cc?: string) => {
+    if (deliveryLock.current) return;
     const targetEmail = recipientEmail || sponsorEmail;
     if (!targetEmail) {
       toast({ title: "Email manquant", description: "Aucun email de destinataire n'est défini.", variant: "destructive" });
@@ -170,13 +179,23 @@ const DocumentDeliverySection = ({
       return;
     }
 
+    deliveryLock.current = true;
+    setPreparingDocuments(true);
+    try {
     let sheetsToSend = attendanceSheetsUrls;
     if (type === "sheets" || type === "all") {
       sheetsToSend = await ensureAttendanceSheetsUrls();
-      if (type === "sheets" && sheetsToSend.length === 0) {
+      if ((type === "sheets" || hasSheets) && sheetsToSend.length === 0) {
         toast({ title: "Pas de feuilles", description: "Aucune feuille d'émargement n'est disponible.", variant: "destructive" });
         return;
       }
+    }
+
+    let certificatesToSend = certificateUrls;
+    if (type === "all" && participants.length > 0) {
+      certificatesToSend = await generateCertificates(targetEmail, true);
+      if (certificatesToSend.length !== participants.length) throw new Error("Les attestations ne sont pas toutes disponibles. Aucun document n'a été envoyé.");
+      onCertificatesGenerated?.();
     }
 
     const result = await invokeSendDocs({
@@ -187,7 +206,8 @@ const DocumentDeliverySection = ({
       documentType: type,
       invoiceUrl: type === "sheets" || type === "certificates" || type === "evaluations" ? null : invoiceFileUrl,
       attendanceSheetsUrls: type === "invoice" || type === "certificates" || type === "evaluations" ? [] : sheetsToSend,
-      certificateUrls: type === "certificates" || type === "all" ? certificateUrls : [],
+      certificateUrls: type === "certificates" || type === "all" ? certificatesToSend : [],
+      requestId: requestId.current,
       includeEvaluations: type === "all" && hasEvaluations,
       ccEmail: cc || null,
       formalAddress: sponsorFormalAddress,
@@ -199,10 +219,16 @@ const DocumentDeliverySection = ({
       toast({ title: "Documents envoyés", description: description + "." });
 
       const now = new Date().toISOString();
-      if (type === "invoice" || type === "all") setDocumentsSentInfo(prev => ({ ...prev, invoice: now }));
-      if (type === "sheets" || type === "all") setDocumentsSentInfo(prev => ({ ...prev, sheets: now }));
+      if ((type === "invoice" || type === "all") && invoiceFileUrl) setDocumentsSentInfo(prev => ({ ...prev, invoice: now }));
+      if ((type === "sheets" || type === "all") && sheetsToSend.length > 0) setDocumentsSentInfo(prev => ({ ...prev, sheets: now }));
 
       resetDialog();
+    }
+    } catch (error) {
+      toast({ title: "Envoi interrompu", description: error instanceof Error ? error.message : "Impossible de préparer les documents.", variant: "destructive" });
+    } finally {
+      deliveryLock.current = false;
+      setPreparingDocuments(false);
     }
   };
 
@@ -215,6 +241,8 @@ const DocumentDeliverySection = ({
   };
 
   const openCustomRecipientDialog = (type: DocumentType, toSponsor: boolean = false) => {
+    if (deliveryLock.current) return;
+    requestId.current = crypto.randomUUID();
     setPendingDocumentType(type);
     setSendToSponsorWithOptions(toSponsor);
     if (toSponsor && sponsorEmail) {
@@ -228,8 +256,8 @@ const DocumentDeliverySection = ({
   };
 
   const renderSendButton = () => (
-    <Button type="button" variant="default" className="w-full" disabled={sendingDocuments}>
-      {sendingDocuments ? <Spinner className="mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+    <Button type="button" variant="default" className="w-full" disabled={busy}>
+      {busy ? <Spinner className="mr-2" /> : <Send className="h-4 w-4 mr-2" />}
       Envoyer les documents
     </Button>
   );
@@ -328,7 +356,7 @@ const DocumentDeliverySection = ({
         setCustomRecipientEmail={setCustomRecipientEmail}
         ccEmail={ccEmail}
         setCcEmail={setCcEmail}
-        sendingDocuments={sendingDocuments}
+        sendingDocuments={busy}
         onSend={() => {
           if (pendingDocumentType && customRecipientEmail) {
             const emailToPass = sendToSponsorWithOptions ? undefined : customRecipientEmail;
