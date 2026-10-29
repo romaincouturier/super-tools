@@ -21,8 +21,7 @@ const fmtH = (n: number) => `${String(n).replace(".", ",")}h`;
 export function stripCoaching(text: string): string {
   return text
     .replace(/coaching/gi, "suivi pédagogique individuel")
-    .replace(/\bcoach[ée]e?s?\b/gi, "avec suivi individuel")
-    .replace(/\bcoac\b\.*/gi, "avec suivi individuel");
+    .replace(/coac\p{L}*\.*/giu, "avec suivi individuel");
 }
 
 export function addedSessions(f?: MicroDevisFollowup | null): number {
