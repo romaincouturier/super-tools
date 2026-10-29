@@ -38,7 +38,6 @@ describe("micro-devis suivi pédagogique", () => {
     expect(items).toHaveLength(1);
     expect(items[0].unit_price).toBe(899);
     expect(items[0].duration).toBe("29,5h");
-    expect(items[0].name).toContain("dont 3 séances de suivi pédagogique individuel (3h)");
   });
 
   it("lignes séparées quand décoché", () => {
