@@ -1,9 +1,10 @@
 # Roadmap
 
 ## Erreurs des fonctions et documents formation (2026-10-29)
-- [ ] Diagnostiquer l’erreur d’envoi/import dans une formation
-- [ ] Contrôler la disponibilité de toutes les fonctions sans déclencher leurs actions
-- [ ] Corriger les causes confirmées et vérifier le parcours concerné
+- [x] Diagnostiquer les erreurs récentes : convention globale expirée sur AI4Product, session inter, régénération refusée sans participant
+- [x] Contrôler la disponibilité de toutes les fonctions sans déclencher leurs actions : 246/246 répondent aux pré-vérifications OPTIONS
+- [ ] Bloquer le téléchargement de convention globale obsolète en inter et vérifier le parcours concerné
+- [ ] Envoi signalé : aucune erreur récente send-training-documents/upload-training-document dans les journaux ; formation et document exacts requis si incident distinct
 
 ## Registre des sources de veille (2026-10-27)
 - [x] Données, URL canonique unique et rattachement des fiches
