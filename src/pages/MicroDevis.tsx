@@ -26,6 +26,8 @@ import { useDevisHistory } from "@/hooks/useDevisHistory";
 import { useSirenSearch } from "@/hooks/useSirenSearch";
 import DevisHistoryDialog from "@/components/formations/DevisHistoryDialog";
 import FormationFormSection from "@/components/formations/FormationFormSection";
+import MicroDevisFollowupBlock from "@/components/formations/MicroDevisFollowupBlock";
+import { buildMicroDevisItems, followupAmount as calcFollowupAmount, totalHours as calcTotalHours, type MicroDevisFollowup } from "../../supabase/functions/_shared/micro-devis-followup";
 import ClientInfoSection from "@/components/formations/ClientInfoSection";
 import TypeDevisSection from "@/components/formations/TypeDevisSection";
 
@@ -65,6 +67,8 @@ const MicroDevis = () => {
   const [typeSubrogation, setTypeSubrogation] = useState<"sans" | "avec" | "les2">("les2");
   const [publicSectorNotice, setPublicSectorNotice] = useState<string | null>(null);
   const [remiseFraisAdmin, setRemiseFraisAdmin] = useState(0);
+  const [followup, setFollowup] = useState<MicroDevisFollowup>({ addedSessions: 0, hourlyRate: 150, singleLine: true });
+  const [hourlyThreshold, setHourlyThreshold] = useState(60);
   const [jsonPreviewOpen, setJsonPreviewOpen] = useState(false);
   const [initialDefaultsApplied, setInitialDefaultsApplied] = useState(false);
 
@@ -268,6 +272,18 @@ const MicroDevis = () => {
     }));
   }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, formulasHook.selectedFormulaId, adresseClient, codePostalClient, villeClient, pays, paysAutre, civiliteCommanditaire, prenomCommanditaire, nomCommanditaire, noteDevis, participants, includeCadeau, typeSubrogation, remiseFraisAdmin]);
 
+  useEffect(() => {
+    (supabase.from("quote_settings") as any).select("default_followup_hourly_rate, hourly_price_alert_threshold").limit(1).maybeSingle()
+      .then(({ data }: { data: { default_followup_hourly_rate?: number; hourly_price_alert_threshold?: number } | null }) => {
+        if (!data) return;
+        if (data.default_followup_hourly_rate != null) setFollowup((f) => ({ ...f, hourlyRate: Number(data.default_followup_hourly_rate) }));
+        if (data.hourly_price_alert_threshold != null) setHourlyThreshold(Number(data.hourly_price_alert_threshold));
+      });
+  }, []);
+
+  // Reset added sessions when the formula changes
+  useEffect(() => { setFollowup((f) => ({ ...f, addedSessions: 0 })); }, [formulasHook.selectedFormulaId, formationDemandee]);
+
   // Auto-set lieu
   useEffect(() => {
     if (formationDemandee.toLowerCase().includes("en ligne"))
@@ -420,7 +436,7 @@ const MicroDevis = () => {
     const dossierFee = withSubrogation ? DOSSIER_FEE_WITH_SUBROGATION : DOSSIER_FEE_WITHOUT_SUBROGATION;
     return {
       requestPayload: { nomClient, adresseClient, codePostalClient, villeClient, pays: fp, emailCommanditaire, adresseCommanditaire, noteDevis, formationDemandee: label, dateFormation, lieu: fl, includeCadeau, prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: np, participants },
-      pdfMonkeyPayload: { client: { name: nomClient, address: adresseClient, zip: codePostalClient, city: villeClient, country: fp }, note: noteDevis || "", cadeau: ct, items: [{ name: label, participant_name: pl.length > 0 ? pl : [`${adresseCommanditaire} ${emailCommanditaire}`], date: dateFormation, place: fl, duration: `${ed}h`, quantity: np, unit_price: ep }] },
+      pdfMonkeyPayload: { client: { name: nomClient, address: adresseClient, zip: codePostalClient, city: villeClient, country: fp }, note: noteDevis || "", cadeau: ct, items: [{ name: label, participant_name: pl.length > 0 ? pl : [`${adresseCommanditaire} ${emailCommanditaire}`], date: dateFormation, place: fl, duration: `${ed}h`, quantity: np, unit_price: ep }].map((base) => buildMicroDevisItems({ name: label, unitPrice: ep, baseHours: ed, quantity: np, adminFee: 0, followup }).map((it) => ({ ...base, ...it }))).flat() },
     };
   };
 
@@ -438,7 +454,7 @@ const MicroDevis = () => {
       const ed = af?.duree_heures ?? sc.duree_heures;
       const label = formulasHook.selectedFormula ? `${formationDemandee} — ${formulasHook.selectedFormula}` : formationDemandee;
       const response = await supabase.functions.invoke("generate-micro-devis", {
-        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, remiseFraisAdmin, offrirFraisAdmin: remiseFraisAdmin > 0, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, selectedFormulaId: formulasHook.selectedFormulaId, ...(crmCardId && { crmCardId, senderEmail: user?.email }) }, // demo-safe: payload envoye a la generation du devis
+        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, prix: ep, dureeHeures: ed, followup: followup.addedSessions > 0 ? followup : undefined, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, remiseFraisAdmin, offrirFraisAdmin: remiseFraisAdmin > 0, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, selectedFormulaId: formulasHook.selectedFormulaId, ...(crmCardId && { crmCardId, senderEmail: user?.email }) }, // demo-safe: payload envoye a la generation du devis
       });
       if (response.error) throw new Error(response.error.message);
       toast({ title: typeSubrogation === "les2" ? "Devis envoyés !" : "Devis envoyé !", description: typeSubrogation === "les2" ? `Les 2 devis ont été générés et envoyés à ${normalizedEmail}` : `Le devis a été généré et envoyé à ${normalizedEmail}` });
@@ -546,6 +562,16 @@ const MicroDevis = () => {
                   publicSectorNotice={publicSectorNotice}
                   getSelectedFormationConfig={getSelectedFormationConfig}
                   onSelectInterSession={applyInterSession}
+                  followupAmount={calcFollowupAmount(followup)}
+                  followupBlock={formulasHook.activeFormula ? (
+                    <MicroDevisFollowupBlock
+                      value={followup} onChange={setFollowup}
+                      includedSessions={formulasHook.activeFormula.coaching_sessions_count || 0}
+                      baseHours={Number(formulasHook.activeFormula.duree_heures) || 0}
+                      unitPrice={Number(formulasHook.activeFormula.prix) || 0}
+                      alertThreshold={hourlyThreshold}
+                    />
+                  ) : null}
                 />
               )}
 
