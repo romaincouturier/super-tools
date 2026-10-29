@@ -40,6 +40,7 @@ export function AuthField({
         {icon && <span className="shrink-0 text-muted-foreground">{icon}</span>}
         <input
           id={id}
+          name={type === "email" ? "email" : isPassword ? "password" : id}
           type={inputType}
           value={value}
           onChange={(e) => onChange(e.target.value)}
