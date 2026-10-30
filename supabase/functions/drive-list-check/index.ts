@@ -70,10 +70,34 @@ Deno.serve(async (req: Request): Promise<Response> => {
       } while (pageToken);
     }
 
-    return new Response(JSON.stringify({ count: allFiles.length, files: allFiles }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const { data: transcriptRows } = await (admin as any)
+      .from("transcripts")
+      .select("external_id, status")
+      .eq("source", "google_drive");
+    const byExternalId = new Map(
+      ((transcriptRows as Array<{ external_id: string; status: string }> | null) ?? [])
+        .map((r) => [r.external_id, r.status]),
+    );
+
+    const videos = allFiles.filter((f) => f.mimeType.startsWith("video/"));
+    const missing = videos
+      .filter((f) => !byExternalId.has(f.id))
+      .map((f) => ({ id: f.id, name: f.name, createdTime: f.createdTime, folderId: f.folderId }));
+    const notReady = videos
+      .filter((f) => byExternalId.has(f.id) && byExternalId.get(f.id) !== "ready")
+      .map((f) => ({ id: f.id, name: f.name, status: byExternalId.get(f.id) }));
+
+    return new Response(
+      JSON.stringify({
+        totalFiles: allFiles.length,
+        totalVideos: videos.length,
+        transcriptsInDb: byExternalId.size,
+        missingCount: missing.length,
+        missing,
+        notReady,
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (err) {
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 200,
