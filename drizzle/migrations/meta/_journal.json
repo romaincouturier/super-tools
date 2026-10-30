@@ -120,6 +120,13 @@
       "when": 1793291583034,
       "tag": "0016_quote_training_followup",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793382724217,
+      "tag": "0017_change_default_model_transcript_ai_prompts",
+      "breakpoints": true
     }
   ]
 }
