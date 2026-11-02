@@ -1,43 +1,23 @@
-# Retours qualitatifs post-formation dans SuperTools
+# Évaluation à froid : ce qui manque (participant + commanditaire, envoyée, relancée, tracée)
 
-## Constat (base actuelle)
-- `training_evaluations` (à chaud participant) et `sponsor_cold_evaluations` (à froid commanditaire, tokenisée, avec `consent_publication`) existent déjà, rattachées à `training_id` / `participant_id`.
-- `stakeholder_appreciations` couvre les appréciations annuelles des parties prenantes.
-- `improvements` porte déjà `source_type` / `source_id` / `training_id` (plan d'amélioration Ind. 32).
-- `inbound_emails` reçoit déjà des emails avec `linked_training_id` / `linked_participant_id`.
-- `testimonials` est orientée vidéos Drive, sans lien formation/participant.
-- Il manque : un questionnaire à froid **participant** dans SuperTools, et un endroit pour les retours libres (email, oral).
+Constat vérifié dans le code et les données le 02/11/2026. Rien n'est modifié tant que ce plan n'est pas approuvé.
 
-## 1. Stockage
-Une seule nouvelle table, `training_feedbacks`, pour tout retour libre ou importé :
-- rattachement : `training_id`, `participant_id` (nullable), formation catalogue déduite via la session ;
-- `source` : `cold_form_import`, `email`, `manual`, `mcp`, `phone` ; `source_ref` (id `inbound_emails`, ligne du formulaire) ; `author_role` participant/commanditaire ; `received_at` ;
-- `content` (texte brut, citation exacte), `ai_summary`, `sentiment`, `themes[]` (ex. « temps / transfert au quotidien », « pédagogie ») ;
-- témoignage : `quote_candidate`, `consent_status` (inconnu / demandé / accordé / refusé), `consent_at` ;
-- suivi : `status` (nouveau / traité), lien vers `improvements` via `improvements.source_type='training_feedback'`.
+## Commanditaire
+1. **Corriger le doublon** : la vérification « déjà planifié » des sessions intra ne marche pas (le contrôle sur « pas de participant » ne trouve jamais rien), donc un 2e envoi du mail de remerciement planifie une 2e évaluation (cas Acoss, 3 et 12 mai). Ajouter aussi une protection contre les doublons en base.
+2. **Session sans email de commanditaire** : ne plus réessayer en silence tous les jours. Enregistrer la raison, l'afficher sur la fiche formation et dans les actions du jour, puis envoyer automatiquement dès que l'email est saisi (cas AI4Product).
+3. **Classer correctement les sessions** : les classes virtuelles passent aujourd'hui dans le cas intra (un seul commanditaire). Les traiter comme les inter quand les participants ont chacun leur commanditaire.
+4. **Créer le jeton une seule fois** : aujourd'hui, une ligne d'évaluation est créée à chaque tentative, même quand l'envoi échoue.
+5. **Relance** : relancer une fois après N jours ouvrés (délai réglable) si rien n'est soumis, et l'annuler si une réponse arrive.
+6. **Affichage** : section « Évaluation à froid » sur la fiche formation (envoyée / ouverte / soumise / réponses), plus un tableau récapitulatif dans Qualité.
 
-Le questionnaire à froid participant devient natif : on réutilise le modèle tokenisé de `sponsor_cold_evaluations` (même écran, même envoi programmé), plutôt qu'une nouvelle table. Google Form abandonné à terme (cohérent avec la règle « jamais de Google Forms dans les évaluations »).
+## Participant
+7. **Questionnaire à froid participant natif** : lien avec jeton, sur le modèle commanditaire, pour toutes les sessions (inter, intra, classe virtuelle, e-learning), au délai réglable. Questions reprises du Google Form actuel (à me fournir).
+8. **Même relance, même suivi et même affichage** que pour le commanditaire.
 
-## 2. Entrée des retours
-- **Historique Google Form** : import CSV ponctuel depuis l'onglet Évaluations ; rapprochement par email puis par formation/date ; lignes non rapprochées affichées pour affectation manuelle.
-- **À l'avenir** : questionnaire à froid participant natif envoyé automatiquement (délai réglable, ex. J+90).
-- **Email** : bouton « Enregistrer comme retour » sur un `inbound_emails` déjà lié, et ajout manuel depuis la fiche participant (coller le texte).
-- **MCP** : outil `add_training_feedback` (email du participant + texte + source), rattachement automatique par email, propositions si plusieurs sessions.
-- À l'enregistrement, l'IA remplit résumé, sentiment, thèmes et repère les citations publiables ; rien n'est publié ni envoyé automatiquement.
-
-## 3. Exploitation
-- **Fiche formation, onglet « Retours »** : liste unifiée (à chaud, à froid participant et commanditaire, retours libres) avec synthèse IA par thème, et bouton « Créer une action d'amélioration » qui alimente `improvements` (Ind. 30-32, source tracée).
-- **Synthèse par formation catalogue** : agrégation multi-sessions sur 12 mois, exportable comme preuve Qualiopi.
-- **Témoignages** : vue « Citations candidates » ; demande de consentement = signal manuel (comme `testimonial_requests`, pas d'email auto) ; une fois accordé, la citation est réutilisable (évaluations avec `consent_publication` incluses).
-- **Suites à donner** : l'IA propose des actions (ex. « relancer l'accès e-learning », « proposer une séance de suivi ») créées comme actions du jour / tâches, validées à la main ; l'exemple de la participante donne : thème « manque de temps », action « renvoyer le lien de l'espace e-learning », citation « approche pédagogique généreuse » candidate.
-
-## Ordre proposé
-1. Table `training_feedbacks` + ajout manuel + outil MCP.
-2. Onglet « Retours » et lien vers `improvements`.
-3. Import CSV Google Form.
-4. Questionnaire à froid participant natif.
-5. Citations candidates et suites proposées.
+## Traçabilité et Qualiopi
+9. Rattacher chaque réponse à la session, au participant et à la formation du catalogue, et l'intégrer à l'analyse des évaluations et au plan d'amélioration (Ind. 30-32).
+10. **Historique** : les 22 évaluations commanditaire envoyées avant le 29/09 pointaient vers le Google Form. Leurs réponses ne sont pas dans SuperTools : prévoir un import ponctuel.
 
 ## Questions ouvertes
-- Délai du questionnaire à froid participant (3 mois ?) et questions à reprendre du Google Form actuel.
-- Les citations validées doivent-elles alimenter la table `testimonials` existante (aujourd'hui vidéos) ou rester dans le module Évaluations ?
+- Délai de l'évaluation à froid participant et délai de relance.
+- Faut-il relancer AI4Product à la main une fois l'email du commanditaire connu ?
