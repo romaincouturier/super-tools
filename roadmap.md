@@ -57,6 +57,7 @@
 - [x] Audit cartes WON mission sans mission liée
 
 ## Évaluations à froid (2026-11-02)
+- [x] Deux envois passés annulés ; seuil partagé planification/envoi/relance déployé ; 16 tests réussis et refus authentifié vérifié en ligne sans email
 - [x] Doublons commanditaire corrigés + protection en base
 - [x] Session sans email commanditaire : raison enregistrée, affichée, envoi auto dès l'email connu (AI4Product : commanditaire unique des participants)
 - [x] Classes virtuelles : un envoi par commanditaire distinct

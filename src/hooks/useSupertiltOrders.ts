@@ -128,6 +128,8 @@ export interface OrderItem {
   invoice_received_at: string | null;
   shipped_confirmed_at: string | null;
   hand_delivered_at: string | null;
+  tracking_number: string | null;
+  tracking_url: string | null;
   location_contract_file_url: string | null;
   location_document_id: string | null;
   contrat_reference: string | null;

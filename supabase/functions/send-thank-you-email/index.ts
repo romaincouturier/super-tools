@@ -17,7 +17,7 @@ import {
   personalizeSupportsLinks,
   resolveSupportsUrlBase,
 } from "../_shared/supports-url.ts";
-import { planSponsorColdEvaluations } from "../_shared/cold-evaluation.ts";
+import { isColdEvaluationEligible, isColdEvaluationType, planSponsorColdEvaluations } from "../_shared/cold-evaluation.ts";
 
 // Generate a secure token for evaluation access
 async function generateEvaluationToken(): Promise<string> {
@@ -497,6 +497,11 @@ serve(async (req) => {
     }
 
     // Insert scheduled emails
+    if (!isColdEvaluationEligible(training.end_date)) {
+      for (let i = emailsToSchedule.length - 1; i >= 0; i--) {
+        if (isColdEvaluationType(emailsToSchedule[i].email_type)) emailsToSchedule.splice(i, 1);
+      }
+    }
     if (emailsToSchedule.length > 0) {
       const { error: scheduleError } = await supabase
         .from("scheduled_emails")
