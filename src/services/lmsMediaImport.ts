@@ -212,6 +212,27 @@ export interface ExistingAudio {
   created_at: string;
 }
 
+/** Audios déjà importés pour le cours ; liste vide si la lecture échoue (le contrôle de doublon est un confort). */
+export async function listCourseAudios(courseId: string): Promise<ExistingAudio[]> {
+  const { data } = await supabase
+    .from("media")
+    .select("id, file_name, file_size, file_url, content_hash, transcript, created_at")
+    .eq("source_type", "lms")
+    .eq("source_id", courseId)
+    .eq("file_type", "audio");
+  return (data ?? []) as ExistingAudio[];
+}
+
+/** Mémorise l'empreinte pour les prochains contrôles de doublon ; un échec n'interrompt pas l'import. */
+export async function setMediaContentHash(mediaId: string, hash: string): Promise<void> {
+  await supabase.from("media").update({ content_hash: hash }).eq("id", mediaId);
+}
+
+/** Copie lisible des originaux dans Google Drive, sans bloquer l'import. */
+export function archiveLmsAudios(): void {
+  void supabase.functions.invoke("archive-lms-audio", { body: {} }).catch(() => undefined);
+}
+
 /**
  * Doublon = même empreinte, ou (pour les anciennes lignes sans empreinte)
  * même nom et même taille. Préfère une copie déjà transcrite.

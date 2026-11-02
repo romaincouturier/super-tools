@@ -59,7 +59,8 @@ describe("buildQuotePayload", () => {
   });
 
   it("date par défaut = aujourd'hui à Paris", () => {
-    const payload = buildQuotePayload({ ...INPUT, date: undefined }, 4271) as Record<string, unknown>;
+    // Échéance lointaine : la date par défaut (aujourd'hui) doit rester avant elle.
+    const payload = buildQuotePayload({ ...INPUT, date: undefined, deadline: "2999-12-31" }, 4271) as Record<string, unknown>;
     expect(payload.date).toBe(todayParis());
   });
 
