@@ -17,18 +17,23 @@ Deno.serve(async (req) => {
     // Appel interne (connecteur MCP) ou membre de l'équipe. Un apprenant a
     // aussi un JWT valide : c'est is_staff_user(), évaluée avec le JWT de
     // l'appelant, qui décide.
-    let isStaff = false;
-    if (!isInternalCall(req) && authHeader?.startsWith("Bearer ")) {
-      const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const internal = isInternalCall(req);
+    if (!internal) {
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Non authentifié" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
+      const userClient = createClient(Deno.env.get("SUPABASE_URL")!, anonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const { data } = await userClient.rpc("is_staff_user");
-      isStaff = data === true;
-    }
-    if (!isInternalCall(req) && !isStaff) {
-      return new Response(JSON.stringify({ error: "Non authentifié" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const { data: isStaff } = await userClient.rpc("is_staff_user");
+      if (isStaff !== true) {
+        return new Response(JSON.stringify({ error: "Accès réservé à l'équipe" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // Gather business metrics

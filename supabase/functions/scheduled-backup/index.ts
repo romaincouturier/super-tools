@@ -1865,7 +1865,11 @@ serve(async (req) => {
       return createJsonResponse({ status: "ok", function: "scheduled-backup" });
     }
 
-    if (!(await isInternalOrAdmin(req))) {
+    // Le cron daily-scheduled-backup doit envoyer x-cron-secret = BACKUP_CRON_SECRET :
+    // son Bearer est la clé anon, qui n'ouvre plus la fonction.
+    if (!(await isInternalOrAdmin(req, "BACKUP_CRON_SECRET"))) {
+      const present = ["authorization", "x-cron-secret", "x-internal-secret"].filter((h) => req.headers.has(h));
+      console.warn(`[scheduled-backup] appel refusé, en-têtes présents : ${present.join(", ") || "aucun"}`);
       return createErrorResponse("Unauthorized", 401);
     }
 

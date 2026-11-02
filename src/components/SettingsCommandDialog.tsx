@@ -3,9 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { Cog, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { useSession } from "@/hooks/useSession";
 import { SETTINGS_CATALOG, SETTINGS_TAB_LABELS, matchesSettingQuery } from "@/components/settings/settingsCatalog";
 
+/** Palette Cmd+K des réglages : montée pour toutes les routes, active pour le staff seul. */
 export default function SettingsCommandDialog() {
+  const { status } = useSession();
+  return status === "staff" ? <SettingsCommandPalette /> : null;
+}
+
+function SettingsCommandPalette() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const navigate = useNavigate();

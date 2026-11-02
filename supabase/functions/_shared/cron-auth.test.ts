@@ -120,6 +120,16 @@ describe("isStaffCaller", () => {
     verifyAuthMock.mockResolvedValueOnce({ id: "u1" });
     rpcAnswers({ is_admin: true });
     expect(await isStaffCaller(request({ Authorization: "Bearer jwt" }), "missions")).toBe(true);
+    expect(rpcMock).toHaveBeenCalledWith("is_admin", { _user_id: "u1" });
+  });
+
+  it("refuse et journalise quand la vérification de rôle échoue", async () => {
+    verifyAuthMock.mockResolvedValueOnce({ id: "u1" });
+    rpcMock.mockResolvedValue({ data: null, error: { message: "permission denied" } });
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await isStaffCaller(request({ Authorization: "Bearer jwt" }), "missions")).toBe(false);
+    expect(spy).toHaveBeenCalledWith("[isStaffCaller] is_admin:", "permission denied");
+    spy.mockRestore();
   });
 
   it("accepte un utilisateur du module demandé", async () => {
@@ -155,6 +165,7 @@ describe("isInternalOrAdmin", () => {
     verifyAuthMock.mockResolvedValueOnce({ id: "u1" });
     rpcAnswers({ is_admin: true });
     expect(await isInternalOrAdmin(request({ Authorization: "Bearer jwt" }))).toBe(true);
+    expect(rpcMock).toHaveBeenCalledWith("is_admin", { _user_id: "u1" });
   });
 
   it("refuse un utilisateur connecté non admin et un anonyme", async () => {

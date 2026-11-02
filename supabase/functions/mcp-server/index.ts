@@ -119,10 +119,10 @@ import {
 } from "../_shared/ops-tools.ts";
 
 /**
- * Serveur MCP SuperTools — lecture seule, mono-utilisateur.
+ * Serveur MCP SuperTools — mono-utilisateur, principalement en lecture.
  *
- * Expose des tools en lecture seule à Claude (claude.ai / Claude Desktop
- * via connecteur custom) :
+ * Expose à Claude (claude.ai / Claude Desktop via connecteur custom) des tools
+ * de lecture et quelques écritures ciblées (voir SERVER_INSTRUCTIONS), dont :
  *   - query_database      : SQL SELECT via agent_sql_query (allowlist + audit)
  *   - search_content      : recherche hybride dans les contenus indexés
  *   - list_schema         : tables requêtables
@@ -387,9 +387,9 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - update_lms_lesson : modifie uniquement titre, durée estimée, position dans le module ou caractère obligatoire d'une leçon, sans toucher aux blocs. Annoncer le changement à l'utilisateur.
 - create_lms_lesson : crée une leçon dans un module, avec éventuellement ses blocs de contenu initiaux (paramètre « blocks », même schéma que apply_lesson_restructure). Position facultative : si elle est fournie, les leçons suivantes du module sont décalées d'un rang. Écriture additive : aucune leçon existante n'est modifiée dans son contenu. Retourne l'id et l'empreinte de la leçon créée.
 - apply_lesson_restructure : remplace TOUS les blocs de premier niveau d'une leçon par une nouvelle structure proposée. Tous les types du menu « Ajouter un bloc » sont acceptés : blocs de contenu (texte, tableau, encadré, points clés, liste, checklist, synthèse, accordéon, frise, cartes à retourner, code, exercice, auto-évaluation, texte à trous, mots à glisser, quiz, devoir, dépôt de travail, vidéo, image, galerie, fichier, image interactive, avant/après, bouton, CTA, intégration HTML, shortcode) et blocs de mise en page (section, colonnes, conteneur, contenu progressif, séparateur, espace) qui peuvent porter un tableau « children » de blocs de contenu (un seul niveau d'imbrication). EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
-- add_support_note, update_ticket_status : ajoute une note datée à un ticket support, ou change son statut (nouveau, qualification, vibe_coding, resolu).
+- add_support_note, update_ticket_status : ajoute une note datée à un ticket support, ou change son statut (nouveau, qualification, vibe_coding, resolu, boite_a_idees). Passer en resolu prévient le demandeur par email.
 - add_content_card : crée une carte dans le kanban éditorial (colonne Idées par défaut). Écriture additive.
-- update_quote_status : change le statut d'un devis SuperTools (table quotes, pas Pennylane). Rien n'est envoyé au client.
+- update_quote_status : change le statut d'un devis SuperTools (table quotes, pas Pennylane). Rien n'est envoyé au client ; un devis signé ne change plus de statut.
 Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress n'est possible depuis ici.
 
 VEILLE
@@ -1719,7 +1719,7 @@ const MCP_TOOLS = [
   {
     name: "update_ticket_status",
     description:
-      "Change a support ticket's status. 'resolu' also sets the resolution date. resolution_notes, if given, replaces the ticket's notes: use add_support_note to append instead.",
+      "Change a support ticket's status (nouveau, qualification, vibe_coding, resolu, boite_a_idees). Moving to 'resolu' sets the resolution date and emails the submitter, as the Support screen does; leaving 'resolu' clears that date. resolution_notes, if given, is appended as a dated note; existing notes are kept. Moving to 'vibe_coding' does NOT start the automatic coding workflow: that only starts from the Support screen.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1733,7 +1733,7 @@ const MCP_TOOLS = [
   {
     name: "add_content_card",
     description:
-      "Create a card in the editorial content kanban. column is a column name (partial match) or id; default is 'Idées'. Additive only.",
+      "Create a card at the end of a column of the editorial content kanban. column is a column name (exact, else partial match; an ambiguous match is refused) or id; default is 'Idées'. Additive only.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1748,7 +1748,7 @@ const MCP_TOOLS = [
   {
     name: "update_quote_status",
     description:
-      "Change the status of a quote stored in SuperTools (quotes table, not Pennylane). Nothing is sent to the client.",
+      "Change the status of a quote stored in SuperTools (quotes table, not Pennylane). No email is sent to the client. Setting 'sent' recomputes the CRM card's estimated value. A signed quote can no longer change status.",
     inputSchema: {
       type: "object",
       properties: {

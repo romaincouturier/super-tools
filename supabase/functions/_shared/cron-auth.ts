@@ -83,14 +83,16 @@ export async function isStaffCaller(req: Request, module?: string): Promise<bool
   if (!user) return false;
 
   const supabase = getSupabaseClient();
-  const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: user.id });
+  const { data: isAdmin, error: adminError } = await supabase.rpc("is_admin", { _user_id: user.id });
+  if (adminError) console.error("[isStaffCaller] is_admin:", adminError.message);
   if (isAdmin === true) return true;
   if (!module) return false;
 
-  const { data: hasAccess } = await supabase.rpc("has_module_access", {
+  const { data: hasAccess, error: accessError } = await supabase.rpc("has_module_access", {
     _user_id: user.id,
     _module: module,
   });
+  if (accessError) console.error("[isStaffCaller] has_module_access:", accessError.message);
   return hasAccess === true;
 }
 
