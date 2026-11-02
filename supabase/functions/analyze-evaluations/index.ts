@@ -111,11 +111,18 @@ IMPORTANT:
       .from("sponsor_cold_evaluations")
       .select("training_name, satisfaction_globale, attentes_satisfaites, objectifs_atteints, impact_competences, description_impact, recommandation, points_forts, axes_amelioration, commentaires_libres")
       .eq("etat", "soumis");
+    // Free-form feedback received by email, phone or orally, outside questionnaires.
+    let fbq = supabase
+      .from("training_feedbacks")
+      .select("author_role, source, received_at, content")
+      .order("received_at", { ascending: false })
+      .limit(200);
     if (trainingId) {
       pcq = pcq.eq("training_id", trainingId);
       scq = scq.eq("training_id", trainingId);
+      fbq = fbq.eq("training_id", trainingId);
     }
-    const [{ data: participantCold }, { data: sponsorCold }] = await Promise.all([pcq, scq]);
+    const [{ data: participantCold }, { data: sponsorCold }, { data: freeFeedbacks }] = await Promise.all([pcq, scq, fbq]);
     const coldSection = (participantCold?.length || sponsorCold?.length)
       ? `
 
@@ -125,10 +132,16 @@ ${JSON.stringify(participantCold || [], null, 2)}
 Évaluations à froid des commanditaires :
 ${JSON.stringify(sponsorCold || [], null, 2)}`
       : "";
+    const feedbackSection = freeFeedbacks?.length
+      ? `
+
+Retours libres reçus hors questionnaire (email, téléphone, oral) :
+${JSON.stringify(freeFeedbacks, null, 2)}`
+      : "";
 
     const userPrompt = `Analyse ces ${evaluations.length} évaluations pour ${trainingName}:
 
-${JSON.stringify(evalSummaries, null, 2)}${coldSection}
+${JSON.stringify(evalSummaries, null, 2)}${coldSection}${feedbackSection}
 
 Génère une analyse structurée avec points forts, points faibles et recommandations d'amélioration.`;
 

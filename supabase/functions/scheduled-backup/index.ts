@@ -93,7 +93,7 @@ const TABLES_TO_BACKUP = [
   "trainer_attendance_signatures", "trainer_documents", "trainer_evaluations",
   "trainer_training_adequacy", "trainers",
   "training_actions", "training_coaching_slots", "training_documents",
-  "training_evaluations", "training_formulas", "training_live_meetings", "training_media",
+  "training_evaluations", "training_feedbacks", "training_formulas", "training_live_meetings", "training_media",
   "training_participants", "training_schedules",
   "training_support_imports", "training_support_media", "training_support_sections",
   "training_support_template_sections", "training_support_templates", "training_supports",

@@ -16,6 +16,7 @@ import PedagogicalReferent from "@/components/formations/PedagogicalReferent";
 import TrainerEvaluationBlock from "@/components/formations/TrainerEvaluationBlock";
 import ParticipantEvaluationsBlock from "@/components/formations/ParticipantEvaluationsBlock";
 import ColdEvaluationsBlock from "@/components/formations/ColdEvaluationsBlock";
+import TrainingFeedbacksPanel from "@/components/formations/TrainingFeedbacksPanel";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import LiveMeetingsSection from "@/components/formations/LiveMeetingsSection";
 import SupportEditor from "@/components/formations/support/SupportEditor";
@@ -193,6 +194,17 @@ const FormationDetailSections = ({
     <div className="mb-6 space-y-6">
       <ParticipantEvaluationsBlock trainingId={training.id} />
       <ColdEvaluationsBlock trainingId={training.id} />
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Retours libres</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <TrainingFeedbacksPanel
+            trainingId={training.id}
+            participants={participants.map((p) => ({ id: p.id, name: [p.first_name, p.last_name].filter(Boolean).join(" ") || p.email }))} /* demo-safe: masqué (maskName) à l'affichage dans TrainingFeedbacksPanel */
+          />
+        </CardContent>
+      </Card>
     </div>
 
     {/* Photos & Videos */}

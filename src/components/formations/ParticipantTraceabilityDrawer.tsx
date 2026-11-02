@@ -5,7 +5,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mail, FileText, ClipboardCheck, ExternalLink, ChevronDown, ChevronUp, UserCheck, Send } from "lucide-react";
+import { Mail, FileText, ClipboardCheck, ExternalLink, ChevronDown, ChevronUp, UserCheck, Send, MessageSquareQuote } from "lucide-react";
+import TrainingFeedbacksPanel from "./TrainingFeedbacksPanel";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
@@ -219,7 +220,7 @@ const ParticipantTraceabilityDrawer = ({
           </div>
         ) : (
           <Tabs defaultValue="emails" className="flex-1 overflow-hidden flex flex-col">
-            <TabsList className="w-full grid grid-cols-3">
+            <TabsList className="w-full grid grid-cols-4">
               <TabsTrigger value="emails" className="gap-1.5">
                 <Mail className="h-3.5 w-3.5" />
                 Emails ({emails.length})
@@ -231,6 +232,10 @@ const ParticipantTraceabilityDrawer = ({
               <TabsTrigger value="evaluation" className="gap-1.5">
                 <ClipboardCheck className="h-3.5 w-3.5" />
                 Évaluation
+              </TabsTrigger>
+              <TabsTrigger value="retours" className="gap-1.5">
+                <MessageSquareQuote className="h-3.5 w-3.5" />
+                Retours
               </TabsTrigger>
             </TabsList>
 
@@ -454,6 +459,14 @@ const ParticipantTraceabilityDrawer = ({
                     )}
                   </div>
                 )}
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="retours" className="flex-1 overflow-hidden mt-4">
+              <ScrollArea className="h-full">
+                <div className="pr-4">
+                  <TrainingFeedbacksPanel trainingId={trainingId} participant={{ id: participantId, name: participantName }} />
+                </div>
               </ScrollArea>
             </TabsContent>
           </Tabs>
