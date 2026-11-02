@@ -39,6 +39,7 @@ const FormationDetail = lazy(() => import("./pages/FormationDetail"));
 const Questionnaire = lazy(() => import("./pages/Questionnaire"));
 const Evaluation = lazy(() => import("./pages/Evaluation"));
 const SponsorEvaluation = lazy(() => import("./pages/SponsorEvaluation"));
+const ParticipantColdEvaluation = lazy(() => import("./pages/ParticipantColdEvaluation"));
 const Evaluations = lazy(() => import("./pages/Evaluations"));
 const FormulaireRedirect = lazy(() => import("./pages/FormulaireRedirect"));
 const Ameliorations = lazy(() => import("./pages/Ameliorations"));
@@ -58,7 +59,7 @@ const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
 const TrainingSupportPage = lazy(() => import("./pages/TrainingSupportPage"));
 const ChatbotAdmin = lazy(() => import("./pages/ChatbotAdmin"));
 const InboundEmails = lazy(() => import("./pages/InboundEmails"));
-const EmailsAValider = lazy(() => import("./pages/EmailsAValider"));
+const AvisADemander = lazy(() => import("./pages/AvisADemander"));
 const Crm = lazy(() => import("./pages/Crm"));
 const CrmReports = lazy(() => import("./pages/CrmReports"));
 const CrmTenders = lazy(() => import("./pages/CrmTenders"));
@@ -233,6 +234,7 @@ const App = () => {
               <Route path="/questionnaire/:token" element={<Questionnaire />} />
               <Route path="/evaluation/:token" element={<Evaluation />} />
               <Route path="/evaluation-commanditaire/:token" element={<SponsorEvaluation />} />
+              <Route path="/evaluation-a-froid/:token" element={<ParticipantColdEvaluation />} />
               <Route path="/evaluation-formateur/:token" element={<TrainerEvaluation />} />
               <Route path="/formulaire/besoins" element={<FormulaireRedirect />} />
               <Route path="/formulaire/evaluation" element={<FormulaireRedirect />} />
@@ -278,7 +280,8 @@ const App = () => {
                 <Route path="/contenu" element={<ContentBoard />} />
                 <Route path="/chatbot-admin" element={<ChatbotAdmin />} />
                 <Route path="/emails" element={<InboundEmails />} />
-                <Route path="/emails-a-valider" element={<EmailsAValider />} />
+                <Route path="/avis-a-demander" element={<AvisADemander />} />
+                <Route path="/emails-a-valider" element={<Navigate to="/avis-a-demander" replace />} />
                 <Route path="/emails-erreur" element={<FailedEmails />} />
                 <Route path="/web-analytics" element={<WebAnalytics />} />
                 <Route path="/crm" element={<Crm />} />

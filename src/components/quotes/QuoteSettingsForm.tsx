@@ -150,6 +150,16 @@ export default function QuoteSettingsForm() {
               }
             />
           </div>
+          <div className="space-y-2">
+            <Label>Tarif horaire suivi pédagogique (€ HT)</Label>
+            <Input type="number" min={0} value={form.default_followup_hourly_rate ?? 150}
+              onChange={(e) => set("default_followup_hourly_rate", parseFloat(e.target.value) || 0)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Seuil d'alerte prix moyen (€/h)</Label>
+            <Input type="number" min={0} value={form.hourly_price_alert_threshold ?? 60}
+              onChange={(e) => set("hourly_price_alert_threshold", parseFloat(e.target.value) || 0)} />
+          </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Type de vente par défaut</Label>
             <Input

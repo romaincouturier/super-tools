@@ -101,10 +101,12 @@ export const EXPECTED_FUNCTIONS = [
   "pictodico-webhook",
   "poll-drive-testimonials",
   "poll-drive-transcripts",
+  "poll-loom-transcripts",
 
   "process-action-reminders",
   "process-coaching-reminders",
   "process-daily-summary",
+  "process-elearning-inactivity-reminders",
   "process-elearning-start-reminders",
   "process-evaluation-submission",
   "process-event-reminders",

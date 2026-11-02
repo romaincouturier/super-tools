@@ -73,6 +73,10 @@ const Auth = () => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    const fields = new FormData(e.currentTarget as HTMLFormElement);
+    const email = String(fields.get("email") ?? "").trim().toLowerCase();
+    const password = String(fields.get("password") ?? "");
+    if (!email || !password) return;
     setIsLoading(true);
 
     try {
@@ -253,6 +257,8 @@ const Auth = () => {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                name="email"
+                autoComplete="username"
                 type="email"
                 placeholder="votre@email.com"
                 value={email}
@@ -265,6 +271,8 @@ const Auth = () => {
               <Label htmlFor="password">Mot de passe</Label>
               <Input
                 id="password"
+                name="password"
+                autoComplete={isLogin ? "current-password" : "new-password"}
                 type="password"
                 placeholder="••••••••"
                 value={password}

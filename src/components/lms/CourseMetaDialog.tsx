@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -11,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useActiveFormationConfigs } from "@/hooks/useFormationConfigs";
 import CourseIntegrationStatus from "@/components/lms/CourseIntegrationStatus";
+import CourseCoverField from "@/components/lms/CourseCoverField";
+import { uploadCourseCover } from "@/lib/lmsCourseCover";
 
 const NO_EXPERTISE = "none";
 const NO_FORMATION = "none";
@@ -29,6 +32,10 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
   const [status, setStatus] = useState("draft");
   const [isFeatured, setIsFeatured] = useState(false);
   const [formationConfigId, setFormationConfigId] = useState(NO_FORMATION);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [landingPosition, setLandingPosition] = useState("");
+  const [saving, setSaving] = useState(false);
   const { data: formationConfigs = [] } = useActiveFormationConfigs();
 
   useEffect(() => {
@@ -39,34 +46,58 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
     setStatus(course.status);
     setIsFeatured(course.is_featured ?? false);
     setFormationConfigId(course.formation_config_id ?? NO_FORMATION);
+    setCoverUrl(course.cover_image_url ?? null);
+    setCoverFile(null);
+    setLandingPosition(course.landing_position != null ? String(course.landing_position) : "");
   }, [course]);
 
   const handleSave = async () => {
-    if (!course) return;
+    if (!course || saving) return;
+    const trimmedPosition = landingPosition.trim();
+    const parsedPosition = trimmedPosition === "" ? null : Number(trimmedPosition);
+    if (parsedPosition !== null && (!Number.isInteger(parsedPosition) || parsedPosition < 1)) {
+      toast({ title: "Ordre sur la landing invalide", description: "Indiquez un nombre entier à partir de 1, ou laissez vide.", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
     try {
+      const imageUrl = coverFile ? await uploadCourseCover(coverFile, course.id) : coverUrl;
+      setCoverUrl(imageUrl);
+      setCoverFile(null);
       await updateCourse.mutateAsync({
         id: course.id,
+        cover_image_url: imageUrl,
         description: description.trim() || null,
         expertise: expertise === NO_EXPERTISE ? null : expertise,
         access_type: access,
         status,
         is_featured: isFeatured,
+        landing_position: parsedPosition,
         formation_config_id: formationConfigId === NO_FORMATION ? null : formationConfigId,
       });
       toast({ title: "Cours mis à jour" });
       onClose();
     } catch (err) {
       toastError(toast, err);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <Dialog open={!!course} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="w-full sm:max-w-lg">
+    <Dialog open={!!course} onOpenChange={(o) => { if (!o && !saving) onClose(); }}>
+      <DialogContent className="max-h-[90dvh] w-full overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Paramètres du cours</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <CourseCoverField
+            key={course?.id}
+            url={coverUrl}
+            file={coverFile}
+            disabled={saving}
+            onChange={(url, file) => { setCoverUrl(url); setCoverFile(file); }}
+          />
           <div>
             <Label>Description courte</Label>
             <Textarea
@@ -137,9 +168,24 @@ export default function CourseMetaDialog({ course, onClose }: Props) {
             </div>
             <Switch id="course-featured" checked={isFeatured} onCheckedChange={setIsFeatured} />
           </div>
+          <div>
+            <Label htmlFor="course-landing-position">Ordre sur la landing</Label>
+            <Input
+              id="course-landing-position"
+              type="number"
+              min={1}
+              step={1}
+              inputMode="numeric"
+              value={landingPosition}
+              onChange={(e) => setLandingPosition(e.target.value)}
+              placeholder="Vide = en fin de liste"
+              disabled={saving}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">Position dans « Commencez gratuitement » (cours gratuits publiés). 1 = en premier.</p>
+          </div>
           {course && <CourseIntegrationStatus courseId={course.id} />}
-          <Button onClick={handleSave} disabled={updateCourse.isPending} className="w-full">
-            {updateCourse.isPending ? "Enregistrement..." : "Enregistrer"}
+          <Button onClick={handleSave} disabled={saving} className="w-full">
+            {saving ? "Enregistrement..." : "Enregistrer"}
           </Button>
         </div>
       </DialogContent>

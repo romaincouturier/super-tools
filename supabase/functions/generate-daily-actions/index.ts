@@ -278,6 +278,21 @@ serve(async (req) => {
       });
     }
 
+    // 10b. Missions signalées « Facture à émettre »
+    for (const m of data.missionInvoiceFlags || []) {
+      const label = m.clientName ? `${m.clientName} — ${m.title}` : m.title;
+      const emoji = m.emoji ? `${m.emoji} ` : "";
+      const details = [m.note, m.amount !== null ? `${m.amount.toLocaleString("fr-FR")} €` : null].filter(Boolean).join(" — ");
+      actions.push({
+        category: "formations_facture",
+        title: `${emoji}${label}`,
+        description: details || "Facture à émettre",
+        link: `${appUrl}/missions/${m.id}`,
+        entityType: "mission", entityId: m.id,
+        assignedTo: m.assignedTo, scope: "perUser",
+      });
+    }
+
     // 11. OKR Initiatives (global)
     for (const init of data.okrInitiatives) {
       actions.push({
@@ -372,7 +387,7 @@ serve(async (req) => {
       });
     }
 
-    // 15. Email drafts pending validation (assigned to comms manager)
+    // 15. Testimonial requests to write by hand (assigned to comms manager)
     if (data.pendingEmailDrafts.length > 0) {
       const { data: settingRow } = await supabase
         .from("app_settings")
@@ -381,17 +396,13 @@ serve(async (req) => {
         .maybeSingle();
       const commsManagerId = settingRow?.setting_value || null;
 
-      const typeLabels: Record<string, string> = { google_review: "Avis Google", video_testimonial: "Témoignage vidéo" };
       for (const draft of data.pendingEmailDrafts) {
-        const typeLabel = typeLabels[draft.emailType] || draft.emailType;
         actions.push({
-          category: "emails_a_valider",
-          title: `📧 ${draft.missionTitle} — ${typeLabel}`,
-          description: draft.status === "scheduled" && draft.scheduledFor
-            ? `Email programmé le ${draft.scheduledFor.slice(0, 10)} pour ${draft.contactName || draft.contactEmail}`
-            : `Email à valider pour ${draft.contactName || draft.contactEmail}`,
-          link: `${appUrl}/emails-a-valider`,
-          entityType: "mission_email_draft", entityId: draft.id,
+          category: "avis_a_demander",
+          title: `🌟 Demander un avis / témoignage à ${draft.contactName || draft.contactEmail}`,
+          description: `Mission ${draft.missionTitle} · ${draft.contactEmail || ""}`,
+          link: `${appUrl}/missions/${draft.missionId}`,
+          entityType: "testimonial_request", entityId: draft.id,
           assignedTo: commsManagerId, scope: "perUser",
         });
       }
@@ -521,6 +532,26 @@ serve(async (req) => {
         description: `Transcript du ${new Date(t.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" })} à affecter à une mission, une opportunité ou un événement`,
         link: `${appUrl}/transcripts?affectation=non`,
         entityType: "transcript", entityId: t.id,
+        scope: "global",
+      });
+    }
+
+    // 17quinquies. Évaluations à froid bloquées (envoi en échec, ex. email commanditaire manquant)
+    const { data: blockedCold } = await supabase
+      .from("scheduled_emails")
+      .select("id, training_id, email_type, error_message, scheduled_for, trainings(training_name)")
+      .eq("status", "pending")
+      .in("email_type", ["cold_evaluation", "cold_evaluation_reminder", "participant_cold_evaluation", "participant_cold_evaluation_reminder"])
+      .not("error_message", "is", null)
+      .lte("scheduled_for", new Date().toISOString());
+    for (const e of blockedCold || []) {
+      const who = e.email_type.startsWith("participant") ? "participant" : "commanditaire";
+      actions.push({
+        category: "evaluations_froid_bloquees",
+        title: `🧊 ${(e as any).trainings?.training_name || "Formation"} — évaluation à froid ${who} non envoyée`,
+        description: e.error_message,
+        link: `${appUrl}/formations/${e.training_id}`,
+        entityType: "scheduled_email", entityId: e.id,
         scope: "global",
       });
     }

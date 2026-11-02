@@ -49,10 +49,14 @@ search_files() {
 # Lignes AJOUTÉES par le commit (mode staged uniquement). Les règles en ratchet
 # portent sur la dette ajoutée : toucher un fichier legacy pour une raison
 # orthogonale n'en ajoute pas, seules les lignes nouvelles comptent.
+# Pendant un merge, la base est la branche fusionnée (MERGE_HEAD) : ses lignes
+# sont déjà passées par ses propres contrôles et ne sont pas ajoutées ici.
 search_added_lines() {
   local pattern="$1"
   shift
-  git diff --cached -U0 --diff-filter=ACM -- '*.ts' '*.tsx' 2>/dev/null \
+  local base=""
+  git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 && base="MERGE_HEAD"
+  git diff --cached $base -U0 --diff-filter=ACM -- '*.ts' '*.tsx' 2>/dev/null \
     | awk '/^\+\+\+ /{file=substr($0,7); next} /^\+/{print file ":" substr($0,2)}' \
     | grep -E "$pattern" "$@" || true
 }
@@ -379,7 +383,7 @@ if [ "$STAGED_MODE" = "false" ]; then
 
   # [015] Pages authentifiées doivent utiliser ModuleLayout + PageHeader
   # Exceptions : pages publiques, auth, learner, error, full-screen spécialisées
-  EXEMPT_PAGES="ApprenantConnexionRedirect|Auth|CompteSansAcces|Connexion|ConnexionLien|ConnexionDefinirMotDePasse|ConnexionMotDePasseOublie|ConnexionReinitialisation|Signup|AcademySignup|AcademyCourseSelection|ResetPassword|ForcePasswordChange|Landing|PolitiqueConfidentialite|Emargement|Evaluation|Questionnaire|TrainerEvaluation|SponsorEvaluation|ReclamationPublic|LearnerPortal|LmsCoursePlayer|LmsCourseHomePage|LessonBuilderPage|LmsCourseHomeBuilderPage|NotFound|FormulaireRedirect|Screenshots|AgentChat|ArenaDiscussion|ArenaSetup|ArenaResults|Dashboard|FormationDetail|MissionSummary|TrainingSummary|TrainingSupportPage|Index|Onboarding|SignatureConvention|SignatureDevis|SignatureLocation|GoogleDriveCallback|GoogleCalendarCallback|GoogleCallback|LmsCourseEntry|PartnerPortal|SurveyPublic|TrainingSurveyResponse|BookPublicPage|SupertiltConfirmationEnvoi"
+  EXEMPT_PAGES="ApprenantConnexionRedirect|Auth|CompteSansAcces|Connexion|ConnexionLien|ConnexionDefinirMotDePasse|ConnexionMotDePasseOublie|ConnexionReinitialisation|Signup|AcademySignup|AcademyCourseSelection|ResetPassword|ForcePasswordChange|Landing|PolitiqueConfidentialite|Emargement|Evaluation|Questionnaire|TrainerEvaluation|SponsorEvaluation|ParticipantColdEvaluation|ReclamationPublic|LearnerPortal|LmsCoursePlayer|LmsCourseHomePage|LessonBuilderPage|LmsCourseHomeBuilderPage|NotFound|FormulaireRedirect|Screenshots|AgentChat|ArenaDiscussion|ArenaSetup|ArenaResults|Dashboard|FormationDetail|MissionSummary|TrainingSummary|TrainingSupportPage|Index|Onboarding|SignatureConvention|SignatureDevis|SignatureLocation|GoogleDriveCallback|GoogleCalendarCallback|GoogleCallback|LmsCourseEntry|PartnerPortal|SurveyPublic|TrainingSurveyResponse|BookPublicPage|SupertiltConfirmationEnvoi"
   check "015" "Pages authentifiées utilisent ModuleLayout + PageHeader" \
     "for f in src/pages/*.tsx; do case \"\$f\" in *.test.tsx) continue;; esac; name=\$(basename \"\$f\" .tsx); echo \"\$name\" | grep -qE \"^(\$EXEMPT_PAGES)\$\" && continue; has_layout=\$(grep -l 'ModuleLayout' \"\$f\" 2>/dev/null | wc -l); has_header=\$(grep -l 'PageHeader' \"\$f\" 2>/dev/null | wc -l); if [ \"\$has_layout\" -eq 0 ] || [ \"\$has_header\" -eq 0 ]; then echo \"VIOLATION: \$name (ModuleLayout=\$has_layout, PageHeader=\$has_header)\"; fi; done"
 

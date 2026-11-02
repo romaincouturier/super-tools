@@ -22,6 +22,7 @@ import { reportEdgeError } from "../_shared/sentry.ts";
 import { fetchWorkingDays, subtractWorkingDays, addWorkingDays } from "../_shared/working-days.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
 import { ensureLearnerAccount, sendLearnerAccessEmail } from "../_shared/learner-account.ts";
+import { normalizeTypeStagiaireBpf } from "./bpf.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -247,7 +248,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           company_address: companyAddress?.trim() || null,
           company_city: companyCity?.trim() || null,
           company_zip: companyZip?.trim() || null,
-          type_stagiaire_bpf: isFreeTraining ? null : (typeStagiaireBpf || null),
+          type_stagiaire_bpf: isFreeTraining ? null : normalizeTypeStagiaireBpf(typeStagiaireBpf),
           source_financement_bpf: isFreeTraining ? null : (sourceFinancementBpf || null),
           sold_price_ht: isFreeTraining ? null : (soldPriceHt ? parseFloat(String(soldPriceHt)) : null),
           payment_mode: paymentMode,
@@ -363,7 +364,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           company_address: companyAddress?.trim() || null,
           company_city: companyCity?.trim() || null,
           company_zip: companyZip?.trim() || null,
-          type_stagiaire_bpf: isFreeTraining ? null : (typeStagiaireBpf || null),
+          type_stagiaire_bpf: isFreeTraining ? null : normalizeTypeStagiaireBpf(typeStagiaireBpf),
           source_financement_bpf: isFreeTraining ? null : (sourceFinancementBpf || null),
           sold_price_ht: isFreeTraining ? null : (soldPriceHt ? parseFloat(String(soldPriceHt)) : null),
           payment_mode: paymentMode,
@@ -514,9 +515,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
       !isFreeTraining && shouldSendWelcome && (sendWelcomeNow || ongoing || isElearning);
     if (sendWelcomeImmediately) {
       try {
-        await admin.functions.invoke("send-welcome-email", {
+        // invoke ne lève pas sur une réponse en erreur : il la renvoie.
+        const { error: welcomeError } = await admin.functions.invoke("send-welcome-email", {
           body: { participantId, trainingId },
         });
+        if (welcomeError) throw welcomeError;
         welcomeSent = true;
       } catch (err) {
         console.error("[add-training-participant] send-welcome-email:", err);

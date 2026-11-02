@@ -43,6 +43,16 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 
 # Architecture rules
 
+- Training document delivery locks submission before preparation, checks trainer signatures, generates certificates without sending separate emails, and uses provider idempotency per confirmation; only attached documents are marked sent, because an incomplete or repeated preparation must not send invoices alone or claim missing documents were delivered.
+
+- Login submissions read named fields from FormData rather than React state, because browser and password-manager autofill can update inputs without firing change events.
+
+- Participant BPF normalization stays in a pure helper local to add-training-participant and is tested against database CHECK values, because draft and normal inserts must accept legacy shop labels without writing invalid classifications.
+
+- Watch sources canonicalize URLs with a database trigger and a matching browser helper; watch-item source links adjust counts through a database trigger, because imports and UI writes must preserve the same identity and counters.
+
+- Course covers use authenticated native Storage uploads in the existing public LMS bucket and are uploaded on save, because cancelling the settings dialog must not upload files or change the course.
+
 - HTML/embed and exercise interactive HTML share an explicit HTML/CSS allowlist across MCP writes and browser rendering, render in an isolated iframe whose CSP forbids all scripts (nested srcdoc frames are script-free sandboxes, only third-party `src` players get script flags), with parent-side resize observation, because author CSS must stay isolated, no author JavaScript may run, and YouTube/Vimeo/LinkedIn players must still work.
 - Interactive LMS blocks use the same viewers in learner pages and builder previews; drag words use dnd-kit with uniquely identified word instances, because touch accessibility and repeated words must behave consistently.
 
@@ -52,3 +62,9 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Backup tables are exported in primary-key order via the `backup_export_page` RPC, which returns a per-row hash sum; each table is re-fingerprinted live right after export. Only a gap showing rows missing from the backup and not covered by rows dated after the export marks the DB backup KO; deletions (backup is a superset), tables with no date column and failed checks are reported as warnings, because keyset export cannot duplicate rows and normal activity during the run must not fail the nightly backup.
 - A game order line is out of daily alerts and shipment follow-up once it is archived, shipped (`shipped_confirmed_at`) or hand-delivered (`hand_delivered_at`); daily to-dos for order lines auto-close when the line leaves the status that created them, because status changes after the morning run otherwise left stale alerts.
 - Course blocks showing training dates read them live through read-only security-definer RPCs (`get_lms_upcoming_sessions`) that return only session/venue facts, never participant data, because hardcoded dates in lessons go stale and learners have no RLS access to trainings.
+- Review/testimonial requests for missions are hand-written signals in `testimonial_requests` (one per mission contact), never generated emails; `mission_email_drafts` is read-only history, because requests are now tailored by the assistant.
+- LMS audio originals are copied to a readable Google Drive tree ("SuperTools - Audios e-learning/<course>/<Paris date> - <course> - <original name>") by `archive-lms-audio`, tracked in `lms_audio_archives`; each call catches up every unarchived audio, because storage paths are machine-named and unusable for humans.
+- The mission "Facture à émettre" flag (`missions.invoice_to_issue*`) is separate from the next action and is cleared by a DB trigger when an activity gets an invoice number, because every invoicing path (UI, Pennylane, MCP) must clear it without client code.
+- LMS course audio transcripts live on their `media` row (`transcript`, `transcription_status` pending/transcribed/processed/error, duration); blocks generated from an audio carry `lms_lesson_blocks.source_media_id`, and uploads are de-duplicated per course by `media.content_hash` (legacy rows by name+size), because course audios must stay out of the meetings `transcripts` pipeline while remaining traceable.
+- Micro-devis follow-up sessions are computed by the pure helper `supabase/functions/_shared/micro-devis-followup.ts`, shared by the Micro-devis page and `generate-micro-devis`; the server reads included sessions from the selected catalog formula, descriptions count included plus added sessions, and only additions increase price and catalog duration, because UI and PDF must agree without billing included sessions twice.
+- Cold evaluations are native tokenized questionnaires (`sponsor_cold_evaluations`, `participant_cold_evaluations`) planned by `send-thank-you-email` through the pure helper `_shared/cold-evaluation.ts` (one per distinct sponsor, one per participant), reuse one token per recipient and session, get one reminder scheduled after a successful send, and record failures in `scheduled_emails.error_message` while staying pending, because sends must never fail silently or duplicate.

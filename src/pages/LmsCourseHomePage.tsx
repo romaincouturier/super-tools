@@ -1130,6 +1130,7 @@ export default function LmsCourseHomePage() {
       <CourseLoadState
         isLoading={courseLoading}
         error={courseError}
+        notFound={!courseLoading && !courseError && course === null}
         onRetry={() => refetchCourse()}
       />
     );

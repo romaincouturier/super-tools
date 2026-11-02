@@ -4945,6 +4945,53 @@ export type Database = {
           },
         ]
       }
+      lms_audio_archives: {
+        Row: {
+          archived_at: string | null
+          attempts: number
+          course_id: string | null
+          created_at: string
+          drive_file_id: string | null
+          drive_file_name: string | null
+          drive_folder_name: string | null
+          last_error: string | null
+          media_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          attempts?: number
+          course_id?: string | null
+          created_at?: string
+          drive_file_id?: string | null
+          drive_file_name?: string | null
+          drive_folder_name?: string | null
+          last_error?: string | null
+          media_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          attempts?: number
+          course_id?: string | null
+          created_at?: string
+          drive_file_id?: string | null
+          drive_file_name?: string | null
+          drive_folder_name?: string | null
+          last_error?: string | null
+          media_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_audio_archives_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: true
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_badge_awards: {
         Row: {
           awarded_at: string
@@ -5077,6 +5124,7 @@ export type Database = {
           home_config: Json
           id: string
           is_featured: boolean
+          landing_position: number | null
           org_id: string | null
           status: string
           tags: string[] | null
@@ -5100,6 +5148,7 @@ export type Database = {
           home_config?: Json
           id?: string
           is_featured?: boolean
+          landing_position?: number | null
           org_id?: string | null
           status?: string
           tags?: string[] | null
@@ -5123,6 +5172,7 @@ export type Database = {
           home_config?: Json
           id?: string
           is_featured?: boolean
+          landing_position?: number | null
           org_id?: string | null
           status?: string
           tags?: string[] | null
@@ -5394,6 +5444,7 @@ export type Database = {
           lesson_id: string
           parent_block_id: string | null
           position: number
+          source_media_id: string | null
           source_transcript_id: string | null
           type: string
           updated_at: string
@@ -5407,6 +5458,7 @@ export type Database = {
           lesson_id: string
           parent_block_id?: string | null
           position?: number
+          source_media_id?: string | null
           source_transcript_id?: string | null
           type: string
           updated_at?: string
@@ -5420,6 +5472,7 @@ export type Database = {
           lesson_id?: string
           parent_block_id?: string | null
           position?: number
+          source_media_id?: string | null
           source_transcript_id?: string | null
           type?: string
           updated_at?: string
@@ -5437,6 +5490,13 @@ export type Database = {
             columns: ["parent_block_id"]
             isOneToOne: false
             referencedRelation: "lms_lesson_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_lesson_blocks_source_media_id_fkey"
+            columns: ["source_media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
             referencedColumns: ["id"]
           },
           {
@@ -6454,6 +6514,7 @@ export type Database = {
       media: {
         Row: {
           assemblyai_transcript_id: string | null
+          content_hash: string | null
           created_at: string | null
           created_by: string | null
           file_name: string
@@ -6477,6 +6538,7 @@ export type Database = {
         }
         Insert: {
           assemblyai_transcript_id?: string | null
+          content_hash?: string | null
           created_at?: string | null
           created_by?: string | null
           file_name: string
@@ -6500,6 +6562,7 @@ export type Database = {
         }
         Update: {
           assemblyai_transcript_id?: string | null
+          content_hash?: string | null
           created_at?: string | null
           created_by?: string | null
           file_name?: string
@@ -7362,6 +7425,10 @@ export type Database = {
           hotel_booked: boolean | null
           id: string
           initial_amount: number | null
+          invoice_to_issue: boolean
+          invoice_to_issue_amount: number | null
+          invoice_to_issue_note: string | null
+          invoice_to_issue_set_at: string | null
           language: string | null
           location: string | null
           org_id: string | null
@@ -7398,6 +7465,10 @@ export type Database = {
           hotel_booked?: boolean | null
           id?: string
           initial_amount?: number | null
+          invoice_to_issue?: boolean
+          invoice_to_issue_amount?: number | null
+          invoice_to_issue_note?: string | null
+          invoice_to_issue_set_at?: string | null
           language?: string | null
           location?: string | null
           org_id?: string | null
@@ -7434,6 +7505,10 @@ export type Database = {
           hotel_booked?: boolean | null
           id?: string
           initial_amount?: number | null
+          invoice_to_issue?: boolean
+          invoice_to_issue_amount?: number | null
+          invoice_to_issue_note?: string | null
+          invoice_to_issue_set_at?: string | null
           language?: string | null
           location?: string | null
           org_id?: string | null
@@ -8235,6 +8310,123 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      participant_cold_evaluations: {
+        Row: {
+          besoins_complementaires: string[]
+          commentaires_libres: string | null
+          company: string | null
+          consent_publication: boolean | null
+          created_at: string
+          date_envoi: string | null
+          date_premiere_ouverture: string | null
+          date_relance: string | null
+          date_soumission: string | null
+          effets_constates: string | null
+          email: string
+          etat: string
+          exemple_application: string | null
+          first_name: string | null
+          freins: string[]
+          freins_details: string | null
+          frequence_utilisation: string | null
+          id: string
+          last_name: string | null
+          mise_en_pratique: string | null
+          niveau_maitrise: number | null
+          objectifs_atteints: string | null
+          participant_id: string | null
+          recommandation: string | null
+          temoignage: string | null
+          token: string
+          training_end_date: string | null
+          training_id: string
+          training_name: string | null
+          training_start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          besoins_complementaires?: string[]
+          commentaires_libres?: string | null
+          company?: string | null
+          consent_publication?: boolean | null
+          created_at?: string
+          date_envoi?: string | null
+          date_premiere_ouverture?: string | null
+          date_relance?: string | null
+          date_soumission?: string | null
+          effets_constates?: string | null
+          email: string
+          etat?: string
+          exemple_application?: string | null
+          first_name?: string | null
+          freins?: string[]
+          freins_details?: string | null
+          frequence_utilisation?: string | null
+          id?: string
+          last_name?: string | null
+          mise_en_pratique?: string | null
+          niveau_maitrise?: number | null
+          objectifs_atteints?: string | null
+          participant_id?: string | null
+          recommandation?: string | null
+          temoignage?: string | null
+          token: string
+          training_end_date?: string | null
+          training_id: string
+          training_name?: string | null
+          training_start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          besoins_complementaires?: string[]
+          commentaires_libres?: string | null
+          company?: string | null
+          consent_publication?: boolean | null
+          created_at?: string
+          date_envoi?: string | null
+          date_premiere_ouverture?: string | null
+          date_relance?: string | null
+          date_soumission?: string | null
+          effets_constates?: string | null
+          email?: string
+          etat?: string
+          exemple_application?: string | null
+          first_name?: string | null
+          freins?: string[]
+          freins_details?: string | null
+          frequence_utilisation?: string | null
+          id?: string
+          last_name?: string | null
+          mise_en_pratique?: string | null
+          niveau_maitrise?: number | null
+          objectifs_atteints?: string | null
+          participant_id?: string | null
+          recommandation?: string | null
+          temoignage?: string | null
+          token?: string
+          training_end_date?: string | null
+          training_id?: string
+          training_name?: string | null
+          training_start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_cold_evaluations_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participant_cold_evaluations_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       participant_files: {
         Row: {
@@ -9147,11 +9339,13 @@ export type Database = {
           company_phone: string
           company_zip: string
           created_at: string
+          default_followup_hourly_rate: number
           default_sale_type: string
           default_unit: string
           default_validity_days: number
           default_vat_rate: number
           early_payment_discount: string
+          hourly_price_alert_threshold: number
           id: string
           insurance_coverage_zone: string
           insurance_name: string
@@ -9190,11 +9384,13 @@ export type Database = {
           company_phone?: string
           company_zip?: string
           created_at?: string
+          default_followup_hourly_rate?: number
           default_sale_type?: string
           default_unit?: string
           default_validity_days?: number
           default_vat_rate?: number
           early_payment_discount?: string
+          hourly_price_alert_threshold?: number
           id?: string
           insurance_coverage_zone?: string
           insurance_name?: string
@@ -9233,11 +9429,13 @@ export type Database = {
           company_phone?: string
           company_zip?: string
           created_at?: string
+          default_followup_hourly_rate?: number
           default_sale_type?: string
           default_unit?: string
           default_validity_days?: number
           default_vat_rate?: number
           early_payment_discount?: string
+          hourly_price_alert_threshold?: number
           id?: string
           insurance_coverage_zone?: string
           insurance_name?: string
@@ -9301,6 +9499,7 @@ export type Database = {
           total_ht: number
           total_ttc: number
           total_vat: number
+          training_followup: Json | null
           travel_data: Json | null
           updated_at: string
           workflow_step: number | null
@@ -9340,6 +9539,7 @@ export type Database = {
           total_ht?: number
           total_ttc?: number
           total_vat?: number
+          training_followup?: Json | null
           travel_data?: Json | null
           updated_at?: string
           workflow_step?: number | null
@@ -9379,6 +9579,7 @@ export type Database = {
           total_ht?: number
           total_ttc?: number
           total_vat?: number
+          training_followup?: Json | null
           travel_data?: Json | null
           updated_at?: string
           workflow_step?: number | null
@@ -9699,6 +9900,7 @@ export type Database = {
           created_at: string | null
           date_envoi: string | null
           date_premiere_ouverture: string | null
+          date_relance: string | null
           date_soumission: string | null
           description_impact: string | null
           etat: string
@@ -9730,6 +9932,7 @@ export type Database = {
           created_at?: string | null
           date_envoi?: string | null
           date_premiere_ouverture?: string | null
+          date_relance?: string | null
           date_soumission?: string | null
           description_impact?: string | null
           etat?: string
@@ -9761,6 +9964,7 @@ export type Database = {
           created_at?: string | null
           date_envoi?: string | null
           date_premiere_ouverture?: string | null
+          date_relance?: string | null
           date_soumission?: string | null
           description_impact?: string | null
           etat?: string
@@ -10329,6 +10533,62 @@ export type Database = {
             columns: ["source_email_id"]
             isOneToOne: false
             referencedRelation: "inbound_emails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      testimonial_requests: {
+        Row: {
+          contact_email: string | null
+          contact_name: string | null
+          created_at: string
+          done_at: string | null
+          done_by: string | null
+          id: string
+          mission_id: string | null
+          note: string | null
+          source: string
+          source_draft_id: string | null
+          status: string
+          training_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          mission_id?: string | null
+          note?: string | null
+          source?: string
+          source_draft_id?: string | null
+          status?: string
+          training_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          mission_id?: string | null
+          note?: string | null
+          source?: string
+          source_draft_id?: string | null
+          status?: string
+          training_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "testimonial_requests_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
             referencedColumns: ["id"]
           },
         ]
@@ -12631,6 +12891,7 @@ export type Database = {
           is_shared: boolean
           mime_type: string | null
           relevance_score: number
+          source_id: string | null
           source_url: string | null
           tags: string[]
           title: string
@@ -12655,6 +12916,7 @@ export type Database = {
           is_shared?: boolean
           mime_type?: string | null
           relevance_score?: number
+          source_id?: string | null
           source_url?: string | null
           tags?: string[]
           title?: string
@@ -12679,6 +12941,7 @@ export type Database = {
           is_shared?: boolean
           mime_type?: string | null
           relevance_score?: number
+          source_id?: string | null
           source_url?: string | null
           tags?: string[]
           title?: string
@@ -12700,7 +12963,74 @@ export type Database = {
             referencedRelation: "watch_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "watch_items_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "watch_sources"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      watch_sources: {
+        Row: {
+          created_at: string
+          expert: string
+          how_to_follow: string
+          id: string
+          items_count: number
+          language: string
+          last_useful_at: string | null
+          name: string
+          notes: string
+          proposed_by: string
+          status: string
+          theme: string
+          type: string
+          updated_at: string
+          url: string
+          usefulness: number | null
+          why: string
+        }
+        Insert: {
+          created_at?: string
+          expert: string
+          how_to_follow?: string
+          id?: string
+          items_count?: number
+          language: string
+          last_useful_at?: string | null
+          name: string
+          notes?: string
+          proposed_by?: string
+          status?: string
+          theme?: string
+          type: string
+          updated_at?: string
+          url: string
+          usefulness?: number | null
+          why?: string
+        }
+        Update: {
+          created_at?: string
+          expert?: string
+          how_to_follow?: string
+          id?: string
+          items_count?: number
+          language?: string
+          last_useful_at?: string | null
+          name?: string
+          notes?: string
+          proposed_by?: string
+          status?: string
+          theme?: string
+          type?: string
+          updated_at?: string
+          url?: string
+          usefulness?: number | null
+          why?: string
+        }
+        Relationships: []
       }
       webhook_logs: {
         Row: {
@@ -13295,6 +13625,10 @@ export type Database = {
           segment: string
         }[]
       }
+      get_participant_cold_evaluation_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       get_participant_public_info: {
         Args: { p_participant_id: string }
         Returns: Json
@@ -13539,6 +13873,10 @@ export type Database = {
         Args: { p_opened_at: string; p_token: string }
         Returns: undefined
       }
+      mark_participant_cold_evaluation_opened: {
+        Args: { p_token: string }
+        Returns: undefined
+      }
       mark_password_changed: { Args: never; Returns: undefined }
       match_documents: {
         Args: {
@@ -13662,6 +14000,7 @@ export type Database = {
       move_stale_tickets_to_boite_a_idees: { Args: never; Returns: undefined }
       next_location_contract_ref: { Args: { p_year: number }; Returns: string }
       normalize_url: { Args: { u: string }; Returns: string }
+      normalize_watch_source_url: { Args: { value: string }; Returns: string }
       pictodico_norm_key: { Args: { t: string }; Returns: string }
       pictodico_register_request: {
         Args: {
@@ -13778,6 +14117,10 @@ export type Database = {
           position: number
           query: string
         }[]
+      }
+      submit_participant_cold_evaluation: {
+        Args: { p_data: Json; p_token: string }
+        Returns: undefined
       }
       submit_training_survey: {
         Args: { p_answers: Json; p_token: string }

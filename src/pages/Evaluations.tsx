@@ -8,6 +8,7 @@ import { Star, Filter, Sparkles, Check, AlertCircle, TrendingUp, Lightbulb, Tras
 import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
+import ColdEvaluationsBlock from "@/components/formations/ColdEvaluationsBlock";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -655,6 +656,9 @@ const Evaluations = () => {
             </ScrollArea>
           </DialogContent>
         </Dialog>
+        <div className="mt-6">
+          <ColdEvaluationsBlock trainingId={selectedTraining !== "all" ? selectedTraining : undefined} />
+        </div>
       </main>
     </ModuleLayout>
   );

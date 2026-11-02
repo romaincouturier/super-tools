@@ -33,10 +33,17 @@ async function signProductionUrls(supabase: ReturnType<typeof createClient>, pro
   const results = await Promise.all(
     productions.map(async (production) => {
       const path = extractStoragePath(production.file_url);
-      if (!path) return production;
-
       const isImage = production.file_type !== "video";
       const thumbnailPath = production.thumbnail_url ? extractStoragePath(production.thumbnail_url) : null;
+
+      // Médiathèque items: original lives in another (public) bucket, but the
+      // light thumbnail is in book-productions and must still be signed,
+      // otherwise the grid falls back to the multi-MB original.
+      if (!path) {
+        if (!thumbnailPath) return production;
+        const { data } = await supabase.storage.from("book-productions").createSignedUrl(thumbnailPath, 60 * 60);
+        return { ...production, thumbnail_url: data?.signedUrl ?? null };
+      }
 
       // For images, generate a downscaled thumbnail (600px, q70) for the grid.
       // If a real thumbnail file exists, sign it directly instead of transforming

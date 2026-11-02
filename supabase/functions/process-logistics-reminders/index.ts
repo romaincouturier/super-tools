@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { renderCatalogEmail } from "../_shared/editable-email.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
-import { sendEmail } from "../_shared/resend.ts";
+import { sendEmail, escapeHtml } from "../_shared/resend.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
 import { formatDateFr, formatDateWithDayFr } from "../_shared/date-utils.ts";
@@ -279,11 +279,34 @@ serve(async (req) => {
           })
       );
 
+      // 0b. Missions sans prochaine action datée
+      add("🎯", "Missions sans prochaine action", COLORS.red,
+        data.missionsNoNextAction
+          .filter(m => userCanSee(recipient, m.assignedTo))
+          .map(m => {
+            const label = formatLabel(m.clientName, m.title);
+            const emojiP = m.emoji ? `${m.emoji} ` : "";
+            const missing = m.missingText && m.missingDate ? "aucune prochaine action"
+              : m.missingText ? "action non renseignée" : "action sans date";
+            return `<li style="margin-bottom: 6px;">${emojiP}${linkHtml(`${appUrl}/missions/${m.id}`, label, true)} — ${missing}</li>`;
+          })
+      );
+
       // 1. Factures à émettre (formations)
       add("🧾", "Factures à émettre", COLORS.red,
         data.pastTrainingsNoInvoice
           .filter(a => userCanSee(recipient, a.assignedTo))
           .map(t => `<li>${linkHtml(`${appUrl}/formations/${t.trainingId}`, t.trainingName)} — terminée le ${formatDateFr(t.endDate)} (il y a ${t.daysAgo}j)</li>`)
+          .concat(
+            (data.missionInvoiceFlags || [])
+              .filter(m => userCanSee(recipient, m.assignedTo))
+              .map(m => {
+                const label = formatLabel(m.clientName, m.title);
+                const emojiP = m.emoji ? `${m.emoji} ` : "";
+                const details = [m.note ? escapeHtml(m.note) : null, m.amount !== null ? `<strong>${m.amount.toLocaleString("fr-FR")} €</strong>` : null].filter(Boolean).join(" — ");
+                return `<li>${emojiP}${linkHtml(`${appUrl}/missions/${m.id}`, label)} — mission${details ? ` : ${details}` : ""}</li>`;
+              }),
+          )
       );
 
       // 2. Missions à facturer
@@ -599,20 +622,14 @@ serve(async (req) => {
         })
       );
 
-      // 17. Emails à valider (communication manager)
+      // 17. Avis / témoignages à demander (communication manager)
       const userEmailDrafts = data.pendingEmailDrafts.filter(() =>
         recipient.isAdmin || recipient.userId === commsManagerId
       );
       if (userEmailDrafts.length > 0) {
-        const typeLabels: Record<string, string> = { google_review: "Avis Google", video_testimonial: "Témoignage vidéo" };
-        add("📧", "Emails à valider", COLORS.teal,
-          userEmailDrafts.map(d => {
-            const typeLabel = typeLabels[d.emailType] || d.emailType;
-            const when = d.status === "scheduled" && d.scheduledFor
-              ? ` — programmé le ${formatDateFr(d.scheduledFor.slice(0, 10))}`
-              : "";
-            return `<li>${linkHtml(`${appUrl}/emails-a-valider`, `${d.missionTitle} — ${typeLabel}`)} — pour ${d.contactName || d.contactEmail}${when}</li>`;
-          })
+        add("🌟", "Avis / témoignages à demander", COLORS.teal,
+          userEmailDrafts.map(d =>
+            `<li>Demander un avis / témoignage à <strong>${d.contactName || d.contactEmail}</strong>${d.contactName && d.contactEmail ? ` (${d.contactEmail})` : ""} — ${linkHtml(`${appUrl}/missions/${d.missionId}`, `mission ${d.missionTitle}`)} · ${linkHtml(`${appUrl}/avis-a-demander`, "marquer comme fait")}</li>`)
         );
       }
 

@@ -1,9 +1,8 @@
 import { it, expect, vi } from "vitest";
 
-// lms-tools.ts importe supabase-client.ts et sanitize-html depuis esm.sh :
-// vitest ne résout pas les imports https (règle [064]).
-vi.mock("./supabase-client.ts", () => ({ getSupabaseClient: () => ({}) }));
-vi.mock("https://esm.sh/sanitize-html@2.17.0", async () => ({ default: (await import("sanitize-html")).default }));
+// lms-tools.ts importe supabase-client.ts, qui charge le SDK depuis esm.sh :
+// non résoluble par vitest (règle [064]). Les validateurs testés n'y touchent pas.
+vi.mock("./supabase-client.ts", () => ({ getSupabaseClient: vi.fn() }));
 
 const { validateLessonPatch, validateQuizQuestions } = await import("./lms-tools.ts");
 

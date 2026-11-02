@@ -5,6 +5,8 @@ import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { isInternalOrAuthenticated } from "../_shared/cron-auth.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 // Format date range for display (e.g., "du 15 au 17 janvier 2025")
@@ -48,6 +50,9 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
+    if (!(await isInternalOrAuthenticated(req))) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     const { 
       trainingId, 
       trainingName,
@@ -64,6 +69,7 @@ serve(async (req) => {
       participantId,
       formalAddress = true,
       includeEvaluations = false,
+      requestId,
     } = await req.json();
 
     if (!recipientEmail) {
@@ -81,6 +87,31 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const user = await verifyAuth(req);
+    if (user) {
+      const { data: allowed, error } = await supabase.rpc("has_module_access", { _user_id: user.id, _module: "formations" });
+      if (error || !allowed) return new Response(JSON.stringify({ error: "Accès formations requis" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (documentType === "all" || documentType === "sheets") {
+      const { data: slots, error: slotError } = await supabase.from("attendance_signatures").select("schedule_date, period").eq("training_id", trainingId);
+      const { data: trainerSignatures, error: trainerError } = await supabase.from("trainer_attendance_signatures").select("schedule_date, period, signed_at, signature_data").eq("training_id", trainingId);
+      if (slotError || trainerError) throw slotError || trainerError;
+      const signed = new Set((trainerSignatures || []).filter(s => s.signed_at && s.signature_data).map(s => `${s.schedule_date}-${s.period}`));
+      if ((slots || []).some(s => !signed.has(`${s.schedule_date}-${s.period}`))) {
+        return new Response(JSON.stringify({ error: "Signez les feuilles d'émargement en tant que formateur avant l'envoi. Aucun document n'a été envoyé." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (slots?.length && !attendanceSheetsUrls?.length) {
+        return new Response(JSON.stringify({ error: "La feuille d'émargement électronique manque. Aucun document n'a été envoyé." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+    if (documentType === "all" && !participantId) {
+      const { count, error } = await supabase.from("training_participants").select("id", { count: "exact", head: true }).eq("training_id", trainingId);
+      if (error) throw error;
+      if (count && certificateUrls?.length !== count) {
+        return new Response(JSON.stringify({ error: "Les attestations ne sont pas toutes disponibles. Aucun document n'a été envoyé." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
 
     // Determine template type suffix based on formal address
     const templateTypeSuffix = formalAddress ? "_vous" : "_tu";
@@ -360,7 +391,10 @@ Bonne réception.`;
       _emailType: "training_documents",
       _trainingId: trainingId,
       _participantId: participantId || undefined,
+      idempotencyKey: requestId ? `training-documents-${trainingId}-${requestId}` : undefined,
     });
+
+    if (!result.success || !result.id) throw new Error(result.error || "L'envoi des documents a échoué.");
 
     console.log("Email sent successfully:", result.id);
 
@@ -375,6 +409,9 @@ Bonne réception.`;
           document_type: documentType,
           recipient_name: recipientName,
           attachments_count: attachments.length,
+          sent_invoice: hasInvoice,
+          sent_sheets: hasSheets,
+          sent_certificates: hasCertificates,
           email_subject: subject,
           email_content: stripHtml(htmlContent),
         },

@@ -78,7 +78,7 @@ export const SETTINGS_CATALOG: SettingsCatalogEntry[] = [
 
   // ── Entrées par onglet (navigation directe) ─────────────────────────
   { id: "tab:profile", label: "Mon profil", keywords: "profil prénom nom photo avatar", tab: "profile" },
-  { id: "tab:integrations", label: "Intégrations (clés API)", keywords: "api clés siren insee slack pennylane wp statistics fireflies google drive integration search console brevo emailing", tab: "integrations", adminOnly: true },
+  { id: "tab:integrations", label: "Intégrations (clés API)", keywords: "api clés siren insee slack pennylane wp statistics fireflies loom google drive integration search console brevo emailing", tab: "integrations", adminOnly: true },
   { id: "gsc_site_url", label: "Google Search Console — propriété", keywords: "google search console gsc statistiques seo référencement", tab: "integrations", anchorId: "gsc-site-url", adminOnly: true },
   { id: "brevo_api_key", label: "Clé API Brevo", keywords: "brevo emailing newsletter campagnes statistiques clé api", tab: "integrations", anchorId: "brevo-api-key", adminOnly: true },
   { id: "tab:emails", label: "Modèles d'emails", keywords: "email modèles templates snippets", tab: "emails" },

@@ -114,6 +114,7 @@ export {
   type MissionActionItem,
   type ElearningGroupItem,
   type MissionInvoiceItem,
+  type MissionInvoiceFlagItem,
   type UnbilledActivityItem,
   type MissionNoDateItem,
   type CrmCardItem,

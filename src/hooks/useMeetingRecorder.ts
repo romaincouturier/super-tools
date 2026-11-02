@@ -98,7 +98,7 @@ export function useMeetingRecorder({
           if (!signedUrl) throw new Error("URL d'enregistrement indisponible");
 
           setStatus("transcribing");
-          const transcript = await transcribeAudio(signedUrl);
+          const { text: transcript } = await transcribeAudio(signedUrl);
 
           if (transcript && transcript.trim()) {
             onTranscriptRef.current(transcript.trim());

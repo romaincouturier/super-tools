@@ -50,7 +50,7 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
       let conventionSent: string | null = null;
 
       for (const log of data) {
-        const details = log.details as { training_id?: string; document_type?: string } | null;
+        const details = log.details as { training_id?: string; document_type?: string; sent_invoice?: boolean; sent_sheets?: boolean; email_content?: string } | null;
         if (details?.training_id !== trainingId) continue;
 
         if (log.action_type === "convention_email_sent") {
@@ -63,10 +63,10 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
           }
         } else if (log.action_type === "training_documents_sent") {
           const docType = details?.document_type;
-          if (!invoiceSentAt && (docType === "invoice" || docType === "all")) {
+          if (!invoiceSentAt && (details?.sent_invoice ?? (docType === "invoice" || (docType === "all" && !!details?.email_content?.includes("facture"))))) {
             invoiceSentAt = log.created_at;
           }
-          if (!sheetsSentAt && (docType === "sheets" || docType === "all")) {
+          if (!sheetsSentAt && (details?.sent_sheets ?? (docType === "sheets" || (docType === "all" && !!details?.email_content?.includes("émargement"))))) {
             sheetsSentAt = log.created_at;
           }
         }

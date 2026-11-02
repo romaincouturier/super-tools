@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Mic, Upload, ChevronDown, Loader2, CheckCircle2, AlertCircle, Layers } from "lucide-react";
+import { Mic, Upload, ChevronDown, Loader2, CheckCircle2, AlertCircle, Layers, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
@@ -12,7 +12,7 @@ import { useCourseModules, useModuleLessons, useCourseLessons, useCreateLesson }
 import { useCreateLessonBlock } from "@/hooks/useLmsBlocks";
 import { uploadMediaFile, useAddMedia } from "@/hooks/useMedia";
 import { resolveContentType } from "@/lib/file-utils";
-import { transcribeAudio, analyzeAudioForLessons, type AudioSegment } from "@/services/lmsMediaImport";
+import { transcribeAudio, analyzeAudioForLessons, setMediaTranscription, sha256Hex, findDuplicateAudio, listCourseAudios, setMediaContentHash, archiveLmsAudios, type AudioSegment } from "@/services/lmsMediaImport";
 import { createLessonBlock } from "@/services/lms-blocks";
 import type { LmsModule, LmsLesson } from "@/hooks/useLms";
 import {
@@ -108,6 +108,36 @@ interface AudioItem {
 
 type Step = "upload" | "transcribing" | "validate" | "confirming";
 
+/** Indicateur d'action en cours, façon agent IA (libellé + points animés). */
+function ActivityIndicator({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-lg border bg-muted/40 px-3 py-2.5 mb-3">
+      <span className="flex gap-1 shrink-0">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="h-1.5 w-1.5 rounded-full bg-primary animate-bounce"
+            style={{ animationDelay: `${i * 150}ms` }}
+          />
+        ))}
+      </span>
+      <span className="text-sm text-muted-foreground truncate">{label}</span>
+    </div>
+  );
+}
+
+/** Télécharge le transcript brut d'un audio en fichier .txt. */
+function downloadTranscript(fileName: string, transcript: string) {
+  const base = fileName.replace(/\.[^.]+$/, "");
+  const blob = new Blob([transcript], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${base} - transcript.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /** Recolle les segments d'un audio en un seul, quand le découpage IA ne convient pas. */
 function mergeSegments(segments: AudioSegment[]): AudioSegment[] {
   if (segments.length <= 1) return segments;
@@ -144,12 +174,14 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
   const [uploading, setUploading] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [currentAction, setCurrentAction] = useState<string | null>(null);
 
   const resetAndClose = () => {
     setStep("upload");
     setAudios([]);
     setGlobalError(null);
     setUploadError(null);
+    setCurrentAction(null);
     onClose();
   };
 
@@ -169,8 +201,33 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
       const newItems: AudioItem[] = [];
 
       try {
+        const existing = await listCourseAudios(courseId);
+
         for (const file of audioFiles) {
           try {
+            setCurrentAction(`Empreinte de ${file.name}…`);
+            const hash = await sha256Hex(file);
+            const dup = findDuplicateAudio(existing, file, hash);
+            if (dup) {
+              const when = new Date(dup.created_at).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" });
+              const reuse = window.confirm(
+                `« ${file.name} » a déjà été importé le ${when}.\n\nOK : réutiliser ce fichier${dup.transcript ? " et sa transcription" : ""}.\nAnnuler : l'ignorer.`,
+              );
+              if (!reuse) continue;
+              if (!dup.content_hash) await setMediaContentHash(dup.id, hash);
+              const hasText = !!dup.transcript?.trim();
+              newItems.push({
+                id: crypto.randomUUID(),
+                file,
+                mediaId: dup.id,
+                url: dup.file_url,
+                status: hasText ? "done" : "pending",
+                transcript: dup.transcript ?? "",
+                segments: [],
+              });
+              continue;
+            }
+            setCurrentAction(`Envoi de ${file.name}…`);
             const url = await uploadMediaFile(file, "lms", courseId);
             const media = await addMedia.mutateAsync({
               file_url: url,
@@ -182,6 +239,8 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
               source_type: "lms",
               source_id: courseId,
             });
+            await setMediaContentHash(media.id, hash);
+            existing.push({ id: media.id, file_name: file.name, file_size: file.size, file_url: url, content_hash: hash, transcript: null, created_at: new Date().toISOString() });
             newItems.push({
               id: crypto.randomUUID(),
               file,
@@ -196,6 +255,13 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
             throw new Error(`Upload de "${file.name}" a échoué : ${msg}`);
           }
         }
+        if (!newItems.length) {
+          setUploading(false);
+          setCurrentAction(null);
+          return;
+        }
+
+        archiveLmsAudios();
 
         setAudios((prev) => [...prev, ...newItems]);
         setStep("transcribing");
@@ -217,22 +283,26 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
     const updated = [...items];
     setGlobalError(null);
 
-    setAudios(updated.map((a) => ({ ...a, status: "transcribing" as TranscriptionStatus })));
+    setAudios(updated.map((a) => (a.status === "done" && a.transcript ? a : { ...a, status: "transcribing" as TranscriptionStatus })));
 
     for (let i = 0; i < updated.length; i++) {
+      if (updated[i].status === "done" && updated[i].transcript) continue; // réutilisé, déjà transcrit
       try {
-        const transcript = await transcribeAudio(updated[i].url);
+        setCurrentAction(`Transcription de ${updated[i].file.name} (${i + 1}/${updated.length})…`);
+        await setMediaTranscription([updated[i].mediaId], { status: "pending" });
+        const { text: transcript, seconds } = await transcribeAudio(updated[i].url);
         if (!transcript || !transcript.trim()) {
-          updated[i] = {
-            ...updated[i],
-            status: "error",
-            error: "Transcription vide — aucune voix détectée ou fichier illisible.",
-          };
+          const error = "Transcription vide — aucune voix détectée ou fichier illisible.";
+          updated[i] = { ...updated[i], status: "error", error };
+          await setMediaTranscription([updated[i].mediaId], { status: "error", error, seconds });
         } else {
           updated[i] = { ...updated[i], status: "done", transcript };
+          await setMediaTranscription([updated[i].mediaId], { status: "transcribed", transcript, seconds });
         }
       } catch (err) {
-        updated[i] = { ...updated[i], status: "error", error: err instanceof Error ? err.message : "Erreur" };
+        const error = err instanceof Error ? err.message : "Erreur";
+        updated[i] = { ...updated[i], status: "error", error };
+        await setMediaTranscription([updated[i].mediaId], { status: "error", error }).catch(() => undefined);
       }
       setAudios([...updated]);
     }
@@ -261,10 +331,22 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
     }
 
     try {
-      const assignments = await analyzeAudioForLessons(
-        successAudios.map((a) => ({ id: a.id, file_name: a.file.name, text: a.transcript })),
-        allLessons,
-      );
+      // One audio per AI call: a single call for many audios exceeds the AI output limit.
+      const assignments: Awaited<ReturnType<typeof analyzeAudioForLessons>> = [];
+      for (let i = 0; i < successAudios.length; i++) {
+        const a = successAudios[i];
+        setCurrentAction(`Analyse IA de ${a.file.name} (${i + 1}/${successAudios.length})…`);
+        try {
+          const res = await analyzeAudioForLessons(
+            [{ id: a.id, file_name: a.file.name, text: a.transcript }],
+            allLessons,
+          );
+          assignments.push(...res);
+        } catch (err) {
+          const m = err instanceof Error ? err.message : "Erreur lors de l'analyse IA.";
+          throw new Error(`${a.file.name} : ${m}`);
+        }
+      }
 
       setAudios((prev) =>
         prev.map((a) => {
@@ -274,7 +356,9 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         }),
       );
       setStep("validate");
+      setCurrentAction(null);
     } catch (err) {
+      setCurrentAction(null);
       const msg = err instanceof Error ? err.message : "Erreur lors de l'analyse IA.";
       setGlobalError(`Analyse IA : ${msg}`);
       toastError(toast, msg);
@@ -291,6 +375,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
 
   const handleConfirm = async () => {
     setStep("confirming");
+    setCurrentAction("Création des blocs dans les leçons…");
     try {
       // Find or create "Ressources" lesson for segments without a target lesson
       let ressourcesLessonId: string | null = null;
@@ -321,6 +406,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
       }
 
       let blocksCreated = 0;
+      const producedMedia = new Set<string>();
       for (const audio of audios) {
         if (audio.status !== "done") continue;
         for (const seg of audio.segments) {
@@ -345,10 +431,14 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
             parent_block_id: null,
             position: 9999,
             content: { html: htmlContent },
-          });
+            source_media_id: audio.mediaId,
+          } as Parameters<typeof createLessonBlock>[0]);
           blocksCreated++;
+          producedMedia.add(audio.mediaId);
         }
       }
+      await setMediaTranscription([...producedMedia], { status: "processed" });
+      qc.invalidateQueries({ queryKey: ["lms-course-audios", courseId] });
 
       toast({
         title: `${blocksCreated} bloc${blocksCreated > 1 ? "s" : ""} créé${blocksCreated > 1 ? "s" : ""} dans les leçons`,
@@ -356,6 +446,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
       resetAndClose();
     } catch (err) {
       setStep("validate");
+      setCurrentAction(null);
       toastError(toast, err instanceof Error ? err : "Erreur lors de la création des blocs.");
     }
   };
@@ -394,7 +485,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
               onClick={() => fileInputRef.current?.click()}
             >
               {uploading ? (
-                <><Spinner /><p className="text-sm text-muted-foreground">Upload en cours…</p></>
+                <><Spinner /><p className="text-sm text-muted-foreground">{currentAction ?? "Upload en cours…"}</p></>
               ) : (
                 <>
                   <Upload className="h-10 w-10 text-muted-foreground/50" />
@@ -411,9 +502,13 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         {/* Transcription progress */}
         {step === "transcribing" && (
           <div className="flex-1 overflow-y-auto space-y-2 py-2">
-            <p className="text-sm text-muted-foreground mb-3">
-              Transcription en cours… L'analyse IA démarrera une fois tous les audios traités.
-            </p>
+            {currentAction ? (
+              <ActivityIndicator label={currentAction} />
+            ) : (
+              <p className="text-sm text-muted-foreground mb-3">
+                Transcription en cours… L'analyse IA démarrera une fois tous les audios traités.
+              </p>
+            )}
             {globalError && (
               <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-2 mb-2">
                 <div className="flex items-start gap-2">
@@ -457,9 +552,13 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         {/* Validation */}
         {(step === "validate" || step === "confirming") && (
           <div className="flex-1 overflow-y-auto space-y-4 pr-1 py-2">
-            <p className="text-sm text-muted-foreground">
-              Vérifiez et ajustez le texte et l'affectation de chaque audio avant de créer les blocs.
-            </p>
+            {step === "confirming" && currentAction ? (
+              <ActivityIndicator label={currentAction} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Vérifiez et ajustez le texte et l'affectation de chaque audio avant de créer les blocs.
+              </p>
+            )}
             {audios.map((audio, idx) => (
               <div key={audio.id} className="border rounded-lg p-4 space-y-3">
                 <div className="flex items-center gap-2">
@@ -467,6 +566,17 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
                   <span className="text-sm font-medium truncate flex-1">{audio.file.name}</span>
                   {audio.status === "error" && (
                     <span className="text-xs text-destructive shrink-0">Transcription échouée</span>
+                  )}
+                  {audio.status === "done" && audio.transcript && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs shrink-0"
+                      onClick={() => downloadTranscript(audio.file.name, audio.transcript)}
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                      Transcript
+                    </Button>
                   )}
                 </div>
                 {audio.status === "error" && audio.error && (

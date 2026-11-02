@@ -30,6 +30,7 @@ export interface SendEmailOptions {
   _trainingId?: string;
   _participantId?: string;
   _emailType?: string;
+  idempotencyKey?: string;
 }
 
 export interface SendEmailResult {
@@ -123,6 +124,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
         headers: {
           Authorization: `Bearer ${resendApiKey}`,
           "Content-Type": "application/json",
+          ...(options.idempotencyKey ? { "Idempotency-Key": options.idempotencyKey } : {}),
         },
         body: JSON.stringify({
           from: options.from || defaultFrom,

@@ -74,6 +74,7 @@ export interface LmsCourse {
   expertise: string | null;
   access_type: string;
   is_featured?: boolean;
+  landing_position?: number | null;
   difficulty_level: string | null;
   estimated_duration_minutes: number;
   tags: string[];
@@ -293,9 +294,10 @@ export function useCourse(id: string | undefined) {
         .from("lms_courses")
         .select("*, formation_configs(formation_name)")
         .eq("id", id!)
-        .single();
+        .maybeSingle();
       if (error) throw error;
-      return data as LmsCourse;
+      // null = cours supprimé ou non publié (masqué par RLS pour les apprenants)
+      return (data as LmsCourse | null) ?? null;
     },
   });
 }

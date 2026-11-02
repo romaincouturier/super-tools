@@ -151,7 +151,7 @@ serve(async (req) => {
               .join(" ");
           }
         }
-        return createJsonResponse({ status: "completed", transcript });
+        return createJsonResponse({ status: "completed", transcript, audio_duration: Math.round(result.audio_duration ?? 0) });
       }
 
       if (result.status === "error") {
@@ -160,6 +160,7 @@ serve(async (req) => {
           return createJsonResponse({
             status: "completed",
             transcript: "",
+            audio_duration: Math.round(result.audio_duration ?? 0),
             warning: "Aucune parole détectée dans l'enregistrement.",
           });
         }

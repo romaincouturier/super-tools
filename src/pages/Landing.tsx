@@ -22,9 +22,8 @@ const FREE_COURSE_THUMBNAILS: Record<string, string> = {
   "2da412a9-4917-4306-9187-a2137b17700c": academyAssetUrl(postureManager.url),
   "d20bf41f-6eeb-47b7-aab7-57def92d69ca": academyAssetUrl(fondamentauxAgilite.url),
 };
-const FREE_COURSE_ORDER = Object.keys(FREE_COURSE_THUMBNAILS);
 
-import { HIDDEN_FREE_COURSE_IDS } from "@/lib/academyFreeCourses";
+import { HIDDEN_FREE_COURSE_IDS, sortFreeCourses } from "@/lib/academyFreeCourses";
 import { useContactEmail } from "@/hooks/useContactEmail";
 
 
@@ -68,19 +67,10 @@ export default function Landing() {
   const { data, isLoading, isError } = useAcademyCatalog();
   const [menuOpen, setMenuOpen] = useState(false);
   const courses = data?.courses ?? [];
-  // Toutes les formations gratuites publiées : celles disposant d'une
-  // miniature dédiée d'abord (ordre éditorial), puis les nouvelles.
-  const freeCourses = useMemo(() => {
-    const gratuit = courses.filter(
-      (course) => course.access_type === "gratuit" && !HIDDEN_FREE_COURSE_IDS.has(course.id),
-    );
-
-    const rank = (id: string) => {
-      const index = FREE_COURSE_ORDER.indexOf(id);
-      return index === -1 ? FREE_COURSE_ORDER.length : index;
-    };
-    return gratuit.slice().sort((a, b) => rank(a.id) - rank(b.id));
-  }, [courses]);
+  // Formations gratuites publiées, dans l'ordre choisi en admin (landing_position).
+  const freeCourses = useMemo(() => sortFreeCourses(
+    courses.filter((course) => course.access_type === "gratuit" && !HIDDEN_FREE_COURSE_IDS.has(course.id)),
+  ), [courses]);
   const paidCourses = useMemo(() => courses.filter((course) => course.access_type === "payant" && course.is_featured).slice(0, 3), [courses]);
 
   useEffect(() => { supabase.auth.getSession().then(({ data: { session } }) => { if (session) navigate("/espace-apprenant"); }); }, [navigate]);

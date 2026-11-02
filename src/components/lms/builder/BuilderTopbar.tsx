@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Menu, ArrowLeft, Eye, ImageIcon, Mic, FileText, History } from "lucide-react";
+import { Menu, ArrowLeft, Eye, ImageIcon, Mic, FileText, History, AudioLines } from "lucide-react";
 import { LmsLesson, useCourse, useUpdateCourse } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/useConfirm";
 import { fetchEmptyLessonsForCourse, deleteLessonsByIds } from "@/services/lms-blocks";
 import BulkImageUploadDialog from "./BulkImageUploadDialog";
 import BulkAudioUploadDialog from "./BulkAudioUploadDialog";
+import CourseAudiosDialog from "./CourseAudiosDialog";
 import TranscriptImportDialog from "./TranscriptImportDialog";
 import LessonVersionsDialog from "./LessonVersionsDialog";
 
@@ -29,6 +30,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
   const qc = useQueryClient();
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [audioDialogOpen, setAudioDialogOpen] = useState(false);
+  const [audiosListOpen, setAudiosListOpen] = useState(false);
   const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
   const [versionsDialogOpen, setVersionsDialogOpen] = useState(false);
 
@@ -191,6 +193,15 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
         </button>
         <button
           type="button"
+          title="Audios du cours (statuts et transcriptions)"
+          onClick={() => setAudiosListOpen(true)}
+          className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5"
+          style={{ color: "var(--st-ink)" }}
+        >
+          <AudioLines size={16} />
+        </button>
+        <button
+          type="button"
           title="Construire des leçons à partir d'un transcript"
           onClick={() => setTranscriptDialogOpen(true)}
           className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5"
@@ -239,6 +250,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
         onClose={() => setAudioDialogOpen(false)}
         courseId={courseId}
       />
+      <CourseAudiosDialog open={audiosListOpen} onClose={() => setAudiosListOpen(false)} courseId={courseId} />
       <TranscriptImportDialog
         open={transcriptDialogOpen}
         onClose={() => setTranscriptDialogOpen(false)}

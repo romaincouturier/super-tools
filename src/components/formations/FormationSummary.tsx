@@ -12,6 +12,7 @@ interface FormationSummaryProps {
   formationFormulas: FormationFormula[];
   selectedFormulaId: string;
   countParticipants: () => number;
+  followupAmount?: number;
 }
 
 export default function FormationSummary({
@@ -23,6 +24,7 @@ export default function FormationSummary({
   formationFormulas,
   selectedFormulaId,
   countParticipants,
+  followupAmount = 0,
 }: FormationSummaryProps) {
   if (!formationDemandee) return null;
 
@@ -30,7 +32,7 @@ export default function FormationSummary({
   if (!config) return null;
 
   const activeFormula = formationFormulas.find(f => f.id === selectedFormulaId);
-  const prixUnitaire = activeFormula?.prix ?? config.prix;
+  const prixUnitaire = (activeFormula?.prix ?? config.prix) + followupAmount;
   const nbParticipants = countParticipants();
   const prixFormation = prixUnitaire * nbParticipants;
   const showBoth = typeSubrogation === "les2";

@@ -112,6 +112,35 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Loom</CardTitle>
+          <CardDescription>
+            Récupération automatique des transcripts de tes vidéos Loom, chaque heure.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="loom-session-cookie">Cookie de session Loom</Label>
+            <Input
+              id="loom-session-cookie"
+              type="password"
+              value={isDemoMode && settings.loom_session_cookie ? maskApiKey(settings.loom_session_cookie) : (settings.loom_session_cookie || "")}
+              onChange={(e) => updateSetting("loom_session_cookie", e.target.value)}
+              readOnly={isDemoMode}
+              placeholder="connect.sid=s%3A..."
+            />
+            <p className="text-xs text-muted-foreground">
+              Loom n'a pas d'API publique : l'accès passe par le cookie de ta session. Dans Chrome, ouvre
+              {" "}<code>loom.com</code> connecté, puis F12 → onglet <em>Application</em> → <em>Cookies</em> →
+              {" "}<code>https://www.loom.com</code> → ligne <code>connect.sid</code> → copie la valeur ici.
+              À refaire environ tous les 30 jours : quand il expire, l'indicateur Loom de la page Transcripts
+              passe en erreur.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Google Drive — Dossiers de polling</CardTitle>
           <CardDescription>IDs des dossiers Google Drive surveillés automatiquement pour les transcripts vidéo et les témoignages.</CardDescription>
         </CardHeader>

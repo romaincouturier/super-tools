@@ -1,0 +1,1 @@
+ALTER TABLE public.transcript_ai_prompts ALTER COLUMN model SET DEFAULT 'claude-sonnet-5-5';

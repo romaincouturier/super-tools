@@ -82,9 +82,12 @@ import {
   createLmsAssignment,
   readLmsQuiz,
   updateLmsLesson,
+  updateLmsCourse,
   getLmsBlockCatalog,
   listLessonVersions,
   listLmsCourses,
+  listLmsCourseAudios,
+  readLmsAudioTranscript,
   listLmsLessons,
   readLmsLesson,
   restoreLessonVersion,
@@ -93,9 +96,16 @@ import {
 import { createDraftQuote, type CustomerInput, type QuoteLineInput } from "../_shared/pennylane-quotes.ts";
 import {
   listWatchItems,
+  listWatchSources,
+  proposeWatchSource,
   saveWatchItem,
+  updateWatchSource,
   WATCH_BODY_MAX_CHARS,
   WATCH_COMMENT_MAX_CHARS,
+  WATCH_SOURCE_EXPERTS,
+  WATCH_SOURCE_LANGUAGES,
+  WATCH_SOURCE_STATUSES,
+  WATCH_SOURCE_TYPES,
   WATCH_TAGS_MAX,
 } from "../_shared/watch-tools.ts";
 import {
@@ -150,6 +160,11 @@ import {
  *   - save_watch_item        : écriture additive — dépose un contenu de veille
  *                           (lien, résumé, commentaire, tags) dans le module
  *                           Veille, doublons refusés
+ *   - list_watch_sources     : registre des sources de veille (par expert,
+ *                           statut, type, langue)
+ *   - propose_watch_source   : propose une source (statut « proposed »,
+ *                           doublon d'URL refusé)
+ *   - update_watch_source    : statut, utilité, notes d'une source
  *   - create_quote        : écriture externe — crée un devis en BROUILLON
  *                           dans Pennylane. Aucun envoi, aucune validation,
  *                           aucune transformation en facture.
@@ -340,8 +355,8 @@ QUEL OUTIL POUR QUELLE QUESTION
 - Client, mission, formation, devis, évaluation : get_client_dossier, get_mission_dossier, read_mission_documents, search_content.
 - État général de l'activité (formations, taux d'évaluation, pipeline sur 30 jours) : get_business_health.
 - Conférence, salon, CFP, réécriture d'un pitch déjà soumis : get_event_history. Il rend le pitch (description), les notes de préparation, le bilan (summary_notes) et l'issue déduite. Ne jamais annoncer qu'un événement a été « accepté » : le modèle ne stocke que held / not_selected / cancelled / upcoming, et le refus se lit sur cancellation_reason.
-- Veille (articles, podcasts, sorties produit suivis par SuperTilt) : list_watch_items pour lire ce qui est déjà couvert, save_watch_item pour y déposer un nouveau contenu.
-- LMS (cours en ligne) : list_lms_courses donne les cours ; list_lms_lessons les leçons d'un cours (avec leur module) ; read_lms_lesson renvoie les blocs avec leur empreinte ; list_lms_block_types catalogue les types de blocs pédagogiques et leur pertinence ; create_lms_lesson crée une leçon vide dans un module ; update_lms_block modifie un seul bloc texte/HTML sans changer son type ; apply_lesson_restructure remplace les blocs de contenu d'une leçon après validation humaine ; list_lesson_versions et restore_lesson_version gèrent l'historique. Utiliser read_lms_lesson avant toute proposition de restructuration pour obtenir l'empreinte (fingerprint) exacte.
+- Veille (articles, podcasts, sorties produit suivis par SuperTilt) : list_watch_items pour lire ce qui est déjà couvert, save_watch_item pour y déposer un nouveau contenu. Le registre des sources se gère avec list_watch_sources (quelles sources suivre), propose_watch_source (nouvelle source, statut « proposed », doublon d'URL refusé) et update_watch_source (statut, utilité, notes).
+- LMS (cours en ligne) : list_lms_courses donne les cours ; list_lms_lessons les leçons d'un cours (avec leur module) ; list_lms_course_audios les enregistrements audio d'un cours et leur statut, read_lms_audio_transcript leur transcription intégrale ; read_lms_lesson renvoie les blocs avec leur empreinte ; list_lms_block_types catalogue les types de blocs pédagogiques et leur pertinence ; create_lms_lesson crée une leçon vide dans un module ; update_lms_block modifie un seul bloc texte/HTML sans changer son type ; apply_lesson_restructure remplace les blocs de contenu d'une leçon après validation humaine ; list_lesson_versions et restore_lesson_version gèrent l'historique. Utiliser read_lms_lesson avant toute proposition de restructuration pour obtenir l'empreinte (fingerprint) exacte.
 - Picto-Dico : le backlog des mots demandés par les visiteurs est la table pictodico_words (query_database) ; check_picto_entries vérifie si des mots y existent déjà ; add_picto_requests y ajoute des demandes (un mot déjà présent incrémente request_count). La liste des pictos publiés n'est PAS dans SuperTools.
 - query_database reste disponible pour tout le reste (SELECT, allowlist de tables) mais les outils agrégés ci-dessus sont plus fiables que du SQL improvisé.
 
@@ -360,7 +375,7 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - update_mission_activity : corrige une activité existante à partir de son id (listé par get_mission_dossier). Seuls les champs transmis sont modifiés ; aucune activité ne peut être supprimée ni déplacée vers une autre mission.
 - update_event : modifie un événement (summary_notes = note de synthèse, notes, description, statut, date, horaires, lieu, liens). Seuls les champs transmis changent ; renvoie l'avant/après.
 - update_order_item : annote une ligne de commande de jeux (notes, kanban_status, remise en main propre, date d'expédition confirmée). Seuls les champs transmis changent ; renvoie l'avant/après.
-- update_mission : modifie titre, statut, dates de début/fin, montant initial ou contact client d'une mission. Seuls les champs transmis changent ; renvoie l'avant/après.
+- update_mission : modifie titre, statut, dates de début/fin, montant initial, contact client, ou l'indicateur « Facture à émettre » (invoice_to_issue + texte et montant optionnels, distinct de la prochaine action) d'une mission. Seuls les champs transmis changent ; renvoie l'avant/après.
 - save_watch_item : dépose un contenu dans le module Veille (un contenu par appel : lien de la source, résumé dans body, angle dans comment, 2 à 5 tags). Écriture additive, doublons refusés : même URL déjà présente ou contenu sémantiquement quasi identique, l'appel ne crée rien et rend l'élément existant.
 - create_quote : crée un devis en BROUILLON dans Pennylane (comptabilité SuperTilt). Aucun envoi au client, aucune validation, aucune transformation en facture n'est possible depuis ici : le brouillon reste à relire et à envoyer manuellement dans Pennylane.
 - create_content_card : dépose une carte (idée ou article rédigé) dans le kanban éditorial, au stade choisi (colonne, « Idées » par défaut), avec titre, contenu et thèmes. Écriture additive. Réutiliser les thèmes existants (list_content_board) plutôt que d'en inventer.
@@ -368,6 +383,7 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - prepare_newsletter : compose le sommaire ordonné d'une newsletter en BROUILLON (création du brouillon ou reprise d'un brouillon existant), à partir de cartes existantes et/ou de nouveaux contenus créés au passage. Remplace le sommaire du brouillon visé uniquement ; refuse toute newsletter déjà envoyée. Aucun envoi n'est possible d'ici : ne jamais prétendre avoir envoyé une newsletter. Récapituler le sommaire et obtenir l'accord de l'utilisateur avant d'écraser le sommaire d'un brouillon existant.
 - update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre « type » doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
 - create_lms_quiz / create_lms_assignment : créent un quiz (avec ses questions) ou un devoir dans un cours et renvoient le bloc prêt à insérer ({type:"quiz",content:{quiz_id}} ou {type:"assignment",content:{assignment_id}}). Créer d'abord le quiz/devoir, puis référencer son id dans apply_lesson_restructure ou create_lms_lesson. read_lms_quiz relit un quiz.
+- update_lms_course : modifie uniquement l'image de couverture (URL https) et l'ordre sur la landing Academy (landing_position) d'un cours. Annoncer le changement.
 - update_lms_lesson : modifie uniquement titre, durée estimée, position dans le module ou caractère obligatoire d'une leçon, sans toucher aux blocs. Annoncer le changement à l'utilisateur.
 - create_lms_lesson : crée une leçon dans un module, avec éventuellement ses blocs de contenu initiaux (paramètre « blocks », même schéma que apply_lesson_restructure). Position facultative : si elle est fournie, les leçons suivantes du module sont décalées d'un rang. Écriture additive : aucune leçon existante n'est modifiée dans son contenu. Retourne l'id et l'empreinte de la leçon créée.
 - apply_lesson_restructure : remplace TOUS les blocs de premier niveau d'une leçon par une nouvelle structure proposée. Tous les types du menu « Ajouter un bloc » sont acceptés : blocs de contenu (texte, tableau, encadré, points clés, liste, checklist, synthèse, accordéon, frise, cartes à retourner, code, exercice, auto-évaluation, texte à trous, mots à glisser, quiz, devoir, dépôt de travail, vidéo, image, galerie, fichier, image interactive, avant/après, bouton, CTA, intégration HTML, shortcode) et blocs de mise en page (section, colonnes, conteneur, contenu progressif, séparateur, espace) qui peuvent porter un tableau « children » de blocs de contenu (un seul niveau d'imbrication). EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
@@ -649,7 +665,7 @@ const MCP_TOOLS = [
   {
     name: "update_mission",
     description:
-      "Update the main fields of an existing mission in SuperTools. Pass the mission id and only the fields to change: everything else is left untouched (null clears a date, amount or contact). Editable: title, status, start_date, end_date, initial_amount, client_name, client_contact, waiting_next_action_text, waiting_next_action_date (the scheduled next action shown in the daily recap). Cannot delete a mission. The answer returns the mission before and after the change.",
+      "Update the main fields of an existing mission in SuperTools. Pass the mission id and only the fields to change: everything else is left untouched (null clears a date, amount or contact). Editable: title, status, start_date, end_date, initial_amount, client_name, client_contact, waiting_next_action_text, waiting_next_action_date (the scheduled next action shown in the daily recap), invoice_to_issue (flag 'Facture à émettre' for an intermediate invoice, listed in the daily recap under Factures à émettre and cleared automatically once an invoice number is recorded on an activity) with optional invoice_to_issue_note and invoice_to_issue_amount. Cannot delete a mission. The answer returns the mission before and after the change.",
     inputSchema: {
       type: "object",
       properties: {
@@ -663,6 +679,9 @@ const MCP_TOOLS = [
         client_contact: { type: ["string", "null"], description: "Client contact (free text)" },
         waiting_next_action_text: { type: ["string", "null"], description: "Scheduled next action text, or null to clear" },
         waiting_next_action_date: { type: ["string", "null"], description: "Scheduled next action date YYYY-MM-DD, or null to clear" },
+        invoice_to_issue: { type: "boolean", description: "true flags 'Facture à émettre' (does not touch the next action); false clears the flag, its note and amount" },
+        invoice_to_issue_note: { type: ["string", "null"], description: "Optional free text for the invoice to issue, e.g. 'acompte 50 %'" },
+        invoice_to_issue_amount: { type: ["number", "null"], description: "Optional amount in euros excl. tax to invoice" },
       },
       required: ["mission_id"],
     },
@@ -784,6 +803,63 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "list_watch_sources",
+    description:
+      "List the sources registered in the SuperTools watch module (newsletters, podcasts, YouTube channels, blogs...), with all their fields: expert, theme, type, language, url, status (proposed / to_subscribe / followed / dropped), usefulness, items_count, last_useful_at, notes. A scheduled watch agent calls this first to know which sources it must follow. Read-only.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        expert: { type: "string", enum: WATCH_SOURCE_EXPERTS, description: "Only this expert's sources" },
+        status: {
+          oneOf: [{ type: "string", enum: WATCH_SOURCE_STATUSES }, { type: "array", items: { type: "string", enum: WATCH_SOURCE_STATUSES } }],
+          description: "One or several statuses to keep (e.g. ['followed', 'to_subscribe'])",
+        },
+        type: { type: "string", enum: WATCH_SOURCE_TYPES, description: "Only this kind of source" },
+        language: { type: "string", enum: WATCH_SOURCE_LANGUAGES, description: "Only this language" },
+        search: { type: "string", description: "Case-insensitive filter on name, theme and rationale" },
+        limit: { type: "number", description: "Number of sources (default 100, max 500)" },
+      },
+    },
+  },
+  {
+    name: "propose_watch_source",
+    description:
+      "Propose a new source in the watch module registry, created with status « proposed » (a human validates it in the Sources tab before it is followed). Pass the expert it belongs to, its name, type, language, the absolute http(s) url, why it is worth following and how to follow it. DUPLICATES: if the normalized URL is already registered, nothing is created and the existing source is returned (saved: false, reason: 'duplicate') — same behaviour as save_watch_item.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        expert: { type: "string", enum: WATCH_SOURCE_EXPERTS, description: "The watch expert this source belongs to" },
+        theme: { type: "string", description: "Short theme label (max 160 chars), e.g. 'IA générative pour la formation'" },
+        name: { type: "string", description: "Source name, e.g. 'Newsletter Lenny'" },
+        type: { type: "string", enum: WATCH_SOURCE_TYPES },
+        language: { type: "string", enum: WATCH_SOURCE_LANGUAGES },
+        url: { type: "string", description: "Absolute http(s) URL of the source (normalized before comparison)" },
+        why: { type: "string", description: "Why this source is worth following" },
+        how_to_follow: { type: "string", description: "How to follow it (RSS, subscription, manual check...)" },
+        proposed_by: { type: "string", description: "Who proposes it (agent or person name)" },
+      },
+      required: ["expert", "name", "type", "language", "url"],
+    },
+  },
+  {
+    name: "update_watch_source",
+    description:
+      "Update a source of the watch registry, located by id or by url. Modifiable fields: status (proposed / to_subscribe / followed / dropped), usefulness (1-5), notes, theme, last_useful_at, items_count. Only the provided fields are changed.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Source id (provide id or url)" },
+        url: { type: "string", description: "Source URL, normalized before lookup (provide id or url)" },
+        status: { type: "string", enum: WATCH_SOURCE_STATUSES },
+        usefulness: { type: "number", description: "Usefulness rating, integer 1 to 5" },
+        notes: { type: "string", description: "Free notes" },
+        theme: { type: "string", description: "Short theme label (max 160 chars)" },
+        last_useful_at: { type: "string", description: "ISO timestamp of the last useful item from this source" },
+        items_count: { type: "number", description: "Number of watch items produced by this source" },
+      },
+    },
+  },
+  {
     name: "get_seo_performance",
     description:
       "Google Search Console performance for the SuperTilt site, read from SuperTools' own history (synced daily, kept beyond Google's 16-month retention). Returns totals, the day-by-day series, the breakdown for one dimension, AND the comparison with the previous period of the same length (deltas per row). Use this for any question about search visibility, keywords, landing pages, countries, devices or rich results. Always check data_coverage: it states how far back the history actually goes.",
@@ -874,10 +950,35 @@ const MCP_TOOLS = [
   {
     name: "refresh_transcripts",
     description:
-      "Fetch new call transcripts from Google Drive and/or Fireflies now (same as the 'Forcer' buttons on the Transcripts page). Drive audio is transcribed asynchronously, so new items can take a few minutes to appear.",
+      "Fetch new call transcripts from Google Drive, Fireflies and/or Loom now (same as the 'Forcer' buttons on the Transcripts page). Drive audio is transcribed asynchronously, so new items can take a few minutes to appear.",
     inputSchema: {
       type: "object",
-      properties: { source: { type: "string", enum: ["google_drive", "fireflies", "all"], description: "Default 'all'" } },
+      properties: { source: { type: "string", enum: ["google_drive", "fireflies", "loom", "all"], description: "Default 'all'" } },
+    },
+  },
+  {
+    name: "list_testimonial_requests",
+    description:
+      "List signals 'ask for a review / testimonial' (Google review, recommendation, written or video testimonial) to write by hand for a contact, with mission id/title. Default status todo. Use read tools on the mission for context, then mark_testimonial_request.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: ["todo", "done", "dismissed"], description: "Default todo" },
+        mission_id: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "mark_testimonial_request",
+    description: "Mark a testimonial request as done (request sent by hand) or dismissed, with an optional note. Returns before/after.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        status: { type: "string", enum: ["done", "dismissed", "todo"] },
+        note: { type: "string" },
+      },
+      required: ["id", "status"],
     },
   },
   {
@@ -1081,7 +1182,7 @@ const MCP_TOOLS = [
   {
     name: "mark_opportunity_won",
     description:
-      "Mark ONE CRM opportunity as won, as the « Gagné » column does in the interface: sales_status WON, won_at (signature date, defaults to today), optional final amount (euros HT, updates estimated_value), optional quote reference and comment added to the discussion thread, and an activity log entry. With create_mission=true and no linked mission yet, also creates a « À démarrer » mission (title, client, amount) linked to the card; ask the user before setting it. The response suggests creating the mission when the opportunity is of type mission. CALL ONLY AFTER the user has said this specific opportunity is won. Identify by card_id, or search (ambiguous searches return candidates without writing). An opportunity already won is left untouched.",
+      "Mark ONE CRM opportunity as won, as the « Gagné » column does in the interface: sales_status WON, won_at (signature date, defaults to today), optional final amount (euros HT, updates estimated_value), optional quote reference and comment added to the discussion thread, and an activity log entry. For an opportunity of type mission, a « À démarrer » mission (title, client, amount, primary contact, checklist, history page) is created and linked by default, as the interface does; pass create_mission=false to skip. For other types, create_mission=true forces it. If the card is already won without a linked mission, create_mission=true (or type mission) creates the missing mission. CALL ONLY AFTER the user has said this specific opportunity is won. Identify by card_id, or search (ambiguous searches return candidates without writing). An opportunity already won is left untouched.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1091,7 +1192,7 @@ const MCP_TOOLS = [
         amount: { type: "number", description: "Final signed amount in euros HT" },
         quote_reference: { type: "string", description: "Signed quote reference, e.g. D-2026-10127" },
         comment: { type: "string", description: "Optional comment added to the opportunity thread" },
-        create_mission: { type: "boolean", description: "Create and link a mission when none is linked (ask the user first)" },
+        create_mission: { type: "boolean", description: "Create and link a mission when none is linked. Defaults to true for opportunities of type mission; false to skip." },
       },
     },
   },
@@ -1106,6 +1207,30 @@ const MCP_TOOLS = [
         page: { type: "number", description: "Page number (default 1)" },
         limit: { type: "number", description: "Page size (default 25, max 100)" },
       },
+    },
+  },
+  {
+    name: "list_lms_course_audios",
+    description:
+      "Read-only. List the audio recordings uploaded to an LMS course (duplicate copies grouped), with status (pending, transcribed, processed = produced lesson blocks, error), duration, transcript length, and linked blocks/lessons.",
+    inputSchema: {
+      type: "object",
+      properties: { course_id: { type: "string", description: "UUID of the course" } },
+      required: ["course_id"],
+    },
+  },
+  {
+    name: "read_lms_audio_transcript",
+    description:
+      "Read-only. Return the full transcript of an LMS course audio (media_id from list_lms_course_audios). Paginated by characters: pass next_offset as offset to continue.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        media_id: { type: "string", description: "UUID of the audio media" },
+        offset: { type: "number", description: "Character offset (default 0)" },
+        limit: { type: "number", description: "Max characters (default 50000, max 100000)" },
+      },
+      required: ["media_id"],
     },
   },
   {
@@ -1217,6 +1342,19 @@ const MCP_TOOLS = [
         max_file_size_mb: { type: "number" },
       },
       required: ["course_id", "title"],
+    },
+  },
+  {
+    name: "update_lms_course",
+    description:
+      "Update the Academy display settings of an LMS course. Allowed patch fields: cover_image_url (https URL of a 16:9 image, 1200x675 recommended, or null to remove), landing_position (integer >= 1 = order in the 'Commencez gratuitement' section of the Academy landing for free published courses; null = end of list, sorted by creation date). Any other field is rejected. Returns the course and before/after values of changed fields.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        course_id: { type: "string" },
+        patch: { type: "object", description: "e.g. {\"landing_position\": 1, \"cover_image_url\": \"https://...\"}" },
+      },
+      required: ["course_id", "patch"],
     },
   },
   {
@@ -1463,13 +1601,16 @@ const MCP_TOOLS = [
   },
   {
     name: "enroll_lms_learner",
-    description: "Open access to an e-learning course (lms_enrollments) for one email or a list of emails, without going through a training session. No email is sent. Without confirm=true it only returns a preview (to enroll, already enrolled, invalid emails) and writes nothing; call again with confirm=true after explicit user approval. Logged in activity history.",
+    description: "Open access to an e-learning course (lms_enrollments) for one email or a list of emails, and optionally set or change the learner's formula (e.g. Solo, Communauté, Coaché). The preview lists available_formulas, linked_sessions and current_formulas. Like in the app, the formula is stored on the learner's participation in a session linked to the course: an already-participant learner gets their formula (and coaching sessions count) updated; a learner who is not yet participant must be added with add_training_participant (training_id + formula_name). No email is sent unless send_access_email=true (sends the 'Accéder à votre espace SuperTools' email). Without confirm=true it only returns a preview and writes nothing; call again with confirm=true after explicit user approval. Access, formula changes and emails are logged in activity history.",
     inputSchema: {
       type: "object",
       properties: {
         course_id: { type: "string" },
         email: { type: "string" },
         emails: { type: "array", items: { type: "string" }, description: "Up to 200 emails" },
+        formula: { type: "string", description: "Formula name or id among available_formulas (works for already enrolled learners too)" },
+        training_id: { type: "string", description: "Linked session holding the formula, required if the learner is participant of several linked sessions" },
+        send_access_email: { type: "boolean", description: "Send the learner-space access email. Default false." },
         confirm: { type: "boolean" },
       },
       required: ["course_id"],
@@ -1908,6 +2049,71 @@ async function callTool(
         return textResult(`Watch error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "list_watch_sources": {
+      try {
+        return textResult(
+          await listWatchSources(
+            supabase,
+            {
+              expert: args.expert as string | undefined,
+              status: args.status as string | string[] | undefined,
+              type: args.type as string | undefined,
+              language: args.language as string | undefined,
+              search: args.search as string | undefined,
+              limit: args.limit as number | undefined,
+            },
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Watch error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "propose_watch_source": {
+      try {
+        return textResult(
+          await proposeWatchSource(
+            supabase,
+            {
+              expert: args.expert as string | undefined,
+              theme: args.theme as string | undefined,
+              name: args.name as string | undefined,
+              type: args.type as string | undefined,
+              language: args.language as string | undefined,
+              url: args.url as string | undefined,
+              why: args.why as string | undefined,
+              how_to_follow: args.how_to_follow as string | undefined,
+              proposed_by: args.proposed_by as string | undefined,
+            },
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Watch error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_watch_source": {
+      try {
+        return textResult(
+          await updateWatchSource(
+            supabase,
+            {
+              id: args.id as string | undefined,
+              url: args.url as string | undefined,
+              status: args.status as string | undefined,
+              usefulness: args.usefulness as number | undefined,
+              notes: args.notes as string | undefined,
+              theme: args.theme as string | undefined,
+              last_useful_at: args.last_useful_at as string | undefined,
+              items_count: args.items_count as number | undefined,
+            },
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Watch error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "create_quote": {
       try {
         const quote = await createDraftQuote(
@@ -2032,6 +2238,29 @@ async function callTool(
       } catch (e) {
         return textResult(`Card error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
+    }
+    case "list_testimonial_requests": {
+      let q = (supabase as any).from("testimonial_requests")
+        .select("id, status, contact_name, contact_email, mission_id, note, done_at, created_at, missions(title, client_name)")
+        .eq("status", (args.status as string) || "todo").order("created_at").limit(200);
+      if (args.mission_id) q = q.eq("mission_id", args.mission_id);
+      const { data, error } = await q;
+      if (error) return textResult(`Error: ${error.message}`, true);
+      await log("list_testimonial_requests");
+      return textResult(JSON.stringify(data));
+    }
+    case "mark_testimonial_request": {
+      const status = args.status as string;
+      if (!["done", "dismissed", "todo"].includes(status)) return textResult("Invalid status", true);
+      const { data: before } = await (supabase as any).from("testimonial_requests").select("*").eq("id", args.id).maybeSingle();
+      if (!before) return textResult("Request not found", true);
+      const now = new Date().toISOString();
+      const patch: Record<string, unknown> = { status, updated_at: now, done_at: status === "todo" ? null : now };
+      if (typeof args.note === "string") patch.note = args.note;
+      const { data: after, error } = await (supabase as any).from("testimonial_requests").update(patch).eq("id", args.id).select("*").single();
+      if (error) return textResult(`Error: ${error.message}`, true);
+      await log("mark_testimonial_request");
+      return textResult(JSON.stringify({ before, after }));
     }
     case "list_unassigned_transcripts": {
       try {
@@ -2173,7 +2402,7 @@ async function callTool(
             amount: typeof args.amount === "number" ? args.amount : undefined,
             quote_reference: (args.quote_reference as string) || undefined,
             comment: (args.comment as string) || undefined,
-            create_mission: args.create_mission === true,
+            create_mission: typeof args.create_mission === "boolean" ? args.create_mission : undefined,
           },
           log,
           ALLOWED_EMAIL,
@@ -2318,6 +2547,26 @@ async function callTool(
         return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "list_lms_course_audios": {
+      try {
+        await log("list_lms_course_audios");
+        return textResult(JSON.stringify(await listLmsCourseAudios((args.course_id as string) || "")));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "read_lms_audio_transcript": {
+      try {
+        await log("read_lms_audio_transcript");
+        return textResult(JSON.stringify(await readLmsAudioTranscript(
+          (args.media_id as string) || "",
+          (args.offset as number | undefined) ?? 0,
+          (args.limit as number | undefined) ?? 50000,
+        )));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "list_lms_lessons": {
       try {
         await log("list_lms_lessons");
@@ -2400,6 +2649,14 @@ async function callTool(
           maxFileSizeMb: args.max_file_size_mb as number | undefined,
         });
         return textResult(JSON.stringify(result));
+      } catch (e) {
+        return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_lms_course": {
+      try {
+        await log("update_lms_course");
+        return textResult(JSON.stringify(await updateLmsCourse((args.course_id as string) || "", args.patch)));
       } catch (e) {
         return textResult(`LMS error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
@@ -2526,7 +2783,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools", version: "1.15.0" },
+        serverInfo: { name: "supertools", title: "SuperTools", version: "1.16.0" },
         instructions: SERVER_INSTRUCTIONS,
       });
     }

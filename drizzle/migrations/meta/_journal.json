@@ -50,6 +50,97 @@
       "when": 1791962700161,
       "tag": "0006_lms_upcoming_sessions_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791990385329,
+      "tag": "0007_lms_courses_landing_position",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792096556757,
+      "tag": "0008_testimonial_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792100528339,
+      "tag": "0009_lms_audio_archives",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792101330999,
+      "tag": "0010_migration",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792169212319,
+      "tag": "0011_mission_invoice_flag",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792423660094,
+      "tag": "0012_lms_audio_transcript_traceability",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792423945849,
+      "tag": "0013_media_transcription_status_lms_values",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793082492219,
+      "tag": "0014_support_tickets_learner_insert",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793085379947,
+      "tag": "0015_watch_source_registry",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793291583034,
+      "tag": "0016_quote_training_followup",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793382724217,
+      "tag": "0017_change_default_model_transcript_ai_prompts",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793638398360,
+      "tag": "0018_cold_evaluations_participant_and_reminders",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793641025621,
+      "tag": "0019_loom_transcripts",
+      "breakpoints": true
     }
   ]
 }

@@ -81,6 +81,7 @@ export default function FormationFormSection(props: FormationFormSectionProps) {
           setLieuAutre={props.setLieuAutre}
         />
       )}
+      {props.followupBlock}
       <FormationOptions
         includeCadeau={props.includeCadeau}
         setIncludeCadeau={props.setIncludeCadeau}
@@ -99,6 +100,7 @@ export default function FormationFormSection(props: FormationFormSectionProps) {
         formationFormulas={props.formationFormulas}
         selectedFormulaId={props.selectedFormulaId}
         countParticipants={props.countParticipants}
+        followupAmount={props.followupAmount}
       />
     </div>
   );

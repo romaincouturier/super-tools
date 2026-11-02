@@ -1,5 +1,33 @@
 # Roadmap
 
+## Envoi des documents Agirc-Arrco (2026-10-29)
+- [x] Empêcher les doubles soumissions pendant la préparation et l’envoi
+- [x] Vérifier les signatures formateur et bloquer les envois incomplets
+- [x] Inclure les attestations dans « Tous les documents » sans emails de génération supplémentaires
+- [x] 22 tests réussis ; rappel vérifié avec le compte demandeur et signatures manquantes simulées ; fonctions déployées, refus 401/400 vérifiés en réel sans email. Envoi complet réel non rejoué.
+
+## Erreurs des fonctions et documents formation (2026-10-29)
+- [x] Diagnostiquer les erreurs récentes : convention globale expirée sur AI4Product, session inter, régénération refusée sans participant
+- [x] Contrôler la disponibilité de toutes les fonctions sans déclencher leurs actions : 246/246 répondent aux pré-vérifications OPTIONS
+- [x] Bloquer le téléchargement de convention globale obsolète en inter : contrôle authentifié sur AI4Product et 27 tests ciblés réussis ; aucun email envoyé
+- [ ] Envoi « Envoyer les documents » APICIL : aucune formation APICIL trouvée, aucune réponse HTTP d’erreur sur les envois sur 7 jours ; lien exact requis pour reproduire, ne pas rejouer un envoi à l’aveugle
+
+## Registre des sources de veille (2026-10-27)
+- [x] Données, URL canonique unique et rattachement des fiches
+- [x] Onglet Sources, filtres, validation, utilité et ajout manuel
+- [ ] Trois outils MCP, descriptions et nouvelle version : bloqués, aucune procédure compatible confirmée pour étendre le serveur historique sans migration implicite ; serveur inchangé (1.15.0)
+- [x] 8 tests SQL/métier ; ajout, changements de statut, note persistée après rechargement, doublon et recherche vérifiés avec le compte demandeur ; vues ordinateur/mobile contrôlées ; source temporaire supprimée
+
+## Récap quotidien (2026-10-15)
+- [x] Rubrique « Missions sans prochaine action » après « Missions — Actions à traiter »
+- [x] Avis missions : signaux au lieu d’emails, file des 21 convertie, écran « Avis à demander », outils MCP
+- [ ] Avis formations (emails automatiques par participant) : en attente de décision
+
+## Couverture des cours LMS (2026-10-14)
+- [x] Import PNG/JPG/WebP, maximum 5 Mo, aperçu 16:9, remplacement et suppression
+- [ ] Mise à jour partielle de cover_image_url depuis le MCP : bloquée, le serveur existant utilise une ancienne intégration et l’outil requis d’extraction du manifeste n’est pas disponible dans cette session ; aucune modification du serveur ni de son authentification
+- [x] 38 tests ciblés réussis ; parcours authentifié import/enregistrement/rechargement/suppression vérifié sur un cours temporaire, aperçu desktop/mobile vérifié, données de test nettoyées
+
 ## Blocs LMS (2026-10-09)
 - [x] Équilibrer la grille des cartes : desktop 3 colonnes (2 pour 2/4 cartes), tablette 2, mobile 1, dernière ligne centrée
 - [x] Agrandir cartes/images et rendre la frise interactive dans les deux vues
@@ -22,3 +50,17 @@
 
 - [x] Location : relances signature J+3/J+7, badge À expédier, bouton Jeu expédié
 - [x] Relance questionnaire : prénom, bouton, apostrophes corrigés
+
+- [ ] Avis/témoignages formations : google_review, evaluation_reminder et video_testimonial à 1 jour d intervalle saturent les participants (cas Abobkar Benabdellaoui, refus explicite). A intégrer à la refonte en signaux.
+- [x] CRM Corse 829e60ef : créer mission liée
+- [x] MCP mark_opportunity_won : create_mission par défaut pour missions + création si déjà WON sans mission
+- [x] Audit cartes WON mission sans mission liée
+
+## Évaluations à froid (2026-11-02)
+- [x] Doublons commanditaire corrigés + protection en base
+- [x] Session sans email commanditaire : raison enregistrée, affichée, envoi auto dès l'email connu (AI4Product : commanditaire unique des participants)
+- [x] Classes virtuelles : un envoi par commanditaire distinct
+- [x] Un seul jeton par destinataire et session
+- [x] Relance unique à 3 jours ouvrés, annulée si réponse
+- [x] Questionnaire participant natif à 30 jours ouvrés
+- [x] Suivi sur la fiche formation et la page Évaluations, action d'amélioration, analyse IA
