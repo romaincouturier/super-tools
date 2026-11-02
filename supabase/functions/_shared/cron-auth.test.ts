@@ -12,13 +12,28 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // verifyAuth vit dans supabase-client.ts qui importe le SDK depuis une URL
 // esm.sh ; on le mocke pour tester isInternalOrAuthenticated sans charger cette
 // dépendance (l'import dynamique dans cron-auth.ts est intercepté par ce mock).
-const { verifyAuthMock } = vi.hoisted(() => ({ verifyAuthMock: vi.fn() }));
-vi.mock("./supabase-client.ts", () => ({ verifyAuth: verifyAuthMock }));
+const { verifyAuthMock, adminMock } = vi.hoisted(() => ({
+  verifyAuthMock: vi.fn(),
+  adminMock: { isAdmin: false as boolean, modules: [] as unknown[], rpcError: null as unknown },
+}));
+vi.mock("./supabase-client.ts", () => ({
+  verifyAuth: verifyAuthMock,
+  getSupabaseClient: () => fakeAdmin(),
+}));
+
+function fakeAdmin() {
+  return {
+    rpc: vi.fn(async () => ({ data: adminMock.isAdmin, error: adminMock.rpcError })),
+    from: vi.fn(() => ({
+      select: () => ({ eq: () => ({ limit: async () => ({ data: adminMock.modules, error: null }) }) }),
+    })),
+  };
+}
 
 const env: Record<string, string> = {};
 vi.stubGlobal("Deno", { env: { get: (k: string) => env[k] } });
 
-const { isInternalCall, isInternalOrAuthenticated } = await import("./cron-auth.ts");
+const { isInternalCall, isInternalOrAuthenticated, requireStaff } = await import("./cron-auth.ts");
 
 function request(headers: Record<string, string> = {}): Request {
   return new Request("https://example.test/", { method: "POST", headers });
@@ -27,6 +42,9 @@ function request(headers: Record<string, string> = {}): Request {
 beforeEach(() => {
   for (const k of Object.keys(env)) delete env[k];
   verifyAuthMock.mockReset();
+  adminMock.isAdmin = false;
+  adminMock.modules = [];
+  adminMock.rpcError = null;
 });
 
 describe("isInternalCall", () => {
@@ -97,5 +115,44 @@ describe("isInternalOrAuthenticated", () => {
     env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
     verifyAuthMock.mockResolvedValueOnce(null);
     expect(await isInternalOrAuthenticated(request({ Authorization: "Bearer mauvais" }))).toBe(false);
+  });
+});
+
+describe("requireStaff", () => {
+  const withJwt = () => request({ Authorization: "Bearer user-jwt" });
+
+  it("refuse un anonyme", async () => {
+    verifyAuthMock.mockResolvedValueOnce(null);
+    expect(await requireStaff(withJwt())).toBeNull();
+  });
+
+  it("refuse un apprenant connecté (session sans droit)", async () => {
+    verifyAuthMock.mockResolvedValueOnce({ id: "learner" });
+    expect(await requireStaff(withJwt())).toBeNull();
+  });
+
+  it("accepte un admin", async () => {
+    verifyAuthMock.mockResolvedValueOnce({ id: "admin" });
+    adminMock.isAdmin = true;
+    expect(await requireStaff(withJwt())).toEqual({ id: "admin" });
+  });
+
+  it("accepte un compte avec un module", async () => {
+    verifyAuthMock.mockResolvedValueOnce({ id: "staff" });
+    adminMock.modules = [{ module: "formations" }];
+    expect(await requireStaff(withJwt())).toEqual({ id: "staff" });
+  });
+
+  it("une erreur de lecture is_admin ne vaut pas droit", async () => {
+    verifyAuthMock.mockResolvedValueOnce({ id: "u" });
+    adminMock.isAdmin = true;
+    adminMock.rpcError = { message: "boom" };
+    expect(await requireStaff(withJwt())).toBeNull();
+  });
+
+  it("le service_role en Bearer n'est pas un staff", async () => {
+    env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
+    verifyAuthMock.mockResolvedValueOnce(null);
+    expect(await requireStaff(request({ Authorization: "Bearer service-role" }))).toBeNull();
   });
 });
