@@ -1498,6 +1498,7 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   pennylane_api_token: { default: "", description: "Token API Pennylane (Bearer token v2) pour le module Finances : factures clients, fournisseurs, trésorerie" },
   fireflies_webhook_secret: { default: "", description: "Signing secret Fireflies pour valider les webhooks entrants (X-Webhook-Secret)" },
   google_drive_folder_transcripts: { default: "", description: "ID du dossier Google Drive pour les transcripts vidéo (polling automatique)" },
+  loom_session_cookie: { default: "", description: "Cookie de session Loom (connect.sid) pour la récupération automatique des transcripts, à renouveler environ tous les 30 jours" },
   google_drive_folder_testimonials: { default: "", description: "ID du dossier Google Drive pour les témoignages clients (polling automatique)" },
   sentry_dsn: { default: "", description: "DSN Sentry pour le suivi des erreurs front (laisser vide pour désactiver). Public par conception. Actif en production uniquement." },
 };
