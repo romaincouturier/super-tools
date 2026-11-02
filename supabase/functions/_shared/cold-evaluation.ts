@@ -11,6 +11,16 @@ export const COLD_EVALUATION_TYPES = [
   "participant_cold_evaluation_reminder",
 ] as const;
 
+export const COLD_EVALUATION_GO_LIVE_DATE = "2026-11-02";
+
+export function isColdEvaluationType(emailType: string): boolean {
+  return COLD_EVALUATION_TYPES.some((type) => type === emailType);
+}
+
+export function isColdEvaluationEligible(endDate?: string | null): boolean {
+  return typeof endDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(endDate) && endDate > COLD_EVALUATION_GO_LIVE_DATE;
+}
+
 export interface ColdTraining {
   format_formation?: string | null;
   sponsor_email?: string | null;
