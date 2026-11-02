@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { uploadAndGetUrl } from "@/hooks/useLmsUploads";
 import { resolveContentType } from "@/lib/file-utils";
 
 export const COURSE_COVER_ACCEPT = ".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp";
@@ -18,10 +18,5 @@ export async function uploadCourseCover(file: File, courseId: string): Promise<s
   validateCourseCover(file);
   const extension = resolveContentType(file).split("/")[1];
   const path = `images/${courseId}/cover-${crypto.randomUUID()}.${extension}`;
-  const { error } = await supabase.storage.from("lms-content").upload(path, file, {
-    contentType: resolveContentType(file),
-    upsert: false,
-  });
-  if (error) throw error;
-  return supabase.storage.from("lms-content").getPublicUrl(path).data.publicUrl;
+  return uploadAndGetUrl(path, file);
 }

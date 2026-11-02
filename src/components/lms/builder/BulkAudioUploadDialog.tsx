@@ -1,4 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
 import { useState, useRef, useCallback } from "react";
 import { Mic, Upload, ChevronDown, Loader2, CheckCircle2, AlertCircle, Layers, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ import { useCourseModules, useModuleLessons, useCourseLessons, useCreateLesson }
 import { useCreateLessonBlock } from "@/hooks/useLmsBlocks";
 import { uploadMediaFile, useAddMedia } from "@/hooks/useMedia";
 import { resolveContentType } from "@/lib/file-utils";
-import { transcribeAudio, analyzeAudioForLessons, setMediaTranscription, sha256Hex, findDuplicateAudio, type AudioSegment, type ExistingAudio } from "@/services/lmsMediaImport";
+import { transcribeAudio, analyzeAudioForLessons, setMediaTranscription, sha256Hex, findDuplicateAudio, listCourseAudios, setMediaContentHash, archiveLmsAudios, type AudioSegment } from "@/services/lmsMediaImport";
 import { createLessonBlock } from "@/services/lms-blocks";
 import type { LmsModule, LmsLesson } from "@/hooks/useLms";
 import {
@@ -202,13 +201,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
       const newItems: AudioItem[] = [];
 
       try {
-        const { data: existingRows } = await supabase
-          .from("media")
-          .select("id, file_name, file_size, file_url, content_hash, transcript, created_at")
-          .eq("source_type", "lms")
-          .eq("source_id", courseId)
-          .eq("file_type", "audio");
-        const existing = (existingRows ?? []) as ExistingAudio[];
+        const existing = await listCourseAudios(courseId);
 
         for (const file of audioFiles) {
           try {
@@ -221,7 +214,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
                 `« ${file.name} » a déjà été importé le ${when}.\n\nOK : réutiliser ce fichier${dup.transcript ? " et sa transcription" : ""}.\nAnnuler : l'ignorer.`,
               );
               if (!reuse) continue;
-              if (!dup.content_hash) await supabase.from("media").update({ content_hash: hash }).eq("id", dup.id);
+              if (!dup.content_hash) await setMediaContentHash(dup.id, hash);
               const hasText = !!dup.transcript?.trim();
               newItems.push({
                 id: crypto.randomUUID(),
@@ -246,7 +239,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
               source_type: "lms",
               source_id: courseId,
             });
-            await supabase.from("media").update({ content_hash: hash }).eq("id", media.id);
+            await setMediaContentHash(media.id, hash);
             existing.push({ id: media.id, file_name: file.name, file_size: file.size, file_url: url, content_hash: hash, transcript: null, created_at: new Date().toISOString() });
             newItems.push({
               id: crypto.randomUUID(),
@@ -268,8 +261,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
           return;
         }
 
-        // Copie lisible des originaux dans Google Drive, sans bloquer l'import
-        void supabase.functions.invoke("archive-lms-audio", { body: {} }).catch(() => undefined);
+        archiveLmsAudios();
 
         setAudios((prev) => [...prev, ...newItems]);
         setStep("transcribing");

@@ -105,6 +105,7 @@ export const EXPECTED_FUNCTIONS = [
   "process-action-reminders",
   "process-coaching-reminders",
   "process-daily-summary",
+  "process-elearning-inactivity-reminders",
   "process-elearning-start-reminders",
   "process-evaluation-submission",
   "process-event-reminders",
