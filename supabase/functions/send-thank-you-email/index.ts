@@ -17,6 +17,7 @@ import {
   personalizeSupportsLinks,
   resolveSupportsUrlBase,
 } from "../_shared/supports-url.ts";
+import { planSponsorColdEvaluations } from "../_shared/cold-evaluation.ts";
 
 // Generate a secure token for evaluation access
 async function generateEvaluationToken(): Promise<string> {
@@ -318,7 +319,7 @@ serve(async (req) => {
         "delay_google_review_days", "delay_video_testimonial_days",
         "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days",
         "delay_evaluation_reminder_1_days", "delay_evaluation_reminder_2_days",
-        "delay_follow_up_news_days",
+        "delay_follow_up_news_days", "delay_participant_cold_evaluation_days",
         "working_days"
       ]);
 
@@ -329,6 +330,7 @@ serve(async (req) => {
     let delayEvaluationReminder1 = 2;
     let delayEvaluationReminder2 = 5;
     let delayFollowUpNews = 30;
+    let delayParticipantColdEvaluation = 30;
     let workingDays = [false, true, true, true, true, true, false]; // Default: Mon-Fri
 
     delaySettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
@@ -349,6 +351,9 @@ serve(async (req) => {
       }
       if (s.setting_key === "delay_evaluation_reminder_2_days" && s.setting_value) {
         delayEvaluationReminder2 = parseInt(s.setting_value, 10) || 5;
+      }
+      if (s.setting_key === "delay_participant_cold_evaluation_days" && s.setting_value) {
+        delayParticipantColdEvaluation = parseInt(s.setting_value, 10) || 30;
       }
       if (s.setting_key === "delay_follow_up_news_days" && s.setting_value) {
         delayFollowUpNews = parseInt(s.setting_value, 10) || 30;
@@ -449,55 +454,46 @@ serve(async (req) => {
       }
     }
 
-    // For inter-enterprise trainings, schedule cold_evaluation per participant with a sponsor
-    // For intra-enterprise trainings, schedule cold_evaluation once for the training sponsor
     const isInterEntreprise = training.format_formation === "inter-entreprises" || training.format_formation === "e_learning";
 
-    if (isInterEntreprise) {
-      // Inter-enterprise: schedule per participant with sponsor_email
-      for (const participant of participants) {
-        if (participant.sponsor_email) {
-          // Check if cold_evaluation already scheduled for this participant
-          const { data: existingColdEval } = await supabase
-            .from("scheduled_emails")
-            .select("id")
-            .eq("training_id", trainingId)
-            .eq("participant_id", participant.id)
-            .eq("email_type", "cold_evaluation")
-            .single();
+    // Sponsor cold evaluation: one per distinct sponsor (see _shared/cold-evaluation.ts).
+    // A training-level row is planned even without a known sponsor email: sending
+    // records the blocking reason and retries once the email is filled in.
+    const { data: existingCold } = await supabase
+      .from("scheduled_emails")
+      .select("participant_id, email_type")
+      .eq("training_id", trainingId)
+      .in("email_type", ["cold_evaluation", "participant_cold_evaluation"])
+      .neq("status", "cancelled");
+    const coldKey = (type: string, pid: string | null) => `${type}|${pid ?? ""}`;
+    const existingColdKeys = new Set((existingCold || []).map((e: any) => coldKey(e.email_type, e.participant_id)));
+    const hasTrainingLevelSponsorCold = (existingCold || []).some((e: any) => e.email_type === "cold_evaluation");
 
-          if (!existingColdEval) {
-            const coldEvaluationDate = addWorkingDays(referenceDate, delayColdEvaluation, workingDays);
-            emailsToSchedule.push({
-              training_id: trainingId,
-              participant_id: participant.id,
-              email_type: "cold_evaluation",
-              scheduled_for: coldEvaluationDate.toISOString(),
-              status: "pending",
-            });
-          }
-        }
-      }
-    } else {
-      // Intra-enterprise: schedule once for the training sponsor (commanditaire)
-      const { data: existingColdEval } = await supabase
-        .from("scheduled_emails")
-        .select("id")
-        .eq("training_id", trainingId)
-        .eq("email_type", "cold_evaluation")
-        .eq("participant_id", null)
-        .single();
+    const sponsorPlan = planSponsorColdEvaluations(training, participants);
+    const coldEvaluationDate = addWorkingDays(referenceDate, delayColdEvaluation, workingDays).toISOString();
+    for (const pid of sponsorPlan) {
+      // Any sponsor cold evaluation already planned for this training blocks a training-level duplicate.
+      if (existingColdKeys.has(coldKey("cold_evaluation", pid)) || (pid === null && hasTrainingLevelSponsorCold)) continue;
+      emailsToSchedule.push({
+        training_id: trainingId,
+        participant_id: pid,
+        email_type: "cold_evaluation",
+        scheduled_for: coldEvaluationDate,
+        status: "pending",
+      });
+    }
 
-      if (!existingColdEval) {
-        const coldEvaluationDate = addWorkingDays(referenceDate, delayColdEvaluation, workingDays);
-        emailsToSchedule.push({
-          training_id: trainingId,
-          participant_id: null, // For training-level sponsor
-          email_type: "cold_evaluation",
-          scheduled_for: coldEvaluationDate.toISOString(),
-          status: "pending",
-        });
-      }
+    // Participant cold evaluation: every participant with an email.
+    const participantColdDate = addWorkingDays(referenceDate, delayParticipantColdEvaluation, workingDays).toISOString();
+    for (const participant of participants) {
+      if (!participant.email || existingColdKeys.has(coldKey("participant_cold_evaluation", participant.id))) continue;
+      emailsToSchedule.push({
+        training_id: trainingId,
+        participant_id: participant.id,
+        email_type: "participant_cold_evaluation",
+        scheduled_for: participantColdDate,
+        status: "pending",
+      });
     }
 
     // Insert scheduled emails
@@ -536,7 +532,7 @@ serve(async (req) => {
             .eq("training_id", trainingId)
             .eq("participant_id", participant.id)
             .eq("email_type", "funder_reminder")
-            .single();
+            .maybeSingle();
 
           if (!existingFunderReminder) {
             const funderReminderDate = addWorkingDays(referenceDate, delayColdEvaluationFunder, workingDays);
@@ -558,8 +554,8 @@ serve(async (req) => {
           .select("id")
           .eq("training_id", trainingId)
           .eq("email_type", "funder_reminder")
-          .eq("participant_id", null)
-          .single();
+          .is("participant_id", null)
+          .maybeSingle();
 
         if (!existingFunderReminder) {
           const funderReminderDate = addWorkingDays(referenceDate, delayColdEvaluationFunder, workingDays);
