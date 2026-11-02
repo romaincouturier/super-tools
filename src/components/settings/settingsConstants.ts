@@ -465,6 +465,95 @@ PS : nous pouvons continuer à rester en contact sur LinkedIn (https://www.linke
     },
     variables: ["first_name", "training_name", "evaluation_link"],
   },
+  cold_evaluation_reminder: {
+    name: "Relance évaluation à froid commanditaire",
+    timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement au commanditaire J+X jours ouvrables après l'évaluation à froid, uniquement s'il n'a pas répondu (configurable)",
+    delayKey: "delay_cold_evaluation_reminder_days",
+    subject: {
+      tu: "Petit rappel : évaluation à froid de la formation \"{{training_name}}\"",
+      vous: "Petit rappel : évaluation à froid de la formation \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+Je me permets de te relancer au sujet de l'évaluation à froid de la formation "{{training_name}}". Tes retours comptent beaucoup dans ma démarche qualité (Qualiopi).
+
+Cela prend 2 minutes :
+
+{{evaluation_link}}
+
+Merci beaucoup !`,
+      vous: `Bonjour {{first_name}},
+
+Je me permets de vous relancer au sujet de l'évaluation à froid de la formation "{{training_name}}". Vos retours comptent beaucoup dans ma démarche qualité (Qualiopi).
+
+Cela prend 2 minutes :
+
+{{evaluation_link}}
+
+Merci beaucoup !`,
+    },
+    variables: ["first_name", "training_name", "evaluation_link"],
+  },
+  participant_cold_evaluation: {
+    name: "Évaluation à froid participant",
+    timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement à chaque participant, J+X jours ouvrables après le mail de remerciement (configurable)",
+    delayKey: "delay_participant_cold_evaluation_days",
+    subject: {
+      tu: "{{first_name}}, qu'est-ce qui a changé depuis la formation \"{{training_name}}\" ?",
+      vous: "{{first_name}}, qu'est-ce qui a changé depuis la formation \"{{training_name}}\" ?",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+Il y a quelques semaines, tu as suivi la formation "{{training_name}}". Dans le cadre de ma démarche qualité (Qualiopi), j'aimerais savoir ce que tu as pu mettre en pratique depuis, et ce qui t'a éventuellement freiné.
+
+Cela prend 3 minutes :
+
+{{evaluation_link}}
+
+Merci pour ton retour !`,
+      vous: `Bonjour {{first_name}},
+
+Il y a quelques semaines, vous avez suivi la formation "{{training_name}}". Dans le cadre de ma démarche qualité (Qualiopi), j'aimerais savoir ce que vous avez pu mettre en pratique depuis, et ce qui vous a éventuellement freiné.
+
+Cela prend 3 minutes :
+
+{{evaluation_link}}
+
+Merci pour votre retour !`,
+    },
+    variables: ["first_name", "training_name", "evaluation_link"],
+  },
+  participant_cold_evaluation_reminder: {
+    name: "Relance évaluation à froid participant",
+    timing: "after",
+    sendingInfo: "📤 Envoyé automatiquement au participant J+X jours ouvrables après l'évaluation à froid, uniquement s'il n'a pas répondu (configurable)",
+    delayKey: "delay_cold_evaluation_reminder_days",
+    subject: {
+      tu: "Petit rappel : ton retour sur la formation \"{{training_name}}\"",
+      vous: "Petit rappel : votre retour sur la formation \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+Tu n'as pas encore eu le temps de répondre au questionnaire sur la mise en pratique de la formation "{{training_name}}" ? Cela prend 3 minutes et m'aide beaucoup à améliorer mes formations.
+
+{{evaluation_link}}
+
+Merci !`,
+      vous: `Bonjour {{first_name}},
+
+Vous n'avez pas encore eu le temps de répondre au questionnaire sur la mise en pratique de la formation "{{training_name}}" ? Cela prend 3 minutes et m'aide beaucoup à améliorer mes formations.
+
+{{evaluation_link}}
+
+Merci !`,
+    },
+    variables: ["first_name", "training_name", "evaluation_link"],
+  },
   evaluation_reminder_1: {
     name: "Relance évaluation - 1ère",
     timing: "after",
@@ -567,7 +656,7 @@ Retrouvez le suivi qualité et les évaluations SuperTools depuis la fiche de la
   follow_up_news: {
     name: "Prise de nouvelles informelle",
     timing: "after",
-    sendingInfo: "📤 Envoyé automatiquement au commanditaire, J+X jours ouvrables après la formation (configurable)",
+    sendingInfo: "📤 Envoyé automatiquement à chaque participant, J+X jours ouvrables après le mail de remerciement (configurable). Message informel, sans questionnaire",
     delayKey: "delay_follow_up_news_days",
     subject: {
       tu: "{{first_name}}, des nouvelles depuis la formation ?",
@@ -1361,6 +1450,8 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   delay_mission_video_testimonial_days: { default: "4", description: "Délai après mission pour demander un témoignage vidéo (en jours après l'avis Google)" },
   email_draft_pending_retention_days: { default: "7", description: "Nombre de jours avant suppression automatique des brouillons en attente ou rejetés" },
   delay_cold_evaluation_days: { default: "10", description: "Délai après formation pour envoyer l'évaluation à froid (en jours ouvrables)" },
+  delay_cold_evaluation_reminder_days: { default: "3", description: "Délai de relance des évaluations à froid sans réponse (en jours ouvrables après l'envoi)" },
+  delay_participant_cold_evaluation_days: { default: "30", description: "Délai après le mail de remerciement pour envoyer l'évaluation à froid participant (en jours ouvrables)" },
   delay_cold_evaluation_funder_days: { default: "15", description: "Délai après formation pour rappeler de contacter le financeur (en jours ouvrables)" },
   delay_evaluation_reminder_1_days: { default: "2", description: "Délai pour la 1ère relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
   delay_evaluation_reminder_2_days: { default: "5", description: "Délai pour la 2ème relance d'évaluation (en jours ouvrables après le mail de remerciement)" },
