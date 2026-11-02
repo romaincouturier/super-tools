@@ -19,6 +19,7 @@ import {
   resolveSupportsUrlBase,
 } from "../_shared/supports-url.ts";
 import { formatSessionDateFr } from "../_shared/training-date.ts";
+import { recordWelcome } from "../_shared/welcome-record.ts";
 
 // Send notification to sponsor (intra-enterprise)
 async function sendSponsorNotification(
@@ -94,8 +95,12 @@ serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
+  // Repris dans le catch pour tracer un échec d'envoi.
+  const ctx: { participantId?: string; trainingId?: string; attempted: boolean } = { attempted: false };
   try {
     const { participantId, trainingId, templateId } = await req.json();
+    ctx.participantId = participantId;
+    ctx.trainingId = trainingId;
 
     if (!participantId || !trainingId) {
       return createErrorResponse("participantId and trainingId are required", 400);
@@ -269,6 +274,7 @@ serve(async (req) => {
       console.log("CC to participant sponsor:", participant.sponsor_email);
     }
 
+    ctx.attempted = true;
     const result = await sendEmail({
       to: [participant.email],
       cc: ccList.length > 0 ? ccList : undefined,
@@ -285,6 +291,8 @@ serve(async (req) => {
     }
 
     console.log("Welcome email sent successfully:", result.id);
+    ctx.attempted = false;
+    await recordWelcome(supabase, trainingId, participantId, { sent: true });
 
     // Update participant status
     await supabase
@@ -342,6 +350,14 @@ serve(async (req) => {
   } catch (error: unknown) {
     console.error("Error sending welcome email:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to send welcome email";
+    // Un échec d'envoi se voit dans l'outil, au lieu de passer pour programmé.
+    if (ctx.attempted && ctx.participantId && ctx.trainingId) {
+      try {
+        await recordWelcome(getSupabaseClient(), ctx.trainingId, ctx.participantId, { sent: false, error: errorMessage });
+      } catch (recordError) {
+        console.error("Error recording failed welcome email:", recordError);
+      }
+    }
     return createErrorResponse(errorMessage);
   }
 });

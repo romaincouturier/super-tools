@@ -252,12 +252,13 @@ const EmailTimelineComputed = ({
         id: e.id as string,
         emailType: e.email_type as string,
         label: EMAIL_TYPE_LABELS[e.email_type as string] || (e.email_type as string),
-        scheduledDate: parseISO(e.scheduled_for as string),
+        // Un email parti s'affiche à sa date réelle d'envoi, pas à sa date prévue.
+        scheduledDate: parseISO((e.sent_at || e.scheduled_for) as string),
         recipientLabel,
         recipientType,
         phase,
         source: "db",
-        status: e.sent_at || e.status === "sent" ? "sent" : e.status === "error" ? "error" : "pending",
+        status: e.sent_at || e.status === "sent" ? "sent" : e.status === "error" || e.status === "failed" ? "error" : "pending",
         participantId: e.participant_id as string | null | undefined,
         dbId: e.id as string | undefined,
       });

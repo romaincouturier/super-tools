@@ -1155,8 +1155,8 @@ Règles :
         }
 
         if (!trainerEmail) {
-          // Fallback: mark as sent to avoid retries
-          await supabase.from("scheduled_emails").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", scheduledEmailId);
+          // Sorti de la file (pas de nouvelle tentative), mais marqué en échec : rien n'est parti.
+          await supabase.from("scheduled_emails").update({ status: "failed", error_message: "Aucun email formateur" }).eq("id", scheduledEmailId);
           throw new Error("No trainer email found for next_inter_session_reminder");
         }
 
@@ -1241,6 +1241,17 @@ Règles :
     }
     if (!emailResponse.success && liveClaim) {
       await releaseLiveReminder(supabase, liveClaim.liveId, liveClaim.participantId);
+    }
+
+    if (!emailResponse.success) {
+      // L'échec reste visible dans l'outil (statut « failed ») au lieu de
+      // passer pour un envoi réussi.
+      const errorMessage = String(emailResponse.error ?? "Échec d'envoi").slice(0, 500);
+      await supabase
+        .from("scheduled_emails")
+        .update({ status: "failed", error_message: errorMessage })
+        .eq("id", scheduledEmailId);
+      return createErrorResponse(`Échec de l'envoi : ${errorMessage}`, 502);
     }
 
     console.log("Email sent successfully:", emailResponse);
