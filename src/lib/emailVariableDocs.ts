@@ -30,6 +30,10 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   // Formation
   training_name: { label: "Nom de la formation", description: "Intitulé de la session de formation.", sample: "Facilitation graphique - niveau 1" },
   formation_name: { label: "Nom de la formation", description: "Intitulé de la formation (même valeur que training_name selon le modèle).", sample: "Facilitation graphique - niveau 1" },
+  progression: { label: "Progression e-learning", description: "Pourcentage du parcours e-learning déjà réalisé par l'apprenant, sans le signe %.", sample: "45" },
+  non_demarre: { label: "Si e-learning non démarré", description: "Condition vraie quand l'apprenant n'a encore ouvert aucune leçon.", sample: "", isCondition: true },
+  en_cours: { label: "Si e-learning commencé", description: "Condition vraie quand l'apprenant a déjà commencé le parcours.", sample: "1", isCondition: true },
+  access_button: { label: "Bouton d'accès à l'espace apprenant", description: "Bouton personnel qui ouvre l'espace apprenant (création du mot de passe si besoin).", sample: "<p><a href=\"#\">Accéder à ma formation</a></p>", isBlock: true },
   training_date: { label: "Date de la formation", description: "Date principale de la session, déjà formatée en français.", sample: "12 mars 2026" },
   training_dates: { label: "Dates de la formation", description: "Toutes les dates de la session, formatées et séparées par des virgules.", sample: "12 et 13 mars 2026" },
   training_schedule: { label: "Horaires détaillés", description: "Programme jour par jour avec les horaires (bloc de plusieurs lignes).", sample: "Jeudi 12 mars : 9h00 - 12h30 / 14h00 - 17h30", isBlock: true },

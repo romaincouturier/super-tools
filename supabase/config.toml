@@ -662,6 +662,9 @@ verify_jwt = false
 [functions.process-elearning-start-reminders]
 verify_jwt = false
 
+[functions.process-elearning-inactivity-reminders]
+verify_jwt = false
+
 [functions.notify-survey-response]
 verify_jwt = false
 
