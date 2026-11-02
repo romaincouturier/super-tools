@@ -24,6 +24,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LIST_LIMIT = 50;
 /** Transcripts importés par passage. Le reste part au tick suivant. */
 const IMPORT_LIMIT = 10;
+/** Pages parcourues au maximum par passage (LIST_LIMIT vidéos chacune). */
+const MAX_PAGES = 20;
 
 Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
@@ -65,27 +67,29 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // Le réglage accepte le cookie seul ou la paire complète collée du navigateur.
     const cookie = rawCookie.includes("=") ? rawCookie : `connect.sid=${rawCookie}`;
 
-    const { videos } = await listLoomVideos(cookie, LIST_LIMIT);
-    const results = { listed: videos.length, imported: 0, without_transcript: 0, errors: 0 };
-
-    if (videos.length === 0) {
-      await setCursor("idle", null);
-      return new Response(JSON.stringify(results), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Parcourt la bibliothèque page par page jusqu'à trouver IMPORT_LIMIT vidéos
+    // non importées, sinon les vidéos au-delà des LIST_LIMIT plus récentes ne
+    // seraient jamais rattrapées.
+    const results = { listed: 0, imported: 0, without_transcript: 0, errors: 0 };
+    const missing: Awaited<ReturnType<typeof listLoomVideos>>["videos"] = [];
+    let pageCursor: string | undefined;
+    for (let page = 0; page < MAX_PAGES && missing.length < IMPORT_LIMIT; page++) {
+      const { videos, endCursor, hasNextPage } = await listLoomVideos(cookie, LIST_LIMIT, pageCursor);
+      results.listed += videos.length;
+      if (videos.length > 0) {
+        const { data: existing } = await (admin as any)
+          .from("transcripts")
+          .select("external_id")
+          .eq("source", "loom")
+          .in("external_id", videos.map((v) => v.id));
+        const alreadyImported = new Set(
+          ((existing as Array<{ external_id: string }>) ?? []).map((r) => r.external_id),
+        );
+        missing.push(...videos.filter((v) => !alreadyImported.has(v.id)).slice(0, IMPORT_LIMIT - missing.length));
+      }
+      if (!hasNextPage || !endCursor) break;
+      pageCursor = endCursor;
     }
-
-    const { data: existing } = await (admin as any)
-      .from("transcripts")
-      .select("external_id")
-      .eq("source", "loom")
-      .in("external_id", videos.map((v) => v.id));
-    const alreadyImported = new Set(
-      ((existing as Array<{ external_id: string }>) ?? []).map((r) => r.external_id),
-    );
-
-    const missing = videos.filter((v) => !alreadyImported.has(v.id)).slice(0, IMPORT_LIMIT);
 
     for (const video of missing) {
       try {
