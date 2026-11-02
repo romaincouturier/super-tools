@@ -31,6 +31,22 @@ export function isInternalCall(req: Request, secretEnvName = "CRON_SECRET"): boo
 }
 
 /**
+ * Garde pour une fonction réservée aux automatismes, jamais appelée par le
+ * frontend : secret de cron ou x-internal-secret (isInternalCall), ou
+ * service_role présentée en Bearer, format des crons posés avant la règle [036].
+ * Un JWT d'utilisateur, apprenant ou staff, est refusé.
+ */
+export async function isCronOrServiceRole(
+  req: Request,
+  secretEnvName = "CRON_SECRET",
+): Promise<boolean> {
+  if (isInternalCall(req, secretEnvName)) return true;
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const authHeader = req.headers.get("Authorization") ?? "";
+  return serviceRole !== "" && await timingSafeEqualSecret(authHeader, `Bearer ${serviceRole}`);
+}
+
+/**
  * Garde pour une fonction verify_jwt=false appelée à la fois par le frontend
  * staff (JWT utilisateur) ET par un cron / une délégation fonction-à-fonction
  * (les deux envoient `Authorization: Bearer <service_role>` ou un secret

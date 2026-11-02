@@ -8,7 +8,7 @@ import { resolveContentType } from "@/lib/file-utils";
  * completely bypasses storage RLS — no more "row violates row-level security
  * policy" errors regardless of the client's auth state.
  */
-async function uploadAndGetUrl(path: string, file: File): Promise<string> {
+export async function uploadAndGetUrl(path: string, file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file, file.name);
   formData.append("path", path);

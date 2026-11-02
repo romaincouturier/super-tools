@@ -4,6 +4,7 @@ import DragWordsBlockViewer from "./DragWordsBlockViewer";
 import TimelineBlockViewer from "./TimelineBlockViewer";
 import FlipCardsBlockViewer from "./FlipCardsBlockViewer";
 import HtmlEmbedBlockViewer from "./HtmlEmbedBlockViewer";
+import { EMBED_CSP, EMBED_HOST_SANDBOX } from "../../../../../supabase/functions/_shared/lms-embed-policy";
 
 afterEach(cleanup);
 beforeAll(() => vi.stubGlobal("ResizeObserver", class {
@@ -50,11 +51,19 @@ describe("interactive LMS viewers", () => {
     fireEvent.click(screen.getByRole("button", { name: "Recommencer" }));
     expect(screen.getAllByRole("button", { name: "Choisir chat" })).toHaveLength(2);
   });
-  it("renders preview HTML with no allow-scripts", () => {
-    render(<HtmlEmbedBlockViewer previewMode content={{ html: '<style>p{color:red}</style><p>OK</p><script>bad()</script>' }} />);
+  // L'iframe hôte autorise les scripts pour que les lecteurs tiers (YouTube,
+  // Vimeo...) fonctionnent. Les scripts d'auteur restent bloqués par deux
+  // barrières indépendantes : le nettoyage du HTML et la CSP script-src 'none'.
+  it("blocks author scripts in embedded HTML (sanitizer + CSP)", () => {
+    render(<HtmlEmbedBlockViewer previewMode content={{ html: '<style>p{color:red}</style><p>OK</p><script>bad()</script><img src="x.png" onerror="bad()">' }} />);
     const frame = screen.getByTitle("Contenu intégré");
-    expect(frame).toHaveAttribute("sandbox", "allow-same-origin");
-    expect(frame.getAttribute("srcdoc")).toContain("<style>p{color:red}</style>");
-    expect(frame.getAttribute("srcdoc")).not.toContain("bad()");
+    const srcdoc = frame.getAttribute("srcdoc") ?? "";
+    expect(frame).toHaveAttribute("sandbox", EMBED_HOST_SANDBOX);
+    expect(EMBED_CSP).toContain("script-src 'none'");
+    expect(srcdoc).toContain(`<meta http-equiv="Content-Security-Policy" content="${EMBED_CSP}">`);
+    expect(srcdoc).toContain("<style>p{color:red}</style>");
+    expect(srcdoc).not.toContain("<script");
+    expect(srcdoc).not.toContain("onerror");
+    expect(srcdoc).not.toContain("bad()");
   });
 });

@@ -8311,6 +8311,123 @@ export type Database = {
         }
         Relationships: []
       }
+      participant_cold_evaluations: {
+        Row: {
+          besoins_complementaires: string[]
+          commentaires_libres: string | null
+          company: string | null
+          consent_publication: boolean | null
+          created_at: string
+          date_envoi: string | null
+          date_premiere_ouverture: string | null
+          date_relance: string | null
+          date_soumission: string | null
+          effets_constates: string | null
+          email: string
+          etat: string
+          exemple_application: string | null
+          first_name: string | null
+          freins: string[]
+          freins_details: string | null
+          frequence_utilisation: string | null
+          id: string
+          last_name: string | null
+          mise_en_pratique: string | null
+          niveau_maitrise: number | null
+          objectifs_atteints: string | null
+          participant_id: string | null
+          recommandation: string | null
+          temoignage: string | null
+          token: string
+          training_end_date: string | null
+          training_id: string
+          training_name: string | null
+          training_start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          besoins_complementaires?: string[]
+          commentaires_libres?: string | null
+          company?: string | null
+          consent_publication?: boolean | null
+          created_at?: string
+          date_envoi?: string | null
+          date_premiere_ouverture?: string | null
+          date_relance?: string | null
+          date_soumission?: string | null
+          effets_constates?: string | null
+          email: string
+          etat?: string
+          exemple_application?: string | null
+          first_name?: string | null
+          freins?: string[]
+          freins_details?: string | null
+          frequence_utilisation?: string | null
+          id?: string
+          last_name?: string | null
+          mise_en_pratique?: string | null
+          niveau_maitrise?: number | null
+          objectifs_atteints?: string | null
+          participant_id?: string | null
+          recommandation?: string | null
+          temoignage?: string | null
+          token: string
+          training_end_date?: string | null
+          training_id: string
+          training_name?: string | null
+          training_start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          besoins_complementaires?: string[]
+          commentaires_libres?: string | null
+          company?: string | null
+          consent_publication?: boolean | null
+          created_at?: string
+          date_envoi?: string | null
+          date_premiere_ouverture?: string | null
+          date_relance?: string | null
+          date_soumission?: string | null
+          effets_constates?: string | null
+          email?: string
+          etat?: string
+          exemple_application?: string | null
+          first_name?: string | null
+          freins?: string[]
+          freins_details?: string | null
+          frequence_utilisation?: string | null
+          id?: string
+          last_name?: string | null
+          mise_en_pratique?: string | null
+          niveau_maitrise?: number | null
+          objectifs_atteints?: string | null
+          participant_id?: string | null
+          recommandation?: string | null
+          temoignage?: string | null
+          token?: string
+          training_end_date?: string | null
+          training_id?: string
+          training_name?: string | null
+          training_start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_cold_evaluations_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "participant_cold_evaluations_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participant_files: {
         Row: {
           file_name: string
@@ -9783,6 +9900,7 @@ export type Database = {
           created_at: string | null
           date_envoi: string | null
           date_premiere_ouverture: string | null
+          date_relance: string | null
           date_soumission: string | null
           description_impact: string | null
           etat: string
@@ -9814,6 +9932,7 @@ export type Database = {
           created_at?: string | null
           date_envoi?: string | null
           date_premiere_ouverture?: string | null
+          date_relance?: string | null
           date_soumission?: string | null
           description_impact?: string | null
           etat?: string
@@ -9845,6 +9964,7 @@ export type Database = {
           created_at?: string | null
           date_envoi?: string | null
           date_premiere_ouverture?: string | null
+          date_relance?: string | null
           date_soumission?: string | null
           description_impact?: string | null
           etat?: string
@@ -13505,6 +13625,10 @@ export type Database = {
           segment: string
         }[]
       }
+      get_participant_cold_evaluation_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       get_participant_public_info: {
         Args: { p_participant_id: string }
         Returns: Json
@@ -13749,6 +13873,10 @@ export type Database = {
         Args: { p_opened_at: string; p_token: string }
         Returns: undefined
       }
+      mark_participant_cold_evaluation_opened: {
+        Args: { p_token: string }
+        Returns: undefined
+      }
       mark_password_changed: { Args: never; Returns: undefined }
       match_documents: {
         Args: {
@@ -13989,6 +14117,10 @@ export type Database = {
           position: number
           query: string
         }[]
+      }
+      submit_participant_cold_evaluation: {
+        Args: { p_data: Json; p_token: string }
+        Returns: undefined
       }
       submit_training_survey: {
         Args: { p_answers: Json; p_token: string }

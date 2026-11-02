@@ -16,6 +16,8 @@ import {
 import { logLovableUsage } from "../_shared/api-usage.ts";
 import { resolveSessionDate } from "../_shared/training-date.ts";
 import { isEvaluationSubmitted, isNeedsSurveySubmitted } from "../_shared/reminder-filters.ts";
+import { MISSING_SPONSOR_EMAIL_MESSAGE, resolveSponsorRecipient } from "../_shared/cold-evaluation.ts";
+import { addWorkingDays, fetchWorkingDays } from "../_shared/working-days.ts";
 
 interface ForceSendRequest {
   scheduledEmailId: string;
@@ -27,6 +29,7 @@ const handler = async (req: Request): Promise<Response> => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
+  let currentScheduledEmailId: string | null = null;
   try {
     // Appele par l'UI (staff) et par le cron process-scheduled-emails
     // (service_role). Bloque l'anonyme qui forcerait un envoi hors planning.
@@ -47,6 +50,7 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = getSupabaseClient();
 
     const { scheduledEmailId }: ForceSendRequest = await req.json();
+    currentScheduledEmailId = scheduledEmailId || null;
 
     if (!scheduledEmailId) {
       throw new Error("scheduledEmailId is required");
@@ -211,6 +215,7 @@ const handler = async (req: Request): Promise<Response> => {
     let subject = "";
     let htmlContent = "";
     let liveClaim: { liveId: string; participantId: string } | null = null;
+    let coldFollowUp: { table: string; evalId: string; reminderType: string | null } | null = null;
 
     // Build email based on type
     switch (scheduledEmail.email_type) {
@@ -629,74 +634,175 @@ const handler = async (req: Request): Promise<Response> => {
         break;
       }
 
-      case "cold_evaluation": {
-        const coldAppUrl = appUrl;
-        const sponsorEmail = participant?.sponsor_email || training.sponsor_email || "";
-        const sponsorName =
-          [participant?.sponsor_first_name, participant?.sponsor_last_name].filter(Boolean).join(" ") ||
-          [training.sponsor_first_name, training.sponsor_last_name].filter(Boolean).join(" ") ||
-          "";
-        const sponsorCompany = participant?.company || training.client_name || "";
-        recipientEmail = sponsorEmail;
+      case "cold_evaluation":
+      case "cold_evaluation_reminder": {
+        const isReminder = scheduledEmail.email_type === "cold_evaluation_reminder";
+        let evalRow: any = null;
 
-        if (!recipientEmail) {
-          throw new Error("No sponsor email found for cold evaluation");
+        if (isReminder) {
+          let q = supabase.from("sponsor_cold_evaluations").select("*").eq("training_id", training.id);
+          q = scheduledEmail.participant_id ? q.eq("participant_id", scheduledEmail.participant_id) : q.is("participant_id", null);
+          const { data } = await q.order("created_at", { ascending: false }).limit(1);
+          evalRow = data?.[0] || null;
+          if (!evalRow) throw new Error("Aucune évaluation à froid commanditaire à relancer");
+          if (evalRow.etat === "soumis" || evalRow.date_soumission) {
+            await supabase.from("scheduled_emails").update({ status: "cancelled", error_message: "Évaluation déjà soumise" }).eq("id", scheduledEmailId);
+            return new Response(JSON.stringify({ success: true, message: "Reminder cancelled - cold evaluation already submitted" }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
+          }
+          recipientEmail = evalRow.sponsor_email || "";
+        } else {
+          const { data: allParticipants } = await supabase
+            .from("training_participants")
+            .select("id, email, company, sponsor_email, sponsor_first_name, sponsor_last_name")
+            .eq("training_id", training.id);
+          const recipient = resolveSponsorRecipient(training, participant, allParticipants || []);
+          if (!recipient) throw new Error(MISSING_SPONSOR_EMAIL_MESSAGE);
+          recipientEmail = recipient.email;
+
+          // One evaluation (one token) per sponsor and session: reuse an unsubmitted one.
+          let q = supabase.from("sponsor_cold_evaluations").select("*").eq("training_id", training.id).ilike("sponsor_email", recipient.email);
+          q = participant?.id ? q.eq("participant_id", participant.id) : q.is("participant_id", null);
+          const { data: existing } = await q.order("created_at", { ascending: false }).limit(1);
+          evalRow = existing?.[0] || null;
+          if (evalRow && (evalRow.etat === "soumis" || evalRow.date_soumission)) {
+            await supabase.from("scheduled_emails").update({ status: "cancelled", error_message: "Évaluation déjà soumise" }).eq("id", scheduledEmailId);
+            return new Response(JSON.stringify({ success: true, message: "Skipped - cold evaluation already submitted" }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
+          }
+          if (!evalRow) {
+            const { data: inserted, error: insertErr } = await supabase
+              .from("sponsor_cold_evaluations")
+              .insert({
+                training_id: training.id,
+                participant_id: participant?.id || null,
+                token: crypto.randomUUID(),
+                etat: "envoye",
+                sponsor_email: recipient.email,
+                sponsor_name: recipient.name,
+                company: recipient.company,
+                training_name: training.training_name,
+                training_start_date: training.start_date,
+                training_end_date: training.end_date || null,
+                date_envoi: new Date().toISOString(),
+              })
+              .select("*")
+              .single();
+            if (insertErr || !inserted) {
+              console.error("Error creating sponsor cold evaluation record:", insertErr);
+              throw new Error("Failed to create sponsor evaluation record");
+            }
+            evalRow = inserted;
+          }
         }
 
-        const coldToken = crypto.randomUUID();
-
-        const { error: insertErr } = await supabase
-          .from("sponsor_cold_evaluations")
-          .insert({
-            training_id: training.id,
-            participant_id: participant?.id || null,
-            token: coldToken,
-            etat: "envoye",
-            sponsor_email: recipientEmail,
-            sponsor_name: sponsorName,
-            company: sponsorCompany,
-            training_name: training.training_name,
-            training_start_date: training.start_date,
-            training_end_date: training.end_date || null,
-            date_envoi: new Date().toISOString(),
-          });
-
-        if (insertErr) {
-          console.error("Error creating sponsor cold evaluation record:", insertErr);
-          throw new Error("Failed to create sponsor evaluation record");
-        }
-
-        const coldFormUrl = `${coldAppUrl}/evaluation-commanditaire/${coldToken}`;
-        const sponsorFirstName = sponsorName.split(" ")[0];
-
-        const vars = {
-          first_name: sponsorFirstName,
-          training_name: training.training_name,
-          evaluation_link: `<a href="${coldFormUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a>`,
-        };
-        const resolved = resolveEmailTemplate("cold_evaluation", training.sponsor_formal_address, vars);
+        const coldFormUrl = `${appUrl}/evaluation-commanditaire/${evalRow.token}`;
+        const sponsorFirstName = (evalRow.sponsor_name || "").split(" ")[0];
+        const button = `<a href="${coldFormUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a>`;
+        const vars = { first_name: sponsorFirstName, training_name: training.training_name, evaluation_link: button };
+        const resolved = resolveEmailTemplate(scheduledEmail.email_type, training.sponsor_formal_address, vars);
+        const hello = sponsorFirstName ? `Bonjour ${sponsorFirstName},` : "Bonjour,";
         if (resolved) {
           subject = resolved.subject;
           htmlContent = resolved.htmlContent;
+        } else if (isReminder) {
+          subject = `Petit rappel : évaluation à froid de la formation ${training.training_name}`;
+          htmlContent = `
+            <p>${hello}</p>
+            <p>Je me permets de vous relancer au sujet de l'évaluation à froid de la formation <strong>"${training.training_name}"</strong>. Vos retours comptent beaucoup dans ma démarche qualité (Qualiopi).</p>
+            <p>Cela prend 2 minutes :</p>
+            <p>${button}</p>
+            <p>Merci beaucoup !</p>
+            ${signatureHtml}
+          `;
         } else {
-          const sponsorGreeting = sponsorFirstName
-            ? training.sponsor_formal_address
-              ? `Bonjour ${sponsorFirstName},`
-              : `Bonjour ${sponsorFirstName},`
-            : "Bonjour,";
-
           subject = `🫶🏻 Évaluation à froid de la formation ${training.training_name}`;
           htmlContent = `
-            <p>${sponsorGreeting}</p>
+            <p>${hello}</p>
             <p>Comment allez-vous ?</p>
             <p>Dans le cadre de mon processus qualité (Qualiopi), je vous propose de remplir une évaluation à froid de la formation <strong>"${training.training_name}"</strong>.</p>
             <p>❓ Cela ne prend que 2 minutes :</p>
-            <p><a href="${coldFormUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir le questionnaire</a></p>
+            <p>${button}</p>
             <p>Vos retours sont précieux et m'aident à améliorer continuellement mes formations.</p>
             <p>Merci pour votre temps !</p>
             ${signatureHtml}
           `;
         }
+        coldFollowUp = { table: "sponsor_cold_evaluations", evalId: evalRow.id, reminderType: isReminder ? null : "cold_evaluation_reminder" };
+        break;
+      }
+
+      case "participant_cold_evaluation":
+      case "participant_cold_evaluation_reminder": {
+        const isReminder = scheduledEmail.email_type === "participant_cold_evaluation_reminder";
+        if (!participant?.email) throw new Error("No participant email for cold evaluation");
+        recipientEmail = participant.email;
+
+        const { data: existing } = await supabase
+          .from("participant_cold_evaluations")
+          .select("*")
+          .eq("training_id", training.id)
+          .eq("participant_id", participant.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        let evalRow: any = existing?.[0] || null;
+        if (evalRow?.etat === "soumis") {
+          await supabase.from("scheduled_emails").update({ status: "cancelled", error_message: "Évaluation déjà soumise" }).eq("id", scheduledEmailId);
+          return new Response(JSON.stringify({ success: true, message: "Skipped - participant cold evaluation already submitted" }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
+        }
+        if (!evalRow) {
+          if (isReminder) throw new Error("Aucune évaluation à froid participant à relancer");
+          const { data: inserted, error: insertErr } = await supabase
+            .from("participant_cold_evaluations")
+            .insert({
+              training_id: training.id,
+              participant_id: participant.id,
+              token: crypto.randomUUID(),
+              email: participant.email,
+              first_name: participant.first_name,
+              last_name: participant.last_name,
+              company: participant.company,
+              training_name: training.training_name,
+              training_start_date: training.start_date,
+              training_end_date: training.end_date || null,
+              date_envoi: new Date().toISOString(),
+            })
+            .select("*")
+            .single();
+          if (insertErr || !inserted) {
+            console.error("Error creating participant cold evaluation:", insertErr);
+            throw new Error("Failed to create participant cold evaluation record");
+          }
+          evalRow = inserted;
+        }
+
+        const formUrl = `${appUrl}/evaluation-a-froid/${evalRow.token}`;
+        const tu = !formalAddress;
+        const button = `<a href="${formUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Répondre au questionnaire</a>`;
+        const vars = { first_name: firstName, training_name: training.training_name, evaluation_link: button };
+        const resolved = resolveEmailTemplate(scheduledEmail.email_type, formalAddress, vars);
+        if (resolved) {
+          subject = resolved.subject;
+          htmlContent = resolved.htmlContent;
+        } else if (isReminder) {
+          subject = `Petit rappel : ${tu ? "ton" : "votre"} retour sur la formation ${training.training_name}`;
+          htmlContent = `
+            <p>${greeting}</p>
+            <p>${tu ? "Tu n'as" : "Vous n'avez"} pas encore eu le temps de répondre au questionnaire sur la mise en pratique de la formation <strong>"${training.training_name}"</strong> ? Cela prend 3 minutes et m'aide beaucoup à améliorer mes formations.</p>
+            <p>${button}</p>
+            <p>Merci !</p>
+            ${signatureHtml}
+          `;
+        } else {
+          subject = `${firstName ? firstName + ", q" : "Q"}u'est-ce qui a changé depuis la formation ${training.training_name} ?`;
+          htmlContent = `
+            <p>${greeting}</p>
+            <p>Il y a quelques semaines, ${tu ? "tu as" : "vous avez"} suivi la formation <strong>"${training.training_name}"</strong>. Dans le cadre de ma démarche qualité (Qualiopi), j'aimerais savoir ce que ${tu ? "tu as pu" : "vous avez pu"} mettre en pratique depuis, et ce qui ${tu ? "t'a" : "vous a"} éventuellement freiné.</p>
+            <p>Cela prend 3 minutes :</p>
+            <p>${button}</p>
+            <p>Merci pour ${tu ? "ton" : "votre"} retour !</p>
+            ${signatureHtml}
+          `;
+        }
+        coldFollowUp = { table: "participant_cold_evaluations", evalId: evalRow.id, reminderType: isReminder ? null : "participant_cold_evaluation_reminder" };
         break;
       }
 
@@ -1155,8 +1261,8 @@ Règles :
         }
 
         if (!trainerEmail) {
-          // Fallback: mark as sent to avoid retries
-          await supabase.from("scheduled_emails").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", scheduledEmailId);
+          // Sorti de la file (pas de nouvelle tentative), mais marqué en échec : rien n'est parti.
+          await supabase.from("scheduled_emails").update({ status: "failed", error_message: "Aucun email formateur" }).eq("id", scheduledEmailId);
           throw new Error("No trainer email found for next_inter_session_reminder");
         }
 
@@ -1243,6 +1349,17 @@ Règles :
       await releaseLiveReminder(supabase, liveClaim.liveId, liveClaim.participantId);
     }
 
+    if (!emailResponse.success) {
+      // L'échec reste visible dans l'outil (statut « failed ») au lieu de
+      // passer pour un envoi réussi.
+      const errorMessage = String(emailResponse.error ?? "Échec d'envoi").slice(0, 500);
+      await supabase
+        .from("scheduled_emails")
+        .update({ status: "failed", error_message: errorMessage })
+        .eq("id", scheduledEmailId);
+      return createErrorResponse(`Échec de l'envoi : ${errorMessage}`, 502);
+    }
+
     console.log("Email sent successfully:", emailResponse);
 
     // Update the scheduled email status
@@ -1256,6 +1373,28 @@ Règles :
 
     if (updateError) {
       console.error("Error updating scheduled email:", updateError);
+    }
+
+    if (coldFollowUp) {
+      if (coldFollowUp.reminderType) {
+        const { data: delaySetting } = await supabase
+          .from("app_settings")
+          .select("setting_value")
+          .eq("setting_key", "delay_cold_evaluation_reminder_days")
+          .maybeSingle();
+        const delay = parseInt(delaySetting?.setting_value || "", 10) || 3;
+        const reminderDate = addWorkingDays(new Date(), delay, await fetchWorkingDays(supabase));
+        const { error: remErr } = await supabase.from("scheduled_emails").insert({
+          training_id: training.id,
+          participant_id: scheduledEmail.participant_id || null,
+          email_type: coldFollowUp.reminderType,
+          scheduled_for: reminderDate.toISOString(),
+          status: "pending",
+        });
+        if (remErr && remErr.code !== "23505") console.error("Error scheduling cold evaluation reminder:", remErr);
+      } else {
+        await supabase.from(coldFollowUp.table).update({ date_relance: new Date().toISOString() }).eq("id", coldFollowUp.evalId);
+      }
     }
 
     // Log activity
@@ -1279,6 +1418,16 @@ Règles :
     );
   } catch (error: any) {
     console.error("Error in force-send-scheduled-email:", error);
+    // Never fail silently: the reason is shown on the training page and in daily actions.
+    if (currentScheduledEmailId && error?.message !== "Email has already been sent") {
+      try {
+        await getSupabaseClient()
+          .from("scheduled_emails")
+          .update({ error_message: String(error?.message || "Erreur inconnue").slice(0, 500) })
+          .eq("id", currentScheduledEmailId)
+          .eq("status", "pending");
+      } catch (_) { /* best effort */ }
+    }
 
     return new Response(
       JSON.stringify({ error: error.message }),

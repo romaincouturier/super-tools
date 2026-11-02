@@ -11,6 +11,7 @@ import { getBccList } from "../_shared/email-settings.ts";
 import { renderEditableEmail, ctaButton } from "../_shared/editable-email.ts";
 import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { learnerAccessLink } from "../_shared/learner-account.ts";
+import { isCronOrServiceRole } from "../_shared/cron-auth.ts";
 
 // Erratum: annule et remplace le lien erroné (panier WooCommerce) envoyé dans
 // la relance `elearning_start_reminder`. Envoi unitaire par participant,
@@ -20,6 +21,14 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
+    // Appel interne (service_role) uniquement. Sans garde, n'importe qui
+    // pouvait faire envoyer le lien d'accès d'un apprenant à l'adresse de son
+    // choix (test_recipient), donc prendre son compte s'il n'avait pas encore
+    // de mot de passe.
+    if (!(await isCronOrServiceRole(req))) {
+      return createErrorResponse("Non autorisé", 401);
+    }
+
     let body: any = {};
     try {
       const raw = await req.text();

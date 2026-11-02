@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Link, Image, Mic, FileText, File, X, AlertTriangle, Users, FileAudio, Search } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
+import { reportHandledError } from "@/lib/sentry";
 import { useAddWatchItem, uploadWatchFile } from "@/hooks/useWatch";
 import { detectContentType, checkDuplicates, processWatchItem } from "@/services/watchProcessing";
 import { resolveContentType } from "@/lib/file-utils";
@@ -241,7 +242,8 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       }
       reset();
       setOpen(false);
-    } catch {
+    } catch (err) {
+      reportHandledError(err);
       toast.error("Erreur lors de l'ajout");
     } finally {
       setUploading(false);

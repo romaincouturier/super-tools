@@ -33,7 +33,7 @@ function fakeAdmin() {
 const env: Record<string, string> = {};
 vi.stubGlobal("Deno", { env: { get: (k: string) => env[k] } });
 
-const { isInternalCall, isInternalOrAuthenticated, requireStaff } = await import("./cron-auth.ts");
+const { isInternalCall, isInternalOrAuthenticated, isCronOrServiceRole, requireStaff } = await import("./cron-auth.ts");
 
 function request(headers: Record<string, string> = {}): Request {
   return new Request("https://example.test/", { method: "POST", headers });
@@ -154,5 +154,28 @@ describe("requireStaff", () => {
     env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
     verifyAuthMock.mockResolvedValueOnce(null);
     expect(await requireStaff(request({ Authorization: "Bearer service-role" }))).toBeNull();
+  });
+});
+
+describe("isCronOrServiceRole", () => {
+  it("accepte le secret de cron nommé", async () => {
+    env.ELEARNING_CRON_SECRET = "s3cret";
+    expect(await isCronOrServiceRole(request({ "x-cron-secret": "s3cret" }), "ELEARNING_CRON_SECRET")).toBe(true);
+  });
+
+  it("accepte le service_role présenté en Bearer", async () => {
+    env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
+    expect(await isCronOrServiceRole(request({ Authorization: "Bearer service-role" }))).toBe(true);
+  });
+
+  it("refuse un JWT utilisateur, même valide, sans jamais l'évaluer", async () => {
+    env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
+    verifyAuthMock.mockResolvedValue({ id: "apprenant" });
+    expect(await isCronOrServiceRole(request({ Authorization: "Bearer user-jwt" }))).toBe(false);
+    expect(verifyAuthMock).not.toHaveBeenCalled();
+  });
+
+  it("refuse un appel anonyme quand rien n'est configuré", async () => {
+    expect(await isCronOrServiceRole(request({ Authorization: "Bearer " }))).toBe(false);
   });
 });

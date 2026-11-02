@@ -1,46 +1,18 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Loader2, Mic } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { Download, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import {
-  audioGroupKey,
-  resolveAudioStatus,
   setMediaTranscription,
   transcribeAudio,
   type MediaTranscriptionStatus,
 } from "@/services/lmsMediaImport";
-
-interface MediaRow {
-  id: string;
-  file_name: string;
-  file_size: number | null;
-  file_url: string;
-  content_hash: string | null;
-  transcript: string | null;
-  transcription_status: string | null;
-  transcription_error: string | null;
-  transcription_audio_seconds: number | null;
-  created_at: string;
-}
-
-export interface CourseAudio {
-  key: string;
-  mediaIds: string[];
-  file_name: string;
-  file_url: string;
-  created_at: string;
-  transcript: string | null;
-  seconds: number | null;
-  error: string | null;
-  status: MediaTranscriptionStatus;
-  blocks: number;
-  lessons: string[];
-}
+import { useCourseAudios, type CourseAudio } from "@/hooks/useCourseAudios";
 
 const STATUS_LABEL: Record<MediaTranscriptionStatus, { label: string; variant: "secondary" | "default" | "destructive" | "outline" }> = {
   pending: { label: "En attente", variant: "outline" },
@@ -48,47 +20,6 @@ const STATUS_LABEL: Record<MediaTranscriptionStatus, { label: string; variant: "
   processed: { label: "Traité en blocs", variant: "default" },
   error: { label: "Erreur", variant: "destructive" },
 };
-
-async function fetchCourseAudios(courseId: string): Promise<CourseAudio[]> {
-  const { data, error } = await supabase
-    .from("media")
-    .select("id, file_name, file_size, file_url, content_hash, transcript, transcription_status, transcription_error, transcription_audio_seconds, created_at")
-    .eq("source_type", "lms")
-    .eq("source_id", courseId)
-    .eq("file_type", "audio")
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  const rows = (data ?? []) as MediaRow[];
-  const ids = rows.map((r) => r.id);
-  const { data: blocks } = ids.length
-    ? await supabase.from("lms_lesson_blocks").select("source_media_id, lms_lessons(title)").in("source_media_id", ids)
-    : { data: [] };
-
-  const groups = new Map<string, MediaRow[]>();
-  for (const r of rows) {
-    const k = audioGroupKey(r);
-    groups.set(k, [...(groups.get(k) ?? []), r]);
-  }
-  return [...groups.entries()].map(([key, copies]) => {
-    const best = copies.find((c) => c.transcript?.trim()) ?? copies[0];
-    const ownBlocks = ((blocks ?? []) as { source_media_id: string; lms_lessons: { title: string } | null }[])
-      .filter((b) => copies.some((c) => c.id === b.source_media_id));
-    const statusRow = copies.find((c) => c.transcription_status === "processed") ?? best;
-    return {
-      key,
-      mediaIds: copies.map((c) => c.id),
-      file_name: best.file_name,
-      file_url: best.file_url,
-      created_at: copies[0].created_at,
-      transcript: best.transcript,
-      seconds: best.transcription_audio_seconds,
-      error: best.transcription_error,
-      status: resolveAudioStatus({ transcript: best.transcript, transcription_status: statusRow.transcription_status, blocks_count: ownBlocks.length }),
-      blocks: ownBlocks.length,
-      lessons: [...new Set(ownBlocks.map((b) => b.lms_lessons?.title).filter((t): t is string => !!t))],
-    };
-  });
-}
 
 function formatDuration(s: number | null) {
   if (!s) return "—";
@@ -109,11 +40,7 @@ export default function CourseAudiosDialog({ open, onClose, courseId }: { open: 
   const { toast } = useToast();
   const qc = useQueryClient();
   const [running, setRunning] = useState<Set<string>>(new Set());
-  const { data: audios = [], isLoading } = useQuery({
-    queryKey: ["lms-course-audios", courseId],
-    queryFn: () => fetchCourseAudios(courseId),
-    enabled: open,
-  });
+  const { data: audios = [], isLoading } = useCourseAudios(courseId, open);
 
   /** Transcription seule : aucun bloc n'est créé ni modifié. */
   const transcribe = async (a: CourseAudio) => {
@@ -144,7 +71,7 @@ export default function CourseAudiosDialog({ open, onClose, courseId }: { open: 
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="w-full sm:max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Mic className="h-4 w-4" /> Audios du cours</DialogTitle>
         </DialogHeader>
@@ -155,7 +82,7 @@ export default function CourseAudiosDialog({ open, onClose, courseId }: { open: 
           </Button>
         </div>
         {isLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+          <Spinner className="h-5 w-5 mx-auto" />
         ) : (
           <ul className="divide-y">
             {audios.map((a) => {
@@ -181,7 +108,7 @@ export default function CourseAudiosDialog({ open, onClose, courseId }: { open: 
                     </Button>
                   ) : (
                     <Button size="sm" variant="outline" disabled={busy} onClick={() => transcribe(a)}>
-                      {busy && <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />} Transcrire
+                      {busy && <Spinner className="h-3.5 w-3.5 mr-1" />} Transcrire
                     </Button>
                   )}
                 </li>
