@@ -17,6 +17,7 @@ import {
   personalizeSupportsLinks,
   resolveSupportsUrlBase,
 } from "../_shared/supports-url.ts";
+import { planSponsorColdEvaluations } from "../_shared/cold-evaluation.ts";
 
 // Generate a secure token for evaluation access
 async function generateEvaluationToken(): Promise<string> {
@@ -318,7 +319,7 @@ serve(async (req) => {
         "delay_google_review_days", "delay_video_testimonial_days",
         "delay_cold_evaluation_days", "delay_cold_evaluation_funder_days",
         "delay_evaluation_reminder_1_days", "delay_evaluation_reminder_2_days",
-        "delay_follow_up_news_days",
+        "delay_follow_up_news_days", "delay_participant_cold_evaluation_days",
         "working_days"
       ]);
 
@@ -329,6 +330,7 @@ serve(async (req) => {
     let delayEvaluationReminder1 = 2;
     let delayEvaluationReminder2 = 5;
     let delayFollowUpNews = 30;
+    let delayParticipantColdEvaluation = 30;
     let workingDays = [false, true, true, true, true, true, false]; // Default: Mon-Fri
 
     delaySettings?.forEach((s: { setting_key: string; setting_value: string | null }) => {
@@ -349,6 +351,9 @@ serve(async (req) => {
       }
       if (s.setting_key === "delay_evaluation_reminder_2_days" && s.setting_value) {
         delayEvaluationReminder2 = parseInt(s.setting_value, 10) || 5;
+      }
+      if (s.setting_key === "delay_participant_cold_evaluation_days" && s.setting_value) {
+        delayParticipantColdEvaluation = parseInt(s.setting_value, 10) || 30;
       }
       if (s.setting_key === "delay_follow_up_news_days" && s.setting_value) {
         delayFollowUpNews = parseInt(s.setting_value, 10) || 30;
