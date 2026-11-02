@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchColdEvaluationData, insertColdEvaluationImprovement } from "@/hooks/useColdEvaluations";
+import { toastError } from "@/lib/toastError";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,21 +68,7 @@ const ColdEvaluationsBlock = ({ trainingId }: Props) => {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const db = supabase as any;
-    let sq = db.from("sponsor_cold_evaluations").select("*, trainings(training_name)").order("date_envoi", { ascending: false }).limit(300);
-    let pq = db.from("participant_cold_evaluations").select("*, trainings(training_name)").order("date_envoi", { ascending: false }).limit(300);
-    let bq = db
-      .from("scheduled_emails")
-      .select("id, training_id, email_type, error_message, trainings(training_name)")
-      .eq("status", "pending")
-      .in("email_type", ["cold_evaluation", "cold_evaluation_reminder", "participant_cold_evaluation", "participant_cold_evaluation_reminder"])
-      .not("error_message", "is", null);
-    if (trainingId) {
-      sq = sq.eq("training_id", trainingId);
-      pq = pq.eq("training_id", trainingId);
-      bq = bq.eq("training_id", trainingId);
-    }
-    const [{ data: s }, { data: p }, { data: b }] = await Promise.all([sq, pq, bq]);
+    const { s, p, b } = await fetchColdEvaluationData(trainingId);
 
     const sponsorRows: Row[] = (s || []).map((e: any) => ({
       id: e.id,
@@ -155,7 +142,7 @@ const ColdEvaluationsBlock = ({ trainingId }: Props) => {
   useEffect(() => { load(); }, [load]);
 
   const createImprovement = async (r: Row) => {
-    const { error } = await (supabase as any).from("improvements").insert({
+    const { error } = await insertColdEvaluationImprovement({
       training_id: r.trainingId,
       title: `Évaluation à froid ${r.kind} : ${r.trainingName}`,
       description: r.improvementText || "Retour de l'évaluation à froid à analyser.",
@@ -165,7 +152,7 @@ const ColdEvaluationsBlock = ({ trainingId }: Props) => {
       source_description: `Évaluation à froid ${r.kind} de ${r.who}, soumise le ${fmt(r.submittedAt)}`,
     });
     if (error) {
-      toast({ title: "Erreur", description: "L'action d'amélioration n'a pas pu être créée.", variant: "destructive" });
+      toastError(toast, "L'action d'amélioration n'a pas pu être créée.", { cause: error });
       return;
     }
     toast({ title: "Action d'amélioration créée", description: "Elle apparaît dans le plan d'amélioration." });

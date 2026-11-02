@@ -9,6 +9,7 @@ import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { CheckCircle2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { rpc } from "@/lib/supabase-rpc";
 import { formatTrainingDates } from "@/lib/dateFormatters";
 import {
@@ -115,7 +116,7 @@ const ParticipantColdEvaluation = () => {
     });
     setSubmitting(false);
     if (err) {
-      toast({ title: "Erreur", description: "Votre réponse n'a pas pu être enregistrée. Merci de réessayer.", variant: "destructive" });
+      toastError(toast, "Votre réponse n'a pas pu être enregistrée. Merci de réessayer.", { cause: err });
       return;
     }
     setRecord((r) => (r ? { ...r, etat: "soumis" } : r));
