@@ -148,6 +148,13 @@
       "when": 1793642378235,
       "tag": "0020_order_items_sendcloud_tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793643752745,
+      "tag": "0021_tighten_permissive_rls_and_storage",
+      "breakpoints": true
     }
   ]
 }
