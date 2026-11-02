@@ -454,6 +454,8 @@ serve(async (req) => {
       }
     }
 
+    const isInterEntreprise = training.format_formation === "inter-entreprises" || training.format_formation === "e_learning";
+
     // Sponsor cold evaluation: one per distinct sponsor (see _shared/cold-evaluation.ts).
     // A training-level row is planned even without a known sponsor email: sending
     // records the blocking reason and retries once the email is filled in.
