@@ -127,6 +127,13 @@
       "when": 1793382724217,
       "tag": "0017_change_default_model_transcript_ai_prompts",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793638398360,
+      "tag": "0018_cold_evaluations_participant_and_reminders",
+      "breakpoints": true
     }
   ]
 }
