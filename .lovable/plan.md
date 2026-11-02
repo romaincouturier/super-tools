@@ -1,37 +1,43 @@
-# Import audio LMS : conservation, traçabilité et statut des transcriptions
+# Retours qualitatifs post-formation dans SuperTools
 
-## Constat (vérifié en base)
+## Constat (base actuelle)
+- `training_evaluations` (à chaud participant) et `sponsor_cold_evaluations` (à froid commanditaire, tokenisée, avec `consent_publication`) existent déjà, rattachées à `training_id` / `participant_id`.
+- `stakeholder_appreciations` couvre les appréciations annuelles des parties prenantes.
+- `improvements` porte déjà `source_type` / `source_id` / `training_id` (plan d'amélioration Ind. 32).
+- `inbound_emails` reçoit déjà des emails avec `linked_training_id` / `linked_participant_id`.
+- `testimonials` est orientée vidéos Drive, sans lien formation/participant.
+- Il manque : un questionnaire à froid **participant** dans SuperTools, et un endroit pour les retours libres (email, oral).
 
-- Cours « Gagner en efficacité » : 17 fichiers distincts, 37 lignes `media` (jusqu'à 3 copies du même fichier), aucune transcription conservée.
-- 143, 148 et 152 (9 octobre) : une seule copie chacun, jamais transcrits.
-- `media` possède déjà `transcript`, `transcription_status`, `transcription_audio_seconds`, `transcription_error`. La fenêtre d'import n'écrit que `transcript`, sans attendre le résultat (et uniquement depuis la dernière modification).
-- `lms_lesson_blocks.source_transcript_id` existe, sans contrainte, et est utilisé par l'import de transcripts de la page Transcripts.
+## 1. Stockage
+Une seule nouvelle table, `training_feedbacks`, pour tout retour libre ou importé :
+- rattachement : `training_id`, `participant_id` (nullable), formation catalogue déduite via la session ;
+- `source` : `cold_form_import`, `email`, `manual`, `mcp`, `phone` ; `source_ref` (id `inbound_emails`, ligne du formulaire) ; `author_role` participant/commanditaire ; `received_at` ;
+- `content` (texte brut, citation exacte), `ai_summary`, `sentiment`, `themes[]` (ex. « temps / transfert au quotidien », « pédagogie ») ;
+- témoignage : `quote_candidate`, `consent_status` (inconnu / demandé / accordé / refusé), `consent_at` ;
+- suivi : `status` (nouveau / traité), lien vers `improvements` via `improvements.source_type='training_feedback'`.
 
-## Choix : stocker sur `media`
+Le questionnaire à froid participant devient natif : on réutilise le modèle tokenisé de `sponsor_cold_evaluations` (même écran, même envoi programmé), plutôt qu'une nouvelle table. Google Form abandonné à terme (cohérent avec la règle « jamais de Google Forms dans les évaluations »).
 
-Option retenue : la transcription vit sur la ligne `media` de l'audio. C'est là que le fichier, sa durée et son statut sont déjà décrits ; créer une ligne `transcripts` mélangerait les audios de cours avec les réunions/Drive/Fireflies (alertes, affectations, récap quotidien).
+## 2. Entrée des retours
+- **Historique Google Form** : import CSV ponctuel depuis l'onglet Évaluations ; rapprochement par email puis par formation/date ; lignes non rapprochées affichées pour affectation manuelle.
+- **À l'avenir** : questionnaire à froid participant natif envoyé automatiquement (délai réglable, ex. J+90).
+- **Email** : bouton « Enregistrer comme retour » sur un `inbound_emails` déjà lié, et ajout manuel depuis la fiche participant (coller le texte).
+- **MCP** : outil `add_training_feedback` (email du participant + texte + source), rattachement automatique par email, propositions si plusieurs sessions.
+- À l'enregistrement, l'IA remplit résumé, sentiment, thèmes et repère les citations publiables ; rien n'est publié ni envoyé automatiquement.
 
-## Ce qui change
+## 3. Exploitation
+- **Fiche formation, onglet « Retours »** : liste unifiée (à chaud, à froid participant et commanditaire, retours libres) avec synthèse IA par thème, et bouton « Créer une action d'amélioration » qui alimente `improvements` (Ind. 30-32, source tracée).
+- **Synthèse par formation catalogue** : agrégation multi-sessions sur 12 mois, exportable comme preuve Qualiopi.
+- **Témoignages** : vue « Citations candidates » ; demande de consentement = signal manuel (comme `testimonial_requests`, pas d'email auto) ; une fois accordé, la citation est réutilisable (évaluations avec `consent_publication` incluses).
+- **Suites à donner** : l'IA propose des actions (ex. « relancer l'accès e-learning », « proposer une séance de suivi ») créées comme actions du jour / tâches, validées à la main ; l'exemple de la participante donne : thème « manque de temps », action « renvoyer le lien de l'espace e-learning », citation « approche pédagogique généreuse » candidate.
 
-1. **Conservation systématique** : à la fin de chaque transcription, enregistrement attendu (pas « en tâche de fond ») de `transcript`, `transcription_status` (`pending` → `transcribed` / `error`), `transcription_audio_seconds` (durée renvoyée par le service de transcription), `transcription_error`.
-2. **Traçabilité** : nouvelle colonne `lms_lesson_blocks.source_media_id` (référence vers `media`) renseignée sur chaque bloc créé depuis un audio. `source_transcript_id` reste réservé aux transcripts de la page Transcripts. Après création des blocs, le statut du média passe à `processed`.
-3. **Statut par fichier** : dans le builder, un onglet « Audios du cours » liste chaque audio avec badge (En attente, Transcrit, Traité en blocs, Erreur), durée, date, nombre de blocs produits et leçons concernées, bouton « Télécharger le transcript ».
-4. **Anti-doublon** : à l'upload, empreinte du fichier (nom + taille + SHA-256 calculé dans le navigateur, stockée dans une colonne `content_hash`). Si le même fichier existe déjà dans le cours, il est réutilisé (pas de nouvel upload) avec son transcript existant ; l'utilisateur voit « Déjà importé le … » et choisit de réutiliser ou ignorer. Les copies existantes ne sont pas supprimées ; elles sont regroupées à l'affichage.
-5. **MCP (lecture seule)** : `list_lms_course_audios(course_id)` (fichiers, statuts, durées, blocs liés) et `read_lms_audio_transcript(media_id)` (texte intégral, pagination si long). Accès réservé au personnel ayant le module LMS.
+## Ordre proposé
+1. Table `training_feedbacks` + ajout manuel + outil MCP.
+2. Onglet « Retours » et lien vers `improvements`.
+3. Import CSV Google Form.
+4. Questionnaire à froid participant natif.
+5. Citations candidates et suites proposées.
 
-## Rattrapage des fichiers existants
-
-- Bouton « Transcrire » sur chaque audio sans transcription dans l'onglet « Audios du cours », plus « Transcrire tous les manquants ». Transcription seule : aucun bloc créé ni modifié.
-- Pour les doublons, une seule copie par fichier est transcrite et le texte recopié sur les autres.
-- Je lancerai ce rattrapage sur le cours « Gagner en efficacité » (17 fichiers dont 143, 148, 152) après mise en ligne, puis je vérifierai les 17 statuts « Transcrit ».
-- Liaison rétroactive des blocs déjà générés à leur audio : non faite (rien de fiable ne relie aujourd'hui un bloc à un fichier). Les fichiers 143/148/152 apparaîtront donc « Transcrit » mais pas « Traité en blocs », ce qui correspond à la réalité ; les autres aussi, faute de lien.
-
-## Détails techniques
-
-- Migration : `media.content_hash text`, index `(source_type, content_hash)`; `lms_lesson_blocks.source_media_id uuid` nullable, `ON DELETE SET NULL`.
-- `transcribe-audio-long` mode `poll` : renvoyer `audio_duration` d'AssemblyAI.
-- `src/services/lmsMediaImport.ts` : `transcribeAudio` retourne `{ text, seconds }` ; helper `saveMediaTranscript(mediaId, …)`.
-- `BulkAudioUploadDialog.tsx` : hash + recherche doublon avant upload, statuts persistés, `source_media_id` à la création des blocs, passage `processed`.
-- Nouveau composant `CourseAudiosPanel` (builder) avec hook de lecture `media` filtré sur les leçons du cours + nombre de blocs via `source_media_id`.
-- Outils MCP dans le serveur existant (`supabase/functions` MCP), client utilisateur, sans clé privilégiée.
-- Tests vitest : détection de doublon, normalisation durée/statut.
+## Questions ouvertes
+- Délai du questionnaire à froid participant (3 mois ?) et questions à reprendre du Google Form actuel.
+- Les citations validées doivent-elles alimenter la table `testimonials` existante (aujourd'hui vidéos) ou rester dans le module Évaluations ?
