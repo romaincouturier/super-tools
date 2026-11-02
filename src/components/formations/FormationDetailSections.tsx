@@ -190,7 +190,7 @@ const FormationDetailSections = ({
     </div>
 
     {/* Participant Evaluations */}
-    <div className="mb-6">
+    <div className="mb-6 space-y-6">
       <ParticipantEvaluationsBlock trainingId={training.id} />
       <ColdEvaluationsBlock trainingId={training.id} />
     </div>
