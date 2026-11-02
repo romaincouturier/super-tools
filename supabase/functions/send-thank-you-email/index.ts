@@ -532,7 +532,7 @@ serve(async (req) => {
             .eq("training_id", trainingId)
             .eq("participant_id", participant.id)
             .eq("email_type", "funder_reminder")
-            .single();
+            .maybeSingle();
 
           if (!existingFunderReminder) {
             const funderReminderDate = addWorkingDays(referenceDate, delayColdEvaluationFunder, workingDays);
@@ -554,8 +554,8 @@ serve(async (req) => {
           .select("id")
           .eq("training_id", trainingId)
           .eq("email_type", "funder_reminder")
-          .eq("participant_id", null)
-          .single();
+          .is("participant_id", null)
+          .maybeSingle();
 
         if (!existingFunderReminder) {
           const funderReminderDate = addWorkingDays(referenceDate, delayColdEvaluationFunder, workingDays);
