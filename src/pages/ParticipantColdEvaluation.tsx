@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { rpc } from "@/lib/supabase-rpc";
 import { formatTrainingDates } from "@/lib/dateFormatters";
@@ -121,7 +122,7 @@ const ParticipantColdEvaluation = () => {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+    return <div className="min-h-screen flex items-center justify-center"><Spinner size="lg" /></div>;
   }
 
   if (error || !record) {
@@ -165,6 +166,7 @@ const ParticipantColdEvaluation = () => {
             {record.training_name}{dates ? ` · ${dates}` : ""}
           </p>
           <p className="text-sm text-muted-foreground">
+            {/* demo-safe: page publique vue uniquement par le participant lui-meme */}
             {record.first_name ? `${record.first_name}, q` : "Q"}uelques questions sur ce que vous avez pu mettre en pratique. Comptez 3 minutes.
           </p>
         </div>
@@ -248,7 +250,7 @@ const ParticipantColdEvaluation = () => {
         </Card>
 
         <Button className="w-full" size="lg" onClick={submit} disabled={submitting}>
-          {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Envoyer mes réponses
+          {submitting && <Spinner className="mr-2" />}Envoyer mes réponses
         </Button>
       </div>
     </div>
