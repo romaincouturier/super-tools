@@ -222,6 +222,9 @@ const ScheduledEmailsSummary = ({ trainingId, participants, refreshTrigger }: Sc
       google_review: "Avis Google",
       video_testimonial: "Témoignage vidéo",
       cold_evaluation: "Évaluation à froid commanditaire",
+      cold_evaluation_reminder: "Relance évaluation à froid commanditaire",
+      participant_cold_evaluation: "Évaluation à froid participant",
+      participant_cold_evaluation_reminder: "Relance évaluation à froid participant",
       funder_reminder: "Rappel financeur",
       evaluation_reminder_1: "Relance évaluation (1ère)",
       evaluation_reminder_2: "Relance évaluation (2ème)",
@@ -579,7 +582,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
         </Badge>
       );
     }
-    if (email.status === "error" || email.error_message) {
+    if (email.status === "error" || email.status === "failed") {
       return (
         <Badge variant="destructive">
           <AlertCircle className="h-3 w-3 mr-1" />
@@ -617,7 +620,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
   // Split emails into pending vs sent
   const pendingEmailsList = emails.filter(e => e.status === "pending" && !e.sent_at);
   const sentEmailsList = emails.filter(e => e.status === "sent" || e.sent_at);
-  const errorEmailsList = emails.filter(e => e.status === "error" && !e.sent_at);
+  const errorEmailsList = emails.filter(e => (e.status === "error" || e.status === "failed") && !e.sent_at);
   // Errors go in the scheduled section
   const scheduledEmails = [...pendingEmailsList, ...errorEmailsList];
 

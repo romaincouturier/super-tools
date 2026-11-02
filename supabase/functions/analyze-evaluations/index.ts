@@ -102,9 +102,33 @@ IMPORTANT:
 - Les titres doivent être courts (max 10 mots)
 - Les descriptions doivent être détaillées mais concises`;
 
+    // Cold evaluations (participants and sponsors), submitted only.
+    let pcq = supabase
+      .from("participant_cold_evaluations")
+      .select("training_name, mise_en_pratique, frequence_utilisation, exemple_application, niveau_maitrise, freins, freins_details, effets_constates, objectifs_atteints, besoins_complementaires, recommandation, commentaires_libres")
+      .eq("etat", "soumis");
+    let scq = supabase
+      .from("sponsor_cold_evaluations")
+      .select("training_name, satisfaction_globale, attentes_satisfaites, objectifs_atteints, impact_competences, description_impact, recommandation, points_forts, axes_amelioration, commentaires_libres")
+      .eq("etat", "soumis");
+    if (trainingId) {
+      pcq = pcq.eq("training_id", trainingId);
+      scq = scq.eq("training_id", trainingId);
+    }
+    const [{ data: participantCold }, { data: sponsorCold }] = await Promise.all([pcq, scq]);
+    const coldSection = (participantCold?.length || sponsorCold?.length)
+      ? `
+
+Évaluations à froid des participants (mise en pratique, quelques semaines après) :
+${JSON.stringify(participantCold || [], null, 2)}
+
+Évaluations à froid des commanditaires :
+${JSON.stringify(sponsorCold || [], null, 2)}`
+      : "";
+
     const userPrompt = `Analyse ces ${evaluations.length} évaluations pour ${trainingName}:
 
-${JSON.stringify(evalSummaries, null, 2)}
+${JSON.stringify(evalSummaries, null, 2)}${coldSection}
 
 Génère une analyse structurée avec points forts, points faibles et recommandations d'amélioration.`;
 

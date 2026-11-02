@@ -12,6 +12,7 @@ import {
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { learnerAccessLink } from "../_shared/learner-account.ts";
+import { isCronOrServiceRole } from "../_shared/cron-auth.ts";
 
 // Send a friendly J+5 reminder to paying e-learning participants who haven't started (0% progress).
 // Idempotent: skip if elearning_start_reminder already logged for this participant.
@@ -21,6 +22,12 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
+    // Cron (x-cron-secret) ou appel interne (service_role) uniquement : la
+    // fonction est publique (verify_jwt = false) et envoie des emails.
+    if (!(await isCronOrServiceRole(req, "ELEARNING_CRON_SECRET"))) {
+      return createErrorResponse("Non autorisé", 401);
+    }
+
     const supabase = getSupabaseClient();
     const signature = await getSigniticSignature();
 

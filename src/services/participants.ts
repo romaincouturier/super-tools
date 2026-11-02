@@ -138,12 +138,14 @@ export async function logParticipantActivity(
  * Invoke the send-welcome-email edge function.
  */
 export async function sendParticipantWelcomeEmail(participantId: string, trainingId: string) {
-  await supabase.functions.invoke("send-welcome-email", {
+  // invoke ne lève pas sur une réponse en erreur : un envoi raté doit remonter.
+  const { error } = await supabase.functions.invoke("send-welcome-email", {
     body: {
       participantId,
       trainingId,
     },
   });
+  if (error) throw error;
 }
 
 /**

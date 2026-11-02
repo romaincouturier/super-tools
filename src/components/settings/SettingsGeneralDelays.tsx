@@ -80,6 +80,8 @@ const SettingsGeneralDelays = ({ settings, updateSetting }: SettingsGeneralDelay
           <DelayField id="delay-google-review" label="Avis Google" prefix="J +" suffix="jours" min={1} max={60} value={settings.delay_google_review_days} onChange={(v) => updateSetting("delay_google_review_days", v)} />
           <DelayField id="delay-video-testimonial" label="Témoignage vidéo" prefix="J +" suffix="jours" min={1} max={60} value={settings.delay_video_testimonial_days} onChange={(v) => updateSetting("delay_video_testimonial_days", v)} />
           <DelayField id="delay-cold-evaluation" label="Évaluation à froid commanditaire" prefix="J +" suffix="jours" min={1} max={90} value={settings.delay_cold_evaluation_days} onChange={(v) => updateSetting("delay_cold_evaluation_days", v)} />
+          <DelayField id="delay-participant-cold-evaluation" label="Évaluation à froid participant" prefix="J +" suffix="jours" min={1} max={120} value={settings.delay_participant_cold_evaluation_days} onChange={(v) => updateSetting("delay_participant_cold_evaluation_days", v)} />
+          <DelayField id="delay-cold-evaluation-reminder" label="Relance évaluations à froid" prefix="+" suffix="jours" min={1} max={30} value={settings.delay_cold_evaluation_reminder_days} onChange={(v) => updateSetting("delay_cold_evaluation_reminder_days", v)} />
           <div className="space-y-2">
             <Label htmlFor="delay-cold-evaluation-funder">Évaluation à froid financeur</Label>
             <div className="flex items-center gap-2">

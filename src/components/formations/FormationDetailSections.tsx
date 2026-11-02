@@ -15,6 +15,7 @@ import TrainerAdequacy from "@/components/formations/TrainerAdequacy";
 import PedagogicalReferent from "@/components/formations/PedagogicalReferent";
 import TrainerEvaluationBlock from "@/components/formations/TrainerEvaluationBlock";
 import ParticipantEvaluationsBlock from "@/components/formations/ParticipantEvaluationsBlock";
+import ColdEvaluationsBlock from "@/components/formations/ColdEvaluationsBlock";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import LiveMeetingsSection from "@/components/formations/LiveMeetingsSection";
 import SupportEditor from "@/components/formations/support/SupportEditor";
@@ -189,8 +190,9 @@ const FormationDetailSections = ({
     </div>
 
     {/* Participant Evaluations */}
-    <div className="mb-6">
+    <div className="mb-6 space-y-6">
       <ParticipantEvaluationsBlock trainingId={training.id} />
+      <ColdEvaluationsBlock trainingId={training.id} />
     </div>
 
     {/* Photos & Videos */}

@@ -66,6 +66,45 @@ Le rythme reste totalement libre, vous avancez à votre convenance. Si le moindr
     variables: ["first_name", "training_name", "access_button"],
   },
 
+  elearning_inactivity_reminder: {
+    name: "Relance e-learning après 6 mois sans activité",
+    audience: "client",
+    sendingInfo: "📤 Envoyé automatiquement (cron quotidien) à l'apprenant d'une formation e-learning non terminée, 6 mois après sa dernière activité (ou son inscription s'il n'a jamais commencé). Une seule relance par période d'inactivité : il faut une nouvelle activité puis 6 nouveaux mois sans activité pour en recevoir une autre.",
+    subject: {
+      tu: "{{first_name}}, ta formation « {{training_name}} » t'attend toujours",
+      vous: "{{first_name}}, votre formation « {{training_name}} » vous attend toujours",
+    },
+    content: {
+      tu: `Bonjour {{first_name}},
+
+{{#non_demarre}}Il y a quelques mois, tu t'es inscrit(e) à la formation en ligne « {{training_name}} », et tu n'as pas encore eu l'occasion de la démarrer.{{/non_demarre}}{{#en_cours}}Il y a quelques mois, tu as commencé la formation en ligne « {{training_name}} » et tu en es à {{progression}} %. Depuis, tu n'y es pas revenu(e).{{/en_cours}}
+
+Pas de reproche, la vie va vite et une formation à son rythme passe facilement au second plan. Ton accès est toujours ouvert{{#en_cours}} et ta progression est conservée : tu reprends exactement là où tu t'étais arrêté(e){{/en_cours}}.
+
+Un conseil : bloque 20 minutes dans ton agenda cette semaine, juste pour {{#non_demarre}}faire la première leçon{{/non_demarre}}{{#en_cours}}faire la leçon suivante{{/en_cours}}. C'est souvent ce qui suffit à relancer la machine.
+
+{{access_button}}
+
+Si quelque chose te freine (manque de temps, un point pas clair, un besoin spécifique...), réponds-moi directement à ce mail : on regarde ensemble comment ajuster.
+
+À très vite,`,
+      vous: `Bonjour {{first_name}},
+
+{{#non_demarre}}Il y a quelques mois, vous vous êtes inscrit(e) à la formation en ligne « {{training_name}} », et vous n'avez pas encore eu l'occasion de la démarrer.{{/non_demarre}}{{#en_cours}}Il y a quelques mois, vous avez commencé la formation en ligne « {{training_name}} » et vous en êtes à {{progression}} %. Depuis, vous n'y êtes pas revenu(e).{{/en_cours}}
+
+Pas de reproche, la vie va vite et une formation à son rythme passe facilement au second plan. Votre accès est toujours ouvert{{#en_cours}} et votre progression est conservée : vous reprenez exactement là où vous vous étiez arrêté(e){{/en_cours}}.
+
+Un conseil : bloquez 20 minutes dans votre agenda cette semaine, juste pour {{#non_demarre}}faire la première leçon{{/non_demarre}}{{#en_cours}}faire la leçon suivante{{/en_cours}}. C'est souvent ce qui suffit à relancer la machine.
+
+{{access_button}}
+
+Si quelque chose vous freine (manque de temps, un point pas clair, un besoin spécifique...), répondez-moi directement à ce mail : on regarde ensemble comment ajuster.
+
+À très vite,`,
+    },
+    variables: ["first_name", "training_name", "progression", "non_demarre", "en_cours", "access_button"],
+  },
+
   lms_message_notification: {
     name: "Nouveau message formateur (e-learning)",
     audience: "client",
