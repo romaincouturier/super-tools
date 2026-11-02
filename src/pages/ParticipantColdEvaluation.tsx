@@ -166,8 +166,7 @@ const ParticipantColdEvaluation = () => {
             {record.training_name}{dates ? ` · ${dates}` : ""}
           </p>
           <p className="text-sm text-muted-foreground">
-            {/* demo-safe: page publique vue uniquement par le participant lui-meme */}
-            {record.first_name ? `${record.first_name}, q` : "Q"}uelques questions sur ce que vous avez pu mettre en pratique. Comptez 3 minutes.
+            {record.first_name ? `${record.first_name}, q` : "Q"}uelques questions sur ce que vous avez pu mettre en pratique. Comptez 3 minutes. {/* demo-safe: page publique vue par le participant lui-meme */}
           </p>
         </div>
 
