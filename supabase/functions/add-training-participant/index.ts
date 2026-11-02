@@ -538,9 +538,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
       !isFreeTraining && shouldSendWelcome && (sendWelcomeNow || ongoing || isElearning);
     if (sendWelcomeImmediately) {
       try {
-        await admin.functions.invoke("send-welcome-email", {
+        // invoke ne lève pas sur une réponse en erreur : il la renvoie.
+        const { error: welcomeError } = await admin.functions.invoke("send-welcome-email", {
           body: { participantId, trainingId },
         });
+        if (welcomeError) throw welcomeError;
         welcomeSent = true;
       } catch (err) {
         console.error("[add-training-participant] send-welcome-email:", err);

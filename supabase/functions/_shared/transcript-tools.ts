@@ -202,7 +202,11 @@ export async function unassignTranscript(
   };
 }
 
-export const REFRESH_SOURCES = { google_drive: "poll-drive-transcripts", fireflies: "fireflies-backfill" } as const;
+export const REFRESH_SOURCES = {
+  google_drive: "poll-drive-transcripts",
+  fireflies: "fireflies-backfill",
+  loom: "poll-loom-transcripts",
+} as const;
 
 export async function refreshTranscripts(
   args: { source?: unknown },
@@ -211,7 +215,7 @@ export async function refreshTranscripts(
   const src = (args.source ?? "all") as string;
   const keys = src === "all" ? Object.keys(REFRESH_SOURCES) : [src];
   for (const k of keys) {
-    if (!(k in REFRESH_SOURCES)) throw new Error(`source must be google_drive, fireflies or all`);
+    if (!(k in REFRESH_SOURCES)) throw new Error(`source must be google_drive, fireflies, loom or all`);
   }
   const results: Record<string, unknown> = {};
   for (const k of keys) {

@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle } from "lucide-react";
 import { followupAmount, totalHours, type TrainingFollowup } from "@/lib/quoteFollowup";
-
-interface Formation { id: string; formation_name: string }
-interface Formula { id: string; name: string; prix: number | null; duree_heures: number | null; coaching_sessions_count: number | null }
+import { useActiveFormations, useFormationFormulaOptions } from "@/hooks/useTrainingFollowupOptions";
 
 interface Props {
   value: TrainingFollowup | null;
@@ -22,29 +19,21 @@ interface Props {
 const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n);
 
 export default function TrainingFollowupBlock({ value, defaultRate, initialTitle, averageHourly, alertThreshold, onChange }: Props) {
-  const [formations, setFormations] = useState<Formation[]>([]);
   const [formationId, setFormationId] = useState(value?.formation_config_id || "");
-  const [formulas, setFormulas] = useState<Formula[]>([]);
+  const { data: formations = [] } = useActiveFormations();
+  const { data: fetchedFormulas = [] } = useFormationFormulaOptions(formationId);
+  const formulas = formationId ? fetchedFormulas : [];
+  const [titleMatched, setTitleMatched] = useState(false);
 
   useEffect(() => {
-    supabase.from("formation_configs").select("id, formation_name").eq("is_active", true).order("formation_name")
-      .then(({ data }) => {
-        const list = (data || []) as Formation[];
-        setFormations(list);
-        if (!formationId && initialTitle) {
-          const t = initialTitle.toLowerCase();
-          const m = list.find((f) => t.includes(f.formation_name.toLowerCase()) || f.formation_name.toLowerCase().includes(t));
-          if (m) setFormationId(m.id);
-        }
-      });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!formationId) { setFormulas([]); return; }
-    supabase.from("formation_formulas").select("id, name, prix, duree_heures, coaching_sessions_count")
-      .eq("formation_config_id", formationId).order("display_order")
-      .then(({ data }) => setFormulas((data || []) as Formula[]));
-  }, [formationId]);
+    if (titleMatched || formations.length === 0) return;
+    setTitleMatched(true);
+    if (!formationId && initialTitle) {
+      const t = initialTitle.toLowerCase();
+      const m = formations.find((f) => t.includes(f.formation_name.toLowerCase()) || f.formation_name.toLowerCase().includes(t));
+      if (m) setFormationId(m.id);
+    }
+  }, [formations]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickFormula = (id: string) => {
     const f = formulas.find((x) => x.id === id);

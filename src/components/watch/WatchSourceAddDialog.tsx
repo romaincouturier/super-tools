@@ -43,7 +43,7 @@ export default function WatchSourceAddDialog() {
   };
   return <Dialog open={open} onOpenChange={setOpen}>
     <Button className="gap-2" onClick={() => { setForm(initial); setOpen(true); }}><Plus className="h-4 w-4" />Ajouter une source</Button>
-    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+    <DialogContent className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>Ajouter une source</DialogTitle></DialogHeader>
       <form id="watch-source-form" onSubmit={submit} className="space-y-4">
         <div className="space-y-1"><Label htmlFor="source-expert">Expert</Label><Select value={form.expert} onValueChange={(v) => field("expert", v)}><SelectTrigger id="source-expert"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(WATCH_EXPERTS).map(([key, label]) => <SelectItem key={key} value={key}>{label}</SelectItem>)}</SelectContent></Select></div>

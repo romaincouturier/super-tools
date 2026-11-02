@@ -55,3 +55,12 @@
 - [x] CRM Corse 829e60ef : créer mission liée
 - [x] MCP mark_opportunity_won : create_mission par défaut pour missions + création si déjà WON sans mission
 - [x] Audit cartes WON mission sans mission liée
+
+## Évaluations à froid (2026-11-02)
+- [x] Doublons commanditaire corrigés + protection en base
+- [x] Session sans email commanditaire : raison enregistrée, affichée, envoi auto dès l'email connu (AI4Product : commanditaire unique des participants)
+- [x] Classes virtuelles : un envoi par commanditaire distinct
+- [x] Un seul jeton par destinataire et session
+- [x] Relance unique à 3 jours ouvrés, annulée si réponse
+- [x] Questionnaire participant natif à 30 jours ouvrés
+- [x] Suivi sur la fiche formation et la page Évaluations, action d'amélioration, analyse IA
