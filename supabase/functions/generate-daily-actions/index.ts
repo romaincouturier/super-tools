@@ -536,6 +536,26 @@ serve(async (req) => {
       });
     }
 
+    // 17quinquies. Évaluations à froid bloquées (envoi en échec, ex. email commanditaire manquant)
+    const { data: blockedCold } = await supabase
+      .from("scheduled_emails")
+      .select("id, training_id, email_type, error_message, scheduled_for, trainings(training_name)")
+      .eq("status", "pending")
+      .in("email_type", ["cold_evaluation", "cold_evaluation_reminder", "participant_cold_evaluation", "participant_cold_evaluation_reminder"])
+      .not("error_message", "is", null)
+      .lte("scheduled_for", new Date().toISOString());
+    for (const e of blockedCold || []) {
+      const who = e.email_type.startsWith("participant") ? "participant" : "commanditaire";
+      actions.push({
+        category: "evaluations_froid_bloquees",
+        title: `🧊 ${(e as any).trainings?.training_name || "Formation"} — évaluation à froid ${who} non envoyée`,
+        description: e.error_message,
+        link: `${appUrl}/formations/${e.training_id}`,
+        entityType: "scheduled_email", entityId: e.id,
+        scope: "global",
+      });
+    }
+
     // 18. SuperTilt — actions personnelles (deadline aujourd'hui ou en retard)
     for (const a of data.supertiltActions) {
       const dateLabel = a.deadline === today

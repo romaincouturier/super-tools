@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
+import { reportHandledError } from "@/lib/sentry";
 import type { WatchItem } from "@/hooks/useWatch";
 import { useUpdateWatchItem, useWatchTags } from "@/hooks/useWatch";
 import WatchRichEditor from "./WatchRichEditor";
@@ -63,7 +64,8 @@ const WatchEditDialog = ({ item, open, onOpenChange }: WatchEditDialogProps) => 
       });
       toast.success("Modifications enregistrées");
       onOpenChange(false);
-    } catch {
+    } catch (err) {
+      reportHandledError(err);
       toast.error("Erreur lors de la sauvegarde");
     } finally {
       setSaving(false);

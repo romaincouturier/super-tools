@@ -39,6 +39,7 @@ const FormationDetail = lazy(() => import("./pages/FormationDetail"));
 const Questionnaire = lazy(() => import("./pages/Questionnaire"));
 const Evaluation = lazy(() => import("./pages/Evaluation"));
 const SponsorEvaluation = lazy(() => import("./pages/SponsorEvaluation"));
+const ParticipantColdEvaluation = lazy(() => import("./pages/ParticipantColdEvaluation"));
 const Evaluations = lazy(() => import("./pages/Evaluations"));
 const FormulaireRedirect = lazy(() => import("./pages/FormulaireRedirect"));
 const Ameliorations = lazy(() => import("./pages/Ameliorations"));
@@ -234,6 +235,7 @@ const App = () => {
               <Route path="/questionnaire/:token" element={<Questionnaire />} />
               <Route path="/evaluation/:token" element={<Evaluation />} />
               <Route path="/evaluation-commanditaire/:token" element={<SponsorEvaluation />} />
+              <Route path="/evaluation-a-froid/:token" element={<ParticipantColdEvaluation />} />
               <Route path="/evaluation-formateur/:token" element={<TrainerEvaluation />} />
               <Route path="/formulaire/besoins" element={<FormulaireRedirect />} />
               <Route path="/formulaire/evaluation" element={<FormulaireRedirect />} />

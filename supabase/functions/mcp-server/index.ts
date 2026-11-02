@@ -937,10 +937,10 @@ const MCP_TOOLS = [
   {
     name: "refresh_transcripts",
     description:
-      "Fetch new call transcripts from Google Drive and/or Fireflies now (same as the 'Forcer' buttons on the Transcripts page). Drive audio is transcribed asynchronously, so new items can take a few minutes to appear.",
+      "Fetch new call transcripts from Google Drive, Fireflies and/or Loom now (same as the 'Forcer' buttons on the Transcripts page). Drive audio is transcribed asynchronously, so new items can take a few minutes to appear.",
     inputSchema: {
       type: "object",
-      properties: { source: { type: "string", enum: ["google_drive", "fireflies", "all"], description: "Default 'all'" } },
+      properties: { source: { type: "string", enum: ["google_drive", "fireflies", "loom", "all"], description: "Default 'all'" } },
     },
   },
   {
