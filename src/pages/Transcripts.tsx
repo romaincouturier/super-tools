@@ -42,6 +42,7 @@ const SOURCE_LABELS: Record<TranscriptSource, string> = {
   google_drive: "Google Drive",
   fireflies: "Fireflies",
   dictation: "Dictée",
+  loom: "Loom",
 };
 
 const STATUS_ICONS: Record<TranscriptStatus, React.ReactNode> = {
@@ -571,6 +572,7 @@ export default function Transcripts() {
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <PollingIndicator source="drive_transcripts" label="Google Drive — Transcripts" functionName="poll-drive-transcripts" forceLabel="Forcer Google Drive" />
         <PollingIndicator source="fireflies" label="Fireflies — Transcripts" functionName="fireflies-backfill" forceLabel="Forcer Fireflies" />
+        <PollingIndicator source="loom" label="Loom — Transcripts" functionName="poll-loom-transcripts" forceLabel="Forcer Loom" />
         <Input
           placeholder="Rechercher par titre…"
           value={search}
@@ -585,6 +587,7 @@ export default function Transcripts() {
             <SelectItem value="all">Toutes les sources</SelectItem>
             <SelectItem value="google_drive">Google Drive</SelectItem>
             <SelectItem value="fireflies">Fireflies</SelectItem>
+            <SelectItem value="loom">Loom</SelectItem>
           </SelectContent>
         </Select>
         <Select value={status || "all"} onValueChange={(v) => { setStatus(v === "all" ? "" : (v as TranscriptStatus)); resetPage(); }}>

@@ -568,7 +568,7 @@ const MicroDevis = () => {
                       value={followup} onChange={setFollowup}
                       includedSessions={formulasHook.activeFormula.coaching_sessions_count || 0}
                       baseHours={Number(formulasHook.activeFormula.duree_heures) || 0}
-                      unitPrice={Number(formulasHook.activeFormula.prix) || 0}
+                      unitPrice={Number(formulasHook.activeFormula.prix) || 0} // demo-safe: prix catalogue de la formule, passe au calcul du suivi, pas une donnee client
                       alertThreshold={hourlyThreshold}
                     />
                   ) : null}

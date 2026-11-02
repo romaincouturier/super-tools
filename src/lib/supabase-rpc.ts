@@ -468,6 +468,16 @@ export const rpc = {
   updateSponsorEvaluationByToken: (token: string, data: Record<string, unknown>) =>
     callVoid("update_sponsor_evaluation_by_token", { p_token: token, p_data: data }),
 
+  // --- Participant cold evaluation ---
+  getParticipantColdEvaluationByToken: (token: string) =>
+    call<Record<string, unknown>>("get_participant_cold_evaluation_by_token", { p_token: token }),
+
+  markParticipantColdEvaluationOpened: (token: string) =>
+    callVoid("mark_participant_cold_evaluation_opened", { p_token: token }),
+
+  submitParticipantColdEvaluation: (token: string, data: Record<string, unknown>) =>
+    callVoid("submit_participant_cold_evaluation", { p_token: token, p_data: data }),
+
   // --- Stakeholder appreciation ---
   getStakeholderAppreciationByToken: (token: string) =>
     call<Record<string, unknown>>("get_stakeholder_appreciation_by_token", { p_token: token }),
