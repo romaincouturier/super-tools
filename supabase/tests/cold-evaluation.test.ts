@@ -1,7 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { planSponsorColdEvaluations, resolveSponsorRecipient } from "../functions/_shared/cold-evaluation";
+import { isColdEvaluationEligible, isColdEvaluationType, planSponsorColdEvaluations, resolveSponsorRecipient } from "../functions/_shared/cold-evaluation";
 
 const fatima = "fatima@apicil.com";
+
+describe("cold evaluation go-live cutoff", () => {
+  it("excludes sessions ending before 02/11/2026, including AI4Product", () => {
+    expect(isColdEvaluationEligible("2026-10-07")).toBe(false);
+    expect(isColdEvaluationEligible("2026-11-01")).toBe(false);
+  });
+  it("requires an end date strictly later than 02/11/2026", () => {
+    expect(isColdEvaluationEligible("2026-11-02")).toBe(false);
+    expect(isColdEvaluationEligible("2026-11-03")).toBe(true);
+  });
+  it("does not automatically include undated sessions", () => {
+    expect(isColdEvaluationEligible(null)).toBe(false);
+    expect(isColdEvaluationEligible(undefined)).toBe(false);
+    expect(isColdEvaluationEligible("")).toBe(false);
+  });
+  it.each(["cold_evaluation", "cold_evaluation_reminder", "participant_cold_evaluation", "participant_cold_evaluation_reminder"])("applies the exclusion to %s", (type) => {
+    expect(isColdEvaluationType(type)).toBe(true);
+  });
+  it("does not classify other follow-up emails as cold evaluations", () => {
+    expect(isColdEvaluationType("follow_up_news")).toBe(false);
+    expect(isColdEvaluationType("evaluation_reminder_1")).toBe(false);
+  });
+});
 
 describe("sponsor cold evaluation planning", () => {
   it("plans one training-level evaluation for an intra session with a sponsor", () => {
