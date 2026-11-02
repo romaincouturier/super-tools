@@ -32,8 +32,6 @@ interface DocumentDeliverySectionProps {
   attendanceSheetsUrls: string[];
   certificateUrls: string[];
   sponsorEmail: string | null;
-  sponsorName: string | null;
-  sponsorFirstName: string | null;
   sponsorFormalAddress: boolean;
   documentsSentInfo: DocumentSentInfo;
   setDocumentsSentInfo: React.Dispatch<React.SetStateAction<DocumentSentInfo>>;
@@ -55,8 +53,6 @@ const DocumentDeliverySection = ({
   attendanceSheetsUrls,
   certificateUrls,
   sponsorEmail,
-  sponsorName,
-  sponsorFirstName,
   sponsorFormalAddress,
   setDocumentsSentInfo,
   evaluationCount = 0,
@@ -199,10 +195,9 @@ const DocumentDeliverySection = ({
     }
 
     const result = await invokeSendDocs({
-      trainingId, trainingName, startDate, endDate,
-      recipientEmail: targetEmail,
-      recipientName: recipientEmail ? null : sponsorName,
-      recipientFirstName: recipientEmail ? null : sponsorFirstName,
+      trainingId,
+      // Sans adresse saisie, la fonction lit le commanditaire en base.
+      customRecipientEmail: recipientEmail || null,
       documentType: type,
       invoiceUrl: type === "sheets" || type === "certificates" || type === "evaluations" ? null : invoiceFileUrl,
       attendanceSheetsUrls: type === "invoice" || type === "certificates" || type === "evaluations" ? [] : sheetsToSend,
