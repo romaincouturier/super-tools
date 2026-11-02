@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertTriangle, ChevronDown, ChevronUp, Lightbulb, Snowflake } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 import {
   BESOINS,
   FREINS,
@@ -57,6 +59,7 @@ const statusBadge = (r: Row) => {
 
 const ColdEvaluationsBlock = ({ trainingId }: Props) => {
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const [rows, setRows] = useState<Row[]>([]);
   const [blocked, setBlocked] = useState<Blocked[]>([]);
   const [loading, setLoading] = useState(true);
@@ -210,7 +213,7 @@ const ColdEvaluationsBlock = ({ trainingId }: Props) => {
                 <div className="flex flex-wrap items-center gap-2 justify-between">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline">{r.kind === "participant" ? "Participant" : "Commanditaire"}</Badge>
-                    <span className="font-medium">{r.who}</span>
+                    <span className="font-medium">{isDemoMode ? maskName(r.who) : r.who}</span>
                     {!trainingId && <Link className="text-muted-foreground underline" to={`/formations/${r.trainingId}`}>{r.trainingName}</Link>}
                   </div>
                   <div className="flex items-center gap-2">
