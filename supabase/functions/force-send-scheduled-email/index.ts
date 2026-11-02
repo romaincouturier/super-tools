@@ -16,7 +16,7 @@ import {
 import { logLovableUsage } from "../_shared/api-usage.ts";
 import { resolveSessionDate } from "../_shared/training-date.ts";
 import { isEvaluationSubmitted, isNeedsSurveySubmitted } from "../_shared/reminder-filters.ts";
-import { MISSING_SPONSOR_EMAIL_MESSAGE, resolveSponsorRecipient } from "../_shared/cold-evaluation.ts";
+import { isColdEvaluationEligible, isColdEvaluationType, MISSING_SPONSOR_EMAIL_MESSAGE, resolveSponsorRecipient } from "../_shared/cold-evaluation.ts";
 import { addWorkingDays, fetchWorkingDays } from "../_shared/working-days.ts";
 
 interface ForceSendRequest {
@@ -82,6 +82,18 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (trainingError || !training) {
       throw new Error("Training not found");
+    }
+    if (isColdEvaluationType(scheduledEmail.email_type) &&
+        (scheduledEmail.status === "cancelled" || !isColdEvaluationEligible(training.end_date))) {
+      const reason = "Évaluation à froid exclue : date de fin non postérieure au 02/11/2026 ; suivi manuel uniquement";
+      const { error } = await supabase.from("scheduled_emails")
+        .update({ status: "cancelled", error_message: reason })
+        .eq("id", scheduledEmailId);
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true, skipped: true, reason }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
     if (training.is_free && scheduledEmail.email_type === "welcome") {
       await supabase
@@ -1376,7 +1388,7 @@ Règles :
     }
 
     if (coldFollowUp) {
-      if (coldFollowUp.reminderType) {
+      if (coldFollowUp.reminderType && isColdEvaluationEligible(training.end_date)) {
         const { data: delaySetting } = await supabase
           .from("app_settings")
           .select("setting_value")

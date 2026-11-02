@@ -61,7 +61,7 @@ export async function isInternalOrAuthenticated(
   req: Request,
   secretEnvName = "CRON_SECRET",
 ): Promise<boolean> {
-  if (await isInternalOrServiceRole(req, secretEnvName)) return true;
+  if (await isCronOrServiceRole(req, secretEnvName)) return true;
 
   // Appel frontend authentifié : JWT utilisateur validé via getUser().
   // Import dynamique volontaire : supabase-client.ts importe le SDK depuis une
@@ -104,16 +104,47 @@ export async function isInternalOrAdmin(
   req: Request,
   secretEnvName = "CRON_SECRET",
 ): Promise<boolean> {
-  if (await isInternalOrServiceRole(req, secretEnvName)) return true;
+  if (await isCronOrServiceRole(req, secretEnvName)) return true;
   return isStaffCaller(req);
 }
 
-async function isInternalOrServiceRole(req: Request, secretEnvName: string): Promise<boolean> {
-  if (isInternalCall(req, secretEnvName)) return true;
+type StaffLookup = {
+  rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>;
+  from: (table: string) => {
+    select: (cols: string) => {
+      eq: (col: string, value: string) => {
+        limit: (n: number) => PromiseLike<{ data: unknown[] | null; error: unknown }>;
+      };
+    };
+  };
+};
 
-  // Crons pg_cron et délégations envoient le service_role en Bearer. Comparaison
-  // à temps constant : ce secret est le plus sensible du système.
-  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const authHeader = req.headers.get("Authorization") ?? "";
-  return serviceRole !== "" && await timingSafeEqualSecret(authHeader, `Bearer ${serviceRole}`);
+/**
+ * Staff = admin (profiles.is_admin) ou au moins une ligne dans
+ * user_module_access. Un apprenant a une session et une ligne profiles : ni
+ * l'une ni l'autre ne prouve un droit (règle [063]). Une erreur de lecture
+ * vaut refus.
+ */
+export async function isStaffUser(admin: StaffLookup, userId: string): Promise<boolean> {
+  const { data: isAdmin, error } = await admin.rpc("is_admin", { _user_id: userId });
+  if (!error && isAdmin === true) return true;
+  const { data: modules, error: modError } = await admin
+    .from("user_module_access")
+    .select("module")
+    .eq("user_id", userId)
+    .limit(1);
+  return !modError && Array.isArray(modules) && modules.length > 0;
+}
+
+/**
+ * Garde staff d'une edge function appelée par le frontend. Renvoie l'appelant
+ * (id vérifié par getUser(), jamais lu dans le corps) ou null : l'appelant
+ * répond alors 403. Les appels cron / fonction-à-fonction ne passent pas ici,
+ * les combiner explicitement avec isInternalCall si besoin.
+ */
+export async function requireStaff(req: Request): Promise<{ id: string; email?: string } | null> {
+  const { verifyAuth, getSupabaseClient } = await import("./supabase-client.ts");
+  const user = await verifyAuth(req.headers.get("Authorization"));
+  if (!user) return null;
+  return (await isStaffUser(getSupabaseClient(), user.id)) ? user : null;
 }

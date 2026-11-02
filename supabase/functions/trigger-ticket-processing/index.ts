@@ -5,6 +5,7 @@ import {
   createErrorResponse,
   createJsonResponse,
 } from "../_shared/cors.ts";
+import { isStaffUser } from "../_shared/cron-auth.ts";
 
 const GITHUB_TOKEN = Deno.env.get("GH_DISPATCH_TOKEN")!;
 const GITHUB_OWNER = "romaincouturier";
@@ -47,12 +48,9 @@ serve(async (req) => {
     );
     if (authError || !user) return createErrorResponse("Unauthorized", 401);
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("user_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (!profile) return createErrorResponse("Forbidden: staff only", 403);
+    if (!(await isStaffUser(supabase, user.id))) {
+      return createErrorResponse("Forbidden: staff only", 403);
+    }
 
     const { ticket_number } = await req.json();
     if (!ticket_number || typeof ticket_number !== "string") {

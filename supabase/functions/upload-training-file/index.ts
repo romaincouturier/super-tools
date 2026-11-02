@@ -6,6 +6,7 @@ import {
   createJsonResponse,
 } from "../_shared/cors.ts";
 import { resolveContentType } from "../_shared/file-utils.ts";
+import { requireStaff } from "../_shared/cron-auth.ts";
 
 const BUCKET = "training-documents";
 
@@ -23,6 +24,8 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return createErrorResponse("Method not allowed", 405);
 
   try {
+    if (!(await requireStaff(req))) return createErrorResponse("Accès refusé", 403);
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceKey) return createErrorResponse("Configuration serveur manquante", 500);
@@ -44,7 +47,9 @@ Deno.serve(async (req) => {
 
     const { error } = await admin.storage.from(BUCKET).upload(path, file, {
       contentType,
-      upsert: true,
+      // Jamais d'écrasement : les appelants horodatent le chemin, un fichier
+      // existant (déjà envoyé par email, référencé en base) reste intact.
+      upsert: false,
     });
 
     if (error) {

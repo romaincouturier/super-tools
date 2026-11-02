@@ -23,8 +23,12 @@ if [ "${1:-}" = "--staged" ]; then
 fi
 
 STAGED_FILES=""
+# Pendant un merge, la base est la branche fusionnée (MERGE_HEAD) : ses fichiers
+# sont déjà passés par ses propres contrôles et ne sont pas apportés ici.
+MERGE_BASE_REF=""
+git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 && MERGE_BASE_REF="MERGE_HEAD"
 if [ "$STAGED_MODE" = "true" ]; then
-  STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM -- '*.ts' '*.tsx' 2>/dev/null || true)
+  STAGED_FILES=$(git diff --cached $MERGE_BASE_REF --name-only --diff-filter=ACM -- '*.ts' '*.tsx' 2>/dev/null || true)
   if [ -z "$STAGED_FILES" ]; then
     echo "Aucun fichier .ts/.tsx staged — skip vérification."
     exit 0
@@ -49,14 +53,11 @@ search_files() {
 # Lignes AJOUTÉES par le commit (mode staged uniquement). Les règles en ratchet
 # portent sur la dette ajoutée : toucher un fichier legacy pour une raison
 # orthogonale n'en ajoute pas, seules les lignes nouvelles comptent.
-# Pendant un merge, la base est la branche fusionnée (MERGE_HEAD) : ses lignes
-# sont déjà passées par ses propres contrôles et ne sont pas ajoutées ici.
+# Pendant un merge, comparé à MERGE_HEAD (voir STAGED_FILES).
 search_added_lines() {
   local pattern="$1"
   shift
-  local base=""
-  git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 && base="MERGE_HEAD"
-  git diff --cached $base -U0 --diff-filter=ACM -- '*.ts' '*.tsx' 2>/dev/null \
+  git diff --cached $MERGE_BASE_REF -U0 --diff-filter=ACM -- '*.ts' '*.tsx' 2>/dev/null \
     | awk '/^\+\+\+ /{file=substr($0,7); next} /^\+/{print file ":" substr($0,2)}' \
     | grep -E "$pattern" "$@" || true
 }
@@ -739,8 +740,8 @@ check "068" "Formulaires d'edition internes : champs identifiants floutes en mod
   "for f in \$(grep -rlE 'value=\\{[^}]*\\b(firstName|lastName|email|company|phone|sponsorEmail|sponsorFirstName|sponsorLastName|companyAddress|clientName|clientAddress|client_name|sponsor_email)\\b' src/components src/pages --include='*.tsx' | grep -E '/Edit[A-Z][^/]*\\.tsx\$|/edit-[^/]+/|FormFields\\.tsx\$|/[A-Za-z]+Edit\\.tsx\$'); do grep -qE 'demoBlur|// demo-safe' \"\$f\" || echo \"VIOLATION [068]: \$f\"; done"
 
 # [063] Une session valide n'est pas une garde : le relais Pennylane exige un droit.
-check "063" "pennylane-proxy verifie le droit Finances (admin ou module), pas seulement la session" \
-  "grep -q 'canUsePennylane' supabase/functions/pennylane-proxy/index.ts || echo 'VIOLATION [063]: pennylane-proxy sans canUsePennylane'"
+check "063" "pennylane-proxy et create-mission-invoice verifient le droit Finances (admin ou module), pas seulement la session" \
+  "for f in pennylane-proxy create-mission-invoice; do grep -q 'await canUsePennylane(' supabase/functions/\$f/index.ts || echo \"VIOLATION [063]: \$f sans canUsePennylane\"; done"
 
 # [070] Mode demo — scan dynamique de tous les ecrans internes.
 check "070" "Scan dynamique du mode demo present, routes lues dans App.tsx, hors smoke CI" \
@@ -755,6 +756,11 @@ check "069" "useResolvedStorageUrl ne rend pas l'URL d'un bucket prive avant sa 
      || echo 'VIOLATION [069]: useResolvedStorageUrl ne distingue plus les buckets prives'; \
    grep -q \"ne rend pas l'URL publique d'un bucket privé\" src/hooks/useResolvedStorageUrl.test.ts \
      || echo 'VIOLATION [069]: test de non-regression absent'"
+
+  # [063] Privilèges de profil : trigger de garde, upsert_profile borné à soi,
+  # et aucune garde staff fondée sur l'existence d'une ligne profiles.
+  check "063b" "Profils : trg_guard_profile_privileges, upsert_profile borne a soi, pas de garde staff par ligne profiles" \
+    "bash scripts/check-profile-privileges.sh"
 
   check "034b" "Numeros de regles uniques dans IMPROVEMENTS.md" \
     "grep -oE '^### \\[[0-9]+\\]' IMPROVEMENTS.md | sort | uniq -d | sed 's/^/VIOLATION: numero de regle en double /'"

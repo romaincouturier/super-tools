@@ -20,3 +20,5 @@ get_cron_status
 get_db_size
 learner_accounts_for_emails
 get_nav_usage_counts
+get_previous_trainer_evaluations
+get_staff_directory
