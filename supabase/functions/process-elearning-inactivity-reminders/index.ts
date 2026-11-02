@@ -9,7 +9,7 @@ import {
   todayAsISO,
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
-import { isInternalCall } from "../_shared/cron-auth.ts";
+import { isCronOrServiceRole } from "../_shared/cron-auth.ts";
 import { renderCatalogEmail, ctaButton } from "../_shared/editable-email.ts";
 import { learnerAccessLink } from "../_shared/learner-account.ts";
 import { normalizeLearnerEmail } from "../_shared/learner-email.ts";
@@ -39,7 +39,7 @@ serve(async (req) => {
 
   try {
     // Cron (x-cron-secret) ou appel interne (service_role) uniquement.
-    if (!isInternalCall(req, "ELEARNING_CRON_SECRET")) {
+    if (!(await isCronOrServiceRole(req, "ELEARNING_CRON_SECRET"))) {
       return createErrorResponse("Non autorisé", 401);
     }
 

@@ -77,3 +77,38 @@ $$);
 
 Vérifier la première exécution dans `cron.job_run_details`, puis le résultat de
 la fonction dans ses journaux d'edge function.
+
+## Relance J+5 : reposer son cron avec le secret
+
+Depuis novembre 2026, `process-elearning-start-reminders` refuse tout appel qui
+ne porte ni `x-cron-secret` = `ELEARNING_CRON_SECRET`, ni la service_role en
+`Bearer`. Avant, elle était appelable par n'importe qui. Si son cron actuel
+n'envoie aucun des deux, il échoue désormais en 401 : le reposer avec le même
+secret. Repérer d'abord son nom :
+
+```sql
+SELECT jobname, schedule, command FROM cron.job
+WHERE command ILIKE '%process-elearning-start-reminders%';
+```
+
+Puis, en gardant son horaire (`schedule` ci-dessus) :
+
+```sql
+SELECT cron.unschedule('<NOM_DU_JOB>');
+
+SELECT cron.schedule('elearning-start-reminders', '<SCHEDULE>', $$
+  SELECT net.http_post(
+    url := 'https://<PROJET>.supabase.co/functions/v1/process-elearning-start-reminders',
+    headers := jsonb_build_object('Content-Type', 'application/json',
+                                  'x-cron-secret', '<ELEARNING_CRON_SECRET>'),
+    timeout_milliseconds := 120000,
+    body := '{}'::jsonb);
+$$);
+```
+
+## Erratum
+
+`send-elearning-erratum` (envoi ponctuel, aucun appel depuis le front) n'accepte
+plus que les appels internes : `x-internal-secret` ou `Bearer` égal à la
+service_role. Elle était ouverte à tous, et son paramètre `test_recipient`
+permettait d'envoyer le lien d'accès d'un apprenant à n'importe quelle adresse.
