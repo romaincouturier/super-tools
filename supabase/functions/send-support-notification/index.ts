@@ -5,7 +5,11 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton, emailInfoBox, emailSuccessBox, wrapEmailHtml } from "../_shared/templates.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isCronOrServiceRole } from "../_shared/cron-auth.ts";
+import { verifyAuth, getSupabaseClient } from "../_shared/supabase-client.ts";
+import { requiresStaff, sendsToSubmitter, recipientIsSubmitter } from "../_shared/support-notification-access.ts";
 
 const VERSION = "send-support-notification@2026-05-07.1";
 
@@ -27,6 +31,33 @@ serve(async (req) => {
 
     const { type } = body ?? {};
 
+    // Accès : voir _shared/support-notification-access.ts.
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const internal = await isCronOrServiceRole(req);
+    if (!internal) {
+      const user = await verifyAuth(authHeader);
+      if (!user) return createErrorResponse("Unauthorized", 401);
+      if (requiresStaff(type)) {
+        const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
+        const userClient = createClient(Deno.env.get("SUPABASE_URL")!, anonKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: isStaff } = await userClient.rpc("is_staff_user");
+        if (isStaff !== true) return createErrorResponse("Forbidden", 403);
+      }
+    }
+    if (sendsToSubmitter(type)) {
+      const { data: ticket } = await getSupabaseClient()
+        .from("support_tickets")
+        .select("submitted_by_email")
+        .eq("ticket_number", body?.ticketNumber ?? "")
+        .maybeSingle();
+      if (!recipientIsSubmitter(body?.recipientEmail, ticket?.submitted_by_email)) {
+        console.warn(`[${VERSION}] destinataire refusé pour le ticket ${body?.ticketNumber}`);
+        return createErrorResponse("Recipient must be the ticket submitter", 403);
+      }
+    }
+
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY is not configured");
@@ -39,7 +70,6 @@ serve(async (req) => {
     const signature = await getSigniticSignature();
     const senderFrom = await getSenderFrom();
     const bccList = await getBccList();
-    const { getSupabaseClient } = await import("../_shared/supabase-client.ts");
     const db = getSupabaseClient();
 
     // ── New ticket notification (to admin) ──
