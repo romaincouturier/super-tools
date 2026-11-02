@@ -1,10 +1,12 @@
 /**
  * Generic file upload handler for Supabase Edge Functions.
  *
- * Security model (single-tenant app):
- * - All authenticated users have access to all resources (USING (true) RLS policies).
- * - Authorization = verifyAuth() succeeds, i.e. a valid Supabase JWT is present.
- * - Pass `authorize` in config for resource-level checks when needed.
+ * Security model:
+ * - verifyAuth() must succeed (valid Supabase JWT), unless skipAuth.
+ * - Default authorization = staff (isStaffUser : admin ou user_module_access).
+ *   Une session seule ne suffit pas : un apprenant a un JWT (règle [063]).
+ * - Pass `authorize` to replace the staff check (resource-level rule, e.g.
+ *   the uploader owns the resource).
  * - SUPABASE_SERVICE_ROLE_KEY never leaves the server — stays in Deno.env.
  *
  * Failure guarantee: if the DB persist step throws, the uploaded file is removed
@@ -20,6 +22,7 @@ import {
 import { verifyAuth } from "./supabase-client.ts";
 import { resolveContentType as defaultResolveContentType } from "./file-utils.ts";
 import { reportEdgeError } from "./sentry.ts";
+import { isStaffUser } from "./cron-auth.ts";
 
 export interface UploadConfig<TParams> {
   /** Storage bucket name. */
@@ -50,8 +53,8 @@ export interface UploadConfig<TParams> {
   ) => Promise<Record<string, unknown>>;
 
   /**
-   * Optional resource-level authorization check. Return false to send 403.
-   * Runs after verifyAuth — userId is already confirmed non-null.
+   * Authorization check, return false to send 403. Runs after verifyAuth.
+   * Defaults to isStaffUser. Ignored when skipAuth is set.
    */
   authorize?: (
     admin: SupabaseClient,
@@ -120,8 +123,10 @@ export async function handleFileUpload<TParams>(
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    if (config.authorize) {
-      const allowed = await config.authorize(admin, userId, params);
+    if (!config.skipAuth) {
+      const allowed = config.authorize
+        ? await config.authorize(admin, userId, params)
+        : await isStaffUser(admin, userId);
       if (!allowed) {
         return createErrorResponse("Accès refusé", 403);
       }

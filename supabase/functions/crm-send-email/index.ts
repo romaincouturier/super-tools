@@ -3,11 +3,11 @@ import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
   createJsonResponse,
-  verifyAuth,
   sendEmail,
   getSigniticSignature,
 } from "../_shared/mod.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
+import { requireStaff } from "../_shared/cron-auth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderEmail } from "../_shared/email-settings.ts";
 import { guessMimeType } from "../_shared/mime-types.ts";
@@ -96,11 +96,9 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    const authResult = await verifyAuth(authHeader);
-
+    const authResult = await requireStaff(req);
     if (!authResult) {
-      return createErrorResponse("Non autorisé", 401);
+      return createErrorResponse("Accès refusé", 403);
     }
 
     const body = await req.json() as CrmSendEmailRequest;

@@ -6,6 +6,7 @@
  *   2. Returns 400 when validateParams() throws (bad params / missing UUID).
  *   3. Returns 200 and calls persist() with correct args when all is well.
  *   4. Rolls back the storage upload when persist() throws (no orphaned files).
+ *   5. Without `authorize`, only staff (admin or a module) may upload.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -35,9 +36,14 @@ const mockStorageBucket = {
   list: mockList,
 };
 const mockStorageFrom = vi.fn(() => mockStorageBucket);
-const mockCreateClient = vi.fn(() => ({
-  storage: { from: mockStorageFrom },
+// Droit staff lu par isStaffUser : is_admin (rpc) puis user_module_access.
+const staff = { isAdmin: true, modules: [] as unknown[] };
+const mockRpc = vi.fn(async () => ({ data: staff.isAdmin, error: null }));
+const mockDbFrom = vi.fn(() => ({
+  select: () => ({ eq: () => ({ limit: async () => ({ data: staff.modules, error: null }) }) }),
 }));
+const mockAdmin = () => ({ storage: { from: mockStorageFrom }, rpc: mockRpc, from: mockDbFrom });
+const mockCreateClient = vi.fn(mockAdmin);
 
 vi.mock("https://esm.sh/@supabase/supabase-js@2.49.4", () => ({
   createClient: (...args: unknown[]) => mockCreateClient(...args),
@@ -185,7 +191,7 @@ describe("handleFileUpload — success path", () => {
     mockStorageUpload.mockResolvedValue({ error: null });
     mockGetPublicUrl.mockReturnValue({ data: { publicUrl: "https://cdn.example.com/file.pdf" } });
     mockStorageFrom.mockReturnValue(mockStorageBucket);
-    mockCreateClient.mockReturnValue({ storage: { from: mockStorageFrom } });
+    mockCreateClient.mockReturnValue(mockAdmin());
     (baseConfig.persist as ReturnType<typeof vi.fn>).mockResolvedValue({ fileUrl: "https://cdn.example.com/file.pdf" });
   });
 
@@ -231,7 +237,7 @@ describe("handleFileUpload — rollback on persist failure", () => {
     mockStorageUpload.mockResolvedValue({ error: null });
     mockGetPublicUrl.mockReturnValue({ data: { publicUrl: "https://cdn.example.com/file.pdf" } });
     mockStorageFrom.mockReturnValue(mockStorageBucket);
-    mockCreateClient.mockReturnValue({ storage: { from: mockStorageFrom } });
+    mockCreateClient.mockReturnValue(mockAdmin());
   });
 
   it("removes the uploaded file from storage when persist throws", async () => {
@@ -268,7 +274,7 @@ describe("handleFileUpload — optional authorize hook", () => {
     mockStorageUpload.mockResolvedValue({ error: null });
     mockGetPublicUrl.mockReturnValue({ data: { publicUrl: "https://cdn.example.com/file.pdf" } });
     mockStorageFrom.mockReturnValue(mockStorageBucket);
-    mockCreateClient.mockReturnValue({ storage: { from: mockStorageFrom } });
+    mockCreateClient.mockReturnValue(mockAdmin());
     (baseConfig.persist as ReturnType<typeof vi.fn>).mockResolvedValue({ fileUrl: "https://cdn.example.com/file.pdf" });
   });
 
@@ -291,5 +297,39 @@ describe("handleFileUpload — optional authorize hook", () => {
     const req = makeRequest({ resourceId: validUuid, file: testFile }, "Bearer valid-token");
     const res = await handleFileUpload(req, configWithAuth);
     expect(res.status).toBe(200);
+  });
+});
+
+describe("handleFileUpload — default staff authorization", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockVerifyAuth.mockResolvedValue({ id: "user-abc" });
+    mockStorageUpload.mockResolvedValue({ error: null });
+    mockStorageFrom.mockReturnValue(mockStorageBucket);
+    mockCreateClient.mockReturnValue(mockAdmin());
+    staff.isAdmin = false;
+    staff.modules = [];
+  });
+
+  it("returns 403 for an authenticated user without any right (learner)", async () => {
+    const req = makeRequest({ resourceId: validUuid, file: testFile }, "Bearer valid-token");
+    const res = await handleFileUpload(req, baseConfig);
+    expect(res.status).toBe(403);
+    expect(mockStorageUpload).not.toHaveBeenCalled();
+    expect(mockRpc).toHaveBeenCalledWith("is_admin", { _user_id: "user-abc" });
+  });
+
+  it("accepts a user with a module access", async () => {
+    staff.modules = [{ module: "formations" }];
+    const req = makeRequest({ resourceId: validUuid, file: testFile }, "Bearer valid-token");
+    const res = await handleFileUpload(req, baseConfig);
+    expect(res.status).toBe(200);
+  });
+
+  it("an explicit authorize replaces the staff check", async () => {
+    const req = makeRequest({ resourceId: validUuid, file: testFile }, "Bearer valid-token");
+    const res = await handleFileUpload(req, { ...baseConfig, authorize: vi.fn().mockResolvedValue(true) });
+    expect(res.status).toBe(200);
+    expect(mockRpc).not.toHaveBeenCalled();
   });
 });
