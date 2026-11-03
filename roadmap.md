@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Progression de l’ajout groupé (2026-11-03)
-- [ ] Afficher l’étape en cours, la progression et le compteur pendant l’ajout et les envois
-- [ ] Vérifier le parcours sans envoyer d’emails réels ni changer les règles d’inscription
+- [x] Afficher l’étape en cours, la progression et le compteur pendant l’ajout et les envois
+- [x] 29 tests et 99 contrôles réussis ; parcours connecté vérifié avec écritures et emails simulés, compteur 1/2 et progression 47,5 %, fermeture bloquée pendant le traitement ; aucun email réel envoyé
 
 ## Email d'accès de Colette (2026-11-03)
 - [x] Diagnostiquer l'ajout groupé sans compte de connexion ni email
