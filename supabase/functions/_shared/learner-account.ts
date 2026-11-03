@@ -138,3 +138,19 @@ export async function sendLearnerAccessEmail(
 
   return { sent: result.success };
 }
+
+export async function sendRegisteredLearnerAccessEmail(
+  admin: SupabaseClient,
+  email: string,
+  opts: { trainingName?: string | null; ip?: string } = {},
+): Promise<{ sent: boolean }> {
+  const normalized = normalizeLearnerEmail(email);
+  if (!isUsableLearnerEmail(normalized)) throw new Error("Email invalide");
+  const { data: known, error } = await admin.rpc("is_known_learner", { p_email: normalized });
+  if (error) throw error;
+  if (!known) throw new Error("Cette adresse ne correspond à aucune inscription apprenante");
+  await ensureLearnerAccount(admin, normalized);
+  const result = await sendLearnerAccessEmail(admin, normalized, opts);
+  if (!result.sent) throw new Error("L'email d'accès n'a pas été envoyé : vérifiez le quota et la création du lien");
+  return result;
+}

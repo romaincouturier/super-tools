@@ -1,5 +1,10 @@
 # Roadmap
 
+## Email d'accès de Colette (2026-11-03)
+- [x] Diagnostiquer l'ajout groupé sans compte de connexion ni email
+- [ ] Corriger et tester le provisionnement réservé aux apprenants inscrits
+- [ ] Déployer uniquement l'envoi d'accès et envoyer une fois à Colette
+
 ## Envoi des documents Agirc-Arrco (2026-10-29)
 - [x] Empêcher les doubles soumissions pendant la préparation et l’envoi
 - [x] Vérifier les signatures formateur et bloquer les envois incomplets
