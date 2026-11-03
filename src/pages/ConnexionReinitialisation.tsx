@@ -159,7 +159,6 @@ export default function ConnexionReinitialisation() {
                 <Rule ok={rules.hasUppercase && rules.hasLowercase} label="Une majuscule et une minuscule" />
                 <Rule ok={rules.hasNumber} label="Un chiffre" />
                 <Rule ok={rules.hasSpecialChar} label="Un caractère spécial" />
-                <Rule ok={matches} label="Les deux saisies correspondent" />
               </div>
 
               {errorMsg && <p className="mb-4 text-sm text-destructive">{errorMsg}</p>}
