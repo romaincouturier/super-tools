@@ -154,6 +154,32 @@ describe("sendElearningAccessToBatch", () => {
   });
 });
 
+describe("progression des envois en lot", () => {
+  const batch = [
+    { id: "p1", email: "a@example.com", first_name: null, last_name: null, company: null, needs_survey_token: "t1", sponsor_email: null },
+    { id: "p2", email: "b@example.com", first_name: null, last_name: null, company: null, needs_survey_token: "t2", sponsor_email: null },
+  ];
+
+  it.each([
+    ["accueil", sendWelcomeEmailsToBatch],
+    ["accès e-learning", sendElearningAccessToBatch],
+  ])("compte chaque participant traité pour %s, même après un échec", async (_name, sendBatch) => {
+    mockInvoke.mockRejectedValueOnce(new Error("network error"));
+    mockInvoke.mockResolvedValueOnce({ data: null, error: null });
+    const updates: number[][] = [];
+    await sendBatch(batch, "t1", (completed, total) => updates.push([completed, total]));
+    expect(updates).toEqual([[1, 2], [2, 2]]);
+    expect(mockInvoke).toHaveBeenCalledTimes(2);
+  });
+
+  it("ne signale aucun participant pour un lot vide", async () => {
+    const updates: number[][] = [];
+    await sendElearningAccessToBatch([], "t1", (completed, total) => updates.push([completed, total]));
+    expect(updates).toEqual([]);
+    expect(mockInvoke).not.toHaveBeenCalled();
+  });
+});
+
 describe("logBulkAddActivity", () => {
   const participants = [
     { id: "p1", email: "a@b.com", first_name: "A", last_name: "B", company: "Corp", needs_survey_token: "t", sponsor_email: "s@b.com" },
