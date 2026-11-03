@@ -312,7 +312,7 @@ export async function fetchRecipients(supabase: SupabaseClient): Promise<Recipie
 
   const moduleUserIds = new Set<string>();
   (moduleAccess || []).forEach((m: any) => {
-    if (["formations", "crm", "missions", "contenu", "events"].includes(m.module)) {
+    if (["formations", "crm", "missions", "supertilt_fr", "events"].includes(m.module)) {
       moduleUserIds.add(m.user_id);
     }
   });
@@ -473,12 +473,13 @@ export interface SupertiltActionItem {
   deadline: string | null;
   isOverdue: boolean;
   missionId: string | null;
+  board: "transverse" | "site";
 }
 
 export async function fetchSupertiltActions(supabase: SupabaseClient, today: string): Promise<SupertiltActionItem[]> {
   const { data } = await supabase
     .from("supertilt_actions")
-    .select("id, user_id, title, description, deadline, mission_id")
+    .select("id, user_id, title, description, deadline, mission_id, board")
     .eq("is_completed", false)
     .not("deadline", "is", null)
     .lte("deadline", today);
@@ -492,6 +493,7 @@ export async function fetchSupertiltActions(supabase: SupabaseClient, today: str
     deadline: a.deadline,
     isOverdue: a.deadline < today,
     missionId: a.mission_id,
+    board: a.board,
   }));
 }
 

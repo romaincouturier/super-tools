@@ -87,7 +87,7 @@ const ContentCardDialog = ({
 
   const handleCopyShareLink = useCallback(() => {
     if (!card?.id) return;
-    const url = `${window.location.origin}/contenu?card=${card.id}`;
+    const url = `${window.location.origin}/supertilt-fr/newsletter?card=${card.id}`;
     copyLink(url, { title: "Lien copié", description: "Partagez-le pour ouvrir directement la carte." });
   }, [card?.id, copyLink]);
 

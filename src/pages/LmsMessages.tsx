@@ -141,6 +141,7 @@ export default function LmsMessages() {
         title="Messages e-learning"
         subtitle="Conversations des apprenants sur vos cours"
         icon={MessageSquare}
+        backTo="/lms"
       />
 
       <div className="flex gap-4 h-[calc(100vh-180px)] min-h-0">

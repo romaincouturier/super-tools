@@ -57,7 +57,7 @@ const ReviewRequestDialog = ({
       const { data, error } = await supabase
         .from("user_module_access")
         .select("user_id")
-        .eq("module", "contenu");
+        .eq("module", "supertilt_fr");
 
       if (error) throw error;
 

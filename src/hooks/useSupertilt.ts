@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/lib/toast";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export interface SupertiltAction {
   id: string;
@@ -18,13 +18,18 @@ export interface SupertiltAction {
   column_id: string | null;
   position: number;
   mission_id: string | null;
+  board: ProjectBoard;
 }
+
+/** "transverse" : Projets transverses ; "site" : supertilt.fr / Projets. */
+export type ProjectBoard = "transverse" | "site";
 
 export interface SupertiltColumn {
   id: string;
   user_id: string;
   name: string;
   position: number;
+  board: ProjectBoard;
 }
 
 type InsertAction = Pick<SupertiltAction, "title"> &
@@ -40,10 +45,10 @@ const COLS_TABLE = "supertilt_columns";
 
 const DEFAULT_COLUMNS = ["À faire", "En cours", "Terminé"];
 
-export function useSupertiltColumns() {
+export function useSupertiltColumns(board: ProjectBoard) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const key = ["supertilt-columns"];
+  const key = ["supertilt-columns", board];
 
   const query = useQuery({
     queryKey: key,
@@ -51,6 +56,7 @@ export function useSupertiltColumns() {
       const { data, error } = await sb
         .from(COLS_TABLE)
         .select("*")
+        .eq("board", board)
         .order("position", { ascending: true });
       if (error) throw error;
       return data as SupertiltColumn[];
@@ -67,12 +73,13 @@ export function useSupertiltColumns() {
           user_id: user.id,
           name,
           position,
+          board,
         }));
         const { error } = await sb.from(COLS_TABLE).insert(rows);
         if (!error) qc.invalidateQueries({ queryKey: key });
       })();
     }
-  }, [user, query.data, query.isLoading]);
+  }, [user, query.data, query.isLoading, board]);
 
   const addColumn = useMutation({
     mutationFn: async (name: string) => {
@@ -80,7 +87,7 @@ export function useSupertiltColumns() {
       const position = cols.length;
       const { error } = await sb
         .from(COLS_TABLE)
-        .insert({ name, position, user_id: user!.id });
+        .insert({ name, position, user_id: user!.id, board });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -108,7 +115,7 @@ export function useSupertiltColumns() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key });
-      qc.invalidateQueries({ queryKey: ["supertilt-actions"] });
+      qc.invalidateQueries({ queryKey: ["supertilt-actions", board] });
       toast.success("Colonne supprimée");
     },
   });
@@ -148,7 +155,7 @@ export function useEnsureActionMission() {
       const { data: mission, error } = await sb
         .from("missions")
         .insert({
-          title: action.title || "Action Supertilt",
+          title: action.title || "Action projet",
           status: "not_started",
           archived: true,
           created_by: userId,
@@ -174,10 +181,10 @@ export function useEnsureActionMission() {
   });
 }
 
-export function useSupertiltActions() {
+export function useSupertiltActions(board: ProjectBoard) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const key = ["supertilt-actions"];
+  const key = ["supertilt-actions", board];
 
   const query = useQuery({
     queryKey: key,
@@ -185,6 +192,7 @@ export function useSupertiltActions() {
       const { data, error } = await sb
         .from(TABLE)
         .select("*")
+        .eq("board", board)
         .order("position", { ascending: true })
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -197,7 +205,7 @@ export function useSupertiltActions() {
     mutationFn: async (action: InsertAction) => {
       const { data, error } = await sb
         .from(TABLE)
-        .insert({ ...action, user_id: user!.id })
+        .insert({ ...action, user_id: user!.id, board })
         .select()
         .single();
       if (error) throw error;
@@ -251,4 +259,24 @@ export function useSupertiltActions() {
     updateAction,
     deleteAction,
   };
+}
+
+interface SystemUser {
+  user_id: string;
+  email: string;
+  display_name: string | null;
+}
+
+export function useSystemUsers() {
+  const [users, setUsers] = useState<SystemUser[]>([]);
+  useEffect(() => {
+    supabase
+      .from("profiles")
+      .select("user_id, email, display_name")
+      .order("email")
+      .then(({ data }) => {
+        if (data) setUsers(data as SystemUser[]);
+      });
+  }, []);
+  return users;
 }

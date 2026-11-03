@@ -193,7 +193,7 @@ serve(async (req) => {
           category: "articles_relire",
           title: card.title,
           description: `En relecture — ${card.columnName}`,
-          link: `${appUrl}/contenu?card=${card.id}`,
+          link: `${appUrl}/supertilt-fr/newsletter?card=${card.id}`,
           entityType: "content_card", entityId: card.id,
           assignedTo: userId, scope: "strictAssigned",
         });
@@ -207,7 +207,7 @@ serve(async (req) => {
           category: "commentaires_contenu",
           title: `💬 ${c.cardTitle}`,
           description: `${c.commentCount} commentaire${c.commentCount > 1 ? "s" : ""} non résolu${c.commentCount > 1 ? "s" : ""}`,
-          link: `${appUrl}/contenu?card=${c.cardId}`,
+          link: `${appUrl}/supertilt-fr/newsletter?card=${c.cardId}`,
           entityType: "card_comments", entityId: c.cardId,
           assignedTo: uid, scope: "strictAssigned",
         });
@@ -220,7 +220,7 @@ serve(async (req) => {
         category: "articles_bloques",
         title: card.title,
         description: `Colonne : ${card.columnName}`,
-        link: `${appUrl}/contenu?card=${card.id}`,
+        link: `${appUrl}/supertilt-fr/newsletter?card=${card.id}`,
         entityType: "content_card", entityId: card.id,
         scope: "global",
       });
@@ -530,7 +530,7 @@ serve(async (req) => {
         category: "transcripts_a_affecter",
         title: `🎙️ ${t.title}`,
         description: `Transcript du ${new Date(t.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" })} à affecter à une mission, une opportunité ou un événement`,
-        link: `${appUrl}/transcripts?affectation=non`,
+        link: `${appUrl}/supertilt-fr/transcripts?affectation=non`,
         entityType: "transcript", entityId: t.id,
         scope: "global",
       });
@@ -556,7 +556,7 @@ serve(async (req) => {
       });
     }
 
-    // 18. SuperTilt — actions personnelles (deadline aujourd'hui ou en retard)
+    // 18. Projets (transverses et supertilt.fr) — actions personnelles (deadline aujourd'hui ou en retard)
     for (const a of data.supertiltActions) {
       const dateLabel = a.deadline === today
         ? "Aujourd'hui"
@@ -567,7 +567,7 @@ serve(async (req) => {
         description: a.isOverdue
           ? `⚠️ ${dateLabel}${a.description ? ` — ${a.description}` : ""}`
           : (a.description ?? dateLabel),
-        link: `${appUrl}/supertilt`,
+        link: a.board === "site" ? `${appUrl}/supertilt-fr/projets` : `${appUrl}/projets-transverses`,
         entityType: "supertilt_action", entityId: a.id,
         assignedTo: a.userId, scope: "strictAssigned",
       });

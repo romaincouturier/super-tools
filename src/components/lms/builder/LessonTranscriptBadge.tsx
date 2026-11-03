@@ -10,7 +10,7 @@ export default function LessonTranscriptBadge({ transcriptId }: { transcriptId: 
 
   return (
     <a
-      href={`/transcripts?transcript=${data.id}`}
+      href={`/supertilt-fr/transcripts?transcript=${data.id}`}
       target="_blank"
       rel="noopener noreferrer"
       className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full hover:underline"

@@ -60,13 +60,15 @@ const NAV_CONFIG: NavConfig[] = [
   { type: "item", key: "missions" },
   {
     type: "group",
-    key: "contenu",
+    key: "supertilt-fr",
     children: [
-      { key: "transcripts" },
-      { key: "temoignages" },
+      { key: "sf-newsletter", module: "supertilt_fr" },
+      { key: "sf-transcripts", module: "supertilt_fr" },
+      { key: "sf-temoignages", module: "supertilt_fr" },
+      { key: "sf-projets", module: "supertilt_fr" },
     ],
   },
-  { type: "item", key: "supertilt" },
+  { type: "item", key: "projets-transverses" },
   {
     type: "group",
     key: "formations",
@@ -105,6 +107,7 @@ const NAV_CONFIG: NavConfig[] = [
     type: "group",
     key: "dropshipping",
     children: [
+      { key: "commandes-jeux", module: "dropshipping" },
       { key: "wc_inbox" },
     ],
   },

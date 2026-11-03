@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Pencil, Trash2, Zap, MoreHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, MoreHorizontal } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -29,12 +30,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { supabase } from "@/integrations/supabase/client";
 import {
   useSupertiltActions,
   useSupertiltColumns,
   useEnsureActionMission,
+  useSystemUsers,
   type SupertiltAction,
+  type ProjectBoard,
 } from "@/hooks/useSupertilt";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
 import AddColumnDialog from "@/components/shared/AddColumnDialog";
@@ -45,32 +47,18 @@ import MissionDetailDrawer from "@/components/missions/MissionDetailDrawer";
 import { fetchMissionById } from "@/services/missions";
 import { useQuery } from "@tanstack/react-query";
 
-interface SystemUser {
-  user_id: string;
-  email: string;
-  display_name: string | null;
-}
-
-function useSystemUsers() {
-  const [users, setUsers] = useState<SystemUser[]>([]);
-  useEffect(() => {
-    supabase
-      .from("profiles")
-      .select("user_id, email, display_name")
-      .order("email")
-      .then(({ data }) => {
-        if (data) setUsers(data as SystemUser[]);
-      });
-  }, []);
-  return users;
-}
-
 type SupertiltKanbanCard = SupertiltAction & KanbanCardDef;
 type SupertiltKanbanColumn = KanbanColumnDef;
 
-const SuperTilt = () => {
+interface ProjectBoardPageProps {
+  board: ProjectBoard;
+  title: string;
+  icon: LucideIcon;
+}
+
+const ProjectBoardPage = ({ board, title, icon }: ProjectBoardPageProps) => {
   const { actions, isLoading: actionsLoading, addAction, updateAction, deleteAction } =
-    useSupertiltActions();
+    useSupertiltActions(board);
   const {
     columns,
     isLoading: columnsLoading,
@@ -78,7 +66,7 @@ const SuperTilt = () => {
     renameColumn,
     deleteColumn,
     reorderColumns,
-  } = useSupertiltColumns();
+  } = useSupertiltColumns(board);
   const systemUsers = useSystemUsers();
 
   const [showAddAction, setShowAddAction] = useState(false);
@@ -178,8 +166,8 @@ const SuperTilt = () => {
     <ModuleLayout>
       <main className="p-4 sm:p-6 space-y-4 h-full flex flex-col">
         <PageHeader
-          icon={Zap}
-          title="SuperTilt"
+          icon={icon}
+          title={title}
           subtitle={`${actions.length} action${actions.length > 1 ? "s" : ""}`}
         />
 
@@ -374,4 +362,4 @@ const SuperTilt = () => {
   );
 };
 
-export default SuperTilt;
+export default ProjectBoardPage;

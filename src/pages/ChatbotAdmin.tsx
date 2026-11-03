@@ -69,7 +69,7 @@ export default function ChatbotAdmin() {
   return (
     <ModuleLayout>
       <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
-        <PageHeader icon={Bot} title="Base de connaissances" subtitle="Gestion du chatbot IA" />
+        <PageHeader icon={Bot} title="Base de connaissances" subtitle="Gestion du chatbot IA" backTo="/parametres" />
         <KnowledgeBaseManager />
       </main>
     </ModuleLayout>

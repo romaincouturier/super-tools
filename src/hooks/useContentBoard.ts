@@ -12,7 +12,7 @@ export function useContentBoardUsers(): ContentBoardUser[] {
     queryKey: ["content-board-users"],
     queryFn: async () => {
       const [{ data: access }, { data: admins }] = await Promise.all([
-        supabase.from("user_module_access").select("user_id").eq("module", "contenu"),
+        supabase.from("user_module_access").select("user_id").eq("module", "supertilt_fr"),
         supabase.from("profiles").select("user_id").eq("is_admin", true),
       ]);
       const userIds = new Set<string>();

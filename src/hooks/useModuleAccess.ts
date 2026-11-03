@@ -9,7 +9,7 @@ export type AppModule =
   | "ameliorations"
   | "ideas"
   | "historique"
-  | "contenu"
+  | "supertilt_fr"
   | "besoins"
   | "emails"
   | "statistiques"
@@ -28,13 +28,11 @@ export type AppModule =
   | "reseau"
   | "lms"
   | "veille"
-  | "supertilt"
+  | "projets_transverses"
   | "catalogue"
   | "web_analytics"
   | "finances"
   | "archives"
-  | "transcripts"
-  | "temoignages"
   | "dropshipping"
   | "wc_inbox"
   | "pictodico"
@@ -49,7 +47,7 @@ export const ALL_MODULES: AppModule[] = [
   "ameliorations",
   "ideas",
   "historique",
-  "contenu",
+  "supertilt_fr",
   "besoins",
   "emails",
   "statistiques",
@@ -68,13 +66,11 @@ export const ALL_MODULES: AppModule[] = [
   "reseau",
   "lms",
   "veille",
-  "supertilt",
+  "projets_transverses",
   "catalogue",
   "web_analytics",
   "finances",
   "archives",
-  "transcripts",
-  "temoignages",
   "dropshipping",
   "wc_inbox",
   "pictodico",
@@ -90,7 +86,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   ameliorations: "Améliorations",
   ideas: "Boîte à idées",
   historique: "Historique",
-  contenu: "Contenus",
+  supertilt_fr: "supertilt.fr",
   besoins: "Besoins participants",
   emails: "Emails reçus",
   statistiques: "Statistiques",
@@ -109,13 +105,11 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   reseau: "Réseau professionnel",
   lms: "E-learning",
   veille: "Veille",
-  supertilt: "Supertilt",
+  projets_transverses: "Projets transverses",
   catalogue: "Catalogue",
   web_analytics: "Stats site web",
   finances: "Finances",
   archives: "Archives",
-  transcripts: "Transcripts",
-  temoignages: "Témoignages",
   dropshipping: "Dropshipping",
   wc_inbox: "Inbox WooCommerce",
   pictodico: "Picto-Dico",
