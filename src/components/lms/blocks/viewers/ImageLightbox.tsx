@@ -323,7 +323,7 @@ export function ImageWithLightbox({ src, alt, className, imgStyle, imgClassName 
           tabIndex={0}
           onClick={(e) => handleDownload(e)}
           onKeyDown={(e) => { if (e.key === "Enter") handleDownload(e); }}
-          className="absolute bottom-2 right-2 flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute bottom-2 right-2 flex items-center gap-1 text-caption font-medium px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
           style={{ background: "rgba(16,24,32,0.82)", color: "#fff", cursor: "pointer" }}
           title="Télécharger"
         >

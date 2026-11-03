@@ -63,7 +63,7 @@ function PendingAvatars({ profiles, groupSize }: { profiles: GroupMatchingMember
         ))}
         {profiles.length > 6 && (
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-micro font-bold border-2"
             style={{ background: "rgba(16,24,32,0.08)", color: "var(--st-ink-muted)", borderColor: "var(--st-white)" }}
           >
             +{profiles.length - 6}

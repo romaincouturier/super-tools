@@ -384,7 +384,7 @@ function DepositForm({
             <Upload className="h-4 w-4 mr-2" />
             {files.length > 0 ? "Ajouter d'autres fichiers" : "Choisir un ou plusieurs fichiers"}
           </Button>
-          <p className="text-[11px] text-muted-foreground mt-1.5">
+          <p className="text-caption text-muted-foreground mt-1.5">
             Formats : {config.accepted_formats.map((f) => FORMAT_LABELS[f]).join(", ")} — taille max {config.max_size_mb} Mo par fichier — {MAX_DEPOSIT_FILES} fichiers max
           </p>
         </div>

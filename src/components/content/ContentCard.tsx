@@ -29,12 +29,12 @@ interface ContentCardProps {
 }
 
 const tagColors = [
-  "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
-  "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",
-  "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200",
+  "bg-blue-100 text-blue-800",
+  "bg-green-100 text-green-800",
+  "bg-purple-100 text-purple-800",
+  "bg-orange-100 text-orange-800",
+  "bg-pink-100 text-pink-800",
+  "bg-cyan-100 text-cyan-800",
 ];
 
 const getTagColor = (tag: string) => {
@@ -70,7 +70,7 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
     tags.unshift({
       key: "__newsletter__",
       label: `📬 ${card.newsletter_name}`,
-      className: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+      className: "bg-amber-100 text-amber-800",
     });
   }
 
@@ -177,7 +177,7 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
         <div className="flex items-center gap-2 mt-2" style={pendingBlur}>
           <CardTagList tags={tags} className="flex-1" />
           {(card.media_count ?? 0) > 0 && (
-            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground shrink-0" title={`${card.media_count} média(s)`}>
+            <span className="flex items-center gap-0.5 text-micro text-muted-foreground shrink-0" title={`${card.media_count} média(s)`}>
               <ImageIcon className="h-3 w-3" />
               {card.media_count}
             </span>
@@ -189,9 +189,9 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
           const isOverdue = daysLeft < 0;
           const isUrgent = daysLeft >= 0 && daysLeft <= 2;
           const colorClass = isOverdue
-            ? "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950"
+            ? "text-red-600 bg-red-50"
             : isUrgent
-              ? "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-950"
+              ? "text-orange-600 bg-orange-50"
               : "text-muted-foreground bg-muted";
           return (
             <div className={`flex items-center gap-1 mt-2 text-xs px-1.5 py-0.5 rounded w-fit ${colorClass}`}>

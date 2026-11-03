@@ -315,7 +315,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
             <div className="text-lg font-bold text-amber-800">
               {isDemoMode ? maskAmount(remainingCredits) : `${remainingCredits.toLocaleString("fr-FR")} €`}
             </div>
-            <div className="text-[10px] text-amber-600 mt-0.5">
+            <div className="text-micro text-amber-600 mt-0.5">
               sur {isDemoMode ? maskAmount(totalCredits) : `${totalCredits.toLocaleString("fr-FR")} €`}
             </div>
           </div>

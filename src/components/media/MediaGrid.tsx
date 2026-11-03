@@ -164,7 +164,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20">
                 <Play className="h-10 w-10 text-white drop-shadow" />
                 {item.file_name.toLowerCase().endsWith(".mov") && (
-                  <span className="text-white/70 text-[10px] mt-1">MOV</span>
+                  <span className="text-white/70 text-micro mt-1">MOV</span>
                 )}
               </div>
             </div>
@@ -220,7 +220,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
           <div className="absolute top-2 left-2">
             <Badge
               variant="secondary"
-              className="text-[10px] px-1.5 py-0 bg-black/50 text-white border-0 "
+              className="text-micro px-1.5 py-0 bg-black/50 text-white border-0 "
             >
               {item.source_emoji || sourceIcon(item.source_type)}
               <span className="ml-1 max-w-[80px] truncate">{isDemoMode ? maskText(item.source_label) : item.source_label}</span>
@@ -234,7 +234,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
                 <Badge
                   key={tag}
                   variant="secondary"
-                  className="text-[10px] px-1.5 py-0 bg-primary/80 text-primary-foreground border-0 "
+                  className="text-micro px-1.5 py-0 bg-primary/80 text-primary-foreground border-0 "
                 >
                   {tag}
                 </Badge>
@@ -242,7 +242,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
               {(item.tags || []).length > 2 && (
                 <Badge
                   variant="secondary"
-                  className="text-[10px] px-1.5 py-0 bg-black/50 text-white border-0 "
+                  className="text-micro px-1.5 py-0 bg-black/50 text-white border-0 "
                 >
                   +{(item.tags || []).length - 2}
                 </Badge>

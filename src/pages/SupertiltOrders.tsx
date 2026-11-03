@@ -692,7 +692,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
             </span>
           )}
           {item.game_type === "location" && locationSigned && !item.shipped_confirmed_at && !item.hand_delivered_at && (
-            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">À expédier</Badge>
+            <Badge variant="destructive" className="text-micro px-1.5 py-0">À expédier</Badge>
           )}
         </div>
       </div>

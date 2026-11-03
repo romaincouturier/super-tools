@@ -76,7 +76,7 @@ function ScoreBadge({ label, value, emphasis = false }: { label: string; value: 
   return (
     <div className={`flex flex-col items-center rounded-md border px-2.5 py-1 ${emphasis ? "border-primary/40 bg-primary/5" : ""}`}>
       <span className={`text-sm font-bold ${emphasis ? "text-primary" : tone}`}>{value}</span>
-      <span className="text-[10px] text-muted-foreground whitespace-nowrap">{label}</span>
+      <span className="text-micro text-muted-foreground whitespace-nowrap">{label}</span>
     </div>
   );
 }
@@ -175,7 +175,7 @@ function RecommendationCard({ rec }: { rec: EditorialRecommendation }) {
                   {p.popularity && (
                     <Badge
                       variant={p.popularity === "forte" ? "default" : p.popularity === "moyenne" ? "secondary" : "outline"}
-                      className="capitalize text-[10px] px-1.5 py-0"
+                      className="capitalize text-micro px-1.5 py-0"
                     >
                       {p.popularity}
                     </Badge>

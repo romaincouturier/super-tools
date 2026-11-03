@@ -266,12 +266,12 @@ const ParticipantTraceabilityDrawer = ({
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-xs text-muted-foreground">{formatDate(email.sent_at)}</span>
                                 {email.email_type && (
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  <Badge variant="outline" className="text-micro px-1.5 py-0">
                                     {emailTypeLabels[email.email_type] || email.email_type}
                                   </Badge>
                                 )}
                                 {email.cc_emails && email.cc_emails.length > 0 && (
-                                  <span className="text-[10px] text-muted-foreground">
+                                  <span className="text-micro text-muted-foreground">
                                     CC: {(isDemoMode ? email.cc_emails.map(maskEmail) : email.cc_emails).join(", ")}
                                   </span>
                                 )}

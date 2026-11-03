@@ -948,7 +948,7 @@ function NavItem({
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center justify-center px-3 py-1 text-[9px] font-medium transition-transform active:scale-90"
+      className="flex flex-col items-center justify-center px-3 py-1 text-micro font-medium transition-transform active:scale-90"
       style={{
         color: active ? "#92750a" : "#9ca3af",
         background: active ? "#fef9c333" : "transparent",

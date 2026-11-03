@@ -57,7 +57,7 @@ const RichTextEditor = ({
 
   const editorProps = useMemo(() => ({
     attributes: {
-      class: `prose prose-sm dark:prose-invert max-w-none focus:outline-none p-3`,
+      class: `prose prose-sm max-w-none focus:outline-none p-3`,
       style: `min-height: ${minHeight}`,
     },
     handlePaste,

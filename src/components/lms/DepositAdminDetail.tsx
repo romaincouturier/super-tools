@@ -219,7 +219,7 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
             <ul className="space-y-2">
               {feedback.map((f) => (
                 <li key={f.id} className="rounded-md border p-3 space-y-2 bg-card">
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     {new Date(f.created_at).toLocaleDateString("fr-FR")}
                     {f.email_sent ? " · email envoyé" : ""}
                   </p>
@@ -294,8 +294,8 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
                   className={`rounded-md border p-3 space-y-1 ${c.status !== "published" ? "opacity-60 bg-muted/30" : "bg-card"}`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-[11px] text-muted-foreground break-all">{isDemoMode ? maskEmail(c.author_email) : c.author_email}</p>
-                    <span className="text-[10px] text-muted-foreground shrink-0">
+                    <p className="text-caption text-muted-foreground break-all">{isDemoMode ? maskEmail(c.author_email) : c.author_email}</p>
+                    <span className="text-micro text-muted-foreground shrink-0">
                       {new Date(c.created_at).toLocaleDateString("fr-FR")}
                       {c.status !== "published" ? ` · ${c.status}` : ""}
                     </span>

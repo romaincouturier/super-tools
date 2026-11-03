@@ -29,20 +29,20 @@ export default function SupportTicketCard({ card, isDragging: isDraggingProp }: 
       {...attributes}
       {...listeners}
       className={`border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing space-y-2 ${
-        t.discussion_requested_at ? "bg-amber-50 border-amber-300 dark:bg-amber-950/30 dark:border-amber-700" : "bg-background"
+        t.discussion_requested_at ? "bg-amber-50 border-amber-300" : "bg-background"
       } ${isDragging ? "opacity-50 shadow-lg rotate-2" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-1.5">
-          <Badge variant="outline" style={{ borderColor: typeConf.color, color: typeConf.color }} className="text-[10px] px-1.5 py-0">
+          <Badge variant="outline" style={{ borderColor: typeConf.color, color: typeConf.color }} className="text-micro px-1.5 py-0">
             {t.type === "bug" ? <Bug className="h-2.5 w-2.5 mr-0.5" /> : <Lightbulb className="h-2.5 w-2.5 mr-0.5" />}
             {typeConf.label}
           </Badge>
-          <Badge variant="outline" style={{ borderColor: prioConf.color, color: prioConf.color }} className="text-[10px] px-1.5 py-0">
+          <Badge variant="outline" style={{ borderColor: prioConf.color, color: prioConf.color }} className="text-micro px-1.5 py-0">
             {prioConf.label}
           </Badge>
         </div>
-        <span className="text-[10px] text-muted-foreground font-mono shrink-0">{t.ticket_number}</span>
+        <span className="text-micro text-muted-foreground font-mono shrink-0">{t.ticket_number}</span>
       </div>
       <p className="text-sm font-medium leading-tight line-clamp-2">{t.title}</p>
       {t.screenshot_url && (
@@ -71,7 +71,7 @@ export default function SupportTicketCard({ card, isDragging: isDraggingProp }: 
               borderColor: CODING_STATUS_CONFIG[t.coding_status].color,
               color: CODING_STATUS_CONFIG[t.coding_status].color,
             }}
-            className="text-[10px] px-1.5 py-0 gap-1"
+            className="text-micro px-1.5 py-0 gap-1"
           >
             {t.coding_status === "queued" && <Clock className="h-2.5 w-2.5" />}
             {t.coding_status === "running" && <Spinner className="h-2.5 w-2.5" />}
@@ -80,7 +80,7 @@ export default function SupportTicketCard({ card, isDragging: isDraggingProp }: 
             {CODING_STATUS_CONFIG[t.coding_status].label}
           </Badge>
           {t.coding_status === "error" && t.coding_error && (
-            <p className="text-[10px] text-red-600 dark:text-red-400 line-clamp-2">{t.coding_error}</p>
+            <p className="text-micro text-red-600 line-clamp-2">{t.coding_error}</p>
           )}
         </div>
       )}
@@ -91,13 +91,13 @@ export default function SupportTicketCard({ card, isDragging: isDraggingProp }: 
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
-          className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline"
+          className="flex items-center gap-1 text-caption font-medium text-blue-600 hover:underline"
         >
           <GitBranch className="h-3 w-3 shrink-0" />
           Voir la PR
         </a>
       )}
-      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+      <div className="flex items-center justify-between text-caption text-muted-foreground">
         <span>{t.submitted_by_email?.split("@")[0] || "—"}</span>{/* demo-safe: equipe SuperTilt */}
         <span>{formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: fr })}</span>
       </div>

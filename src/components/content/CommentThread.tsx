@@ -540,11 +540,11 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
             {" — "}
             {comment.content.length > 80 ? comment.content.slice(0, 80) + "…" : comment.content}
           </span>
-          <Badge variant="secondary" className="text-[10px] h-4 bg-green-100 text-green-700 flex-shrink-0">
+          <Badge variant="secondary" className="text-micro h-4 bg-green-100 text-green-700 flex-shrink-0">
             Corrigé
           </Badge>
           {replies.length > 0 && (
-            <span className="text-[10px] text-muted-foreground flex-shrink-0">{replies.length} rép.</span>
+            <span className="text-micro text-muted-foreground flex-shrink-0">{replies.length} rép.</span>
           )}
         </div>
       );
@@ -573,24 +573,24 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
         <div className="p-3">
           <div className="flex items-start gap-2.5">
             <Avatar className="h-7 w-7 flex-shrink-0 mt-0.5">
-              <AvatarFallback className="text-[10px] bg-primary/10">{getInitials(comment)}</AvatarFallback>
+              <AvatarFallback className="text-micro bg-primary/10">{getInitials(comment)}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-semibold">{getDisplayName(comment)}</span>
-                <span className="text-[10px] text-muted-foreground">{formatDate(comment.created_at)}</span>
+                <span className="text-micro text-muted-foreground">{formatDate(comment.created_at)}</span>
                 {comment.comment_type && commentTypeConfig[comment.comment_type] && (() => {
                   const cfg = commentTypeConfig[comment.comment_type!];
                   const TypeIcon = cfg.icon;
                   return (
-                    <Badge variant="secondary" className={cn("text-[10px] h-4 gap-0.5", cfg.className)}>
+                    <Badge variant="secondary" className={cn("text-micro h-4 gap-0.5", cfg.className)}>
                       <TypeIcon className="h-2.5 w-2.5" />
                       {cfg.label}
                     </Badge>
                   );
                 })()}
                 {comment.assigned_to && (
-                  <Badge variant="outline" className="text-[10px] h-4 gap-0.5">
+                  <Badge variant="outline" className="text-micro h-4 gap-0.5">
                     <UserPlus className="h-2.5 w-2.5" />
                     {comment.assigned_name /* demo-safe: equipe SuperTilt */
                       ? comment.assigned_name
@@ -598,7 +598,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                   </Badge>
                 )}
                 {isResolved && (
-                  <Badge variant="secondary" className="text-[10px] h-4 bg-green-100 text-green-700">
+                  <Badge variant="secondary" className="text-micro h-4 bg-green-100 text-green-700">
                     <CheckCheck className="h-2.5 w-2.5 mr-0.5" />
                     {comment.status === "corrected" ? "Corrigé" : "Traité"}
                   </Badge>
@@ -627,7 +627,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                     />
                   )}
                   <Select value={editAssignedTo} onValueChange={setEditAssignedTo}>
-                    <SelectTrigger className="h-7 w-auto min-w-[140px] text-[11px] border-dashed">
+                    <SelectTrigger className="h-7 w-auto min-w-[140px] text-caption border-dashed">
                       <div className="flex items-center gap-1">
                         <UserPlus className="h-3 w-3" />
                         <SelectValue placeholder="Assigner à…" />
@@ -643,14 +643,14 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                     </SelectContent>
                   </Select>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" className="h-6 text-[11px]" onClick={handleEditSave} disabled={submittingEdit || !editContent.trim()}>
+                    <Button size="sm" className="h-6 text-caption" onClick={handleEditSave} disabled={submittingEdit || !editContent.trim()}>
                       {submittingEdit ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
                       Enregistrer
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-6 text-[11px]" onClick={cancelEditing}>
+                    <Button size="sm" variant="ghost" className="h-6 text-caption" onClick={cancelEditing}>
                       Annuler
                     </Button>
-                    <span className="text-[10px] text-muted-foreground">⌘+Entrée · Échap</span>
+                    <span className="text-micro text-muted-foreground">⌘+Entrée · Échap</span>
                   </div>
                 </div>
               ) : (
@@ -666,7 +666,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                   {comment.proposed_correction && (
                     <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded text-sm relative group/correction">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-medium text-blue-600 uppercase tracking-wider">Correction proposée</span>
+                        <span className="text-micro font-medium text-blue-600 uppercase tracking-wider">Correction proposée</span>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -692,7 +692,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-6 text-[11px] text-blue-600 hover:bg-blue-50"
+                      className="h-6 text-caption text-blue-600 hover:bg-blue-50"
                       onClick={() => handleResolve(comment.id, "corrected")}
                     >
                       <Pencil className="h-3 w-3 mr-1" />
@@ -703,7 +703,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 text-[11px] text-muted-foreground"
+                  className="h-6 text-caption text-muted-foreground"
                   onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
                 >
                   <Reply className="h-3 w-3 mr-1" />
@@ -714,7 +714,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-6 text-[11px] text-muted-foreground hover:text-primary"
+                      className="h-6 text-caption text-muted-foreground hover:text-primary"
                       onClick={() => startEditing(comment)}
                     >
                       <Pencil className="h-3 w-3 mr-1" />
@@ -723,7 +723,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-6 text-[11px] text-muted-foreground hover:text-destructive ml-auto"
+                      className="h-6 text-caption text-muted-foreground hover:text-destructive ml-auto"
                       onClick={() => handleDelete(comment.id)}
                     >
                       <Trash2 className="h-3 w-3" />
@@ -742,12 +742,12 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
             {replies.map((reply) => (
               <div key={reply.id} className="flex items-start gap-2 pl-4">
                 <Avatar className="h-6 w-6 flex-shrink-0 mt-0.5">
-                  <AvatarFallback className="text-[9px] bg-muted">{getInitials(reply)}</AvatarFallback>
+                  <AvatarFallback className="text-micro bg-muted">{getInitials(reply)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-medium">{getDisplayName(reply)}</span>
-                    <span className="text-[10px] text-muted-foreground">{formatDate(reply.created_at)}</span>
+                    <span className="text-caption font-medium">{getDisplayName(reply)}</span>
+                    <span className="text-micro text-muted-foreground">{formatDate(reply.created_at)}</span>
                   </div>
                   {editingId === reply.id ? (
                     <div className="mt-1 space-y-1.5">
@@ -763,11 +763,11 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                         }}
                       />
                       <div className="flex items-center gap-2">
-                        <Button size="sm" className="h-5 text-[10px]" onClick={handleEditSave} disabled={submittingEdit || !editContent.trim()}>
+                        <Button size="sm" className="h-5 text-micro" onClick={handleEditSave} disabled={submittingEdit || !editContent.trim()}>
                           {submittingEdit ? <Loader2 className="h-2.5 w-2.5 animate-spin mr-1" /> : null}
                           Enregistrer
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-5 text-[10px]" onClick={cancelEditing}>
+                        <Button size="sm" variant="ghost" className="h-5 text-micro" onClick={cancelEditing}>
                           Annuler
                         </Button>
                       </div>
@@ -780,7 +780,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-5 text-[10px] text-muted-foreground hover:text-primary"
+                            className="h-5 text-micro text-muted-foreground hover:text-primary"
                             onClick={() => startEditing(reply)}
                           >
                             <Pencil className="h-2.5 w-2.5 mr-0.5" />
@@ -789,7 +789,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-5 text-[10px] text-muted-foreground hover:text-destructive"
+                            className="h-5 text-micro text-muted-foreground hover:text-destructive"
                             onClick={() => handleDelete(reply.id)}
                           >
                             <Trash2 className="h-2.5 w-2.5" />
@@ -829,7 +829,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                 {submittingReply ? <Spinner /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1 pl-4">⌘+Entrée pour envoyer · Échap pour annuler</p>
+            <p className="text-micro text-muted-foreground mt-1 pl-4">⌘+Entrée pour envoyer · Échap pour annuler</p>
           </div>
         )}
       </div>
@@ -846,12 +846,12 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
           <MessageSquare className="h-3.5 w-3.5" />
           <span>{topLevelComments.length} commentaire{topLevelComments.length > 1 ? "s" : ""}</span>
           {pendingCount > 0 && (
-            <Badge variant="secondary" className="text-[10px] h-5 bg-amber-100 text-amber-800">
+            <Badge variant="secondary" className="text-micro h-5 bg-amber-100 text-amber-800">
               {pendingCount} en attente
             </Badge>
           )}
           {resolvedComments.length > 0 && (
-            <Badge variant="secondary" className="text-[10px] h-5 bg-green-100 text-green-700">
+            <Badge variant="secondary" className="text-micro h-5 bg-green-100 text-green-700">
               {resolvedComments.length} traité{resolvedComments.length > 1 ? "s" : ""}
             </Badge>
           )}
@@ -914,7 +914,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
               type="button"
               size="sm"
               variant={commentType === "fond" ? "default" : "ghost"}
-              className={cn("h-7 text-[11px]", commentType === "fond" && "bg-purple-100 text-purple-800 hover:bg-purple-200")}
+              className={cn("h-7 text-caption", commentType === "fond" && "bg-purple-100 text-purple-800 hover:bg-purple-200")}
               onClick={() => setCommentType(commentType === "fond" ? "" : "fond")}
             >
               <FileText className="h-3 w-3 mr-1" />
@@ -924,7 +924,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
               type="button"
               size="sm"
               variant={commentType === "forme" ? "default" : "ghost"}
-              className={cn("h-7 text-[11px]", commentType === "forme" && "bg-cyan-100 text-cyan-800 hover:bg-cyan-200")}
+              className={cn("h-7 text-caption", commentType === "forme" && "bg-cyan-100 text-cyan-800 hover:bg-cyan-200")}
               onClick={() => setCommentType(commentType === "forme" ? "" : "forme")}
             >
               <Palette className="h-3 w-3 mr-1" />
@@ -935,7 +935,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
 
             {/* Assign to */}
             <Select value={assignedTo} onValueChange={setAssignedTo}>
-              <SelectTrigger className="h-7 w-auto min-w-[120px] text-[11px] border-dashed">
+              <SelectTrigger className="h-7 w-auto min-w-[120px] text-caption border-dashed">
                 <div className="flex items-center gap-1">
                   <UserPlus className="h-3 w-3" />
                   <SelectValue placeholder="Assigner à…" />

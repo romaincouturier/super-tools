@@ -300,8 +300,8 @@ const ApiUsageTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                <CircleDollarSign className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              <div className="p-2 rounded-lg bg-orange-100">
+                <CircleDollarSign className="h-5 w-5 text-orange-600" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Coût total</p>
@@ -314,8 +314,8 @@ const ApiUsageTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 rounded-lg bg-blue-100">
+                <Clock className="h-5 w-5 text-blue-600" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Moy. / jour</p>
@@ -328,8 +328,8 @@ const ApiUsageTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                <Bot className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <div className="p-2 rounded-lg bg-purple-100">
+                <Bot className="h-5 w-5 text-purple-600" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Part automatique</p>
@@ -345,8 +345,8 @@ const ApiUsageTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                <Zap className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className="p-2 rounded-lg bg-green-100">
+                <Zap className="h-5 w-5 text-green-600" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Appels</p>

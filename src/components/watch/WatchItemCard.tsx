@@ -185,7 +185,7 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2 min-w-0 flex-1">
-          <Badge variant="secondary" className={`${config.color} text-[10px] px-1.5 py-0 flex-shrink-0 gap-1`}>
+          <Badge variant="secondary" className={`${config.color} text-micro px-1.5 py-0 flex-shrink-0 gap-1`}>
             <Icon className="h-3 w-3" />
             {config.label}
           </Badge>
@@ -194,7 +194,7 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
 
         <div className="flex items-center gap-1 flex-shrink-0">
           {item.is_shared && (
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-yellow-100 text-yellow-700 gap-1">
+            <Badge variant="secondary" className="text-micro px-1.5 py-0 bg-yellow-100 text-yellow-700 gap-1">
               <Share2 className="h-2.5 w-2.5" />
               À partager
             </Badge>
@@ -331,13 +331,13 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
                 <div
                   key={u.user_id}
                   title={displayNameOf(u)}
-                  className="h-6 w-6 rounded-full bg-primary/15 text-primary text-[10px] font-semibold flex items-center justify-center border-2 border-background"
+                  className="h-6 w-6 rounded-full bg-primary/15 text-primary text-micro font-semibold flex items-center justify-center border-2 border-background"
                 >
                   {initialsOf(u)}
                 </div>
               ))}
               {assignedUsers.length > 4 && (
-                <div className="h-6 w-6 rounded-full bg-muted text-[10px] font-semibold flex items-center justify-center border-2 border-background">
+                <div className="h-6 w-6 rounded-full bg-muted text-micro font-semibold flex items-center justify-center border-2 border-background">
                   +{assignedUsers.length - 4}
                 </div>
               )}
@@ -347,7 +347,7 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
             value={assignedIds}
             onChange={handleAssignedChange}
             triggerLabel={assignedUsers.length === 0 ? "Taguer" : "Modifier"}
-            className="h-6 text-[10px] px-2"
+            className="h-6 text-micro px-2"
           />
         </div>
       </div>
@@ -359,7 +359,7 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
             <Badge
               key={tag}
               variant="outline"
-              className="text-[10px] px-1.5 py-0 gap-0.5 cursor-pointer hover:bg-destructive/10 hover:border-destructive/50 group"
+              className="text-micro px-1.5 py-0 gap-0.5 cursor-pointer hover:bg-destructive/10 hover:border-destructive/50 group"
               onClick={() => handleRemoveTag(tag)}
             >
               {tag}
@@ -375,7 +375,7 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
                 onKeyDown={handleTagKeyDown}
                 onBlur={() => { handleAddTag(); setEditingTags(false); }}
                 placeholder="Nouveau tag..."
-                className="h-5 w-24 text-[10px] px-1.5 py-0"
+                className="h-5 w-24 text-micro px-1.5 py-0"
                 list="watch-tag-suggestions"
               />
               <datalist id="watch-tag-suggestions">
@@ -387,7 +387,7 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
           ) : (
             <button
               onClick={() => setEditingTags(true)}
-              className="h-5 px-1 rounded border border-dashed border-muted-foreground/30 text-[10px] text-muted-foreground hover:border-foreground/50 hover:text-foreground transition-colors flex items-center"
+              className="h-5 px-1 rounded border border-dashed border-muted-foreground/30 text-micro text-muted-foreground hover:border-foreground/50 hover:text-foreground transition-colors flex items-center"
             >
               <Plus className="h-2.5 w-2.5" />
             </button>

@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  darkMode: ["class"],
+  darkMode: "selector",
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
   theme: {
@@ -17,9 +17,33 @@ export default {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        success: "hsl(var(--success))",
-        "success-surface": "hsl(var(--success-surface))",
+        success: {
+          DEFAULT: "hsl(var(--feedback-success))",
+          surface: "hsl(var(--feedback-success-surface))",
+          line: "hsl(var(--feedback-success-line))",
+        },
+        danger: {
+          DEFAULT: "hsl(var(--feedback-danger))",
+          ink: "hsl(var(--feedback-danger-ink))",
+          surface: "hsl(var(--feedback-danger-surface))",
+          line: "hsl(var(--feedback-danger-line))",
+        },
+        caution: {
+          DEFAULT: "hsl(var(--feedback-warning))",
+          ink: "hsl(var(--feedback-warning-ink))",
+          surface: "hsl(var(--feedback-warning-surface))",
+          line: "hsl(var(--feedback-warning-line))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--feedback-info))",
+          ink: "hsl(var(--feedback-info-ink))",
+          surface: "hsl(var(--feedback-info-surface))",
+          line: "hsl(var(--feedback-info-line))",
+        },
         "error-surface": "hsl(var(--error-surface))",
+        ink: "hsl(var(--ink))",
+        cream: "hsl(var(--cream))",
+        "brand-yellow": "hsl(var(--yellow-brand))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
@@ -65,7 +89,27 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
       },
+      fontSize: {
+        micro: ["0.625rem", { lineHeight: "0.875rem" }],
+        caption: ["0.6875rem", { lineHeight: "1rem" }],
+      },
+      transitionDuration: {
+        fast: "var(--duration-fast)",
+        base: "var(--duration-base)",
+        slow: "var(--duration-slow)",
+      },
+      transitionTimingFunction: {
+        brand: "var(--ease-out)",
+      },
+      boxShadow: {
+        block: "var(--shadow-block)",
+      },
+      height: {
+        "control-sm": "var(--control-sm)",
+        "control-md": "var(--control-md)",
+      },
       borderRadius: {
+        block: "var(--radius-block)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",

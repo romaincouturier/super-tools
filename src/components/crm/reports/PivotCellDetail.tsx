@@ -118,7 +118,7 @@ export default function PivotCellDetail({
                     </span>
                     <Badge
                       variant="outline"
-                      className={cn("text-[10px] border-0", STATUS_CLASS[card.sales_status])}
+                      className={cn("text-micro border-0", STATUS_CLASS[card.sales_status])}
                     >
                       {STATUS_LABEL[card.sales_status] || card.sales_status}
                     </Badge>

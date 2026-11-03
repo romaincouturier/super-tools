@@ -480,7 +480,7 @@ Tel: 06 12 34 56 78"
             {clientHistory.length > 0 && (
               <Collapsible open={clientHistoryOpen} onOpenChange={setClientHistoryOpen}>
                 <CollapsibleTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full justify-between border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300 dark:hover:bg-amber-950/50">
+                  <Button variant="outline" size="sm" className="w-full justify-between border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100">
                     <span className="flex items-center gap-2">
                       <History className="h-3.5 w-3.5" />
                       Client connu — {clientHistory.length} opportunité{clientHistory.length > 1 ? "s" : ""} existante{clientHistory.length > 1 ? "s" : ""}
@@ -502,7 +502,7 @@ Tel: 06 12 34 56 78"
                           <StatusIcon className={`h-3.5 w-3.5 flex-shrink-0 ${statusColor}`} />
                           <span className="font-medium truncate flex-1">{isDemoMode ? maskText(card.title) : card.title}</span>
                           {card.service_type && (
-                            <Badge variant="outline" className="text-[10px] h-4 px-1">
+                            <Badge variant="outline" className="text-micro h-4 px-1">
                               {card.service_type === "formation" ? "Formation" : card.service_type === "jeu" ? "Jeu" : "Mission"}
                             </Badge>
                           )}
@@ -699,7 +699,7 @@ Tel: 06 12 34 56 78"
                   <Tag className="h-3 w-3" />
                   Tags
                   {tagsAutoSuggested && selectedTagIds.length > 0 && (
-                    <span className="text-[10px] font-normal text-primary inline-flex items-center gap-0.5">
+                    <span className="text-micro font-normal text-primary inline-flex items-center gap-0.5">
                       <Sparkles className="h-2.5 w-2.5" /> suggérés par l'IA
                     </span>
                   )}
@@ -735,7 +735,7 @@ Tel: 06 12 34 56 78"
                 <Calendar className="h-3.5 w-3.5" />
                 Prochaine action
                 {nextActionSuggested && nextActionDate && (
-                  <span className="text-[10px] font-normal text-primary inline-flex items-center gap-0.5">
+                  <span className="text-micro font-normal text-primary inline-flex items-center gap-0.5">
                     <Sparkles className="h-2.5 w-2.5" /> suggérée par l'IA
                   </span>
                 )}

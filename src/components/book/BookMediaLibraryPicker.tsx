@@ -130,8 +130,8 @@ export default function BookMediaLibraryPicker({ open, onOpenChange, albumId }: 
                       </div>
                     )}
                     <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-1.5 text-left">
-                      <p className="text-[10px] text-white truncate">{isDemoMode ? maskFileName(m.file_name) : m.file_name}</p>
-                      <p className="text-[10px] text-white/70 truncate flex items-center gap-1">
+                      <p className="text-micro text-white truncate">{isDemoMode ? maskFileName(m.file_name) : m.file_name}</p>
+                      <p className="text-micro text-white/70 truncate flex items-center gap-1">
                         {m.source_emoji && <span>{m.source_emoji}</span>}
                         {isDemoMode ? maskText(m.source_label) : m.source_label}
                       </p>

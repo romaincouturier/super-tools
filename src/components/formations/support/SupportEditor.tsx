@@ -181,10 +181,10 @@ const SupportEditor = ({ trainingId, trainingName }: SupportEditorProps) => {
           <CardTitle className="flex items-center gap-2 text-base">
             <BookOpen className="h-5 w-5" />
             Support de formation
-            <Badge variant={isPublished ? "default" : "secondary"} className="text-[10px]">
+            <Badge variant={isPublished ? "default" : "secondary"} className="text-micro">
               {isPublished ? "Publié" : "Brouillon"}
             </Badge>
-            <Badge variant="outline" className="text-[10px]">
+            <Badge variant="outline" className="text-micro">
               {sections.length} section{sections.length !== 1 ? "s" : ""}
             </Badge>
           </CardTitle>

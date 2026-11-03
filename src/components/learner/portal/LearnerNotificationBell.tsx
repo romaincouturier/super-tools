@@ -66,7 +66,7 @@ const LearnerNotificationBell = ({ email, open, onOpenChange }: LearnerNotificat
           <Bell size={18} style={{ color: "var(--st-ink)" }} />
           {unreadCount > 0 && (
             <span
-              className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
+              className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full text-micro font-bold flex items-center justify-center"
               style={{ background: "var(--st-yellow)", color: "#101820" }}
             >
               {unreadCount > 9 ? "9+" : unreadCount}
@@ -109,7 +109,7 @@ const LearnerNotificationBell = ({ email, open, onOpenChange }: LearnerNotificat
                         {n.body && (
                           <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>{n.body}</p>
                         )}
-                        <p className="text-[10px] mt-1" style={{ color: "var(--st-ink-muted)" }}>
+                        <p className="text-micro mt-1" style={{ color: "var(--st-ink-muted)" }}>
                           {formatDistanceToNow(new Date(n.created_at), { locale: fr, addSuffix: true })}
                         </p>
                       </div>

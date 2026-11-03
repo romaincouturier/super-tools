@@ -236,7 +236,7 @@ const ContactCard = ({ contact, isEditing, onToggleEdit, onUpdate, onSetPrimary,
             <span className="text-xs text-muted-foreground ml-2">({contact.role})</span>
           )}
           {contact.is_sponsor && (
-            <span className="text-[10px] uppercase tracking-wide ml-2 px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+            <span className="text-micro uppercase tracking-wide ml-2 px-1.5 py-0.5 rounded bg-primary/10 text-primary">
               Commanditaire
             </span>
           )}

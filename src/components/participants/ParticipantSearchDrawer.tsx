@@ -88,22 +88,22 @@ export default function ParticipantSearchDrawer({ open, onOpenChange }: Particip
                         </div>
                         <div className="flex gap-2 mt-2 flex-wrap">
                           {t.needs_survey_status === "completed" && (
-                            <Badge variant="secondary" className="text-[10px]">
+                            <Badge variant="secondary" className="text-micro">
                               <ClipboardCheck className="h-3 w-3 mr-1" />
                               Besoins renseignés
                             </Badge>
                           )}
                           {t.needs_survey_status === "sent" && (
-                            <Badge variant="outline" className="text-[10px]">Enquête envoyée</Badge>
+                            <Badge variant="outline" className="text-micro">Enquête envoyée</Badge>
                           )}
                           {t.signed_convention_url && (
-                            <Badge variant="secondary" className="text-[10px]">
+                            <Badge variant="secondary" className="text-micro">
                               <FileText className="h-3 w-3 mr-1" />
                               Convention signée
                             </Badge>
                           )}
                           {t.invoice_file_url && (
-                            <Badge variant="outline" className="text-[10px]">Facture</Badge>
+                            <Badge variant="outline" className="text-micro">Facture</Badge>
                           )}
 
                         </div>
@@ -138,7 +138,7 @@ export default function ParticipantSearchDrawer({ open, onOpenChange }: Particip
                               </span>
                             )}
                             {e.certificate_url && (
-                              <Badge variant="secondary" className="text-[10px]">Certificat</Badge>
+                              <Badge variant="secondary" className="text-micro">Certificat</Badge>
                             )}
                           </div>
                           {e.commentaire_general && (

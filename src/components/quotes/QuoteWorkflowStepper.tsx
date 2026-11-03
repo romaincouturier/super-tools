@@ -61,7 +61,7 @@ export default function QuoteWorkflowStepper({
               >
                 {step.label}
               </span>
-              <span className="text-[10px] text-muted-foreground hidden lg:block">
+              <span className="text-micro text-muted-foreground hidden lg:block">
                 {step.description}
               </span>
             </button>

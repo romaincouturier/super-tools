@@ -53,7 +53,7 @@ export default function LearnerCourseHeader({
 
       <div className="flex-1 min-w-0">
         <p
-          className="text-[11px] font-medium leading-none mb-0.5 hidden lg:block"
+          className="text-caption font-medium leading-none mb-0.5 hidden lg:block"
           style={{ color: "#9CA3AF" }}
         >
           Mes formations
@@ -248,7 +248,7 @@ export function LearnerAccountMenu({
             {initials}
           </div>
           <div className="hidden sm:block text-left">
-            <p className="text-[11px] leading-none mb-0.5" style={{ color: "var(--st-ink-muted)" }}>Bonjour</p>
+            <p className="text-caption leading-none mb-0.5" style={{ color: "var(--st-ink-muted)" }}>Bonjour</p>
             <p className="text-sm font-semibold leading-none truncate max-w-[140px]" style={{ color: "var(--st-ink)" }}>
               {displayName}
             </p>

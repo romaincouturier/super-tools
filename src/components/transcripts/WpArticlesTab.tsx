@@ -104,7 +104,7 @@ export default function WpArticlesTab() {
                     {a.tags?.length > 0 && (
                       <span className="flex gap-1 flex-wrap mt-1">
                         {a.tags.slice(0, 4).map((t) => (
-                          <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>
+                          <Badge key={t} variant="secondary" className="text-micro">{t}</Badge>
                         ))}
                       </span>
                     )}

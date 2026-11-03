@@ -174,7 +174,7 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
                 style={{ width: `${card.confidence_score}%` }}
               />
             </div>
-            <span className={`text-[10px] font-medium ${
+            <span className={`text-micro font-medium ${
               card.confidence_score >= 70
                 ? "text-green-600"
                 : card.confidence_score >= 40

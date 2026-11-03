@@ -123,7 +123,7 @@ const MediaTagEditor = ({ mediaId, tags = [], allTags = [], compact, triggerClas
         {/* Suggestions */}
         {suggestions.length > 0 && newTag.length === 0 && (
           <div className="space-y-1">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Suggestions</p>
+            <p className="text-micro text-muted-foreground uppercase tracking-wider">Suggestions</p>
             <div className="flex flex-wrap gap-1">
               {suggestions.slice(0, 10).map((tag) => (
                 <Badge

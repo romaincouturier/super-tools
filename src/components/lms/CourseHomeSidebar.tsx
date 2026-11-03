@@ -100,7 +100,7 @@ function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { ema
         </p>
         <button
           onClick={goToCommunity}
-          className="text-[10px] font-semibold uppercase tracking-wider hover:underline"
+          className="text-micro font-semibold uppercase tracking-wider hover:underline"
           style={{ color: "var(--st-ink-muted)" }}
         >
           Voir tout
@@ -130,7 +130,7 @@ function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { ema
                   className="w-full flex items-start gap-2.5 text-left rounded-lg p-1 -m-1 transition-colors hover:bg-black/[0.03]"
                 >
                   <div
-                    className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-bold shrink-0"
+                    className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-micro font-bold shrink-0"
                     style={{ background: post.author_photo_url ? "transparent" : "var(--st-yellow)", color: "#101820" }}
                   >
                     {post.author_photo_url
@@ -159,7 +159,7 @@ function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { ema
                       </div>
                     )}
 
-                    <div className="flex items-center gap-2 mt-1 text-[10px]" style={{ color: "var(--st-ink-muted)" }}>
+                    <div className="flex items-center gap-2 mt-1 text-micro" style={{ color: "var(--st-ink-muted)" }}>
                       <span>{post.reaction_count} j'aime</span>
                       <span>·</span>
                       <span>{post.comment_count} comm.</span>
@@ -365,7 +365,7 @@ export default function CourseHomeSidebar({
                           <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
                             <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "#FFD100" }} />
                           </div>
-                          <p className="text-[10px] shrink-0" style={{ color: "var(--st-ink-muted)" }}>{done}/{total}</p>
+                          <p className="text-micro shrink-0" style={{ color: "var(--st-ink-muted)" }}>{done}/{total}</p>
                         </div>
                       )}
                     </div>

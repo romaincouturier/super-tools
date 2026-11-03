@@ -294,15 +294,15 @@ const FailedEmails = () => {
                 <span className="font-medium">{previewEmail.subject}</span>
               </div>
               {previewEmail.error_message && (
-                <div className="p-3 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800">
-                  <p className="text-sm text-red-700 dark:text-red-300">
+                <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                  <p className="text-sm text-red-700">
                     <strong>Erreur:</strong> {previewEmail.error_message}
                   </p>
                 </div>
               )}
-              <div className="border rounded-lg p-4 bg-white dark:bg-gray-900">
+              <div className="border rounded-lg p-4 bg-white">
                 <div
-                  className="prose prose-sm max-w-none dark:prose-invert"
+                  className="prose prose-sm max-w-none"
                   style={demoBlur(isDemoMode)}
                   dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewEmail.html_content || "", { ADD_ATTR: ["target"] }) }}
                 />

@@ -275,17 +275,17 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   {details?.client_name && ( /* demo-safe: garde, valeur masquee ligne suivante */
-                    <Badge variant="outline" className="text-[10px] h-5">
+                    <Badge variant="outline" className="text-micro h-5">
                       {isDemoMode ? maskName(details.client_name) : details.client_name}
                     </Badge>
                   )}
                   {details?.type_subrogation && (
-                    <Badge variant="secondary" className="text-[10px] h-5">
+                    <Badge variant="secondary" className="text-micro h-5">
                       {getSubrogationLabel(details.type_subrogation)}
                     </Badge>
                   )}
                   {details?.nb_participants && (
-                    <Badge variant="secondary" className="text-[10px] h-5">
+                    <Badge variant="secondary" className="text-micro h-5">
                       {details.nb_participants} participant{details.nb_participants > 1 ? "s" : ""}
                     </Badge>
                   )}
@@ -340,7 +340,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                     </Button>
                   )}
                   {!hasPdf && (
-                    <span className="text-[10px] text-muted-foreground italic flex items-center gap-1">
+                    <span className="text-micro text-muted-foreground italic flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
                       PDF expiré — dupliquez pour regénérer
                     </span>
@@ -439,21 +439,21 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                       {hasTracking && (
                         <>
                           {emailItem.delivery_status === "bounced" ? (
-                            <Badge variant="destructive" className="text-[9px] h-4 px-1 gap-0.5">
+                            <Badge variant="destructive" className="text-micro h-4 px-1 gap-0.5">
                               <XCircle className="h-2.5 w-2.5" /> Bounced
                             </Badge>
                           ) : emailItem.delivery_status === "delivered" ? (
-                            <Badge variant="outline" className="text-[9px] h-4 px-1 gap-0.5 text-green-600 border-green-200 bg-green-50">
+                            <Badge variant="outline" className="text-micro h-4 px-1 gap-0.5 text-green-600 border-green-200 bg-green-50">
                               <CheckCircle2 className="h-2.5 w-2.5" /> Délivré
                             </Badge>
                           ) : null}
                           {(emailItem.open_count || 0) > 0 && (
-                            <Badge variant="outline" className="text-[9px] h-4 px-1 gap-0.5 text-blue-600 border-blue-200 bg-blue-50">
+                            <Badge variant="outline" className="text-micro h-4 px-1 gap-0.5 text-blue-600 border-blue-200 bg-blue-50">
                               <Eye className="h-2.5 w-2.5" /> Ouvert{emailItem.open_count! > 1 ? ` ×${emailItem.open_count}` : ""}
                             </Badge>
                           )}
                           {(emailItem.click_count || 0) > 0 && (
-                            <Badge variant="outline" className="text-[9px] h-4 px-1 gap-0.5 text-purple-600 border-purple-200 bg-purple-50">
+                            <Badge variant="outline" className="text-micro h-4 px-1 gap-0.5 text-purple-600 border-purple-200 bg-purple-50">
                               <MousePointerClick className="h-2.5 w-2.5" /> Clic{emailItem.click_count! > 1 ? ` ×${emailItem.click_count}` : ""}
                             </Badge>
                           )}
@@ -474,7 +474,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                             return (
                               <button
                                 key={idx}
-                                className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] h-5 font-normal max-w-[250px] truncate bg-secondary text-secondary-foreground hover:bg-accent transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-micro h-5 font-normal max-w-[250px] truncate bg-secondary text-secondary-foreground hover:bg-accent transition-colors cursor-pointer"
                                 onClick={async (e) => {
                                   e.stopPropagation();
                                   try {
@@ -503,7 +503,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                             );
                           }
                           return (
-                            <Badge key={idx} variant="secondary" className="text-[10px] h-5 font-normal max-w-[250px] truncate">
+                            <Badge key={idx} variant="secondary" className="text-micro h-5 font-normal max-w-[250px] truncate">
                               {isDemoMode ? maskFileName(name) : name}
                             </Badge>
                           );
@@ -512,7 +512,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                     )}
                     {emailItem.body_html && (
                       <div
-                        className="px-4 pb-4 pt-2 prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline"
+                        className="px-4 pb-4 pt-2 prose prose-sm max-w-none [&_a]:text-primary [&_a]:underline"
                         style={demoBlur(isDemoMode, { lockPointer: true })}
                         dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(emailItem.body_html, { ADD_ATTR: ["target"], ALLOW_DATA_ATTR: false }) }}
                         onClick={(e) => {

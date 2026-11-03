@@ -113,7 +113,7 @@ const EmailTemplatePreviewDialog = ({
                       <div key={v} className="space-y-1">
                         <Label className="text-sm font-medium">{doc.label}</Label>
                         <p className="text-xs text-muted-foreground">{doc.description}</p>
-                        <code className="inline-block text-[11px] px-1.5 py-0.5 bg-muted rounded">
+                        <code className="inline-block text-caption px-1.5 py-0.5 bg-muted rounded">
                           {isCondition && !isValue
                             ? `{{#${v}}} ... {{/${v}}}`
                             : isCondition
@@ -147,7 +147,7 @@ const EmailTemplatePreviewDialog = ({
                           />
                         )}
                         {isCondition && !toggleOnly && (
-                          <p className="text-[11px] text-muted-foreground">
+                          <p className="text-caption text-muted-foreground">
                             Laissez vide pour masquer le bloc conditionnel {`{{#${v}}}`}.
                           </p>
                         )}
@@ -165,7 +165,7 @@ const EmailTemplatePreviewDialog = ({
                   <div key={help.title} className="space-y-1">
                     <p className="text-sm font-medium">{help.title}</p>
                     <p className="text-xs text-muted-foreground">{help.detail}</p>
-                    <pre className="text-[11px] bg-muted rounded p-2 whitespace-pre-wrap">{help.example}</pre>
+                    <pre className="text-caption bg-muted rounded p-2 whitespace-pre-wrap">{help.example}</pre>
                   </div>
                 ))}
               </div>

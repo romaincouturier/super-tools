@@ -352,10 +352,15 @@ RATCHET_LEGACY="017|020|037a|037b"
 check "066" "Toute règle en ratchet dit ce que son contrôle ne voit pas" \
   "for id in \$(grep -oE '^[0-9]+[a-z]?=' scripts/rules-ratchet.txt | tr -d '='); do \
      echo \"\$id\" | grep -qE \"^(\$RATCHET_LEGACY)\\\$\" && continue; \
-     sed -n \"/^### \\[\$id\\]/,/^---\$/p\" IMPROVEMENTS.md \
+     base=\${id%%[a-z]}; sed -n \"/^### \\[\$base\\]/,/^---\$/p\" IMPROVEMENTS.md \
        | grep -qiE 'plancher|ne voit pas|angle mort' \
        || echo \"VIOLATION [066]: la regle [\$id] est en ratchet sans dire ce que son controle ne voit pas\"; \
    done"
+
+# [076] Design system : un seul mode (clair), aucun préfixe dark: ni sélecteur .dark.
+check "076" "Design system : aucun mode sombre (dark:, .dark)" \
+  "grep -rnE '(^|[ \"\'\`])dark:[a-z]' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | sed 's/^/VIOLATION [076]: dark: interdit, mode clair unique — /'; \
+   grep -nE '^\\s*\\.dark\\b' src/index.css src/styles/tokens.css 2>/dev/null | sed 's/^/VIOLATION [076]: .dark interdit — /'"
 
 # ====================================================
 # 3. Audit complet uniquement (scans repo-wide lourds)
@@ -811,6 +816,17 @@ check "069" "useResolvedStorageUrl ne rend pas l'URL d'un bucket prive avant sa 
   check "075" "Aucun email automatique au texte écrit en dur" \
     "for f in \$(grep -rlE 'sendEmail\\(' supabase/functions --include='index.ts' 2>/dev/null | grep -vE '/(crm-send-email|send-quote-email|send-broadcast-email|send-mission-email-draft|resend-logged-email|send-training-survey)/'); do \
        grep -qE 'renderEditableEmail|renderCatalogEmail|prepareTemplatedEmail|email_templates|processTemplate' \"\$f\" || echo \"VIOLATION [075]: email en dur — \$f\"; done"
+
+  # [076] Design system : couleurs, tailles et rayons passent par les tokens de
+  # src/styles/tokens.css. Détail et migration : docs/design/README.md.
+  count_076a=$(grep -rEo '\b(bg|text|border|ring|from|to|via|fill|stroke|divide|outline)-(red|green|blue|yellow|amber|orange|emerald|slate|gray|zinc|neutral|stone|purple|pink|sky|teal|indigo|violet|rose|cyan|lime|fuchsia)-[0-9]+' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | wc -l)
+  ratchet "076a" "Ratchet couleurs de la palette Tailwind brute (utiliser success/danger/caution/info/primary...)" "$count_076a"
+
+  count_076b=$(grep -rEo '(bg|text|border|ring|from|to|via|fill|stroke)-\[#[0-9a-fA-F]+\]' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | wc -l)
+  ratchet "076b" "Ratchet couleurs hex littérales dans les classes (utiliser un token)" "$count_076b"
+
+  count_076c=$(grep -rEo 'text-\[[0-9.]+(px|rem)\]' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | wc -l)
+  ratchet "076c" "Ratchet tailles de texte arbitraires (utiliser text-micro, text-caption, text-xs...)" "$count_076c"
 
   # [065] Mode démo — affichage identifiant non masqué dans un écran interne.
   # Le détail des violations : bash scripts/check-demo-mask.sh

@@ -13,7 +13,7 @@ const providerBadge: Record<string, string> = {
 
 function MarkdownContent({ content }: { content: string }) {
   return (
-    <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-blockquote:my-2 prose-pre:my-2">
+    <div className="prose prose-sm max-w-none leading-relaxed prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-blockquote:my-2 prose-pre:my-2">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>
   );
@@ -63,7 +63,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
               <span className="text-sm font-semibold" style={{ color: message.agentColor }}>
                 {message.agentName}
               </span>
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500">
+              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-micro font-medium text-amber-500">
                 VOTE
               </span>
             </div>
@@ -107,7 +107,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
               {message.agentName}
             </span>
             {badge && (
-              <span className="rounded bg-muted px-1 py-0.5 text-[9px] font-medium text-muted-foreground">{badge}</span>
+              <span className="rounded bg-muted px-1 py-0.5 text-micro font-medium text-muted-foreground">{badge}</span>
             )}
             <span className="text-xs text-muted-foreground">Tour {message.turnNumber}</span>
             {message.tokenCount ? (

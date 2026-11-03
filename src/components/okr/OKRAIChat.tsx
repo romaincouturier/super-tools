@@ -181,7 +181,7 @@ const OKRAIChat = ({ year, objectiveId }: OKRAIChatProps) => {
                 >
                   {msg.role === "assistant" ? (
                     <div
-                      className="prose prose-sm max-w-none dark:prose-invert [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                      className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
                       dangerouslySetInnerHTML={{
                         __html: DOMPurify.sanitize(formatMarkdown(msg.content)),
                       }}

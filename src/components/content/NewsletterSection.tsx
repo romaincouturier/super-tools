@@ -559,7 +559,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
                           <span className="text-xs font-medium truncate flex-1">
                             {nl.title || "Newsletter"} — {format(new Date(nl.scheduled_date), "d MMM yyyy", { locale: fr })}
                           </span>
-                          <Badge variant="outline" className="text-[10px] h-4 shrink-0">Envoyée</Badge>
+                          <Badge variant="outline" className="text-micro h-4 shrink-0">Envoyée</Badge>
                         </button>
 
                         {expandedNewsletterIds.has(nl.id) && (
@@ -584,7 +584,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
                                   ))}
                                 </div>
                               ) : (
-                                <p className="text-[11px] text-muted-foreground px-2 py-1">Aucun article</p>
+                                <p className="text-caption text-muted-foreground px-2 py-1">Aucun article</p>
                               )
                             ) : (
                               <div className="flex justify-center py-2">

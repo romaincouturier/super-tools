@@ -726,7 +726,7 @@ function CommunityWidget({ courseId, learnerEmail, lessonId, isPreview = false }
           {recentAuthors.map((a, i) => (
             <div
               key={a}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white"
+              className="w-7 h-7 rounded-full flex items-center justify-center text-micro font-bold border-2 border-white"
               style={{ background: COMMUNITY_AVATAR_COLORS[i % COMMUNITY_AVATAR_COLORS.length], color: "#101820", marginLeft: i > 0 ? -6 : 0 }}
             >
               {a.split("@")[0].slice(0, 2).toUpperCase()}
@@ -736,7 +736,7 @@ function CommunityWidget({ courseId, learnerEmail, lessonId, isPreview = false }
       )}
       <CommunityCtaButton email={learnerEmail} courseId={courseId} lessonId={lessonId} isPreview={isPreview} />
       {recentPosts.length > 0 && (
-        <p className="text-[11px] text-center mt-2" style={{ color: "rgba(16,24,32,0.45)" }}>
+        <p className="text-caption text-center mt-2" style={{ color: "rgba(16,24,32,0.45)" }}>
           {recentPosts.length} apprenant{recentPosts.length > 1 ? "s ont" : " a"} déposé {recentPosts.length > 1 ? "leur" : "son"} exercice cette semaine.
         </p>
       )}
@@ -1008,7 +1008,7 @@ function HomeMenuLink({
       Accueil
       {isPreview && (
         <span
-          className="ml-auto text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+          className="ml-auto text-micro font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
           style={{ background: "rgba(16,24,32,0.08)", color: "rgba(16,24,32,0.55)" }}
         >
           Éditable

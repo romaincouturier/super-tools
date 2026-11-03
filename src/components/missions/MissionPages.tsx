@@ -655,7 +655,7 @@ const PageEditor = ({
       }),
       TaskList.configure({ HTMLAttributes: { class: "not-prose" } }),
       TaskItem.configure({ nested: true, HTMLAttributes: { class: "flex items-start gap-2" } }),
-      Highlight.configure({ HTMLAttributes: { class: "bg-yellow-200 dark:bg-yellow-800/50 rounded px-1" } }),
+      Highlight.configure({ HTMLAttributes: { class: "bg-yellow-200 rounded px-1" } }),
       Typography,
       DetailsNode,
       SummaryNode,
@@ -667,7 +667,7 @@ const PageEditor = ({
     content: ensureHtmlContent(page.content || ""),
     editorProps: {
       attributes: {
-        class: "prose prose-base dark:prose-invert max-w-none focus:outline-none min-h-[calc(100vh-280px)] py-2 text-[15px] leading-normal",
+        class: "prose prose-base max-w-none focus:outline-none min-h-[calc(100vh-280px)] py-2 text-[15px] leading-normal",
       },
       handleClick: (_view, _pos, event) => {
         const target = event.target as HTMLElement | null;

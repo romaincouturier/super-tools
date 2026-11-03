@@ -106,7 +106,7 @@ export default function LessonVersionsDialog({ open, onClose, lessonId }: Props)
                   <Calendar size={14} className="shrink-0 text-muted-foreground" />
                   <span>{formatDate(v.created_at)}</span>
                   {index === 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">plus récent</span>
+                    <span className="text-micro px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">plus récent</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">

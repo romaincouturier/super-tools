@@ -21,7 +21,7 @@ const WatchClusterCard = ({ cluster, itemCount }: WatchClusterCardProps) => {
           <Layers className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-medium">{cluster.title}</h3>
         </div>
-        <Badge variant="secondary" className="text-[10px]">
+        <Badge variant="secondary" className="text-micro">
           {itemCount} contenu{itemCount !== 1 ? "s" : ""}
         </Badge>
       </div>
@@ -38,7 +38,7 @@ const WatchClusterCard = ({ cluster, itemCount }: WatchClusterCardProps) => {
         </span>
 
         {isPosted ? (
-          <Badge variant="outline" className="text-[10px] gap-1 text-green-600">
+          <Badge variant="outline" className="text-micro gap-1 text-green-600">
             <Check className="h-3 w-3" />
             Publié sur Slack
           </Badge>

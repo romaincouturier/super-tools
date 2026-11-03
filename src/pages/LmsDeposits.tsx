@@ -166,13 +166,13 @@ export default function LmsDeposits() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0 flex-wrap">
                       {d.publication_status === "hidden" ? (
-                        <span className="inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+                        <span className="inline-flex items-center text-micro font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
                           <EyeOff className="h-3 w-3 mr-1" /> Masqué
                         </span>
                       ) : null}
                       <span
                         className={cn(
-                          "inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full",
+                          "inline-flex items-center text-micro font-medium px-2 py-0.5 rounded-full",
                           d.visibility === "shared" ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-gray-50 text-gray-700 border border-gray-200",
                         )}
                       >
@@ -181,13 +181,13 @@ export default function LmsDeposits() {
                       </span>
                       <span
                         className={cn(
-                          "inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full",
+                          "inline-flex items-center text-micro font-medium px-2 py-0.5 rounded-full",
                           STATUS_BADGE[d.pedagogical_status],
                         )}
                       >
                         {PEDAGOGICAL_STATUS_LABELS[d.pedagogical_status]}
                       </span>
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-caption text-muted-foreground">
                         {new Date(d.created_at).toLocaleDateString("fr-FR")}
                       </span>
                       <Eye className="h-4 w-4 text-muted-foreground" />

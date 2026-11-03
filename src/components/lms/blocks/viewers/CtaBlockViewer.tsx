@@ -184,7 +184,7 @@ export default function CtaBlockViewer({ content }: Props) {
               >
                 <span className="grid place-items-center gap-0.5 px-1.5">
                   <Star className="h-4 w-4" fill="currentColor" strokeWidth={0} aria-hidden="true" />
-                  <span className="text-[10px] font-extrabold leading-tight">{content.badge}</span>
+                  <span className="text-micro font-extrabold leading-tight">{content.badge}</span>
                 </span>
               </span>
             )}

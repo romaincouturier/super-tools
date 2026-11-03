@@ -92,7 +92,7 @@ export default function QuoteHistorySection({ cardId }: Props) {
           {signedDevis.map((d) => (
             <div
               key={d.id}
-              className="p-3 border border-green-200 dark:border-green-800 rounded-lg space-y-2 bg-green-50/50 dark:bg-green-950/20"
+              className="p-3 border border-green-200 rounded-lg space-y-2 bg-green-50/50"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -119,7 +119,7 @@ export default function QuoteHistorySection({ cardId }: Props) {
                 <button
                   type="button"
                   onClick={() => openStorageUrl(d.signed_pdf_url!)}
-                  className="inline-flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 hover:underline"
+                  className="inline-flex items-center gap-1.5 text-xs text-green-700 hover:underline"
                 >
                   <Download className="w-3 h-3" />
                   Télécharger le devis signé (PDF)

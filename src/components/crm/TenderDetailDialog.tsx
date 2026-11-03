@@ -64,7 +64,7 @@ export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, d
           <DialogDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <Building2 className="h-3.5 w-3.5" />
             {(isDemoMode ? maskText(tender.acheteur) : tender.acheteur) || "Acheteur non précisé"}
-            <Badge variant="secondary" className="text-[10px]">
+            <Badge variant="secondary" className="text-micro">
               {tenderSourceConfig[tender.source] ?? tender.source}
             </Badge>
           </DialogDescription>

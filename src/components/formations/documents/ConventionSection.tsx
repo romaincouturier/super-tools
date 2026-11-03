@@ -232,12 +232,12 @@ const ConventionSection = ({
           )}
           {conventionSignatureStatus?.status === "signed" && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-md">
-                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+              <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
                 <div className="flex-1">
-                  <span className="text-sm font-medium text-green-700 dark:text-green-300">Convention signée en ligne</span>
-                  {conventionSignatureStatus.signer_name && <span className="text-xs text-green-600 dark:text-green-400 ml-1">par {conventionSignatureStatus.signer_name}</span>}
-                  {conventionSignatureStatus.signed_at && <span className="text-xs text-green-600 dark:text-green-400 ml-1">le {formatSentDate(conventionSignatureStatus.signed_at)}</span>}
+                  <span className="text-sm font-medium text-green-700">Convention signée en ligne</span>
+                  {conventionSignatureStatus.signer_name && <span className="text-xs text-green-600 ml-1">par {conventionSignatureStatus.signer_name}</span>}
+                  {conventionSignatureStatus.signed_at && <span className="text-xs text-green-600 ml-1">le {formatSentDate(conventionSignatureStatus.signed_at)}</span>}
                 </div>
                 {conventionSignatureStatus.signed_pdf_url && (
                   <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1"

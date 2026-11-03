@@ -284,19 +284,19 @@ export default function BackupManager({
               </div>
               {lastBackup.storage && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                  <div className="p-3 rounded-lg bg-blue-50">
                     <p className="text-muted-foreground text-xs">Buckets Storage</p>
                     <p className="font-medium">{lastBackup.storage.bucketsCount}</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                  <div className="p-3 rounded-lg bg-blue-50">
                     <p className="text-muted-foreground text-xs">Fichiers copiés</p>
                     <p className="font-medium">{lastBackup.storage.uploadedFiles}/{lastBackup.storage.totalFiles}</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                  <div className="p-3 rounded-lg bg-blue-50">
                     <p className="text-muted-foreground text-xs">Taille fichiers</p>
                     <p className="font-medium">{lastBackup.storage.totalSizeMB} Mo</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                  <div className="p-3 rounded-lg bg-blue-50">
                     <p className="text-muted-foreground text-xs">Rétention</p>
                     <p className="font-medium">{lastBackup.gfsRetention || "14j"}</p>
                   </div>
@@ -306,7 +306,7 @@ export default function BackupManager({
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                   {lastBackup.integrity && (
                     <>
-                      <div className={`p-3 rounded-lg ${lastBackup.integrity.passed ? "bg-green-50 dark:bg-green-950/20" : "bg-amber-50 dark:bg-amber-950/20"}`}>
+                      <div className={`p-3 rounded-lg ${lastBackup.integrity.passed ? "bg-green-50" : "bg-amber-50"}`}>
                         <p className="text-muted-foreground text-xs">Intégrité</p>
                         <p className="font-medium">{lastBackup.integrity.passed ? "Validée" : "Anomalies"}</p>
                       </div>
@@ -318,7 +318,7 @@ export default function BackupManager({
                   )}
                   {lastBackup.pgDump && (
                     <>
-                      <div className={`p-3 rounded-lg ${lastBackup.pgDump.uploadedToDrive ? "bg-green-50 dark:bg-green-950/20" : "bg-muted/50"}`}>
+                      <div className={`p-3 rounded-lg ${lastBackup.pgDump.uploadedToDrive ? "bg-green-50" : "bg-muted/50"}`}>
                         <p className="text-muted-foreground text-xs">pg_dump natif</p>
                         <p className="font-medium">{lastBackup.pgDump.uploadedToDrive ? "Sur Drive" : lastBackup.pgDump.triggered ? "Déclenché" : "Non"}</p>
                       </div>
@@ -387,7 +387,7 @@ export default function BackupManager({
             )}
 
             {backupEnabled && hasGoogleDrive && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400">
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 text-green-700">
                 <CheckCircle className="h-4 w-4" />
                 <p className="text-sm">
                   Sauvegarde automatique active (DB + fichiers Storage). Un email de rapport est envoyé chaque jour.

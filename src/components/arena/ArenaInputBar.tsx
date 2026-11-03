@@ -53,7 +53,7 @@ export default function ArenaInputBar({
                     >
                       <span className="h-2 w-2 rounded-full" style={{ backgroundColor: a.color }} />
                       {a.name}
-                      {isSuggested && <span className="text-[9px] text-primary/70">recommande</span>}
+                      {isSuggested && <span className="text-micro text-primary/70">recommande</span>}
                     </button>
                   );
                 })}

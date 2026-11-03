@@ -529,7 +529,7 @@ function DashboardView({
                     </div>
                     <div className="flex-1 min-w-0">
                       {c.lesson_title && (
-                        <p className="text-[11px] font-medium truncate" style={{ color: "var(--st-ink-muted)" }}>
+                        <p className="text-caption font-medium truncate" style={{ color: "var(--st-ink-muted)" }}>
                           {c.lesson_title}
                         </p>
                       )}
@@ -1584,7 +1584,7 @@ function AideView({
                   style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
                 />
                 {files.length > 0 && (
-                  <p className="text-[11px] mt-1" style={{ color: "var(--st-ink-muted)" }}>
+                  <p className="text-caption mt-1" style={{ color: "var(--st-ink-muted)" }}>
                     {files.length} fichier{files.length > 1 ? "s" : ""} joint{files.length > 1 ? "s" : ""}
                   </p>
                 )}

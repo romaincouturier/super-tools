@@ -46,7 +46,7 @@ const SettingsSearch = ({ isAdmin, onSelect }: SettingsSearchProps) => {
       >
         <Search className="h-4 w-4 shrink-0" />
         <span className="flex-1 text-left">Rechercher un paramètre…</span>
-        <kbd className="hidden sm:inline-flex px-1.5 py-0.5 rounded border bg-muted text-[10px]">/</kbd>
+        <kbd className="hidden sm:inline-flex px-1.5 py-0.5 rounded border bg-muted text-micro">/</kbd>
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>

@@ -94,7 +94,7 @@ export default function ArenaKeySettings() {
               <span className="inline-block h-2 w-2 rounded-full bg-[#D97706]" />
               Anthropic (Claude) — <span className="text-primary">disponible</span>
             </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">
+            <p className="mt-1 text-caption text-muted-foreground">
               Clé gérée côté serveur (ANTHROPIC_API_KEY). Aucune configuration nécessaire.
             </p>
           </div>
@@ -112,7 +112,7 @@ export default function ArenaKeySettings() {
               placeholder="sk-..."
               readOnly={isDemoMode}
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-caption text-muted-foreground">
               Pour utiliser GPT-4o / GPT-4o Mini comme provider alternatif.
             </p>
           </div>
@@ -130,7 +130,7 @@ export default function ArenaKeySettings() {
               placeholder="AIza..."
               readOnly={isDemoMode}
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-caption text-muted-foreground">
               Pour utiliser Gemini 2.0 Flash / Gemini 2.5 Pro comme provider alternatif.
             </p>
           </div>

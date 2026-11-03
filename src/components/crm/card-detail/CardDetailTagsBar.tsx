@@ -98,7 +98,7 @@ const CardDetailTagsBar = ({ state, handlers }: Props) => {
             <Badge
               key={tag.id}
               style={{ backgroundColor: tag.color + "20", color: tag.color }}
-              className="cursor-pointer text-[10px] h-5 px-1.5 gap-0.5"
+              className="cursor-pointer text-micro h-5 px-1.5 gap-0.5"
               onClick={() => handlers.handleToggleTag(tag.id)}
             >
               {tag.name}
@@ -108,7 +108,7 @@ const CardDetailTagsBar = ({ state, handlers }: Props) => {
           {!expanded && availableTags.length > 0 && (
             <button
               onClick={() => setExpanded(true)}
-              className="h-5 px-1.5 rounded-md border border-dashed border-muted-foreground/30 text-[10px] text-muted-foreground hover:border-foreground/50 hover:text-foreground transition-colors flex items-center gap-0.5"
+              className="h-5 px-1.5 rounded-md border border-dashed border-muted-foreground/30 text-micro text-muted-foreground hover:border-foreground/50 hover:text-foreground transition-colors flex items-center gap-0.5"
             >
               <Plus className="h-2.5 w-2.5" />
             </button>
@@ -126,13 +126,13 @@ const CardDetailTagsBar = ({ state, handlers }: Props) => {
             const isCreating = creatingIn === category;
             return (
               <div key={category} className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] text-muted-foreground w-16 shrink-0 truncate">{category}</span>
+                <span className="text-micro text-muted-foreground w-16 shrink-0 truncate">{category}</span>
                 {available.map((tag) => (
                   <Badge
                     key={tag.id}
                     variant="outline"
                     style={{ borderColor: tag.color, color: tag.color }}
-                    className="cursor-pointer hover:bg-muted text-[10px] h-5 px-1.5 gap-0.5"
+                    className="cursor-pointer hover:bg-muted text-micro h-5 px-1.5 gap-0.5"
                     onClick={() => handlers.handleToggleTag(tag.id)}
                   >
                     <Plus className="h-2.5 w-2.5" />
@@ -152,7 +152,7 @@ const CardDetailTagsBar = ({ state, handlers }: Props) => {
                       }}
                       placeholder="Nouvelle valeur…"
                       disabled={submitting}
-                      className="h-5 text-[10px] border border-dashed rounded px-1.5 bg-transparent placeholder:text-muted-foreground/50 focus:outline-none min-w-0"
+                      className="h-5 text-micro border border-dashed rounded px-1.5 bg-transparent placeholder:text-muted-foreground/50 focus:outline-none min-w-0"
                       style={{ borderColor: color, color }}
                     />
                     <button
@@ -176,7 +176,7 @@ const CardDetailTagsBar = ({ state, handlers }: Props) => {
                   <button
                     type="button"
                     onClick={() => startCreate(category)}
-                    className="h-5 px-1.5 rounded-md border border-dashed text-[10px] flex items-center gap-0.5 hover:bg-muted transition-colors"
+                    className="h-5 px-1.5 rounded-md border border-dashed text-micro flex items-center gap-0.5 hover:bg-muted transition-colors"
                     style={{ borderColor: color, color }}
                     title={`Ajouter une valeur dans « ${category} »`}
                   >

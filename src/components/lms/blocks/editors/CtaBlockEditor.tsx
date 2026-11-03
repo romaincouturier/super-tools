@@ -74,7 +74,7 @@ export default function CtaBlockEditor({ lessonId, content, onChange, slim }: Pr
             onChange={(e) => onChange({ ...content, title: e.target.value || null })}
             placeholder="ex: Envie d'animer des ateliers *qui marquent les esprits* ?"
           />
-          <p className="text-[11px] text-muted-foreground">Entourez un mot d'astérisques pour le surligner : *mot*</p>
+          <p className="text-caption text-muted-foreground">Entourez un mot d'astérisques pour le surligner : *mot*</p>
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Sous-titre (optionnel)</Label>

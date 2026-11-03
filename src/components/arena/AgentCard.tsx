@@ -83,7 +83,7 @@ export default function AgentCard({
               placeholder="Nom de l'agent"
             />
             {isExpert && (
-              <p className="text-[10px] text-blue-500">Expert du pool</p>
+              <p className="text-micro text-blue-500">Expert du pool</p>
             )}
           </div>
         </div>
@@ -121,7 +121,7 @@ export default function AgentCard({
                 Gemini {!apiKeys.gemini && "(cle requise)"}
               </option>
             </select>
-            <p className="mt-1 text-[10px] text-muted-foreground">Service IA qui alimente cet agent.</p>
+            <p className="mt-1 text-micro text-muted-foreground">Service IA qui alimente cet agent.</p>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Modele</label>
@@ -134,7 +134,7 @@ export default function AgentCard({
                 <option key={m.id} value={m.id}>{m.label}</option>
               ))}
             </select>
-            <p className="mt-1 text-[10px] text-muted-foreground">Modele plus puissant = meilleur mais plus cher.</p>
+            <p className="mt-1 text-micro text-muted-foreground">Modele plus puissant = meilleur mais plus cher.</p>
           </div>
         </div>
 
@@ -161,23 +161,23 @@ export default function AgentCard({
         </div>
 
         {isExpert && agent.frameworks && agent.frameworks.length > 0 && (
-          <div className="rounded-lg bg-blue-50 px-3 py-2 dark:bg-blue-950/30">
-            <p className="mb-1 text-[10px] font-medium text-blue-600 dark:text-blue-400">Frameworks de reference</p>
+          <div className="rounded-lg bg-blue-50 px-3 py-2">
+            <p className="mb-1 text-micro font-medium text-blue-600">Frameworks de reference</p>
             <div className="flex flex-wrap gap-1">
               {agent.frameworks.map((f, i) => (
-                <span key={i} className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">{f}</span>
+                <span key={i} className="rounded-full bg-blue-100 px-2 py-0.5 text-micro text-blue-600">{f}</span>
               ))}
             </div>
             {agent.biases && (
               <>
-                <p className="mt-2 mb-0.5 text-[10px] font-medium text-amber-500">Biais connus</p>
-                <p className="text-[10px] text-muted-foreground">{agent.biases}</p>
+                <p className="mt-2 mb-0.5 text-micro font-medium text-amber-500">Biais connus</p>
+                <p className="text-micro text-muted-foreground">{agent.biases}</p>
               </>
             )}
             {agent.style && (
               <>
-                <p className="mt-2 mb-0.5 text-[10px] font-medium text-emerald-500">Style de communication</p>
-                <p className="text-[10px] text-muted-foreground">{agent.style}</p>
+                <p className="mt-2 mb-0.5 text-micro font-medium text-emerald-500">Style de communication</p>
+                <p className="text-micro text-muted-foreground">{agent.style}</p>
               </>
             )}
           </div>
@@ -216,7 +216,7 @@ export default function AgentCard({
               multiple
               onChange={handleFileUpload}
             />
-            <span className="text-[10px] text-muted-foreground">Texte, Markdown, CSV, JSON... (max 100Ko)</span>
+            <span className="text-micro text-muted-foreground">Texte, Markdown, CSV, JSON... (max 100Ko)</span>
           </div>
           {agent.contextFiles && agent.contextFiles.length > 0 && (
             <div className="mt-2 space-y-1">
@@ -225,8 +225,8 @@ export default function AgentCard({
                   <svg className="h-3.5 w-3.5 shrink-0 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <span className="flex-1 truncate text-[11px]">{file.name}</span>
-                  <span className="text-[10px] text-muted-foreground">{(file.content.length / 1000).toFixed(1)}k</span>
+                  <span className="flex-1 truncate text-caption">{file.name}</span>
+                  <span className="text-micro text-muted-foreground">{(file.content.length / 1000).toFixed(1)}k</span>
                   <button
                     onClick={() => removeFile(i)}
                     className="rounded p-0.5 text-muted-foreground transition-colors hover:text-destructive"

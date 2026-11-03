@@ -102,7 +102,7 @@ export default function DepositCommentList({ depositId, learnerEmail, canPost }:
             <li key={c.id} className="rounded-md border bg-card p-3">
               <div className="flex items-start justify-between gap-2">
                 <p className="text-xs text-muted-foreground break-all">{isMine ? "Vous" : (c.author_display_name || maskEmail(c.author_email))}</p>
-                <span className="text-[10px] text-muted-foreground shrink-0">
+                <span className="text-micro text-muted-foreground shrink-0">
                   {new Date(c.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
                 </span>
               </div>
@@ -144,7 +144,7 @@ export default function DepositCommentList({ depositId, learnerEmail, canPost }:
 
       {canPost && (
         <div className="space-y-2">
-          <p className="text-[11px] text-muted-foreground italic break-words">{REMINDER}</p>
+          <p className="text-caption text-muted-foreground italic break-words">{REMINDER}</p>
           <Textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}

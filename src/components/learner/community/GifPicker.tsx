@@ -111,7 +111,7 @@ export default function GifPicker({
 
       {/* Giphy attribution */}
       <div className="px-3 py-1.5 border-t text-right" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-        <span className="text-[10px] font-semibold tracking-wide" style={{ color: "var(--st-ink-muted)" }}>
+        <span className="text-micro font-semibold tracking-wide" style={{ color: "var(--st-ink-muted)" }}>
           Powered by GIPHY
         </span>
       </div>

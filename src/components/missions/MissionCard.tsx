@@ -97,7 +97,7 @@ const MissionCard = ({ mission, isDragging: isDraggingProp, onClick, onEmojiChan
 
       {/* Tags */}
       <CardTagList tags={tags} className="mt-2" renderTag={(tag) => (
-        <span key={tag.key} className="px-1.5 py-0.5 text-[10px] bg-muted rounded">
+        <span key={tag.key} className="px-1.5 py-0.5 text-micro bg-muted rounded">
           {tag.label}
         </span>
       )} />

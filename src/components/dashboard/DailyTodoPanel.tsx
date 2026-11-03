@@ -308,7 +308,7 @@ const DailyTodoPanel = () => {
                             </p>
                           )}
                           {action.auto_completed && action.is_completed && (
-                            <span className="text-[10px] text-green-600 font-medium">
+                            <span className="text-micro text-green-600 font-medium">
                               Auto-détecté
                             </span>
                           )}
@@ -394,14 +394,14 @@ function AnalyticsSection({
                 </div>
                 <Badge
                   variant={completionRate >= 80 ? "default" : "secondary"}
-                  className="text-[10px]"
+                  className="text-micro"
                 >
                   {completionRate}%
                 </Badge>
               </div>
             );
           })}
-          <p className="text-[10px] text-muted-foreground text-center mt-1">
+          <p className="text-micro text-muted-foreground text-center mt-1">
             Temps moyen de résolution (30 derniers jours)
           </p>
         </div>

@@ -36,7 +36,7 @@ export default function TableBlockEditor({ content, onChange, slim }: Props) {
     content: content.html || "",
     editorProps: {
       attributes: {
-        class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none p-3",
+        class: "prose prose-sm max-w-none focus:outline-none p-3",
       },
     },
     onUpdate: ({ editor }) => {

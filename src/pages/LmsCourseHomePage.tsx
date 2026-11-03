@@ -91,7 +91,7 @@ function ProgressCircle({ pct }: { pct: number }) {
         <span className="text-xl font-bold leading-none" style={{ color: "var(--st-ink)" }}>
           {Math.round(pct)}%
         </span>
-        <span className="text-[10px] mt-0.5" style={{ color: "var(--st-ink-muted)" }}>terminé</span>
+        <span className="text-micro mt-0.5" style={{ color: "var(--st-ink-muted)" }}>terminé</span>
       </div>
     </div>
   );
@@ -469,7 +469,7 @@ function CommunityInfoCard({
           {recentAuthors.map((a, i) => (
             <div
               key={a}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white"
+              className="w-7 h-7 rounded-full flex items-center justify-center text-micro font-bold border-2 border-white"
               style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length], color: "#101820", marginLeft: i > 0 ? -6 : 0 }}
             >
               {a.split("@")[0].slice(0, 2).toUpperCase()}

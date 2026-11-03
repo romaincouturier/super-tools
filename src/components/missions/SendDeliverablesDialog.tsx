@@ -317,14 +317,14 @@ const SendDeliverablesDialog = ({
                         )}
                         {sendState?.isUpdate && (
                           <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                            <span className="text-caption px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                               Déjà destinataire
                               {sendState.lastSentAt
                                 ? ` le ${new Date(sendState.lastSentAt).toLocaleDateString("fr-FR")}`
                                 : ""}
                             </span>
                             <span
-                              className={`text-[11px] px-1.5 py-0.5 rounded ${
+                              className={`text-caption px-1.5 py-0.5 rounded ${
                                 sendState.newItems.length > 0
                                   ? "bg-emerald-100 text-emerald-800"
                                   : "bg-muted text-muted-foreground"

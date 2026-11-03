@@ -91,7 +91,7 @@ export default function WpArticleDetailDialog({ articleId, onOpenChange }: Props
                 </h3>
                 {a.content ? (
                   <div
-                    className="prose prose-sm max-w-none rounded border p-3 bg-muted/30 dark:prose-invert"
+                    className="prose prose-sm max-w-none rounded border p-3 bg-muted/30"
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(a.content) }}
                   />
                 ) : (

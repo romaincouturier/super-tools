@@ -76,7 +76,7 @@ function StreamingAgentMessage({
             <span className="text-xs text-muted-foreground">Tour {turnNumber}</span>
           </div>
           <div className="rounded-xl rounded-tl-sm border px-4 py-3" style={{ borderColor: agent.color + "40" }}>
-            <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5">
+            <div className="prose prose-sm max-w-none leading-relaxed prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingContent}</ReactMarkdown>
             </div>
           </div>
@@ -101,7 +101,7 @@ function StreamingSynthesis({
           {isDeliverable ? "Generation du livrable..." : "Synthese en cours..."}
         </span>
       </div>
-      <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5">
+      <div className="prose prose-sm max-w-none leading-relaxed prose-p:my-1.5 prose-headings:mt-3 prose-headings:mb-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingContent}</ReactMarkdown>
       </div>
     </div>

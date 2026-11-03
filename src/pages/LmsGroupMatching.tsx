@@ -32,7 +32,7 @@ function MiniAvatar({ email, firstName, lastName, photoUrl }: { email: string; f
   const fullName = [firstName, lastName].filter(Boolean).join(" ") || email;
   return (
     <div
-      className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-bold shrink-0"
+      className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-micro font-bold shrink-0"
       style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820" }}
       title={isDemoMode ? maskName(fullName) : fullName}
     >

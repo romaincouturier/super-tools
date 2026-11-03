@@ -118,7 +118,7 @@ export function TenderAiPanel({ tender }: { tender: TenderWithContext }) {
             <Bullets title="Points de vigilance" items={summary.vigilance} />
 
             {tender.ai_summary_at && (
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 Produite le {new Date(tender.ai_summary_at).toLocaleString("fr-FR")}
               </p>
             )}
@@ -189,7 +189,7 @@ export function TenderAiPanel({ tender }: { tender: TenderWithContext }) {
                 <Bullets title="Pièces à produire" items={doc.ai_analysis.pieces_a_produire} />
                 <Bullets title="Points de vigilance" items={doc.ai_analysis.vigilance} />
                 {doc.ai_analysis_at && (
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     Analysée le {new Date(doc.ai_analysis_at).toLocaleString("fr-FR")}
                   </p>
                 )}

@@ -118,7 +118,7 @@ const Watch = () => {
               <Layers className="h-4 w-4" />
               Clusters
               {clusters.length > 0 && (
-                <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{clusters.length}</Badge>
+                <Badge variant="secondary" className="ml-1 text-micro px-1.5 py-0">{clusters.length}</Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="digests" className="gap-1.5">
@@ -209,7 +209,7 @@ const Watch = () => {
                         Semaine du {new Date(digest.week_start).toLocaleDateString("fr-FR")} au{" "}
                         {new Date(digest.week_end).toLocaleDateString("fr-FR")}
                       </h3>
-                      <Badge variant="outline" className="text-[10px]">
+                      <Badge variant="outline" className="text-micro">
                         {digest.item_ids.length} contenu{digest.item_ids.length !== 1 ? "s" : ""}
                       </Badge>
                     </div>
@@ -219,7 +219,7 @@ const Watch = () => {
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{formatDistanceToNow(new Date(digest.created_at), { addSuffix: true, locale: fr })}</span>
                       {digest.slack_posted_at && (
-                        <Badge variant="outline" className="text-[10px] text-green-600">
+                        <Badge variant="outline" className="text-micro text-green-600">
                           Envoyé sur Slack
                         </Badge>
                       )}

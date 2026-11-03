@@ -91,14 +91,14 @@ const ParticipantTable = ({
                               : participant.email)}
                       </span>
                       {participant.formula && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        <Badge variant="outline" className="text-micro px-1.5 py-0">
                           {participant.formula}
                         </Badge>
                       )}
                       {participant.repositioned_to_training_id && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
+                            <Badge variant="secondary" className="text-micro px-1.5 py-0 gap-1">
                               <ArrowRightLeft className="h-2.5 w-2.5" />
                               Repositionné
                             </Badge>

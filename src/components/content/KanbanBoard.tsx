@@ -750,7 +750,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
                 </div>
               </div>
               {assignedNames.length > 0 && (
-                <p className="text-[10px] text-muted-foreground truncate pl-6">
+                <p className="text-micro text-muted-foreground truncate pl-6">
                   {assignedNames.join(", ")}
                 </p>
               )}

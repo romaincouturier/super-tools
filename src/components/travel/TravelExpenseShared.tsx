@@ -250,7 +250,7 @@ export function TravelSettingsPanel({
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-micro text-muted-foreground">
             Barème IK 2024. Distances via Google Routes API. Paramètres sauvegardés localement.
           </p>
         </div>
@@ -341,7 +341,7 @@ export function DestinationRow({
       {/* Row 1: city + mode + AR + days + nights */}
       <div className="grid grid-cols-[1fr_120px_70px_70px_70px_68px] gap-2 items-end">
         <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground">
+          <Label className="text-micro text-muted-foreground">
             Destination {totalCount > 1 ? `#${index + 1}` : ""}
           </Label>
           <CityAutocomplete
@@ -361,7 +361,7 @@ export function DestinationRow({
           />
         </div>
         <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground">Transport</Label>
+          <Label className="text-micro text-muted-foreground">Transport</Label>
           <Select
             value={dest.transportMode}
             onValueChange={(v) => onModeChange(dest.id, v as TravelDestination["transportMode"])}
@@ -379,15 +379,15 @@ export function DestinationRow({
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground">A/R</Label>
+          <Label className="text-micro text-muted-foreground">A/R</Label>
           <Input type="number" min="1" step="1" value={dest.roundTrips || ""} onChange={(e) => onUpdate(dest.id, { roundTrips: parseInt(e.target.value) || 1 })} className="h-8 text-sm text-right" />
         </div>
         <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground">Jours</Label>
+          <Label className="text-micro text-muted-foreground">Jours</Label>
           <Input type="number" min="0" step="1" value={dest.days || ""} onChange={(e) => onUpdate(dest.id, { days: parseInt(e.target.value) || 0 })} className="h-8 text-sm text-right" />
         </div>
         <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground">Nuits</Label>
+          <Label className="text-micro text-muted-foreground">Nuits</Label>
           <Input type="number" min="0" step="1" value={dest.nights || ""} onChange={(e) => onUpdate(dest.id, { nights: parseInt(e.target.value) || 0 })} className="h-8 text-sm text-right" />
         </div>
         <div className="flex gap-0.5">
@@ -413,27 +413,27 @@ export function DestinationRow({
         {dest.transportMode === "car" && (
           <>
             <div className="flex items-center gap-1.5">
-              <Label className="text-[10px] text-muted-foreground whitespace-nowrap">Distance (km, aller)</Label>
+              <Label className="text-micro text-muted-foreground whitespace-nowrap">Distance (km, aller)</Label>
               <div className="relative">
                 <Input type="number" min="0" value={dest.distanceKm || ""} onChange={(e) => onUpdate(dest.id, { distanceKm: parseFloat(e.target.value) || 0 })} className="h-7 w-24 text-xs text-right" />
                 {dest.isFetchingDistance && <Loader2 className="absolute right-2 top-1.5 h-3.5 w-3.5 animate-spin text-muted-foreground" />}
               </div>
             </div>
             <div className="flex items-center gap-1.5">
-              <Label className="text-[10px] text-muted-foreground whitespace-nowrap">Péages (€, aller)</Label>
+              <Label className="text-micro text-muted-foreground whitespace-nowrap">Péages (€, aller)</Label>
               <Input type="number" min="0" value={dest.tollCostOneWay || ""} onChange={(e) => onUpdate(dest.id, { tollCostOneWay: parseFloat(e.target.value) || 0 })} className="h-7 w-24 text-xs text-right" />
             </div>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-micro text-muted-foreground">
               IK : {formatEur(dest.distanceKm * 2 * ikRate * dest.roundTrips)} €
             </span>
             {dest.durationHours > 0 && (
-              <span className="text-[10px] text-muted-foreground">🕐 {dest.durationHours} h</span>
+              <span className="text-micro text-muted-foreground">🕐 {dest.durationHours} h</span>
             )}
           </>
         )}
         {(dest.transportMode === "train" || dest.transportMode === "plane" || dest.transportMode === "taxi" || dest.transportMode === "other") && (
           <div className="flex items-center gap-1.5">
-            <Label className="text-[10px] text-muted-foreground whitespace-nowrap">
+            <Label className="text-micro text-muted-foreground whitespace-nowrap">
               {dest.transportMode === "taxi" ? "Course A/R (€)" : dest.transportMode === "other" ? "Coût A/R (€)" : "Billet A/R (€)"}
             </Label>
             <Input type="number" min="0" value={dest.ticketPriceRoundTrip || ""} onChange={(e) => onUpdate(dest.id, { ticketPriceRoundTrip: parseFloat(e.target.value) || 0 })} className="h-7 w-24 text-xs text-right" />
@@ -442,7 +442,7 @@ export function DestinationRow({
                 href={`https://www.trainline.fr/search/${encodeURIComponent(dest.city)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[10px] text-primary hover:underline whitespace-nowrap"
+                className="text-micro text-primary hover:underline whitespace-nowrap"
                 title="Rechercher sur Trainline"
               >
                 🚆 Trainline
@@ -454,7 +454,7 @@ export function DestinationRow({
 
       {/* Row 3: cost breakdown */}
       {costs && costs.total > 0 && (
-        <div className="flex items-center gap-3 text-[10px] text-muted-foreground border-t pt-1.5 flex-wrap">
+        <div className="flex items-center gap-3 text-micro text-muted-foreground border-t pt-1.5 flex-wrap">
           {costs.transportCost > 0 && <span className="flex items-center gap-0.5"><TransportIcon mode={dest.transportMode} /> {formatEur(costs.transportCost)} €</span>}
           {costs.parkingCost > 0 && <span>Parking : {formatEur(costs.parkingCost)} €</span>}
           {costs.loyaltyCost > 0 && <span>Carte : {formatEur(costs.loyaltyCost)} €</span>}

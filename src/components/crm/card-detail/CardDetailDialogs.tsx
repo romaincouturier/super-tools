@@ -458,7 +458,7 @@ const CardDetailDialogs = (props: Props) => {
                               <Calendar className="h-3 w-3" />
                               {format(parseISO(training.start_date), "d MMM yyyy", { locale: fr })}
                             </span>
-                            <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                            <Badge variant="secondary" className="text-micro h-4 px-1.5">
                               Inter-entreprises
                             </Badge>
                           </div>

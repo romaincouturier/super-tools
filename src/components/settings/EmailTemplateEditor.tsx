@@ -86,11 +86,11 @@ const EmailTemplateEditor = ({
             <div key={variable} className="rounded-md border bg-muted/30 p-2">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-xs font-medium">{doc.label}</span>
-                <code className="px-1.5 py-0.5 bg-background border rounded text-[11px] whitespace-nowrap">
+                <code className="px-1.5 py-0.5 bg-background border rounded text-caption whitespace-nowrap">
                   {doc.isCondition ? `{{#${variable}}}…{{/${variable}}}` : `{{${variable}}}`}
                 </code>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1">{doc.description}</p>
+              <p className="text-caption text-muted-foreground mt-1">{doc.description}</p>
             </div>
           );
         })}
@@ -103,7 +103,7 @@ const EmailTemplateEditor = ({
             <div key={help.title} className="space-y-1">
               <p className="text-sm font-medium">{help.title}</p>
               <p className="text-xs text-muted-foreground">{help.detail}</p>
-              <pre className="text-[11px] bg-muted rounded p-2 whitespace-pre-wrap">{help.example}</pre>
+              <pre className="text-caption bg-muted rounded p-2 whitespace-pre-wrap">{help.example}</pre>
             </div>
           ))}
         </div>

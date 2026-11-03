@@ -42,8 +42,8 @@ const EdgeFunctionsTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                <Zap className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 rounded-lg bg-blue-100">
+                <Zap className="h-5 w-5 text-blue-600" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total attendues</p>
@@ -55,8 +55,8 @@ const EdgeFunctionsTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className="p-2 rounded-lg bg-green-100">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Déployées</p>
@@ -135,7 +135,7 @@ const EdgeFunctionsTab = () => {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{fn.name}</p>
                     </div>
-                    <Badge variant="destructive" className="text-[10px] shrink-0">
+                    <Badge variant="destructive" className="text-micro shrink-0">
                       manquante
                     </Badge>
                   </div>
@@ -157,7 +157,7 @@ const EdgeFunctionsTab = () => {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{fn.name}</p>
                     </div>
-                    <Badge variant="outline" className="text-[10px] shrink-0">
+                    <Badge variant="outline" className="text-micro shrink-0">
                       timeout
                     </Badge>
                   </div>
@@ -185,13 +185,13 @@ const EdgeFunctionsTab = () => {
                 {deployed.map((fn) => (
                   <div
                     key={fn.name}
-                    className="flex items-center gap-3 rounded-lg border p-3 border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/30"
+                    className="flex items-center gap-3 rounded-lg border p-3 border-green-200 bg-green-50/50"
                   >
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{fn.name}</p>
                     </div>
-                    <Badge variant="outline" className="text-[10px] shrink-0">
+                    <Badge variant="outline" className="text-micro shrink-0">
                       déployée
                     </Badge>
                   </div>

@@ -93,7 +93,7 @@ const UpcomingCalendarPanel = () => {
                     </div>
                     <Badge
                       variant="secondary"
-                      className={`text-[10px] shrink-0 ${
+                      className={`text-micro shrink-0 ${
                         entry.type === "formation"
                           ? "bg-blue-50 text-blue-700"
                           : entry.type === "live"

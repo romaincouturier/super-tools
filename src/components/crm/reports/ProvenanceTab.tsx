@@ -490,7 +490,7 @@ export default function ProvenanceTab() {
                         <td
                           key={h}
                           title={`${dayLabel} ${h}h — ${v} demande(s)`}
-                          className="w-7 h-7 text-center text-[10px]"
+                          className="w-7 h-7 text-center text-micro"
                           style={{ backgroundColor: bg, color: intensity > 0.5 ? "white" : "inherit" }}
                         >
                           {v || ""}
@@ -740,7 +740,7 @@ function TagFilterPopover({
           )}
           {grouped.map(([cat, list]) => (
             <div key={cat}>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground px-1 mb-1">{cat}</div>
+              <div className="text-micro uppercase tracking-wide text-muted-foreground px-1 mb-1">{cat}</div>
               <div className="space-y-1">
                 {list.map((t) => (
                   <label

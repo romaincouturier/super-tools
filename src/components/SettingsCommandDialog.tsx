@@ -76,16 +76,16 @@ function SettingsCommandPalette() {
             >
               <Cog className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary shrink-0" />
               <span className="flex-1 truncate">{entry.label}</span>
-              <span className="ml-auto pl-2 text-[10px] text-muted-foreground shrink-0">
+              <span className="ml-auto pl-2 text-micro text-muted-foreground shrink-0">
                 {SETTINGS_TAB_LABELS[entry.tab]}
               </span>
             </button>
           ))}
         </div>
-        <div className="border-t px-4 py-2 flex items-center justify-between text-[10px] text-muted-foreground">
+        <div className="border-t px-4 py-2 flex items-center justify-between text-micro text-muted-foreground">
           <span>Entrée pour ouvrir le premier résultat</span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 rounded border bg-muted text-[10px]">Esc</kbd>
+            <kbd className="px-1.5 py-0.5 rounded border bg-muted text-micro">Esc</kbd>
             pour fermer
           </span>
         </div>

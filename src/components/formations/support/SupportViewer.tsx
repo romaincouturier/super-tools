@@ -347,7 +347,7 @@ const LazySection = ({
 
       {section.content && (
         <div
-          className="prose prose-sm dark:prose-invert max-w-none"
+          className="prose prose-sm max-w-none"
           style={c ? { color: c.onSurface } : undefined}
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content || "", { ADD_ATTR: ["target"] }) }}
         />

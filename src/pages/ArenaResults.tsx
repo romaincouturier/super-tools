@@ -61,7 +61,7 @@ export default function ArenaResults() {
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="text-sm font-semibold">Resultats</h1>
-                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                <span className={`rounded-full px-1.5 py-0.5 text-micro font-medium ${
                   config.mode === "decision" ? "bg-amber-500/10 text-amber-500"
                     : config.mode === "deliverable" ? "bg-emerald-500/10 text-emerald-500"
                       : "bg-primary/10 text-primary"
@@ -136,7 +136,7 @@ export default function ArenaResults() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">{agent.name}</span>
-                        <span className="rounded bg-border px-1 py-0.5 text-[9px] text-muted-foreground">{agent.provider}</span>
+                        <span className="rounded bg-border px-1 py-0.5 text-micro text-muted-foreground">{agent.provider}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">{agent.role}</div>
                       <div className="text-xs text-muted-foreground">{tokensPerAgent[agent.id] || 0} tokens</div>
@@ -173,7 +173,7 @@ export default function ArenaResults() {
                       {vote.agentName.charAt(0).toUpperCase()}
                     </div>
                     <span className="font-semibold" style={{ color: agent?.color }}>{vote.agentName}</span>
-                    <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500">VOTE</span>
+                    <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-micro font-medium text-amber-500">VOTE</span>
                   </div>
                   <div className="whitespace-pre-wrap text-sm leading-relaxed">{vote.reasoning}</div>
                 </div>
@@ -229,7 +229,7 @@ export default function ArenaResults() {
                       <div className="mb-1 flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                           <span className="font-medium" style={{ color: agent.color }}>{agent.name}</span>
-                          <span className="rounded bg-border px-1 py-0.5 text-[9px] text-muted-foreground">{agent.provider}/{agent.model.split("-").slice(0, 2).join("-")}</span>
+                          <span className="rounded bg-border px-1 py-0.5 text-micro text-muted-foreground">{agent.provider}/{agent.model.split("-").slice(0, 2).join("-")}</span>
                         </div>
                         <span className="text-muted-foreground">{tokens} tokens</span>
                       </div>

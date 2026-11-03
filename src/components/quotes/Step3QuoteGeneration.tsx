@@ -850,7 +850,7 @@ export default function Step3QuoteGeneration({
       </Card>
 
       {/* Commercial Challenge on Quote */}
-      <Card className="border-amber-200 bg-amber-50/30 dark:border-amber-900 dark:bg-amber-950/20">
+      <Card className="border-amber-200 bg-amber-50/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Swords className="w-5 h-5 text-amber-600" />
@@ -858,7 +858,7 @@ export default function Step3QuoteGeneration({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40">
+          <Alert className="border-amber-200 bg-amber-50">
             <Swords className="w-4 h-4 text-amber-600" />
             <AlertDescription>
               Le coach IA va challenger votre devis complet : lignes, pricing, cohérence avec la synthèse et les données de l'opportunité.
@@ -870,7 +870,7 @@ export default function Step3QuoteGeneration({
               onClick={handleChallenge}
               disabled={lines.length === 0 || isGenerating}
               variant="outline"
-              className="gap-2 w-full py-6 text-base border-amber-300 hover:bg-amber-100 dark:border-amber-800 dark:hover:bg-amber-950/40"
+              className="gap-2 w-full py-6 text-base border-amber-300 hover:bg-amber-100"
             >
               <Swords className="w-5 h-5 text-amber-600" />
               Lancer le challenge du devis

@@ -520,6 +520,24 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Convention
 
+### [076] Design system — toute couleur, taille et rayon vient d'un token de `src/styles/tokens.css`
+
+- **Constat** : Novembre 2026, le design system s'était construit au fil de l'eau : 1 401 couleurs de la palette Tailwind brute (`bg-green-600`, `text-amber-800`) pour dire "succès" ou "alerte" avec dix nuances différentes, 15 hex en classe, 33 tailles de texte arbitraires (`text-[10px]` seul : 243), 760 usages d'un second jeu de jetons `--st-*` hors palette, et un mode sombre (`.dark`, 145 préfixes `dark:`) que rien n'activait.
+- **Règle** :
+  1. `src/styles/tokens.css` est la source unique, en trois couches : palette de marque (`--ink`, `--yellow`, `--cream`), alias sémantiques (`--text-strong`, `--surface-subtle`, `--feedback-danger`), contrat shadcn (`--primary`, `--ring`). Un composant lit un alias via une classe Tailwind, jamais un hex.
+  2. Palette fermée : une couleur absente de `tokens.css` n'existe pas. Un statut utilise `success`, `danger`, `caution` ou `info` (variantes `-ink`, `-surface`, `-line`), jamais `green-600` ou `red-50`.
+  3. Un seul mode, clair. Ni `.dark`, ni `dark:`.
+  4. Tailles de texte : `text-micro` (10px), `text-caption` (11px), puis l'échelle Tailwind. Pas de `text-[Npx]`.
+  5. Tout token qui crée une classe Tailwind maison s'enregistre dans `extendTailwindMerge` de `src/lib/utils.ts`, sinon `cn()` supprime une classe sur deux.
+  6. `src/components/ui/` reste le dossier des primitives shadcn ; un composant partagé sans métier va dans `src/components/shared/`. Les `--st-*` sont gelés : aucun nouveau.
+  7. Une décision d'accessibilité (contraste, focus) s'écrit à côté du token, pas dans la PR.
+- **Vérification** : check [076] de `check-rules.sh` (aucun `dark:` ni `.dark`, bloquant) et ratchets [076a] (palette Tailwind brute), [076b] (hex en classe), [076c] (tailles arbitraires) dans `scripts/rules-ratchet.txt`. Plancher, pas preuve : le contrôle ne voit pas les couleurs construites par template string, les hex dans `style={{}}`, les props de graphiques ni les SVG inline.
+- **Fichiers de référence** : `src/styles/tokens.css`, `tailwind.config.ts`, `src/lib/utils.ts`, `docs/design/README.md`
+- **Origine** : demande de reprise du design system, jamais conçu en amont
+- **Date** : 2026-11-03
+
+---
+
 ### [059] Adresse email en clef de jointure — toujours `normalizeEmail()` à la frontière, jamais `lower()` à la lecture
 - **Constat** : la progression e-learning est rangée sous une adresse en texte libre (`lms_progress.learner_email`), et la lecture est une égalité stricte (`useLmsQueries.ts:446`). Le player prenait `?email=` brut, sans normaliser. Trois autres portes d'entrée faisaient de même (`LmsCourseHomePage`, `LearnerPortal`, `LearnerCourseHeader`) pendant que `useLearnerIdentity` normalisait. Mesuré le 16/09/2026 : 0 ligne non minuscule sur les 8 tables clefées par adresse, donc l'invariant tenait par chance. Il ne tenait à rien : 121 policies RLS comparent `learner_email = get_learner_email()`, et cette fonction rend une valeur en minuscules. Une seule ligne écrite avec une majuscule devient invisible à son propriétaire, sans message d'erreur.
 - **Règle** : toute adresse qui entre dans l'application depuis l'extérieur (paramètre d'URL, formulaire, corps d'edge function, import tiers) passe par `normalizeEmail()` avant d'être stockée ou utilisée comme filtre. Côté edge functions, l'équivalent est `normalizeLearnerEmail()`. Ne jamais rattraper à la lecture avec un `lower()` sur la colonne : ça masque la mauvaise écriture et ça prive la requête de son index.

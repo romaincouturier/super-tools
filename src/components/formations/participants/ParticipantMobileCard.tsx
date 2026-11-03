@@ -57,12 +57,12 @@ const ParticipantMobileCard = ({
                   <p className="text-xs text-muted-foreground">{isDemoMode ? maskName(participant.company) : participant.company}</p>
                 )}
                 {participant.formula && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 mt-0.5 w-fit">
+                  <Badge variant="outline" className="text-micro px-1.5 py-0 mt-0.5 w-fit">
                     {participant.formula}
                   </Badge>
                 )}
                 {participant.repositioned_to_training_id && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 mt-0.5 w-fit gap-1" title={`Repositionné vers une autre session${participant.repositioned_at ? ` le ${new Date(participant.repositioned_at).toLocaleDateString("fr-FR")}` : ""}`}>
+                  <Badge variant="secondary" className="text-micro px-1.5 py-0 mt-0.5 w-fit gap-1" title={`Repositionné vers une autre session${participant.repositioned_at ? ` le ${new Date(participant.repositioned_at).toLocaleDateString("fr-FR")}` : ""}`}>
                     <ArrowRightLeft className="h-2.5 w-2.5" />
                     Repositionné
                   </Badge>
@@ -81,7 +81,7 @@ const ParticipantMobileCard = ({
                   if (missingSource) labelParts.push("source de financement");
                   return (
                     <span
-                      className="inline-flex items-center gap-1 text-[10px] text-destructive mt-0.5"
+                      className="inline-flex items-center gap-1 text-micro text-destructive mt-0.5"
                       title={`BPF incomplet : ${labelParts.join(" + ")}`}
                     >
                       <span className="inline-block w-2 h-2 rounded-full bg-destructive" />
@@ -95,7 +95,7 @@ const ParticipantMobileCard = ({
                   const isScheduled = participant.needs_survey_status === "programme";
                   const isConvoked = !["non_envoye", "manuel", "programme"].includes(participant.needs_survey_status);
                   return (
-                    <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${isConvoked ? "text-primary" : isScheduled ? "text-amber-600" : "text-muted-foreground"}`}>
+                    <span className={`inline-flex items-center gap-1 text-micro font-medium ${isConvoked ? "text-primary" : isScheduled ? "text-amber-600" : "text-muted-foreground"}`}>
                       {isConvoked ? <Send className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                       {isConvoked ? "Convoqué" : isScheduled ? "Convocation programmée" : "Non convoqué"}
                     </span>

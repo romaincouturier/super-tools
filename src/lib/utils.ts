@@ -1,5 +1,20 @@
 import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { extendTailwindMerge } from "tailwind-merge";
+
+// Tout token qui crée une classe Tailwind maison doit être déclaré ici, sinon
+// tailwind-merge classe text-micro comme une couleur et supprime l'une des deux classes.
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      "font-size": [{ text: ["micro", "caption"] }],
+      h: [{ h: ["control-sm", "control-md"] }],
+      duration: [{ duration: ["fast", "base", "slow"] }],
+      ease: [{ ease: ["brand"] }],
+      shadow: [{ shadow: ["block"] }],
+      rounded: [{ rounded: ["block"] }],
+    },
+  },
+});
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

@@ -103,7 +103,7 @@ function OutlineRow({
 
         {/* Hidden badge */}
         {block.hidden && (
-          <Badge variant="outline" className="h-4 text-[10px] px-1 shrink-0">masqué</Badge>
+          <Badge variant="outline" className="h-4 text-micro px-1 shrink-0">masqué</Badge>
         )}
 
         {/* Actions — shown on hover */}

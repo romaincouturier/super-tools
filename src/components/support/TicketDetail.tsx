@@ -328,7 +328,7 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
             </CardHeader>
             <CardContent className="space-y-3">
               {ticket.coding_status === "error" && ticket.coding_error && (
-                <p className="text-sm text-red-600 dark:text-red-400 whitespace-pre-wrap break-all">
+                <p className="text-sm text-red-600 whitespace-pre-wrap break-all">
                   {ticket.coding_error}
                 </p>
               )}

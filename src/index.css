@@ -1,3 +1,5 @@
+@import "./styles/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -49,107 +51,6 @@
 .arena-card:hover {
   border-color: hsl(var(--border) / 0.8);
 }
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
-@layer base {
-  :root {
-    /* Custom brand colors - Yellow #ffd100, Anthracite #101820, Cream #f7f5f0 */
-    --background: 43 30% 95%; /* Warm cream #f7f5f0 */
-    --foreground: 210 33% 9%; /* Anthracite #101820 */
-
-    --card: 0 0% 100%;
-    --card-foreground: 210 33% 9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 210 33% 9%;
-
-    --primary: 49 100% 45%; /* Yellow #e6bc00 - darker for accessibility */
-    --primary-foreground: 210 33% 9%; /* Anthracite for contrast */
-
-    --secondary: 150 5% 95%; /* Gray #f2f4f4 */
-    --secondary-foreground: 210 33% 9%;
-
-    --muted: 150 5% 95%;
-    --muted-foreground: 210 20% 40%;
-
-    --accent: 49 100% 45%; /* Yellow - darker for accessibility */
-    --accent-foreground: 210 33% 9%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 210 20% 85%;
-    --input: 210 20% 85%;
-    --ring: 49 100% 45%;
-
-    --warning: 38 92% 50%; /* Amber/Orange for warnings */
-    --warning-foreground: 0 0% 0%;
-
-    --success: 142 72% 29%;
-    --success-surface: 142 60% 96%;
-    --error-surface: 0 80% 97%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 210 33% 9%;
-    --sidebar-foreground: 150 5% 95%;
-    --sidebar-primary: 49 100% 45%;
-    --sidebar-primary-foreground: 210 33% 9%;
-    --sidebar-accent: 210 20% 15%;
-    --sidebar-accent-foreground: 150 5% 95%;
-    --sidebar-border: 210 20% 20%;
-    --sidebar-ring: 49 100% 45%;
-  }
-
-  .dark {
-    --background: 210 33% 9%; /* Anthracite */
-    --foreground: 150 5% 95%; /* Gray */
-
-    --card: 210 30% 12%;
-    --card-foreground: 150 5% 95%;
-
-    --popover: 210 30% 12%;
-    --popover-foreground: 150 5% 95%;
-
-    --primary: 49 100% 45%; /* Yellow - darker for accessibility */
-    --primary-foreground: 210 33% 9%;
-
-    --secondary: 210 20% 18%;
-    --secondary-foreground: 150 5% 95%;
-
-    --muted: 210 20% 18%;
-    --muted-foreground: 210 15% 60%;
-
-    --accent: 49 100% 45%;
-    --accent-foreground: 210 33% 9%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 150 5% 95%;
-
-    --border: 210 20% 25%;
-    --input: 210 20% 25%;
-    --ring: 49 100% 45%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 0%;
-
-    --success: 142 65% 65%;
-    --success-surface: 142 30% 15%;
-    --error-surface: 0 35% 16%;
-
-    --sidebar-background: 210 35% 6%;
-    --sidebar-foreground: 150 5% 95%;
-    --sidebar-primary: 49 100% 50%;
-    --sidebar-primary-foreground: 210 33% 9%;
-    --sidebar-accent: 210 20% 15%;
-    --sidebar-accent-foreground: 150 5% 95%;
-    --sidebar-border: 210 20% 20%;
-    --sidebar-ring: 49 100% 50%;
-  }
-}
-
 @layer base {
   * {
     @apply border-border;
@@ -327,33 +228,10 @@ All colors MUST be HSL.
 }
 
 
-/* ── SuperTilt Builder design tokens ── */
-:root {
-  --st-yellow: #FFD100;
-  --st-yellow-soft: rgba(255, 209, 0, 0.22);
-  --st-yellow-border: rgba(255, 209, 0, 0.6);
-  --st-ink: #101820;
-  --st-ink-muted: rgba(16, 24, 32, 0.55);
-  --st-ink-soft: rgba(16, 24, 32, 0.06);
-  --st-ink-06: rgba(16, 24, 32, 0.06);
-  --st-ink-08: rgba(16, 24, 32, 0.08);
-  --st-ink-12: rgba(16, 24, 32, 0.12);
-  --st-ink-50: rgba(16, 24, 32, 0.50);
-  --st-ink-60: rgba(16, 24, 32, 0.60);
-  --st-surface: #F2F4F4;
-  --st-white: #FFFFFF;
-  --st-radius-block: 20px;
-  --st-radius-pill: 999px;
-  --st-shadow-block: 0 2px 12px rgba(16, 24, 32, 0.07);
-  --st-content-width: 768px;
-  /* Block radius shorthand used by inline editors */
-  --st-br: 20px;
-}
-
 /* Inline contentEditable placeholder support */
 [data-placeholder]:empty::before {
   content: attr(data-placeholder);
-  color: rgba(16, 24, 32, 0.3);
+  color: hsl(var(--ink) / 0.3);
   pointer-events: none;
 }
 

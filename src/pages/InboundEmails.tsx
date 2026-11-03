@@ -376,7 +376,7 @@ export default function InboundEmails() {
                   <p className="text-sm text-muted-foreground italic">Contenu masqué en mode démo.</p>
                 ) : selectedEmail?.html_body ? (
                   <div
-                    className="prose prose-sm max-w-none dark:prose-invert break-words [&_img]:max-w-full [&_table]:max-w-full"
+                    className="prose prose-sm max-w-none break-words [&_img]:max-w-full [&_table]:max-w-full"
                     dangerouslySetInnerHTML={{ 
                       __html: DOMPurify.sanitize(selectedEmail.html_body, {
                         ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code', 'span', 'div', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'img', 'hr', 'sub', 'sup'],

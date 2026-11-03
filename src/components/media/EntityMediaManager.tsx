@@ -709,7 +709,7 @@ const EntityMediaManager = ({
                           {item.transcript && (
                             <div className="mt-2 rounded border bg-background">
                               <div className="flex items-center justify-between gap-2 border-b px-2 py-1">
-                                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Transcript</span>
+                                <span className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Transcript</span>
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -741,7 +741,7 @@ const EntityMediaManager = ({
                       ) : item.file_type === "document" ? (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-muted p-2 text-center">
                           <FileText className="h-8 w-8 text-muted-foreground" />
-                          <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2 break-all">
+                          <span className="text-caption leading-tight text-muted-foreground line-clamp-2 break-all">
                             {isDemoMode ? maskFileName(item.file_name) : item.file_name}
                           </span>
                         </div>
@@ -761,7 +761,7 @@ const EntityMediaManager = ({
                           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20">
                             <Play className="h-8 w-8 text-white drop-shadow" />
                             {item.file_name.toLowerCase().endsWith(".mov") && (
-                              <span className="text-white/70 text-[10px] mt-1">MOV</span>
+                              <span className="text-white/70 text-micro mt-1">MOV</span>
                             )}
                           </div>
                         </div>
@@ -853,7 +853,7 @@ const EntityMediaManager = ({
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
-                        <p className="w-full text-center text-white text-[11px] leading-tight truncate px-1 drop-shadow">
+                        <p className="w-full text-center text-white text-caption leading-tight truncate px-1 drop-shadow">
                           {isDemoMode ? maskFileName(item.file_name) : item.file_name}
                         </p>
                       </div>

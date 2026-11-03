@@ -351,7 +351,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
                         <Badge variant={item.year === currentYear ? "default" : "secondary"} className="text-xs">
                           {item.year}
                         </Badge>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-micro text-muted-foreground">
                           Mis à jour le {new Date(item.updated_at).toLocaleDateString("fr-FR")}
                         </span>
                       </div>
@@ -457,7 +457,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
                         <Badge variant={item.year === currentYear ? "default" : "secondary"} className="text-xs">
                           {item.year}
                         </Badge>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-micro text-muted-foreground">
                           Mis à jour le {new Date(item.updated_at).toLocaleDateString("fr-FR")}
                         </span>
                       </div>

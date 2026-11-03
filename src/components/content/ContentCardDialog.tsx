@@ -483,7 +483,7 @@ const ContentCardDialog = ({
                         className="w-full max-h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                         onClick={() => setImageLightboxOpen(true)}
                       />
-                      <Badge className="absolute top-2 left-2 text-[10px]" variant="secondary">Couverture</Badge>
+                      <Badge className="absolute top-2 left-2 text-micro" variant="secondary">Couverture</Badge>
                       <Button
                         variant="destructive"
                         size="icon"

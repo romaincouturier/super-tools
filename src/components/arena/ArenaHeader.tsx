@@ -54,7 +54,7 @@ export default function ArenaHeader({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h1 className="text-sm font-semibold">AI Arena</h1>
-              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+              <span className={`rounded-full px-1.5 py-0.5 text-micro font-medium ${
                 config.mode === "decision" ? "bg-amber-500/10 text-amber-500"
                   : config.mode === "deliverable" ? "bg-emerald-500/10 text-emerald-500"
                     : "bg-primary/10 text-primary"
@@ -124,13 +124,13 @@ function StatusBar({
   isPaused: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-micro sm:text-xs text-muted-foreground">
       <span>Tour {turnNumber}/{maxTurns}</span>
       <span className="text-border hidden sm:inline">|</span>
       <span className="hidden sm:inline">{totalTokens} tok</span>
       <span className="text-border hidden sm:inline">|</span>
       <span className="font-mono hidden sm:inline">${estimatedCostUsd.toFixed(4)}</span>
-      <span className={`rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-medium ${
+      <span className={`rounded-full px-2 py-0.5 text-micro sm:text-xs font-medium ${
         discussionState === "active" ? "bg-emerald-500/10 text-emerald-500"
           : discussionState === "stalling" ? "bg-destructive/10 text-destructive"
             : discussionState === "converging" ? "bg-amber-500/10 text-amber-500"
@@ -159,20 +159,20 @@ function RunningControls({
 }) {
   return (
     <div className="flex flex-wrap gap-1 sm:gap-2">
-      <button onClick={onPause} className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs transition-colors hover:border-border-hover">
+      <button onClick={onPause} className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-micro sm:text-xs transition-colors hover:border-border-hover">
         {isPaused ? "Reprendre" : "Pause"}
       </button>
       {mode === "decision" && (
-        <button onClick={onForceVote} className="rounded-lg border border-amber-500/30 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-amber-500 transition-colors hover:bg-amber-500/10">
+        <button onClick={onForceVote} className="rounded-lg border border-amber-500/30 px-2 sm:px-3 py-1 sm:py-1.5 text-micro sm:text-xs text-amber-500 transition-colors hover:bg-amber-500/10">
           Voter
         </button>
       )}
       {mode === "deliverable" && (
-        <button onClick={onForceDeliverable} className="rounded-lg border border-emerald-500/30 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-emerald-500 transition-colors hover:bg-emerald-500/10">
+        <button onClick={onForceDeliverable} className="rounded-lg border border-emerald-500/30 px-2 sm:px-3 py-1 sm:py-1.5 text-micro sm:text-xs text-emerald-500 transition-colors hover:bg-emerald-500/10">
           Livrable
         </button>
       )}
-      <button onClick={onStop} className="rounded-lg border border-destructive/30 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-destructive transition-colors hover:bg-destructive/10">
+      <button onClick={onStop} className="rounded-lg border border-destructive/30 px-2 sm:px-3 py-1 sm:py-1.5 text-micro sm:text-xs text-destructive transition-colors hover:bg-destructive/10">
         Arreter
       </button>
     </div>
@@ -196,7 +196,7 @@ function FinishedControls({
     <div className="flex flex-wrap gap-1 sm:gap-2">
       <button
         onClick={onCopyAll}
-        className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-micro sm:text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
         title="Copier tous les echanges"
       >
         {copied ? (
@@ -213,7 +213,7 @@ function FinishedControls({
       </button>
       <button
         onClick={onDownloadMd}
-        className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        className="rounded-lg border border-border px-2 sm:px-3 py-1 sm:py-1.5 text-micro sm:text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
         title="Telecharger en Markdown"
       >
         <span className="flex items-center gap-1">
@@ -223,7 +223,7 @@ function FinishedControls({
       </button>
       <button
         onClick={onContinue}
-        className="rounded-lg border border-primary/30 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs text-primary transition-colors hover:bg-primary/10"
+        className="rounded-lg border border-primary/30 px-2 sm:px-3 py-1 sm:py-1.5 text-micro sm:text-xs text-primary transition-colors hover:bg-primary/10"
         title="Continuer la discussion (+5 tours)"
       >
         <span className="flex items-center gap-1">
@@ -231,7 +231,7 @@ function FinishedControls({
           <span className="hidden sm:inline">Continuer</span>
         </span>
       </button>
-      <button onClick={onGoToResults} className="rounded-lg bg-primary px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium text-white transition-colors hover:bg-primary/90">
+      <button onClick={onGoToResults} className="rounded-lg bg-primary px-2 sm:px-3 py-1 sm:py-1.5 text-micro sm:text-xs font-medium text-white transition-colors hover:bg-primary/90">
         Resultats
       </button>
     </div>
@@ -246,7 +246,7 @@ function AgentBadge({ agent, isActive }: { agent: AgentConfig; isActive: boolean
     >
       <div className="h-2 w-2 rounded-full" style={{ backgroundColor: agent.color }} />
       <span style={isActive ? { color: agent.color } : {}}>{agent.name}</span>
-      <span className="text-[10px] text-muted-foreground">{agent.provider === "openai" ? "OAI" : agent.provider === "gemini" ? "Gem" : ""}</span>
+      <span className="text-micro text-muted-foreground">{agent.provider === "openai" ? "OAI" : agent.provider === "gemini" ? "Gem" : ""}</span>
     </div>
   );
 }

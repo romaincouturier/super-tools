@@ -48,22 +48,22 @@ export default function ImprovementCard({
       >
         <div className="flex items-center gap-2 flex-wrap mb-1">
           <span className="font-medium text-sm truncate">{improvement.title}</span>
-          <Badge variant={cat.variant} className="text-[10px] px-1.5 py-0">{cat.label}</Badge>
+          <Badge variant={cat.variant} className="text-micro px-1.5 py-0">{cat.label}</Badge>
         </div>
         {improvement.trainings && (
           <div className="text-xs text-muted-foreground truncate">{improvement.trainings.training_name}</div>
         )}
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           {improvement.priority && (
-            <Badge variant={improvement.priority === "haute" ? "destructive" : "outline"} className="text-[10px] px-1.5 py-0">
+            <Badge variant={improvement.priority === "haute" ? "destructive" : "outline"} className="text-micro px-1.5 py-0">
               {improvement.priority}
             </Badge>
           )}
           {improvement.responsible && (
-            <span className="text-[10px] text-muted-foreground">{improvement.responsible}</span>
+            <span className="text-micro text-muted-foreground">{improvement.responsible}</span>
           )}
           {improvement.deadline && (
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-micro text-muted-foreground">
               {new Date(improvement.deadline).toLocaleDateString("fr-FR")}
             </span>
           )}

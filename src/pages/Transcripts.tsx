@@ -112,7 +112,7 @@ function QualificationBadge({ q }: { q: string | null }) {
   if (!q) return null;
   const cfg = QUALIFICATION_CONFIG[q];
   if (!cfg) return null;
-  return <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${cfg.className}`}>{cfg.label}</span>;
+  return <span className={`text-caption px-2 py-0.5 rounded-full font-medium ${cfg.className}`}>{cfg.label}</span>;
 }
 
 /** Fiche éditoriale IA affichée en tête du détail d'un transcript. */
@@ -159,18 +159,18 @@ function EditorialSheet({ t }: { t: Transcript }) {
           <div className="flex items-center gap-2 flex-wrap">
             <QualificationBadge q={q} />
             {a?.univers && (
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+              <span className="text-caption px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
                 {UNIVERS_LABELS[a.univers] ?? a.univers}
               </span>
             )}
             {a?.type_matiere && q === "pro_exploitable" && (
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+              <span className="text-caption px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
                 {TYPE_MATIERE_LABELS[a.type_matiere] ?? a.type_matiere}
               </span>
             )}
             {a?.risque_confidentialite && (
               <span
-                className={`text-[11px] px-2 py-0.5 rounded-full ${RISQUE_CLASSES[a.risque_confidentialite] ?? ""}`}
+                className={`text-caption px-2 py-0.5 rounded-full ${RISQUE_CLASSES[a.risque_confidentialite] ?? ""}`}
                 title={a.risque_justification || undefined}
               >
                 Confidentialité : {a.risque_confidentialite}
@@ -184,7 +184,7 @@ function EditorialSheet({ t }: { t: Transcript }) {
 
           {a?.signaux && a.signaux.length > 0 && (
             <div>
-              <p className="text-[11px] font-semibold text-muted-foreground mb-1">Signaux intéressants</p>
+              <p className="text-caption font-semibold text-muted-foreground mb-1">Signaux intéressants</p>
               <ul className="space-y-1">
                 {a.signaux.map((s, i) => (
                   <li key={i} className="text-xs flex gap-1.5">
@@ -197,7 +197,7 @@ function EditorialSheet({ t }: { t: Transcript }) {
           )}
 
           {q !== "pro_exploitable" && (
-            <p className="text-[11px] text-muted-foreground italic">
+            <p className="text-caption text-muted-foreground italic">
               Aucune idée éditoriale générée pour cette qualification.
             </p>
           )}
@@ -232,7 +232,7 @@ function TranscriptCard({ t, assignments, onClick }: { t: TranscriptListItem; as
           <div className="min-w-0">
             <p className="font-medium text-sm leading-snug line-clamp-2">{displayTitle}</p>
             {showFilename && (
-              <p className="text-[11px] text-muted-foreground truncate mt-0.5" title={t.title ?? ""}>
+              <p className="text-caption text-muted-foreground truncate mt-0.5" title={t.title ?? ""}>
                 📄 {t.title}
               </p>
             )}

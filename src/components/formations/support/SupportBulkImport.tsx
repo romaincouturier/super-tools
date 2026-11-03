@@ -82,7 +82,7 @@ const SupportBulkImport = ({ supportId, imports }: SupportBulkImportProps) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h4 className="text-sm font-medium">Images/vidéos à affecter</h4>
-          <Badge variant="secondary" className="text-[10px]">{imports.length}</Badge>
+          <Badge variant="secondary" className="text-micro">{imports.length}</Badge>
         </div>
         <Button
           variant="outline"
@@ -115,7 +115,7 @@ const SupportBulkImport = ({ supportId, imports }: SupportBulkImportProps) => {
                 />
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 gap-0.5 px-1">
                   <Video className="h-4 w-4 text-white drop-shadow" />
-                  <span className="text-[9px] text-white/80 truncate w-full text-center">{imp.file_name}</span>
+                  <span className="text-micro text-white/80 truncate w-full text-center">{imp.file_name}</span>
                 </div>
               </div>
             )}

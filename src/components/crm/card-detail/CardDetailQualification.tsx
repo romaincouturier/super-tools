@@ -250,7 +250,7 @@ const CardDetailQualification = ({ state, handlers }: Props) => {
                           {mission.client_name && <span>{isDemoMode ? maskText(mission.client_name) : mission.client_name}</span>}
                           {mission.client_contact && <span>· {isDemoMode ? maskName(mission.client_contact) : mission.client_contact}</span>}
                           <span
-                            className="px-1.5 py-0.5 rounded text-[10px]"
+                            className="px-1.5 py-0.5 rounded text-micro"
                             style={{
                               backgroundColor: missionStatusConfig[mission.status].color + "20",
                               color: missionStatusConfig[mission.status].color,

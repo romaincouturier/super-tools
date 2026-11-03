@@ -83,14 +83,14 @@ function MermaidCodeBlockView({ node }: NodeViewProps) {
   return (
     <NodeViewWrapper className="my-4 not-prose">
       <div className="mb-2 flex items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground">
           <Workflow size={12} /> Mermaid
         </span>
         <button
           type="button"
           contentEditable={false}
           onClick={() => setShowSource((v) => !v)}
-          className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-caption font-medium text-muted-foreground hover:text-foreground"
         >
           <Code2 size={12} />
           {showSource ? "Masquer la source" : "Voir la source"}

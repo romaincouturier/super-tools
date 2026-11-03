@@ -33,7 +33,7 @@ function ModuleGroup({ module, onSelect }: { module: LmsModule; onSelect: (id: s
   if (!lessons.length) return null;
   return (
     <>
-      <DropdownMenuLabel className="text-[10px] uppercase tracking-wide text-muted-foreground px-2 py-1">
+      <DropdownMenuLabel className="text-micro uppercase tracking-wide text-muted-foreground px-2 py-1">
         {module.title}
       </DropdownMenuLabel>
       <DropdownMenuGroup>

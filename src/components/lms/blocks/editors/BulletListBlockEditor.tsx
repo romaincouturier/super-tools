@@ -209,7 +209,7 @@ export default function BulletListBlockEditor({ content, onChange, slim }: Props
                   (content.bullet_color ?? "") === c.value
                     ? "border-foreground scale-110"
                     : "border-transparent hover:border-muted-foreground/50",
-                  c.value === "" && "bg-muted text-[10px] flex items-center justify-center",
+                  c.value === "" && "bg-muted text-micro flex items-center justify-center",
                   c.value === "#FFFFFF" && "ring-1 ring-inset ring-gray-200",
                 )}
                 style={c.value ? { backgroundColor: c.value } : undefined}

@@ -54,7 +54,7 @@ function StatCard({
           <div className="text-xl font-bold">{value}</div>
           <Delta value={delta ?? null} suffix={deltaSuffix} invert={invertDelta} />
         </div>
-        {comparisonLabel ? <div className="text-[11px] text-muted-foreground mt-1">{comparisonLabel}</div> : null}
+        {comparisonLabel ? <div className="text-caption text-muted-foreground mt-1">{comparisonLabel}</div> : null}
       </CardContent>
     </Card>
   );

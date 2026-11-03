@@ -494,9 +494,9 @@ const EmailTimelineComputed = ({
                         <span>{phaseInfo.icon}</span>
                         {phaseInfo.label}
                         <span className="flex gap-1 ml-1">
-                          {phaseSent > 0 && <Badge variant="default" className="text-[10px] h-5 px-1.5 bg-primary/80">{phaseSent} ✓</Badge>}
-                          {phasePending > 0 && <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{phasePending}</Badge>}
-                          {phasePredicted > 0 && <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-dashed">{phasePredicted}</Badge>}
+                          {phaseSent > 0 && <Badge variant="default" className="text-micro h-5 px-1.5 bg-primary/80">{phaseSent} ✓</Badge>}
+                          {phasePending > 0 && <Badge variant="secondary" className="text-micro h-5 px-1.5 bg-amber-100 text-amber-700">{phasePending}</Badge>}
+                          {phasePredicted > 0 && <Badge variant="outline" className="text-micro h-5 px-1.5 border-dashed">{phasePredicted}</Badge>}
                         </span>
                       </span>
                       <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
@@ -525,7 +525,7 @@ const EmailTimelineComputed = ({
                               condition={firstItem.condition}
                               isDemoMode={isDemoMode}
                               breakdown={
-                                <span className="text-[10px] text-muted-foreground">
+                                <span className="text-micro text-muted-foreground">
                                   {sentCount > 0 && <span className="text-primary">{sentCount}✓ </span>}
                                   {pendingCount > 0 && <span className="text-amber-600">{pendingCount}⏳ </span>}
                                   {predictedCount > 0 && <span>{predictedCount}🔮</span>}
@@ -557,7 +557,7 @@ const EmailTimelineComputed = ({
         )}
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-3 pt-3 border-t text-[10px] text-muted-foreground">
+        <div className="flex flex-wrap gap-3 pt-3 border-t text-micro text-muted-foreground">
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-primary" /> Envoyé
           </span>
@@ -651,7 +651,7 @@ function TimelineRow({
           </span>
         </div>
         {condition && (
-          <p className="text-[10px] text-muted-foreground/70 italic mt-0.5">
+          <p className="text-micro text-muted-foreground/70 italic mt-0.5">
             💡 {condition}
           </p>
         )}
@@ -660,25 +660,25 @@ function TimelineRow({
       {/* Status badge */}
       <div className="flex-shrink-0">
         {status === "sent" && (
-          <Badge variant="default" className="text-[10px] h-5 px-1.5 bg-primary/80">
+          <Badge variant="default" className="text-micro h-5 px-1.5 bg-primary/80">
             <CheckCircle className="h-2.5 w-2.5 mr-0.5" />
             Envoyé
           </Badge>
         )}
         {status === "pending" && (
-          <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+          <Badge variant="secondary" className="text-micro h-5 px-1.5 bg-amber-100 text-amber-700">
             <Clock className="h-2.5 w-2.5 mr-0.5" />
             Programmé
           </Badge>
         )}
         {status === "error" && (
-          <Badge variant="destructive" className="text-[10px] h-5 px-1.5">
+          <Badge variant="destructive" className="text-micro h-5 px-1.5">
             <AlertCircle className="h-2.5 w-2.5 mr-0.5" />
             Erreur
           </Badge>
         )}
         {status === "predicted" && (
-          <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-dashed text-muted-foreground">
+          <Badge variant="outline" className="text-micro h-5 px-1.5 border-dashed text-muted-foreground">
             <Ghost className="h-2.5 w-2.5 mr-0.5" />
             Prévu
           </Badge>

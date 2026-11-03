@@ -83,14 +83,14 @@ function TicketRow({ ticket }: { ticket: SupportTicket }) {
         </div>
         <span
           className={cn(
-            "shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
+            "shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-micro font-medium",
             STATUS_CLASSES[ticket.status] || STATUS_CLASSES.nouveau,
           )}
         >
           {statusLabel}
         </span>
       </div>
-      <div className="flex items-center justify-between gap-2 mt-2 text-[11px] text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 mt-2 text-caption text-muted-foreground">
         <div className="flex items-center gap-2">
           <span style={{ color: typeMeta.color }}>{typeMeta.label}</span>
           <span>·</span>

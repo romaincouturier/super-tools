@@ -635,7 +635,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
                         {card.emoji && <span className="text-sm">{card.emoji}</span>}
                         <span className="text-sm font-medium truncate">{isDemoMode ? maskText(card.title) : card.title}</span>
                         {isWon && (
-                          <Badge className="text-[10px] py-0 h-4 px-1.5 bg-green-100 text-green-700 hover:bg-green-100 border-green-200 no-underline">
+                          <Badge className="text-micro py-0 h-4 px-1.5 bg-green-100 text-green-700 hover:bg-green-100 border-green-200 no-underline">
                             Gagné
                           </Badge>
                         )}

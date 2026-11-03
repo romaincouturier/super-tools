@@ -160,7 +160,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Shield className="h-4 w-4" />
           Adéquation formateur / formation
-          <Badge variant="outline" className="text-[10px]">Indicateurs 21 & 22</Badge>
+          <Badge variant="outline" className="text-micro">Indicateurs 21 & 22</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -558,7 +558,7 @@ const CommentView = ({
     <div className="flex items-center gap-2 mb-0.5">
       <span className="font-medium">{isDemoMode ? maskName(comment.author_name) : comment.author_name}</span>
       {comment.is_staff && (
-        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+        <Badge variant="secondary" className="text-micro px-1.5 py-0">
           Supertilt
         </Badge>
       )}

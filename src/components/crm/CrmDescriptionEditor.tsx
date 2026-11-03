@@ -96,7 +96,7 @@ const CrmDescriptionEditor = ({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[180px] p-3 text-[11px] leading-relaxed [&_ul>li]:list-disc [&_ol>li]:list-decimal marker:text-foreground",
+          "prose prose-sm max-w-none focus:outline-none min-h-[180px] p-3 text-caption leading-relaxed [&_ul>li]:list-disc [&_ol>li]:list-decimal marker:text-foreground",
       },
       transformPastedHTML: transformEmojiImageTags,
       handlePaste,
@@ -283,7 +283,7 @@ const CrmDescriptionEditor = ({
 
         <div className="flex-1" />
 
-        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+        <span className="text-micro text-muted-foreground flex items-center gap-1">
           <ImageIcon className="h-3 w-3" />
           Ctrl+V pour coller une image
         </span>

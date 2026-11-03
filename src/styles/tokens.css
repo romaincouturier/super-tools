@@ -1,0 +1,146 @@
+/*
+ * Design system SuperTilt : source unique des tokens.
+ *
+ * Trois couches, du plus brut au plus sémantique :
+ *   1. Palette de marque  (--ink, --yellow, --cream...)       : la seule couleur "réelle".
+ *   2. Alias sémantiques  (--text-strong, --surface-subtle...) : un usage = un alias.
+ *   3. Contrat shadcn     (--background, --primary, --ring...) : pointe vers les alias.
+ *
+ * Règles :
+ *   - Palette FERMÉE. Une couleur absente de ce fichier n'existe pas dans le produit.
+ *   - Un seul mode (clair). La marque ne définit pas de variante sombre ; aucun
+ *     sélecteur .dark, aucun préfixe dark: dans les composants.
+ *   - Les canaux sont en "H S% L%" pour que Tailwind compose l'opacité (bg-primary/10).
+ *   - Un composant n'écrit jamais de hex : il lit un alias via une classe Tailwind.
+ *   - Les e-mails ignorent les variables CSS : leurs hex vivent dans
+ *     supabase/functions/_shared/ et suivent les valeurs de ce fichier (voir docs/design/README.md).
+ */
+
+:root {
+  /* ── 1. Palette de marque ─────────────────────────────────────────── */
+  --ink: 210 33% 9%;            /* Anthracite #101820 */
+  --yellow-brand: 49 100% 50%;  /* Jaune SuperTilt #FFD100 : aplats décoratifs uniquement */
+  --yellow: 49 100% 45%;        /* Jaune d'action #E6BC00 : plus sombre pour le contraste avec l'encre */
+  --cream: 43 30% 95%;          /* Crème #F7F5F0 : fond de page */
+  --grey-light: 150 5% 95%;     /* Gris clair #F2F4F4 : surfaces secondaires */
+  --white: 0 0% 100%;
+  --slate: 210 20% 40%;         /* Gris texte secondaire (contraste 5,9:1 sur crème) */
+  --slate-line: 210 20% 85%;    /* Gris filet */
+
+  /* Couleurs de statut : réservées au statut (succès, alerte, erreur, info). */
+  --green: 142 72% 29%;
+  --green-surface: 142 60% 96%;
+  --green-line: 142 45% 80%;
+  --amber: 32 95% 44%;
+  --amber-ink: 32 81% 29%;      /* Texte sur fond --amber-surface (contraste AA) */
+  --amber-surface: 48 100% 96%;
+  --amber-line: 48 97% 77%;
+  --red: 0 84% 60%;
+  --red-ink: 0 72% 42%;         /* Texte d'erreur : --red seul fait 3,6:1 sur blanc */
+  --red-surface: 0 80% 97%;
+  --red-line: 0 96% 89%;
+  --blue: 221 83% 53%;
+  --blue-ink: 224 76% 40%;
+  --blue-surface: 214 100% 97%;
+  --blue-line: 213 97% 87%;
+
+  /* ── 2. Alias sémantiques ─────────────────────────────────────────── */
+  --text-strong: var(--ink);
+  --text-muted: var(--slate);
+  --text-inverse: var(--grey-light);
+  --surface-page: var(--cream);
+  --surface-raised: var(--white);
+  --surface-subtle: var(--grey-light);
+  --surface-inverse: var(--ink);
+  --border-default: var(--slate-line);
+  --border-inverse: 210 20% 20%;
+  --action-primary: var(--yellow);
+  --action-primary-ink: var(--ink);
+  --action-focus: var(--yellow);
+  --feedback-success: var(--green);
+  --feedback-success-surface: var(--green-surface);
+  --feedback-success-line: var(--green-line);
+  --feedback-warning: var(--amber);
+  --feedback-warning-ink: var(--amber-ink);
+  --feedback-warning-surface: var(--amber-surface);
+  --feedback-warning-line: var(--amber-line);
+  --feedback-danger: var(--red);
+  --feedback-danger-ink: var(--red-ink);
+  --feedback-danger-surface: var(--red-surface);
+  --feedback-danger-line: var(--red-line);
+  --feedback-info: var(--blue);
+  --feedback-info-ink: var(--blue-ink);
+  --feedback-info-surface: var(--blue-surface);
+  --feedback-info-line: var(--blue-line);
+
+  /* ── 3. Contrat shadcn ────────────────────────────────────────────── */
+  --background: var(--surface-page);
+  --foreground: var(--text-strong);
+  --card: var(--surface-raised);
+  --card-foreground: var(--text-strong);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--text-strong);
+  --primary: var(--action-primary);
+  --primary-foreground: var(--action-primary-ink);
+  --secondary: var(--surface-subtle);
+  --secondary-foreground: var(--text-strong);
+  --muted: var(--surface-subtle);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--action-primary);
+  --accent-foreground: var(--action-primary-ink);
+  --destructive: var(--feedback-danger);
+  --destructive-foreground: var(--white);
+  --border: var(--border-default);
+  --input: var(--border-default);
+  --ring: var(--action-focus);
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 0%;
+  --success: var(--feedback-success);
+  --success-surface: var(--feedback-success-surface);
+  --error-surface: var(--feedback-danger-surface);
+
+  --sidebar-background: var(--surface-inverse);
+  --sidebar-foreground: var(--text-inverse);
+  --sidebar-primary: var(--action-primary);
+  --sidebar-primary-foreground: var(--action-primary-ink);
+  --sidebar-accent: 210 20% 15%;
+  --sidebar-accent-foreground: var(--text-inverse);
+  --sidebar-border: var(--border-inverse);
+  --sidebar-ring: var(--action-focus);
+
+  /* ── Valeurs structurantes ────────────────────────────────────────── */
+  --radius: 0.5rem;
+  --radius-block: 20px;         /* Blocs du builder LMS */
+  --radius-pill: 999px;
+  --control-sm: 2rem;
+  --control-md: 2.5rem;         /* Hauteur des champs et boutons par défaut */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-block: 0 2px 12px hsl(var(--ink) / 0.07);
+  --content-width: 768px;       /* Largeur de lecture d'une leçon */
+
+  /* ── Jetons historiques du builder (--st-*) ───────────────────────────
+   * Conservés pour les 760 usages existants ; ils pointent vers la palette.
+   * Ne plus en créer : utiliser les alias de la couche 2.
+   */
+  --st-yellow: hsl(var(--yellow-brand));
+  --st-yellow-soft: hsl(var(--yellow-brand) / 0.22);
+  --st-yellow-border: hsl(var(--yellow-brand) / 0.6);
+  --st-ink: hsl(var(--ink));
+  --st-ink-muted: hsl(var(--ink) / 0.55);
+  --st-ink-soft: hsl(var(--ink) / 0.06);
+  --st-ink-06: hsl(var(--ink) / 0.06);
+  --st-ink-08: hsl(var(--ink) / 0.08);
+  --st-ink-12: hsl(var(--ink) / 0.12);
+  --st-ink-50: hsl(var(--ink) / 0.5);
+  --st-ink-60: hsl(var(--ink) / 0.6);
+  --st-surface: hsl(var(--grey-light));
+  --st-white: hsl(var(--white));
+  --st-radius-block: var(--radius-block);
+  --st-radius-pill: var(--radius-pill);
+  --st-shadow-block: var(--shadow-block);
+  --st-content-width: var(--content-width);
+  --st-br: var(--radius-block);
+}

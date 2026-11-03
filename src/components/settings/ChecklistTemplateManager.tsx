@@ -289,7 +289,7 @@ function NewItemForm({ templateId, nextPosition, onClose }: { templateId: string
           <Button size="icon" className="h-7 w-7" onClick={handleSave} disabled={!label.trim() || createItem.isPending}><Plus className="h-3.5 w-3.5" /></Button>
         </div>
       </div>
-      <p className="text-[10px] text-muted-foreground px-1">Décalage : 0 = date de début, -7 = J-7 avant le début, 1 = lendemain.</p>
+      <p className="text-micro text-muted-foreground px-1">Décalage : 0 = date de début, -7 = J-7 avant le début, 1 = lendemain.</p>
     </li>
   );
 }

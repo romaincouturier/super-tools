@@ -136,12 +136,12 @@ const NetworkStatsPanel = ({ stats }: NetworkStatsPanelProps) => {
             <div className="flex items-end gap-1.5 h-24">
               {stats.weeklyActivity.map((w) => (
                 <div key={w.week} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] text-muted-foreground">{w.count}</span>
+                  <span className="text-micro text-muted-foreground">{w.count}</span>
                   <div
                     className="w-full bg-primary/80 rounded-t-sm min-h-[2px] transition-all"
                     style={{ height: `${(w.count / maxWeekly) * 100}%` }}
                   />
-                  <span className="text-[9px] text-muted-foreground truncate w-full text-center">
+                  <span className="text-micro text-muted-foreground truncate w-full text-center">
                     {w.week}
                   </span>
                 </div>

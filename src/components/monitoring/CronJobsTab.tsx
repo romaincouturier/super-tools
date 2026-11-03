@@ -125,8 +125,8 @@ const CronJobsTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 rounded-lg bg-blue-100">
+                <Clock className="h-5 w-5 text-blue-600" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Jobs planifiés</p>
@@ -138,8 +138,8 @@ const CronJobsTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className="p-2 rounded-lg bg-green-100">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Dernière exécution OK</p>
@@ -151,8 +151,8 @@ const CronJobsTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
-                <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              <div className="p-2 rounded-lg bg-red-100">
+                <XCircle className="h-5 w-5 text-red-600" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">En erreur</p>
@@ -259,10 +259,10 @@ const CronJobsTab = () => {
                                     {job.recent_runs.map((run, i) => (
                                       <div
                                         key={i}
-                                        className={`h-6 w-6 rounded-sm flex items-center justify-center text-[10px] font-medium ${
+                                        className={`h-6 w-6 rounded-sm flex items-center justify-center text-micro font-medium ${
                                           run.status === "succeeded"
-                                            ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
-                                            : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
+                                            ? "bg-green-100 text-green-700"
+                                            : "bg-red-100 text-red-700"
                                         }`}
                                         title={`${run.status} - ${run.start_time ? format(parseISO(run.start_time), "d/MM HH:mm", { locale: fr }) : ""}`}
                                       >

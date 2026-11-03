@@ -467,7 +467,7 @@ const EmailEditor = ({
         )}
 
         <div className="flex-1" />
-        <span className="text-[10px] text-muted-foreground mr-1">Tapez / pour insérer</span>
+        <span className="text-micro text-muted-foreground mr-1">Tapez / pour insérer</span>
       </div>
 
       <div className="relative">
@@ -494,7 +494,7 @@ const EmailEditor = ({
                 <span className="text-muted-foreground">{item.icon}</span>
                 <div>
                   <div className="font-medium text-xs">{item.label}</div>
-                  <div className="text-[10px] text-muted-foreground">{isDemoMode ? maskText(item.description) : item.description}</div>
+                  <div className="text-micro text-muted-foreground">{isDemoMode ? maskText(item.description) : item.description}</div>
                 </div>
               </button>
             ))}

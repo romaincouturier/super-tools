@@ -196,7 +196,7 @@ export default function TrainingSurveyResponse() {
                   <p className="text-muted-foreground text-lg leading-relaxed whitespace-pre-wrap">{data.survey.intro_message}</p>
                 )}
                 {data.has_responded && (
-                  <p className="text-sm text-amber-700 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-md px-3 py-2">
+                  <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
                     Vous avez déjà répondu à ce sondage. Vos réponses sont pré-remplies — vous pouvez les modifier.
                   </p>
                 )}

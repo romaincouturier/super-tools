@@ -338,7 +338,7 @@ const ChecklistItemRow = ({ item, onToggle, onDelete, onUpdate }: RowProps) => {
       {item.due_date && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
+            <span className="text-micro text-muted-foreground flex items-center gap-1 shrink-0">
               <Calendar className="h-3 w-3" />
               {format(parseISO(item.due_date), "d MMM", { locale: fr })}
               {item.notify_days_before != null && (
@@ -388,7 +388,7 @@ const ChecklistItemRow = ({ item, onToggle, onDelete, onUpdate }: RowProps) => {
               disabled={!dueDate}
               className="h-8 text-sm"
             />
-            <p className="text-[10px] text-muted-foreground mt-1">
+            <p className="text-micro text-muted-foreground mt-1">
               Sans échéance, pas de rappel possible.
             </p>
           </div>

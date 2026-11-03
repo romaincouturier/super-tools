@@ -410,12 +410,12 @@ export default function AgentIndexationSettings() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{source.label}</span>
                     {status === "done" && (
-                      <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 gap-1 text-[10px]">
+                      <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 gap-1 text-micro">
                         <CheckCircle2 className="h-3 w-3" /> OK
                       </Badge>
                     )}
                     {status === "error" && (
-                      <Badge variant="destructive" className="gap-1 text-[10px]">
+                      <Badge variant="destructive" className="gap-1 text-micro">
                         <AlertCircle className="h-3 w-3" /> Erreur
                       </Badge>
                     )}

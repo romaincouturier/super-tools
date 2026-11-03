@@ -54,7 +54,7 @@ export default function ArenaSetup() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span className="hidden sm:inline">Historique</span>
-              {history.length > 0 && <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">{history.length}</span>}
+              {history.length > 0 && <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-micro font-bold text-primary">{history.length}</span>}
             </button>
           )}
         </div>
@@ -83,14 +83,14 @@ export default function ArenaSetup() {
                   {history.map((session) => (
                     <div key={session.id} className="rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted">
                       <div className="flex items-start gap-2.5">
-                        <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold text-white ${
+                        <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-micro font-bold text-white ${
                           session.mode === "decision" ? "bg-amber-500" : session.mode === "deliverable" ? "bg-emerald-500" : "bg-primary"
                         }`}>
                           {session.mode === "decision" ? "D" : session.mode === "deliverable" ? "L" : "E"}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium leading-tight">{session.topic}</p>
-                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-micro text-muted-foreground">
                             <span>{new Date(session.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                             <span>{session.agentNames.join(", ")}</span>
                             <span>{session.turns} tours · <span className="font-mono">${session.cost.toFixed(4)}</span></span>
@@ -98,19 +98,19 @@ export default function ArenaSetup() {
                           <div className="mt-2 flex gap-1">
                             <button
                               onClick={() => { handleViewSession(session); setShowSidebar(false); }}
-                              className="rounded-lg border border-border px-2 py-1 text-[10px] text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                              className="rounded-lg border border-border px-2 py-1 text-micro text-muted-foreground transition-colors hover:border-primary hover:text-primary"
                             >
                               Resultats
                             </button>
                             <button
                               onClick={() => { handleReuseSession(session); setStep(2); setShowSidebar(false); }}
-                              className="rounded-lg border border-primary/30 bg-primary/10 px-2 py-1 text-[10px] text-primary transition-colors hover:bg-primary/20"
+                              className="rounded-lg border border-primary/30 bg-primary/10 px-2 py-1 text-micro text-primary transition-colors hover:bg-primary/20"
                             >
                               Relancer
                             </button>
                             <button
                               onClick={() => handleDeleteSession(session.id)}
-                              className="rounded-lg border border-border px-1.5 py-1 text-[10px] text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
+                              className="rounded-lg border border-border px-1.5 py-1 text-micro text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
                             >
                               <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -137,11 +137,11 @@ export default function ArenaSetup() {
                     {feedbackHistory.slice(0, 5).map((fb, i) => (
                       <div key={i} className="rounded-lg border border-border bg-card p-2.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-amber-400 text-[10px]">{"★".repeat(fb.rating)}{"☆".repeat(5 - fb.rating)}</span>
-                          <span className="text-[9px] text-muted-foreground">{fb.mode} · {fb.turns}t</span>
+                          <span className="text-amber-400 text-micro">{"★".repeat(fb.rating)}{"☆".repeat(5 - fb.rating)}</span>
+                          <span className="text-micro text-muted-foreground">{fb.mode} · {fb.turns}t</span>
                         </div>
-                        <p className="mt-0.5 truncate text-[11px]">{fb.topic}</p>
-                        {fb.feedback && <p className="mt-0.5 truncate text-[10px] text-muted-foreground italic">{fb.feedback}</p>}
+                        <p className="mt-0.5 truncate text-caption">{fb.topic}</p>
+                        {fb.feedback && <p className="mt-0.5 truncate text-micro text-muted-foreground italic">{fb.feedback}</p>}
                       </div>
                     ))}
                   </div>
@@ -170,12 +170,12 @@ export default function ArenaSetup() {
                   <span className="inline-block h-2 w-2 rounded-full bg-[#D97706]" />
                   Anthropic (Claude) — <span className="text-primary">disponible</span>
                 </div>
-                <p className="mt-1 text-[10px] text-muted-foreground">Clé gérée côté serveur. Aucune configuration nécessaire.</p>
+                <p className="mt-1 text-micro text-muted-foreground">Clé gérée côté serveur. Aucune configuration nécessaire.</p>
               </div>
               <div>
                 <label className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
                   <span className="inline-block h-2 w-2 rounded-full bg-[#10A37F]" />
-                  OpenAI <span className="text-[10px]">(optionnel)</span>
+                  OpenAI <span className="text-micro">(optionnel)</span>
                 </label>
                 <input
                   type="password"
@@ -188,7 +188,7 @@ export default function ArenaSetup() {
               <div>
                 <label className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
                   <span className="inline-block h-2 w-2 rounded-full bg-[#4285F4]" />
-                  Google Gemini <span className="text-[10px]">(optionnel)</span>
+                  Google Gemini <span className="text-micro">(optionnel)</span>
                 </label>
                 <input
                   type="password"
@@ -273,7 +273,7 @@ export default function ArenaSetup() {
                     className="mt-2 w-full rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:border-primary"
                     placeholder="Ex: Budget max 50k, equipe de 5 devs, deadline Q3 2026..."
                   />
-                  <p className="mt-1 text-[10px] text-muted-foreground">Contraintes, donnees, documents de reference que tous les agents recevront.</p>
+                  <p className="mt-1 text-micro text-muted-foreground">Contraintes, donnees, documents de reference que tous les agents recevront.</p>
                 </>
               )}
             </div>
@@ -324,7 +324,7 @@ export default function ArenaSetup() {
                     </>
                   )}
                 </button>
-                <p className="mt-1 text-[10px] text-muted-foreground">L'IA analysera votre sujet et proposera les meilleurs experts ({EXPERT_POOL.length} disponibles)</p>
+                <p className="mt-1 text-micro text-muted-foreground">L'IA analysera votre sujet et proposera les meilleurs experts ({EXPERT_POOL.length} disponibles)</p>
               </div>
             )}
 
@@ -344,14 +344,14 @@ export default function ArenaSetup() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium">{expert.name}</span>
-                            <span className="rounded-full bg-border px-1.5 py-0.5 text-[9px] text-muted-foreground">{expert.domain}</span>
+                            <span className="rounded-full bg-border px-1.5 py-0.5 text-micro text-muted-foreground">{expert.domain}</span>
                             {s.suggestedStance && s.suggestedStance !== "neutre" && (
-                              <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${s.suggestedStance === "pour" ? "bg-emerald-500/10 text-emerald-500" : "bg-destructive/10 text-destructive"}`}>
+                              <span className={`rounded-full px-1.5 py-0.5 text-micro font-medium ${s.suggestedStance === "pour" ? "bg-emerald-500/10 text-emerald-500" : "bg-destructive/10 text-destructive"}`}>
                                 {s.suggestedStance}
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-muted-foreground">{s.reason}</p>
+                          <p className="text-caption text-muted-foreground">{s.reason}</p>
                         </div>
                       </div>
                     );
@@ -366,7 +366,7 @@ export default function ArenaSetup() {
                 <h2 className="text-sm font-semibold text-muted-foreground">Ou choisir un template</h2>
                 <button
                   onClick={() => setShowSaveTemplate(!showSaveTemplate)}
-                  className="text-[11px] text-muted-foreground transition-colors hover:text-primary"
+                  className="text-caption text-muted-foreground transition-colors hover:text-primary"
                 >
                   + Sauvegarder
                 </button>
@@ -419,7 +419,7 @@ export default function ArenaSetup() {
                         title={template.description}
                       >
                         {template.name}
-                        <span className={`rounded px-1 py-0.5 text-[9px] font-medium ${
+                        <span className={`rounded px-1 py-0.5 text-micro font-medium ${
                           template.mode === "decision" ? "bg-amber-500/10 text-amber-500"
                             : template.mode === "deliverable" ? "bg-emerald-500/10 text-emerald-500"
                               : "bg-primary/10 text-primary"
@@ -447,7 +447,7 @@ export default function ArenaSetup() {
                       title={template.description}
                     >
                       {template.name}
-                      <span className={`rounded px-1 py-0.5 text-[9px] font-medium ${
+                      <span className={`rounded px-1 py-0.5 text-micro font-medium ${
                         template.mode === "decision" ? "bg-amber-500/10 text-amber-500"
                           : template.mode === "deliverable" ? "bg-emerald-500/10 text-emerald-500"
                             : "bg-primary/10 text-primary"
@@ -472,13 +472,13 @@ export default function ArenaSetup() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Reporting CRM (annee en cours)</span>
                     {includeCrmReports && crmReportsLoading && (
-                      <span className="text-[10px] text-muted-foreground">chargement...</span>
+                      <span className="text-micro text-muted-foreground">chargement...</span>
                     )}
                     {includeCrmReports && crmReportsReady && (
-                      <span className="text-[10px] text-emerald-600">pret</span>
+                      <span className="text-micro text-emerald-600">pret</span>
                     )}
                   </div>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  <p className="mt-0.5 text-caption text-muted-foreground">
                     KPIs (pipeline, gagne, perdu, conversion), repartition par tags et tendance hebdomadaire seront ajoutes au contexte de tous les agents.
                   </p>
                 </div>
@@ -510,7 +510,7 @@ export default function ArenaSetup() {
                       </svg>
                       <h2 className="text-sm font-semibold">Cles API</h2>
                       {!showApiKeys && hasAnyKey && (
-                        <span className="text-[10px] text-muted-foreground">Memorisees</span>
+                        <span className="text-micro text-muted-foreground">Memorisees</span>
                       )}
                     </div>
                     <button onClick={() => setShowApiKeys(!showApiKeys)} className="text-xs text-muted-foreground hover:text-foreground">
@@ -551,7 +551,7 @@ export default function ArenaSetup() {
                           placeholder="AIza..."
                         />
                       </div>
-                      <p className="text-[10px] text-muted-foreground">Memorisees dans votre navigateur (localStorage).</p>
+                      <p className="text-micro text-muted-foreground">Memorisees dans votre navigateur (localStorage).</p>
                     </div>
                   )}
                 </div>
@@ -572,7 +572,7 @@ export default function ArenaSetup() {
                       <option value="decision">Decision</option>
                       <option value="deliverable">Livrable</option>
                     </select>
-                    <p className="mt-1 text-[10px] text-muted-foreground">
+                    <p className="mt-1 text-micro text-muted-foreground">
                       {mode === "exploration" && "Discussion ouverte, brainstorming"}
                       {mode === "decision" && "Debat contradictoire + vote final"}
                       {mode === "deliverable" && "Production iterative d'un document"}
@@ -589,7 +589,7 @@ export default function ArenaSetup() {
                       <option value="interventionist">Interventionniste</option>
                       <option value="director">Directeur</option>
                     </select>
-                    <p className="mt-1 text-[10px] text-muted-foreground">
+                    <p className="mt-1 text-micro text-muted-foreground">
                       {userMode === "observer" && "Vous regardez sans intervenir"}
                       {userMode === "interventionist" && "Vous pouvez envoyer des messages, recadrer ou relancer"}
                       {userMode === "director" && "Controle total : pause, synthese, vote anticipe"}
@@ -680,7 +680,7 @@ export default function ArenaSetup() {
                           >
                             <div className="mb-1 flex items-center gap-2">
                               <span className="text-sm font-medium">{expert.name}</span>
-                              <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
+                              <span className={`rounded-full px-1.5 py-0.5 text-micro font-medium ${
                                 expert.domain === "tech" ? "bg-blue-500/10 text-blue-500"
                                   : expert.domain === "business" ? "bg-amber-500/10 text-amber-500"
                                     : expert.domain === "creative" ? "bg-violet-500/10 text-violet-500"
@@ -691,9 +691,9 @@ export default function ArenaSetup() {
                               }`}>
                                 {expert.domain}
                               </span>
-                              {alreadyAdded && <span className="text-[9px] text-primary">ajoute</span>}
+                              {alreadyAdded && <span className="text-micro text-primary">ajoute</span>}
                             </div>
-                            <p className="text-[10px] text-muted-foreground">{expert.title}</p>
+                            <p className="text-micro text-muted-foreground">{expert.title}</p>
                           </button>
                         );
                       })}

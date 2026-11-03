@@ -50,3 +50,11 @@
 - Pages dans `src/pages/`
 - Styles avec Tailwind CSS
 - Backend Supabase (migrations dans `supabase/`)
+
+## Design system
+
+- Source unique : `src/styles/tokens.css` (palette de marque, alias sémantiques, contrat shadcn). Doc : `docs/design/README.md`. Règle [076].
+- Aucun hex, `dark:` ni couleur de palette Tailwind brute dans un composant : `success`, `danger`, `caution`, `info`, `primary`, `muted`.
+- Texte : `text-micro`, `text-caption`, puis l'échelle Tailwind. Pas de `text-[Npx]`.
+- Un nouveau token qui crée une classe Tailwind s'enregistre dans `extendTailwindMerge` (`src/lib/utils.ts`).
+- Ne plus créer de `--st-*`.

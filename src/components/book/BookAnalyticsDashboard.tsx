@@ -138,7 +138,7 @@ export default function BookAnalyticsDashboard({
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-lg font-bold leading-none">{s.views}</p>
-                        <p className="text-[10px] text-muted-foreground uppercase">
+                        <p className="text-micro text-muted-foreground uppercase">
                           vue{s.views !== 1 ? 's' : ''}
                         </p>
                       </div>

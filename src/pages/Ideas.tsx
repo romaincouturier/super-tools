@@ -97,16 +97,16 @@ function IdeaCard({
       {idea.tags?.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {idea.tags.map((t) => (
-            <span key={t} className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full">{t}</span>
+            <span key={t} className="text-micro bg-muted px-1.5 py-0.5 rounded-full">{t}</span>
           ))}
         </div>
       )}
 
       {(idea.ai_category || idea.ai_impact || idea.ai_effort) && (
         <div className="flex flex-wrap gap-1">
-          {idea.ai_category && <Badge variant="outline" className="text-[10px]">{idea.ai_category}</Badge>}
-          {idea.ai_impact && <Badge variant="secondary" className="text-[10px]">Impact {idea.ai_impact}</Badge>}
-          {idea.ai_effort && <Badge variant="secondary" className="text-[10px]">Effort {idea.ai_effort}</Badge>}
+          {idea.ai_category && <Badge variant="outline" className="text-micro">{idea.ai_category}</Badge>}
+          {idea.ai_impact && <Badge variant="secondary" className="text-micro">Impact {idea.ai_impact}</Badge>}
+          {idea.ai_effort && <Badge variant="secondary" className="text-micro">Effort {idea.ai_effort}</Badge>}
         </div>
       )}
 
@@ -227,14 +227,14 @@ function IdeaDialog({
             />
             {(searching || similar.length > 0) && (
               <div className="rounded-md border bg-muted/40 p-2 mt-1.5">
-                <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                <p className="text-caption font-medium text-muted-foreground flex items-center gap-1">
                   {searching && <Loader2 className="h-3 w-3 animate-spin" />}
                   Idées proches déjà existantes
                 </p>
                 <ul className="mt-1 space-y-0.5">
                   {similar.map((s) => (
                     <li key={s.id} className="text-xs flex items-center gap-1.5">
-                      <span className={`px-1 rounded text-[10px] ${IDEA_STATUS_CONFIG[s.status].color}`}>
+                      <span className={`px-1 rounded text-micro ${IDEA_STATUS_CONFIG[s.status].color}`}>
                         {IDEA_STATUS_CONFIG[s.status].label}
                       </span>
                       <span className="truncate">{s.title}</span>

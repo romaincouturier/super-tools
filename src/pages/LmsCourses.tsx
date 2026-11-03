@@ -234,7 +234,7 @@ export default function LmsCourses() {
           <Button variant="outline" onClick={() => navigate("/lms/communautes")} className="relative">
             <MessageSquare className="w-4 h-4 mr-2" /> Communautés
             {pendingTotal > 0 && (
-              <span className="ml-2 inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 min-w-[18px]">
+              <span className="ml-2 inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-micro font-bold px-1.5 py-0.5 min-w-[18px]">
                 {pendingTotal}
               </span>
             )}
@@ -375,7 +375,7 @@ export default function LmsCourses() {
                       >
                         {course.title}
                         {(pendingPerCourse[course.id] ?? 0) > 0 && (
-                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0" title={`${pendingPerCourse[course.id]} message(s) en attente`}>
+                          <Badge variant="destructive" className="text-micro px-1.5 py-0 shrink-0" title={`${pendingPerCourse[course.id]} message(s) en attente`}>
                             {pendingPerCourse[course.id]}
                           </Badge>
                         )}

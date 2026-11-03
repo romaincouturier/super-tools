@@ -224,7 +224,7 @@ const AgentChat = () => {
                       <p className="text-sm truncate">
                         {conv.title || "Sans titre"}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-micro text-muted-foreground">
                         {format(new Date(conv.updated_at), "d MMM yyyy HH:mm", { locale: fr })}
                       </p>
                     </div>
@@ -380,7 +380,7 @@ const AgentChat = () => {
                 </Button>
               )}
             </div>
-            <p className="text-[10px] text-muted-foreground text-center mt-2">
+            <p className="text-micro text-muted-foreground text-center mt-2">
               L'agent peut faire des erreurs. Vérifiez les informations importantes.
             </p>
           </div>
@@ -510,7 +510,7 @@ function MessageBubble({
               <p className="whitespace-pre-wrap">{maskClients(message.content)}</p>
             </div>
           ) : (
-            <div className="prose prose-sm dark:prose-invert max-w-none [&_table]:text-xs [&_table]:w-full [&_table]:border-collapse [&_th]:px-2 [&_th]:py-1 [&_th]:border [&_th]:border-border [&_th]:bg-muted/50 [&_th]:text-left [&_td]:px-2 [&_td]:py-1 [&_td]:border [&_td]:border-border [&_pre]:bg-muted [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-x-auto [&_code]:text-xs [&_a]:text-primary [&_a]:underline [&_ul]:pl-4 [&_ol]:pl-4">
+            <div className="prose prose-sm max-w-none [&_table]:text-xs [&_table]:w-full [&_table]:border-collapse [&_th]:px-2 [&_th]:py-1 [&_th]:border [&_th]:border-border [&_th]:bg-muted/50 [&_th]:text-left [&_td]:px-2 [&_td]:py-1 [&_td]:border [&_td]:border-border [&_pre]:bg-muted [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-x-auto [&_code]:text-xs [&_a]:text-primary [&_a]:underline [&_ul]:pl-4 [&_ol]:pl-4">
               <ReactMarkdown>{maskClients(message.content)}</ReactMarkdown>
               {isStreaming && (
                 <span className="inline-block w-2 h-4 bg-primary/60 animate-pulse ml-0.5 -mb-0.5 rounded-sm" />

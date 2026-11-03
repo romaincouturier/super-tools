@@ -215,7 +215,7 @@ const SupportSectionCard = ({
         />
 
         {section.is_resources && (
-          <Badge variant="secondary" className="text-[10px] flex-shrink-0 gap-1">
+          <Badge variant="secondary" className="text-micro flex-shrink-0 gap-1">
             <BookOpen className="h-3 w-3" />
             Ressources
           </Badge>
@@ -253,7 +253,7 @@ const SupportSectionCard = ({
               onClick={() => setShowImports(!showImports)}
             >
               <Image className="h-4 w-4" />
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[9px] rounded-full w-4 h-4 flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-micro rounded-full w-4 h-4 flex items-center justify-center">
                 {availableImports.length}
               </span>
             </Button>
@@ -283,7 +283,7 @@ const SupportSectionCard = ({
             <p className="text-xs text-muted-foreground">Sélectionnez les médias à affecter :</p>
             <div className="flex items-center gap-2">
               {selectedImportIds.size > 0 && (
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge variant="secondary" className="text-micro">
                   {selectedImportIds.size} sélectionné{selectedImportIds.size > 1 ? "s" : ""}
                 </Badge>
               )}
@@ -322,7 +322,7 @@ const SupportSectionCard = ({
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 gap-0.5">
                         <Video className="h-4 w-4 text-white drop-shadow" />
                         {imp.file_name.toLowerCase().endsWith(".mov") && (
-                          <span className="text-[9px] text-white/80">MOV</span>
+                          <span className="text-micro text-white/80">MOV</span>
                         )}
                       </div>
                     </div>

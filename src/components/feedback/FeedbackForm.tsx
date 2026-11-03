@@ -178,7 +178,7 @@ export function FeedbackForm({ prefillDescription, pageUrlOverride, onSubmitted 
             <Paperclip className="h-3.5 w-3.5 mr-2" />
             Ajouter des fichiers
           </Button>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             Images, PDF, Word, Excel — {MAX_FILES} fichiers max
           </p>
 
@@ -195,7 +195,7 @@ export function FeedbackForm({ prefillDescription, pageUrlOverride, onSubmitted 
                     <FileIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   )}
                   <span className="truncate flex-1 text-xs">{file.name}</span>
-                  <span className="text-[10px] text-muted-foreground shrink-0">
+                  <span className="text-micro text-muted-foreground shrink-0">
                     {formatFileSize(file.size)}
                   </span>
                   <button
