@@ -10142,8 +10142,8 @@ export type Database = {
       }
       supertilt_actions: {
         Row: {
-          board: string
           assigned_to: string | null
+          board: string
           column_id: string | null
           completed_at: string | null
           created_at: string
@@ -10158,8 +10158,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          board?: string
           assigned_to?: string | null
+          board?: string
           column_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -10174,8 +10174,8 @@ export type Database = {
           user_id: string
         }
         Update: {
-          board?: string
           assigned_to?: string | null
+          board?: string
           column_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -13424,6 +13424,10 @@ export type Database = {
         Returns: Json
       }
       backup_schema_inventory: { Args: never; Returns: Json }
+      can_access_project_board: {
+        Args: { _board: string; _user_id: string }
+        Returns: boolean
+      }
       change_learner_email: {
         Args: { p_new_email: string; p_old_email: string; p_user_id?: string }
         Returns: Json
