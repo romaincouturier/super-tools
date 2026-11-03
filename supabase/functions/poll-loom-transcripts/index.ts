@@ -49,13 +49,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const { data: settingsRows } = await (admin as any)
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", ["loom_session_cookie", "slack_content_channel"]);
+      .in("setting_key", ["loom_session_cookie", "slack_content_channel", "loom_excluded_video_ids"]);
 
     const get = (k: string) =>
       (settingsRows as Array<{ setting_key: string; setting_value: string }>)
         ?.find((s) => s.setting_key === k)?.setting_value ?? "";
 
     const rawCookie = get("loom_session_cookie").trim();
+    // Vidéos Loom supprimées volontairement : jamais réimportées.
+    const excludedIds = new Set(
+      get("loom_excluded_video_ids").split(/[\s,]+/).map((x) => x.trim()).filter(Boolean),
+    );
     const slackChannel = get("slack_content_channel") || "publications-réso-sociaux";
 
     if (!rawCookie) {
@@ -98,7 +102,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const alreadyImported = new Set(
           ((existing as Array<{ external_id: string }>) ?? []).map((r) => r.external_id),
         );
-        allMissing.push(...videos.filter((v) => !alreadyImported.has(v.id)));
+        allMissing.push(...videos.filter((v) => !alreadyImported.has(v.id) && !excludedIds.has(v.id)));
       }
       if (!hasNextPage || !endCursor) break;
       pageCursor = endCursor;
