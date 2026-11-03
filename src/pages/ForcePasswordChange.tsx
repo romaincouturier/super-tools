@@ -49,15 +49,6 @@ const ForcePasswordChange = () => {
       return;
     }
 
-    if (password !== confirmPassword) {
-      toast({
-        title: "Erreur",
-        description: "Les mots de passe ne correspondent pas.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
 
     try {
@@ -121,17 +112,6 @@ const ForcePasswordChange = () => {
                 required
               />
               <PasswordStrengthIndicator password={password} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
             </div>
             <Button
               type="submit"

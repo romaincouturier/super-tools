@@ -23,7 +23,7 @@ export function PasswordCreationCard({ onDone }: { onDone: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rules.isValid || !matches) return;
+    if (!rules.isValid) return;
     setSaving(true);
     setErrorMsg(null);
     const failure = await updatePassword(password);
@@ -61,25 +61,14 @@ export function PasswordCreationCard({ onDone }: { onDone: () => void }) {
           autoFocus
           required
         />
-        <AuthField
-          id="creation-password-confirm"
-          label="Confirmer le mot de passe"
-          type="password"
-          value={confirmation}
-          onChange={setConfirmation}
-          autoComplete="new-password"
-          icon={<Lock className="h-[18px] w-[18px]" />}
-          required
-        />
         <div className="mb-5 flex flex-col gap-1.5 rounded-[11px] bg-primary/10 px-4 py-3.5">
           <Rule ok={rules.hasMinLength} label="Au moins 8 caractères" />
           <Rule ok={rules.hasUppercase && rules.hasLowercase} label="Une majuscule et une minuscule" />
           <Rule ok={rules.hasNumber} label="Un chiffre" />
           <Rule ok={rules.hasSpecialChar} label="Un caractère spécial" />
-          <Rule ok={matches} label="Les deux saisies correspondent" />
         </div>
         {errorMsg && <p className="mb-4 text-sm text-destructive">{errorMsg}</p>}
-        <AuthButton disabled={saving || !rules.isValid || !matches}>
+        <AuthButton disabled={saving || !rules.isValid}>
           {saving ? <Spinner /> : "Enregistrer et accéder à mon espace"}
         </AuthButton>
       </form>
