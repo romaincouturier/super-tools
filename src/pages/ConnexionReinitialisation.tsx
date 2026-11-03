@@ -153,16 +153,6 @@ export default function ConnexionReinitialisation() {
                 icon={<Lock className="h-[18px] w-[18px]" />}
                 required
               />
-              <AuthField
-                id="new-password-confirm"
-                label="Confirmer le mot de passe"
-                type="password"
-                value={confirmation}
-                onChange={setConfirmation}
-                autoComplete="new-password"
-                icon={<Lock className="h-[18px] w-[18px]" />}
-                required
-              />
 
               <div className="mb-5 flex flex-col gap-1.5 rounded-[11px] bg-primary/10 px-4 py-3.5">
                 <Rule ok={rules.hasMinLength} label="Au moins 8 caractères" />
