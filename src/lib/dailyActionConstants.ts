@@ -42,6 +42,7 @@ export const CATEGORY_ORDER = [
   "elearning_integration",
   "transcripts_a_affecter",
   "evaluations_froid_bloquees",
+  "suites_retours",
 ] as const;
 
 export const CATEGORIES: Record<string, CategoryConfig> = {
@@ -76,6 +77,7 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
   supertilt_dropshipping_relance: { label: "SuperTilt — Dropshipping relancé", emoji: "\ud83d\udd34", color: "text-red-700" },
   transcripts_a_affecter: { label: "Transcripts à affecter", emoji: "🎙️", color: "text-teal-600" },
   evaluations_froid_bloquees: { label: "Évaluations à froid non envoyées", emoji: "🧊", color: "text-red-600" },
+  suites_retours: { label: "Suites à donner aux retours de formation", emoji: "💬", color: "text-blue-600" },
   supertilt: { label: "Projets", emoji: "\u26a1", color: "text-yellow-600" },
 };
 

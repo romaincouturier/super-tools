@@ -164,6 +164,7 @@ const TABLES_TO_BACKUP = [
   "order_items",
   "org_members",
   "organizations",
+  "participant_cold_evaluations",
   "participant_files",
   "partner_access_tokens",
   "partner_payments",

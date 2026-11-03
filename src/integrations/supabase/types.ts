@@ -8336,6 +8336,7 @@ export type Database = {
           etat: string
           exemple_application: string | null
           first_name: string | null
+          follow_up_done_at: string | null
           freins: string[]
           freins_details: string | null
           frequence_utilisation: string | null
@@ -8369,6 +8370,7 @@ export type Database = {
           etat?: string
           exemple_application?: string | null
           first_name?: string | null
+          follow_up_done_at?: string | null
           freins?: string[]
           freins_details?: string | null
           frequence_utilisation?: string | null
@@ -8402,6 +8404,7 @@ export type Database = {
           etat?: string
           exemple_application?: string | null
           first_name?: string | null
+          follow_up_done_at?: string | null
           freins?: string[]
           freins_details?: string | null
           frequence_utilisation?: string | null
@@ -11205,6 +11208,8 @@ export type Database = {
           content: string
           created_at: string
           created_by: string | null
+          follow_up: string | null
+          follow_up_done_at: string | null
           gmail_message_id: string | null
           id: string
           participant_id: string | null
@@ -11220,6 +11225,8 @@ export type Database = {
           content: string
           created_at?: string
           created_by?: string | null
+          follow_up?: string | null
+          follow_up_done_at?: string | null
           gmail_message_id?: string | null
           id?: string
           participant_id?: string | null
@@ -11235,6 +11242,8 @@ export type Database = {
           content?: string
           created_at?: string
           created_by?: string | null
+          follow_up?: string | null
+          follow_up_done_at?: string | null
           gmail_message_id?: string | null
           id?: string
           participant_id?: string | null

@@ -77,7 +77,7 @@ const TABLES_TO_BACKUP = [
   "okr_check_ins", "okr_initiatives", "okr_key_results", "okr_objectives", "okr_participants",
   
   "order_email_log", "order_items", "org_members", "organizations",
-  "participant_files", "partner_access_tokens", "partner_payments",
+  "participant_cold_evaluations", "participant_files", "partner_access_tokens", "partner_payments",
   "pictodico_challenges", "pictodico_words",
   "polling_cursors", "post_evaluation_emails",
   "practice_poll_options", "practice_poll_votes", "practice_polls",

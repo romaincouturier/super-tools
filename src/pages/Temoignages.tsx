@@ -25,6 +25,7 @@ import {
   useTestimonialCounts,
   useUpdateTestimonial,
   useCreateTestimonial,
+  isWrittenTestimonial,
   type Testimonial,
   type TestimonialStatus,
 } from "@/hooks/useTestimonials";
@@ -102,7 +103,11 @@ function PublishedTestimonialCard({ t, onEdit }: { t: Testimonial; onEdit: () =>
   return (
     <div className="group flex flex-col gap-2">
       <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
-        {playing && ytId ? (
+        {isWrittenTestimonial(t) ? (
+          <button type="button" onClick={onEdit} className="flex h-full w-full items-center p-4 text-left">
+            <p className="text-sm italic leading-relaxed line-clamp-6">« {t.raw_transcript} »</p>
+          </button>
+        ) : playing && ytId ? (
           <iframe
             src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`}
             title={t.service_type || "Témoignage"}
@@ -237,6 +242,8 @@ function ValidationSheet({ testimonial, onClose }: ValidationSheetProps) {
   const [company, setCompany] = useState(testimonial.company ?? "");
   const [serviceType, setServiceType] = useState(testimonial.service_type ?? "");
   const [reviewerNotes, setReviewerNotes] = useState(testimonial.reviewer_notes ?? "");
+  const written = isWrittenTestimonial(testimonial);
+  const [quote, setQuote] = useState(testimonial.raw_transcript ?? "");
   const { mutateAsync: update, isPending } = useUpdateTestimonial();
   const { toast } = useToast();
 
@@ -262,7 +269,7 @@ function ValidationSheet({ testimonial, onClose }: ValidationSheetProps) {
 
   const save = async (status?: TestimonialStatus) => {
     try {
-      await update({ id: testimonial.id, client_name: clientName, company, service_type: serviceType, reviewer_notes: reviewerNotes, status });
+      await update({ id: testimonial.id, client_name: clientName, company, service_type: serviceType, reviewer_notes: reviewerNotes, ...(written ? { raw_transcript: quote } : {}), status });
       toast({ title: status === "published" ? "Témoignage publié" : status === "rejected" ? "Témoignage rejeté" : "Modifications sauvegardées" });
       onClose();
     } catch {
@@ -319,7 +326,13 @@ function ValidationSheet({ testimonial, onClose }: ValidationSheetProps) {
 
             <Separator />
 
-            {/* Raw transcript */}
+            {written ? (
+              <div className="space-y-1">
+                <Label htmlFor="quote">Citation</Label>
+                <Textarea id="quote" value={quote} onChange={(e) => setQuote(e.target.value)} rows={8} />
+                <p className="text-xs text-muted-foreground">Texte reçu après la formation, avec l'accord de la personne. Ne garder que le passage à publier.</p>
+              </div>
+            ) : (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Transcript</p>
@@ -340,6 +353,7 @@ function ValidationSheet({ testimonial, onClose }: ValidationSheetProps) {
                 </p>
               )}
             </div>
+            )}
 
           </div>
         </ScrollArea>

@@ -26,6 +26,7 @@ export interface FeedbackInput {
   consent_publication?: boolean;
   author_role?: string;
   author_name?: string;
+  follow_up?: string;
 }
 
 function parisDate(d: Date): string {
@@ -90,6 +91,7 @@ export async function logTrainingFeedback(db: Db, input: FeedbackInput, log: Log
     content,
     consent_publication: input.consent_publication === true,
     gmail_message_id: msg?.id ?? null,
+    follow_up: input.follow_up?.trim() || null,
   }).select("id").single();
   if (error) throw new Error(error.message);
 

@@ -45,11 +45,49 @@ serve(async (req) => {
       throw new Error(`Failed to fetch evaluations: ${evalError.message}`);
     }
 
-    if (!evaluations || evaluations.length === 0) {
+    // Cold evaluations (participants and sponsors), submitted only.
+    let pcq = supabase
+      .from("participant_cold_evaluations")
+      .select("training_name, mise_en_pratique, frequence_utilisation, exemple_application, niveau_maitrise, freins, freins_details, effets_constates, objectifs_atteints, besoins_complementaires, recommandation, commentaires_libres")
+      .eq("etat", "soumis");
+    let scq = supabase
+      .from("sponsor_cold_evaluations")
+      .select("training_name, satisfaction_globale, attentes_satisfaites, objectifs_atteints, impact_competences, description_impact, recommandation, points_forts, axes_amelioration, commentaires_libres")
+      .eq("etat", "soumis");
+    // Free-form feedback received by email, phone or orally, outside questionnaires.
+    let fbq = supabase
+      .from("training_feedbacks")
+      .select("author_role, source, received_at, content")
+      .order("received_at", { ascending: false })
+      .limit(200);
+    if (trainingId) {
+      pcq = pcq.eq("training_id", trainingId);
+      scq = scq.eq("training_id", trainingId);
+      fbq = fbq.eq("training_id", trainingId);
+    }
+    const [{ data: participantCold }, { data: sponsorCold }, { data: freeFeedbacks }] = await Promise.all([pcq, scq, fbq]);
+    const coldSection = (participantCold?.length || sponsorCold?.length)
+      ? `
+
+Évaluations à froid des participants (mise en pratique, quelques semaines après) :
+${JSON.stringify(participantCold || [], null, 2)}
+
+Évaluations à froid des commanditaires :
+${JSON.stringify(sponsorCold || [], null, 2)}`
+      : "";
+    const feedbackSection = freeFeedbacks?.length
+      ? `
+
+Retours libres reçus hors questionnaire (email, téléphone, oral) :
+${JSON.stringify(freeFeedbacks, null, 2)}`
+      : "";
+
+    const totalCount = (evaluations?.length || 0) + (participantCold?.length || 0) + (sponsorCold?.length || 0) + (freeFeedbacks?.length || 0);
+    if (totalCount === 0) {
       return new Response(
         JSON.stringify({
           success: true,
-          message: "Aucune évaluation complète trouvée",
+          message: "Aucune évaluation ni aucun retour trouvé",
           analysis: null,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -57,12 +95,17 @@ serve(async (req) => {
     }
 
     // Get training info
-    const trainingName = trainingId 
-      ? evaluations[0]?.trainings?.training_name 
-      : "Toutes les formations";
+    let trainingName = "Toutes les formations";
+    if (trainingId) {
+      trainingName = evaluations?.[0]?.trainings?.training_name;
+      if (!trainingName) {
+        const { data: t } = await supabase.from("trainings").select("training_name").eq("id", trainingId).maybeSingle();
+        trainingName = t?.training_name || "la formation";
+      }
+    }
 
     // Prepare evaluation summaries for AI
-    const evalSummaries = evaluations.map((e) => ({
+    const evalSummaries = (evaluations || []).map((e) => ({
       formation: e.trainings?.training_name,
       appreciation_generale: e.appreciation_generale,
       recommandation: e.recommandation,
@@ -102,44 +145,7 @@ IMPORTANT:
 - Les titres doivent être courts (max 10 mots)
 - Les descriptions doivent être détaillées mais concises`;
 
-    // Cold evaluations (participants and sponsors), submitted only.
-    let pcq = supabase
-      .from("participant_cold_evaluations")
-      .select("training_name, mise_en_pratique, frequence_utilisation, exemple_application, niveau_maitrise, freins, freins_details, effets_constates, objectifs_atteints, besoins_complementaires, recommandation, commentaires_libres")
-      .eq("etat", "soumis");
-    let scq = supabase
-      .from("sponsor_cold_evaluations")
-      .select("training_name, satisfaction_globale, attentes_satisfaites, objectifs_atteints, impact_competences, description_impact, recommandation, points_forts, axes_amelioration, commentaires_libres")
-      .eq("etat", "soumis");
-    // Free-form feedback received by email, phone or orally, outside questionnaires.
-    let fbq = supabase
-      .from("training_feedbacks")
-      .select("author_role, source, received_at, content")
-      .order("received_at", { ascending: false })
-      .limit(200);
-    if (trainingId) {
-      pcq = pcq.eq("training_id", trainingId);
-      scq = scq.eq("training_id", trainingId);
-      fbq = fbq.eq("training_id", trainingId);
-    }
-    const [{ data: participantCold }, { data: sponsorCold }, { data: freeFeedbacks }] = await Promise.all([pcq, scq, fbq]);
-    const coldSection = (participantCold?.length || sponsorCold?.length)
-      ? `
-
-Évaluations à froid des participants (mise en pratique, quelques semaines après) :
-${JSON.stringify(participantCold || [], null, 2)}
-
-Évaluations à froid des commanditaires :
-${JSON.stringify(sponsorCold || [], null, 2)}`
-      : "";
-    const feedbackSection = freeFeedbacks?.length
-      ? `
-
-Retours libres reçus hors questionnaire (email, téléphone, oral) :
-${JSON.stringify(freeFeedbacks, null, 2)}`
-      : "";
-
-    const userPrompt = `Analyse ces ${evaluations.length} évaluations pour ${trainingName}:
+    const userPrompt = `Analyse ces ${totalCount} évaluations et retours pour ${trainingName} (${evalSummaries.length} évaluations à chaud) :
 
 ${JSON.stringify(evalSummaries, null, 2)}${coldSection}${feedbackSection}
 
@@ -211,7 +217,7 @@ Génère une analyse structurée avec points forts, points faibles et recommanda
         weaknesses: analysis.weaknesses || [],
         recommendations: analysis.recommendations || [],
         summary: analysis.summary || "",
-        evaluations_count: evaluations.length,
+        evaluations_count: totalCount,
         created_by: userId,
       })
       .select()
@@ -227,7 +233,7 @@ Génère une analyse structurée avec points forts, points faibles et recommanda
         analysis: {
           id: savedAnalysis?.id,
           ...analysis,
-          evaluationsCount: evaluations.length,
+          evaluationsCount: totalCount,
           trainingName,
         },
       }),

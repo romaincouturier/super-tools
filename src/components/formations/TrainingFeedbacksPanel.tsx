@@ -55,6 +55,7 @@ const TrainingFeedbacksPanel = ({ trainingId, participant, participants = [] }: 
   const [receivedAt, setReceivedAt] = useState(todayAsISO());
   const [content, setContent] = useState("");
   const [consent, setConsent] = useState(false);
+  const [followUp, setFollowUp] = useState("");
 
   const openDialog = () => {
     setParticipantId(participant?.id ?? NONE);
@@ -64,6 +65,7 @@ const TrainingFeedbacksPanel = ({ trainingId, participant, participants = [] }: 
     setReceivedAt(todayAsISO());
     setContent("");
     setConsent(false);
+    setFollowUp("");
     setOpen(true);
   };
 
@@ -80,6 +82,7 @@ const TrainingFeedbacksPanel = ({ trainingId, participant, participants = [] }: 
         received_at: receivedAt,
         content: content.trim(),
         consent_publication: consent,
+        follow_up: followUp.trim() || null,
       });
       setOpen(false);
       toast({ title: "Retour enregistré" });
@@ -127,6 +130,12 @@ const TrainingFeedbacksPanel = ({ trainingId, participant, participants = [] }: 
                 </Button>
               </div>
               <p className="text-sm whitespace-pre-wrap" style={demoBlur(isDemoMode)}>{f.content}</p>
+              {f.follow_up && (
+                <p className="text-xs">
+                  <span className="font-medium">Suite à donner :</span> {f.follow_up}{" "}
+                  {f.follow_up_done_at ? <Badge variant="outline">Traitée</Badge> : <Badge variant="secondary">Dans les actions du jour</Badge>}
+                </p>
+              )}
             </li>
           ))}
         </ul>
@@ -193,8 +202,13 @@ const TrainingFeedbacksPanel = ({ trainingId, participant, participants = [] }: 
             </div>
             <label className="flex items-center gap-2 text-sm">
               <Checkbox checked={consent} onCheckedChange={(v) => setConsent(v === true)} />
-              La personne accepte d'être citée (témoignage)
+              La personne accepte d'être citée : le texte part dans les témoignages à valider
             </label>
+            <div className="space-y-1.5">
+              <Label>Suite à donner (facultatif)</Label>
+              <Input value={followUp} onChange={(e) => setFollowUp(e.target.value)} placeholder="Ex. relancer l'accès e-learning" />
+              <p className="text-xs text-muted-foreground">Apparaît dans les actions du jour jusqu'à ce qu'elle soit cochée.</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>

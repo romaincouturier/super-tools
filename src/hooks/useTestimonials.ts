@@ -13,10 +13,14 @@ export interface Testimonial {
   raw_transcript: string | null;
   reviewer_notes: string | null;
   status: TestimonialStatus;
+  metadata?: Record<string, unknown> | null;
   published_at: string | null;
   created_at: string;
   updated_at: string;
 }
+
+/** Témoignage écrit (citation issue d'un retour de formation), sans vidéo. */
+export const isWrittenTestimonial = (t: Pick<Testimonial, "drive_file_id" | "video_url">) => !t.drive_file_id && !t.video_url;
 
 export function useTestimonials(status?: TestimonialStatus | "") {
   return useQuery({
@@ -85,6 +89,7 @@ interface UpdateTestimonialPayload {
   company?: string;
   service_type?: string;
   reviewer_notes?: string;
+  raw_transcript?: string;
   status?: TestimonialStatus;
 }
 
