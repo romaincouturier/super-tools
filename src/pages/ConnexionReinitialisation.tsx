@@ -19,7 +19,6 @@ export default function ConnexionReinitialisation() {
   const { stage, confirmRecovery } = usePasswordRecoverySession();
   const { updatePassword, markPasswordChanged } = useAuthActions();
   const [password, setPassword] = useState("");
-  const [confirmation, setConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [firstName, setFirstName] = useState("");
@@ -33,10 +32,9 @@ export default function ConnexionReinitialisation() {
   }, [identity.data]);
 
   const rules = validatePassword(password);
-  const matches = password.length > 0 && password === confirmation;
   const canSubmit = stage === "ready" && !identity.isPending && !identity.isError
     && passwordIdentitySchema.safeParse({ firstName, lastName }).success
-    && rules.isValid && matches && !submitting;
+    && rules.isValid && !submitting;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,23 +153,12 @@ export default function ConnexionReinitialisation() {
                 icon={<Lock className="h-[18px] w-[18px]" />}
                 required
               />
-              <AuthField
-                id="new-password-confirm"
-                label="Confirmer le mot de passe"
-                type="password"
-                value={confirmation}
-                onChange={setConfirmation}
-                autoComplete="new-password"
-                icon={<Lock className="h-[18px] w-[18px]" />}
-                required
-              />
 
               <div className="mb-5 flex flex-col gap-1.5 rounded-[11px] bg-primary/10 px-4 py-3.5">
                 <Rule ok={rules.hasMinLength} label="Au moins 8 caractères" />
                 <Rule ok={rules.hasUppercase && rules.hasLowercase} label="Une majuscule et une minuscule" />
                 <Rule ok={rules.hasNumber} label="Un chiffre" />
                 <Rule ok={rules.hasSpecialChar} label="Un caractère spécial" />
-                <Rule ok={matches} label="Les deux saisies correspondent" />
               </div>
 
               {errorMsg && <p className="mb-4 text-sm text-destructive">{errorMsg}</p>}

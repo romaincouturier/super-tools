@@ -17,7 +17,6 @@ import { resolvePostLoginPath, REDIRECT_PARAM } from "@/lib/authRouting";
 
 const ForcePasswordChange = () => {
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -45,15 +44,6 @@ const ForcePasswordChange = () => {
       toast({
         title: "Mot de passe non conforme",
         description: "Le mot de passe ne respecte pas tous les critères de sécurité.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      toast({
-        title: "Erreur",
-        description: "Les mots de passe ne correspondent pas.",
         variant: "destructive",
       });
       return;
@@ -122,17 +112,6 @@ const ForcePasswordChange = () => {
                 required
               />
               <PasswordStrengthIndicator password={password} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
             </div>
             <Button
               type="submit"
