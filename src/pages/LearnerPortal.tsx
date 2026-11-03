@@ -118,7 +118,7 @@ function RecommendedCoursesBlock({
   }
 
   const priceLabel = (c: RecoCourse) =>
-    c.prix === 0 ? "Gratuit" : c.prix != null ? `${c.prix.toLocaleString("fr-FR")} €` : null;
+    c.prix === 0 ? "Gratuit" : c.prix != null ? `${c.prix_from ? "À partir de " : ""}${c.prix.toLocaleString("fr-FR")} €` : null;
 
   if (variant === "compact") {
     return (
