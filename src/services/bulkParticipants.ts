@@ -103,8 +103,9 @@ export async function sendElearningAccessToBatch(
   participants: InsertedParticipant[],
   trainingId: string,
   onProgress?: (completed: number, total: number) => void,
-): Promise<void> {
+): Promise<{ email: string; message: string }[]> {
   let completed = 0;
+  const failures: { email: string; message: string }[] = [];
   for (const participant of participants) {
     try {
       // Même email d'accès que l'ajout unitaire (W12) : le mode WooCommerce
@@ -113,11 +114,13 @@ export async function sendElearningAccessToBatch(
       await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error: unknown) {
       console.error("Failed to send e-learning access email to:", participant.email, getErrorMessage(error));
+      failures.push({ email: participant.email, message: getErrorMessage(error) });
     } finally {
       completed += 1;
       onProgress?.(completed, participants.length);
     }
   }
+  return failures;
 }
 
 export async function scheduleNeedsSurveyEmails(

@@ -1,5 +1,10 @@
 # Roadmap
 
+## Sentry JAVASCRIPT-REACT-14 (2026-11-03)
+- [x] Identifier le quota interne atteint (3 demandes dans l’heure pour Colette), aucun échec Resend enregistré
+- [ ] Distinguer quota, lien et envoi ; remonter les échecs au personnel sans annoncer un email envoyé
+- [ ] Tester et déployer uniquement send-learner-access-email, sans renvoyer d’email réel
+
 ## Progression de l’ajout groupé (2026-11-03)
 - [x] Afficher l’étape en cours, la progression et le compteur pendant l’ajout et les envois
 - [x] 29 tests et 99 contrôles réussis ; parcours connecté vérifié avec écritures et emails simulés, compteur 1/2 et progression 47,5 %, fermeture bloquée pendant le traitement ; aucun email réel envoyé

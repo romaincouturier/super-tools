@@ -10,6 +10,13 @@ import { wrapEmailHtml } from "./templates.ts";
 import { renderEditableEmail, ctaButton } from "./editable-email.ts";
 import { EDITABLE_EMAIL_DEFAULTS } from "./editable-email-defaults.ts";
 
+export class LearnerAccessError extends Error {
+  constructor(message: string, public status = 500) {
+    super(message);
+    this.name = "LearnerAccessError";
+  }
+}
+
 /**
  * Provisionne le compte apprenant d'une adresse, sans mot de passe (W12).
  *
@@ -66,15 +73,18 @@ export async function ensureLearnerAccount(
 export async function learnerAccessLink(
   admin: SupabaseClient,
   email: string,
+  strict = false,
 ): Promise<{ actionLink: string; passwordSet: boolean } | null> {
   const normalized = normalizeLearnerEmail(email);
   if (!isUsableLearnerEmail(normalized)) return null;
 
-  const { data: passwordSet } = await admin.rpc("learner_password_set", { p_email: normalized });
+  const { data: passwordSet, error } = await admin.rpc("learner_password_set", { p_email: normalized });
+  if (error && strict) throw new LearnerAccessError("État du compte apprenant indisponible : réessayez plus tard.");
+  if (error) return null;
   if (passwordSet === null) return null;
 
   if (passwordSet === false) {
-    const actionLink = await passwordResetLink(admin, normalized);
+    const actionLink = await passwordResetLink(admin, normalized, strict);
     return actionLink ? { actionLink, passwordSet: false } : null;
   }
 
@@ -94,20 +104,29 @@ export async function learnerAccessLink(
 export async function sendLearnerAccessEmail(
   admin: SupabaseClient,
   email: string,
-  opts: { trainingName?: string | null; ip?: string } = {},
+  opts: { trainingName?: string | null; ip?: string; strict?: boolean } = {},
 ): Promise<{ sent: boolean }> {
   const normalized = normalizeLearnerEmail(email);
   if (!isUsableLearnerEmail(normalized)) return { sent: false };
 
   const emailHash = await generateHash(normalized);
-  const { data: allowed } = await admin.rpc("check_link_quota", {
+  const { data: allowed, error: quotaError } = await admin.rpc("check_link_quota", {
     p_email_hash: emailHash,
     p_ip: opts.ip ?? "unknown",
   });
-  if (allowed === false) return { sent: false };
+  if (quotaError || allowed !== true) {
+    if (opts.strict) {
+      if (quotaError || allowed !== false) throw new LearnerAccessError("Vérification du quota indisponible : aucun email envoyé, réessayez plus tard.");
+      throw new LearnerAccessError("Quota interne atteint : 3 demandes d’accès maximum par adresse sur une heure (10 par adresse IP). Aucun nouvel email envoyé ; réessayez après expiration des demandes précédentes.", 429);
+    }
+    return { sent: false };
+  }
 
-  const link = await learnerAccessLink(admin, normalized);
-  if (!link) return { sent: false };
+  const link = await learnerAccessLink(admin, normalized, opts.strict);
+  if (!link) {
+    if (opts.strict) throw new LearnerAccessError("Lien d’accès indisponible pour ce compte : aucun email envoyé.");
+    return { sent: false };
+  }
 
   const cta = link.passwordSet ? "Accéder à mon espace" : "Créer mon mot de passe";
   const tpl = EDITABLE_EMAIL_DEFAULTS.learner_access;
@@ -136,6 +155,9 @@ export async function sendLearnerAccessEmail(
     _emailType: "learner_access_email",
   });
 
+  if (!result.success && opts.strict) {
+    throw new LearnerAccessError(`Envoi de l’email d’accès refusé : ${result.error ?? "erreur du service d’envoi"}. Consultez les emails en échec avant de relancer.`);
+  }
   return { sent: result.success };
 }
 
@@ -150,7 +172,7 @@ export async function sendRegisteredLearnerAccessEmail(
   if (error) throw error;
   if (!known) throw new Error("Cette adresse ne correspond à aucune inscription apprenante");
   await ensureLearnerAccount(admin, normalized);
-  const result = await sendLearnerAccessEmail(admin, normalized, opts);
+  const result = await sendLearnerAccessEmail(admin, normalized, { ...opts, strict: true });
   if (!result.sent) throw new Error("L'email d'accès n'a pas été envoyé : vérifiez le quota et la création du lien");
   return result;
 }

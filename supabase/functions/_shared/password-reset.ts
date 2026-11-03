@@ -16,6 +16,7 @@ import { getAppUrls } from "./app-urls.ts";
 export async function passwordResetLink(
   admin: SupabaseClient,
   email: string,
+  strict = false,
 ): Promise<string | null> {
   const urls = await getAppUrls();
   const resetPage = `${urls.app_url}/connexion/reinitialisation`;
@@ -24,6 +25,9 @@ export async function passwordResetLink(
     email,
     options: { redirectTo: resetPage },
   });
-  if (error || !data?.properties?.hashed_token) return null;
+  if (error || !data?.properties?.hashed_token) {
+    if (strict) throw new Error(`Génération du lien de création de mot de passe impossible (${error?.code ?? "jeton absent"}, statut ${error?.status ?? "inconnu"}). Aucun email envoyé.`);
+    return null;
+  }
   return `${resetPage}?token_hash=${encodeURIComponent(data.properties.hashed_token)}&type=recovery`;
 }

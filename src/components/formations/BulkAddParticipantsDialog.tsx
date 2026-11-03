@@ -62,6 +62,7 @@ const BulkAddParticipantsDialog = ({
       setProgress({ value: 25, action: "Participants ajoutés", detail: `${insertedCount} participant${pluralize(insertedCount)} ajouté${pluralize(insertedCount)}` });
       if (duplicateWarning) toast({ title: "Doublons détectés", description: "Certains participants étaient déjà inscrits et ont été ignorés.", variant: "default" });
       const ongoing = isTrainingOngoing(trainingStartDate, trainingEndDate);
+      let accessFailures: { email: string; message: string }[] = [];
       // Même règle que l'ajout unitaire (getEmailMode) : convocation tout de suite
       // si la session est à 2 jours ou plus, ou déjà en cours (ajout en cours de
       // session). Sans date, la réconciliation l'enverra quand la date sera fixée ;
@@ -74,7 +75,7 @@ const BulkAddParticipantsDialog = ({
       }
       if (formatFormation === "e_learning" && data && data.length > 0) {
         setProgress({ value: 25, action: "Création des accès et envoi des emails e-learning…", detail: `0 / ${data.length} participants traités` });
-        await sendElearningAccessToBatch(data, trainingId, (completed, total) => {
+        accessFailures = await sendElearningAccessToBatch(data, trainingId, (completed, total) => {
           setProgress({ value: 25 + (completed / total) * 45, action: "Création des accès et envoi des emails e-learning…", detail: `${completed} / ${total} participants traités` });
         });
       }
@@ -105,7 +106,9 @@ const BulkAddParticipantsDialog = ({
       }
       setProgress({ value: 100, action: "Ajout terminé", detail: `${insertedCount} participants ajoutés` });
       const n = data?.length || 0;
-      const baseMessage = isFreeTraining
+      const baseMessage = accessFailures.length > 0
+        ? `${accessFailures.length} email${pluralize(accessFailures.length)} d’accès non envoyé${pluralize(accessFailures.length)}. ${accessFailures.map((failure) => `${failure.email} : ${failure.message}`).join(" ; ")} Les inscriptions sont conservées ; renvoyez uniquement les accès en échec.`
+        : isFreeTraining
         ? formatFormation === "e_learning"
           ? "Formation gratuite — accès e-learning envoyé."
           : "Formation gratuite — aucune convocation ni convention envoyée."
@@ -113,7 +116,8 @@ const BulkAddParticipantsDialog = ({
         ? `Formation en cours — mail d'accueil envoyé${attendanceCatchUpSlots > 0 ? `, ${attendanceCatchUpSlots} demande${pluralize(attendanceCatchUpSlots)} d'émargement rattrapée${pluralize(attendanceCatchUpSlots)}` : ""}.`
         : buildStatusMessage(status, sendWelcomeNow, needsSurveySkipped);
       toast({
-        title: "Participants ajoutés",
+        title: accessFailures.length > 0 ? "Participants ajoutés, emails d’accès en échec" : "Participants ajoutés",
+        ...(accessFailures.length > 0 && { variant: "destructive" as const, duration: 15000 }),
         description: `${n} participant${pluralize(n)} ajouté${pluralize(n)}. ${baseMessage}`,
         ...(needsSurveySkipped && { duration: 8000 }),
       });
