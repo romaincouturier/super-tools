@@ -43,7 +43,7 @@ export async function getAppUrls(): Promise<Record<string, string>> {
     if (data) {
       for (const s of data) {
         if (s.setting_value) {
-          result[s.setting_key] = s.setting_value;
+          result[s.setting_key] = String(s.setting_value).trim().replace(/\/+$/, "");
         }
       }
     }
