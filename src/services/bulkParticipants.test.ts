@@ -65,25 +65,12 @@ describe("insertParticipantsWithQuestionnaires", () => {
   const participants = [
     { email: "alice@test.com", firstName: "alice", lastName: "dupont" },
   ];
+  const noExisting = () => mockSelect.mockReturnValueOnce({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) });
+  const row = (id: string, email: string) => ({ id, email, first_name: null, last_name: null, company: null, needs_survey_token: id, sponsor_email: null });
 
   it("inserts participants and creates questionnaire records", async () => {
-    mockInsert.mockReturnValueOnce({
-      select: vi.fn().mockReturnValue({
-        data: [
-          {
-            id: "p1",
-            email: "alice@test.com",
-            first_name: "Alice",
-            last_name: "Dupont",
-            company: null,
-            needs_survey_token: "token-1",
-            sponsor_email: null,
-          },
-        ],
-        error: null,
-      }),
-    });
-    // Second insert call for questionnaire_besoins
+    noExisting();
+    mockInsert.mockReturnValueOnce({ select: vi.fn().mockReturnValue({ data: [row("p1", "alice@test.com")], error: null }) });
     mockInsert.mockReturnValueOnce({ data: null, error: null });
 
     const result = await insertParticipantsWithQuestionnaires(participants, "t1", "2026-06-01");
@@ -92,20 +79,44 @@ describe("insertParticipantsWithQuestionnaires", () => {
     expect(result.duplicateWarning).toBe(false);
   });
 
-  it("sets duplicateWarning=true on duplicate key error (23505)", async () => {
-    mockInsert.mockReturnValueOnce({
-      select: vi.fn().mockReturnValue({
-        data: null,
-        error: { code: "23505", message: "duplicate" },
-      }),
-    });
+  it("un email en double dans la liste n'empêche pas d'ajouter les autres", async () => {
+    noExisting();
+    const list = [
+      { email: "a@test.com" }, { email: "A@test.com " }, { email: "b@test.com" },
+    ];
+    mockInsert.mockReturnValueOnce({ select: vi.fn().mockReturnValue({ data: [row("p1", "a@test.com"), row("p2", "b@test.com")], error: null }) });
+    mockInsert.mockReturnValueOnce({ data: null, error: null });
 
-    const result = await insertParticipantsWithQuestionnaires(participants, "t1", "2026-06-01");
+    const result = await insertParticipantsWithQuestionnaires(list as never, "t1", "2026-06-01");
+    expect(mockInsert.mock.calls[0][0]).toHaveLength(2);
+    expect(result.data).toHaveLength(2);
     expect(result.duplicateWarning).toBe(true);
-    expect(result.data).toBeNull();
+  });
+
+  it("un participant déjà inscrit est ignoré, les autres sont ajoutés", async () => {
+    mockSelect.mockReturnValueOnce({ eq: vi.fn().mockResolvedValue({ data: [{ email: "a@test.com" }], error: null }) });
+    mockInsert.mockReturnValueOnce({ select: vi.fn().mockReturnValue({ data: [row("p2", "b@test.com")], error: null }) });
+    mockInsert.mockReturnValueOnce({ data: null, error: null });
+
+    const result = await insertParticipantsWithQuestionnaires([{ email: "a@test.com" }, { email: "b@test.com" }] as never, "t1", "2026-06-01");
+    expect(result.data).toHaveLength(1);
+    expect(result.duplicateWarning).toBe(true);
+  });
+
+  it("sets duplicateWarning=true on duplicate key error (23505) and keeps others", async () => {
+    noExisting();
+    mockInsert.mockReturnValueOnce({ select: vi.fn().mockReturnValue({ data: null, error: { code: "23505", message: "duplicate" } }) });
+    mockInsert.mockReturnValueOnce({ select: vi.fn().mockReturnValue({ data: null, error: { code: "23505", message: "duplicate" } }) });
+    mockInsert.mockReturnValueOnce({ select: vi.fn().mockReturnValue({ data: [row("p2", "b@test.com")], error: null }) });
+    mockInsert.mockReturnValueOnce({ data: null, error: null });
+
+    const result = await insertParticipantsWithQuestionnaires([{ email: "a@test.com" }, { email: "b@test.com" }] as never, "t1", "2026-06-01");
+    expect(result.duplicateWarning).toBe(true);
+    expect(result.data).toHaveLength(1);
   });
 
   it("throws on non-duplicate supabase error", async () => {
+    noExisting();
     mockInsert.mockReturnValueOnce({
       select: vi.fn().mockReturnValue({
         data: null,
