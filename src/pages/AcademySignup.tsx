@@ -35,6 +35,8 @@ export default function AcademySignup() {
   const { data, isLoading } = useAcademyCatalog();
   const preselectedCourse = useMemo(() => data?.courses.find((item) => item.id === courseId), [courseId, data?.courses]);
   const createAccount = useAcademyAccount();
+  const enroll = useAcademyEnrollment();
+  const { refresh } = useSession();
   const { loading: authLoading, user, signIn } = useAcademyAuth();
   const { toast } = useToast();
   const [firstName, setFirstName] = useState("");
@@ -60,6 +62,20 @@ export default function AcademySignup() {
     try {
       await createAccount.mutateAsync({ firstName: firstName.trim(), lastName: lastName.trim(), email: normalizedEmail, password });
       await signIn(normalizedEmail, password);
+      if (courseId) {
+        try {
+          await enroll.mutateAsync([courseId]);
+          // Le niveau d'accès est mis en cache dans la session : sans cette
+          // relecture, le compte tout juste inscrit reste "none" et la garde
+          // l'enverrait sur "Compte sans accès".
+          await refresh();
+          navigate("/espace-apprenant");
+          return;
+        } catch {
+          // Formation non inscriptible directement : l'écran de choix
+          // reprend la présélection, rien n'est perdu.
+        }
+      }
       const next = courseId ? `?course=${encodeURIComponent(courseId)}` : "";
       navigate(`/academy/choisir-mes-formations${next}`);
     } catch (error) {
