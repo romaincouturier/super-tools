@@ -17,6 +17,8 @@ import { insertParticipantsWithQuestionnaires, sendWelcomeEmailsToBatch, sendEle
 import { catchUpAttendanceSignaturesForParticipant } from "@/services/participants";
 import { scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 import { supabase } from "@/integrations/supabase/client";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 
 interface BulkAddParticipantsDialogProps {
   trainingId: string;
@@ -40,6 +42,7 @@ const BulkAddParticipantsDialog = ({
   const [bulkText, setBulkText] = useState("");
   const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const { parsedParticipants, parseErrors } = useParticipantParser(bulkText, isInterEntreprise);
   const count = parsedParticipants.length;
 
@@ -107,7 +110,7 @@ const BulkAddParticipantsDialog = ({
       setProgress({ value: 100, action: "Ajout terminé", detail: `${insertedCount} participants ajoutés` });
       const n = data?.length || 0;
       const baseMessage = accessFailures.length > 0
-        ? `${accessFailures.length} email${pluralize(accessFailures.length)} d’accès non envoyé${pluralize(accessFailures.length)}. ${accessFailures.map((failure) => `${failure.email} : ${failure.message}`).join(" ; ")} Les inscriptions sont conservées ; renvoyez uniquement les accès en échec.`
+        ? `${accessFailures.length} email${pluralize(accessFailures.length)} d’accès non envoyé${pluralize(accessFailures.length)}. ${accessFailures.map((failure) => `${isDemoMode ? maskEmail(failure.email) : failure.email} : ${isDemoMode ? "Envoi échoué" : failure.message}`).join(" ; ")} Les inscriptions sont conservées ; renvoyez uniquement les accès en échec.`
         : isFreeTraining
         ? formatFormation === "e_learning"
           ? "Formation gratuite — accès e-learning envoyé."
