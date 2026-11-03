@@ -155,6 +155,13 @@
       "when": 1793643752745,
       "tag": "0021_tighten_permissive_rls_and_storage",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793716311274,
+      "tag": "0022_migration",
+      "breakpoints": true
     }
   ]
 }
