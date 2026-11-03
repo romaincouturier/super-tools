@@ -77,12 +77,14 @@ const LOYALTY_PROMO_CODE = "FIDELITE10";
 
 function RecommendedCoursesBlock({
   excludedCourseIds,
+  excludedTrainingIds,
   variant,
 }: {
   excludedCourseIds: string[];
+  excludedTrainingIds: string[];
   variant: "compact" | "full";
 }) {
-  const { courses, loading } = useRecommendedCourses(excludedCourseIds);
+  const { courses, loading } = useRecommendedCourses(excludedCourseIds, excludedTrainingIds);
   const { copy } = useCopyToClipboard();
 
   const promoBanner = LOYALTY_PROMO_CODE ? (
@@ -117,6 +119,7 @@ function RecommendedCoursesBlock({
     );
   }
 
+  const ctaLabel = (c: RecoCourse) => (c.kind === "session" ? "Voir la session" : "Découvrir la formation");
   const priceLabel = (c: RecoCourse) =>
     c.prix === 0 ? "Gratuit" : c.prix != null ? `${c.prix.toLocaleString("fr-FR")} €` : null;
 
@@ -139,13 +142,13 @@ function RecommendedCoursesBlock({
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold leading-tight" style={{ color: "var(--st-ink)" }}>{c.title}</p>
               <p className="text-xs mt-0.5 line-clamp-2" style={{ color: "var(--st-ink-muted)" }}>
-                {c.reason}
+                {c.session_label ? `${c.session_label}${c.session_is_full ? " · Complet" : ""}` : c.reason}
               </p>
               <div className="mt-1.5 flex items-center gap-2">
                 <a href={c.boutique_url} target="_blank" rel="noreferrer"
                   className="inline-flex items-center gap-1 text-xs font-semibold"
                   style={{ color: "var(--st-ink)" }}>
-                  Découvrir la formation <ChevronRight size={13} />
+                  {ctaLabel(c)} <ChevronRight size={13} />
                 </a>
                 {priceLabel(c) && (
                   <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>· {priceLabel(c)}</span>
@@ -178,6 +181,11 @@ function RecommendedCoursesBlock({
               {c.reason}
             </p>
             <h3 className="text-base font-bold leading-tight" style={{ color: "var(--st-ink)" }}>{c.title}</h3>
+            {c.session_label && (
+              <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>
+                Prochaine session inter : {c.session_label}{c.session_is_full ? " (complet)" : ""}
+              </p>
+            )}
             {c.description && (
               <p className="text-sm line-clamp-3" style={{ color: "var(--st-ink-muted)" }}>{c.description}</p>
             )}
@@ -195,7 +203,7 @@ function RecommendedCoursesBlock({
               <a href={c.boutique_url} target="_blank" rel="noreferrer"
                 className="inline-flex items-center gap-1 px-4 py-2 rounded-full text-xs font-semibold shrink-0"
                 style={{ background: "var(--st-ink)", color: "#fff" }}>
-                Découvrir la formation <ChevronRight size={14} />
+                {ctaLabel(c)} <ChevronRight size={14} />
               </a>
             </div>
           </div>
@@ -253,6 +261,7 @@ function DashboardView({
     () => data.trainings.filter((t) => t.lms_course_id).map((t) => t.lms_course_id!),
     [data.trainings]
   );
+  const trainingIds = useMemo(() => data.trainings.map((t) => t.training_id), [data.trainings]);
 
   // Hooks for dashboard blocks
   const { data: workDeposits = [] } = useLearnerWorkDeposits(data.email);
@@ -450,7 +459,7 @@ function DashboardView({
             icon={Sparkles}
             action={{ label: "Voir toutes les formations", onClick: () => onNav("recommandees") }}
           >
-            <RecommendedCoursesBlock excludedCourseIds={courseIds} variant="compact" />
+            <RecommendedCoursesBlock excludedCourseIds={courseIds} excludedTrainingIds={trainingIds} variant="compact" />
           </DashCard>
 
         </div>
@@ -1899,6 +1908,7 @@ export default function LearnerPortal() {
   const courseIds = data.trainings
     .filter((t) => t.lms_course_id)
     .map((t) => t.lms_course_id!);
+  const trainingIds = data.trainings.map((t) => t.training_id);
 
   return (
     <div className="flex h-screen overflow-hidden"
@@ -2003,7 +2013,7 @@ export default function LearnerPortal() {
             )}
             {activeSection === "recommandees" && (
               <div className="py-2">
-                <RecommendedCoursesBlock excludedCourseIds={courseIds} variant="full" />
+                <RecommendedCoursesBlock excludedCourseIds={courseIds} excludedTrainingIds={trainingIds} variant="full" />
               </div>
             )}
 

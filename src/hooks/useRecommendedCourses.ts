@@ -1,9 +1,16 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { expertiseLabel } from "@/lib/lmsCourseMeta";
+import { HIDDEN_FREE_COURSE_IDS } from "@/lib/academyFreeCourses";
+import { extractCity, formatSessionDays, type UpcomingSessionRow } from "@/lib/lmsUpcomingSessions";
 
 export type RecoCourse = {
   id: string;
+  /** « course » : cours LMS gratuit public. « session » : prochaine session inter d'une formation du catalogue. */
+  kind: "course" | "session";
+  /** Dates et lieu de la session inter (kind = "session"). */
+  session_label: string | null;
+  session_is_full: boolean;
   title: string;
   description: string | null;
   cover_image_url: string | null;
@@ -43,6 +50,13 @@ function nameMatches(courseTitle: string, configName: string): boolean {
   return n.split(" ").filter((w) => w.length > 4).some((w) => t.includes(w));
 }
 
+type InterSessionRow = UpcomingSessionRow & {
+  catalog_id: string;
+  formation_name: string;
+  supertilt_link: string | null;
+  prix: number | null;
+};
+
 type Config = {
   id: string;
   formation_name: string;
@@ -52,23 +66,26 @@ type Config = {
 };
 
 /**
- * Formations à proposer à l'apprenant, hors formations déjà possédées.
+ * Formations à proposer à l'apprenant : sessions inter à venir (une par
+ * formation du catalogue, la plus proche) et cours LMS gratuits publics.
+ * Sont exclus : les cours déjà possédés, les sessions auxquelles l'apprenant
+ * participe, les sessions d'une formation dont il possède déjà le cours, les
+ * cours intra / clients et les cours retirés des vitrines publiques.
  *
  * Priorités (ST) : 1) même expertise que les formations suivies,
- * 2) expertise complémentaire, 3) à défaut, le reste du catalogue mis en
- * avant (payant et rattaché à une fiche catalogue en premier).
- * Les formations intra / clients ne sont jamais recommandées.
+ * 2) expertise complémentaire, 3) à défaut, le reste mis en avant (fiche
+ * catalogue et lien boutique identifiés en premier).
  */
-export function useRecommendedCourses(excludedCourseIds: string[]) {
+export function useRecommendedCourses(excludedCourseIds: string[], excludedTrainingIds: string[] = []) {
   const [courses, setCourses] = useState<RecoCourse[]>([]);
   const [loading, setLoading] = useState(true);
-  const excludedKey = excludedCourseIds.slice().sort().join(",");
+  const excludedKey = `${excludedCourseIds.slice().sort().join(",")}|${excludedTrainingIds.slice().sort().join(",")}`;
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [coursesRes, configsRes, formulasRes] = await Promise.all([
+      const [coursesRes, configsRes, formulasRes, sessionsRes] = await Promise.all([
         (supabase as any)
           .from("lms_courses")
           .select(
@@ -84,6 +101,7 @@ export function useRecommendedCourses(excludedCourseIds: string[]) {
           .select("formation_config_id, woocommerce_product_id, prix, display_order")
           .not("woocommerce_product_id", "is", null)
           .order("display_order", { ascending: true }),
+        (supabase.rpc as any)("get_recommended_inter_sessions", { _max_items: 100 }),
       ]);
       if (cancelled) return;
 
@@ -102,27 +120,65 @@ export function useRecommendedCourses(excludedCourseIds: string[]) {
       const all: any[] = coursesRes.data || [];
       const excludedSet = new Set(excludedCourseIds);
 
-      // Expertises déjà abordées par l'apprenant : sert à distinguer
-      // « continuité du parcours » et « expertise complémentaire ».
-      const ownedExpertises = new Set(
-        all.filter((c) => excludedSet.has(c.id)).map((c) => c.expertise).filter(Boolean),
-      );
-      if (excludedCourseIds.length > 0 && ownedExpertises.size === 0) {
-        // Les formations possédées peuvent être intra ou non publiées : on
-        // complète depuis la base pour ne pas perdre le signal d'expertise.
+      // Expertises et fiches catalogue déjà abordées par l'apprenant. Les cours
+      // possédés peuvent être intra ou non publiés : on les lit en base.
+      const ownedExpertises = new Set<string>();
+      const ownedCatalogIds = new Set<string>();
+      if (excludedCourseIds.length > 0) {
         const ownedRes = await (supabase as any)
           .from("lms_courses")
-          .select("expertise")
+          .select("expertise, formation_config_id")
           .in("id", excludedCourseIds);
         if (cancelled) return;
-        for (const o of ownedRes.data || []) if (o.expertise) ownedExpertises.add(o.expertise);
+        for (const o of ownedRes.data || []) {
+          if (o.expertise) ownedExpertises.add(o.expertise);
+          if (o.formation_config_id) ownedCatalogIds.add(o.formation_config_id);
+        }
       }
 
       const isIntra = (c: any) =>
         (c.access_type ?? "gratuit") === "intra" || c.expertise === "intra_clients";
+      const isFreePublic = (c: any) =>
+        (c.access_type ?? "gratuit") === "gratuit" && !HIDDEN_FREE_COURSE_IDS.has(c.id);
 
-      const scored = all
-        .filter((c) => !excludedSet.has(c.id) && !isIntra(c))
+      // Expertise d'une fiche catalogue : celle du cours LMS qui lui est rattaché.
+      const expertiseByCatalog = new Map<string, string>();
+      for (const c of all) {
+        if (c.formation_config_id && c.expertise && !expertiseByCatalog.has(c.formation_config_id)) {
+          expertiseByCatalog.set(c.formation_config_id, c.expertise);
+        }
+      }
+
+      const excludedTrainingSet = new Set(excludedTrainingIds);
+      const nextSessionByCatalog = new Map<string, InterSessionRow>();
+      for (const r of (sessionsRes?.data || []) as InterSessionRow[]) {
+        if (excludedTrainingSet.has(r.session_id) || ownedCatalogIds.has(r.catalog_id)) continue;
+        if (!nextSessionByCatalog.has(r.catalog_id)) nextSessionByCatalog.set(r.catalog_id, r);
+      }
+
+      const rank = (expertise: string | null, hasCatalog: boolean, hasLink: boolean) => {
+        const label = expertiseLabel(expertise);
+        const sameExpertise = !!expertise && ownedExpertises.has(expertise);
+        // Score : continuité > complémentaire > mise en avant.
+        let score = 1;
+        let reason = "Sélection Supertilt";
+        if (sameExpertise) {
+          score = 3;
+          reason = label ? `Pour aller plus loin en ${label.toLowerCase()}` : "Dans la continuité de votre parcours";
+        } else if (label && ownedExpertises.size > 0) {
+          score = 2;
+          reason = `Une compétence complémentaire : ${label.toLowerCase()}`;
+        } else if (label) {
+          reason = label;
+        }
+        // Bonus de mise en avant : fiche catalogue identifiée et lien boutique.
+        if (hasCatalog) score += 0.3;
+        if (hasLink) score += 0.2;
+        return { score, reason };
+      };
+
+      const courseItems = all
+        .filter((c) => !excludedSet.has(c.id) && !isIntra(c) && isFreePublic(c))
         .map((c) => {
           const cfg: Config | undefined =
             (c.formation_config_id ? configById.get(c.formation_config_id) : undefined) ??
@@ -133,41 +189,58 @@ export function useRecommendedCourses(excludedCourseIds: string[]) {
             formula?.woocommerce_product_id,
             c.title,
           );
-          const sameExpertise = !!c.expertise && ownedExpertises.has(c.expertise);
-          const label = expertiseLabel(c.expertise);
-
-          // Score : continuité > complémentaire > mise en avant.
-          let score = 1;
-          let reason = "Sélection Supertilt";
-          if (sameExpertise) {
-            score = 3;
-            reason = label ? `Pour aller plus loin en ${label.toLowerCase()}` : "Dans la continuité de votre parcours";
-          } else if (label && ownedExpertises.size > 0) {
-            score = 2;
-            reason = `Une compétence complémentaire : ${label.toLowerCase()}`;
-          } else if (label) {
-            reason = label;
-          }
-          // Bonus de mise en avant : fiche catalogue identifiée et offre payante.
-          if (cfg) score += 0.3;
-          if (cfg?.supertilt_link || formula?.woocommerce_product_id) score += 0.2;
-          if ((c.access_type ?? "gratuit") === "payant") score += 0.1;
-
+          const { score, reason } = rank(
+            c.expertise ?? null,
+            !!cfg,
+            !!(cfg?.supertilt_link || formula?.woocommerce_product_id),
+          );
           return {
             score,
             course: {
               id: c.id,
+              kind: "course",
+              session_label: null,
+              session_is_full: false,
               title: c.title,
               description: c.description,
               cover_image_url: c.cover_image_url,
               estimated_duration_minutes: c.estimated_duration_minutes,
               boutique_url,
-              prix: formula?.prix ?? cfg?.prix ?? null,
+              prix: 0,
               expertise: c.expertise ?? null,
               reason,
             } as RecoCourse,
           };
-        })
+        });
+
+      const sessionItems = [...nextSessionByCatalog.values()].map((r) => {
+        const cfg = configById.get(r.catalog_id);
+        const formula = formulaByConfig.get(r.catalog_id);
+        const expertise = expertiseByCatalog.get(r.catalog_id) ?? null;
+        const supertiltLink = r.supertilt_link ?? cfg?.supertilt_link;
+        const boutique_url = resolveBoutiqueUrl(supertiltLink, formula?.woocommerce_product_id, r.formation_name);
+        const { score, reason } = rank(expertise, true, !!(supertiltLink || formula?.woocommerce_product_id));
+        const city = extractCity(r.city);
+        return {
+          score,
+          course: {
+            id: `session:${r.session_id}`,
+            kind: "session",
+            session_label: `${formatSessionDays(r)}${city ? ` · ${city}` : ""}`,
+            session_is_full: r.is_full,
+            title: r.formation_name,
+            description: null,
+            cover_image_url: null,
+            estimated_duration_minutes: null,
+            boutique_url,
+            prix: formula?.prix ?? r.prix ?? cfg?.prix ?? null,
+            expertise,
+            reason,
+          } as RecoCourse,
+        };
+      });
+
+      const scored = [...sessionItems, ...courseItems]
         .sort((a, b) => b.score - a.score)
         .map((x) => x.course);
 
