@@ -1,0 +1,2 @@
+CREATE POLICY "Parametres users can insert email templates" ON public.email_templates FOR INSERT TO authenticated WITH CHECK (public.has_module_access(auth.uid(), 'parametres'));
+CREATE POLICY "Parametres users can update email templates" ON public.email_templates FOR UPDATE TO authenticated USING (public.has_module_access(auth.uid(), 'parametres')) WITH CHECK (public.has_module_access(auth.uid(), 'parametres'));
