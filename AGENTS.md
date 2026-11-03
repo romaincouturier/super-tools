@@ -46,6 +46,7 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Bulk participant progress follows awaited workflow stages and optional per-recipient callbacks in the existing batch email services, because the displayed progress must reflect actual work without changing enrollment or delivery rules.
 
 - Staff learner-access sends provision missing accounts only after checking an existing participant or LMS enrollment, because bulk additions bypass account provisioning and must not silently skip the email or create arbitrary accounts.
+- Staff learner-access failures preserve their stage and use HTTP 429 for the existing link quota; browser batch sends report failed recipients without undoing enrollment, because retries must not bypass anti-abuse limits or duplicate participant records.
 
 - Training document delivery locks submission before preparation, checks trainer signatures, generates certificates without sending separate emails, and uses provider idempotency per confirmation; only attached documents are marked sent, because an incomplete or repeated preparation must not send invoices alone or claim missing documents were delivered.
 

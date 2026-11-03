@@ -108,10 +108,12 @@ function makeAccessAdmin(opts: {
   quotaAllowed?: boolean;
   passwordSet: boolean | null;
   generateLink?: { data?: unknown; error?: unknown };
+  quotaError?: unknown;
+  passwordError?: unknown;
 }) {
   const rpc = vi.fn((name: string) => {
-    if (name === "check_link_quota") return Promise.resolve({ data: opts.quotaAllowed ?? true });
-    if (name === "learner_password_set") return Promise.resolve({ data: opts.passwordSet });
+    if (name === "check_link_quota") return Promise.resolve({ data: opts.quotaAllowed ?? true, error: opts.quotaError });
+    if (name === "learner_password_set") return Promise.resolve({ data: opts.passwordSet, error: opts.passwordError });
     throw new Error(`RPC inattendue : ${name}`);
   });
   const generateLink = vi.fn().mockResolvedValue(
@@ -231,8 +233,38 @@ describe("sendRegisteredLearnerAccessEmail", () => {
     rpc.mockImplementation((name: string) => name === "is_known_learner"
       ? Promise.resolve({ data: true })
       : originalRpc?.(name));
-    await expect(sendRegisteredLearnerAccessEmail(admin, "known@example.com")).rejects.toThrow("n'a pas été envoyé");
+    await expect(sendRegisteredLearnerAccessEmail(admin, "known@example.com")).rejects.toMatchObject({ status: 429, message: expect.stringContaining("Quota interne atteint") });
     expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("causes des échecs d’accès staff", () => {
+  beforeEach(() => sendEmailMock.mockReset().mockResolvedValue({ success: true, id: "email-1" }));
+
+  it("bloque l’envoi si la vérification du quota échoue", async () => {
+    const { admin, generateLink } = makeAccessAdmin({ passwordSet: false, quotaError: { message: "database unavailable" } });
+    await expect(sendLearnerAccessEmail(admin, "a@example.com", { strict: true })).rejects.toMatchObject({ status: 500, message: expect.stringContaining("Vérification du quota indisponible") });
+    expect(generateLink).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("distingue une erreur de lecture du compte d’un compte inconnu", async () => {
+    const { admin } = makeAccessAdmin({ passwordSet: null, passwordError: { message: "database unavailable" } });
+    await expect(sendLearnerAccessEmail(admin, "a@example.com", { strict: true })).rejects.toThrow("État du compte apprenant indisponible");
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("indique le statut de génération du lien sans exposer de jeton", async () => {
+    const { admin } = makeAccessAdmin({ passwordSet: false, generateLink: { data: null, error: { code: "over_request_rate_limit", status: 429 } } });
+    await expect(sendLearnerAccessEmail(admin, "a@example.com", { strict: true })).rejects.toThrow("over_request_rate_limit, statut 429");
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("conserve l’erreur du service d’envoi", async () => {
+    sendEmailMock.mockResolvedValueOnce({ success: false, error: "Resend API error: 429" });
+    const { admin } = makeAccessAdmin({ passwordSet: true });
+    await expect(sendLearnerAccessEmail(admin, "a@example.com", { strict: true })).rejects.toThrow("Resend API error: 429");
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
   });
 });
 

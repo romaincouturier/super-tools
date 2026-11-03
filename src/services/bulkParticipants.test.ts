@@ -178,6 +178,13 @@ describe("progression des envois en lot", () => {
     expect(updates).toEqual([]);
     expect(mockInvoke).not.toHaveBeenCalled();
   });
+
+  it("conserve les destinataires en échec et continue les autres envois", async () => {
+    mockInvoke.mockResolvedValueOnce({ data: null, error: new Error("Quota interne atteint") });
+    mockInvoke.mockResolvedValueOnce({ data: { success: true, sent: true }, error: null });
+    await expect(sendElearningAccessToBatch(batch, "t1")).resolves.toEqual([{ email: "a@example.com", message: "Quota interne atteint" }]);
+    expect(mockInvoke).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("logBulkAddActivity", () => {
