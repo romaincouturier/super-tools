@@ -113,39 +113,71 @@ const SettingsEmails = ({ settings, loading, initialLoadDone }: SettingsEmailsPr
     templatesLoadedRef.current = true;
   };
 
-  const autoSaveTemplate = useCallback(async (templateType: string, mode: AddressMode) => {
+  const dirtyTemplatesRef = useRef<Set<string>>(new Set());
+  const editedTemplatesRef = useRef(editedTemplates);
+  const templatesRef = useRef(templates);
+  editedTemplatesRef.current = editedTemplates;
+  templatesRef.current = templates;
+
+  const saveOneTemplate = useCallback(async (templateType: string, mode: AddressMode) => {
+    const edited = editedTemplatesRef.current[templateType]?.[mode];
+    if (!edited) return;
+    const existing = templatesRef.current[templateType]?.[mode];
+    if (existing) {
+      const { error } = await supabase.from("email_templates").update({ subject: edited.subject, html_content: edited.content, updated_at: new Date().toISOString() }).eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { data, error } = await supabase.from("email_templates").insert({ template_type: `${templateType}_${mode}`, template_name: `${DEFAULT_TEMPLATES[templateType].name} (${mode === "tu" ? "tutoiement" : "vouvoiement"})`, subject: edited.subject, html_content: edited.content, is_default: false }).select().single();
+      if (error) throw error;
+      templatesRef.current = { ...templatesRef.current, [templateType]: { ...templatesRef.current[templateType], [mode]: data } };
+      setTemplates((prev) => ({ ...prev, [templateType]: { ...prev[templateType], [mode]: data } }));
+    }
+  }, []);
+
+  const flushTemplateSaves = useCallback(async () => {
+    if (templateAutoSaveTimerRef.current) { clearTimeout(templateAutoSaveTimerRef.current); templateAutoSaveTimerRef.current = null; }
+    const keys = [...dirtyTemplatesRef.current];
+    if (keys.length === 0) return;
+    dirtyTemplatesRef.current.clear();
     setTemplateAutoSaveStatus("saving");
     try {
-      const edited = editedTemplates[templateType]?.[mode];
-      const existing = templates[templateType]?.[mode];
-      const templateTypeWithMode = `${templateType}_${mode}`;
-
-      if (existing) {
-        const { error } = await supabase.from("email_templates").update({ subject: edited.subject, html_content: edited.content, updated_at: new Date().toISOString() }).eq("id", existing.id);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.from("email_templates").insert({ template_type: templateTypeWithMode, template_name: `${DEFAULT_TEMPLATES[templateType].name} (${mode === "tu" ? "tutoiement" : "vouvoiement"})`, subject: edited.subject, html_content: edited.content, is_default: false }).select().single();
-        if (error) throw error;
-        setTemplates((prev) => ({ ...prev, [templateType]: { ...prev[templateType], [mode]: data } }));
+      for (const key of keys) {
+        const [type, mode] = key.split("|") as [string, AddressMode];
+        await saveOneTemplate(type, mode);
       }
       setTemplateAutoSaveStatus("saved");
       setTimeout(() => setTemplateAutoSaveStatus("idle"), 2000);
     } catch (error: unknown) {
       console.error("Auto-save template error:", error);
+      keys.forEach((k) => dirtyTemplatesRef.current.add(k));
       setTemplateAutoSaveStatus("idle");
+      toastError(toast, "Le modèle n'a pas été enregistré. Réessayez.");
     }
-  }, [editedTemplates, templates]);
+  }, [saveOneTemplate, toast]);
 
   useEffect(() => {
     if (!initialLoadDone || loading || !lastEditedTemplateRef.current || !templatesLoadedRef.current) return;
+    if (dirtyTemplatesRef.current.size === 0) return;
     if (templateAutoSaveTimerRef.current) clearTimeout(templateAutoSaveTimerRef.current);
-    const { type, mode } = lastEditedTemplateRef.current;
-    templateAutoSaveTimerRef.current = setTimeout(() => { autoSaveTemplate(type, mode); }, 2000);
-    return () => { if (templateAutoSaveTimerRef.current) clearTimeout(templateAutoSaveTimerRef.current); };
-  }, [editedTemplates, autoSaveTemplate, loading, initialLoadDone]);
+    templateAutoSaveTimerRef.current = setTimeout(() => { flushTemplateSaves(); }, 1000);
+  }, [editedTemplates, flushTemplateSaves, loading, initialLoadDone]);
+
+  // Quitter l'écran ou la page enregistre immédiatement les modifications en attente.
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === "hidden") flushTemplateSaves(); };
+    const onUnload = () => { flushTemplateSaves(); };
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", onUnload);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", onUnload);
+      flushTemplateSaves();
+    };
+  }, [flushTemplateSaves]);
 
   const updateTemplate = (templateType: string, mode: AddressMode, field: "subject" | "content", value: string) => {
     lastEditedTemplateRef.current = { type: templateType, mode };
+    dirtyTemplatesRef.current.add(`${templateType}|${mode}`);
     setEditedTemplates((prev) => ({ ...prev, [templateType]: { ...prev[templateType], [mode]: { ...prev[templateType]?.[mode], [field]: value } } }));
   };
 
