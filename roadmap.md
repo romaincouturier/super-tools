@@ -1,5 +1,9 @@
 # Roadmap
 
+## Identité à la création du mot de passe (2026-11-03)
+- [ ] Préremplir et enregistrer prénom et nom obligatoires sans consommer le lien à l’ouverture
+- [ ] Tester les champs obligatoires, la sauvegarde et le parcours
+
 ## Tests d’accès administrateur (2026-11-03)
 - [x] Exempter du quota interne uniquement les administrateurs vérifiés côté serveur
 - [x] 36 tests et 99 contrôles réussis ; 12 envois administrateur simulés, quota non-admin conservé ; seule send-learner-access-email déployée, tentative d’usurpation anonyme refusée 403 en réel ; aucun email réel envoyé
