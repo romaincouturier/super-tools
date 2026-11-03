@@ -17,7 +17,6 @@ import { resolvePostLoginPath, REDIRECT_PARAM } from "@/lib/authRouting";
 
 const ForcePasswordChange = () => {
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

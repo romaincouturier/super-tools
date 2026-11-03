@@ -15,13 +15,11 @@ import { useAuthActions } from "@/hooks/useAuthActions";
  */
 export function PasswordCreationCard({ onDone }: { onDone: () => void }) {
   const [password, setPassword] = useState("");
-  const [confirmation, setConfirmation] = useState("");
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { updatePassword, markPasswordChanged } = useAuthActions();
 
   const rules = validatePassword(password);
-  const matches = password.length > 0 && password === confirmation;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
