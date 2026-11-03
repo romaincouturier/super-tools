@@ -33,11 +33,11 @@ interface WatchItemCardProps {
 }
 
 const contentTypeConfig: Record<string, { icon: typeof FileText; label: string; color: string }> = {
-  text: { icon: FileText, label: "Texte", color: "bg-blue-100 text-blue-700" },
-  url: { icon: Link, label: "URL", color: "bg-green-100 text-green-700" },
+  text: { icon: FileText, label: "Texte", color: "bg-info-surface text-info-ink" },
+  url: { icon: Link, label: "URL", color: "bg-success-surface text-success" },
   image: { icon: Image, label: "Image", color: "bg-purple-100 text-purple-700" },
-  audio: { icon: Mic, label: "Audio", color: "bg-orange-100 text-orange-700" },
-  document: { icon: File, label: "PDF", color: "bg-red-100 text-red-700" },
+  audio: { icon: Mic, label: "Audio", color: "bg-caution-surface text-caution-ink" },
+  document: { icon: File, label: "PDF", color: "bg-danger-surface text-danger-ink" },
 };
 
 const WatchItemCard = ({ item }: WatchItemCardProps) => {
@@ -194,7 +194,7 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
 
         <div className="flex items-center gap-1 flex-shrink-0">
           {item.is_shared && (
-            <Badge variant="secondary" className="text-micro px-1.5 py-0 bg-yellow-100 text-yellow-700 gap-1">
+            <Badge variant="secondary" className="text-micro px-1.5 py-0 bg-caution-surface text-caution-ink gap-1">
               <Share2 className="h-2.5 w-2.5" />
               À partager
             </Badge>
@@ -396,7 +396,7 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0">
           {/* Freshness indicator */}
-          <span className={`flex items-center gap-0.5 ${freshness > 70 ? "text-green-600" : freshness > 30 ? "text-yellow-600" : "text-red-500"}`}>
+          <span className={`flex items-center gap-0.5 ${freshness > 70 ? "text-success" : freshness > 30 ? "text-caution-ink" : "text-danger"}`}>
             <Clock className="h-3 w-3" />
             {freshness}%
           </span>

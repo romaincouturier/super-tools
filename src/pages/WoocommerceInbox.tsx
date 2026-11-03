@@ -104,8 +104,8 @@ export default function WoocommerceInbox() {
   });
 
   const typeLabel = (item: InboxItem) => {
-    if (item.game_type === "formation") return { label: "Formation", color: "bg-blue-500/10 text-blue-700 border-blue-200 border" };
-    return { label: "Produit inconnu", color: "bg-orange-500/10 text-orange-700 border-orange-200 border" };
+    if (item.game_type === "formation") return { label: "Formation", color: "bg-info/10 text-info-ink border-info-line border" };
+    return { label: "Produit inconnu", color: "bg-caution/10 text-caution-ink border-caution-line border" };
   };
 
   return (
@@ -141,7 +141,7 @@ export default function WoocommerceInbox() {
         ) : filtered.length === 0 ? (
           <Card>
             <CardContent className="py-16 text-center space-y-3">
-              <CheckCircle2 className="w-12 h-12 mx-auto text-emerald-500/60" />
+              <CheckCircle2 className="w-12 h-12 mx-auto text-success/60" />
               <p className="text-muted-foreground">
                 {search ? "Aucun résultat pour cette recherche." : "Inbox vide — toutes les ventes ont été routées."}
               </p>
@@ -159,8 +159,8 @@ export default function WoocommerceInbox() {
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
-                          <AlertTriangle className="w-4 h-4 text-orange-600" />
+                        <div className="w-9 h-9 rounded-lg bg-caution/10 flex items-center justify-center shrink-0">
+                          <AlertTriangle className="w-4 h-4 text-caution-ink" />
                         </div>
                         <div className="min-w-0">
                           <p className="font-medium text-sm truncate">{item.product_name}</p>

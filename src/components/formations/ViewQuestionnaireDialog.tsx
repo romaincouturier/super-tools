@@ -471,9 +471,9 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
                 })()}
                 
                 {questionnaire.prerequis_details && (
-                  <div className="text-sm p-3 bg-amber-50 border border-amber-200 rounded-md">
-                    <span className="text-amber-800 font-medium">⚠️ Précisions sur les prérequis :</span>
-                    <p className="mt-1 text-amber-700" style={demoBlur(isDemoMode)}>{questionnaire.prerequis_details}</p>
+                  <div className="text-sm p-3 bg-caution-surface border border-caution-line rounded-md">
+                    <span className="text-caution-ink font-medium">⚠️ Précisions sur les prérequis :</span>
+                    <p className="mt-1 text-caution-ink" style={demoBlur(isDemoMode)}>{questionnaire.prerequis_details}</p>
                   </div>
                 )}
               </Section>

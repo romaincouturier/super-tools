@@ -29,13 +29,13 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 const ACTION_STYLES: Record<string, string> = {
-  creer_article: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  ameliorer_article: "bg-blue-100 text-blue-800 border-blue-200",
+  creer_article: "bg-success-surface text-success border-success-line",
+  ameliorer_article: "bg-info-surface text-info-ink border-info-line",
   recycler: "bg-cyan-100 text-cyan-800 border-cyan-200",
   fusionner: "bg-violet-100 text-violet-800 border-violet-200",
   archiver: "bg-slate-100 text-slate-700 border-slate-200",
-  creer_post_linkedin: "bg-sky-100 text-sky-800 border-sky-200",
-  a_discuter: "bg-amber-100 text-amber-800 border-amber-200",
+  creer_post_linkedin: "bg-info-surface text-info-ink border-info-line",
+  a_discuter: "bg-caution-surface text-caution-ink border-caution-line",
   ne_rien_faire: "bg-slate-100 text-slate-700 border-slate-200",
 };
 
@@ -72,7 +72,7 @@ const CIBLE_LABELS: Record<string, string> = {
 
 function ScoreBadge({ label, value, emphasis = false }: { label: string; value: number | null; emphasis?: boolean }) {
   if (value == null) return null;
-  const tone = value >= 70 ? "text-emerald-700" : value >= 40 ? "text-amber-700" : "text-slate-500";
+  const tone = value >= 70 ? "text-success" : value >= 40 ? "text-caution-ink" : "text-slate-500";
   return (
     <div className={`flex flex-col items-center rounded-md border px-2.5 py-1 ${emphasis ? "border-primary/40 bg-primary/5" : ""}`}>
       <span className={`text-sm font-bold ${emphasis ? "text-primary" : tone}`}>{value}</span>
@@ -110,7 +110,7 @@ function RecommendationCard({ rec }: { rec: EditorialRecommendation }) {
   };
 
   return (
-    <Card className={rec.sensible ? "border-amber-300" : ""}>
+    <Card className={rec.sensible ? "border-caution-line" : ""}>
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="space-y-1 min-w-0">
@@ -129,7 +129,7 @@ function RecommendationCard({ rec }: { rec: EditorialRecommendation }) {
                 </Badge>
               )}
               {rec.sensible && (
-                <Badge variant="outline" className="gap-1 bg-amber-100 text-amber-800 border-amber-200">
+                <Badge variant="outline" className="gap-1 bg-caution-surface text-caution-ink border-caution-line">
                   <ShieldAlert className="h-3 w-3" />Sensible — validation humaine
                 </Badge>
               )}
@@ -268,7 +268,7 @@ function AlignmentPanel() {
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Alignement</span>
           <span><span className="font-bold text-primary">{a.acceptanceRate}%</span> <span className="text-xs text-muted-foreground">d'acceptation ({a.accepted}/{a.decided})</span></span>
           {a.highScoreAcceptance != null && (
-            <span className={misaligned ? "text-amber-700" : ""}>
+            <span className={misaligned ? "text-caution-ink" : ""}>
               <span className="font-bold">{a.highScoreAcceptance}%</span> <span className="text-xs text-muted-foreground">score ≥ 70</span>
               {a.lowScoreAcceptance != null && <> · <span className="font-bold">{a.lowScoreAcceptance}%</span> <span className="text-xs text-muted-foreground">score &lt; 70</span></>}
             </span>
@@ -280,7 +280,7 @@ function AlignmentPanel() {
           )}
         </div>
         {misaligned && (
-          <p className="text-xs text-amber-700">
+          <p className="text-xs text-caution-ink">
             Les recommandations à score élevé ne sont pas plus acceptées que les autres : le scoring ne reflète pas les préférences.
             Ajustez le référentiel (Paramètres → Prompts Transcripts → Moteur éditorial) avec les motifs de refus ci-dessus.
           </p>

@@ -34,8 +34,8 @@ function SparklineKpi({ title, value, delta, deltaPositive, icon: Icon }: Sparkl
     deltaPositive === null
       ? "text-muted-foreground"
       : deltaPositive
-        ? "text-emerald-600"
-        : "text-rose-600";
+        ? "text-success"
+        : "text-danger-ink";
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -175,7 +175,7 @@ const MonthlyReportView = forwardRef<HTMLDivElement, MonthlyReportViewProps>(({ 
       <footer className="text-xs text-muted-foreground pt-4 border-t flex items-center justify-between">
         <span>SuperTools — Pilotage Pennylane × CRM</span>
         <span className="flex items-center gap-1">
-          {payload.net_result < 0 && <TrendingDown className="h-3 w-3 text-rose-600" />}
+          {payload.net_result < 0 && <TrendingDown className="h-3 w-3 text-danger-ink" />}
           Résultat : {EUR.format(payload.net_result)}
         </span>
       </footer>

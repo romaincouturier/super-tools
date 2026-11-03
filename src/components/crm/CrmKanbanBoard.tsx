@@ -635,7 +635,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
                         {card.emoji && <span className="text-sm">{card.emoji}</span>}
                         <span className="text-sm font-medium truncate">{isDemoMode ? maskText(card.title) : card.title}</span>
                         {isWon && (
-                          <Badge className="text-micro py-0 h-4 px-1.5 bg-green-100 text-green-700 hover:bg-green-100 border-green-200 no-underline">
+                          <Badge className="text-micro py-0 h-4 px-1.5 bg-success-surface text-success hover:bg-success-surface border-success-line no-underline">
                             Gagné
                           </Badge>
                         )}
@@ -656,7 +656,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
                           </span>
                         )}
                         {(card.estimated_value ?? 0) > 0 && ( /* demo-safe: masque applique a l'affichage ci-dessous */
-                          <span className="font-semibold text-green-700">
+                          <span className="font-semibold text-success">
                             {isDemoMode ? maskAmount(card.estimated_value) : `${(card.estimated_value ?? 0).toLocaleString("fr-FR")} €`}
                           </span>
                         )}

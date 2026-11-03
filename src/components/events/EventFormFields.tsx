@@ -142,8 +142,8 @@ const EventFormFields = ({ values, onChange }: EventFormFieldsProps) => {
       )}
 
       {values.eventType === "external" && (
-        <div className="space-y-4 p-4 rounded-lg border border-blue-200 bg-blue-50/50">
-          <p className="text-sm font-medium text-blue-700 flex items-center gap-1">
+        <div className="space-y-4 p-4 rounded-lg border border-info-line bg-info-surface/50">
+          <p className="text-sm font-medium text-info-ink flex items-center gap-1">
             <ExternalLink className="h-4 w-4" />
             Informations événement externe
           </p>

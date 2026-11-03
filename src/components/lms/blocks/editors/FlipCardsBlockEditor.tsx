@@ -313,12 +313,12 @@ function CardFormFields({
         <div className="space-y-2">
           <Label className="text-xs font-semibold">Verso</Label>
           <div
-            className="h-16 rounded-lg border-2 border-dashed border-yellow-200 bg-yellow-50 flex items-center justify-center cursor-pointer overflow-hidden hover:border-yellow-400 transition-colors"
+            className="h-16 rounded-lg border-2 border-dashed border-caution-line bg-caution-surface flex items-center justify-center cursor-pointer overflow-hidden hover:border-primary transition-colors"
             onClick={() => backFileRef.current?.click()}
           >
             {uploadingBack ? <Spinner size="sm" /> : card.back_image_url ? (
               <img src={card.back_image_url} alt="" className="h-full w-full object-cover" />
-            ) : <Upload className="h-5 w-5 text-yellow-400" />}
+            ) : <Upload className="h-5 w-5 text-primary" />}
             <input type="file" accept="image/*" ref={backFileRef} style={{ display: "none" }}
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload("back", f); e.target.value = ""; }}
             />

@@ -333,7 +333,7 @@ export default function AgentIndexationSettings() {
         {/* Widget santé permanent */}
         <div className="grid gap-3 sm:grid-cols-3 p-3 rounded-lg border bg-muted/30">
           <div className="flex items-start gap-2">
-            <Activity className={`h-4 w-4 mt-0.5 shrink-0 ${stuckCount && stuckCount > 0 ? "text-amber-600" : "text-green-600"}`} />
+            <Activity className={`h-4 w-4 mt-0.5 shrink-0 ${stuckCount && stuckCount > 0 ? "text-caution-ink" : "text-success"}`} />
             <div className="text-xs">
               <div className="font-medium">État</div>
               <div className="text-muted-foreground">
@@ -357,7 +357,7 @@ export default function AgentIndexationSettings() {
         </div>
 
         {stuckCount !== null && stuckCount > 0 && (
-          <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-900">
+          <div className="flex items-center gap-3 p-3 rounded-lg border border-caution-line bg-caution-surface text-caution-ink">
             <TriangleAlert className="h-5 w-5 shrink-0" />
             <div className="flex-1 text-sm">
               {processingQueue && queueProgress ? (
@@ -410,7 +410,7 @@ export default function AgentIndexationSettings() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{source.label}</span>
                     {status === "done" && (
-                      <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 gap-1 text-micro">
+                      <Badge variant="outline" className="text-success border-success-line bg-success-surface gap-1 text-micro">
                         <CheckCircle2 className="h-3 w-3" /> OK
                       </Badge>
                     )}

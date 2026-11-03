@@ -290,7 +290,7 @@ const FormationDetailHeader = ({
                 <Copy className="h-4 w-4 mr-2" />Dupliquer
               </DropdownMenuItem>
               {isInterSession && !training.is_cancelled && (
-                <DropdownMenuItem onClick={() => setCancelDialogOpen(true)} className="text-orange-600">
+                <DropdownMenuItem onClick={() => setCancelDialogOpen(true)} className="text-caution-ink">
                   <Ban className="h-4 w-4 mr-2" />Annuler la session
                 </DropdownMenuItem>
               )}
@@ -325,7 +325,7 @@ const FormationDetailHeader = ({
             isPresentiel={isPresentiel}
           />
           {isInterSession && !training.is_cancelled && (
-            <Button variant="outline" className="text-orange-600 hover:text-orange-600" onClick={() => setCancelDialogOpen(true)}>
+            <Button variant="outline" className="text-caution-ink hover:text-caution-ink" onClick={() => setCancelDialogOpen(true)}>
               <Ban className="h-4 w-4 mr-1" />
               Annuler
             </Button>

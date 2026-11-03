@@ -172,9 +172,9 @@ export default function AiTools() {
 
   const healthColor = (label: string) => {
     switch (label) {
-      case "excellent": return "text-emerald-600";
+      case "excellent": return "text-success";
       case "bon": return "text-primary";
-      case "attention": return "text-amber-600";
+      case "attention": return "text-caution-ink";
       case "critique": return "text-destructive";
       default: return "text-muted-foreground";
     }
@@ -183,7 +183,7 @@ export default function AiTools() {
   const priorityColor = (priority: string) => {
     switch (priority) {
       case "high": return "border-destructive/30 bg-destructive/5";
-      case "medium": return "border-amber-500/30 bg-amber-500/5";
+      case "medium": return "border-caution/30 bg-caution/5";
       default: return "border-border";
     }
   };
@@ -563,7 +563,7 @@ export default function AiTools() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-500" /> Risques de décrochage
+                      <AlertTriangle className="w-4 h-4 text-caution" /> Risques de décrochage
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -603,14 +603,14 @@ export default function AiTools() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Points forts
+                      <CheckCircle2 className="w-4 h-4 text-success" /> Points forts
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
                       {healthReport.strengths.map((s, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" /> {s}
+                          <CheckCircle2 className="w-4 h-4 text-success mt-0.5 shrink-0" /> {s}
                         </li>
                       ))}
                     </ul>

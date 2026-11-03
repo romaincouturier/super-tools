@@ -255,7 +255,7 @@ const EventDetail = () => {
           actions={
             <>
               {event.event_type === "external" && (
-                <Badge variant="outline" className="gap-1 text-blue-600 border-blue-300">
+                <Badge variant="outline" className="gap-1 text-info-ink border-info-line">
                   <Globe className="h-3 w-3" />
                   Externe
                 </Badge>
@@ -279,7 +279,7 @@ const EventDetail = () => {
                   </Button>
                   <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-600">
+                      <Button variant="outline" size="sm" className="text-caution-ink hover:text-caution-ink">
                         <Ban className="h-4 w-4 mr-1" />
                         Annuler
                       </Button>
@@ -384,9 +384,9 @@ const EventDetail = () => {
 
         {/* External event info */}
         {event.event_type === "external" && (event.event_url || event.cfp_url || event.cfp_deadline) && (
-          <Card className="border-blue-200">
+          <Card className="border-info-line">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2 text-blue-700">
+              <CardTitle className="text-lg flex items-center gap-2 text-info-ink">
                 <Globe className="h-5 w-5" />
                 Événement externe
               </CardTitle>
@@ -433,16 +433,16 @@ const EventDetail = () => {
                 const isSubmitted = !!event.cfp_submitted_at;
                 return (
                   <div className="flex items-start gap-2">
-                    <AlertTriangle className={`h-4 w-4 flex-shrink-0 mt-0.5 ${isSubmitted ? "text-green-600" : isUrgent && !isPastDeadline ? "text-orange-500" : "text-muted-foreground"}`} />
+                    <AlertTriangle className={`h-4 w-4 flex-shrink-0 mt-0.5 ${isSubmitted ? "text-success" : isUrgent && !isPastDeadline ? "text-caution" : "text-muted-foreground"}`} />
                     <div className="flex-1">
                       <p className="text-sm font-medium">Date limite CFP</p>
-                      <p className={`text-sm ${isSubmitted ? "text-muted-foreground" : isPastDeadline ? "text-muted-foreground line-through" : isUrgent ? "text-orange-600 font-medium" : "text-muted-foreground"}`}>
+                      <p className={`text-sm ${isSubmitted ? "text-muted-foreground" : isPastDeadline ? "text-muted-foreground line-through" : isUrgent ? "text-caution-ink font-medium" : "text-muted-foreground"}`}>
                         {formatDateWithDayOfWeek(event.cfp_deadline)}
                         {isPastDeadline ? " (passée)" : daysLeft === 0 ? " (aujourd'hui !)" : daysLeft === 1 ? " (demain !)" : ` (dans ${daysLeft}j)`}
                       </p>
                       {isSubmitted ? (
                         <div className="mt-1 flex items-center gap-2">
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          <Badge variant="outline" className="bg-success-surface text-success border-success-line">
                             CFP soumis le {formatDateWithDayOfWeek(event.cfp_submitted_at!)}
                           </Badge>
                           <Button
@@ -523,14 +523,14 @@ const EventDetail = () => {
           const isPast = eventDate < now;
           if (!isPast && !event.summary_notes) return null;
           return (
-            <Card className={!event.summary_notes && isPast ? "border-orange-300" : undefined}>
+            <Card className={!event.summary_notes && isPast ? "border-caution-line" : undefined}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <FileText className="h-5 w-5" />
                     Note de synthèse
                     {!event.summary_notes && isPast && (
-                      <Badge variant="outline" className="text-orange-600 border-orange-300 text-xs">
+                      <Badge variant="outline" className="text-caution-ink border-caution-line text-xs">
                         À compléter
                       </Badge>
                     )}

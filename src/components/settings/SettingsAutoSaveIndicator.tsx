@@ -9,7 +9,7 @@ export const AutoSaveIndicator = ({ status }: { status: "idle" | "saving" | "sav
     </div>
   );
   if (status === "saved") return (
-    <div className="flex items-center gap-2 text-sm text-green-600">
+    <div className="flex items-center gap-2 text-sm text-success">
       <Check className="h-4 w-4" />
       Enregistré
     </div>

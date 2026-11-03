@@ -179,20 +179,20 @@ export default function CashFlowBudget() {
                         <td className="py-2 px-3 font-medium">{formatMonth(row.month)}</td>
                         <td className="py-2 px-3 text-right tabular-nums">{isDemoMode ? "•••• €" : EUR.format(row.forecastIncome)}</td>
                         <td className="py-2 px-3 text-right tabular-nums">{isDemoMode ? "•••• €" : EUR.format(row.forecastExpense)}</td>
-                        <td className="py-2 px-3 text-right tabular-nums text-emerald-600">
+                        <td className="py-2 px-3 text-right tabular-nums text-success">
                           {row.realizedIncome > 0 ? (isDemoMode ? "•••• €" : EUR.format(row.realizedIncome)) : "—"}
                         </td>
-                        <td className="py-2 px-3 text-right tabular-nums text-rose-600">
+                        <td className="py-2 px-3 text-right tabular-nums text-danger-ink">
                           {row.realizedExpense > 0 ? (isDemoMode ? "•••• €" : EUR.format(row.realizedExpense)) : "—"}
                         </td>
                         <td
                           className={`py-2 px-3 text-right tabular-nums ${
-                            row.variance > 0 ? "text-emerald-600" : row.variance < 0 ? "text-rose-600" : ""
+                            row.variance > 0 ? "text-success" : row.variance < 0 ? "text-danger-ink" : ""
                           }`}
                         >
                           {row.realizedIncome + row.realizedExpense > 0 ? (isDemoMode ? "•••• €" : EUR.format(row.variance)) : "—"}
                         </td>
-                        <td className={`py-2 px-3 text-right tabular-nums font-semibold ${belowThreshold ? "text-rose-600" : ""}`}>
+                        <td className={`py-2 px-3 text-right tabular-nums font-semibold ${belowThreshold ? "text-danger-ink" : ""}`}>
                           {isDemoMode ? "•••• €" : EUR.format(row.cumulativeForecastBalance)}
                         </td>
                       </tr>

@@ -84,7 +84,7 @@ export default function ArenaSetup() {
                     <div key={session.id} className="rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted">
                       <div className="flex items-start gap-2.5">
                         <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-micro font-bold text-white ${
-                          session.mode === "decision" ? "bg-amber-500" : session.mode === "deliverable" ? "bg-emerald-500" : "bg-primary"
+                          session.mode === "decision" ? "bg-caution" : session.mode === "deliverable" ? "bg-success" : "bg-primary"
                         }`}>
                           {session.mode === "decision" ? "D" : session.mode === "deliverable" ? "L" : "E"}
                         </div>
@@ -130,14 +130,14 @@ export default function ArenaSetup() {
                   <div className="mb-2 flex items-center justify-between">
                     <h3 className="text-xs font-semibold text-muted-foreground">Avis ({feedbackHistory.length})</h3>
                     <span className="text-xs text-muted-foreground">
-                      <span className="text-amber-400">{"★".repeat(Math.round(feedbackHistory.reduce((s, f) => s + f.rating, 0) / feedbackHistory.length))}</span> {(feedbackHistory.reduce((s, f) => s + f.rating, 0) / feedbackHistory.length).toFixed(1)}/5
+                      <span className="text-caution">{"★".repeat(Math.round(feedbackHistory.reduce((s, f) => s + f.rating, 0) / feedbackHistory.length))}</span> {(feedbackHistory.reduce((s, f) => s + f.rating, 0) / feedbackHistory.length).toFixed(1)}/5
                     </span>
                   </div>
                   <div className="space-y-1.5">
                     {feedbackHistory.slice(0, 5).map((fb, i) => (
                       <div key={i} className="rounded-lg border border-border bg-card p-2.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-amber-400 text-micro">{"★".repeat(fb.rating)}{"☆".repeat(5 - fb.rating)}</span>
+                          <span className="text-caution text-micro">{"★".repeat(fb.rating)}{"☆".repeat(5 - fb.rating)}</span>
                           <span className="text-micro text-muted-foreground">{fb.mode} · {fb.turns}t</span>
                         </div>
                         <p className="mt-0.5 truncate text-caption">{fb.topic}</p>
@@ -346,7 +346,7 @@ export default function ArenaSetup() {
                             <span className="text-sm font-medium">{expert.name}</span>
                             <span className="rounded-full bg-border px-1.5 py-0.5 text-micro text-muted-foreground">{expert.domain}</span>
                             {s.suggestedStance && s.suggestedStance !== "neutre" && (
-                              <span className={`rounded-full px-1.5 py-0.5 text-micro font-medium ${s.suggestedStance === "pour" ? "bg-emerald-500/10 text-emerald-500" : "bg-destructive/10 text-destructive"}`}>
+                              <span className={`rounded-full px-1.5 py-0.5 text-micro font-medium ${s.suggestedStance === "pour" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
                                 {s.suggestedStance}
                               </span>
                             )}
@@ -420,8 +420,8 @@ export default function ArenaSetup() {
                       >
                         {template.name}
                         <span className={`rounded px-1 py-0.5 text-micro font-medium ${
-                          template.mode === "decision" ? "bg-amber-500/10 text-amber-500"
-                            : template.mode === "deliverable" ? "bg-emerald-500/10 text-emerald-500"
+                          template.mode === "decision" ? "bg-caution/10 text-caution"
+                            : template.mode === "deliverable" ? "bg-success/10 text-success"
                               : "bg-primary/10 text-primary"
                         }`}>{modeLabel[template.mode]}</span>
                       </button>
@@ -448,8 +448,8 @@ export default function ArenaSetup() {
                     >
                       {template.name}
                       <span className={`rounded px-1 py-0.5 text-micro font-medium ${
-                        template.mode === "decision" ? "bg-amber-500/10 text-amber-500"
-                          : template.mode === "deliverable" ? "bg-emerald-500/10 text-emerald-500"
+                        template.mode === "decision" ? "bg-caution/10 text-caution"
+                          : template.mode === "deliverable" ? "bg-success/10 text-success"
                             : "bg-primary/10 text-primary"
                       }`}>{modeLabel[template.mode]}</span>
                     </button>
@@ -475,7 +475,7 @@ export default function ArenaSetup() {
                       <span className="text-micro text-muted-foreground">chargement...</span>
                     )}
                     {includeCrmReports && crmReportsReady && (
-                      <span className="text-micro text-emerald-600">pret</span>
+                      <span className="text-micro text-success">pret</span>
                     )}
                   </div>
                   <p className="mt-0.5 text-caption text-muted-foreground">
@@ -681,12 +681,12 @@ export default function ArenaSetup() {
                             <div className="mb-1 flex items-center gap-2">
                               <span className="text-sm font-medium">{expert.name}</span>
                               <span className={`rounded-full px-1.5 py-0.5 text-micro font-medium ${
-                                expert.domain === "tech" ? "bg-blue-500/10 text-blue-500"
-                                  : expert.domain === "business" ? "bg-amber-500/10 text-amber-500"
+                                expert.domain === "tech" ? "bg-info/10 text-info"
+                                  : expert.domain === "business" ? "bg-caution/10 text-caution"
                                     : expert.domain === "creative" ? "bg-violet-500/10 text-violet-500"
-                                      : expert.domain === "human" ? "bg-emerald-500/10 text-emerald-500"
+                                      : expert.domain === "human" ? "bg-success/10 text-success"
                                         : expert.domain === "data" ? "bg-cyan-500/10 text-cyan-500"
-                                          : expert.domain === "academic" ? "bg-rose-500/10 text-rose-500"
+                                          : expert.domain === "academic" ? "bg-danger/10 text-danger"
                                             : "bg-border text-muted-foreground"
                               }`}>
                                 {expert.domain}

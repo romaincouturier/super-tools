@@ -251,13 +251,13 @@ const ParticipantFormFields = ({
           {formatFormation === "e_learning" && (
             <>
               {couponCode && (
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                  <Tag className="h-5 w-5 text-green-600 flex-shrink-0" />
+                <div className="flex items-center gap-3 p-3 bg-success-surface rounded-lg border border-success-line">
+                  <Tag className="h-5 w-5 text-success flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground">
                       Coupon WooCommerce
                     </p>
-                    <p className="text-sm font-mono font-bold text-green-700" style={blur}>
+                    <p className="text-sm font-mono font-bold text-success" style={blur}>
                       {couponCode}
                     </p>
                   </div>

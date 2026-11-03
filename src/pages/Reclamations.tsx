@@ -370,17 +370,17 @@ const Reclamations = () => {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card><CardContent className="pt-4 text-center">
-              <AlertCircle className="h-5 w-5 text-orange-500 mx-auto mb-1" />
+              <AlertCircle className="h-5 w-5 text-caution mx-auto mb-1" />
               <p className="text-2xl font-bold">{stats.open}</p>
               <p className="text-xs text-muted-foreground">Ouvertes</p>
             </CardContent></Card>
             <Card><CardContent className="pt-4 text-center">
-              <Clock className="h-5 w-5 text-blue-500 mx-auto mb-1" />
+              <Clock className="h-5 w-5 text-info mx-auto mb-1" />
               <p className="text-2xl font-bold">{stats.inProgress}</p>
               <p className="text-xs text-muted-foreground">En cours</p>
             </CardContent></Card>
             <Card><CardContent className="pt-4 text-center">
-              <CheckCircle2 className="h-5 w-5 text-green-500 mx-auto mb-1" />
+              <CheckCircle2 className="h-5 w-5 text-success mx-auto mb-1" />
               <p className="text-2xl font-bold">{stats.closed}</p>
               <p className="text-xs text-muted-foreground">Clôturées</p>
             </CardContent></Card>

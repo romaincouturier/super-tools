@@ -71,7 +71,7 @@ export function OKRInitiativeRow({ initiative, keyResultId }: { initiative: OKRI
       >
         {initiative.progress_percentage}%
       </Badge>
-      <button onClick={handleDelete} className="text-red-500 hover:text-red-600">
+      <button onClick={handleDelete} className="text-danger hover:text-danger-ink">
         <X className="h-3 w-3" />
       </button>
     </div>

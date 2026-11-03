@@ -78,7 +78,7 @@ const ParticipantTable = ({
           const displayName = isDemoMode ? maskName(rawName) : rawName;
 
           return (
-            <TableRow key={participant.id} className={actionsProps.isInterEntreprise && participant.payment_mode === "invoice" && !participant.invoice_file_url ? "text-red-600" : ""}>
+            <TableRow key={participant.id} className={actionsProps.isInterEntreprise && participant.payment_mode === "invoice" && !participant.invoice_file_url ? "text-danger-ink" : ""}>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <div className="min-w-0">

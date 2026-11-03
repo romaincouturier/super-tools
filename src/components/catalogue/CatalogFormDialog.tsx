@@ -492,7 +492,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                 </>
               ) : lastSaved ? (
                 <>
-                  <Check className="h-3 w-3 text-green-600" />
+                  <Check className="h-3 w-3 text-success" />
                   Sauvegardé
                 </>
               ) : null}

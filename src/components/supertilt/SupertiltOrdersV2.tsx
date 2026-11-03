@@ -139,10 +139,10 @@ export function BilanTab() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "CA TTC total", value: money(totals.total_ttc), icon: <Euro className="h-5 w-5 text-green-600" /> }, // demo-safe: montant masque par money()
+          { label: "CA TTC total", value: money(totals.total_ttc), icon: <Euro className="h-5 w-5 text-success" /> }, // demo-safe: montant masque par money()
           { label: "Commissions totales", value: money(totals.total_commission), icon: <TrendingUp className="h-5 w-5 text-purple-600" /> },
-          { label: "Dépenses totales", value: money(totals.total_expenses), icon: <Package className="h-5 w-5 text-red-600" /> },
-          { label: "Marge estimée", value: money(totals.margin), icon: <TrendingUp className="h-5 w-5 text-blue-600" /> },
+          { label: "Dépenses totales", value: money(totals.total_expenses), icon: <Package className="h-5 w-5 text-danger-ink" /> },
+          { label: "Marge estimée", value: money(totals.margin), icon: <TrendingUp className="h-5 w-5 text-info-ink" /> },
         ].map(({ label, value, icon }) => (
           <Card key={label}>
             <CardContent className="p-4 flex items-center gap-3">
@@ -180,11 +180,11 @@ export function BilanTab() {
                 <TableCell className="text-right text-sm">{r.sales_count}</TableCell>
                 <TableCell className="text-right text-sm">{money(r.total_ttc)}{/* demo-safe: montant masque par money() */}</TableCell>
                 <TableCell className="text-right text-sm text-purple-700">{money(r.total_commission)}</TableCell>
-                <TableCell className="text-right text-sm text-orange-700">{money(r.cogs)}</TableCell>
-                <TableCell className="text-right text-sm text-red-700">{money(r.total_expenses)}</TableCell>
-                <TableCell className={`text-right text-sm font-medium ${r.margin >= 0 ? "text-green-700" : "text-red-700"}`}>{money(r.margin)}</TableCell>
-                <TableCell className="text-right text-sm text-green-700">{money(r.total_paid)}</TableCell>
-                <TableCell className={`text-right text-sm font-medium ${r.commission_remaining > 0 ? "text-orange-700" : ""}`}>{money(r.commission_remaining)}</TableCell>
+                <TableCell className="text-right text-sm text-caution-ink">{money(r.cogs)}</TableCell>
+                <TableCell className="text-right text-sm text-danger-ink">{money(r.total_expenses)}</TableCell>
+                <TableCell className={`text-right text-sm font-medium ${r.margin >= 0 ? "text-success" : "text-danger-ink"}`}>{money(r.margin)}</TableCell>
+                <TableCell className="text-right text-sm text-success">{money(r.total_paid)}</TableCell>
+                <TableCell className={`text-right text-sm font-medium ${r.commission_remaining > 0 ? "text-caution-ink" : ""}`}>{money(r.commission_remaining)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -496,11 +496,11 @@ export function PartenairesTab() {
                         <div className="flex items-center gap-1">
                           {p.status === "declared" && (
                             <>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-green-700" title="Vérifier" onClick={async () => {
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-success" title="Vérifier" onClick={async () => {
                                 try { await updateStatus({ id: p.id, status: "verified" }); toast({ title: "Vérifié" }); }
                                 catch { toastError(toast, "Erreur"); }
                               }}><CheckCircle className="h-3.5 w-3.5" /></Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-red-700" title="Rejeter" onClick={async () => {
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-danger-ink" title="Rejeter" onClick={async () => {
                                 const note = window.prompt("Raison du rejet :");
                                 if (note === null) return;
                                 try { await updateStatus({ id: p.id, status: "rejected", admin_notes: note }); toast({ title: "Rejeté" }); }
@@ -888,14 +888,14 @@ function StockRow({ game }: { game: GameFull }) {
   const isAlert = game.current_stock != null && game.min_stock != null && game.current_stock <= game.min_stock;
 
   return (
-    <TableRow className={isAlert ? "bg-red-50/50" : ""}>
+    <TableRow className={isAlert ? "bg-danger-surface/50" : ""}>
       <TableCell className="font-medium">
         <div className="flex items-center gap-2">
-          {isAlert && <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />}
+          {isAlert && <AlertTriangle className="h-4 w-4 text-danger flex-shrink-0" />}
           {game.title}
         </div>
       </TableCell>
-      <TableCell className={`text-right font-medium ${isAlert ? "text-red-700" : ""}`}>
+      <TableCell className={`text-right font-medium ${isAlert ? "text-danger-ink" : ""}`}>
         {game.current_stock ?? "—"}
       </TableCell>
       <TableCell className="text-right text-muted-foreground">{game.min_stock ?? "—"}</TableCell>
@@ -906,7 +906,7 @@ function StockRow({ game }: { game: GameFull }) {
           <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowEdit(true)}>
             <Pencil className="h-3.5 w-3.5 mr-1" />Modifier
           </Button>
-          <Button variant="ghost" size="sm" className="h-7 text-xs text-blue-700" onClick={() => setShowRestock(true)}>
+          <Button variant="ghost" size="sm" className="h-7 text-xs text-info-ink" onClick={() => setShowRestock(true)}>
             <Send className="h-3.5 w-3.5 mr-1" />Email réappro
           </Button>
         </div>
@@ -929,12 +929,12 @@ export function StockTab() {
   return (
     <div className="space-y-6">
       {(alerts ?? []).length > 0 && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="p-4 bg-danger-surface border border-danger-line rounded-lg">
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-5 w-5 text-red-600" />
-            <p className="font-semibold text-red-800">{alerts!.length} jeu(x) en dessous du stock minimum</p>
+            <AlertTriangle className="h-5 w-5 text-danger-ink" />
+            <p className="font-semibold text-danger-ink">{alerts!.length} jeu(x) en dessous du stock minimum</p>
           </div>
-          <ul className="text-sm text-red-700 list-disc pl-5">
+          <ul className="text-sm text-danger-ink list-disc pl-5">
             {alerts!.map((g) => (
               <li key={g.id}>{g.title} — stock actuel : {g.current_stock}, minimum : {g.min_stock}</li>
             ))}

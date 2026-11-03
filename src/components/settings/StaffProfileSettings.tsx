@@ -155,7 +155,7 @@ export default function StaffProfileSettings() {
           />
         </div>
         {isDemoMode && (
-          <p className="text-xs text-amber-600 font-medium">Mode démo actif — les données sensibles sont masquées.</p>
+          <p className="text-xs text-caution-ink font-medium">Mode démo actif — les données sensibles sont masquées.</p>
         )}
         {isAdmin && <DemoMaskedNamesField />}
       </div>

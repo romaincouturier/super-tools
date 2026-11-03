@@ -295,7 +295,7 @@ export function KnowledgeBaseManager() {
                       title={entry.is_active ? "Désactiver" : "Activer"}
                     >
                       {entry.is_active ? (
-                        <ToggleRight className="h-4 w-4 text-green-600" />
+                        <ToggleRight className="h-4 w-4 text-success" />
                       ) : (
                         <ToggleLeft className="h-4 w-4 text-muted-foreground" />
                       )}

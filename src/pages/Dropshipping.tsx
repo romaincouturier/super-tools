@@ -44,10 +44,10 @@ function Dashboard() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Chiffre d'affaires", value: isDemoMode ? maskAmount(kpis?.totalRevenue ?? 0) : EUR(kpis?.totalRevenue ?? 0), icon: <Euro className="h-5 w-5 text-green-600" /> },
-          { label: "Royalties dues", value: isDemoMode ? maskAmount(kpis?.totalRoyalties ?? 0) : EUR(kpis?.totalRoyalties ?? 0), icon: <TrendingUp className="h-5 w-5 text-blue-600" /> },
+          { label: "Chiffre d'affaires", value: isDemoMode ? maskAmount(kpis?.totalRevenue ?? 0) : EUR(kpis?.totalRevenue ?? 0), icon: <Euro className="h-5 w-5 text-success" /> },
+          { label: "Royalties dues", value: isDemoMode ? maskAmount(kpis?.totalRoyalties ?? 0) : EUR(kpis?.totalRoyalties ?? 0), icon: <TrendingUp className="h-5 w-5 text-info-ink" /> },
           { label: "Ventes totales", value: kpis?.totalSales ?? 0, icon: <ShoppingCart className="h-5 w-5 text-purple-600" /> },
-          { label: "Jeux top 5", value: kpis?.topGames?.length ?? 0, icon: <Package className="h-5 w-5 text-orange-600" /> },
+          { label: "Jeux top 5", value: kpis?.topGames?.length ?? 0, icon: <Package className="h-5 w-5 text-caution-ink" /> },
         ].map(({ label, value, icon }) => (
           <Card key={label}>
             <CardContent className="p-4 flex items-center gap-3">
@@ -177,7 +177,7 @@ function GameSalesDetailDialog({
               </div>
               <div className="rounded-md border p-3">
                 <p className="text-xs text-muted-foreground">Royalties</p>
-                <p className="text-lg font-semibold text-blue-700">{isDemoMode ? maskAmount(totalRoyalties) : EUR(totalRoyalties)}</p>
+                <p className="text-lg font-semibold text-info-ink">{isDemoMode ? maskAmount(totalRoyalties) : EUR(totalRoyalties)}</p>
               </div>
             </div>
             <div className="overflow-auto rounded-md border">
@@ -207,7 +207,7 @@ function GameSalesDetailDialog({
                       </TableCell>
                       <TableCell className="text-right text-sm">{s.quantity}</TableCell>
                       <TableCell className="text-right text-sm">{isDemoMode ? maskAmount(s.total_amount) : EUR(s.total_amount)}</TableCell>
-                      <TableCell className="text-right text-sm text-blue-700">{isDemoMode ? maskAmount(s.royalty_amount) : EUR(s.royalty_amount)}</TableCell>
+                      <TableCell className="text-right text-sm text-info-ink">{isDemoMode ? maskAmount(s.royalty_amount) : EUR(s.royalty_amount)}</TableCell>
                       <TableCell>
                         <Badge variant={s.status === "paid" ? "default" : "outline"} className="text-xs">
                           {s.status === "paid" ? "Payé" : "En attente"}
@@ -315,7 +315,7 @@ function SalesTable() {
                 <TableCell className="text-sm text-muted-foreground">{s.customer_name ? (isDemoMode ? maskName(s.customer_name) : s.customer_name) : s.customer_email ? (isDemoMode ? maskEmail(s.customer_email) : s.customer_email) : "—"}</TableCell>
                 <TableCell className="text-right text-sm">{s.quantity}</TableCell>
                 <TableCell className="text-right text-sm">{isDemoMode ? maskAmount(s.total_amount) : EUR(s.total_amount)}</TableCell>
-                <TableCell className="text-right text-sm text-blue-700">{isDemoMode ? maskAmount(s.royalty_amount) : EUR(s.royalty_amount)}</TableCell>
+                <TableCell className="text-right text-sm text-info-ink">{isDemoMode ? maskAmount(s.royalty_amount) : EUR(s.royalty_amount)}</TableCell>
                 <TableCell>
                   <Badge variant={s.status === "paid" ? "default" : "outline"} className="text-xs">
                     {s.status === "paid" ? "Payé" : "En attente"}

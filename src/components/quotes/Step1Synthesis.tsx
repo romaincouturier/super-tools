@@ -289,16 +289,16 @@ export default function Step1Synthesis({
       </Card>
 
       {/* Commercial Challenge */}
-      <Card className="border-amber-200 bg-amber-50/30">
+      <Card className="border-caution-line bg-caution-surface/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Swords className="w-5 h-5 text-amber-600" />
+            <Swords className="w-5 h-5 text-caution-ink" />
             Challenge commercial
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert className="border-amber-200 bg-amber-50">
-            <Swords className="w-4 h-4 text-amber-600" />
+          <Alert className="border-caution-line bg-caution-surface">
+            <Swords className="w-4 h-4 text-caution-ink" />
             <AlertDescription>
               Un coach IA va challenger votre proposition pour maximiser la valeur : opportunités manquées, pricing, formulations, risques commerciaux.
             </AlertDescription>
@@ -309,16 +309,16 @@ export default function Step1Synthesis({
               onClick={handleChallenge}
               disabled={!synthesis.trim() || isGenerating}
               variant="outline"
-              className="gap-2 w-full py-6 text-base border-amber-300 hover:bg-amber-100"
+              className="gap-2 w-full py-6 text-base border-caution-line hover:bg-caution-surface"
             >
-              <Swords className="w-5 h-5 text-amber-600" />
+              <Swords className="w-5 h-5 text-caution-ink" />
               Lancer le challenge commercial
             </Button>
           )}
 
           {isChallenging && (
             <div className="flex items-center justify-center py-10 gap-3">
-              <Loader2 className="w-5 h-5 animate-spin text-amber-600" />
+              <Loader2 className="w-5 h-5 animate-spin text-caution-ink" />
               <span className="text-muted-foreground">
                 Le coach analyse votre proposition...
               </span>

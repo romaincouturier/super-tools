@@ -1074,7 +1074,7 @@ function ConfigTab() {
               title="Copier"
             >
               {copiedWebhook ? (
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <CheckCircle2 className="h-4 w-4 text-success" />
               ) : (
                 <Copy className="h-4 w-4" />
               )}
@@ -1103,7 +1103,7 @@ function ConfigTab() {
               title="Copier"
             >
               {copiedSnippet ? (
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <CheckCircle2 className="h-4 w-4 text-success" />
               ) : (
                 <Copy className="h-4 w-4" />
               )}
@@ -1125,7 +1125,7 @@ function ConfigTab() {
         <CardContent className="space-y-3">
           {webhookSecret && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <CheckCircle2 className="h-4 w-4 text-success" />
               Secret configuré
             </div>
           )}

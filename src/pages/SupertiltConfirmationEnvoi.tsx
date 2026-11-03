@@ -75,10 +75,10 @@ export default function SupertiltConfirmationEnvoi() {
 
   const iconColor =
     meta.variant === "success"
-      ? "bg-green-600"
+      ? "bg-success"
       : meta.variant === "error"
-      ? "bg-red-600"
-      : "bg-blue-600";
+      ? "bg-danger"
+      : "bg-info";
 
   const Icon =
     meta.variant === "success" ? CheckCircle2 : meta.variant === "error" ? XCircle : Info;

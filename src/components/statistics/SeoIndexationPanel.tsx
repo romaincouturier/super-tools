@@ -103,7 +103,7 @@ const SeoIndexationPanel = ({ data, isLoading, error }: { data?: GscIndexation; 
                     <tr key={r.url} className="border-b border-border/50">
                       <td className="py-1.5 pr-4 truncate max-w-[340px]" title={r.url}>{shortUrl(r.url)}</td>
                       <td className="py-1.5 pr-4">
-                        <span className={r.verdict === "PASS" ? "text-emerald-600" : "text-amber-600"}>
+                        <span className={r.verdict === "PASS" ? "text-success" : "text-caution-ink"}>
                           {r.coverage_state || r.error || r.verdict || "—"}
                         </span>
                       </td>

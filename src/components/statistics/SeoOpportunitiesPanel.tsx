@@ -87,7 +87,7 @@ const SeoOpportunitiesPanel = ({ data, isLoading, error }: { data?: GscOpportuni
               <td className="py-1.5 pr-4 text-right">{r.position.toFixed(1)}</td>
               <td className="py-1.5 pr-4 text-right">{fmtNum(r.impressions)}</td>
               <td className="py-1.5 pr-4 text-right">{fmtNum(r.clicks)}</td>
-              <td className="py-1.5 pr-4 text-right font-medium text-emerald-600">+{fmtNum(r.potential_extra_clicks)}</td>
+              <td className="py-1.5 pr-4 text-right font-medium text-success">+{fmtNum(r.potential_extra_clicks)}</td>
             </tr>
           ))}
         </Table>
@@ -164,7 +164,7 @@ const SeoOpportunitiesPanel = ({ data, isLoading, error }: { data?: GscOpportuni
                 <td className="py-1.5 pr-4 truncate max-w-[220px]">{r.query}</td>
                 <td className="py-1.5 pr-4 text-right">{fmtNum(r.impressions)}</td>
                 <td className="py-1.5 pr-4 text-right text-muted-foreground">{fmtNum(r.previous_impressions)}</td>
-                <td className="py-1.5 pr-4 text-right text-emerald-600 font-medium">
+                <td className="py-1.5 pr-4 text-right text-success font-medium">
                   {r.variation_pct === null ? "nouveau" : `+${r.variation_pct.toFixed(0)}%`}
                 </td>
               </tr>

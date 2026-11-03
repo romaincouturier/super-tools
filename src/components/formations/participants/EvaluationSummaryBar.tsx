@@ -39,7 +39,7 @@ const EvaluationSummaryBar = ({
       )}
       {avgRating > 0 && (
         <span className="flex items-center gap-1 ml-auto">
-          <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+          <Star className="h-3.5 w-3.5 fill-primary text-primary" />
           <span className="font-medium">{avgRating.toFixed(1)}/5</span>
         </span>
       )}

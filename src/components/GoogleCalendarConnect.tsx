@@ -167,7 +167,7 @@ const GoogleCalendarConnect = ({ onStatusChange }: GoogleCalendarConnectProps) =
   if (isConnected) {
     return (
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 text-green-600 text-sm">
+        <div className="flex items-center gap-2 text-success text-sm">
           <CheckCircle className="w-4 h-4" />
           Google Calendar connecté
         </div>

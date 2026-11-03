@@ -147,7 +147,7 @@ const DailyTodoPanel = () => {
   if (actions.length === 0) {
     return (
       <Card className="p-6 text-center">
-        <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
+        <CheckCircle2 className="h-8 w-8 text-success mx-auto mb-2" />
         <p className="text-sm text-muted-foreground">
           Aucune action pour aujourd'hui
         </p>
@@ -279,7 +279,7 @@ const DailyTodoPanel = () => {
                           action.is_completed
                             ? "opacity-60"
                             : isUrgent
-                              ? "bg-red-50 border border-red-200 hover:bg-red-100"
+                              ? "bg-danger-surface border border-danger-line hover:bg-danger-surface"
                               : "hover:bg-muted/50"
                         } ${action.link ? "cursor-pointer" : ""}`}
                         onClick={
@@ -298,17 +298,17 @@ const DailyTodoPanel = () => {
                         />
                         <div className="min-w-0 flex-1">
                           <p
-                            className={`text-sm leading-tight ${action.is_completed ? "line-through text-muted-foreground" : ""} ${isUrgent && !action.is_completed ? "text-red-800 font-medium" : action.link && !action.is_completed ? "text-primary hover:underline" : ""}`}
+                            className={`text-sm leading-tight ${action.is_completed ? "line-through text-muted-foreground" : ""} ${isUrgent && !action.is_completed ? "text-danger-ink font-medium" : action.link && !action.is_completed ? "text-primary hover:underline" : ""}`}
                           >
                             {action.title}
                           </p>
                           {action.description && (
-                            <p className={`text-xs mt-0.5 truncate ${isUrgent ? "text-red-700" : "text-muted-foreground"}`}>
+                            <p className={`text-xs mt-0.5 truncate ${isUrgent ? "text-danger-ink" : "text-muted-foreground"}`}>
                               {action.description}
                             </p>
                           )}
                           {action.auto_completed && action.is_completed && (
-                            <span className="text-micro text-green-600 font-medium">
+                            <span className="text-micro text-success font-medium">
                               Auto-détecté
                             </span>
                           )}

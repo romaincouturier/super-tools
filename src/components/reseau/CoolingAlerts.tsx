@@ -35,13 +35,13 @@ const CoolingAlerts = ({ coolingContacts }: CoolingAlertsProps) => {
   };
 
   return (
-    <Card className={overdueCount > 0 ? "border-orange-300" : ""}>
+    <Card className={overdueCount > 0 ? "border-caution-line" : ""}>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
-          <Thermometer className="h-5 w-5 text-orange-500" />
+          <Thermometer className="h-5 w-5 text-caution" />
           Contacts qui refroidissent
           {overdueCount > 0 && (
-            <span className="text-xs font-normal bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+            <span className="text-xs font-normal bg-caution-surface text-caution-ink px-2 py-0.5 rounded-full">
               {overdueCount} en retard
             </span>
           )}
@@ -53,12 +53,12 @@ const CoolingAlerts = ({ coolingContacts }: CoolingAlertsProps) => {
             <div
               key={contact.id}
               className={`flex items-center justify-between p-3 rounded-lg border ${
-                isOverdue ? "border-orange-200 bg-orange-50/50" : "border-yellow-100 bg-yellow-50/30"
+                isOverdue ? "border-caution-line bg-caution-surface/50" : "border-caution-surface bg-caution-surface/30"
               }`}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  {isOverdue && <AlertTriangle className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />}
+                  {isOverdue && <AlertTriangle className="h-3.5 w-3.5 text-caution flex-shrink-0" />}
                   <span className="text-sm font-medium truncate">{isDemoMode ? maskName(contact.name) : contact.name}</span>
                   <span className="text-xs text-muted-foreground">
                     {WARMTH_LABELS[contact.warmth]}

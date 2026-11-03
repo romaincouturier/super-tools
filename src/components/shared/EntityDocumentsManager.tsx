@@ -269,7 +269,7 @@ const EntityDocumentsManager = ({
                   </p>
                   {doc.processing_status === "completed" ? (
                     <div className="mt-2 flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-yellow-500" />
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
                       {doc.transcript_page_id && entityType === "mission" && (
                         <button
                           type="button"

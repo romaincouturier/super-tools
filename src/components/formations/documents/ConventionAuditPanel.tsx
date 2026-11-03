@@ -145,9 +145,9 @@ const ConventionAuditPanel = ({
           <div className="flex items-center justify-between">
             <span className="font-semibold">Résultat de vérification</span>
             <span className={`font-semibold ${
-              verificationResult.summary.overall === "CONFORME" ? "text-green-600" :
-              verificationResult.summary.overall === "NON CONFORME" ? "text-red-600" :
-              "text-yellow-600"
+              verificationResult.summary.overall === "CONFORME" ? "text-success" :
+              verificationResult.summary.overall === "NON CONFORME" ? "text-danger-ink" :
+              "text-caution-ink"
             }`}>
               {verificationResult.summary.overall}
             </span>

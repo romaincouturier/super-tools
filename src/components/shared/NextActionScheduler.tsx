@@ -86,13 +86,13 @@ const NextActionScheduler = ({
       {/* Banner showing current scheduled action — click to edit */}
       {displayDate && !showForm && (
         <div
-          className="mb-3 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 flex items-center justify-between gap-2 cursor-pointer hover:bg-blue-100 transition-colors"
+          className="mb-3 px-3 py-2 bg-info-surface rounded-lg border border-info-line flex items-center justify-between gap-2 cursor-pointer hover:bg-info-surface transition-colors"
           onClick={() => setShowForm(true)}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowForm(true); }}
         >
-          <div className="flex items-center gap-2 text-sm text-blue-700 min-w-0">
+          <div className="flex items-center gap-2 text-sm text-info-ink min-w-0">
             <Calendar className="h-4 w-4 shrink-0" />
             <span className="truncate">
               <span className="font-medium">
@@ -108,14 +108,14 @@ const NextActionScheduler = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 text-green-600 hover:text-green-800"
+                className="h-6 w-6 p-0 text-success hover:text-success"
                 onClick={(e) => { e.stopPropagation(); onMarkDone(); }}
                 title="Marquer comme fait"
               >
                 <Check className="h-3.5 w-3.5" />
               </Button>
             )}
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700" onClick={(e) => { e.stopPropagation(); handleClear(); }} title="Annuler la programmation">
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-info hover:text-info-ink" onClick={(e) => { e.stopPropagation(); handleClear(); }} title="Annuler la programmation">
               <X className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -124,7 +124,7 @@ const NextActionScheduler = ({
 
       {/* Schedule form */}
       {showForm && (
-        <div className="mb-4 p-4 bg-blue-50 rounded-lg space-y-3 border border-blue-200">
+        <div className="mb-4 p-4 bg-info-surface rounded-lg space-y-3 border border-info-line">
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-sm flex items-center gap-2">
               <Calendar className="h-4 w-4" />
@@ -135,7 +135,7 @@ const NextActionScheduler = ({
             </Button>
           </div>
           {currentAction.date && currentAction.date !== scheduledDate && (
-            <div className="text-sm text-blue-700 flex items-center justify-between">
+            <div className="text-sm text-info-ink flex items-center justify-between">
               <span>
                 Action actuelle : {format(parseISO(currentAction.date), "d MMMM yyyy", { locale: fr })}
                 {currentAction.text && ` — ${currentAction.text}`}

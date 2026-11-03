@@ -457,7 +457,7 @@ N'hésitez pas à me contacter en amont pour toute question.
 
         <form id="formation-form" onSubmit={handleSubmit} className="space-y-6">
           {form.trainingName && !form.catalogId && (
-            <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <div className="flex items-start gap-3 rounded-md border border-caution-line bg-caution-surface p-3 text-sm text-caution-ink">
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
               <div className="flex-1 space-y-2">
                 <p>

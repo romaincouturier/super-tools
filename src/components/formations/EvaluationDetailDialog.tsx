@@ -36,7 +36,7 @@ const getStars = (rating: number | null) => {
   return Array.from({ length: 5 }, (_, i) => (
     <Star
       key={i}
-      className={`h-4 w-4 ${i < rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
+      className={`h-4 w-4 ${i < rating ? "fill-primary text-primary" : "text-muted-foreground"}`}
     />
   ));
 };
@@ -52,7 +52,7 @@ const RecommandationBadge = ({ recommandation }: { recommandation: string | null
 };
 
 const BoolBadge = ({ value }: { value: boolean | null }) => {
-  if (value === true) return <Badge variant="default" className="bg-green-600">Oui</Badge>;
+  if (value === true) return <Badge variant="default" className="bg-success">Oui</Badge>;
   if (value === false) return <Badge variant="destructive">Non</Badge>;
   return <span>—</span>;
 };
@@ -131,7 +131,7 @@ const EvaluationDetailDialog = ({
                           {Array.from({ length: 5 }, (_, i) => (
                             <Star
                               key={i}
-                              className={`h-3 w-3 ${i < obj.niveau ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
+                              className={`h-3 w-3 ${i < obj.niveau ? "fill-primary text-primary" : "text-muted-foreground"}`}
                             />
                           ))}
                         </div>

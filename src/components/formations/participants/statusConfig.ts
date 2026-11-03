@@ -25,7 +25,7 @@ export const getStatusConfig = (status: string): StatusConfig => {
         icon: Mail,
         variant: "outline",
         tooltip: "Envoi en attente : programmé, ou en attente de la date de session",
-        colorClass: "text-amber-500",
+        colorClass: "text-caution",
       };
     case "manuel":
       return {
@@ -40,7 +40,7 @@ export const getStatusConfig = (status: string): StatusConfig => {
         icon: MailCheck,
         variant: "outline",
         tooltip: "Le recueil des besoins a été envoyé, en attente de réponse",
-        colorClass: "text-amber-500",
+        colorClass: "text-caution",
       };
     case "accueil_envoye":
       return {
@@ -48,7 +48,7 @@ export const getStatusConfig = (status: string): StatusConfig => {
         icon: Mail,
         variant: "outline",
         tooltip: "Le recueil des besoins a été programmé (formation proche, envoi immédiat)",
-        colorClass: "text-amber-500",
+        colorClass: "text-caution",
       };
     case "en_cours":
       return {

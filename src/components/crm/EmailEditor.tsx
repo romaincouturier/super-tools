@@ -434,7 +434,7 @@ const EmailEditor = ({
               size="sm"
               className={cn(
                 "h-7 px-2 text-xs gap-1",
-                isRecording && "bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700",
+                isRecording && "bg-danger-surface text-danger-ink hover:bg-danger-surface hover:text-danger-ink",
               )}
               disabled={isTranscribing || isCleaningUp}
               onClick={handleToggleDictation}

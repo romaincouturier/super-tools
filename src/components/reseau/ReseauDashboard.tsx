@@ -84,17 +84,17 @@ const ReseauDashboard = ({
                   <h3 className="font-semibold">Réseau</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="p-2 rounded-lg bg-red-50">
-                    <p className="text-xl font-bold text-red-700">{hotCount}</p>
-                    <p className="text-xs text-red-600">Chauds</p>
+                  <div className="p-2 rounded-lg bg-danger-surface">
+                    <p className="text-xl font-bold text-danger-ink">{hotCount}</p>
+                    <p className="text-xs text-danger-ink">Chauds</p>
                   </div>
-                  <div className="p-2 rounded-lg bg-orange-50">
-                    <p className="text-xl font-bold text-orange-700">{warmCount}</p>
-                    <p className="text-xs text-orange-600">Tièdes</p>
+                  <div className="p-2 rounded-lg bg-caution-surface">
+                    <p className="text-xl font-bold text-caution-ink">{warmCount}</p>
+                    <p className="text-xs text-caution-ink">Tièdes</p>
                   </div>
-                  <div className="p-2 rounded-lg bg-blue-50">
-                    <p className="text-xl font-bold text-blue-700">{coldCount}</p>
-                    <p className="text-xs text-blue-600">Froids</p>
+                  <div className="p-2 rounded-lg bg-info-surface">
+                    <p className="text-xl font-bold text-info-ink">{coldCount}</p>
+                    <p className="text-xs text-info-ink">Froids</p>
                   </div>
                 </div>
                 <Button

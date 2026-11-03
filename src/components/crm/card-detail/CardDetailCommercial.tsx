@@ -222,9 +222,9 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
 
       {/* Quote description result */}
       {quoteDescription && (
-        <div className="p-4 bg-emerald-50 rounded-lg space-y-2">
+        <div className="p-4 bg-success-surface rounded-lg space-y-2">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-sm flex items-center gap-2 text-emerald-700">
+            <h4 className="font-medium text-sm flex items-center gap-2 text-success">
               <FileSignature className="h-4 w-4" />
               Descriptif pour devis
             </h4>
@@ -237,7 +237,7 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
               </Button>
             </div>
           </div>
-          <div className="text-sm whitespace-pre-wrap text-emerald-900">{quoteDescription}</div>
+          <div className="text-sm whitespace-pre-wrap text-success">{quoteDescription}</div>
         </div>
       )}
     </div>

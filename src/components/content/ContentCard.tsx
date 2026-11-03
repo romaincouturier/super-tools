@@ -29,10 +29,10 @@ interface ContentCardProps {
 }
 
 const tagColors = [
-  "bg-blue-100 text-blue-800",
-  "bg-green-100 text-green-800",
+  "bg-info-surface text-info-ink",
+  "bg-success-surface text-success",
   "bg-purple-100 text-purple-800",
-  "bg-orange-100 text-orange-800",
+  "bg-caution-surface text-caution-ink",
   "bg-pink-100 text-pink-800",
   "bg-cyan-100 text-cyan-800",
 ];
@@ -70,7 +70,7 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
     tags.unshift({
       key: "__newsletter__",
       label: `📬 ${card.newsletter_name}`,
-      className: "bg-amber-100 text-amber-800",
+      className: "bg-caution-surface text-caution-ink",
     });
   }
 
@@ -189,9 +189,9 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
           const isOverdue = daysLeft < 0;
           const isUrgent = daysLeft >= 0 && daysLeft <= 2;
           const colorClass = isOverdue
-            ? "text-red-600 bg-red-50"
+            ? "text-danger-ink bg-danger-surface"
             : isUrgent
-              ? "text-orange-600 bg-orange-50"
+              ? "text-caution-ink bg-caution-surface"
               : "text-muted-foreground bg-muted";
           return (
             <div className={`flex items-center gap-1 mt-2 text-xs px-1.5 py-0.5 rounded w-fit ${colorClass}`}>

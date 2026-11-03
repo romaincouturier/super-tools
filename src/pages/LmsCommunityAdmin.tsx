@@ -169,7 +169,7 @@ function PostsFeed({
           <div key={post.id} className="relative">
             {post.is_staff_treated && (
               <div className="absolute top-2 right-2 z-10">
-                <Badge variant="outline" className="text-xs text-green-600 border-green-200 bg-green-50">Traité</Badge>
+                <Badge variant="outline" className="text-xs text-success border-success-line bg-success-surface">Traité</Badge>
               </div>
             )}
             <PracticePostCard
@@ -192,8 +192,8 @@ function PostsFeed({
                 onClick={() => handleToggleTreated(post.id, post.is_staff_treated)}
                 className={`flex items-center gap-1.5 text-xs transition-colors ${
                   post.is_staff_treated
-                    ? "text-green-600 hover:text-muted-foreground"
-                    : "text-muted-foreground hover:text-green-600"
+                    ? "text-success hover:text-muted-foreground"
+                    : "text-muted-foreground hover:text-success"
                 }`}
               >
                 <CheckSquare className="w-3.5 h-3.5" />

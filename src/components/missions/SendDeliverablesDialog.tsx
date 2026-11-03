@@ -305,7 +305,7 @@ const SendDeliverablesDialog = ({
                           {isDemoMode ? maskName(name) || "Sans nom" : name || "Sans nom"}
                         </span>
                         {contact.is_primary && (
-                          <span className="text-xs text-yellow-600 ml-1" title="Contact principal">★</span>
+                          <span className="text-xs text-caution-ink ml-1" title="Contact principal">★</span>
                         )}
                         <span className="text-xs text-muted-foreground ml-2">
                           {hasEmail ? (isDemoMode ? maskEmail(contact.email) : contact.email) : <em>aucun email</em>}
@@ -326,7 +326,7 @@ const SendDeliverablesDialog = ({
                             <span
                               className={`text-caption px-1.5 py-0.5 rounded ${
                                 sendState.newItems.length > 0
-                                  ? "bg-emerald-100 text-emerald-800"
+                                  ? "bg-success-surface text-success"
                                   : "bg-muted text-muted-foreground"
                               }`}
                             >
@@ -343,7 +343,7 @@ const SendDeliverablesDialog = ({
 
               </div>
               {contactsWithEmail.length === 0 && (
-                <p className="text-xs text-amber-600 mt-2">
+                <p className="text-xs text-caution-ink mt-2">
                   Aucun contact n'a d'adresse email. Renseignez l'email dans l'onglet Paramètres pour pouvoir l'envoyer.
                 </p>
               )}
@@ -393,7 +393,7 @@ const SendDeliverablesDialog = ({
                             }
                             className={`shrink-0 h-6 px-2 flex items-center gap-1 rounded text-xs font-medium transition-colors ${
                               p.comments_enabled
-                                ? "bg-sky-100 text-sky-800 hover:bg-sky-200"
+                                ? "bg-info-surface text-info-ink hover:bg-info-line"
                                 : "bg-muted text-muted-foreground hover:bg-muted/70"
                             }`}
                           >

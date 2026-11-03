@@ -32,6 +32,8 @@ Source unique : `src/styles/tokens.css`. En cas de désaccord entre ce document 
 | Hauteur de champ | `h-control-md` (2.5rem), `h-control-sm` (2rem) |
 | Durée / courbe | `duration-fast|base|slow`, `ease-brand` |
 
+Migration effectuée le 2026-11-03 (1 171 occurrences, 191 fichiers). Le jaune 400/500 (étoiles, favoris) devient `primary`, le jaune de marque ; le reste du jaune est de l'alerte (`caution`). Un fond plein `green-600 hover:green-700` devient `bg-success hover:bg-success/90`.
+
 Correspondance de migration depuis la palette brute : `green-*` vers `success`, `red-*` vers `danger`, `amber-*` et `orange-*` vers `caution`, `blue-*` vers `info`. Les autres teintes (purple, pink, teal...) ne correspondent à aucun statut : choisir un alias existant ou, si un graphique l'exige, ouvrir une décision ici.
 
 ## Règles de maintenance
@@ -49,7 +51,7 @@ Correspondance de migration depuis la palette brute : `green-*` vers `success`, 
 
 ## Chantier restant
 
-1. Migrer les couleurs de statut (1 401 occurrences) vers `success`, `danger`, `caution`, `info`, module par module, en abaissant le ratchet à chaque PR.
+1. Migrer les teintes restantes de la palette brute (230 : purple, gray, etc.) ; les couleurs de statut sont migrées.
 2. Supprimer les 15 hex en classe et les 33 tailles arbitraires restantes.
 3. Annoter les variantes de `button.tsx` et `badge.tsx` qui n'ont pas de source de charte ; ajouter `data-slot` aux primitives.
 4. Documenter la typographie (Lexend pour l'interface du builder, Fraunces pour les titres éditoriaux) et fixer un fichier de chargement unique des polices.

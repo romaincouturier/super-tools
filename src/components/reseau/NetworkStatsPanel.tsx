@@ -18,17 +18,17 @@ interface NetworkStatsPanelProps {
 const NetworkStatsPanel = ({ stats }: NetworkStatsPanelProps) => {
   const healthColor =
     stats.networkHealthScore >= 70
-      ? "text-green-600"
+      ? "text-success"
       : stats.networkHealthScore >= 40
-        ? "text-orange-600"
-        : "text-red-600";
+        ? "text-caution-ink"
+        : "text-danger-ink";
 
   const healthBg =
     stats.networkHealthScore >= 70
-      ? "bg-green-100"
+      ? "bg-success-surface"
       : stats.networkHealthScore >= 40
-        ? "bg-orange-100"
-        : "bg-red-100";
+        ? "bg-caution-surface"
+        : "bg-danger-surface";
 
   const maxWeekly = Math.max(...stats.weeklyActivity.map((w) => w.count), 1);
 
@@ -48,20 +48,20 @@ const NetworkStatsPanel = ({ stats }: NetworkStatsPanelProps) => {
 
         <Card>
           <CardContent className="pt-4 pb-3 text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 mb-2">
-              <Activity className="h-6 w-6 text-blue-600" />
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-info-surface mb-2">
+              <Activity className="h-6 w-6 text-info-ink" />
             </div>
-            <p className="text-2xl font-bold text-blue-700">{stats.interactionsLast7d}</p>
+            <p className="text-2xl font-bold text-info-ink">{stats.interactionsLast7d}</p>
             <p className="text-xs text-muted-foreground">Interactions (7j)</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="pt-4 pb-3 text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 mb-2">
-              <CheckCircle2 className="h-6 w-6 text-green-600" />
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-success-surface mb-2">
+              <CheckCircle2 className="h-6 w-6 text-success" />
             </div>
-            <p className="text-2xl font-bold text-green-700">{stats.completionRate}%</p>
+            <p className="text-2xl font-bold text-success">{stats.completionRate}%</p>
             <p className="text-xs text-muted-foreground">Taux complétion</p>
           </CardContent>
         </Card>
@@ -91,29 +91,29 @@ const NetworkStatsPanel = ({ stats }: NetworkStatsPanelProps) => {
             <div>
               <div className="flex justify-between text-xs mb-1">
                 <span>Chauds</span>
-                <span className="text-red-600 font-medium">
+                <span className="text-danger-ink font-medium">
                   {stats.warmthDistribution.hot} ({stats.warmthPercent.hot}%)
                 </span>
               </div>
-              <Progress value={stats.warmthPercent.hot} className="h-2 [&>div]:bg-red-500" />
+              <Progress value={stats.warmthPercent.hot} className="h-2 [&>div]:bg-danger" />
             </div>
             <div>
               <div className="flex justify-between text-xs mb-1">
                 <span>Tièdes</span>
-                <span className="text-orange-600 font-medium">
+                <span className="text-caution-ink font-medium">
                   {stats.warmthDistribution.warm} ({stats.warmthPercent.warm}%)
                 </span>
               </div>
-              <Progress value={stats.warmthPercent.warm} className="h-2 [&>div]:bg-orange-400" />
+              <Progress value={stats.warmthPercent.warm} className="h-2 [&>div]:bg-caution" />
             </div>
             <div>
               <div className="flex justify-between text-xs mb-1">
                 <span>Froids</span>
-                <span className="text-blue-600 font-medium">
+                <span className="text-info-ink font-medium">
                   {stats.warmthDistribution.cold} ({stats.warmthPercent.cold}%)
                 </span>
               </div>
-              <Progress value={stats.warmthPercent.cold} className="h-2 [&>div]:bg-blue-400" />
+              <Progress value={stats.warmthPercent.cold} className="h-2 [&>div]:bg-info" />
             </div>
             {stats.contactsNeverContacted > 0 && (
               <div className="flex items-center gap-1.5 pt-1 text-xs text-muted-foreground">
@@ -161,7 +161,7 @@ const NetworkStatsPanel = ({ stats }: NetworkStatsPanelProps) => {
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 text-sm">
-                <span className="text-green-600 font-medium">{stats.actionsDone} faites</span>
+                <span className="text-success font-medium">{stats.actionsDone} faites</span>
                 <span className="text-muted-foreground">{stats.actionsSkipped} passées</span>
                 <span className="text-primary font-medium">{stats.actionsPending} en cours</span>
               </div>

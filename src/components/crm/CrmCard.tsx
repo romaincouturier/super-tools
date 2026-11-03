@@ -150,7 +150,7 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
             />
           ) : (
             <div
-              className="text-xs font-semibold text-green-700 bg-green-50 rounded px-2 py-0.5 cursor-pointer hover:bg-green-100 transition-colors"
+              className="text-xs font-semibold text-success bg-success-surface rounded px-2 py-0.5 cursor-pointer hover:bg-success-surface transition-colors"
               onClick={handleValueClick}
               title="Cliquer pour modifier"
             >
@@ -166,20 +166,20 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
               <div
                 className={`h-full rounded-full transition-all ${
                   card.confidence_score >= 70
-                    ? "bg-green-500"
+                    ? "bg-success"
                     : card.confidence_score >= 40
-                    ? "bg-orange-400"
-                    : "bg-red-400"
+                    ? "bg-caution"
+                    : "bg-danger"
                 }`}
                 style={{ width: `${card.confidence_score}%` }}
               />
             </div>
             <span className={`text-micro font-medium ${
               card.confidence_score >= 70
-                ? "text-green-600"
+                ? "text-success"
                 : card.confidence_score >= 40
-                ? "text-orange-600"
-                : "text-red-600"
+                ? "text-caution-ink"
+                : "text-danger-ink"
             }`}>
               {card.confidence_score}%
             </span>

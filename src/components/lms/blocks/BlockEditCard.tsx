@@ -223,7 +223,7 @@ export default function BlockEditCard({
       </div>}
 
       {!slim && isExample && (
-        <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs">
+        <div className="flex items-center gap-1.5 px-3 py-1 bg-caution-surface border-b border-caution-line text-caution-ink text-xs">
           <Wand2 className="h-3 w-3 shrink-0" />
           Contenu d'exemple — pensez à le remplacer par votre contenu réel
         </div>

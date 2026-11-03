@@ -257,8 +257,8 @@ const FeatureUsageTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <MousePointerClick className="h-5 w-5 text-blue-600" />
+              <div className="p-2 rounded-lg bg-info-surface">
+                <MousePointerClick className="h-5 w-5 text-info-ink" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Événements</p>
@@ -285,8 +285,8 @@ const FeatureUsageTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <CalendarCheck className="h-5 w-5 text-green-600" />
+              <div className="p-2 rounded-lg bg-success-surface">
+                <CalendarCheck className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Jours actifs</p>
@@ -307,8 +307,8 @@ const FeatureUsageTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-100">
-                <TrendingUp className="h-5 w-5 text-orange-600" />
+              <div className="p-2 rounded-lg bg-caution-surface">
+                <TrendingUp className="h-5 w-5 text-caution-ink" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Moy. / jour actif</p>

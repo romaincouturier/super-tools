@@ -448,7 +448,7 @@ const EmailTimelineComputed = ({
             {stats.sent} envoyé{stats.sent > 1 ? "s" : ""}
           </span>
           <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3 text-amber-500" />
+            <Clock className="h-3 w-3 text-caution" />
             {stats.pending} programmé{stats.pending > 1 ? "s" : ""}
           </span>
           <span className="flex items-center gap-1">
@@ -495,7 +495,7 @@ const EmailTimelineComputed = ({
                         {phaseInfo.label}
                         <span className="flex gap-1 ml-1">
                           {phaseSent > 0 && <Badge variant="default" className="text-micro h-5 px-1.5 bg-primary/80">{phaseSent} ✓</Badge>}
-                          {phasePending > 0 && <Badge variant="secondary" className="text-micro h-5 px-1.5 bg-amber-100 text-amber-700">{phasePending}</Badge>}
+                          {phasePending > 0 && <Badge variant="secondary" className="text-micro h-5 px-1.5 bg-caution-surface text-caution-ink">{phasePending}</Badge>}
                           {phasePredicted > 0 && <Badge variant="outline" className="text-micro h-5 px-1.5 border-dashed">{phasePredicted}</Badge>}
                         </span>
                       </span>
@@ -527,7 +527,7 @@ const EmailTimelineComputed = ({
                               breakdown={
                                 <span className="text-micro text-muted-foreground">
                                   {sentCount > 0 && <span className="text-primary">{sentCount}✓ </span>}
-                                  {pendingCount > 0 && <span className="text-amber-600">{pendingCount}⏳ </span>}
+                                  {pendingCount > 0 && <span className="text-caution-ink">{pendingCount}⏳ </span>}
                                   {predictedCount > 0 && <span>{predictedCount}🔮</span>}
                                 </span>
                               }
@@ -562,7 +562,7 @@ const EmailTimelineComputed = ({
             <span className="w-2 h-2 rounded-full bg-primary" /> Envoyé
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-amber-500" /> Programmé en DB
+            <span className="w-2 h-2 rounded-full bg-caution" /> Programmé en DB
           </span>
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full border border-dashed border-muted-foreground" /> Prévu (pas encore créé)
@@ -622,7 +622,7 @@ function TimelineRow({
     status === "sent"
       ? "bg-primary"
       : status === "pending"
-        ? "bg-amber-500"
+        ? "bg-caution"
         : status === "error"
           ? "bg-destructive"
           : "border border-dashed border-muted-foreground";
@@ -666,7 +666,7 @@ function TimelineRow({
           </Badge>
         )}
         {status === "pending" && (
-          <Badge variant="secondary" className="text-micro h-5 px-1.5 bg-amber-100 text-amber-700">
+          <Badge variant="secondary" className="text-micro h-5 px-1.5 bg-caution-surface text-caution-ink">
             <Clock className="h-2.5 w-2.5 mr-0.5" />
             Programmé
           </Badge>

@@ -34,8 +34,8 @@ import {
 
 function fileIcon(mimeType: string | null) {
   if (!mimeType) return <File className="h-5 w-5 text-muted-foreground" />;
-  if (mimeType.startsWith("image/")) return <FileImage className="h-5 w-5 text-blue-500" />;
-  if (mimeType === "application/pdf") return <FileText className="h-5 w-5 text-red-500" />;
+  if (mimeType.startsWith("image/")) return <FileImage className="h-5 w-5 text-info" />;
+  if (mimeType === "application/pdf") return <FileText className="h-5 w-5 text-danger" />;
   return <FileText className="h-5 w-5 text-muted-foreground" />;
 }
 
@@ -415,7 +415,7 @@ export default function AdminArchives() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className={`h-7 w-7 ${doc.is_favorite ? "text-yellow-500 hover:text-yellow-600" : "text-muted-foreground hover:text-yellow-500"}`}
+                      className={`h-7 w-7 ${doc.is_favorite ? "text-primary hover:text-caution-ink" : "text-muted-foreground hover:text-primary"}`}
                       onClick={() => favoriteMutation.mutate({ id: doc.id, isFavorite: !doc.is_favorite })}
                       title={doc.is_favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
                     >

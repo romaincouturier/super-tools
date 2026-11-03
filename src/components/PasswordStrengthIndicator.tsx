@@ -11,7 +11,7 @@ interface CriteriaItemProps {
 }
 
 const CriteriaItem = ({ met, label }: CriteriaItemProps) => (
-  <div className={`flex items-center gap-2 text-sm ${met ? "text-green-600" : "text-muted-foreground"}`}>
+  <div className={`flex items-center gap-2 text-sm ${met ? "text-success" : "text-muted-foreground"}`}>
     {met ? (
       <Check className="w-4 h-4" />
     ) : (

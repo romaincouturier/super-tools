@@ -50,9 +50,9 @@ export function PollingIndicator({ source, label = "Polling", functionName, forc
     cursor?.status === "error" ? (
       <AlertCircle className="h-3 w-3 text-destructive" />
     ) : cursor?.status === "running" ? (
-      <Spinner className="h-3 w-3 text-blue-500" />
+      <Spinner className="h-3 w-3 text-info" />
     ) : (
-      <CheckCircle2 className="h-3 w-3 text-green-600" />
+      <CheckCircle2 className="h-3 w-3 text-success" />
     );
 
   const statusText =

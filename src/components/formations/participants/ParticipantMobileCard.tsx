@@ -28,7 +28,7 @@ const ParticipantMobileCard = ({
         const displayName = isDemoMode ? maskName(rawName) : rawName;
 
         return (
-          <div key={participant.id} className={`p-3 rounded-lg border bg-card space-y-2 ${actionsProps.isInterEntreprise && participant.payment_mode === "invoice" && !participant.invoice_file_url ? "text-red-600 border-red-200" : ""}`}>
+          <div key={participant.id} className={`p-3 rounded-lg border bg-card space-y-2 ${actionsProps.isInterEntreprise && participant.payment_mode === "invoice" && !participant.invoice_file_url ? "text-danger-ink border-danger-line" : ""}`}>
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-medium text-sm truncate">
@@ -95,7 +95,7 @@ const ParticipantMobileCard = ({
                   const isScheduled = participant.needs_survey_status === "programme";
                   const isConvoked = !["non_envoye", "manuel", "programme"].includes(participant.needs_survey_status);
                   return (
-                    <span className={`inline-flex items-center gap-1 text-micro font-medium ${isConvoked ? "text-primary" : isScheduled ? "text-amber-600" : "text-muted-foreground"}`}>
+                    <span className={`inline-flex items-center gap-1 text-micro font-medium ${isConvoked ? "text-primary" : isScheduled ? "text-caution-ink" : "text-muted-foreground"}`}>
                       {isConvoked ? <Send className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                       {isConvoked ? "Convoqué" : isScheduled ? "Convocation programmée" : "Non convoqué"}
                     </span>
@@ -114,7 +114,7 @@ const ParticipantMobileCard = ({
               <p className="text-xs text-muted-foreground">
                 {isDemoMode ? maskAmount(participant.sold_price_ht) : `${participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € HT`}
                 {participant.payment_mode === "invoice" && !participant.invoice_file_url && (
-                  <span className="ml-1.5 text-amber-600">• À facturer</span>
+                  <span className="ml-1.5 text-caution-ink">• À facturer</span>
                 )}
               </p>
             )}

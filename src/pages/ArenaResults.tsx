@@ -62,8 +62,8 @@ export default function ArenaResults() {
               <div className="flex items-center gap-2">
                 <h1 className="text-sm font-semibold">Resultats</h1>
                 <span className={`rounded-full px-1.5 py-0.5 text-micro font-medium ${
-                  config.mode === "decision" ? "bg-amber-500/10 text-amber-500"
-                    : config.mode === "deliverable" ? "bg-emerald-500/10 text-emerald-500"
+                  config.mode === "decision" ? "bg-caution/10 text-caution"
+                    : config.mode === "deliverable" ? "bg-success/10 text-success"
                       : "bg-primary/10 text-primary"
                 }`}>
                   {config.mode === "decision" ? "Decision" : config.mode === "deliverable" ? "Livrable" : "Exploration"}
@@ -150,8 +150,8 @@ export default function ArenaResults() {
 
         {/* Deliverable tab */}
         {activeTab === "deliverable" && hasDeliverable && (
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6">
-            <h2 className="mb-4 text-lg font-semibold text-emerald-500">Livrable final</h2>
+          <div className="rounded-xl border border-success/30 bg-success/5 p-6">
+            <h2 className="mb-4 text-lg font-semibold text-success">Livrable final</h2>
             <div className="whitespace-pre-wrap text-sm leading-relaxed">{result.deliverable}</div>
           </div>
         )}
@@ -173,7 +173,7 @@ export default function ArenaResults() {
                       {vote.agentName.charAt(0).toUpperCase()}
                     </div>
                     <span className="font-semibold" style={{ color: agent?.color }}>{vote.agentName}</span>
-                    <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-micro font-medium text-amber-500">VOTE</span>
+                    <span className="rounded-full bg-caution/10 px-2 py-0.5 text-micro font-medium text-caution">VOTE</span>
                   </div>
                   <div className="whitespace-pre-wrap text-sm leading-relaxed">{vote.reasoning}</div>
                 </div>

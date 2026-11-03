@@ -425,7 +425,7 @@ export default function LmsCoursePlayer() {
       mainRef={mainRef}
       scrollable
       previewBanner={isPreview && (
-        <div className="bg-amber-500 text-white text-center text-sm py-1 font-medium">
+        <div className="bg-caution text-white text-center text-sm py-1 font-medium">
           🔍 Mode prévisualisation admin — les progressions ne sont pas enregistrées
         </div>
       )}

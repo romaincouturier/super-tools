@@ -29,7 +29,7 @@ export default function SupportTicketCard({ card, isDragging: isDraggingProp }: 
       {...attributes}
       {...listeners}
       className={`border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing space-y-2 ${
-        t.discussion_requested_at ? "bg-amber-50 border-amber-300" : "bg-background"
+        t.discussion_requested_at ? "bg-caution-surface border-caution-line" : "bg-background"
       } ${isDragging ? "opacity-50 shadow-lg rotate-2" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -80,7 +80,7 @@ export default function SupportTicketCard({ card, isDragging: isDraggingProp }: 
             {CODING_STATUS_CONFIG[t.coding_status].label}
           </Badge>
           {t.coding_status === "error" && t.coding_error && (
-            <p className="text-micro text-red-600 line-clamp-2">{t.coding_error}</p>
+            <p className="text-micro text-danger-ink line-clamp-2">{t.coding_error}</p>
           )}
         </div>
       )}
@@ -91,7 +91,7 @@ export default function SupportTicketCard({ card, isDragging: isDraggingProp }: 
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
-          className="flex items-center gap-1 text-caption font-medium text-blue-600 hover:underline"
+          className="flex items-center gap-1 text-caption font-medium text-info-ink hover:underline"
         >
           <GitBranch className="h-3 w-3 shrink-0" />
           Voir la PR

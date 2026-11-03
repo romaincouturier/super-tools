@@ -106,7 +106,7 @@ export default function BreakEvenScenarioList({
                   </div>
                   <div>
                     <span className="text-muted-foreground">Marge : </span>
-                    <strong className={m.monthlyMargin >= 0 ? "text-emerald-600" : "text-rose-600"}>
+                    <strong className={m.monthlyMargin >= 0 ? "text-success" : "text-danger-ink"}>
                       {isDemoMode ? maskAmount(m.monthlyMargin) : EUR.format(m.monthlyMargin)}
                     </strong>
                   </div>

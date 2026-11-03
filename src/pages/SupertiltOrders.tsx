@@ -79,21 +79,21 @@ const GAME_TYPE_LABELS: Record<GameType, string> = {
 };
 
 const GAME_TYPE_COLORS: Record<GameType, string> = {
-  supertilt: "bg-blue-100 text-blue-800",
+  supertilt: "bg-info-surface text-info-ink",
   dropshipping: "bg-purple-100 text-purple-800",
-  location: "bg-orange-100 text-orange-800",
-  partner: "bg-green-100 text-green-800",
+  location: "bg-caution-surface text-caution-ink",
+  partner: "bg-success-surface text-success",
 };
 
 const KANBAN_ICONS: Record<KanbanStatus, React.ReactNode> = {
-  to_validate: <AlertTriangle className="h-3.5 w-3.5 text-yellow-600" />,
-  received: <Clock className="h-3.5 w-3.5 text-blue-600" />,
+  to_validate: <AlertTriangle className="h-3.5 w-3.5 text-caution-ink" />,
+  received: <Clock className="h-3.5 w-3.5 text-info-ink" />,
   to_ship: <Truck className="h-3.5 w-3.5 text-indigo-600" />,
   dropshipping: <RefreshCw className="h-3.5 w-3.5 text-purple-600" />,
-  location_pending: <FileText className="h-3.5 w-3.5 text-orange-600" />,
-  location_active: <Clock className="h-3.5 w-3.5 text-orange-600" />,
-  processed: <CheckCircle className="h-3.5 w-3.5 text-green-600" />,
-  blocked: <Ban className="h-3.5 w-3.5 text-red-600" />,
+  location_pending: <FileText className="h-3.5 w-3.5 text-caution-ink" />,
+  location_active: <Clock className="h-3.5 w-3.5 text-caution-ink" />,
+  processed: <CheckCircle className="h-3.5 w-3.5 text-success" />,
+  blocked: <Ban className="h-3.5 w-3.5 text-danger-ink" />,
 };
 
 // ── KPI Dashboard ──────────────────────────────────────────────────
@@ -103,10 +103,10 @@ function Dashboard() {
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
   const stats = [
-    { label: "Lignes totales", value: kpis?.count ?? 0, icon: <ShoppingCart className="h-5 w-5 text-blue-600" /> },
-    { label: "À valider", value: kpis?.toValidate ?? 0, icon: <AlertTriangle className="h-5 w-5 text-yellow-600" /> },
-    { label: "Traitées", value: kpis?.processed ?? 0, icon: <CheckCircle className="h-5 w-5 text-green-600" /> },
-    { label: "Bloquées", value: kpis?.blocked ?? 0, icon: <Ban className="h-5 w-5 text-red-600" /> },
+    { label: "Lignes totales", value: kpis?.count ?? 0, icon: <ShoppingCart className="h-5 w-5 text-info-ink" /> },
+    { label: "À valider", value: kpis?.toValidate ?? 0, icon: <AlertTriangle className="h-5 w-5 text-caution-ink" /> },
+    { label: "Traitées", value: kpis?.processed ?? 0, icon: <CheckCircle className="h-5 w-5 text-success" /> },
+    { label: "Bloquées", value: kpis?.blocked ?? 0, icon: <Ban className="h-5 w-5 text-danger-ink" /> },
   ];
 
   return (
@@ -187,7 +187,7 @@ function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => v
             <div><span className="text-muted-foreground">Email envoyé</span><p className="font-medium">{item.email_sent_at ? DATE(item.email_sent_at) : "Non"}</p></div>
           </div>
           {item.block_reason && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded text-red-800">
+            <div className="p-3 bg-danger-surface border border-danger-line rounded text-danger-ink">
               <strong>Blocage :</strong> {item.block_reason}
             </div>
           )}
@@ -215,7 +215,7 @@ function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => v
                 {emailLogs.map((log: any) => (
                   <details key={log.id} className="border rounded p-2 bg-muted/30">
                     <summary className="cursor-pointer flex flex-wrap items-center gap-2 text-xs">
-                      <span className={`px-1.5 py-0.5 rounded font-medium ${log.status === "sent" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                      <span className={`px-1.5 py-0.5 rounded font-medium ${log.status === "sent" ? "bg-success-surface text-success" : "bg-danger-surface text-danger-ink"}`}>
                         {log.status}
                       </span>
                       <span className="font-medium">{log.template_key ?? "—"}</span>
@@ -228,7 +228,7 @@ function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => v
                       )}
                       {log.cc?.length > 0 && <p className="text-muted-foreground">CC : {log.cc.join(", ")}</p>}
                       {log.subject && <p><strong>Sujet :</strong> {log.subject}</p>}
-                      {log.error && <p className="text-red-700"><strong>Erreur :</strong> {log.error}</p>}
+                      {log.error && <p className="text-danger-ink"><strong>Erreur :</strong> {log.error}</p>}
                       {log.body && (
                         <div
                           className="mt-2 p-2 bg-background border rounded prose prose-sm max-w-none"
@@ -556,13 +556,13 @@ function LocationContractSection({ item }: { item: OrderItem }) {
   };
 
   return (
-    <div className="mt-2 pt-2 border-t border-orange-200 space-y-2">
-      <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Contrat de location</p>
+    <div className="mt-2 pt-2 border-t border-caution-line space-y-2">
+      <p className="text-xs font-semibold text-caution-ink uppercase tracking-wide">Contrat de location</p>
       {item.contrat_reference && (
         <p className="text-xs text-muted-foreground">Réf. {item.contrat_reference}</p>
       )}
       {isSigned ? (
-        <div className="flex items-center gap-1.5 text-xs text-green-700">
+        <div className="flex items-center gap-1.5 text-xs text-success">
           <CheckCircle className="h-3.5 w-3.5" />
           Signé le {sig?.signed_at ? DATE(sig.signed_at) : ""}
           {sig?.signed_pdf_url && (
@@ -570,7 +570,7 @@ function LocationContractSection({ item }: { item: OrderItem }) {
           )}
         </div>
       ) : isSent ? (
-        <p className="text-xs text-blue-700 flex items-center gap-1">
+        <p className="text-xs text-info-ink flex items-center gap-1">
           <Send className="h-3 w-3" />En attente de signature (envoyé le {sig?.email_sent_at ? DATE(sig.email_sent_at) : ""})
         </p>
       ) : hasContract ? (
@@ -593,7 +593,7 @@ function LocationContractSection({ item }: { item: OrderItem }) {
           <Button
             variant="outline"
             size="sm"
-            className="h-6 text-xs px-2 text-orange-700"
+            className="h-6 text-xs px-2 text-caution-ink"
             onClick={handleSend}
             disabled={sending || sigLoading}
           >
@@ -702,7 +702,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
         <p>Qté : {item.quantity}{item.line_total ? ` — ${EUR(item.line_total)}` : ""}</p>
         {item.games?.title && <p>Jeu : {item.games.title}</p>}
         {item.email_sent_at && (
-          <p className="flex items-center gap-1 text-green-700">
+          <p className="flex items-center gap-1 text-success">
             <Send className="h-3 w-3" />
             Email envoyé le {DATE(item.email_sent_at)}
           </p>
@@ -716,7 +716,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
       </div>
 
       {item.block_reason && (
-        <p className="text-xs text-red-700 bg-red-50 p-1.5 rounded border border-red-200">{item.block_reason}</p>
+        <p className="text-xs text-danger-ink bg-danger-surface p-1.5 rounded border border-danger-line">{item.block_reason}</p>
       )}
 
       {item.notes && (
@@ -740,13 +740,13 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
           <Eye className="h-3 w-3 mr-1" />Voir
         </Button>
         {item.kanban_status === "to_validate" && (
-          <Button variant="ghost" size="sm" className="h-6 text-xs px-2 text-green-700" onClick={() => setShowValidate(true)}>
+          <Button variant="ghost" size="sm" className="h-6 text-xs px-2 text-success" onClick={() => setShowValidate(true)}>
             <CheckCircle className="h-3 w-3 mr-1" />
             {item.game_id ? "Valider" : "Ajouter au catalogue"}
           </Button>
         )}
         {item.kanban_status !== "processed" && item.kanban_status !== "blocked" && item.game_id && (
-          <Button variant="ghost" size="sm" className="h-6 text-xs px-2 text-blue-700" onClick={handleSendEmail} disabled={sendingEmail}>
+          <Button variant="ghost" size="sm" className="h-6 text-xs px-2 text-info-ink" onClick={handleSendEmail} disabled={sendingEmail}>
             {sendingEmail ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Send className="h-3 w-3 mr-1" />}
             Email
           </Button>
@@ -764,7 +764,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
           <Button
             variant="ghost"
             size="sm"
-            className={`h-6 text-xs px-2 ${item.shipped_confirmed_at ? "text-green-700" : "text-muted-foreground"}`}
+            className={`h-6 text-xs px-2 ${item.shipped_confirmed_at ? "text-success" : "text-muted-foreground"}`}
             onClick={async () => {
               try {
                 await markShipped({ id: item.id, confirmed: !item.shipped_confirmed_at });
@@ -781,7 +781,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
           <Button
             variant="ghost"
             size="sm"
-            className={`h-6 text-xs px-2 ${item.shipped_confirmed_at ? "text-green-700" : "text-indigo-700"}`}
+            className={`h-6 text-xs px-2 ${item.shipped_confirmed_at ? "text-success" : "text-indigo-700"}`}
             disabled={markingShipped || !locationSigned}
             title={locationSigned ? undefined : "Contrat non signé : le jeu ne peut pas encore être expédié"}
             onClick={async () => {
@@ -799,7 +799,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
           <Button
             variant="ghost"
             size="sm"
-            className={`h-6 text-xs px-2 ${item.hand_delivered_at ? "text-green-700" : "text-muted-foreground"}`}
+            className={`h-6 text-xs px-2 ${item.hand_delivered_at ? "text-success" : "text-muted-foreground"}`}
             disabled={markingHand || (item.game_type === "location" && !locationSigned && !item.hand_delivered_at)}
             title="Remis en main propre : aucun envoi transporteur attendu"
             onClick={async () => {
@@ -885,7 +885,7 @@ function Kanban() {
                   {showToValidate && toValidateCount > 0 && (
                     <Badge
                       variant="outline"
-                      className="text-xs border-yellow-400 bg-yellow-50 text-yellow-800"
+                      className="text-xs border-primary bg-caution-surface text-caution-ink"
                       title="Jeux à valider (non rattachés)"
                     >
                       <AlertTriangle className="h-3 w-3 mr-1" />
@@ -1816,13 +1816,13 @@ export default function SupertiltOrders() {
       {(toValidateCount > 0 || blockedCount > 0) && (
         <div className="mb-4 flex gap-3 flex-wrap">
           {toValidateCount > 0 && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+            <div className="flex items-center gap-2 px-3 py-2 bg-caution-surface border border-caution-line rounded-lg text-sm text-caution-ink">
               <AlertTriangle className="h-4 w-4" />
               <strong>{toValidateCount}</strong> jeu(x) à valider dans Reçues / Dropshipping
             </div>
           )}
           {blockedCount > 0 && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+            <div className="flex items-center gap-2 px-3 py-2 bg-danger-surface border border-danger-line rounded-lg text-sm text-danger-ink">
               <Ban className="h-4 w-4" />
               <strong>{blockedCount}</strong> commande(s) bloquée(s)
             </div>
@@ -1835,7 +1835,7 @@ export default function SupertiltOrders() {
           <TabsTrigger value="kanban" className="relative">
             <LayoutGrid className="h-4 w-4 mr-1.5" />Kanban
             {toValidateCount > 0 && (
-              <span className="ml-1.5 bg-yellow-500 text-white text-xs rounded-full px-1.5 py-0.5 leading-none">{toValidateCount}</span>
+              <span className="ml-1.5 bg-primary text-white text-xs rounded-full px-1.5 py-0.5 leading-none">{toValidateCount}</span>
             )}
           </TabsTrigger>
           <TabsTrigger value="catalog"><Package className="h-4 w-4 mr-1.5" />Catalogue</TabsTrigger>

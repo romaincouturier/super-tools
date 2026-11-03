@@ -56,7 +56,7 @@ export function OKRParticipantRow({ participant, objectiveId }: { participant: a
       </div>
       <div className="flex items-center gap-2">
         <Badge variant="outline">{participant.role}</Badge>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={handleRemove}>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-danger" onClick={handleRemove}>
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>

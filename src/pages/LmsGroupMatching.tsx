@@ -181,7 +181,7 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
                         <span className="text-xs font-medium text-muted-foreground">Groupe #{i + 1}</span>
                         <div className="flex items-center gap-2">
                           {g.email_sent_at ? (
-                            <Badge variant="outline" className="text-xs text-green-600 border-green-200">Email envoyé</Badge>
+                            <Badge variant="outline" className="text-xs text-success border-success-line">Email envoyé</Badge>
                           ) : sending === g.id ? (
                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                           ) : null}

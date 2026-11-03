@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OKRRiskAlert, RiskSeverity } from "@/lib/okrRiskEngine";
 
 const severityConfig: Record<RiskSeverity, { icon: typeof AlertTriangle; color: string; bg: string; label: string }> = {
-  critical: { icon: ShieldAlert, color: "text-red-600", bg: "bg-red-50 border-red-200", label: "Critique" },
-  warning: { icon: AlertTriangle, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200", label: "Attention" },
-  info: { icon: Info, color: "text-blue-600", bg: "bg-blue-50 border-blue-200", label: "Info" },
+  critical: { icon: ShieldAlert, color: "text-danger-ink", bg: "bg-danger-surface border-danger-line", label: "Critique" },
+  warning: { icon: AlertTriangle, color: "text-caution-ink", bg: "bg-caution-surface border-caution-line", label: "Attention" },
+  info: { icon: Info, color: "text-info-ink", bg: "bg-info-surface border-info-line", label: "Info" },
 };
 
 interface OKRRiskAlertsProps {
@@ -19,8 +19,8 @@ const OKRRiskAlerts = ({ alerts, onClickObjective }: OKRRiskAlertsProps) => {
     return (
       <Card>
         <CardContent className="py-6 text-center text-muted-foreground">
-          <AlertCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
-          <p className="font-medium text-green-700">Aucune alerte de risque</p>
+          <AlertCircle className="h-8 w-8 mx-auto mb-2 text-success" />
+          <p className="font-medium text-success">Aucune alerte de risque</p>
           <p className="text-sm">Tous vos OKRs sont en bonne voie</p>
         </CardContent>
       </Card>
@@ -35,7 +35,7 @@ const OKRRiskAlerts = ({ alerts, onClickObjective }: OKRRiskAlertsProps) => {
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShieldAlert className="h-5 w-5 text-red-500" />
+            <ShieldAlert className="h-5 w-5 text-danger" />
             Radar de risques
           </div>
           <div className="flex gap-2">
@@ -43,7 +43,7 @@ const OKRRiskAlerts = ({ alerts, onClickObjective }: OKRRiskAlertsProps) => {
               <Badge variant="destructive">{criticalCount} critique{criticalCount > 1 ? "s" : ""}</Badge>
             )}
             {warningCount > 0 && (
-              <Badge variant="outline" className="border-yellow-500 text-yellow-600">
+              <Badge variant="outline" className="border-primary text-caution-ink">
                 {warningCount} attention
               </Badge>
             )}

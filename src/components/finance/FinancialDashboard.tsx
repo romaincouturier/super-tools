@@ -67,7 +67,7 @@ function ChangeBadge({ kpi, invert = false }: { kpi: KPIWithChange; invert?: boo
   const Icon = trendIcon(kpi.pct);
   const tone = trendTone(kpi.pct, invert);
   const toneClass =
-    tone === "positive" ? "text-emerald-600" : tone === "negative" ? "text-rose-600" : "text-muted-foreground";
+    tone === "positive" ? "text-success" : tone === "negative" ? "text-danger-ink" : "text-muted-foreground";
   return (
     <div className={`flex items-center gap-1 text-xs ${toneClass}`}>
       <Icon className="h-3 w-3" />
@@ -262,7 +262,7 @@ export default function FinancialDashboard() {
               </ResponsiveContainer>
             )}
             {!kpis.loading && kpis.netResult.current < 0 && (
-              <div className="flex items-center gap-1 text-xs text-rose-600 mt-2">
+              <div className="flex items-center gap-1 text-xs text-danger-ink mt-2">
                 <TrendingDown className="h-3 w-3" />
                 Résultat net négatif sur la période
               </div>

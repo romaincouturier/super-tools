@@ -43,11 +43,11 @@ export interface SimilarIdea {
 export const IMPACT_WEIGHT: Record<string, number> = { faible: 1, moyen: 2, fort: 3 };
 
 export const IDEA_STATUS_CONFIG: Record<IdeaStatus, { label: string; color: string }> = {
-  nouvelle: { label: "Nouvelle", color: "bg-blue-100 text-blue-800" },
-  a_l_etude: { label: "À l'étude", color: "bg-amber-100 text-amber-800" },
-  acceptee: { label: "Acceptée", color: "bg-emerald-100 text-emerald-800" },
+  nouvelle: { label: "Nouvelle", color: "bg-info-surface text-info-ink" },
+  a_l_etude: { label: "À l'étude", color: "bg-caution-surface text-caution-ink" },
+  acceptee: { label: "Acceptée", color: "bg-success-surface text-success" },
   promue: { label: "Promue", color: "bg-violet-100 text-violet-800" },
-  realisee: { label: "Réalisée", color: "bg-green-100 text-green-800" },
+  realisee: { label: "Réalisée", color: "bg-success-surface text-success" },
   rejetee: { label: "Rejetée", color: "bg-gray-100 text-gray-600" },
 };
 

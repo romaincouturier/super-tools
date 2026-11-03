@@ -83,7 +83,7 @@ export default function AgentCard({
               placeholder="Nom de l'agent"
             />
             {isExpert && (
-              <p className="text-micro text-blue-500">Expert du pool</p>
+              <p className="text-micro text-info">Expert du pool</p>
             )}
           </div>
         </div>
@@ -161,22 +161,22 @@ export default function AgentCard({
         </div>
 
         {isExpert && agent.frameworks && agent.frameworks.length > 0 && (
-          <div className="rounded-lg bg-blue-50 px-3 py-2">
-            <p className="mb-1 text-micro font-medium text-blue-600">Frameworks de reference</p>
+          <div className="rounded-lg bg-info-surface px-3 py-2">
+            <p className="mb-1 text-micro font-medium text-info-ink">Frameworks de reference</p>
             <div className="flex flex-wrap gap-1">
               {agent.frameworks.map((f, i) => (
-                <span key={i} className="rounded-full bg-blue-100 px-2 py-0.5 text-micro text-blue-600">{f}</span>
+                <span key={i} className="rounded-full bg-info-surface px-2 py-0.5 text-micro text-info-ink">{f}</span>
               ))}
             </div>
             {agent.biases && (
               <>
-                <p className="mt-2 mb-0.5 text-micro font-medium text-amber-500">Biais connus</p>
+                <p className="mt-2 mb-0.5 text-micro font-medium text-caution">Biais connus</p>
                 <p className="text-micro text-muted-foreground">{agent.biases}</p>
               </>
             )}
             {agent.style && (
               <>
-                <p className="mt-2 mb-0.5 text-micro font-medium text-emerald-500">Style de communication</p>
+                <p className="mt-2 mb-0.5 text-micro font-medium text-success">Style de communication</p>
                 <p className="text-micro text-muted-foreground">{agent.style}</p>
               </>
             )}

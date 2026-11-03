@@ -187,10 +187,10 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
 
         {/* Action "à discuter" — visible uniquement en Qualification */}
         {ticket.status === "qualification" && (
-          <Card className="border-dashed border-amber-300 bg-amber-50/40">
+          <Card className="border-dashed border-caution-line bg-caution-surface/40">
             <CardContent className="pt-4 space-y-2">
               <div className="flex items-start gap-2">
-                <MessageCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                <MessageCircle className="h-4 w-4 text-caution-ink mt-0.5 shrink-0" />
                 <div className="text-xs text-muted-foreground leading-relaxed">
                   Si le besoin n'est pas clair, marque-le « à discuter ». Un email sera envoyé à{" "}
                   <strong className="text-foreground">{ticket.submitted_by_email || "—"}</strong>{/* demo-safe: equipe SuperTilt */}{" "}
@@ -198,7 +198,7 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
                 </div>
               </div>
               {ticket.discussion_requested_at && (
-                <div className="text-xs text-amber-700">
+                <div className="text-xs text-caution-ink">
                   ✓ Demande envoyée {formatDistanceToNow(new Date(ticket.discussion_requested_at), { addSuffix: true, locale: fr })}
                 </div>
               )}
@@ -328,7 +328,7 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
             </CardHeader>
             <CardContent className="space-y-3">
               {ticket.coding_status === "error" && ticket.coding_error && (
-                <p className="text-sm text-red-600 whitespace-pre-wrap break-all">
+                <p className="text-sm text-danger-ink whitespace-pre-wrap break-all">
                   {ticket.coding_error}
                 </p>
               )}

@@ -99,7 +99,7 @@ const TravelExpenseCalculator = ({
         <div className="border-t pt-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">Total frais de déplacement</span>
-            <span className="text-lg font-bold text-green-700">{formatEur(travel.grandTotal)} €</span>
+            <span className="text-lg font-bold text-success">{formatEur(travel.grandTotal)} €</span>
           </div>
         </div>
 

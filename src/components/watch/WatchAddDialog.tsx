@@ -542,7 +542,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
 
             {/* Duplicate warning */}
             {duplicateWarning && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm">
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-caution-surface border border-caution-line text-caution-ink text-sm">
                 <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
                   <p>{duplicateWarning}</p>

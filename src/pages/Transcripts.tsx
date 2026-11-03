@@ -71,11 +71,11 @@ function formatDuration(seconds: number | null): string {
 // ── Fiche éditoriale (ST-2026-0215) ──────────────────────────────────────────
 
 const QUALIFICATION_CONFIG: Record<string, { label: string; className: string }> = {
-  pro_exploitable:       { label: "Pro exploitable",       className: "bg-green-100 text-green-800" },
+  pro_exploitable:       { label: "Pro exploitable",       className: "bg-success-surface text-success" },
   pro_archiver:          { label: "Pro à archiver",        className: "bg-slate-100 text-slate-700" },
   personnel_hors_sujet:  { label: "Personnel / hors sujet", className: "bg-zinc-100 text-zinc-500" },
-  sensible_confidentiel: { label: "Sensible / confidentiel", className: "bg-red-100 text-red-800" },
-  non_exploitable:       { label: "Non exploitable",       className: "bg-orange-100 text-orange-800" },
+  sensible_confidentiel: { label: "Sensible / confidentiel", className: "bg-danger-surface text-danger-ink" },
+  non_exploitable:       { label: "Non exploitable",       className: "bg-caution-surface text-caution-ink" },
 };
 
 const UNIVERS_LABELS: Record<string, string> = {
@@ -103,9 +103,9 @@ const TYPE_MATIERE_LABELS: Record<string, string> = {
 };
 
 const RISQUE_CLASSES: Record<string, string> = {
-  faible: "bg-green-100 text-green-800",
-  moyen: "bg-amber-100 text-amber-800",
-  fort: "bg-red-100 text-red-800",
+  faible: "bg-success-surface text-success",
+  moyen: "bg-caution-surface text-caution-ink",
+  fort: "bg-danger-surface text-danger-ink",
 };
 
 function QualificationBadge({ q }: { q: string | null }) {
@@ -159,7 +159,7 @@ function EditorialSheet({ t }: { t: Transcript }) {
           <div className="flex items-center gap-2 flex-wrap">
             <QualificationBadge q={q} />
             {a?.univers && (
-              <span className="text-caption px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+              <span className="text-caption px-2 py-0.5 rounded-full bg-info-surface text-info-ink">
                 {UNIVERS_LABELS[a.univers] ?? a.univers}
               </span>
             )}
@@ -530,14 +530,14 @@ export default function Transcripts() {
       <div className="grid grid-cols-4 gap-3 mb-6">
         {[
           { key: "total", label: "Total", value: counts.total, icon: <Mic className="h-4 w-4" />, onClick: () => { setStatus(""); resetPage(); } },
-          { key: "ready", label: "Prêts", value: counts.ready, icon: <CheckCircle2 className="h-4 w-4 text-green-600" />, onClick: () => { setStatus("ready"); resetPage(); } },
+          { key: "ready", label: "Prêts", value: counts.ready, icon: <CheckCircle2 className="h-4 w-4 text-success" />, onClick: () => { setStatus("ready"); resetPage(); } },
           {
             key: "processing",
             label: "En cours",
             value: counts.processing,
             icon: counts.processing > 0
-              ? <Spinner className="text-blue-600" />
-              : <Clock className="h-4 w-4 text-blue-600" />,
+              ? <Spinner className="text-info-ink" />
+              : <Clock className="h-4 w-4 text-info-ink" />,
             onClick: () => { setStatus("processing"); resetPage(); },
           },
           {

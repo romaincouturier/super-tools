@@ -563,7 +563,7 @@ export default function ProvenanceTab() {
                 <tr key={p.page} className="border-b last:border-0">
                   <td className="py-2 font-mono text-xs truncate max-w-[420px]">{p.page}</td>
                   <td className="py-2 text-right">{p.count}</td>
-                  <td className="py-2 text-right text-green-600">{p.won}</td>
+                  <td className="py-2 text-right text-success">{p.won}</td>
                   <td className="py-2 text-right">{isDemoMode ? "••%" : `${p.conversion}%`}</td>
                   <td className="py-2 text-right">{p.avgValue ? (isDemoMode ? maskAmount(p.avgValue) : eur(p.avgValue)) : "—"}</td>
                 </tr>
@@ -620,9 +620,9 @@ export default function ProvenanceTab() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Stat label="Délai moyen" value={stats.delayCount ? `${stats.avgDelay.toFixed(1)} h` : "—"} />
-            <Stat label="≤ 1 h" value={`${stats.under1h}`} color="text-green-600" />
-            <Stat label="≤ 24 h" value={`${stats.under24h}`} color="text-amber-600" />
-            <Stat label="> 24 h" value={`${stats.over24h}`} color="text-red-600" />
+            <Stat label="≤ 1 h" value={`${stats.under1h}`} color="text-success" />
+            <Stat label="≤ 24 h" value={`${stats.under24h}`} color="text-caution-ink" />
+            <Stat label="> 24 h" value={`${stats.over24h}`} color="text-danger-ink" />
           </div>
           <p className="text-xs text-muted-foreground mt-3">
             Calculé sur {stats.delayCount} opportunité(s) ayant un email envoyé après réception.

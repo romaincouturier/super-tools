@@ -12,11 +12,11 @@ import { useElearningIntegrations } from "@/hooks/useElearningIntegrations";
 import { STATUS_LABEL, isHealthy, type IntegrationStatus } from "@/lib/elearningIntegration";
 
 const BADGE_TONE: Record<IntegrationStatus, string> = {
-  ok: "bg-emerald-500/10 text-emerald-700 border-emerald-200",
-  ok_fallback: "bg-amber-500/10 text-amber-700 border-amber-200",
-  no_woo: "bg-red-500/10 text-red-700 border-red-200",
-  no_formula: "bg-red-500/10 text-red-700 border-red-200",
-  no_session: "bg-red-500/10 text-red-700 border-red-200",
+  ok: "bg-success/10 text-success border-success-line",
+  ok_fallback: "bg-caution/10 text-caution-ink border-caution-line",
+  no_woo: "bg-danger/10 text-danger-ink border-danger-line",
+  no_formula: "bg-danger/10 text-danger-ink border-danger-line",
+  no_session: "bg-danger/10 text-danger-ink border-danger-line",
   not_applicable: "bg-muted text-muted-foreground",
 };
 
@@ -59,7 +59,7 @@ export default function ElearningIntegrations() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Card>
                   <CardContent className="flex items-center gap-3 py-4">
-                    <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+                    <CheckCircle2 className="w-8 h-8 text-success" />
                     <div>
                       <p className="text-2xl font-bold">{summary.healthy}</p>
                       <p className="text-sm text-muted-foreground">Intégrations OK</p>
@@ -68,7 +68,7 @@ export default function ElearningIntegrations() {
                 </Card>
                 <Card>
                   <CardContent className="flex items-center gap-3 py-4">
-                    <AlertTriangle className="w-8 h-8 text-red-600" />
+                    <AlertTriangle className="w-8 h-8 text-danger-ink" />
                     <div>
                       <p className="text-2xl font-bold">{summary.toFix}</p>
                       <p className="text-sm text-muted-foreground">À corriger</p>

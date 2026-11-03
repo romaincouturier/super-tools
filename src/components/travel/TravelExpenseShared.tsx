@@ -395,7 +395,7 @@ export function DestinationRow({
             type="button"
             variant="ghost"
             size="icon"
-            className={cn("h-8 w-8", favorites.some((f) => f.city === dest.city?.trim()) ? "text-yellow-500" : "text-muted-foreground hover:text-yellow-500")}
+            className={cn("h-8 w-8", favorites.some((f) => f.city === dest.city?.trim()) ? "text-primary" : "text-muted-foreground hover:text-primary")}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddFavorite(dest); }}
             disabled={!dest.city?.trim()}
             title="Ajouter aux favoris"

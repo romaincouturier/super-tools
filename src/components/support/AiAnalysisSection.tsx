@@ -38,7 +38,7 @@ export default function AiAnalysisSection({ analysis, onUpdate, onDelete, onRean
 
   const isBug = analysis.type === "bug";
   const fields = isBug ? BUG_FIELDS : EVO_FIELDS;
-  const colorClass = isBug ? "border-red-200 bg-red-50/30" : "border-violet-200 bg-violet-50/30";
+  const colorClass = isBug ? "border-danger-line bg-danger-surface/30" : "border-violet-200 bg-violet-50/30";
   const typeLabel = isBug ? "Bug" : "Évolution";
 
   const startEditing = () => {
@@ -75,7 +75,7 @@ export default function AiAnalysisSection({ analysis, onUpdate, onDelete, onRean
             {editing ? (
               <>
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveEditing} title="Valider">
-                  <Check className="h-3.5 w-3.5 text-green-600" />
+                  <Check className="h-3.5 w-3.5 text-success" />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditing} title="Annuler">
                   <X className="h-3.5 w-3.5" />

@@ -151,7 +151,7 @@ const ReclamationPublic = () => {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
           <CardContent className="flex flex-col items-center gap-4 pt-6">
-            <CheckCircle2 className="w-16 h-16 text-green-500" />
+            <CheckCircle2 className="w-16 h-16 text-success" />
             <h2 className="text-xl font-semibold text-center">Réclamation enregistrée</h2>
             <p className="text-center text-muted-foreground">
               Merci pour votre retour. Nous avons bien reçu votre réclamation et nous reviendrons vers vous dans les meilleurs délais.

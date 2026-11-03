@@ -270,12 +270,12 @@ const OKR = () => {
 
       {/* Risk alerts banner on objectives view */}
       {insights && insights.alerts.filter((a) => a.severity === "critical").length > 0 && (
-        <div className="flex items-center gap-2 p-3 rounded-lg border border-red-200 bg-red-50 text-sm">
-          <ShieldAlert className="h-4 w-4 text-red-600 shrink-0" />
-          <span className="text-red-800">
+        <div className="flex items-center gap-2 p-3 rounded-lg border border-danger-line bg-danger-surface text-sm">
+          <ShieldAlert className="h-4 w-4 text-danger-ink shrink-0" />
+          <span className="text-danger-ink">
             {insights.alerts.filter((a) => a.severity === "critical").length} alerte(s) critique(s) détectée(s).
           </span>
-          <Button variant="link" size="sm" className="text-red-700 p-0 h-auto" onClick={() => setActiveView("insights")}>
+          <Button variant="link" size="sm" className="text-danger-ink p-0 h-auto" onClick={() => setActiveView("insights")}>
             Voir les détails
           </Button>
         </div>
@@ -294,7 +294,7 @@ const OKR = () => {
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                    <Star className="h-4 w-4 text-primary fill-primary" />
                     <Badge variant="outline">
                       {okrTimeTargetConfig[objective.time_target].shortLabel}
                     </Badge>
@@ -601,7 +601,7 @@ const ObjectiveCard = ({
               className="p-1 hover:bg-muted rounded"
             >
               {objective.is_favorite ? (
-                <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                <Star className="h-5 w-5 text-primary fill-primary" />
               ) : (
                 <StarOff className="h-5 w-5 text-muted-foreground" />
               )}
@@ -617,7 +617,7 @@ const ObjectiveCard = ({
                   <Edit2 className="h-4 w-4 mr-2" />
                   Modifier
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={onDelete} className="text-red-600">
+                <DropdownMenuItem onClick={onDelete} className="text-danger-ink">
                   <Trash2 className="h-4 w-4 mr-2" />
                   Supprimer
                 </DropdownMenuItem>

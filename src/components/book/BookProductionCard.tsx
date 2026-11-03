@@ -99,7 +99,7 @@ export default function BookProductionCard({
       {/* Persistent badges */}
       <div className="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none">
         {isCover && (
-          <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-400 h-5 px-1.5 gap-1">
+          <Badge className="bg-primary text-caution-ink hover:bg-primary h-5 px-1.5 gap-1">
             <Star className="w-3 h-3 fill-current" />
             Couverture
           </Badge>

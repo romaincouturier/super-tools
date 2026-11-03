@@ -315,7 +315,7 @@ const Evaluations = () => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        className={`h-4 w-4 ${i < rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
+        className={`h-4 w-4 ${i < rating ? "fill-primary text-primary" : "text-muted-foreground"}`}
       />
     ));
   };
@@ -401,7 +401,7 @@ const Evaluations = () => {
                 {filteredEvaluations.length > 0
                   ? computeAvgRating(filteredEvaluations).toFixed(1)
                   : "-"}
-                <Star className="h-6 w-6 fill-yellow-400 text-yellow-400" />
+                <Star className="h-6 w-6 fill-primary text-primary" />
               </CardTitle>
             </CardHeader>
           </Card>
@@ -526,18 +526,18 @@ const Evaluations = () => {
                   {/* Strengths */}
                   <div>
                     <h3 className="font-semibold flex items-center gap-2 mb-3">
-                      <TrendingUp className="h-5 w-5 text-green-600" />
+                      <TrendingUp className="h-5 w-5 text-success" />
                       Points forts ({analysis.strengths.length})
                     </h3>
                     <div className="space-y-3">
                       {analysis.strengths.map((item, idx) => (
-                        <div key={idx} className="border rounded-lg p-4 bg-green-50/50">
-                          <div className="font-medium text-green-800">{item.title}</div>
+                        <div key={idx} className="border rounded-lg p-4 bg-success-surface/50">
+                          <div className="font-medium text-success">{item.title}</div>
                           <p className="text-sm text-muted-foreground mt-1">
                             {item.description}
                           </p>
                           {item.evidence && (
-                            <p className="text-xs italic mt-2 text-green-600">
+                            <p className="text-xs italic mt-2 text-success">
                               "{item.evidence}"
                             </p>
                           )}
@@ -549,22 +549,22 @@ const Evaluations = () => {
                   {/* Weaknesses */}
                   <div>
                     <h3 className="font-semibold flex items-center gap-2 mb-3">
-                      <AlertCircle className="h-5 w-5 text-orange-600" />
+                      <AlertCircle className="h-5 w-5 text-caution-ink" />
                       Points faibles ({analysis.weaknesses.length})
                     </h3>
                     <div className="space-y-3">
                       {analysis.weaknesses.map((item, idx) => (
                         <div
                           key={idx}
-                          className="border rounded-lg p-4 bg-orange-50/50 flex justify-between items-start gap-4"
+                          className="border rounded-lg p-4 bg-caution-surface/50 flex justify-between items-start gap-4"
                         >
                           <div className="flex-1">
-                            <div className="font-medium text-orange-800">{item.title}</div>
+                            <div className="font-medium text-caution-ink">{item.title}</div>
                             <p className="text-sm text-muted-foreground mt-1">
                               {item.description}
                             </p>
                             {item.evidence && (
-                              <p className="text-xs italic mt-2 text-orange-600">
+                              <p className="text-xs italic mt-2 text-caution-ink">
                                 "{item.evidence}"
                               </p>
                             )}
@@ -573,7 +573,7 @@ const Evaluations = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-green-600 hover:bg-green-50"
+                              className="text-success hover:bg-success-surface"
                               onClick={() => handleAcceptRecommendation(item, "weakness")}
                               disabled={acceptingItem === `weakness-${item.title}`}
                             >
@@ -592,18 +592,18 @@ const Evaluations = () => {
                   {/* Recommendations */}
                   <div>
                     <h3 className="font-semibold flex items-center gap-2 mb-3">
-                      <Lightbulb className="h-5 w-5 text-blue-600" />
+                      <Lightbulb className="h-5 w-5 text-info-ink" />
                       Recommandations ({analysis.recommendations.length})
                     </h3>
                     <div className="space-y-3">
                       {analysis.recommendations.map((item, idx) => (
                         <div
                           key={idx}
-                          className="border rounded-lg p-4 bg-blue-50/50 flex justify-between items-start gap-4"
+                          className="border rounded-lg p-4 bg-info-surface/50 flex justify-between items-start gap-4"
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-blue-800">{item.title}</span>
+                              <span className="font-medium text-info-ink">{item.title}</span>
                               {item.priority && (
                                 <Badge
                                   variant={
@@ -627,7 +627,7 @@ const Evaluations = () => {
                               {item.description}
                             </p>
                             {item.impact && (
-                              <p className="text-xs mt-2 text-blue-600">
+                              <p className="text-xs mt-2 text-info-ink">
                                 Impact attendu : {item.impact}
                               </p>
                             )}
@@ -636,7 +636,7 @@ const Evaluations = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-green-600 hover:bg-green-50"
+                              className="text-success hover:bg-success-surface"
                               onClick={() => handleAcceptRecommendation(item, "recommendation")}
                               disabled={acceptingItem === `recommendation-${item.title}`}
                             >

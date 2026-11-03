@@ -27,7 +27,7 @@ function Delta({ value, suffix = "%", invert = false }: { value: number | null; 
   if (value === null || value === undefined || Number.isNaN(value)) return null;
   const positive = invert ? value < 0 : value > 0;
   const neutral = value === 0;
-  const color = neutral ? "text-muted-foreground" : positive ? "text-emerald-600" : "text-destructive";
+  const color = neutral ? "text-muted-foreground" : positive ? "text-success" : "text-destructive";
   const sign = value > 0 ? "+" : "";
   return <span className={`text-xs font-medium ${color}`}>{sign}{value.toFixed(1)}{suffix}</span>;
 }
@@ -87,7 +87,7 @@ function DimensionTable({ rows, keyLabel, showSecondKey }: { rows: GscDimensionR
               <td className="py-1.5 pr-4 text-right font-medium">{fmtNum(r.clicks)}</td>
               <td className="py-1.5 pr-4 text-right">
                 {r.delta_clicks === undefined ? "—" : (
-                  <span className={r.delta_clicks > 0 ? "text-emerald-600" : r.delta_clicks < 0 ? "text-destructive" : "text-muted-foreground"}>
+                  <span className={r.delta_clicks > 0 ? "text-success" : r.delta_clicks < 0 ? "text-destructive" : "text-muted-foreground"}>
                     {r.delta_clicks > 0 ? "+" : ""}{fmtNum(r.delta_clicks)}
                   </span>
                 )}
@@ -97,7 +97,7 @@ function DimensionTable({ rows, keyLabel, showSecondKey }: { rows: GscDimensionR
               <td className="py-1.5 pr-4 text-right">{r.position.toFixed(1)}</td>
               <td className="py-1.5 pr-4 text-right">
                 {r.delta_position === undefined ? "—" : (
-                  <span className={r.delta_position > 0 ? "text-emerald-600" : r.delta_position < 0 ? "text-destructive" : "text-muted-foreground"}>
+                  <span className={r.delta_position > 0 ? "text-success" : r.delta_position < 0 ? "text-destructive" : "text-muted-foreground"}>
                     {r.delta_position > 0 ? "+" : ""}{r.delta_position.toFixed(1)}
                   </span>
                 )}

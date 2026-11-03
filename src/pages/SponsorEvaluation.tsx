@@ -246,8 +246,8 @@ const SponsorEvaluation = () => {
         <Card className="max-w-md w-full">
           <CardHeader className="text-center">
             <img src={supertiltLogo} alt="SuperTilt" className="h-12 mx-auto mb-4" />
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-8 h-8 text-green-600" />
+            <div className="w-16 h-16 rounded-full bg-success-surface flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-8 h-8 text-success" />
             </div>
             <CardTitle>Merci pour votre retour !</CardTitle>
             <CardDescription>

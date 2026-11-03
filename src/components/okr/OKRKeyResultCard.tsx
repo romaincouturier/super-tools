@@ -68,7 +68,7 @@ export function KeyResultCard({ keyResult, objectiveId, onEdit }: KeyResultCardP
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
             <Edit2 className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={handleDelete}>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-danger" onClick={handleDelete}>
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>

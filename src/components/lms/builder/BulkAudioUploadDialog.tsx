@@ -532,7 +532,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
                     {audio.status === "transcribing" || audio.status === "pending"
                       ? <Loader2 className="h-4 w-4 animate-spin text-primary" />
                       : audio.status === "done"
-                      ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      ? <CheckCircle2 className="h-4 w-4 text-success" />
                       : <AlertCircle className="h-4 w-4 text-destructive" />}
                   </div>
                   <span className="text-sm flex-1 truncate">{audio.file.name}</span>

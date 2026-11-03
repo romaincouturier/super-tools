@@ -20,17 +20,17 @@ interface OKRExecutiveSnapshotProps {
 }
 
 const trendConfig = {
-  accelerating: { icon: TrendingUp, color: "text-green-600", bg: "bg-green-100", label: "En accélération" },
-  steady: { icon: Minus, color: "text-blue-600", bg: "bg-blue-100", label: "Stable" },
-  stalling: { icon: TrendingDown, color: "text-yellow-600", bg: "bg-yellow-100", label: "Ralentissement" },
-  declining: { icon: TrendingDown, color: "text-red-600", bg: "bg-red-100", label: "En déclin" },
+  accelerating: { icon: TrendingUp, color: "text-success", bg: "bg-success-surface", label: "En accélération" },
+  steady: { icon: Minus, color: "text-info-ink", bg: "bg-info-surface", label: "Stable" },
+  stalling: { icon: TrendingDown, color: "text-caution-ink", bg: "bg-caution-surface", label: "Ralentissement" },
+  declining: { icon: TrendingDown, color: "text-danger-ink", bg: "bg-danger-surface", label: "En déclin" },
 };
 
 const DeltaBadge = ({ value, suffix = "pts" }: { value: number; suffix?: string }) => {
   if (value === 0) return <span className="text-xs text-muted-foreground">—</span>;
   const positive = value > 0;
   return (
-    <span className={`inline-flex items-center text-xs font-medium ${positive ? "text-green-600" : "text-red-600"}`}>
+    <span className={`inline-flex items-center text-xs font-medium ${positive ? "text-success" : "text-danger-ink"}`}>
       {positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
       {positive ? "+" : ""}{value}{suffix}
     </span>
@@ -79,15 +79,15 @@ const OKRExecutiveSnapshot = ({ snapshot, momentum }: OKRExecutiveSnapshotProps)
             <span className="text-sm text-muted-foreground">Statut santé</span>
             <div className="flex items-center gap-2 mt-2">
               <div className="flex items-center gap-1">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <CheckCircle2 className="h-4 w-4 text-success" />
                 <span className="text-sm font-medium">{snapshot.onTrack}</span>
               </div>
               <div className="flex items-center gap-1">
-                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                <AlertTriangle className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">{snapshot.atRisk}</span>
               </div>
               <div className="flex items-center gap-1">
-                <AlertTriangle className="h-4 w-4 text-red-500" />
+                <AlertTriangle className="h-4 w-4 text-danger" />
                 <span className="text-sm font-medium">{snapshot.behind}</span>
               </div>
             </div>
@@ -101,7 +101,7 @@ const OKRExecutiveSnapshot = ({ snapshot, momentum }: OKRExecutiveSnapshotProps)
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <CheckCircle2 className="h-4 w-4 text-success" />
               Meilleures progressions
             </CardTitle>
           </CardHeader>
@@ -112,7 +112,7 @@ const OKRExecutiveSnapshot = ({ snapshot, momentum }: OKRExecutiveSnapshotProps)
               snapshot.topWins.map((w, i) => (
                 <div key={i} className="flex items-center justify-between text-sm">
                   <span className="truncate flex-1 mr-2">{w.title}</span>
-                  <Badge variant="outline" className="text-green-600 border-green-300">
+                  <Badge variant="outline" className="text-success border-success-line">
                     {w.progress}%
                   </Badge>
                 </div>
@@ -125,7 +125,7 @@ const OKRExecutiveSnapshot = ({ snapshot, momentum }: OKRExecutiveSnapshotProps)
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
+              <AlertTriangle className="h-4 w-4 text-danger" />
               Points de vigilance
             </CardTitle>
           </CardHeader>
@@ -137,7 +137,7 @@ const OKRExecutiveSnapshot = ({ snapshot, momentum }: OKRExecutiveSnapshotProps)
                 <div key={i} className="text-sm">
                   <div className="flex items-center justify-between">
                     <span className="truncate flex-1 mr-2">{r.title}</span>
-                    <Badge variant="outline" className="text-red-600 border-red-300">
+                    <Badge variant="outline" className="text-danger-ink border-danger-line">
                       {r.confidence}%
                     </Badge>
                   </div>

@@ -860,7 +860,7 @@ const CardDetailDrawer = ({
               {isFullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </Button>
             {(fieldSaving || descriptionSaving) && <span className="text-xs text-muted-foreground flex items-center gap-1"><Spinner className="h-3 w-3" /></span>}
-            {(fieldSaved || descriptionSaved) && !fieldSaving && !descriptionSaving && <span className="text-xs text-green-600 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /></span>}
+            {(fieldSaved || descriptionSaved) && !fieldSaving && !descriptionSaving && <span className="text-xs text-success flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /></span>}
           </>
         }
         contentClassName={`flex flex-col overflow-hidden transition-all duration-300 ${isFullScreen ? "sm:max-w-full" : "sm:max-w-[1100px]"}`}

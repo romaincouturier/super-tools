@@ -36,10 +36,10 @@ const STATUS_FILTER: ("all" | DepositPedagogicalStatus)[] = [
 
 const STATUS_BADGE: Record<DepositPedagogicalStatus, string> = {
   submitted: "bg-gray-100 text-gray-700",
-  seen: "bg-blue-50 text-blue-700",
+  seen: "bg-info-surface text-info-ink",
   feedback_received: "bg-purple-50 text-purple-700",
-  needs_completion: "bg-amber-50 text-amber-800",
-  validated: "bg-green-50 text-green-700",
+  needs_completion: "bg-caution-surface text-caution-ink",
+  validated: "bg-success-surface text-success",
 };
 
 export default function LmsDeposits() {
@@ -166,14 +166,14 @@ export default function LmsDeposits() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0 flex-wrap">
                       {d.publication_status === "hidden" ? (
-                        <span className="inline-flex items-center text-micro font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+                        <span className="inline-flex items-center text-micro font-medium px-2 py-0.5 rounded-full bg-danger-surface text-danger-ink border border-danger-line">
                           <EyeOff className="h-3 w-3 mr-1" /> Masqué
                         </span>
                       ) : null}
                       <span
                         className={cn(
                           "inline-flex items-center text-micro font-medium px-2 py-0.5 rounded-full",
-                          d.visibility === "shared" ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-gray-50 text-gray-700 border border-gray-200",
+                          d.visibility === "shared" ? "bg-info-surface text-info-ink border border-info-line" : "bg-gray-50 text-gray-700 border border-gray-200",
                         )}
                       >
                         {d.visibility === "shared" ? <Globe2 className="h-3 w-3 mr-1" /> : <Lock className="h-3 w-3 mr-1" />}

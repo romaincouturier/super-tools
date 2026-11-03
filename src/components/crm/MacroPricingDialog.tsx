@@ -239,7 +239,7 @@ const MacroPricingDialog = ({
                 <span />
                 <span />
                 <span />
-                <div className="text-sm font-bold text-right pr-1 text-green-700">
+                <div className="text-sm font-bold text-right pr-1 text-success">
                   {formatEur(grandTotal)} €
                 </div>
                 <span />

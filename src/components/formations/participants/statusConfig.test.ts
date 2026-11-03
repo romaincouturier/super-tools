@@ -13,14 +13,14 @@ describe("getStatusConfig", () => {
   it("programme → Mail icon, amber colorClass", () => {
     const cfg = getStatusConfig("programme");
     expect(cfg.icon).toBe(Mail);
-    expect(cfg.colorClass).toBe("text-amber-500");
+    expect(cfg.colorClass).toBe("text-caution");
     expect(cfg.tooltip).toContain("date de session");
   });
 
   it("accueil_envoye → Mail icon, amber colorClass", () => {
     const cfg = getStatusConfig("accueil_envoye");
     expect(cfg.icon).toBe(Mail);
-    expect(cfg.colorClass).toBe("text-amber-500");
+    expect(cfg.colorClass).toBe("text-caution");
   });
 
   it("manuel → AlertTriangle icon, gray", () => {
@@ -33,7 +33,7 @@ describe("getStatusConfig", () => {
   it("envoye → MailCheck icon, amber colorClass", () => {
     const cfg = getStatusConfig("envoye");
     expect(cfg.icon).toBe(MailCheck);
-    expect(cfg.colorClass).toBe("text-amber-500");
+    expect(cfg.colorClass).toBe("text-caution");
   });
 
   it("en_cours → Clock icon, primary variant", () => {

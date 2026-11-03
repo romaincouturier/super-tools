@@ -115,7 +115,7 @@ const CardDetailQualification = ({ state, handlers }: Props) => {
 
         {/* Brief questions */}
         {localBriefQuestions && localBriefQuestions.length > 0 && (
-          <div className="p-4 bg-amber-50 rounded-lg space-y-2">
+          <div className="p-4 bg-caution-surface rounded-lg space-y-2">
             <button
               onClick={() => setBriefExpanded(!briefExpanded)}
               className="flex items-center justify-between w-full"
@@ -183,7 +183,7 @@ const CardDetailQualification = ({ state, handlers }: Props) => {
                 </span>
               )}
               {descriptionSaved && !descriptionSaving && (
-                <span className="text-xs text-green-600 flex items-center gap-1">
+                <span className="text-xs text-success flex items-center gap-1">
                   <Check className="h-3 w-3" />
                   Enregistré
                 </span>

@@ -64,7 +64,7 @@ const UpcomingCalendarPanel = () => {
                     className="flex items-start gap-2 w-full text-left py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors"
                   >
                     {entry.type === "formation" ? (
-                      <GraduationCap className="h-3.5 w-3.5 text-blue-600 mt-0.5 shrink-0" />
+                      <GraduationCap className="h-3.5 w-3.5 text-info-ink mt-0.5 shrink-0" />
                     ) : entry.type === "live" ? (
                       <Video className="h-3.5 w-3.5 text-purple-600 mt-0.5 shrink-0" />
                     ) : (
@@ -95,7 +95,7 @@ const UpcomingCalendarPanel = () => {
                       variant="secondary"
                       className={`text-micro shrink-0 ${
                         entry.type === "formation"
-                          ? "bg-blue-50 text-blue-700"
+                          ? "bg-info-surface text-info-ink"
                           : entry.type === "live"
                           ? "bg-purple-50 text-purple-700"
                           : "bg-teal-50 text-teal-700"

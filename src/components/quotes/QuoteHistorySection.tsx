@@ -86,19 +86,19 @@ export default function QuoteHistorySection({ cardId }: Props) {
       {hasSignedDevis && (
         <div className="space-y-2">
           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-success" />
             Devis signés
           </h4>
           {signedDevis.map((d) => (
             <div
               key={d.id}
-              className="p-3 border border-green-200 rounded-lg space-y-2 bg-green-50/50"
+              className="p-3 border border-success-line rounded-lg space-y-2 bg-success-surface/50"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-green-600" />
+                  <FileText className="w-4 h-4 text-success" />
                   <span className="font-medium text-sm">{d.formation_name}</span>
-                  <Badge variant="default" className="bg-green-600 text-white text-xs">Signé</Badge>
+                  <Badge variant="default" className="bg-success text-white text-xs">Signé</Badge>
                 </div>
                 <span className="text-xs text-muted-foreground">
                   {format(new Date(d.signed_at), "d MMM yyyy", { locale: fr })}
@@ -119,7 +119,7 @@ export default function QuoteHistorySection({ cardId }: Props) {
                 <button
                   type="button"
                   onClick={() => openStorageUrl(d.signed_pdf_url!)}
-                  className="inline-flex items-center gap-1.5 text-xs text-green-700 hover:underline"
+                  className="inline-flex items-center gap-1.5 text-xs text-success hover:underline"
                 >
                   <Download className="w-3 h-3" />
                   Télécharger le devis signé (PDF)

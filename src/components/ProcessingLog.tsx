@@ -100,7 +100,7 @@ const ProcessingLog = ({
     if (status === "error") {
       return <XCircle className="w-4 h-4 text-destructive" />;
     }
-    return <IconComponent className="w-4 h-4 text-green-600" />;
+    return <IconComponent className="w-4 h-4 text-success" />;
   };
 
   const formatTime = (date: Date) => {
@@ -125,7 +125,7 @@ const ProcessingLog = ({
             {isProcessing ? (
               <Loader2 className="w-5 h-5 animate-spin text-primary" />
             ) : (
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              <CheckCircle2 className="w-5 h-5 text-success" />
             )}
             Génération des certificats
           </DialogTitle>
@@ -172,7 +172,7 @@ const ProcessingLog = ({
                     rowStatus === "error"
                       ? "bg-destructive/10"
                       : rowStatus === "success"
-                      ? "bg-green-50"
+                      ? "bg-success-surface"
                       : "bg-muted"
                   }`}
                 >
@@ -207,7 +207,7 @@ const ProcessingLog = ({
                     {/* Final status */}
                     <div className="ml-2">
                       {progress.done ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <CheckCircle2 className="w-5 h-5 text-success" />
                       ) : progress.error ? (
                         <XCircle className="w-5 h-5 text-destructive" />
                       ) : (

@@ -220,7 +220,7 @@ const ContactCard = ({ contact, isEditing, onToggleEdit, onUpdate, onSetPrimary,
       <div className="flex items-center gap-2 mb-2">
         <button
           onClick={() => !contact.is_primary && onSetPrimary(contact)}
-          className={`shrink-0 ${contact.is_primary ? "text-yellow-500" : "text-muted-foreground/40 hover:text-yellow-400"}`}
+          className={`shrink-0 ${contact.is_primary ? "text-primary" : "text-muted-foreground/40 hover:text-primary"}`}
           title={contact.is_primary ? "Contact principal" : "Définir comme contact principal"}
         >
           <Star className={`h-4 w-4 ${contact.is_primary ? "fill-current" : ""}`} />
@@ -247,7 +247,7 @@ const ContactCard = ({ contact, isEditing, onToggleEdit, onUpdate, onSetPrimary,
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-red-500 hover:text-red-600 shrink-0"
+          className="h-7 w-7 text-danger hover:text-danger-ink shrink-0"
           onClick={() => onDelete(contact)}
         >
           <Trash2 className="h-3.5 w-3.5" />

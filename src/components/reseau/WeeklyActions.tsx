@@ -17,10 +17,10 @@ import {
 import type { NetworkContact, UserPositioning, NetworkAction, ActionType } from "@/types/reseau";
 
 const ACTION_CONFIG: Record<ActionType, { icon: typeof Linkedin; label: string; color: string }> = {
-  linkedin_message: { icon: Linkedin, label: "LinkedIn", color: "bg-blue-100 text-blue-800" },
+  linkedin_message: { icon: Linkedin, label: "LinkedIn", color: "bg-info-surface text-info-ink" },
   email: { icon: Mail, label: "Email", color: "bg-purple-100 text-purple-800" },
-  phone_call: { icon: Phone, label: "Appel", color: "bg-green-100 text-green-800" },
-  coffee_invite: { icon: Coffee, label: "Café", color: "bg-amber-100 text-amber-800" },
+  phone_call: { icon: Phone, label: "Appel", color: "bg-success-surface text-success" },
+  coffee_invite: { icon: Coffee, label: "Café", color: "bg-caution-surface text-caution-ink" },
   share_content: { icon: Share2, label: "Partage", color: "bg-pink-100 text-pink-800" },
 };
 
@@ -185,7 +185,7 @@ function ActionItem({
             disabled={isPending}
             title="Marquer comme fait"
           >
-            <Check className="h-3.5 w-3.5 text-green-600" />
+            <Check className="h-3.5 w-3.5 text-success" />
           </Button>
           <Button
             variant="ghost"

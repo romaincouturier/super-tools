@@ -116,8 +116,8 @@ export function FeedbackForm({ prefillDescription, pageUrlOverride, onSubmitted 
   if (submitted) {
     return (
       <div className="flex flex-col items-center justify-center p-6 text-center gap-4">
-        <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
-          <CheckCircle2 className="h-8 w-8 text-green-600" />
+        <div className="h-16 w-16 rounded-full bg-success-surface flex items-center justify-center">
+          <CheckCircle2 className="h-8 w-8 text-success" />
         </div>
         <div>
           <p className="font-semibold text-foreground">Merci pour votre retour !</p>
@@ -190,7 +190,7 @@ export function FeedbackForm({ prefillDescription, pageUrlOverride, onSubmitted 
                   className="flex items-center gap-2 p-2 rounded-md bg-muted/50 text-sm"
                 >
                   {isImageType(resolveContentType(file)) ? (
-                    <ImageIcon className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                    <ImageIcon className="h-3.5 w-3.5 text-info shrink-0" />
                   ) : (
                     <FileIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   )}

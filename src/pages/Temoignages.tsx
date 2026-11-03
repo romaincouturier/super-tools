@@ -30,7 +30,7 @@ import {
 } from "@/hooks/useTestimonials";
 
 function StatusBadge({ status }: { status: TestimonialStatus }) {
-  if (status === "published") return <Badge className="bg-green-600 text-white"><CheckCircle2 className="h-3 w-3 mr-1" />Publié</Badge>;
+  if (status === "published") return <Badge className="bg-success text-white"><CheckCircle2 className="h-3 w-3 mr-1" />Publié</Badge>;
   if (status === "rejected") return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Rejeté</Badge>;
   return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" />À valider</Badge>;
 }

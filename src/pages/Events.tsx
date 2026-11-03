@@ -180,7 +180,7 @@ const Events = () => {
                           {event.title}
                         </p>
                         {event.event_type === "external" && (
-                          <Badge variant="outline" className="flex-shrink-0 gap-1 text-micro sm:text-xs text-blue-600 border-blue-300">
+                          <Badge variant="outline" className="flex-shrink-0 gap-1 text-micro sm:text-xs text-info-ink border-info-line">
                             <Globe className="h-3 w-3" />
                             <span className="hidden sm:inline">Externe</span>
                           </Badge>
@@ -201,13 +201,13 @@ const Events = () => {
                           const daysLeft = getCfpDaysLeft(event.cfp_deadline);
                           if (daysLeft < 0) return null;
                           return (
-                            <span className={`text-micro sm:text-xs ${daysLeft <= 7 ? "text-orange-600 font-medium" : ""}`}>
+                            <span className={`text-micro sm:text-xs ${daysLeft <= 7 ? "text-caution-ink font-medium" : ""}`}>
                               CFP : {daysLeft === 0 ? "aujourd'hui" : daysLeft === 1 ? "demain" : `J-${daysLeft}`}
                             </span>
                           );
                         })()}
                         {event.event_type === "external" && event.cfp_submitted_at && (
-                          <span className="text-micro sm:text-xs text-green-600 font-medium">
+                          <span className="text-micro sm:text-xs text-success font-medium">
                             CFP soumis
                           </span>
                         )}

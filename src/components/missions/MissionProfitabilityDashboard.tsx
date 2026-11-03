@@ -114,11 +114,11 @@ const MissionProfitabilityDashboard = () => {
                       </TooltipContent>
                     </Tooltip>
                   </p>
-                  <p className="text-xl font-bold text-blue-600">
+                  <p className="text-xl font-bold text-info-ink">
                     {indicators.recommendedTJM.toLocaleString("fr-FR")} €
                   </p>
                 </div>
-                <Calculator className="h-8 w-8 text-blue-500/30" />
+                <Calculator className="h-8 w-8 text-info/30" />
               </div>
             </CardContent>
           </Card>
@@ -139,14 +139,14 @@ const MissionProfitabilityDashboard = () => {
                       </TooltipContent>
                     </Tooltip>
                   </p>
-                  <p className={`text-xl font-bold ${indicators.tjmIsGood ? 'text-green-600' : 'text-orange-600'}`}>
+                  <p className={`text-xl font-bold ${indicators.tjmIsGood ? 'text-success' : 'text-caution-ink'}`}>
                     {indicators.actualTJM > 0 ? `${indicators.actualTJM.toLocaleString("fr-FR")} €` : '-'}
                   </p>
                 </div>
                 {indicators.tjmIsGood ? (
-                  <CheckCircle className="h-8 w-8 text-green-500/30" />
+                  <CheckCircle className="h-8 w-8 text-success/30" />
                 ) : (
-                  <AlertTriangle className="h-8 w-8 text-orange-500/30" />
+                  <AlertTriangle className="h-8 w-8 text-caution/30" />
                 )}
               </div>
             </CardContent>
@@ -193,11 +193,11 @@ const MissionProfitabilityDashboard = () => {
                       </TooltipContent>
                     </Tooltip>
                   </p>
-                  <p className="text-xl font-bold text-green-600">
+                  <p className="text-xl font-bold text-success">
                     {indicators.totalBilledCA.toLocaleString("fr-FR")} €
                   </p>
                 </div>
-                <Euro className="h-8 w-8 text-green-500/30" />
+                <Euro className="h-8 w-8 text-success/30" />
               </div>
             </CardContent>
           </Card>
@@ -246,7 +246,7 @@ const MissionProfitabilityDashboard = () => {
                       </TooltipContent>
                     </Tooltip>
                   </p>
-                  <p className={`text-xl font-bold ${indicators.netMarginRate >= 40 ? 'text-green-600' : indicators.netMarginRate >= 20 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  <p className={`text-xl font-bold ${indicators.netMarginRate >= 40 ? 'text-success' : indicators.netMarginRate >= 20 ? 'text-caution-ink' : 'text-danger-ink'}`}>
                     {indicators.netMarginRate}%
                   </p>
                 </div>
@@ -271,11 +271,11 @@ const MissionProfitabilityDashboard = () => {
                       </TooltipContent>
                     </Tooltip>
                   </p>
-                  <p className="text-xl font-bold text-amber-600">
+                  <p className="text-xl font-bold text-caution-ink">
                     {indicators.totalRemainingToBill.toLocaleString("fr-FR")} €
                   </p>
                 </div>
-                <Euro className="h-8 w-8 text-amber-500/30" />
+                <Euro className="h-8 w-8 text-caution/30" />
               </div>
             </CardContent>
           </Card>
@@ -287,7 +287,7 @@ const MissionProfitabilityDashboard = () => {
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Objectif annuel</span>
-                <span className={`text-xs px-1.5 py-0.5 rounded ${indicators.isOnTrack ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                <span className={`text-xs px-1.5 py-0.5 rounded ${indicators.isOnTrack ? 'bg-success-surface text-success' : 'bg-caution-surface text-caution-ink'}`}>
                   {indicators.isOnTrack ? 'En bonne voie' : 'En retard'}
                 </span>
               </div>

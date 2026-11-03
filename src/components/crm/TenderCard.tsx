@@ -55,7 +55,7 @@ function DeadlineBadge({
       <div className="flex flex-col items-end gap-1.5">
         <Badge
           variant="outline"
-          className="gap-1 border-amber-500 bg-amber-50 text-amber-800"
+          className="gap-1 border-caution bg-caution-surface text-caution-ink"
         >
           {tender.url_avis ? (
             <a
@@ -141,8 +141,8 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: 
         </div>
 
         {d.titulaire && (
-          <div className="flex items-start gap-1.5 text-sm rounded-md bg-amber-50 px-3 py-2">
-            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-600" />
+          <div className="flex items-start gap-1.5 text-sm rounded-md bg-caution-surface px-3 py-2">
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-caution-ink" />
             <span>
               Titulaire sortant : <strong>{isDemoMode ? maskText(d.titulaire) : d.titulaire}</strong>
             </span>

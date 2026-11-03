@@ -6,11 +6,11 @@ import { useElearningIntegrations } from "@/hooks/useElearningIntegrations";
 import { STATUS_LABEL, isHealthy, type IntegrationStatus } from "@/lib/elearningIntegration";
 
 const TONE: Record<IntegrationStatus, string> = {
-  ok: "border-emerald-200 bg-emerald-500/10 text-emerald-800",
-  ok_fallback: "border-amber-200 bg-amber-500/10 text-amber-800",
-  no_woo: "border-red-200 bg-red-500/10 text-red-800",
-  no_formula: "border-red-200 bg-red-500/10 text-red-800",
-  no_session: "border-red-200 bg-red-500/10 text-red-800",
+  ok: "border-success-line bg-success/10 text-success",
+  ok_fallback: "border-caution-line bg-caution/10 text-caution-ink",
+  no_woo: "border-danger-line bg-danger/10 text-danger-ink",
+  no_formula: "border-danger-line bg-danger/10 text-danger-ink",
+  no_session: "border-danger-line bg-danger/10 text-danger-ink",
   not_applicable: "border-border bg-muted text-muted-foreground",
 };
 

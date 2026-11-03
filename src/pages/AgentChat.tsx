@@ -324,7 +324,7 @@ const AgentChat = () => {
               <div className="max-w-3xl mx-auto flex flex-wrap gap-2 mb-2">
                 {attachments.map((att, i) => (
                   <div key={i} className="flex items-center gap-1.5 bg-muted rounded-md px-2 py-1 text-xs">
-                    {att.type === "image" ? <ImageIcon className="h-3 w-3 text-purple-600" /> : <FileText className="h-3 w-3 text-blue-600" />}
+                    {att.type === "image" ? <ImageIcon className="h-3 w-3 text-purple-600" /> : <FileText className="h-3 w-3 text-info-ink" />}
                     <span className="truncate max-w-[120px]">{att.name}</span>
                     <button onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-foreground">
                       <X className="h-3 w-3" />
@@ -529,7 +529,7 @@ function MessageBubble({
               className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
               title="Copier"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
             {!isUser && (
               <>
@@ -539,7 +539,7 @@ function MessageBubble({
                   className={cn(
                     "p-1 rounded transition-colors",
                     feedbackGiven === "up"
-                      ? "text-green-600"
+                      ? "text-success"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     feedbackGiven && feedbackGiven !== "up" && "opacity-30",
                   )}
@@ -553,7 +553,7 @@ function MessageBubble({
                   className={cn(
                     "p-1 rounded transition-colors",
                     feedbackGiven === "down"
-                      ? "text-red-600"
+                      ? "text-danger-ink"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     feedbackGiven && feedbackGiven !== "down" && "opacity-30",
                   )}

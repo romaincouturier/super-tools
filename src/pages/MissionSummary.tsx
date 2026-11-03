@@ -674,21 +674,21 @@ const MissionSummary = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                  <div className="text-xs text-blue-600 font-medium">{L.totalBudget}</div>
-                  <div className="text-lg font-bold text-blue-700">
+                <div className="p-3 bg-info-surface rounded-lg border border-info-surface">
+                  <div className="text-xs text-info-ink font-medium">{L.totalBudget}</div>
+                  <div className="text-lg font-bold text-info-ink">
                     {formatCurrency(budget, lang)} €
                   </div>
                 </div>
-                <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
-                  <div className="text-xs text-orange-600 font-medium">{L.consumed}</div>
-                  <div className="text-lg font-bold text-orange-700">
+                <div className="p-3 bg-caution-surface rounded-lg border border-caution-surface">
+                  <div className="text-xs text-caution-ink font-medium">{L.consumed}</div>
+                  <div className="text-lg font-bold text-caution-ink">
                     {formatCurrency(totalConsumed, lang)} €
                   </div>
                 </div>
-                <div className="p-3 bg-green-50 rounded-lg border border-green-100">
-                  <div className="text-xs text-green-600 font-medium">{L.billed}</div>
-                  <div className="text-lg font-bold text-green-700">
+                <div className="p-3 bg-success-surface rounded-lg border border-success-surface">
+                  <div className="text-xs text-success font-medium">{L.billed}</div>
+                  <div className="text-lg font-bold text-success">
                     {formatCurrency(totalBilled, lang)} €
                   </div>
                 </div>
@@ -789,7 +789,7 @@ const MissionSummary = () => {
                           <td className="py-2.5 text-center">
                             <Badge
                               variant={activity.is_billed ? "default" : "secondary"}
-                              className={activity.is_billed ? "bg-green-100 text-green-700 hover:bg-green-100" : ""}
+                              className={activity.is_billed ? "bg-success-surface text-success hover:bg-success-surface" : ""}
                             >
                               {activity.is_billed ? L.billedBadge : L.pendingBadge}
                             </Badge>

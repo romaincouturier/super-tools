@@ -97,7 +97,7 @@ const SignedConventionFiles = ({
             const fileName = decodeURIComponent(url.split("/").pop() || `Fichier ${index + 1}`);
             return (
               <div key={index} className="flex items-center gap-2 p-1.5 bg-muted/50 border border-border rounded text-xs">
-                <CheckCircle className="h-3 w-3 text-green-600 shrink-0" />
+                <CheckCircle className="h-3 w-3 text-success shrink-0" />
                 <a href={url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline flex-1 truncate">
                   {fileName}
                 </a>

@@ -32,7 +32,7 @@ function CopyLinkButton({ link }: { link: BookShareLink }) {
 
   return (
     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy}>
-      {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+      {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
     </Button>
   );
 }

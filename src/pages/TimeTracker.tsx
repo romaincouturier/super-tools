@@ -309,7 +309,7 @@ function EntryRow({ entry, onDelete, onUpdate, deleting, updating }: EntryRowPro
         <td className="px-4 py-2 text-right">
           <div className="flex justify-end gap-1">
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={save} disabled={!valid || updating}>
-              <Check className="h-3.5 w-3.5 text-green-600" />
+              <Check className="h-3.5 w-3.5 text-success" />
             </Button>
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancel}>
               <X className="h-3.5 w-3.5" />
@@ -335,7 +335,7 @@ function EntryRow({ entry, onDelete, onUpdate, deleting, updating }: EntryRowPro
             href={entry.github_pr_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-2 text-xs text-blue-500 hover:underline"
+            className="ml-2 text-xs text-info hover:underline"
           >
             PR #{entry.github_pr_number}
           </a>
@@ -891,15 +891,15 @@ function GitHubImportTab() {
     <div className="space-y-6 max-w-4xl">
       {/* Token config */}
       {(!hasToken || isEditingToken) && (
-        <Card className="border-amber-200 bg-amber-50">
+        <Card className="border-caution-line bg-caution-surface">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2 text-amber-800">
+            <CardTitle className="text-sm flex items-center gap-2 text-caution-ink">
               <Key className="h-4 w-4" />
               {isEditingToken ? "Modifier le token GitHub" : "Token GitHub requis"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-xs text-amber-700">
+            <p className="text-xs text-caution-ink">
               Un token GitHub (classic) avec le scope <code>repo</code> est nécessaire pour lire les PRs privées.
               Créez-en un sur <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="underline">github.com/settings/tokens</a>.
             </p>
@@ -925,7 +925,7 @@ function GitHubImportTab() {
 
       {hasToken && !isEditingToken && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Check className="h-4 w-4 text-green-500" />
+          <Check className="h-4 w-4 text-success" />
           Token GitHub configuré
           <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => setIsEditingToken(true)}>
             Modifier
@@ -1021,7 +1021,7 @@ function GitHubImportTab() {
                             href={entry.github_pr_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-blue-500 hover:underline"
+                            className="text-xs text-info hover:underline"
                           >
                             PR #{entry.github_pr_number}
                           </a>

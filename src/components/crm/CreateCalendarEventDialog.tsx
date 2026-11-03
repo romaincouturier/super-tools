@@ -200,7 +200,7 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
 
         {result ? (
           <div className="py-4 space-y-4">
-            <p className="text-sm text-green-700 font-medium">Événement créé avec succès !</p>
+            <p className="text-sm text-success font-medium">Événement créé avec succès !</p>
             <div className="flex flex-col gap-2">
               <a
                 href={result.htmlLink}

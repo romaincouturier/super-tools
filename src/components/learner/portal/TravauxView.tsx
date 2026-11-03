@@ -308,7 +308,7 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
           <div className="space-y-4 pt-1">
             {/* Image upload area */}
             <div
-              className="rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors hover:border-yellow-400"
+              className="rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors hover:border-primary"
               style={{
                 borderColor: previewUrl ? "var(--st-yellow, #FFD100)" : "rgba(16,24,32,0.15)",
                 background: "var(--st-surface, #F2F4F4)",

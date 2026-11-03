@@ -173,7 +173,7 @@ export default function TrainingSurveyResponse() {
         <div className="w-full max-w-xl">
           {step === "done" && (
             <div className="text-center space-y-6 animate-in fade-in-0 duration-300">
-              <CheckCircle2 className="h-20 w-20 text-green-500 mx-auto" />
+              <CheckCircle2 className="h-20 w-20 text-success mx-auto" />
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold">Réponses enregistrées !</h2>
                 <p className="text-muted-foreground text-lg whitespace-pre-wrap">{data.survey.thank_you_message}</p>
@@ -196,7 +196,7 @@ export default function TrainingSurveyResponse() {
                   <p className="text-muted-foreground text-lg leading-relaxed whitespace-pre-wrap">{data.survey.intro_message}</p>
                 )}
                 {data.has_responded && (
-                  <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                  <p className="text-sm text-caution-ink bg-caution-surface border border-caution-line rounded-md px-3 py-2">
                     Vous avez déjà répondu à ce sondage. Vos réponses sont pré-remplies — vous pouvez les modifier.
                   </p>
                 )}
@@ -221,7 +221,7 @@ export default function TrainingSurveyResponse() {
                 </p>
                 <h2 className="text-2xl font-semibold leading-snug">
                   {currentQuestion.label}
-                  {currentQuestion.required && <span className="text-red-500 ml-1">*</span>}
+                  {currentQuestion.required && <span className="text-danger ml-1">*</span>}
                 </h2>
                 {currentQuestion.description && <p className="text-muted-foreground">{currentQuestion.description}</p>}
               </div>
@@ -322,7 +322,7 @@ function QuestionRenderer({
       <div className="flex gap-2">
         {[1,2,3,4,5].map((s) => (
           <button key={s} onClick={() => onChange(String(s))} className="transition-transform hover:scale-110">
-            <Star className={cn("h-10 w-10 transition-colors", s <= num ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")} />
+            <Star className={cn("h-10 w-10 transition-colors", s <= num ? "fill-caution text-caution" : "text-muted-foreground/30")} />
           </button>
         ))}
       </div>

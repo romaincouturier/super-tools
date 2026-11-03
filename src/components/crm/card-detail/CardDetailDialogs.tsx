@@ -330,7 +330,7 @@ const CardDetailDialogs = (props: Props) => {
         <AlertDialogContent className="w-full sm:max-w-lg max-h-[85vh] flex flex-col">
           <AlertDialogHeader>
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-full bg-green-100 text-green-600">
+              <div className="p-2 rounded-full bg-success-surface text-success">
                 <Trophy className="h-5 w-5" />
               </div>
               <AlertDialogTitle>Opportunité gagnée !</AlertDialogTitle>

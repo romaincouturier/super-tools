@@ -43,7 +43,7 @@ function ExtensionRow({ ext, orderItemId }: { ext: LocationExtension; orderItemI
   };
 
   return (
-    <div className="text-xs space-y-1 rounded border border-orange-200 p-1.5">
+    <div className="text-xs space-y-1 rounded border border-caution-line p-1.5">
       <p className="font-medium">
         {ext.contrat_reference} : du {day(ext.start_date)} au {day(ext.end_date)}
       </p>
@@ -60,7 +60,7 @@ function ExtensionRow({ ext, orderItemId }: { ext: LocationExtension; orderItemI
         {isDemoMode ? maskAmount(ext.amount_ht) : `${Number(ext.amount_ht).toLocaleString("fr-FR")} € HT`}
       </p>
       {signed ? (
-        <p className="flex items-center gap-1 text-green-700">
+        <p className="flex items-center gap-1 text-success">
           <CheckCircle className="h-3 w-3" />
           Signé le {ext.signed_at ? day(ext.signed_at) : ""}
           {ext.signed_pdf_url && (
@@ -70,7 +70,7 @@ function ExtensionRow({ ext, orderItemId }: { ext: LocationExtension; orderItemI
           )}
         </p>
       ) : ext.signature_sent_at ? (
-        <p className="flex items-center gap-1 text-blue-700">
+        <p className="flex items-center gap-1 text-info-ink">
           <Send className="h-3 w-3" />
           En attente de signature (envoyé le {day(ext.signature_sent_at)})
         </p>
@@ -86,7 +86,7 @@ function ExtensionRow({ ext, orderItemId }: { ext: LocationExtension; orderItemI
           <Button
             variant="outline"
             size="sm"
-            className="h-6 text-xs px-2 text-orange-700"
+            className="h-6 text-xs px-2 text-caution-ink"
             onClick={handleSend}
             disabled={send.loading}
           >
@@ -111,9 +111,9 @@ export default function LocationExtensionsSection({ orderItemId, contratReferenc
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="mt-2 pt-2 border-t border-orange-200 space-y-2">
+    <div className="mt-2 pt-2 border-t border-caution-line space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Location</p>
+        <p className="text-xs font-semibold text-caution-ink uppercase tracking-wide">Location</p>
         <Button variant="outline" size="sm" className="h-6 text-xs px-2" onClick={() => setOpen(true)}>
           <CalendarPlus className="h-3 w-3 mr-1" />Prolonger
         </Button>

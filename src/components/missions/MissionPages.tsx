@@ -171,10 +171,10 @@ const DEFAULT_CALLOUT_COLOR: CalloutColor = "blue";
 
 // Static class strings so Tailwind's JIT picks them up.
 const CALLOUT_CLASSES: Record<CalloutColor, string> = {
-  blue: "bg-blue-50 border-blue-400 text-blue-950",
-  amber: "bg-amber-50 border-amber-400 text-amber-950",
-  green: "bg-green-50 border-green-500 text-green-950",
-  red: "bg-red-50 border-red-400 text-red-950",
+  blue: "bg-info-surface border-info text-info-ink",
+  amber: "bg-caution-surface border-caution text-caution-ink",
+  green: "bg-success-surface border-success text-success",
+  red: "bg-danger-surface border-danger text-danger-ink",
   gray: "bg-gray-100 border-gray-400 text-gray-950",
 };
 const CALLOUT_LABELS: Record<CalloutColor, string> = {
@@ -185,10 +185,10 @@ const CALLOUT_LABELS: Record<CalloutColor, string> = {
   gray: "Gris",
 };
 const CALLOUT_SWATCHES: Record<CalloutColor, string> = {
-  blue: "bg-blue-400",
-  amber: "bg-amber-400",
-  green: "bg-green-500",
-  red: "bg-red-400",
+  blue: "bg-info",
+  amber: "bg-caution",
+  green: "bg-success",
+  red: "bg-danger",
   gray: "bg-gray-400",
 };
 
@@ -466,7 +466,7 @@ const PageTreeItem = ({
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onDelete(page)}
-                className="text-red-600"
+                className="text-danger-ink"
               >
                 <Trash2 className="h-3.5 w-3.5 mr-2" />
                 Supprimer
@@ -655,7 +655,7 @@ const PageEditor = ({
       }),
       TaskList.configure({ HTMLAttributes: { class: "not-prose" } }),
       TaskItem.configure({ nested: true, HTMLAttributes: { class: "flex items-start gap-2" } }),
-      Highlight.configure({ HTMLAttributes: { class: "bg-yellow-200 rounded px-1" } }),
+      Highlight.configure({ HTMLAttributes: { class: "bg-caution-line rounded px-1" } }),
       Typography,
       DetailsNode,
       SummaryNode,
@@ -1043,7 +1043,7 @@ const PageEditor = ({
           className={cn(
             "h-7 px-2 flex items-center gap-1 rounded transition-colors shrink-0 text-xs font-medium",
             page.is_deliverable
-              ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+              ? "bg-caution-surface text-caution-ink hover:bg-caution-line"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
         >
@@ -1068,7 +1068,7 @@ const PageEditor = ({
             className={cn(
               "h-7 px-2 flex items-center gap-1 rounded transition-colors shrink-0 text-xs font-medium",
               page.comments_enabled
-                ? "bg-sky-100 text-sky-800 hover:bg-sky-200"
+                ? "bg-info-surface text-info-ink hover:bg-info-line"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >

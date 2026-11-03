@@ -326,7 +326,7 @@ const ImportGoogleEventsDialog = ({
                               — {formatEventTime(event)}
                             </div>
                             {alreadyImported && (
-                              <div className="text-xs text-green-600 mt-0.5">
+                              <div className="text-xs text-success mt-0.5">
                                 Déjà importé
                               </div>
                             )}

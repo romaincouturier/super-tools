@@ -282,7 +282,7 @@ const MissionDetailDrawer = ({
         <Settings className="h-4 w-4" />
       </Button>
       <Button size="sm" variant="outline" onClick={handleShareLink} title="Copier le lien de partage">
-        {copied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
+        {copied ? <Check className="h-4 w-4 text-success" /> : <Share2 className="h-4 w-4" />}
       </Button>
       <Button
         size="sm"
@@ -335,7 +335,7 @@ const MissionDetailDrawer = ({
             href={`/crm/card/${linkedCard.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 hover:bg-blue-100 transition-colors w-fit"
+            className="mt-3 flex items-center gap-2 px-3 py-2 bg-info-surface border border-info-line rounded-lg text-sm text-info-ink hover:bg-info-surface transition-colors w-fit"
           >
             <Briefcase className="h-4 w-4" />
             Opportunité : {isDemoMode ? maskText(linkedCard.title) : linkedCard.title}

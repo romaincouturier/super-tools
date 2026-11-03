@@ -55,8 +55,8 @@ export default function ArenaHeader({
             <div className="flex items-center gap-2">
               <h1 className="text-sm font-semibold">AI Arena</h1>
               <span className={`rounded-full px-1.5 py-0.5 text-micro font-medium ${
-                config.mode === "decision" ? "bg-amber-500/10 text-amber-500"
-                  : config.mode === "deliverable" ? "bg-emerald-500/10 text-emerald-500"
+                config.mode === "decision" ? "bg-caution/10 text-caution"
+                  : config.mode === "deliverable" ? "bg-success/10 text-success"
                     : "bg-primary/10 text-primary"
               }`}>
                 {modeLabels[config.mode]}
@@ -131,9 +131,9 @@ function StatusBar({
       <span className="text-border hidden sm:inline">|</span>
       <span className="font-mono hidden sm:inline">${estimatedCostUsd.toFixed(4)}</span>
       <span className={`rounded-full px-2 py-0.5 text-micro sm:text-xs font-medium ${
-        discussionState === "active" ? "bg-emerald-500/10 text-emerald-500"
+        discussionState === "active" ? "bg-success/10 text-success"
           : discussionState === "stalling" ? "bg-destructive/10 text-destructive"
-            : discussionState === "converging" ? "bg-amber-500/10 text-amber-500"
+            : discussionState === "converging" ? "bg-caution/10 text-caution"
               : "bg-primary/10 text-primary"
       }`}>
         {isRunning ? (isPaused ? "Pause" : discussionState === "converging" ? "Convergence" : discussionState === "stalling" ? "Stagne" : "En cours") : "Termine"}
@@ -163,12 +163,12 @@ function RunningControls({
         {isPaused ? "Reprendre" : "Pause"}
       </button>
       {mode === "decision" && (
-        <button onClick={onForceVote} className="rounded-lg border border-amber-500/30 px-2 sm:px-3 py-1 sm:py-1.5 text-micro sm:text-xs text-amber-500 transition-colors hover:bg-amber-500/10">
+        <button onClick={onForceVote} className="rounded-lg border border-caution/30 px-2 sm:px-3 py-1 sm:py-1.5 text-micro sm:text-xs text-caution transition-colors hover:bg-caution/10">
           Voter
         </button>
       )}
       {mode === "deliverable" && (
-        <button onClick={onForceDeliverable} className="rounded-lg border border-emerald-500/30 px-2 sm:px-3 py-1 sm:py-1.5 text-micro sm:text-xs text-emerald-500 transition-colors hover:bg-emerald-500/10">
+        <button onClick={onForceDeliverable} className="rounded-lg border border-success/30 px-2 sm:px-3 py-1 sm:py-1.5 text-micro sm:text-xs text-success transition-colors hover:bg-success/10">
           Livrable
         </button>
       )}
@@ -200,7 +200,7 @@ function FinishedControls({
         title="Copier tous les echanges"
       >
         {copied ? (
-          <span className="flex items-center gap-1 text-emerald-500">
+          <span className="flex items-center gap-1 text-success">
             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
             <span className="hidden sm:inline">Copie</span>
           </span>

@@ -218,7 +218,7 @@ const Emargement = () => {
         <SupertiltLogo className="h-12 mb-6" />
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center space-y-4">
-            <CheckCircle2 className="w-16 h-16 mx-auto text-green-500" />
+            <CheckCircle2 className="w-16 h-16 mx-auto text-success" />
             <h2 className="text-xl font-semibold">Présence confirmée</h2>
             <p className="text-muted-foreground">
               Votre signature a été enregistrée avec succès pour cette demi-journée de formation.

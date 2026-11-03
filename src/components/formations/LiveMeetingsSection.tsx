@@ -435,7 +435,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={`h-7 w-7 ${meeting.run_notes ? "text-blue-600" : ""}`}
+                    className={`h-7 w-7 ${meeting.run_notes ? "text-info-ink" : ""}`}
                     onClick={() => openNotes(meeting)}
                     title="Notes de déroulé"
                   >
@@ -629,7 +629,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
                   </span>
                 )}
                 {notesSaved && !savingNotes && (
-                  <span className="flex items-center gap-1 text-emerald-600">
+                  <span className="flex items-center gap-1 text-success">
                     <Check className="h-3.5 w-3.5" />
                     Enregistré
                   </span>

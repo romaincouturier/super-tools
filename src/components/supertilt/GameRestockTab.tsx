@@ -46,9 +46,9 @@ const STATUS_LABELS: Record<RestockItemStatus, string> = {
 };
 const STATUS_COLORS: Record<RestockItemStatus, string> = {
   todo: "bg-gray-100 text-gray-800",
-  in_progress: "bg-blue-100 text-blue-800",
-  awaiting_delivery: "bg-orange-100 text-orange-800",
-  received: "bg-green-100 text-green-800",
+  in_progress: "bg-info-surface text-info-ink",
+  awaiting_delivery: "bg-caution-surface text-caution-ink",
+  received: "bg-success-surface text-success",
 };
 
 // ── Main tab ─────────────────────────────────────────────────────

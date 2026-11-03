@@ -61,7 +61,7 @@ export default function FormationDatesSection({
                 {formationDates.map((d) => (
                   <SelectItem key={d.id} value={d.id}>
                     <div className="flex items-center gap-2">
-                      {d.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
+                      {d.is_default && <Star className="w-3 h-3 text-primary fill-primary" />}
                       <span>
                         {d.is_permanent ? "Session permanente (apprenant.e autonome)" : d.date_label}
                         {d.location ? ` — ${d.location}` : ""}

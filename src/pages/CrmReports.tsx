@@ -230,28 +230,28 @@ const CrmReports = () => {
               />
               <KpiCard
                 title="Pipeline pondéré"
-                icon={<Euro className="h-4 w-4 text-amber-600" />}
+                icon={<Euro className="h-4 w-4 text-caution-ink" />}
                 mainValue={isDemoMode ? maskAmount(Math.round(reports.weightedPipeline)) : `${fmt(Math.round(reports.weightedPipeline))} €`}
                 secondary="confiance × valeur"
-                mainColor="text-amber-600"
+                mainColor="text-caution-ink"
                 active={activeChart === "weighted"}
                 onClick={() => toggleChart("weighted")}
               />
               <KpiCard
                 title="Gagné"
-                icon={<TrendingUp className="h-4 w-4 text-green-600" />}
+                icon={<TrendingUp className="h-4 w-4 text-success" />}
                 mainValue={isDemoMode ? maskAmount(reports.wonValue) : `${fmt(reports.wonValue)} €`}
                 secondary={`${reports.wonCount} vente${reports.wonCount > 1 ? "s" : ""}`}
-                mainColor="text-green-600"
+                mainColor="text-success"
                 active={activeChart === "won"}
                 onClick={() => toggleChart("won")}
               />
               <KpiCard
                 title="Perdu"
-                icon={<TrendingDown className="h-4 w-4 text-red-600" />}
+                icon={<TrendingDown className="h-4 w-4 text-danger-ink" />}
                 mainValue={isDemoMode ? maskAmount(reports.lostValue) : `${fmt(reports.lostValue)} €`}
                 secondary={`${reports.lostCount} opportunité${reports.lostCount > 1 ? "s" : ""}`}
-                mainColor="text-red-600"
+                mainColor="text-danger-ink"
                 active={activeChart === "lost"}
                 onClick={() => toggleChart("lost")}
               />

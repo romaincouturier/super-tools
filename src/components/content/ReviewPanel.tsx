@@ -47,7 +47,7 @@ const statusConfig: Record<
     label: "Clôturée",
     icon: CheckCircle2,
     variant: "default",
-    className: "bg-green-600 hover:bg-green-700",
+    className: "bg-success hover:bg-success/90",
   },
   changes_requested: {
     label: "Modifications demandées",
@@ -249,7 +249,7 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
                       })}
                     </p>
                     {review.reminder_sent_at && (
-                      <p className="text-xs text-orange-600">
+                      <p className="text-xs text-caution-ink">
                         Rappel envoyé le {new Date(review.reminder_sent_at).toLocaleDateString("fr-FR")}
                       </p>
                     )}
@@ -287,7 +287,7 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-green-600 text-green-600 hover:bg-green-50"
+                        className="border-success text-success hover:bg-success-surface"
                         onClick={() => handleCloseReview(review.id)}
                       >
                         <CheckCircle2 className="h-4 w-4 mr-1" />

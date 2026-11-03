@@ -292,14 +292,14 @@ const SponsorFormFields = ({
       {/* Electronic signature status */}
       {conventionSignature?.status === "signed" &&
         conventionSignature.signed_pdf_url && (
-          <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-            <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+          <div className="flex items-center gap-3 p-3 bg-success-surface rounded-lg border border-success-line">
+            <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-green-800">
+              <p className="text-sm font-medium text-success">
                 Signée électroniquement
               </p>
               {conventionSignature.signed_at && (
-                <p className="text-xs text-green-600">
+                <p className="text-xs text-success">
                   le{" "}
                   {new Date(
                     conventionSignature.signed_at,
@@ -320,9 +320,9 @@ const SponsorFormFields = ({
         )}
 
       {conventionSignature?.status === "pending" && !signedConventionUrl && (
-        <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
-          <Loader2 className="h-5 w-5 text-amber-600 animate-spin flex-shrink-0" />
-          <p className="text-sm text-amber-800">
+        <div className="flex items-center gap-3 p-3 bg-caution-surface rounded-lg border border-caution-line">
+          <Loader2 className="h-5 w-5 text-caution-ink animate-spin flex-shrink-0" />
+          <p className="text-sm text-caution-ink">
             En attente de signature électronique
           </p>
         </div>

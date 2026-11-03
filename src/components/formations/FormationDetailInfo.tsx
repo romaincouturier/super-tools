@@ -130,7 +130,7 @@ const FormationDetailInfo = ({
           <UserIconLucide className="h-3.5 w-3.5" />{training.trainer_name/* demo-safe: formateur, equipe SuperTilt */}
         </Badge>
         {assignedUserName && (
-          <Badge variant="outline" className="flex items-center gap-1.5 text-blue-600 border-blue-300">
+          <Badge variant="outline" className="flex items-center gap-1.5 text-info-ink border-info-line">
             <UserIconLucide className="h-3.5 w-3.5" />{assignedUserName}
           </Badge>
         )}
@@ -151,7 +151,7 @@ const FormationDetailInfo = ({
                   </Badge>
                 )}
                 {resteAFacturer > 0 && (
-                  <Badge variant="outline" className="flex items-center gap-1.5 text-amber-600 border-amber-300">
+                  <Badge variant="outline" className="flex items-center gap-1.5 text-caution-ink border-caution-line">
                     <Euro className="h-3.5 w-3.5" />Reste à facturer : {isDemoMode ? maskAmount(resteAFacturer) : `${resteAFacturer.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € HT`}
                   </Badge>
                 )}
@@ -165,7 +165,7 @@ const FormationDetailInfo = ({
                 <Euro className="h-3.5 w-3.5" />{isDemoMode ? maskAmount(training.sold_price_ht) : `${training.sold_price_ht.toLocaleString("fr-FR")} € HT`}
               </Badge>
               {!training.invoice_file_url && (
-                <Badge variant="outline" className="flex items-center gap-1.5 text-amber-600 border-amber-300">
+                <Badge variant="outline" className="flex items-center gap-1.5 text-caution-ink border-caution-line">
                   <Euro className="h-3.5 w-3.5" />À facturer
                 </Badge>
               )}

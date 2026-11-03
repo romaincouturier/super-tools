@@ -125,7 +125,7 @@ function QuestionRenderer({
             className="transition-transform hover:scale-110"
           >
             <Star
-              className={cn("h-10 w-10 transition-colors", star <= num ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")}
+              className={cn("h-10 w-10 transition-colors", star <= num ? "fill-caution text-caution" : "text-muted-foreground/30")}
             />
           </button>
         ))}
@@ -215,7 +215,7 @@ function IntroStep({
 function ThankYouStep({ message }: { message: string }) {
   return (
     <div className="text-center space-y-6 animate-in fade-in-0 duration-300">
-      <CheckCircle2 className="h-20 w-20 text-green-500 mx-auto" />
+      <CheckCircle2 className="h-20 w-20 text-success mx-auto" />
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">Réponses envoyées !</h2>
         <p className="text-muted-foreground text-lg whitespace-pre-wrap">{message}</p>
@@ -349,7 +349,7 @@ export default function SurveyPublic() {
                 </p>
                 <h2 className="text-2xl font-semibold leading-snug">
                   {currentQuestion.label}
-                  {currentQuestion.required && <span className="text-red-500 ml-1">*</span>}
+                  {currentQuestion.required && <span className="text-danger ml-1">*</span>}
                 </h2>
                 {currentQuestion.description && (
                   <p className="text-muted-foreground">{currentQuestion.description}</p>

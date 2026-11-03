@@ -29,7 +29,7 @@ export default function SelfAssessmentBlockViewer({ content }: Props) {
                 <Star
                   className={cn(
                     "h-6 w-6 transition-colors",
-                    value !== null && n <= value ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40",
+                    value !== null && n <= value ? "fill-caution text-caution" : "text-muted-foreground/40",
                   )}
                 />
               </button>

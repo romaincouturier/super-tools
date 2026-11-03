@@ -174,7 +174,7 @@ const FormulaireRedirect = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full text-center space-y-4">
-          <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
+          <AlertTriangle className="h-12 w-12 text-caution mx-auto" />
           <h1 className="text-xl font-semibold">Formulaire inaccessible</h1>
           <p className="text-muted-foreground">{error}</p>
         </div>

@@ -100,7 +100,7 @@ const ParticipantActions = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-7 w-7 ${isConvoked ? "text-primary" : isScheduled ? "text-amber-600 hover:text-primary" : "text-muted-foreground hover:text-primary"}`}
+                  className={`h-7 w-7 ${isConvoked ? "text-primary" : isScheduled ? "text-caution-ink hover:text-primary" : "text-muted-foreground hover:text-primary"}`}
                   onClick={() => onResendWelcome(participant)}
                   disabled={isResending}
                 >
@@ -114,7 +114,7 @@ const ParticipantActions = ({
         return (
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className={`inline-flex items-center justify-center h-7 w-7 ${isConvoked ? "text-primary" : isScheduled ? "text-amber-600" : "text-muted-foreground/50"}`}>
+              <span className={`inline-flex items-center justify-center h-7 w-7 ${isConvoked ? "text-primary" : isScheduled ? "text-caution-ink" : "text-muted-foreground/50"}`}>
                 {isConvoked ? <Send className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
               </span>
             </TooltipTrigger>
@@ -198,7 +198,7 @@ const ParticipantActions = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className={`h-7 w-7 ${hasAccount ? "text-green-600 hover:text-green-700" : "text-destructive hover:text-destructive"}`}
+                className={`h-7 w-7 ${hasAccount ? "text-success hover:text-success" : "text-destructive hover:text-destructive"}`}
                 onClick={() => onSendAccessEmail(participant)}
                 disabled={isSending}
               >
@@ -245,7 +245,7 @@ const ParticipantActions = ({
           return (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-700" onClick={() => { if (evalInfo.fullData) { onViewEvaluation(evalInfo.fullData); } }}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-success hover:text-success" onClick={() => { if (evalInfo.fullData) { onViewEvaluation(evalInfo.fullData); } }}>
                   <ClipboardCheck className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>

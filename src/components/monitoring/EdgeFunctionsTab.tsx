@@ -42,8 +42,8 @@ const EdgeFunctionsTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Zap className="h-5 w-5 text-blue-600" />
+              <div className="p-2 rounded-lg bg-info-surface">
+                <Zap className="h-5 w-5 text-info-ink" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total attendues</p>
@@ -55,8 +55,8 @@ const EdgeFunctionsTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <div className="p-2 rounded-lg bg-success-surface">
+                <CheckCircle2 className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Déployées</p>
@@ -81,7 +81,7 @@ const EdgeFunctionsTab = () => {
       </div>
 
       {data?.unknown ? (
-        <Card className="border-amber-500/40 bg-amber-500/5">
+        <Card className="border-caution/40 bg-caution/5">
           <CardContent className="py-4 text-sm text-muted-foreground">
             {data.unknown} fonction{data.unknown > 1 ? "s" : ""} non vérifiée{data.unknown > 1 ? "s" : ""} à cause d’un timeout réseau. Elles ne sont pas comptées comme “à déployer”.
           </CardContent>
@@ -185,9 +185,9 @@ const EdgeFunctionsTab = () => {
                 {deployed.map((fn) => (
                   <div
                     key={fn.name}
-                    className="flex items-center gap-3 rounded-lg border p-3 border-green-200 bg-green-50/50"
+                    className="flex items-center gap-3 rounded-lg border p-3 border-success-line bg-success-surface/50"
                   >
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <CheckCircle2 className="h-4 w-4 text-success" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{fn.name}</p>
                     </div>

@@ -38,7 +38,7 @@ const WatchClusterCard = ({ cluster, itemCount }: WatchClusterCardProps) => {
         </span>
 
         {isPosted ? (
-          <Badge variant="outline" className="text-micro gap-1 text-green-600">
+          <Badge variant="outline" className="text-micro gap-1 text-success">
             <Check className="h-3 w-3" />
             Publié sur Slack
           </Badge>

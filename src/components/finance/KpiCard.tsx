@@ -13,7 +13,7 @@ interface KpiCardProps {
 
 export default function KpiCard({ title, value, hint, info, icon: Icon, tone = "default" }: KpiCardProps) {
   const toneClass =
-    tone === "positive" ? "text-emerald-600" : tone === "negative" ? "text-rose-600" : "text-foreground";
+    tone === "positive" ? "text-success" : tone === "negative" ? "text-danger-ink" : "text-foreground";
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

@@ -237,7 +237,7 @@ const GoogleConnect = ({ onStatusChange }: GoogleConnectProps) => {
 
     return (
       <div className="flex items-center gap-3">
-        <div className={`flex items-center gap-2 text-sm ${showWarning ? "text-destructive" : "text-green-600"}`}>
+        <div className={`flex items-center gap-2 text-sm ${showWarning ? "text-destructive" : "text-success"}`}>
           {showWarning ? <CloudOff className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
           {label}
         </div>

@@ -53,7 +53,7 @@ const LossReasonDialog = ({ open, onConfirm, onCancel }: LossReasonDialogProps) 
               size="sm"
               className={cn(
                 "justify-start text-left h-auto py-2",
-                selectedReason === key && "border-red-500 bg-red-50 text-red-700"
+                selectedReason === key && "border-danger bg-danger-surface text-danger-ink"
               )}
               onClick={() => setSelectedReason(key)}
             >

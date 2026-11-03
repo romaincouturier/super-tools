@@ -242,7 +242,7 @@ const BesoinsParticipants = () => {
         <Card className="mb-6">
           <CardContent className="pt-4">
             <div className="flex items-center gap-4">
-              <Badge className="bg-green-100 text-green-800 text-sm">
+              <Badge className="bg-success-surface text-success text-sm">
                 <CheckCircle2 className="h-4 w-4 mr-1" />
                 {surveys.length} recueil(s) complété(s)
               </Badge>
@@ -440,13 +440,13 @@ const BesoinsParticipants = () => {
                                     </div>
                                   )}
                                   {(survey.besoins_accessibilite || survey.necessite_amenagement) && (
-                                    <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
-                                      <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                                    <div className="flex items-start gap-2 p-3 rounded-lg bg-caution-surface border border-caution-line">
+                                      <AlertCircle className="h-5 w-5 text-caution-ink flex-shrink-0 mt-0.5" />
                                       <div>
-                                        <h4 className="font-medium text-amber-800 mb-1">
+                                        <h4 className="font-medium text-caution-ink mb-1">
                                           Besoins d'accessibilité
                                         </h4>
-                                        <p className="text-amber-700 whitespace-pre-wrap">
+                                        <p className="text-caution-ink whitespace-pre-wrap">
                                           {survey.besoins_accessibilite || "Aménagement nécessaire (détails non précisés)"}
                                         </p>
                                       </div>

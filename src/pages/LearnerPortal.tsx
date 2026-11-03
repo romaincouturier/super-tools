@@ -1339,7 +1339,7 @@ function CompteView({
         </div>
         <button
           onClick={onLogout}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all hover:bg-red-50 hover:border-red-200 hover:text-red-600 shrink-0"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all hover:bg-danger-surface hover:border-danger-line hover:text-danger-ink shrink-0"
           style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink-muted)", fontFamily: "inherit" }}
         >
           <LogOut size={14} />

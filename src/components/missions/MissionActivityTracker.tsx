@@ -282,21 +282,21 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
 
       {/* Summary Cards */}
       <div className={`grid grid-cols-2 gap-3 ${hasCredits ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
-        <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-          <div className="text-xs text-blue-600 font-medium">Budget initial HT</div>
-          <div className="text-lg font-bold text-blue-700">
+        <div className="p-3 bg-info-surface rounded-lg border border-info-surface">
+          <div className="text-xs text-info-ink font-medium">Budget initial HT</div>
+          <div className="text-lg font-bold text-info-ink">
             {isDemoMode ? maskAmount(mission.initial_amount) : `${mission.initial_amount?.toLocaleString("fr-FR") || "0"} €`}
           </div>
         </div>
-        <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
-          <div className="text-xs text-orange-600 font-medium">Consommé HT</div>
-          <div className="text-lg font-bold text-orange-700">
+        <div className="p-3 bg-caution-surface rounded-lg border border-caution-surface">
+          <div className="text-xs text-caution-ink font-medium">Consommé HT</div>
+          <div className="text-lg font-bold text-caution-ink">
             {isDemoMode ? maskAmount(totalConsumed) : `${totalConsumed.toLocaleString("fr-FR")} €`}
           </div>
         </div>
-        <div className="p-3 bg-green-50 rounded-lg border border-green-100">
-          <div className="text-xs text-green-600 font-medium">Facturé HT</div>
-          <div className="text-lg font-bold text-green-700">
+        <div className="p-3 bg-success-surface rounded-lg border border-success-surface">
+          <div className="text-xs text-success font-medium">Facturé HT</div>
+          <div className="text-lg font-bold text-success">
             {isDemoMode ? maskAmount(totalBilled) : `${totalBilled.toLocaleString("fr-FR")} €`}
           </div>
         </div>
@@ -307,15 +307,15 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
           </div>
         </div>
         {hasCredits && (
-          <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
-            <div className="text-xs text-amber-700 font-medium flex items-center gap-1">
+          <div className="p-3 bg-caution-surface rounded-lg border border-caution-surface">
+            <div className="text-xs text-caution-ink font-medium flex items-center gap-1">
               <Wallet className="h-3 w-3" />
               Crédit restant
             </div>
-            <div className="text-lg font-bold text-amber-800">
+            <div className="text-lg font-bold text-caution-ink">
               {isDemoMode ? maskAmount(remainingCredits) : `${remainingCredits.toLocaleString("fr-FR")} €`}
             </div>
-            <div className="text-micro text-amber-600 mt-0.5">
+            <div className="text-micro text-caution-ink mt-0.5">
               sur {isDemoMode ? maskAmount(totalCredits) : `${totalCredits.toLocaleString("fr-FR")} €`}
             </div>
           </div>
@@ -324,19 +324,19 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
 
       {/* Credits list */}
       {hasCredits && (
-        <div className="border rounded-lg p-3 bg-amber-50/30 space-y-1.5">
-          <div className="text-xs font-medium text-amber-900 flex items-center gap-1 mb-1">
+        <div className="border rounded-lg p-3 bg-caution-surface/30 space-y-1.5">
+          <div className="text-xs font-medium text-caution-ink flex items-center gap-1 mb-1">
             <Wallet className="h-3.5 w-3.5" />
             Crédits disponibles
           </div>
           {credits!.map((c) => (
-            <div key={c.id} className="flex items-center justify-between text-sm bg-white rounded px-2 py-1 border border-amber-100">
+            <div key={c.id} className="flex items-center justify-between text-sm bg-white rounded px-2 py-1 border border-caution-surface">
               <span>
                 {c.label || "Crédit"} — <strong>{isDemoMode ? maskAmount(c.amount) : `${Number(c.amount).toLocaleString("fr-FR")} €`}</strong>
               </span>
               <button
                 onClick={() => handleDeleteCredit(c.id)}
-                className="text-muted-foreground hover:text-red-600"
+                className="text-muted-foreground hover:text-danger-ink"
                 title="Supprimer ce crédit"
               >
                 <XIcon className="h-3.5 w-3.5" />
@@ -405,7 +405,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
               {activities.map((activity) => {
                 const linkedCredit = activity.credit_id ? creditsById.get(activity.credit_id) : null;
                 return (
-                <TableRow key={activity.id} className={linkedCredit ? "bg-amber-50/50" : ""}>
+                <TableRow key={activity.id} className={linkedCredit ? "bg-caution-surface/50" : ""}>
                   <TableCell className="whitespace-nowrap">
                     {format(parseISO(activity.activity_date), "dd/MM/yyyy")}
                   </TableCell>
@@ -416,18 +416,18 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
                           href={activity.google_event_link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-500 hover:text-blue-600 shrink-0"
+                          className="text-info hover:text-info-ink shrink-0"
                           title="Voir dans Google Agenda"
                         >
                           <Calendar className="h-3.5 w-3.5" />
                         </a>
                       ) : activity.google_event_id ? (
-                        <Calendar className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                        <Calendar className="h-3.5 w-3.5 text-info shrink-0" />
                       ) : null}
                       {activity.description}
                     </div>
                     {linkedCredit && (
-                      <div className="text-xs text-amber-700 flex items-center gap-1 mt-0.5">
+                      <div className="text-xs text-caution-ink flex items-center gap-1 mt-0.5">
                         <Wallet className="h-3 w-3" />
                         Déduit du crédit « {linkedCredit.label || "Crédit"} »
                       </div>
@@ -496,7 +496,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-red-500 hover:text-red-600"
+                        className="h-8 w-8 text-danger hover:text-danger-ink"
                         onClick={() => handleDelete(activity)}
                       >
                         <Trash2 className="h-4 w-4" />

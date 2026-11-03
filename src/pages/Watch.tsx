@@ -219,7 +219,7 @@ const Watch = () => {
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{formatDistanceToNow(new Date(digest.created_at), { addSuffix: true, locale: fr })}</span>
                       {digest.slack_posted_at && (
-                        <Badge variant="outline" className="text-micro text-green-600">
+                        <Badge variant="outline" className="text-micro text-success">
                           Envoyé sur Slack
                         </Badge>
                       )}

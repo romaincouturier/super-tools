@@ -46,19 +46,19 @@ export default function LoginAttemptFeedback({
         className={cn(
           "rounded-lg border p-3 animate-in fade-in slide-in-from-top-2",
           remainingAttempts <= 2
-            ? "border-amber-500/50 bg-amber-500/10"
+            ? "border-caution/50 bg-caution/10"
             : "border-muted bg-muted/50"
         )}
       >
         <div className="flex items-center gap-2">
           {remainingAttempts <= 2 ? (
-            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertCircle className="h-4 w-4 text-caution-ink" />
           ) : (
             <ShieldCheck className="h-4 w-4 text-muted-foreground" />
           )}
           <p className="text-sm">
             {remainingAttempts === 1 ? (
-              <span className="text-amber-600 font-medium">
+              <span className="text-caution-ink font-medium">
                 Dernière tentative avant blocage temporaire
               </span>
             ) : (

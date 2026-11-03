@@ -40,16 +40,16 @@ export const STATUS_LABELS: Record<string, string> = {
 };
 
 export const STATUS_COLORS: Record<string, string> = {
-  open: "bg-orange-100 text-orange-800",
-  in_progress: "bg-blue-100 text-blue-800",
-  closed: "bg-green-100 text-green-800",
+  open: "bg-caution-surface text-caution-ink",
+  in_progress: "bg-info-surface text-info-ink",
+  closed: "bg-success-surface text-success",
   draft: "bg-gray-100 text-gray-600",
 };
 
 export const SEVERITY_COLORS: Record<string, string> = {
-  mineure: "bg-yellow-100 text-yellow-800",
-  significative: "bg-orange-100 text-orange-800",
-  majeure: "bg-red-100 text-red-800",
+  mineure: "bg-caution-surface text-caution-ink",
+  significative: "bg-caution-surface text-caution-ink",
+  majeure: "bg-danger-surface text-danger-ink",
 };
 
 export const NATURE_LABELS: Record<string, string> = {
@@ -59,7 +59,7 @@ export const NATURE_LABELS: Record<string, string> = {
 };
 
 export const NATURE_COLORS: Record<string, string> = {
-  reclamation: "bg-red-100 text-red-800",
-  alea: "bg-amber-100 text-amber-800",
+  reclamation: "bg-danger-surface text-danger-ink",
+  alea: "bg-caution-surface text-caution-ink",
   difficulte: "bg-purple-100 text-purple-800",
 };

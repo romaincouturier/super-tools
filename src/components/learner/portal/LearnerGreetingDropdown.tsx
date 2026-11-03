@@ -92,7 +92,7 @@ export function LearnerGreetingDropdown({
             <div style={{ borderTop: "1px solid rgba(16,24,32,0.08)" }}>
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors hover:bg-red-50"
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors hover:bg-danger-surface"
                 style={{ color: "#ef4444", fontFamily: "inherit" }}
               >
                 <LogOut size={15} />

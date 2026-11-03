@@ -89,7 +89,7 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
       {/* Estimated value */}
       <Popover>
         <PopoverTrigger asChild>
-          <button className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-sm font-medium transition-colors cursor-pointer hover:opacity-80 text-green-700 bg-green-50 border-green-200">
+          <button className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-sm font-medium transition-colors cursor-pointer hover:opacity-80 text-success bg-success-surface border-success-line">
             {isDemoMode
               ? maskAmount(estimatedValue || 0)
               : estimatedValue && parseFloat(estimatedValue) > 0
@@ -126,9 +126,9 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
         <PopoverTrigger asChild>
           <button className={cn(
             "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-medium transition-colors cursor-pointer hover:opacity-80",
-            confidenceScore !== null && confidenceScore >= 70 && "border-green-300 text-green-700 bg-green-50",
-            confidenceScore !== null && confidenceScore >= 40 && confidenceScore < 70 && "border-orange-300 text-orange-700 bg-orange-50",
-            (confidenceScore === null || confidenceScore < 40) && "border-red-300 text-red-700 bg-red-50",
+            confidenceScore !== null && confidenceScore >= 70 && "border-success-line text-success bg-success-surface",
+            confidenceScore !== null && confidenceScore >= 40 && confidenceScore < 70 && "border-caution-line text-caution-ink bg-caution-surface",
+            (confidenceScore === null || confidenceScore < 40) && "border-danger-line text-danger-ink bg-danger-surface",
           )}>
             {confidenceScore !== null ? `${confidenceScore}%` : "—%"}
           </button>
@@ -170,7 +170,7 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
         <Button
           variant="ghost"
           size="sm"
-          className="gap-1 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+          className="gap-1 text-caution-ink hover:text-caution-ink hover:bg-caution-surface"
           onClick={() => handlers.handleSalesStatusChange(salesStatus)}
           disabled={updatePending}
           title="Réouvrir l'opportunité"
@@ -183,8 +183,8 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
         variant="ghost"
         size="sm"
         className={cn(
-          "gap-1 text-green-600 hover:text-green-700 hover:bg-green-50",
-          salesStatus === "WON" && "bg-green-100 text-green-700"
+          "gap-1 text-success hover:text-success hover:bg-success-surface",
+          salesStatus === "WON" && "bg-success-surface text-success"
         )}
         onClick={() => { trackFeature("mark_won", "crm"); handlers.handleSalesStatusChange("WON"); }}
         disabled={updatePending}
@@ -196,8 +196,8 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
         variant="ghost"
         size="sm"
         className={cn(
-          "gap-1 text-red-600 hover:text-red-700 hover:bg-red-50",
-          salesStatus === "LOST" && "bg-red-100 text-red-700"
+          "gap-1 text-danger-ink hover:text-danger-ink hover:bg-danger-surface",
+          salesStatus === "LOST" && "bg-danger-surface text-danger-ink"
         )}
         onClick={() => { trackFeature("mark_lost", "crm"); handlers.handleSalesStatusChange("LOST"); }}
         disabled={updatePending}

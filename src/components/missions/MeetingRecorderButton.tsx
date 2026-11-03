@@ -44,7 +44,7 @@ export function MeetingRecorderButton({ missionId, onTranscript }: MeetingRecord
         className={cn(
           "h-7 w-7 flex items-center justify-center rounded transition-colors",
           isRecording
-            ? "bg-red-100 text-red-600 animate-pulse"
+            ? "bg-danger-surface text-danger-ink animate-pulse"
             : "text-muted-foreground hover:bg-muted hover:text-foreground",
           isProcessing && "opacity-50 pointer-events-none",
         )}
@@ -58,7 +58,7 @@ export function MeetingRecorderButton({ missionId, onTranscript }: MeetingRecord
         )}
       </button>
       {isRecording && (
-        <span className="text-xs font-mono text-red-600 tabular-nums">{formatElapsed(elapsedMs)}</span>
+        <span className="text-xs font-mono text-danger-ink tabular-nums">{formatElapsed(elapsedMs)}</span>
       )}
       {isProcessing && (
         <span className="text-xs text-muted-foreground">

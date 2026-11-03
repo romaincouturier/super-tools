@@ -209,10 +209,10 @@ export default function PartnerPortal() {
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Ventes", value: summary.total_sales, icon: <ShoppingCart className="h-5 w-5 text-blue-600" /> },
-            { label: "CA TTC", value: EUR(summary.total_ttc), icon: <Euro className="h-5 w-5 text-green-600" /> },
+            { label: "Ventes", value: summary.total_sales, icon: <ShoppingCart className="h-5 w-5 text-info-ink" /> },
+            { label: "CA TTC", value: EUR(summary.total_ttc), icon: <Euro className="h-5 w-5 text-success" /> },
             { label: "Commission totale", value: EUR(summary.total_commission), icon: <TrendingUp className="h-5 w-5 text-purple-600" /> },
-            { label: "Restant à reverser", value: EUR(summary.remaining), icon: <CreditCard className="h-5 w-5 text-orange-600" /> },
+            { label: "Restant à reverser", value: EUR(summary.remaining), icon: <CreditCard className="h-5 w-5 text-caution-ink" /> },
           ].map(({ label, value, icon }) => (
             <Card key={label}>
               <CardContent className="p-4 flex items-center gap-3">
@@ -272,7 +272,7 @@ export default function PartnerPortal() {
           </CardHeader>
           <CardContent className="space-y-4">
             {paySuccess && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded text-green-800 text-sm">
+              <div className="p-3 bg-success-surface border border-success-line rounded text-success text-sm">
                 Encaissement déclaré — il sera vérifié par SuperTilt.
               </div>
             )}
@@ -338,11 +338,11 @@ export default function PartnerPortal() {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Encaissements vérifiés</span>
-              <span className="font-medium text-green-700">− {EUR(summary.total_paid)}</span>
+              <span className="font-medium text-success">− {EUR(summary.total_paid)}</span>
             </div>
             <div className="flex justify-between text-sm font-semibold border-t pt-2">
               <span>Restant à reverser</span>
-              <span className={summary.remaining > 0 ? "text-orange-700" : "text-green-700"}>{EUR(summary.remaining)}</span>
+              <span className={summary.remaining > 0 ? "text-caution-ink" : "text-success"}>{EUR(summary.remaining)}</span>
             </div>
           </CardContent>
         </Card>

@@ -480,7 +480,7 @@ Tel: 06 12 34 56 78"
             {clientHistory.length > 0 && (
               <Collapsible open={clientHistoryOpen} onOpenChange={setClientHistoryOpen}>
                 <CollapsibleTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full justify-between border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100">
+                  <Button variant="outline" size="sm" className="w-full justify-between border-caution-line bg-caution-surface text-caution-ink hover:bg-caution-surface">
                     <span className="flex items-center gap-2">
                       <History className="h-3.5 w-3.5" />
                       Client connu — {clientHistory.length} opportunité{clientHistory.length > 1 ? "s" : ""} existante{clientHistory.length > 1 ? "s" : ""}
@@ -494,7 +494,7 @@ Tel: 06 12 34 56 78"
                       const isWon = card.sales_status === "WON";
                       const isLost = card.sales_status === "LOST";
                       const StatusIcon = isWon ? CheckCircle : isLost ? XCircle : Clock;
-                      const statusColor = isWon ? "text-green-600" : isLost ? "text-red-500" : "text-amber-500";
+                      const statusColor = isWon ? "text-success" : isLost ? "text-danger" : "text-caution";
                       const statusLabel = isWon ? "Gagné" : isLost ? "Perdu" : "En cours";
                       const date = card.won_at || card.lost_at || card.created_at;
                       return (
@@ -524,7 +524,7 @@ Tel: 06 12 34 56 78"
                       if (wonCards.length === 0) return null;
                       return (
                         <p className="text-xs text-muted-foreground pt-1 pl-1">
-                          Total gagné : <span className="font-medium text-green-600">{isDemoMode ? maskAmount(totalWon) : `${totalWon.toLocaleString("fr-FR")} €`}</span> sur {wonCards.length} opportunité{wonCards.length > 1 ? "s" : ""}
+                          Total gagné : <span className="font-medium text-success">{isDemoMode ? maskAmount(totalWon) : `${totalWon.toLocaleString("fr-FR")} €`}</span> sur {wonCards.length} opportunité{wonCards.length > 1 ? "s" : ""}
                         </p>
                       );
                     })()}
@@ -686,7 +686,7 @@ Tel: 06 12 34 56 78"
               />
               {valueEstimation && (
                 <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3 text-green-600" />
+                  <TrendingUp className="h-3 w-3 text-success" />
                   Estimation basée sur {valueEstimation.count} {valueEstimation.source} (moyenne : {valueEstimation.value.toLocaleString("fr-FR")} €)
                 </p>
               )}

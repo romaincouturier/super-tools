@@ -483,7 +483,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
                         {nc.card_title}
                       </button>
                       {(nc.pending_comments ?? 0) > 0 && (
-                        <span className="flex items-center gap-0.5 text-xs text-orange-600 shrink-0" title={`${nc.pending_comments} commentaire${nc.pending_comments! > 1 ? "s" : ""} en attente`}>
+                        <span className="flex items-center gap-0.5 text-xs text-caution-ink shrink-0" title={`${nc.pending_comments} commentaire${nc.pending_comments! > 1 ? "s" : ""} en attente`}>
                           <MessageCircle className="h-3 w-3" />
                           {nc.pending_comments}
                         </span>

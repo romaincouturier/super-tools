@@ -95,9 +95,9 @@ function StreamingSynthesis({
 }) {
   const isDeliverable = type === "deliverable";
   return (
-    <div className={`arena-fade-in-up mx-4 my-4 rounded-xl border p-5 ${isDeliverable ? "border-emerald-500/30 bg-emerald-500/5" : "border-primary/30 bg-primary/5"}`}>
+    <div className={`arena-fade-in-up mx-4 my-4 rounded-xl border p-5 ${isDeliverable ? "border-success/30 bg-success/5" : "border-primary/30 bg-primary/5"}`}>
       <div className="mb-2 flex items-center gap-2">
-        <span className={`font-semibold ${isDeliverable ? "text-emerald-500" : "text-primary"}`}>
+        <span className={`font-semibold ${isDeliverable ? "text-success" : "text-primary"}`}>
           {isDeliverable ? "Generation du livrable..." : "Synthese en cours..."}
         </span>
       </div>

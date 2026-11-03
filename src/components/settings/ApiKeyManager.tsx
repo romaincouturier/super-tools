@@ -335,11 +335,11 @@ export function ApiKeyManager() {
           ) : (
             <>
               <div className="space-y-4 py-4">
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-sm text-amber-800 font-medium mb-2">
+                <div className="p-4 bg-caution-surface border border-caution-line rounded-lg">
+                  <p className="text-sm text-caution-ink font-medium mb-2">
                     ⚠️ Copiez cette clé maintenant !
                   </p>
-                  <p className="text-xs text-amber-700">
+                  <p className="text-xs text-caution-ink">
                     Elle ne sera plus affichée après fermeture de cette fenêtre.
                   </p>
                 </div>
@@ -350,7 +350,7 @@ export function ApiKeyManager() {
                     <Input value={generatedKey} readOnly className="font-mono text-xs" />
                     <Button variant="outline" size="icon" onClick={handleCopy}>
                       {copied ? (
-                        <Check className="h-4 w-4 text-green-600" />
+                        <Check className="h-4 w-4 text-success" />
                       ) : (
                         <Copy className="h-4 w-4" />
                       )}

@@ -31,13 +31,13 @@ import {
 
 const statusColors: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
-  published: "bg-emerald-500/10 text-emerald-700 border-emerald-200",
-  to_review: "bg-amber-500/10 text-amber-700 border-amber-200",
-  archived: "bg-orange-500/10 text-orange-700 border-orange-200",
+  published: "bg-success/10 text-success border-success-line",
+  to_review: "bg-caution/10 text-caution-ink border-caution-line",
+  archived: "bg-caution/10 text-caution-ink border-caution-line",
 };
 
 const accessColors: Record<string, string> = {
-  gratuit: "bg-sky-500/10 text-sky-700 border-sky-200",
+  gratuit: "bg-info/10 text-info-ink border-info-line",
   payant: "bg-violet-500/10 text-violet-700 border-violet-200",
   intra: "bg-slate-500/10 text-slate-700 border-slate-200",
 };

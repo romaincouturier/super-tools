@@ -129,7 +129,7 @@ export default function Step0ClientValidation({ crmCard, onValidate, initialClie
 
           {sirenLoaded && (
             <Alert>
-              <CheckCircle2 className="w-4 h-4 text-green-600" />
+              <CheckCircle2 className="w-4 h-4 text-success" />
               <AlertDescription>
                 Données récupérées depuis l'API INSEE. Vérifiez et corrigez si nécessaire.
               </AlertDescription>

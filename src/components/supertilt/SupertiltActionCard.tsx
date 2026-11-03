@@ -64,7 +64,7 @@ export default function SupertiltActionCard({ action, isDragging, onToggle, onEd
                 variant="outline"
                 className={cn(
                   "text-micro gap-1 px-1.5 py-0",
-                  isOverdue && "border-red-300 text-red-600 bg-red-50",
+                  isOverdue && "border-danger-line text-danger-ink bg-danger-surface",
                 )}
               >
                 <CalendarDays className="w-2.5 h-2.5" />

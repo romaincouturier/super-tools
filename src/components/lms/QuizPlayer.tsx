@@ -161,7 +161,7 @@ export default function QuizPlayer({ quizId, learnerEmail, onComplete }: Props) 
         {/* Header */}
         <div className="text-center space-y-3 py-4">
           {passed ? (
-            <Trophy className="w-16 h-16 mx-auto text-amber-500" />
+            <Trophy className="w-16 h-16 mx-auto text-caution" />
           ) : (
             <AlertCircle className="w-16 h-16 mx-auto text-destructive" />
           )}
@@ -202,14 +202,14 @@ export default function QuizPlayer({ quizId, learnerEmail, onComplete }: Props) 
                   key={q.id}
                   className={cn(
                     "rounded-xl border p-4 space-y-2",
-                    isCorrect ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200",
+                    isCorrect ? "bg-success-surface border-success-line" : "bg-danger-surface border-danger-line",
                   )}
                 >
                   <div className="flex items-start gap-2">
                     {isCorrect ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-4 h-4 text-success shrink-0 mt-0.5" />
                     ) : (
-                      <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                      <XCircle className="w-4 h-4 text-danger shrink-0 mt-0.5" />
                     )}
                     <p className="text-sm font-medium">
                       {i + 1}. {q.question_text}
@@ -221,7 +221,7 @@ export default function QuizPlayer({ quizId, learnerEmail, onComplete }: Props) 
                       <strong>{a?.selected.join(", ") || "—"}</strong>
                     </p>
                     {!isCorrect && correctLabels.length > 0 && (
-                      <p className="text-xs text-emerald-700">
+                      <p className="text-xs text-success">
                         Bonne réponse : <strong>{correctLabels.join(", ")}</strong>
                       </p>
                     )}
@@ -231,7 +231,7 @@ export default function QuizPlayer({ quizId, learnerEmail, onComplete }: Props) 
                       </p>
                     )}
                     {q.feedback_correct && isCorrect && (
-                      <p className="text-xs text-emerald-700 italic">
+                      <p className="text-xs text-success italic">
                         ✓ {q.feedback_correct}
                       </p>
                     )}
@@ -277,8 +277,8 @@ export default function QuizPlayer({ quizId, learnerEmail, onComplete }: Props) 
         "rounded-2xl border-2 p-6 space-y-5 transition-colors",
         phase === "feedback"
           ? feedbackCorrect
-            ? "border-emerald-400 bg-emerald-50/50"
-            : "border-red-300 bg-red-50/50"
+            ? "border-success bg-success-surface/50"
+            : "border-danger-line bg-danger-surface/50"
           : "border-border bg-card",
       )}>
         {/* Notion / difficulty */}
@@ -292,9 +292,9 @@ export default function QuizPlayer({ quizId, learnerEmail, onComplete }: Props) 
                 variant="outline"
                 className={cn(
                   "text-xs",
-                  q.difficulty_level === "easy" && "border-emerald-300 text-emerald-700",
-                  q.difficulty_level === "medium" && "border-amber-300 text-amber-700",
-                  q.difficulty_level === "hard" && "border-red-300 text-red-700",
+                  q.difficulty_level === "easy" && "border-success-line text-success",
+                  q.difficulty_level === "medium" && "border-caution-line text-caution-ink",
+                  q.difficulty_level === "hard" && "border-danger-line text-danger-ink",
                 )}
               >
                 {q.difficulty_level === "easy" ? "Facile" : q.difficulty_level === "medium" ? "Moyen" : "Difficile"}
@@ -331,8 +331,8 @@ export default function QuizPlayer({ quizId, learnerEmail, onComplete }: Props) 
               let optClass = "border-border bg-background hover:border-primary/50 hover:bg-primary/5 cursor-pointer";
 
               if (phase === "feedback") {
-                if (isCorrectOpt) optClass = "border-emerald-400 bg-emerald-50 text-emerald-800";
-                else if (isSelected && !isCorrectOpt) optClass = "border-red-300 bg-red-50 text-red-700";
+                if (isCorrectOpt) optClass = "border-success bg-success-surface text-success";
+                else if (isSelected && !isCorrectOpt) optClass = "border-danger-line bg-danger-surface text-danger-ink";
                 else optClass = "border-border bg-muted/30 opacity-60";
               } else if (isSelected) {
                 optClass = "border-primary bg-primary/10 text-primary";
@@ -352,17 +352,17 @@ export default function QuizPlayer({ quizId, learnerEmail, onComplete }: Props) 
                   <span className={cn(
                     "w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center text-xs font-bold transition-colors",
                     isSelected && phase !== "feedback" ? "border-primary bg-primary text-primary-foreground" : "border-current",
-                    phase === "feedback" && isCorrectOpt && "border-emerald-500 bg-emerald-500 text-white",
-                    phase === "feedback" && isSelected && !isCorrectOpt && "border-red-400 bg-red-400 text-white",
+                    phase === "feedback" && isCorrectOpt && "border-success bg-success text-white",
+                    phase === "feedback" && isSelected && !isCorrectOpt && "border-danger bg-danger text-white",
                   )}>
                     {String.fromCharCode(65 + j)}
                   </span>
                   <span className="flex-1">{opt.label}</span>
                   {phase === "feedback" && isCorrectOpt && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
                   )}
                   {phase === "feedback" && isSelected && !isCorrectOpt && (
-                    <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                    <XCircle className="w-4 h-4 text-danger shrink-0" />
                   )}
                 </button>
               );
@@ -386,7 +386,7 @@ export default function QuizPlayer({ quizId, learnerEmail, onComplete }: Props) 
         {phase === "feedback" && (
           <div className={cn(
             "rounded-xl p-4 space-y-1",
-            feedbackCorrect ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800",
+            feedbackCorrect ? "bg-success-surface text-success" : "bg-danger-surface text-danger-ink",
           )}>
             <div className="flex items-center gap-2 font-semibold text-sm">
               {feedbackCorrect ? (

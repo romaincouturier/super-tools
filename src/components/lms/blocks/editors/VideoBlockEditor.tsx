@@ -320,7 +320,7 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
             className="h-7 text-xs gap-1.5"
             onClick={applySupertiltPreset}
           >
-            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+            <Sparkles className="h-3.5 w-3.5 text-caution" />
             Style SuperTilt
           </Button>
         </div>

@@ -292,7 +292,7 @@ export function LearnerAccountMenu({
               <div style={{ borderTop: "1px solid rgba(16,24,32,0.08)" }} className="py-1.5">
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 text-sm text-left transition-colors hover:bg-red-50"
+                  className="w-full flex items-center gap-3 text-sm text-left transition-colors hover:bg-danger-surface"
                   style={{ color: "#dc2626", fontFamily: "inherit", padding: "10px 16px" }}
                 >
                   <LogOut size={16} strokeWidth={1.75} style={{ color: "#dc2626", flexShrink: 0 }} />

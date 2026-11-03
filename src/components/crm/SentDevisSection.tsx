@@ -266,7 +266,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-xs flex items-center gap-1.5">
-                    <Receipt className="h-3 w-3 text-orange-500" />
+                    <Receipt className="h-3 w-3 text-caution" />
                     {isDemoMode ? (maskText(devisTitle) || "Devis") : devisTitle}
                   </span>
                   <span className="text-xs text-muted-foreground">
@@ -425,7 +425,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate flex items-center gap-1.5">
-                      <Mail className="h-3 w-3 text-blue-500 shrink-0" />
+                      <Mail className="h-3 w-3 text-info shrink-0" />
                       {isDemoMode ? maskText(emailItem.subject) : emailItem.subject}
                     </p>
                     <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
@@ -443,12 +443,12 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                               <XCircle className="h-2.5 w-2.5" /> Bounced
                             </Badge>
                           ) : emailItem.delivery_status === "delivered" ? (
-                            <Badge variant="outline" className="text-micro h-4 px-1 gap-0.5 text-green-600 border-green-200 bg-green-50">
+                            <Badge variant="outline" className="text-micro h-4 px-1 gap-0.5 text-success border-success-line bg-success-surface">
                               <CheckCircle2 className="h-2.5 w-2.5" /> Délivré
                             </Badge>
                           ) : null}
                           {(emailItem.open_count || 0) > 0 && (
-                            <Badge variant="outline" className="text-micro h-4 px-1 gap-0.5 text-blue-600 border-blue-200 bg-blue-50">
+                            <Badge variant="outline" className="text-micro h-4 px-1 gap-0.5 text-info-ink border-info-line bg-info-surface">
                               <Eye className="h-2.5 w-2.5" /> Ouvert{emailItem.open_count! > 1 ? ` ×${emailItem.open_count}` : ""}
                             </Badge>
                           )}

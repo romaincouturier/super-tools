@@ -235,7 +235,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-amber-600 border-amber-300">Non validée</Badge>
+            <Badge variant="outline" className="text-caution-ink border-caution-line">Non validée</Badge>
             <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
               Valider l'adéquation
             </Button>

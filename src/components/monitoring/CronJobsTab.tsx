@@ -58,7 +58,7 @@ function statusBadge(status: string) {
   switch (status) {
     case "succeeded":
       return (
-        <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-xs gap-1">
+        <Badge variant="default" className="bg-success hover:bg-success/90 text-xs gap-1">
           <CheckCircle2 className="h-3 w-3" />
           OK
         </Badge>
@@ -125,8 +125,8 @@ const CronJobsTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Clock className="h-5 w-5 text-blue-600" />
+              <div className="p-2 rounded-lg bg-info-surface">
+                <Clock className="h-5 w-5 text-info-ink" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Jobs planifiés</p>
@@ -138,8 +138,8 @@ const CronJobsTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <div className="p-2 rounded-lg bg-success-surface">
+                <CheckCircle2 className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Dernière exécution OK</p>
@@ -151,8 +151,8 @@ const CronJobsTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-100">
-                <XCircle className="h-5 w-5 text-red-600" />
+              <div className="p-2 rounded-lg bg-danger-surface">
+                <XCircle className="h-5 w-5 text-danger-ink" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">En erreur</p>
@@ -225,7 +225,7 @@ const CronJobsTab = () => {
                           </TableCell>
                           <TableCell>
                             {job.active ? (
-                              <Play className="h-4 w-4 text-green-600" />
+                              <Play className="h-4 w-4 text-success" />
                             ) : (
                               <Pause className="h-4 w-4 text-muted-foreground" />
                             )}
@@ -261,8 +261,8 @@ const CronJobsTab = () => {
                                         key={i}
                                         className={`h-6 w-6 rounded-sm flex items-center justify-center text-micro font-medium ${
                                           run.status === "succeeded"
-                                            ? "bg-green-100 text-green-700"
-                                            : "bg-red-100 text-red-700"
+                                            ? "bg-success-surface text-success"
+                                            : "bg-danger-surface text-danger-ink"
                                         }`}
                                         title={`${run.status} - ${run.start_time ? format(parseISO(run.start_time), "d/MM HH:mm", { locale: fr }) : ""}`}
                                       >

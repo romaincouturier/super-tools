@@ -20,9 +20,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_CLASS: Record<string, string> = {
-  OPEN: "bg-blue-100 text-blue-700",
-  WON: "bg-green-100 text-green-700",
-  LOST: "bg-red-100 text-red-700",
+  OPEN: "bg-info-surface text-info-ink",
+  WON: "bg-success-surface text-success",
+  LOST: "bg-danger-surface text-danger-ink",
   CANCELED: "bg-gray-100 text-gray-700",
 };
 

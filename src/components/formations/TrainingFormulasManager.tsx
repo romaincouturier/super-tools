@@ -143,7 +143,7 @@ export default function TrainingFormulasManager({ trainingId, isPermanent, avail
                     {checked && <Check className="inline h-3.5 w-3.5 ml-2 text-primary" />}
                   </Label>
                   {disabled && conflict && (
-                    <p className="text-xs text-amber-600 mt-0.5">
+                    <p className="text-xs text-caution-ink mt-0.5">
                       Déjà liée à une session {conflict.otherIsPermanent ? "permanente" : "programmée"}
                       {" "}({conflict.otherTrainingName}). Détache-la pour pouvoir la cocher ici.
                     </p>

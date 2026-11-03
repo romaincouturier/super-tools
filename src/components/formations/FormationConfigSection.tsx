@@ -54,7 +54,7 @@ export default function FormationConfigSection({
           {formationConfigs.map((c) => (
             <SelectItem key={c.id} value={c.formation_name}>
               <div className="flex items-center gap-2">
-                {c.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
+                {c.is_default && <Star className="w-3 h-3 text-primary fill-primary" />}
                 <span>{c.formation_name}</span>
                 <span className="text-muted-foreground text-xs">({c.prix}€ • {c.duree_heures}h)</span>{/* demo-safe: prix du catalogue SuperTilt */}
               </div>

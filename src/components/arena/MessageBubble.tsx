@@ -22,12 +22,12 @@ function MarkdownContent({ content }: { content: string }) {
 export default function MessageBubble({ message }: MessageBubbleProps) {
   if (message.isSynthesis) {
     return (
-      <div className="arena-fade-in-up mx-4 my-4 rounded-xl border border-blue-500/30 bg-blue-500/5 p-5">
+      <div className="arena-fade-in-up mx-4 my-4 rounded-xl border border-info/30 bg-info/5 p-5">
         <div className="mb-2 flex items-center gap-2">
-          <svg className="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-5 w-5 text-info" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <span className="font-semibold text-blue-500">{message.agentName || "Synthese finale"}</span>
+          <span className="font-semibold text-info">{message.agentName || "Synthese finale"}</span>
         </div>
         <MarkdownContent content={message.content} />
       </div>
@@ -36,12 +36,12 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 
   if (message.isDeliverable) {
     return (
-      <div className="arena-fade-in-up mx-4 my-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+      <div className="arena-fade-in-up mx-4 my-4 rounded-xl border border-success/30 bg-success/5 p-5">
         <div className="mb-2 flex items-center gap-2">
-          <svg className="h-5 w-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-5 w-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span className="font-semibold text-emerald-500">Livrable final</span>
+          <span className="font-semibold text-success">Livrable final</span>
         </div>
         <MarkdownContent content={message.content} />
       </div>
@@ -63,7 +63,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
               <span className="text-sm font-semibold" style={{ color: message.agentColor }}>
                 {message.agentName}
               </span>
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-micro font-medium text-amber-500">
+              <span className="rounded-full bg-caution/10 px-2 py-0.5 text-micro font-medium text-caution">
                 VOTE
               </span>
             </div>

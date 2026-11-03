@@ -472,7 +472,7 @@ function DepositSummary({
   return (
     <div className="rounded-lg border bg-card p-4 sm:p-5 space-y-4">
       <div className="flex items-start gap-3">
-        <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+        <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold">Votre travail a bien été déposé.</h3>
           <p className="text-xs text-muted-foreground">Déposé le {dateLabel}</p>
@@ -524,11 +524,11 @@ function DepositSummary({
         </div>
         <div className="flex items-center gap-2">
           {deposit.visibility === "shared" ? (
-            <Globe2 className="h-3.5 w-3.5 text-blue-600" />
+            <Globe2 className="h-3.5 w-3.5 text-info-ink" />
           ) : (
             <Lock className="h-3.5 w-3.5 text-muted-foreground" />
           )}
-          <span className={cn("font-medium", deposit.visibility === "shared" && "text-blue-700")}>
+          <span className={cn("font-medium", deposit.visibility === "shared" && "text-info-ink")}>
             {VISIBILITY_LABELS[deposit.visibility]}
           </span>
         </div>

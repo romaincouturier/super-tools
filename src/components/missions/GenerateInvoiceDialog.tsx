@@ -227,7 +227,7 @@ const GenerateInvoiceDialog = ({
 
         {unbilledActivities.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            <Check className="h-8 w-8 mx-auto mb-2 text-green-500" />
+            <Check className="h-8 w-8 mx-auto mb-2 text-success" />
             <p>Toutes les activités ont déjà été facturées.</p>
           </div>
         ) : (

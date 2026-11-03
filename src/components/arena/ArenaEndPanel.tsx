@@ -35,8 +35,8 @@ export default function ArenaEndPanel({
         >
           {copied ? (
             <>
-              <svg className="h-4 w-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-              <span className="text-emerald-500">Copie !</span>
+              <svg className="h-4 w-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+              <span className="text-success">Copie !</span>
             </>
           ) : (
             <>
@@ -70,7 +70,7 @@ export default function ArenaEndPanel({
       {/* Feedback */}
       <div className="mt-5 border-t border-primary/20 pt-4">
         {feedbackSent ? (
-          <p className="text-center text-xs text-emerald-500">Merci pour votre retour !</p>
+          <p className="text-center text-xs text-success">Merci pour votre retour !</p>
         ) : (
           <div className="space-y-3">
             <p className="text-center text-xs text-muted-foreground">Comment etait cette discussion ?</p>
@@ -80,7 +80,7 @@ export default function ArenaEndPanel({
                   key={star}
                   onClick={() => onSetRating(star)}
                   className={`p-1 text-lg transition-colors ${
-                    rating !== null && star <= rating ? "text-amber-400" : "text-border hover:text-amber-300"
+                    rating !== null && star <= rating ? "text-caution" : "text-border hover:text-caution-surface"
                   }`}
                 >
                   &#9733;

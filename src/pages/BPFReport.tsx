@@ -728,11 +728,11 @@ export default function BPFReport() {
                   </CardHeader>
                   <CardContent>
                     {produits.unclassified > 0 && (
-                      <div className="flex items-center gap-2 mb-4 text-amber-600 bg-amber-50 border border-amber-200 rounded p-3">
+                      <div className="flex items-center gap-2 mb-4 text-caution-ink bg-caution-surface border border-caution-line rounded p-3">
                         <AlertTriangle className="w-4 h-4 shrink-0" />
                         <span className="text-sm">
                           <strong>{isDemoMode ? maskAmount(produits.unclassified) : EUR(produits.unclassified)}</strong> de chiffre d&apos;affaires n&apos;a pas de source de financement renseignée.
-                          Assignez <code className="text-xs bg-amber-100 px-1 rounded">source_financement_bpf</code> sur chaque formation.
+                          Assignez <code className="text-xs bg-caution-surface px-1 rounded">source_financement_bpf</code> sur chaque formation.
                         </span>
                       </div>
                     )}
@@ -806,11 +806,11 @@ export default function BPFReport() {
                   </CardHeader>
                   <CardContent>
                     {unclassifiedParticipants > 0 && (
-                      <div className="flex items-center gap-2 mb-4 text-amber-600 bg-amber-50 border border-amber-200 rounded p-3">
+                      <div className="flex items-center gap-2 mb-4 text-caution-ink bg-caution-surface border border-caution-line rounded p-3">
                         <AlertTriangle className="w-4 h-4 shrink-0" />
                         <span className="text-sm">
                           <strong>{unclassifiedParticipants} participant(s)</strong> sans type renseigné. Complétez le champ{" "}
-                          <code className="text-xs bg-amber-100 px-1 rounded">type_stagiaire_bpf</code> sur chaque participant.
+                          <code className="text-xs bg-caution-surface px-1 rounded">type_stagiaire_bpf</code> sur chaque participant.
                         </span>
                       </div>
                     )}
@@ -920,7 +920,7 @@ export default function BPFReport() {
                   </CardHeader>
                   <CardContent>
                     {trainingsWithoutCatalog > 0 && (
-                      <div className="flex items-center gap-2 mb-4 text-amber-600 bg-amber-50 border border-amber-200 rounded p-3">
+                      <div className="flex items-center gap-2 mb-4 text-caution-ink bg-caution-surface border border-caution-line rounded p-3">
                         <AlertTriangle className="w-4 h-4 shrink-0" />
                         <span className="text-sm">
                           <strong>{trainingsWithoutCatalog} formation(s)</strong> sans catalogue associé — impossible de déterminer le code NSF.

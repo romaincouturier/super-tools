@@ -534,13 +534,13 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
           onClick={() => toggleResolvedExpanded(comment.id)}
         >
           <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-          <CheckCheck className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+          <CheckCheck className="h-3.5 w-3.5 text-success flex-shrink-0" />
           <span className="text-xs text-muted-foreground truncate flex-1">
             <span className="font-medium">{getDisplayName(comment)}</span>
             {" — "}
             {comment.content.length > 80 ? comment.content.slice(0, 80) + "…" : comment.content}
           </span>
-          <Badge variant="secondary" className="text-micro h-4 bg-green-100 text-green-700 flex-shrink-0">
+          <Badge variant="secondary" className="text-micro h-4 bg-success-surface text-success flex-shrink-0">
             Corrigé
           </Badge>
           {replies.length > 0 && (
@@ -598,7 +598,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                   </Badge>
                 )}
                 {isResolved && (
-                  <Badge variant="secondary" className="text-micro h-4 bg-green-100 text-green-700">
+                  <Badge variant="secondary" className="text-micro h-4 bg-success-surface text-success">
                     <CheckCheck className="h-2.5 w-2.5 mr-0.5" />
                     {comment.status === "corrected" ? "Corrigé" : "Traité"}
                   </Badge>
@@ -664,13 +664,13 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                   )}
 
                   {comment.proposed_correction && (
-                    <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded text-sm relative group/correction">
+                    <div className="mt-2 p-2 bg-info-surface border border-info-surface rounded text-sm relative group/correction">
                       <div className="flex items-center justify-between">
-                        <span className="text-micro font-medium text-blue-600 uppercase tracking-wider">Correction proposée</span>
+                        <span className="text-micro font-medium text-info-ink uppercase tracking-wider">Correction proposée</span>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-5 w-5 opacity-0 group-hover/correction:opacity-100 text-blue-600"
+                          className="h-5 w-5 opacity-0 group-hover/correction:opacity-100 text-info-ink"
                           onClick={() => {
                             copy(comment.proposed_correction!, { title: "Copié" });
                           }}
@@ -678,7 +678,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                           <Copy className="h-3 w-3" />
                         </Button>
                       </div>
-                      <p className="text-blue-900 mt-1 whitespace-pre-wrap">{comment.proposed_correction}</p>
+                      <p className="text-info-ink mt-1 whitespace-pre-wrap">{comment.proposed_correction}</p>
                     </div>
                   )}
                 </>
@@ -692,7 +692,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-6 text-caption text-blue-600 hover:bg-blue-50"
+                      className="h-6 text-caption text-info-ink hover:bg-info-surface"
                       onClick={() => handleResolve(comment.id, "corrected")}
                     >
                       <Pencil className="h-3 w-3 mr-1" />
@@ -846,12 +846,12 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
           <MessageSquare className="h-3.5 w-3.5" />
           <span>{topLevelComments.length} commentaire{topLevelComments.length > 1 ? "s" : ""}</span>
           {pendingCount > 0 && (
-            <Badge variant="secondary" className="text-micro h-5 bg-amber-100 text-amber-800">
+            <Badge variant="secondary" className="text-micro h-5 bg-caution-surface text-caution-ink">
               {pendingCount} en attente
             </Badge>
           )}
           {resolvedComments.length > 0 && (
-            <Badge variant="secondary" className="text-micro h-5 bg-green-100 text-green-700">
+            <Badge variant="secondary" className="text-micro h-5 bg-success-surface text-success">
               {resolvedComments.length} traité{resolvedComments.length > 1 ? "s" : ""}
             </Badge>
           )}
@@ -962,7 +962,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
               type="button"
               size="icon"
               variant="ghost"
-              className={cn("h-7 w-7", showCorrection && "bg-blue-100 text-blue-700")}
+              className={cn("h-7 w-7", showCorrection && "bg-info-surface text-info-ink")}
               onClick={() => setShowCorrection(!showCorrection)}
               title="Proposer une correction"
             >

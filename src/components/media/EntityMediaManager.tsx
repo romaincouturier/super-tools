@@ -647,7 +647,7 @@ const EntityMediaManager = ({
                         selectionMode && isSelected
                           ? "border-primary ring-2 ring-primary"
                           : item.is_deliverable && item.file_type !== "audio"
-                          ? "border-amber-400"
+                          ? "border-caution"
                           : "border-border"
                       )}
                       onClick={() => {

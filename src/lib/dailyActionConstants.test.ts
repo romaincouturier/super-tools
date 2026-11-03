@@ -11,7 +11,7 @@ describe("getCategoryConfig", () => {
     const config = getCategoryConfig("missions_actions");
     expect(config.label).toBe("Missions \u2014 Actions \u00e0 traiter");
     expect(config.emoji).toBe("\u26a1");
-    expect(config.color).toBe("text-orange-600");
+    expect(config.color).toBe("text-caution-ink");
   });
 
   it("returns config for another known category", () => {

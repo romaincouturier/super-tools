@@ -185,7 +185,7 @@ export default function FormationConfigEditor({
                     </Button>
                   </div>
                   {config.is_default && (
-                    <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    <Star className="w-4 h-4 text-primary fill-primary" />
                   )}
                   <h4 className="font-medium text-sm">{config.formation_name}</h4>
                 </div>

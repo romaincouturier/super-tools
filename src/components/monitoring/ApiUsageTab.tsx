@@ -300,8 +300,8 @@ const ApiUsageTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-100">
-                <CircleDollarSign className="h-5 w-5 text-orange-600" />
+              <div className="p-2 rounded-lg bg-caution-surface">
+                <CircleDollarSign className="h-5 w-5 text-caution-ink" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Coût total</p>
@@ -314,8 +314,8 @@ const ApiUsageTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Clock className="h-5 w-5 text-blue-600" />
+              <div className="p-2 rounded-lg bg-info-surface">
+                <Clock className="h-5 w-5 text-info-ink" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Moy. / jour</p>
@@ -345,8 +345,8 @@ const ApiUsageTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <Zap className="h-5 w-5 text-green-600" />
+              <div className="p-2 rounded-lg bg-success-surface">
+                <Zap className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Appels</p>

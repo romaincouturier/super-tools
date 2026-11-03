@@ -199,7 +199,7 @@ const FailedEmails = () => {
               <CardContent>
                 {failedEmails.length === 0 && scheduledFailed.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500 opacity-50" />
+                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-success opacity-50" />
                     <p className="text-lg">Aucun email en erreur</p>
                     <p className="text-sm">Tous les emails ont été envoyés avec succès.</p>
                   </div>
@@ -233,7 +233,7 @@ const FailedEmails = () => {
                           </TableCell>
                           <TableCell>
                             {email.status === "sent" ? (
-                              <Badge className="bg-green-100 text-green-800">Envoyé</Badge>
+                              <Badge className="bg-success-surface text-success">Envoyé</Badge>
                             ) : (
                               <Badge variant="destructive">Erreur</Badge>
                             )}
@@ -294,8 +294,8 @@ const FailedEmails = () => {
                 <span className="font-medium">{previewEmail.subject}</span>
               </div>
               {previewEmail.error_message && (
-                <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                  <p className="text-sm text-red-700">
+                <div className="p-3 bg-danger-surface rounded-lg border border-danger-line">
+                  <p className="text-sm text-danger-ink">
                     <strong>Erreur:</strong> {previewEmail.error_message}
                   </p>
                 </div>

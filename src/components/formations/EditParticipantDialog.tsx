@@ -107,7 +107,7 @@ const EditParticipantDialog = ({
               </>
             ) : hook.lastSaved ? (
               <>
-                <Check className="h-3 w-3 text-green-600" />
+                <Check className="h-3 w-3 text-success" />
                 Sauvegardé
               </>
             ) : (
@@ -278,7 +278,7 @@ function CopyParticipantInfoButton({
     <Tooltip>
       <TooltipTrigger asChild>
         <Button type="button" variant="outline" size="sm" onClick={handleCopy}>
-          {copied ? <Check className="h-4 w-4 mr-1 text-green-600" /> : <Copy className="h-4 w-4 mr-1" />}
+          {copied ? <Check className="h-4 w-4 mr-1 text-success" /> : <Copy className="h-4 w-4 mr-1" />}
           {copied ? "Copié" : "Copier infos"}
         </Button>
       </TooltipTrigger>

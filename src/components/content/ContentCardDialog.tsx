@@ -280,7 +280,7 @@ const ContentCardDialog = ({
                     </span>
                   ) : lastSaved ? (
                     <span className="flex items-center gap-1">
-                      <Check className="h-3 w-3 text-green-600" />
+                      <Check className="h-3 w-3 text-success" />
                       Sauvegardé
                     </span>
                   ) : null}
@@ -316,7 +316,7 @@ const ContentCardDialog = ({
                 aria-label="Copier le lien vers cette carte"
               >
                 {linkCopied ? (
-                  <Check className="h-4 w-4 text-green-600" />
+                  <Check className="h-4 w-4 text-success" />
                 ) : (
                   <Link2 className="h-4 w-4" />
                 )}
@@ -398,7 +398,7 @@ const ContentCardDialog = ({
                     </Select>
                     {attachedNewsletterId && attachedNewsletterId !== "none" && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Check className="h-3 w-3 text-green-600" />
+                        <Check className="h-3 w-3 text-success" />
                         {card ? "Rattachée à la newsletter" : "Sera rattachée à la newsletter à l'enregistrement"}
                       </p>
                     )}

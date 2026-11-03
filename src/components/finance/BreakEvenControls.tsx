@@ -46,7 +46,7 @@ interface MetricProps {
 
 export function Metric({ label, value, hint, tone = "default" }: MetricProps) {
   const toneClass =
-    tone === "positive" ? "text-emerald-600" : tone === "negative" ? "text-rose-600" : "text-foreground";
+    tone === "positive" ? "text-success" : tone === "negative" ? "text-danger-ink" : "text-foreground";
   return (
     <div className="rounded-md border p-3">
       <div className="text-xs text-muted-foreground">{label}</div>

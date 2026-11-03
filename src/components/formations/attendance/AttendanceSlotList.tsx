@@ -125,14 +125,14 @@ const AttendanceSlotList = ({
                   {status.totalSigned}/{participantsCount} signés
                 </Badge>
                 {status.trainerSigned ? (
-                  <Badge variant="outline" className="text-xs text-green-600 border-green-200">
+                  <Badge variant="outline" className="text-xs text-success border-success-line">
                     <Check className="h-3 w-3 mr-1" />
                     Formateur
                   </Badge>
                 ) : (
                   <Badge
                     variant="outline"
-                    className="text-xs text-orange-500 border-orange-200 cursor-pointer hover:bg-orange-50"
+                    className="text-xs text-caution border-caution-line cursor-pointer hover:bg-caution-surface"
                     onClick={() => onOpenTrainerSign(status.date, status.period)}
                   >
                     <UserPen className="h-3 w-3 mr-1" />

@@ -23,9 +23,9 @@ import {
 import type { NetworkContact, WarmthLevel } from "@/types/reseau";
 
 const WARMTH_CONFIG: Record<WarmthLevel, { label: string; color: string }> = {
-  hot: { label: "Chaud", color: "bg-red-100 text-red-800" },
-  warm: { label: "Tiède", color: "bg-orange-100 text-orange-800" },
-  cold: { label: "Froid", color: "bg-blue-100 text-blue-800" },
+  hot: { label: "Chaud", color: "bg-danger-surface text-danger-ink" },
+  warm: { label: "Tiède", color: "bg-caution-surface text-caution-ink" },
+  cold: { label: "Froid", color: "bg-info-surface text-info-ink" },
 };
 
 interface ContactsListProps {
