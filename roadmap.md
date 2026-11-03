@@ -1,7 +1,6 @@
 # Roadmap
 
 ## Identité à la création du mot de passe (2026-11-03)
-- [ ] Préremplir et enregistrer prénom et nom obligatoires sans consommer le lien à l’ouverture
 - [ ] Tester les champs obligatoires, la sauvegarde et le parcours
 
 ## Tests d’accès administrateur (2026-11-03)
