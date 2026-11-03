@@ -8,11 +8,13 @@ export interface EmailMode {
 /**
  * Determine email scheduling mode based on how far the training start date is.
  *
- * - No start date             → "programme", don't send now (will be scheduled later)
+ * - No start date             → "programme", don't send now (sent once a date is set)
  * - Already started (≤ 0 days)→ "non_envoye", don't send
  * - < 2 days away             → "manuel", don't send (too close, handle manually)
- * - 2–7 days away             → "accueil_envoye", send welcome now
- * - > 7 days away             → "programme", don't send now (will be scheduled)
+ * - ≥ 2 days away             → "accueil_envoye", send welcome now
+ *
+ * Must stay equal to computeEmailMode() in the add-training-participant edge
+ * function: the convocation always leaves at once, never scheduled at J-7.
  */
 export function getEmailMode(startDateStr: string | null | undefined): EmailMode {
   if (!startDateStr) {
@@ -31,11 +33,7 @@ export function getEmailMode(startDateStr: string | null | undefined): EmailMode
     return { status: "manuel", sendWelcomeNow: false };
   }
 
-  if (daysUntilStart <= 7) {
-    return { status: "accueil_envoye", sendWelcomeNow: true };
-  }
-
-  return { status: "programme", sendWelcomeNow: false };
+  return { status: "accueil_envoye", sendWelcomeNow: true };
 }
 
 /** Check if the email mode requires manual handling by the user. */

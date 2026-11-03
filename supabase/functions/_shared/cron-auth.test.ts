@@ -12,8 +12,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // verifyAuth vit dans supabase-client.ts qui importe le SDK depuis une URL
 // esm.sh ; on le mocke pour tester isInternalOrAuthenticated sans charger cette
 // dépendance (l'import dynamique dans cron-auth.ts est intercepté par ce mock).
-const { verifyAuthMock, adminMock } = vi.hoisted(() => ({
+const { verifyAuthMock, rpcMock, adminMock } = vi.hoisted(() => ({
   verifyAuthMock: vi.fn(),
+  rpcMock: vi.fn(),
   adminMock: { isAdmin: false as boolean, modules: [] as unknown[], rpcError: null as unknown },
 }));
 vi.mock("./supabase-client.ts", () => ({
@@ -21,9 +22,11 @@ vi.mock("./supabase-client.ts", () => ({
   getSupabaseClient: () => fakeAdmin(),
 }));
 
+// rpc répond par défaut selon adminMock (tests de requireStaff) ; les tests de
+// isStaffCaller fixent leurs propres réponses par rpcMock.
 function fakeAdmin() {
   return {
-    rpc: vi.fn(async () => ({ data: adminMock.isAdmin, error: adminMock.rpcError })),
+    rpc: rpcMock,
     from: vi.fn(() => ({
       select: () => ({ eq: () => ({ limit: async () => ({ data: adminMock.modules, error: null }) }) }),
     })),
@@ -33,7 +36,8 @@ function fakeAdmin() {
 const env: Record<string, string> = {};
 vi.stubGlobal("Deno", { env: { get: (k: string) => env[k] } });
 
-const { isInternalCall, isInternalOrAuthenticated, isCronOrServiceRole, requireStaff } = await import("./cron-auth.ts");
+const { isInternalCall, isInternalOrAuthenticated, isCronOrServiceRole, requireStaff, isStaffCaller, isInternalOrAdmin } =
+  await import("./cron-auth.ts");
 
 function request(headers: Record<string, string> = {}): Request {
   return new Request("https://example.test/", { method: "POST", headers });
@@ -45,6 +49,8 @@ beforeEach(() => {
   adminMock.isAdmin = false;
   adminMock.modules = [];
   adminMock.rpcError = null;
+  rpcMock.mockReset();
+  rpcMock.mockImplementation(async () => ({ data: adminMock.isAdmin, error: adminMock.rpcError }));
 });
 
 describe("isInternalCall", () => {
@@ -115,6 +121,78 @@ describe("isInternalOrAuthenticated", () => {
     env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
     verifyAuthMock.mockResolvedValueOnce(null);
     expect(await isInternalOrAuthenticated(request({ Authorization: "Bearer mauvais" }))).toBe(false);
+  });
+});
+
+function rpcAnswers(answers: Record<string, boolean>) {
+  rpcMock.mockImplementation(async (fn: string) => ({ data: answers[fn] ?? false }));
+}
+
+describe("isStaffCaller", () => {
+  it("refuse un appel sans JWT valide", async () => {
+    verifyAuthMock.mockResolvedValueOnce(null);
+    expect(await isStaffCaller(request({ Authorization: "Bearer cle-anon" }), "missions")).toBe(false);
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it("accepte un admin", async () => {
+    verifyAuthMock.mockResolvedValueOnce({ id: "u1" });
+    rpcAnswers({ is_admin: true });
+    expect(await isStaffCaller(request({ Authorization: "Bearer jwt" }), "missions")).toBe(true);
+    expect(rpcMock).toHaveBeenCalledWith("is_admin", { _user_id: "u1" });
+  });
+
+  it("refuse et journalise quand la vérification de rôle échoue", async () => {
+    verifyAuthMock.mockResolvedValueOnce({ id: "u1" });
+    rpcMock.mockResolvedValue({ data: null, error: { message: "permission denied" } });
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await isStaffCaller(request({ Authorization: "Bearer jwt" }), "missions")).toBe(false);
+    expect(spy).toHaveBeenCalledWith("[isStaffCaller] is_admin:", "permission denied");
+    spy.mockRestore();
+  });
+
+  it("accepte un utilisateur du module demandé", async () => {
+    verifyAuthMock.mockResolvedValueOnce({ id: "u1" });
+    rpcAnswers({ has_module_access: true });
+    expect(await isStaffCaller(request({ Authorization: "Bearer jwt" }), "missions")).toBe(true);
+    expect(rpcMock).toHaveBeenCalledWith("has_module_access", { _user_id: "u1", _module: "missions" });
+  });
+
+  it("refuse un apprenant : JWT valide mais ni admin ni accès module", async () => {
+    verifyAuthMock.mockResolvedValueOnce({ id: "apprenant" });
+    rpcAnswers({});
+    expect(await isStaffCaller(request({ Authorization: "Bearer jwt" }), "missions")).toBe(false);
+  });
+
+  it("sans module, n'accepte que les admins", async () => {
+    verifyAuthMock.mockResolvedValueOnce({ id: "u1" });
+    rpcAnswers({ has_module_access: true });
+    expect(await isStaffCaller(request({ Authorization: "Bearer jwt" }))).toBe(false);
+  });
+});
+
+describe("isInternalOrAdmin", () => {
+  it("accepte le cron et le service_role sans consulter les JWT", async () => {
+    env.CRON_SECRET = "s3cret";
+    env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
+    expect(await isInternalOrAdmin(request({ "x-cron-secret": "s3cret" }))).toBe(true);
+    expect(await isInternalOrAdmin(request({ Authorization: "Bearer service-role" }))).toBe(true);
+    expect(verifyAuthMock).not.toHaveBeenCalled();
+  });
+
+  it("accepte un admin connecté", async () => {
+    verifyAuthMock.mockResolvedValueOnce({ id: "u1" });
+    rpcAnswers({ is_admin: true });
+    expect(await isInternalOrAdmin(request({ Authorization: "Bearer jwt" }))).toBe(true);
+    expect(rpcMock).toHaveBeenCalledWith("is_admin", { _user_id: "u1" });
+  });
+
+  it("refuse un utilisateur connecté non admin et un anonyme", async () => {
+    verifyAuthMock.mockResolvedValueOnce({ id: "u1" });
+    rpcAnswers({});
+    expect(await isInternalOrAdmin(request({ Authorization: "Bearer jwt" }))).toBe(false);
+    verifyAuthMock.mockResolvedValueOnce(null);
+    expect(await isInternalOrAdmin(request())).toBe(false);
   });
 });
 

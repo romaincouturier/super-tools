@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bot, ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, MailCheck, Settings, Shield } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, MailCheck, Settings, Shield } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MODULE_ICONS } from "@/components/moduleIcons";
@@ -250,14 +250,6 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
           overflowX: "hidden",
         }}
       >
-        <RailItem
-          icon={Bot}
-          label="Agent IA"
-          active={isActive("/agent")}
-          highlight
-          showLabels={showLabels}
-          onClick={() => go("/agent")}
-        />
         <RailItem
           icon={LayoutDashboard}
           label="Tableau de bord"

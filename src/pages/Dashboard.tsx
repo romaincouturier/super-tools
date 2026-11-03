@@ -1,10 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   ArrowUpRight,
   AlertTriangle,
-  Bot,
   Briefcase,
   Calendar,
   ChevronRight,
@@ -12,7 +11,6 @@ import {
   FileText,
   GraduationCap,
   Mail,
-  Send,
   Star,
   Target,
   Users,
@@ -164,7 +162,6 @@ const Dashboard = () => {
   const now = useMemo(() => new Date(), []);
   const greet = greetingFor(now.getHours());
   const today = formatToday(now);
-  const [agentPrompt, setAgentPrompt] = useState("");
 
   const accessibleModules = useMemo(
     () =>
@@ -173,12 +170,6 @@ const Dashboard = () => {
         .filter((m) => !!m.info && hasAccess(moduleKeyToAppModule(m.key))),
     [hasAccess],
   );
-
-  const handleAgentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = agentPrompt.trim();
-    navigate(trimmed ? `/agent?q=${encodeURIComponent(trimmed)}` : "/agent");
-  };
 
   const firstName = dashboard.user.firstName || "vous";
 
@@ -226,27 +217,6 @@ const Dashboard = () => {
               <p style={{ fontSize: 16, color: "rgba(16,24,32,0.65)", margin: "10px 0 0", maxWidth: 560, lineHeight: 1.5 }}>
                 {dashboard.isLoading ? "Chargement de votre tableau de bord…" : dashboard.subtitle}
               </p>
-            </div>
-            <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-              <button
-                type="button"
-                onClick={() => navigate("/agent")}
-                style={{
-                  padding: "10px 16px",
-                  background: ANTHRACITE,
-                  color: CREAM,
-                  border: "none",
-                  borderRadius: 10,
-                  cursor: "pointer",
-                  fontSize: 13.5,
-                  fontWeight: 500,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <Bot size={15} /> Parler à l&apos;agent
-              </button>
             </div>
           </header>
 
@@ -461,63 +431,8 @@ const Dashboard = () => {
               )}
             </section>
 
-            {/* Right column: Agent IA prompt + Attention */}
+            {/* Right column: Attention */}
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <section style={{ background: ANTHRACITE, color: CREAM, borderRadius: 14, padding: 18 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <Bot size={16} style={{ color: YELLOW }} />
-                  <div style={{ fontSize: 12.5, fontWeight: 600 }}>Agent IA</div>
-                </div>
-                <div style={{ fontSize: 12, color: "rgba(247,245,240,0.6)", marginBottom: 12 }}>
-                  Posez une question, lancez une action
-                </div>
-                <form
-                  onSubmit={handleAgentSubmit}
-                  style={{
-                    display: "flex",
-                    gap: 6,
-                    alignItems: "center",
-                    background: "rgba(247,245,240,0.08)",
-                    borderRadius: 10,
-                    padding: "10px 12px",
-                  }}
-                >
-                  <input
-                    value={agentPrompt}
-                    onChange={(ev) => setAgentPrompt(ev.target.value)}
-                    placeholder="Ex: relance les devis ouverts depuis +7j…"
-                    aria-label="Message à l'Agent IA"
-                    style={{
-                      flex: 1,
-                      background: "transparent",
-                      border: "none",
-                      outline: "none",
-                      color: CREAM,
-                      fontSize: 13,
-                      fontFamily: "inherit",
-                    }}
-                  />
-                  <button
-                    type="submit"
-                    aria-label="Envoyer à l'agent"
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 6,
-                      border: "none",
-                      background: YELLOW,
-                      color: ANTHRACITE,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Send size={13} />
-                  </button>
-                </form>
-              </section>
-
               <section style={{ background: "#fff", borderRadius: 14, padding: 18, border: "1px solid rgba(16,24,32,0.05)" }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 12 }}>À votre attention</div>
                 {dashboard.attention.length === 0 ? (
