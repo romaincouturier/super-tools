@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
@@ -35,6 +36,7 @@ const BulkAddParticipantsDialog = ({
 }: BulkAddParticipantsDialogProps) => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [progress, setProgress] = useState({ value: 0, action: "", detail: "" });
   const [bulkText, setBulkText] = useState("");
   const [isManualMode, setIsManualMode] = useState(false);
   const { toast } = useToast();
@@ -47,13 +49,17 @@ const BulkAddParticipantsDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     if (count === 0) {
       toastError(toast, "Veuillez entrer au moins une adresse email valide.", { title: "Aucun participant" });
       return;
     }
     setSaving(true);
+    setProgress({ value: 0, action: "Ajout des participants et préparation des questionnaires…", detail: `${count} participant${pluralize(count)} à ajouter` });
     try {
       const { data, status, sendWelcomeNow, duplicateWarning } = await insertParticipantsWithQuestionnaires(parsedParticipants, trainingId, trainingStartDate);
+      const insertedCount = data?.length ?? 0;
+      setProgress({ value: 25, action: "Participants ajoutés", detail: `${insertedCount} participant${pluralize(insertedCount)} ajouté${pluralize(insertedCount)}` });
       if (duplicateWarning) toast({ title: "Doublons détectés", description: "Certains participants étaient déjà inscrits et ont été ignorés.", variant: "default" });
       const ongoing = isTrainingOngoing(trainingStartDate, trainingEndDate);
       // Même règle que l'ajout unitaire (getEmailMode) : convocation tout de suite
@@ -61,26 +67,43 @@ const BulkAddParticipantsDialog = ({
       // session). Sans date, la réconciliation l'enverra quand la date sera fixée ;
       // à moins de 2 jours, l'envoi reste manuel.
       if (!isFreeTraining && (sendWelcomeNow || ongoing) && data && data.length > 0 && formatFormation !== "e_learning") {
-        await sendWelcomeEmailsToBatch(data, trainingId);
+        setProgress({ value: 25, action: "Envoi des emails d’accueil…", detail: `0 / ${data.length} participants traités` });
+        await sendWelcomeEmailsToBatch(data, trainingId, (completed, total) => {
+          setProgress({ value: 25 + (completed / total) * 45, action: "Envoi des emails d’accueil…", detail: `${completed} / ${total} participants traités` });
+        });
       }
-      if (formatFormation === "e_learning" && data && data.length > 0) await sendElearningAccessToBatch(data, trainingId);
+      if (formatFormation === "e_learning" && data && data.length > 0) {
+        setProgress({ value: 25, action: "Création des accès et envoi des emails e-learning…", detail: `0 / ${data.length} participants traités` });
+        await sendElearningAccessToBatch(data, trainingId, (completed, total) => {
+          setProgress({ value: 25 + (completed / total) * 45, action: "Création des accès et envoi des emails e-learning…", detail: `${completed} / ${total} participants traités` });
+        });
+      }
       let needsSurveySkipped = false;
       // Needs survey only makes sense before the session starts.
       const trainingInFuture = status !== "non_envoye" && !ongoing;
       if (trainingInFuture && data && data.length > 0 && trainingStartDate && formatFormation !== "e_learning") {
+        setProgress({ value: 70, action: "Programmation des recueils des besoins…", detail: `${insertedCount} participants ajoutés` });
         needsSurveySkipped = await scheduleNeedsSurveyEmails(data, trainingId, trainingStartDate);
       }
-      if (trainingStartDate && status !== "non_envoye") await scheduleTrainerSummaryIfNeeded(supabase, trainingId, trainingStartDate);
+      if (trainingStartDate && status !== "non_envoye") {
+        setProgress({ value: 80, action: "Programmation du récapitulatif formateur…", detail: `${insertedCount} participants ajoutés` });
+        await scheduleTrainerSummaryIfNeeded(supabase, trainingId, trainingStartDate);
+      }
       // Mid-session catch-up : send attendance signature email to each new
       // participant for slots that were already sent to existing participants.
       let attendanceCatchUpSlots = 0;
       if (ongoing && data && data.length > 0 && formatFormation !== "e_learning") {
+        setProgress({ value: 85, action: "Rattrapage des demandes d’émargement…", detail: `${insertedCount} participants ajoutés` });
         const results = await Promise.all(
           data.map((p) => catchUpAttendanceSignaturesForParticipant(trainingId, p.id).catch(() => ({ sentSlots: 0, errors: 1 }))),
         );
         attendanceCatchUpSlots = results.reduce((acc, r) => acc + r.sentSlots, 0);
       }
-      if (data && data.length > 0) await logBulkAddActivity(data, trainingId, isInterEntreprise);
+      if (data && data.length > 0) {
+        setProgress({ value: 95, action: "Finalisation de l’ajout…", detail: `${insertedCount} participants ajoutés` });
+        await logBulkAddActivity(data, trainingId, isInterEntreprise);
+      }
+      setProgress({ value: 100, action: "Ajout terminé", detail: `${insertedCount} participants ajoutés` });
       const n = data?.length || 0;
       const baseMessage = isFreeTraining
         ? formatFormation === "e_learning"
@@ -111,7 +134,7 @@ const BulkAddParticipantsDialog = ({
     : "jean.dupont@example.com\nMarie Martin marie.martin@example.com, ACME Corp";
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!saving) setOpen(nextOpen); }}>
       <DialogTrigger asChild>
         <Button variant="outline"><Users className="h-4 w-4 mr-2" />Ajout en lot</Button>
       </DialogTrigger>
@@ -151,7 +174,7 @@ const BulkAddParticipantsDialog = ({
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="bulkText">Participants</Label>
-              <Textarea id="bulkText" value={bulkText} onChange={(e) => setBulkText(e.target.value)} placeholder={placeholder} rows={8} className="font-mono text-sm" />
+              <Textarea id="bulkText" value={bulkText} onChange={(e) => setBulkText(e.target.value)} disabled={saving} placeholder={placeholder} rows={8} className="font-mono text-sm" />
             </div>
             {parseErrors.length > 0 && (
               <Alert variant="destructive">
@@ -166,8 +189,18 @@ const BulkAddParticipantsDialog = ({
               </div>
             )}
           </div>
+          {saving && (
+            <div className="space-y-2 pb-4" role="status" aria-live="polite" aria-atomic="true">
+              <div className="flex items-start gap-2 text-sm font-medium">
+                <Spinner className="mt-0.5 shrink-0" />
+                <span className="min-w-0 break-words">{progress.action}</span>
+              </div>
+              <Progress value={progress.value} aria-label="Progression de l’ajout des participants" aria-valuenow={progress.value} aria-valuemin={0} aria-valuemax={100} className="h-2" />
+              <p className="text-sm text-muted-foreground">{progress.detail}</p>
+            </div>
+          )}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+            <Button type="button" variant="outline" disabled={saving} onClick={() => setOpen(false)}>Annuler</Button>
             <Button type="submit" disabled={saving || count === 0}>
               {saving ? <><Spinner className="mr-2" />Ajout...</> : `Ajouter ${count} participant${pluralize(count)}`}
             </Button>

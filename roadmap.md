@@ -1,5 +1,9 @@
 # Roadmap
 
+## Progression de l’ajout groupé (2026-11-03)
+- [ ] Afficher l’étape en cours, la progression et le compteur pendant l’ajout et les envois
+- [ ] Vérifier le parcours sans envoyer d’emails réels ni changer les règles d’inscription
+
 ## Email d'accès de Colette (2026-11-03)
 - [x] Diagnostiquer l'ajout groupé sans compte de connexion ni email
 - [x] Corriger et tester le provisionnement réservé aux apprenants inscrits : 39 tests et 99 contrôles réussis
