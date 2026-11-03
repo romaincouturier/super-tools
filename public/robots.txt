@@ -1,32 +1,7 @@
-# SuperTilt Academy : pages publiques indexables.
-# Les espaces internes, apprenants et liens personnels (tokens) restent exclus.
+# SuperTilt Academy : seule la page d'accueil (qui contient « Toutes les formations ») est indexable.
 
 User-agent: *
-Allow: /
-Disallow: /dashboard
-Disallow: /espace-apprenant
-Disallow: /lms/
-Disallow: /auth
-Disallow: /signup
-Disallow: /onboarding
-Disallow: /reset-password
-Disallow: /force-password-change
-Disallow: /compte-sans-acces
-Disallow: /connexion/
-Disallow: /questionnaire/
-Disallow: /evaluation
-Disallow: /emargement/
-Disallow: /signature-
-Disallow: /reclamation/
-Disallow: /partenaire/
-Disallow: /formation-info/
-Disallow: /formation-support/
-Disallow: /mission-info/
-Disallow: /sondage
-Disallow: /book/share/
-Disallow: /supertilt/
-Disallow: /google
-Disallow: /formulaire/
-Disallow: /academy/choisir-mes-formations
+Allow: /$
+Disallow: /
 
 Sitemap: https://academy.supertilt.fr/sitemap.xml
