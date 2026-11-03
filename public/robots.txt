@@ -1,51 +1,32 @@
-# SuperTools est une plateforme interne privée.
-# L'indexation et le crawl sont totalement interdits.
+# SuperTilt Academy : pages publiques indexables.
+# Les espaces internes, apprenants et liens personnels (tokens) restent exclus.
 
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /dashboard
+Disallow: /espace-apprenant
+Disallow: /lms/
+Disallow: /auth
+Disallow: /signup
+Disallow: /onboarding
+Disallow: /reset-password
+Disallow: /force-password-change
+Disallow: /compte-sans-acces
+Disallow: /connexion/
+Disallow: /questionnaire/
+Disallow: /evaluation
+Disallow: /emargement/
+Disallow: /signature-
+Disallow: /reclamation/
+Disallow: /partenaire/
+Disallow: /formation-info/
+Disallow: /formation-support/
+Disallow: /mission-info/
+Disallow: /sondage
+Disallow: /book/share/
+Disallow: /supertilt/
+Disallow: /google
+Disallow: /formulaire/
+Disallow: /academy/choisir-mes-formations
 
-# Bloquer explicitement les principaux crawlers IA et SEO
-User-agent: GPTBot
-Disallow: /
-
-User-agent: ChatGPT-User
-Disallow: /
-
-User-agent: Google-Extended
-Disallow: /
-
-User-agent: anthropic-ai
-Disallow: /
-
-User-agent: Claude-Web
-Disallow: /
-
-User-agent: ClaudeBot
-Disallow: /
-
-User-agent: PerplexityBot
-Disallow: /
-
-User-agent: CCBot
-Disallow: /
-
-User-agent: Bytespider
-Disallow: /
-
-User-agent: AhrefsBot
-Disallow: /
-
-User-agent: SemrushBot
-Disallow: /
-
-User-agent: MJ12bot
-Disallow: /
-
-User-agent: DotBot
-Disallow: /
-
-User-agent: PetalBot
-Disallow: /
-
-User-agent: DataForSeoBot
-Disallow: /
+Sitemap: https://academy.supertilt.fr/sitemap.xml
