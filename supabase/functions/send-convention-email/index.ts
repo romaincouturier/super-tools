@@ -96,7 +96,7 @@ serve(async (req: Request): Promise<Response> => {
 
       // Build the public URL for the signature page from configured app URL
       const urls = await getAppUrls();
-      const appUrl = (urls.app_url || "https://super-tools.lovable.app").replace(/\/+$/, "");
+      const appUrl = (urls.app_url || "https://academy.supertilt.fr").replace(/\/+$/, "");
       signatureUrl = `${appUrl}/signature-convention/${signatureToken}`;
 
 

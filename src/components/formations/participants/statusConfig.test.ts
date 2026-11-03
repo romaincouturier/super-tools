@@ -14,7 +14,7 @@ describe("getStatusConfig", () => {
     const cfg = getStatusConfig("programme");
     expect(cfg.icon).toBe(Mail);
     expect(cfg.colorClass).toBe("text-amber-500");
-    expect(cfg.tooltip).toContain("J-7");
+    expect(cfg.tooltip).toContain("date de session");
   });
 
   it("accueil_envoye → Mail icon, amber colorClass", () => {

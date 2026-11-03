@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Settings, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -7,6 +8,7 @@ import type { FormationConfig } from "@/types/formations";
 import type { FormationFormula } from "@/types/training";
 import type { ConfigEditorActions } from "@/components/formations/formationFormTypes";
 import FormationConfigEditor from "@/components/formations/FormationConfigEditor";
+import { sortFormationConfigsByDevis } from "@/lib/formationDemand";
 
 interface FormationConfigSectionProps {
   formationDemandee: string;
@@ -19,14 +21,22 @@ interface FormationConfigSectionProps {
   formationFormulas: FormationFormula[];
   selectedFormulaId: string;
   setSelectedFormulaId: (v: string) => void;
+  /** Nombre de devis par formation : trie le sélecteur du plus demandé au moins demandé. */
+  demandByFormation?: Map<string, number> | null;
 }
 
 export default function FormationConfigSection({
   formationDemandee, setFormationDemandee, formationConfigs, loadingConfigs,
   configDialogOpen, setConfigDialogOpen, configEditorActions,
-  formationFormulas, selectedFormulaId, setSelectedFormulaId,
+  formationFormulas, selectedFormulaId, setSelectedFormulaId, demandByFormation,
 }: FormationConfigSectionProps) {
   const a = configEditorActions;
+  // Le sélecteur est trié par nombre de devis ; l'éditeur « Gérer » garde
+  // l'ordre manuel du catalogue pour ne pas fausser les déplacements.
+  const displayConfigs = useMemo(
+    () => (demandByFormation ? sortFormationConfigsByDevis(formationConfigs, demandByFormation) : formationConfigs),
+    [formationConfigs, demandByFormation],
+  );
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -51,7 +61,7 @@ export default function FormationConfigSection({
           <SelectValue placeholder="Sélectionner une formation" />
         </SelectTrigger>
         <SelectContent className="bg-background border shadow-lg z-50">
-          {formationConfigs.map((c) => (
+          {displayConfigs.map((c) => (
             <SelectItem key={c.id} value={c.formation_name}>
               <div className="flex items-center gap-2">
                 {c.is_default && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}

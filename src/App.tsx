@@ -14,9 +14,11 @@ import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 import { DemoModeProvider } from "@/contexts/DemoModeContext";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
-import AgentCommandDialog from "@/components/AgentCommandDialog";
+import SettingsCommandDialog from "@/components/SettingsCommandDialog";
 import { RequireStaff } from "@/components/RequireStaff";
 import { RequireLearner } from "@/components/RequireLearner";
+import { RedirectKeepQuery } from "@/components/RedirectKeepQuery";
+import { FolderKanban, Zap } from "lucide-react";
 import { SessionProvider } from "@/contexts/SessionProvider";
 import "@/i18n";
 import { registerToast } from "@/lib/offlineMutationGuard";
@@ -116,8 +118,7 @@ const ElearningIntegrations = lazy(() => import("./pages/ElearningIntegrations")
 const LessonBuilderPage = lazy(() => import("./pages/LessonBuilderPage"));
 const Reseau = lazy(() => import("./pages/Reseau"));
 const Watch = lazy(() => import("./pages/Watch"));
-const AgentChat = lazy(() => import("./pages/AgentChat"));
-const SuperTilt = lazy(() => import("./pages/SuperTilt"));
+const ProjectBoardPage = lazy(() => import("./pages/ProjectBoardPage"));
 const WebAnalytics = lazy(() => import("./pages/WebAnalytics"));
 const Finances = lazy(() => import("./pages/Finances"));
 const AdminArchives = lazy(() => import("./pages/AdminArchives"));
@@ -196,7 +197,7 @@ const App = () => {
       <BrowserRouter>
         <SessionProvider>
         <PageViewTracker />
-        <AgentCommandDialog />
+        <SettingsCommandDialog />
         <Suspense fallback={<PageLoader />}>
           <RouteErrorBoundary>
             <Routes>
@@ -264,7 +265,7 @@ const App = () => {
               {/* Back-office routes — staff only, learners redirected to /espace-apprenant */}
               <Route element={<RequireStaff />}>
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/agent" element={<AgentChat />} />
+                <Route path="/agent" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/certificates" element={<CertificateGenerator />} />
                 <Route path="/micro-devis" element={<MicroDevis />} />
                 <Route path="/historique" element={<Historique />} />
@@ -278,7 +279,12 @@ const App = () => {
                 <Route path="/evaluations" element={<Evaluations />} />
                 <Route path="/ameliorations" element={<Ameliorations />} />
                 <Route path="/ideas" element={<Ideas />} />
-                <Route path="/contenu" element={<ContentBoard />} />
+                <Route path="/supertilt-fr" element={<Navigate to="/supertilt-fr/newsletter" replace />} />
+                <Route path="/supertilt-fr/newsletter" element={<ContentBoard />} />
+                <Route path="/supertilt-fr/transcripts" element={<Transcripts />} />
+                <Route path="/supertilt-fr/temoignages" element={<Temoignages />} />
+                <Route path="/supertilt-fr/projets" element={<ProjectBoardPage board="site" title="Projets supertilt.fr" icon={FolderKanban} />} />
+                <Route path="/contenu" element={<RedirectKeepQuery to="/supertilt-fr/newsletter" />} />
                 <Route path="/chatbot-admin" element={<ChatbotAdmin />} />
                 <Route path="/emails" element={<InboundEmails />} />
                 <Route path="/avis-a-demander" element={<AvisADemander />} />
@@ -323,11 +329,12 @@ const App = () => {
                 <Route path="/support" element={<Support />} />
                 <Route path="/reseau" element={<Reseau />} />
                 <Route path="/veille" element={<Watch />} />
-                <Route path="/supertilt" element={<SuperTilt />} />
+                <Route path="/projets-transverses" element={<ProjectBoardPage board="transverse" title="Projets transverses" icon={Zap} />} />
+                <Route path="/supertilt" element={<RedirectKeepQuery to="/projets-transverses" />} />
                 <Route path="/finances" element={<Finances />} />
                 <Route path="/archives" element={<AdminArchives />} />
-                <Route path="/transcripts" element={<Transcripts />} />
-                <Route path="/temoignages" element={<Temoignages />} />
+                <Route path="/transcripts" element={<RedirectKeepQuery to="/supertilt-fr/transcripts" />} />
+                <Route path="/temoignages" element={<RedirectKeepQuery to="/supertilt-fr/temoignages" />} />
                 <Route path="/dropshipping" element={<Navigate to="/commandes-jeux" replace />} />
                 <Route path="/commandes-jeux" element={<SupertiltOrders />} />
                 <Route path="/commandes/inbox" element={<WoocommerceInbox />} />

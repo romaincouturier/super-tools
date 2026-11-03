@@ -44,17 +44,39 @@ export async function insertParticipantsWithQuestionnaires(
     sponsor_email: p.sponsorEmail || null,
   }));
 
-  const { data, error } = await supabase
+  // Un seul doublon rejetait tout le lot : on dédoublonne la liste et on écarte les inscrits existants.
+  const { data: existing, error: existingError } = await supabase
     .from("training_participants")
-    .insert(toInsert)
-    .select();
+    .select("email")
+    .eq("training_id", trainingId);
+  if (existingError) throw new Error(getErrorMessage(existingError));
+  const seen = new Set((existing || []).map((r: { email: string | null }) => (r.email || "").trim().toLowerCase()));
+  const unique = toInsert.filter((row) => {
+    const key = (row.email || "").trim().toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  let duplicateWarning = unique.length < toInsert.length;
 
-  let duplicateWarning = false;
-  if (error) {
-    if (error.code === "23505") {
-      duplicateWarning = true;
-    } else {
-      throw new Error(getErrorMessage(error));
+  const data: InsertedParticipant[] = [];
+  const CHUNK = 50;
+  for (let i = 0; i < unique.length; i += CHUNK) {
+    const chunk = unique.slice(i, i + CHUNK);
+    const { data: rows, error } = await supabase.from("training_participants").insert(chunk).select();
+    if (!error) {
+      data.push(...((rows || []) as InsertedParticipant[]));
+      continue;
+    }
+    if (error.code !== "23505") throw new Error(getErrorMessage(error));
+    duplicateWarning = true;
+    for (const row of chunk) {
+      const { data: one, error: oneError } = await supabase.from("training_participants").insert(row).select();
+      if (oneError) {
+        if (oneError.code === "23505") continue;
+        throw new Error(getErrorMessage(oneError));
+      }
+      data.push(...((one || []) as InsertedParticipant[]));
     }
   }
 
@@ -83,13 +105,18 @@ export async function insertParticipantsWithQuestionnaires(
 export async function sendWelcomeEmailsToBatch(
   participants: InsertedParticipant[],
   trainingId: string,
+  onProgress?: (completed: number, total: number) => void,
 ): Promise<void> {
+  let completed = 0;
   for (const participant of participants) {
     try {
       await sendParticipantWelcomeEmail(participant.id, trainingId);
       await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error: unknown) {
       console.error("Failed to send welcome email to:", participant.email, getErrorMessage(error));
+    } finally {
+      completed += 1;
+      onProgress?.(completed, participants.length);
     }
   }
 }
@@ -97,7 +124,10 @@ export async function sendWelcomeEmailsToBatch(
 export async function sendElearningAccessToBatch(
   participants: InsertedParticipant[],
   trainingId: string,
-): Promise<void> {
+  onProgress?: (completed: number, total: number) => void,
+): Promise<{ email: string; message: string }[]> {
+  let completed = 0;
+  const failures: { email: string; message: string }[] = [];
   for (const participant of participants) {
     try {
       // Même email d'accès que l'ajout unitaire (W12) : le mode WooCommerce
@@ -106,33 +136,13 @@ export async function sendElearningAccessToBatch(
       await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error: unknown) {
       console.error("Failed to send e-learning access email to:", participant.email, getErrorMessage(error));
+      failures.push({ email: participant.email, message: getErrorMessage(error) });
+    } finally {
+      completed += 1;
+      onProgress?.(completed, participants.length);
     }
   }
-}
-
-export async function scheduleWelcomeEmailsBatch(
-  participants: InsertedParticipant[],
-  trainingId: string,
-  trainingStartDate: string,
-): Promise<void> {
-  try {
-    const workingDays = await fetchWorkingDays(supabase);
-    const startDate = parseISO(trainingStartDate);
-    const scheduledDate = subtractWorkingDays(startDate, 7, workingDays);
-
-    if (scheduledDate > new Date()) {
-      const scheduledEmails = participants.map((participant) => ({
-        training_id: trainingId,
-        participant_id: participant.id,
-        email_type: "welcome",
-        scheduled_for: format(scheduledDate, "yyyy-MM-dd'T'09:00:00"),
-      }));
-
-      await scheduleEmailsBulk(scheduledEmails);
-    }
-  } catch (error: unknown) {
-    console.error("Failed to schedule welcome emails:", getErrorMessage(error));
-  }
+  return failures;
 }
 
 export async function scheduleNeedsSurveyEmails(

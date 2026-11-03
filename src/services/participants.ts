@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { format, parseISO } from "date-fns";
 import { subtractWorkingDays, fetchWorkingDays, fetchNeedsSurveyDelay, scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 import { capitalizeName } from "@/lib/stringUtils";
@@ -227,9 +228,15 @@ export async function sendElearningAccess(
  * auto-connecting link.
  */
 export async function sendLearnerAccessEmail(email: string, trainingId?: string) {
-  await supabase.functions.invoke("send-learner-access-email", {
+  const { data, error } = await supabase.functions.invoke("send-learner-access-email", {
     body: { email, trainingId },
   });
+  if (error instanceof FunctionsHttpError) {
+    const payload = await error.context.json();
+    throw new Error(payload.error || error.message);
+  }
+  if (error) throw error;
+  if (data?.success === false || data?.sent === false) throw new Error("L’email d’accès n’a pas été envoyé.");
 }
 
 /**
@@ -262,33 +269,6 @@ export async function scheduleParticipantEmail(
 
   return false;
 }
-
-/**
- * Schedule a welcome email for a participant (for trainings > 7 days away).
- * The email will be sent at J-7 working days before the training start date.
- */
-export async function scheduleWelcomeEmail(
-  trainingId: string,
-  participantId: string,
-  trainingStartDate: string,
-): Promise<boolean> {
-  const workingDays = await fetchWorkingDays(supabase);
-  const startDate = parseISO(trainingStartDate);
-  const scheduledDate = subtractWorkingDays(startDate, 7, workingDays);
-
-  if (scheduledDate > new Date()) {
-    await scheduleEmail({
-      trainingId,
-      participantId,
-      emailType: "welcome",
-      scheduledFor: format(scheduledDate, "yyyy-MM-dd'T'09:00:00"),
-    });
-    return true;
-  }
-
-  return false;
-}
-
 
 export async function scheduleTrainerSummary(trainingId: string, trainingStartDate: string) {
   await scheduleTrainerSummaryIfNeeded(supabase, trainingId, trainingStartDate);

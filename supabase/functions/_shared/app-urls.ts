@@ -8,7 +8,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const DEFAULTS: Record<string, string> = {
-  app_url: "https://super-tools.lovable.app",
+  app_url: "https://academy.supertilt.fr",
   website_url: "https://www.supertilt.fr",
   blog_url: "https://supertilt.fr/blog/",
   youtube_url: "https://www.youtube.com/@supertilt",
@@ -43,7 +43,7 @@ export async function getAppUrls(): Promise<Record<string, string>> {
     if (data) {
       for (const s of data) {
         if (s.setting_value) {
-          result[s.setting_key] = s.setting_value;
+          result[s.setting_key] = String(s.setting_value).trim().replace(/\/+$/, "");
         }
       }
     }

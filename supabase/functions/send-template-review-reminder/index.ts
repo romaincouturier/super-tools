@@ -7,7 +7,7 @@ import { verifyAuth } from "../_shared/supabase-client.ts";
 
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const APP_URL = "https://super-tools.lovable.app";
+const APP_URL = "https://academy.supertilt.fr";
 
 function quarterKey(d: Date) {
   const m = d.getUTCMonth();

@@ -24,19 +24,34 @@ serve(async (req) => {
     const body = await req.json() as {
       email?: string;
       password?: string;
-      fullName?: string;
+      firstName?: string;
+      lastName?: string;
     };
     const email = body.email?.trim().toLowerCase() ?? "";
     const password = body.password ?? "";
-    const fullName = body.fullName?.trim() ?? "";
+    const firstName = body.firstName?.trim() ?? "";
+    const lastName = body.lastName?.trim() ?? "";
 
-    if (!isValidEmail(email) || password.length < 8 || !fullName) {
+    if (!isValidEmail(email) || password.length < 8 || !firstName || !lastName) {
       return createErrorResponse("Veuillez renseigner tous les champs avec un mot de passe d'au moins 8 caractères.", 400);
     }
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
+
+    // Le prénom et le nom alimentent l'espace apprenant (learner_profiles) et
+    // la page de création du mot de passe, qui les préremplit.
+    const fullName = `${firstName} ${lastName}`;
+    const { error: profileError } = await admin
+      .from("learner_profiles")
+      .upsert(
+        { email, first_name: firstName, last_name: lastName, updated_at: new Date().toISOString() },
+        { onConflict: "email" },
+      );
+    if (profileError) {
+      return createErrorResponse(profileError.message, 500, { cause: profileError, fn: "create-academy-account" });
+    }
 
     // Le choix des formations se fait après la création du compte (écran
     // /academy/choisir-mes-formations, via enroll-academy-courses) : cette
@@ -45,7 +60,7 @@ serve(async (req) => {
       email,
       password,
       email_confirm: true,
-      user_metadata: { full_name: fullName, role: "learner" },
+      user_metadata: { first_name: firstName, last_name: lastName, full_name: fullName, role: "learner" },
     });
 
     if (createError) {

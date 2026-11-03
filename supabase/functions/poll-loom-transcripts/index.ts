@@ -49,13 +49,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const { data: settingsRows } = await (admin as any)
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", ["loom_session_cookie", "slack_content_channel"]);
+      .in("setting_key", ["loom_session_cookie", "slack_content_channel", "loom_excluded_video_ids"]);
 
     const get = (k: string) =>
       (settingsRows as Array<{ setting_key: string; setting_value: string }>)
         ?.find((s) => s.setting_key === k)?.setting_value ?? "";
 
     const rawCookie = get("loom_session_cookie").trim();
+    // Vidéos Loom supprimées volontairement : jamais réimportées.
+    const excludedIds = new Set(
+      get("loom_excluded_video_ids").split(/[\s,]+/).map((x) => x.trim()).filter(Boolean),
+    );
     const slackChannel = get("slack_content_channel") || "publications-réso-sociaux";
 
     if (!rawCookie) {
@@ -67,13 +71,26 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // Le réglage accepte le cookie seul ou la paire complète collée du navigateur.
     const cookie = rawCookie.includes("=") ? rawCookie : `connect.sid=${rawCookie}`;
 
-    // Parcourt la bibliothèque page par page jusqu'à trouver IMPORT_LIMIT vidéos
-    // non importées, sinon les vidéos au-delà des LIST_LIMIT plus récentes ne
-    // seraient jamais rattrapées.
-    const results = { listed: 0, imported: 0, without_transcript: 0, errors: 0 };
-    const missing: Awaited<ReturnType<typeof listLoomVideos>>["videos"] = [];
+    // Parcourt toute la bibliothèque, puis traite au plus `importLimit` vidéos
+    // manquantes. Les vidéos encore sans transcript sont placées en fin de file
+    // pour ne pas bloquer les autres à chaque passage.
+    let importLimit = IMPORT_LIMIT;
+    let skip = 0;
+    try {
+      const body = await req.clone().json();
+      const n = Number(body?.import_limit);
+      if (Number.isFinite(n) && n > 0) importLimit = Math.min(Math.floor(n), 25);
+      const k = Number(body?.skip);
+      if (Number.isFinite(k) && k > 0) skip = Math.floor(k);
+    } catch { /* corps vide */ }
+
+    const results = {
+      listed: 0, missing_total: 0, imported: 0, without_transcript: 0, errors: 0,
+      without_transcript_titles: [] as string[], error_titles: [] as string[],
+    };
+    const allMissing: Awaited<ReturnType<typeof listLoomVideos>>["videos"] = [];
     let pageCursor: string | undefined;
-    for (let page = 0; page < MAX_PAGES && missing.length < IMPORT_LIMIT; page++) {
+    for (let page = 0; page < MAX_PAGES; page++) {
       const { videos, endCursor, hasNextPage } = await listLoomVideos(cookie, LIST_LIMIT, pageCursor);
       results.listed += videos.length;
       if (videos.length > 0) {
@@ -85,11 +102,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const alreadyImported = new Set(
           ((existing as Array<{ external_id: string }>) ?? []).map((r) => r.external_id),
         );
-        missing.push(...videos.filter((v) => !alreadyImported.has(v.id)).slice(0, IMPORT_LIMIT - missing.length));
+        allMissing.push(...videos.filter((v) => !alreadyImported.has(v.id) && !excludedIds.has(v.id)));
       }
       if (!hasNextPage || !endCursor) break;
       pageCursor = endCursor;
     }
+    results.missing_total = allMissing.length;
+    // `skip` permet de passer les vidéos sans transcript lors d'un rattrapage manuel.
+    const missing = allMissing.slice(skip, skip + importLimit);
 
     for (const video of missing) {
       try {
@@ -98,6 +118,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           // Transcription encore en cours chez Loom, ou vidéo sans parole :
           // rien n'est écrit, la vidéo repassera au tick suivant.
           results.without_transcript++;
+          results.without_transcript_titles.push(video.name || video.id);
           continue;
         }
 
@@ -160,6 +181,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       } catch (e) {
         if (e instanceof LoomSessionExpiredError) throw e;
         results.errors++;
+        results.error_titles.push(video.name || video.id);
         console.error(`[poll-loom-transcripts] vidéo ${video.id} échouée`, e);
       }
     }

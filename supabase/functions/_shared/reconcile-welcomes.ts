@@ -9,12 +9,9 @@
  * Cette réconciliation tourne à chaque passage du cron des emails programmés :
  * pour toute session future, non annulée et non e-learning, chaque participant
  * doit avoir une convocation soit déjà envoyée, soit en file d'attente.
+ * Comme à l'ajout d'un participant, la convocation manquante part tout de
+ * suite : il n'y a plus d'envoi programmé à J-7.
  */
-
-import { fetchWorkingDays, subtractWorkingDays } from "./working-days.ts";
-
-const WELCOME_OFFSET_WORKING_DAYS = 7;
-
 
 export interface ReconcileResult {
   checkedTrainings: number;
@@ -43,13 +40,6 @@ export async function reconcileMissingWelcomes(supabase: any): Promise<Reconcile
     (t: any) => !t.is_cancelled && !t.is_free && t.format_formation !== "e_learning",
   );
   if (eligible.length === 0) return result;
-
-  let workingDays: boolean[];
-  try {
-    workingDays = await fetchWorkingDays(supabase);
-  } catch {
-    workingDays = [false, true, true, true, true, true, false];
-  }
 
   const now = new Date();
 
@@ -90,13 +80,7 @@ export async function reconcileMissingWelcomes(supabase: any): Promise<Reconcile
     const missing = (participants as any[]).filter((p) => !covered.has(p.id));
     if (missing.length === 0) continue;
 
-    const startDate = new Date(`${training.start_date}T00:00:00`);
-    const welcomeDate = subtractWorkingDays(startDate, WELCOME_OFFSET_WORKING_DAYS, workingDays);
-    // Si la date J-7 est déjà passée, on programme immédiatement : mieux vaut
-    // une convocation tardive que pas de convocation.
-    const scheduledFor = welcomeDate > now
-      ? `${welcomeDate.toISOString().split("T")[0]}T09:00:00`
-      : now.toISOString();
+    const scheduledFor = now.toISOString();
 
     const rows = missing.map((p) => ({
       training_id: training.id,

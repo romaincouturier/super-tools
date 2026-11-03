@@ -1,4 +1,4 @@
-import { Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot, Radio, ShoppingCart, UserCircle, ListChecks } from "lucide-react";
+import { Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot, Radio, ShoppingCart, UserCircle, ListChecks, Brain } from "lucide-react";
 import { SettingsTab as SupertiltSettingsTab } from "@/pages/SupertiltOrders";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
@@ -109,7 +109,22 @@ const Parametres = () => {
   return (
     <ModuleLayout>
       <main className="max-w-6xl mx-auto p-6">
-        <PageHeader icon={Settings} title="Paramètres" />
+        <PageHeader
+          icon={Settings}
+          title="Paramètres"
+          actions={
+            <>
+              {isAdmin && (
+                <Button variant="outline" onClick={() => navigate("/chatbot-admin")}>
+                  <Bot className="w-4 h-4 mr-2" /> Chatbot
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => navigate("/ia")}>
+                <Brain className="w-4 h-4 mr-2" /> Outils IA
+              </Button>
+            </>
+          }
+        />
         <div className="mb-4">
           <SettingsSearch isAdmin={isAdmin} onSelect={goToSetting} />
         </div>

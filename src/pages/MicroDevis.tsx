@@ -23,6 +23,7 @@ import { useFormationConfigs } from "@/hooks/useFormationConfigs";
 import { useFormationDates } from "@/hooks/useFormationDates";
 import { useFormationFormulas } from "@/hooks/useFormationFormulas";
 import { useDevisHistory } from "@/hooks/useDevisHistory";
+import { useDevisDemandCounts } from "@/hooks/useDevisDemandCounts";
 import { useSirenSearch } from "@/hooks/useSirenSearch";
 import DevisHistoryDialog from "@/components/formations/DevisHistoryDialog";
 import FormationFormSection from "@/components/formations/FormationFormSection";
@@ -84,6 +85,7 @@ const MicroDevis = () => {
   const datesHook = useFormationDates(user, initialDefaultsApplied, dateFormation, selectedCatalogId);
   const formulasHook = useFormationFormulas(formationDemandee, configsHook.formationConfigs);
   const historyHook = useDevisHistory();
+  const demandCounts = useDevisDemandCounts(!!user);
 
 
   // Restore saved formula selection after formulas load
@@ -539,6 +541,7 @@ const MicroDevis = () => {
                   countParticipants={countParticipants}
                   formationDemandee={formationDemandee} setFormationDemandee={setFormationDemandee}
                   formationConfigs={configsHook.formationConfigs} loadingConfigs={configsHook.loadingConfigs}
+                  demandByFormation={demandCounts.demandByFormation}
                   editingFormation={configsHook.editingFormation} setEditingFormation={configsHook.setEditingFormation}
                   configDialogOpen={configsHook.configDialogOpen} setConfigDialogOpen={configsHook.setConfigDialogOpen}
                   newFormation={configsHook.newFormation} setNewFormation={configsHook.setNewFormation}

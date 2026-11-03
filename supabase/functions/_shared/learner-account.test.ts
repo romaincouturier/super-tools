@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ensureLearnerAccount, sendLearnerAccessEmail, learnerAccessLink } from "./learner-account.ts";
+import { ensureLearnerAccount, sendLearnerAccessEmail, learnerAccessLink, sendRegisteredLearnerAccessEmail } from "./learner-account.ts";
 
 vi.mock("./app-urls.ts", () => ({
   getAppUrls: vi.fn().mockResolvedValue({ app_url: "https://app.example.com" }),
@@ -108,10 +108,12 @@ function makeAccessAdmin(opts: {
   quotaAllowed?: boolean;
   passwordSet: boolean | null;
   generateLink?: { data?: unknown; error?: unknown };
+  quotaError?: unknown;
+  passwordError?: unknown;
 }) {
   const rpc = vi.fn((name: string) => {
-    if (name === "check_link_quota") return Promise.resolve({ data: opts.quotaAllowed ?? true });
-    if (name === "learner_password_set") return Promise.resolve({ data: opts.passwordSet });
+    if (name === "check_link_quota") return Promise.resolve({ data: opts.quotaAllowed ?? true, error: opts.quotaError });
+    if (name === "learner_password_set") return Promise.resolve({ data: opts.passwordSet, error: opts.passwordError });
     throw new Error(`RPC inattendue : ${name}`);
   });
   const generateLink = vi.fn().mockResolvedValue(
@@ -193,6 +195,116 @@ describe("sendLearnerAccessEmail", () => {
     });
 
     await expect(sendLearnerAccessEmail(admin, "panne@example.com")).resolves.toEqual({ sent: false });
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("sendRegisteredLearnerAccessEmail", () => {
+  beforeEach(() => sendEmailMock.mockClear());
+
+  it("recrée le compte d'une apprenante inscrite avant d'envoyer son accès", async () => {
+    const { admin, rpc } = makeAccessAdmin({ passwordSet: false });
+    const { createUser, from, upsert } = makeAdmin(ok("new-user"));
+    admin.auth.admin.createUser = createUser;
+    admin.from = from;
+    const originalRpc = rpc.getMockImplementation();
+    rpc.mockImplementation((name: string) => name === "is_known_learner"
+      ? Promise.resolve({ data: true })
+      : originalRpc?.(name));
+    await expect(sendRegisteredLearnerAccessEmail(admin, "ColetteNicorette@Yahoo.com")).resolves.toEqual({ sent: true });
+    expect(createUser).toHaveBeenCalledWith({ email: "colettenicorette@yahoo.com", email_confirm: true, user_metadata: { role: "learner" } });
+    expect(upsert).toHaveBeenCalledWith({ user_id: "new-user", password_set: false }, { onConflict: "user_id" });
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuse de créer un compte pour une adresse non inscrite", async () => {
+    const { admin, createUser } = makeAdmin(ok("never"));
+    admin.rpc = vi.fn().mockResolvedValue({ data: false, error: null });
+    await expect(sendRegisteredLearnerAccessEmail(admin, "unknown@example.com")).rejects.toThrow("aucune inscription");
+    expect(createUser).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("signale un email non envoyé au lieu d'annoncer un succès", async () => {
+    const { admin, rpc } = makeAccessAdmin({ passwordSet: true, quotaAllowed: false });
+    const { createUser } = makeAdmin({ data: null, error: { message: "User already registered" } });
+    admin.auth.admin.createUser = createUser;
+    const originalRpc = rpc.getMockImplementation();
+    rpc.mockImplementation((name: string) => name === "is_known_learner"
+      ? Promise.resolve({ data: true })
+      : originalRpc?.(name));
+    await expect(sendRegisteredLearnerAccessEmail(admin, "known@example.com")).rejects.toMatchObject({ status: 429, message: expect.stringContaining("Quota interne atteint") });
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("causes des échecs d’accès staff", () => {
+  beforeEach(() => sendEmailMock.mockReset().mockResolvedValue({ success: true, id: "email-1" }));
+
+  it("bloque l’envoi si la vérification du quota échoue", async () => {
+    const { admin, generateLink } = makeAccessAdmin({ passwordSet: false, quotaError: { message: "database unavailable" } });
+    await expect(sendLearnerAccessEmail(admin, "a@example.com", { strict: true })).rejects.toMatchObject({ status: 500, message: expect.stringContaining("Vérification du quota indisponible") });
+    expect(generateLink).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("distingue une erreur de lecture du compte d’un compte inconnu", async () => {
+    const { admin } = makeAccessAdmin({ passwordSet: null, passwordError: { message: "database unavailable" } });
+    await expect(sendLearnerAccessEmail(admin, "a@example.com", { strict: true })).rejects.toThrow("État du compte apprenant indisponible");
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("indique le statut de génération du lien sans exposer de jeton", async () => {
+    const { admin } = makeAccessAdmin({ passwordSet: false, generateLink: { data: null, error: { code: "over_request_rate_limit", status: 429 } } });
+    await expect(sendLearnerAccessEmail(admin, "a@example.com", { strict: true })).rejects.toThrow("over_request_rate_limit, statut 429");
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("conserve l’erreur du service d’envoi", async () => {
+    sendEmailMock.mockResolvedValueOnce({ success: false, error: "Resend API error: 429" });
+    const { admin } = makeAccessAdmin({ passwordSet: true });
+    await expect(sendLearnerAccessEmail(admin, "a@example.com", { strict: true })).rejects.toThrow("Resend API error: 429");
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("quota des tests administrateur", () => {
+  function registeredAdmin(isAdmin: boolean, adminError: unknown = null) {
+    const { admin, rpc } = makeAccessAdmin({ passwordSet: true, quotaAllowed: false });
+    const { createUser } = makeAdmin({ data: null, error: { message: "User already registered" } });
+    admin.auth.admin.createUser = createUser;
+    const originalRpc = rpc.getMockImplementation();
+    rpc.mockImplementation((name: string) => {
+      if (name === "is_known_learner") return Promise.resolve({ data: true, error: null });
+      if (name === "is_admin") return Promise.resolve({ data: isAdmin, error: adminError });
+      return originalRpc?.(name);
+    });
+    return { admin, rpc, createUser };
+  }
+
+  beforeEach(() => sendEmailMock.mockReset().mockResolvedValue({ success: true, id: "email-1" }));
+
+  it("permet plus de trois tests au même destinataire pour un administrateur vérifié", async () => {
+    const { admin, rpc } = registeredAdmin(true);
+    for (let i = 0; i < 12; i += 1) {
+      await expect(sendRegisteredLearnerAccessEmail(admin, "test@example.com", { callerId: "verified-admin" })).resolves.toEqual({ sent: true });
+    }
+    expect(sendEmailMock).toHaveBeenCalledTimes(12);
+    expect(rpc).toHaveBeenCalledWith("is_admin", { _user_id: "verified-admin" });
+    expect(rpc.mock.calls.some(([name]) => name === "check_link_quota")).toBe(false);
+  });
+
+  it("conserve le quota pour un collaborateur non administrateur", async () => {
+    const { admin, rpc } = registeredAdmin(false);
+    await expect(sendRegisteredLearnerAccessEmail(admin, "test@example.com", { callerId: "staff" })).rejects.toMatchObject({ status: 429 });
+    expect(rpc.mock.calls.some(([name]) => name === "check_link_quota")).toBe(true);
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("refuse l’exemption si les droits ne peuvent pas être vérifiés", async () => {
+    const { admin, createUser } = registeredAdmin(true, { message: "lookup failed" });
+    await expect(sendRegisteredLearnerAccessEmail(admin, "test@example.com", { callerId: "staff" })).rejects.toThrow("droits administrateur indisponible");
+    expect(createUser).not.toHaveBeenCalled();
     expect(sendEmailMock).not.toHaveBeenCalled();
   });
 });

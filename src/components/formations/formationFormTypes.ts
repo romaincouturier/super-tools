@@ -82,4 +82,6 @@ export interface FormationFormSectionProps {
   followupBlock?: import("react").ReactNode;
   followupAmount?: number;
   onSelectInterSession?: (d: import("@/types/formations").FormationDate) => void;
+  /** Nombre de devis par formation : trie le sélecteur du plus demandé au moins demandé. */
+  demandByFormation?: Map<string, number> | null;
 }

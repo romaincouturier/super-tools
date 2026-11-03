@@ -10143,6 +10143,7 @@ export type Database = {
       supertilt_actions: {
         Row: {
           assigned_to: string | null
+          board: string
           column_id: string | null
           completed_at: string | null
           created_at: string
@@ -10158,6 +10159,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          board?: string
           column_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -10173,6 +10175,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          board?: string
           column_id?: string | null
           completed_at?: string | null
           created_at?: string
@@ -10198,6 +10201,7 @@ export type Database = {
       }
       supertilt_columns: {
         Row: {
+          board: string
           created_at: string
           id: string
           name: string
@@ -10206,6 +10210,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          board?: string
           created_at?: string
           id?: string
           name: string
@@ -10214,6 +10219,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          board?: string
           created_at?: string
           id?: string
           name?: string
@@ -13481,6 +13487,10 @@ export type Database = {
         Returns: Json
       }
       backup_schema_inventory: { Args: never; Returns: Json }
+      can_access_project_board: {
+        Args: { _board: string; _user_id: string }
+        Returns: boolean
+      }
       change_learner_email: {
         Args: { p_new_email: string; p_old_email: string; p_user_id?: string }
         Returns: Json
@@ -13589,6 +13599,16 @@ export type Database = {
         Returns: Json
       }
       get_cron_status: { Args: never; Returns: Json }
+      get_daily_actions_per_user: {
+        Args: { p_weeks?: number }
+        Returns: {
+          completed_actions: number
+          display_name: string
+          total_actions: number
+          user_id: string
+          week_start: string
+        }[]
+      }
       get_db_size: { Args: never; Returns: Json }
       get_devis_signature_by_token: { Args: { p_token: string }; Returns: Json }
       get_evaluation_by_token: {
@@ -14254,7 +14274,7 @@ export type Database = {
         | "certificates"
         | "ameliorations"
         | "historique"
-        | "contenu"
+        | "supertilt_fr"
         | "besoins"
         | "parametres"
         | "events"
@@ -14274,7 +14294,7 @@ export type Database = {
         | "screenshots"
         | "veille"
         | "web_analytics"
-        | "supertilt"
+        | "projets_transverses"
         | "support"
         | "catalogue"
         | "finances"
@@ -14424,7 +14444,7 @@ export const Constants = {
         "certificates",
         "ameliorations",
         "historique",
-        "contenu",
+        "supertilt_fr",
         "besoins",
         "parametres",
         "events",
@@ -14444,7 +14464,7 @@ export const Constants = {
         "screenshots",
         "veille",
         "web_analytics",
-        "supertilt",
+        "projets_transverses",
         "support",
         "catalogue",
         "finances",

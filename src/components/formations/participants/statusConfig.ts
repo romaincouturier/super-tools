@@ -24,7 +24,7 @@ export const getStatusConfig = (status: string): StatusConfig => {
         label: "Recueil programmé",
         icon: Mail,
         variant: "outline",
-        tooltip: "Le recueil des besoins a été programmé à J-7",
+        tooltip: "Envoi en attente : programmé, ou en attente de la date de session",
         colorClass: "text-amber-500",
       };
     case "manuel":

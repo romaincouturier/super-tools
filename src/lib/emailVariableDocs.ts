@@ -65,14 +65,14 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   ai_summary: { label: "Synthèse IA", description: "Résumé généré automatiquement par l'IA.", sample: "Les participants souhaitent travailler sur la prise de notes visuelle.", isBlock: true },
 
   // Liens
-  access_link: { label: "Lien d'accès", description: "Lien personnel d'accès à la plateforme ou à la formation. Unique par destinataire.", sample: "https://super-tools.lovable.app/acces/exemple" },
-  evaluation_link: { label: "Lien d'évaluation", description: "Lien vers le questionnaire d'évaluation à chaud ou à froid.", sample: "https://super-tools.lovable.app/evaluation/exemple" },
-  questionnaire_link: { label: "Lien du questionnaire", description: "Lien vers le recueil des besoins.", sample: "https://super-tools.lovable.app/questionnaire/exemple" },
-  signature_link: { label: "Lien de signature", description: "Lien vers la feuille d'émargement à signer.", sample: "https://super-tools.lovable.app/emargement/exemple" },
-  deliverables_link: { label: "Lien des livrables", description: "Lien vers la page des livrables partagés.", sample: "https://super-tools.lovable.app/livrables/exemple" },
-  programme_link: { label: "Lien du programme", description: "Lien vers le programme détaillé de la formation.", sample: "https://super-tools.lovable.app/programme/exemple" },
-  supports_url: { label: "Lien des supports", description: "Lien vers les supports de formation.", sample: "https://super-tools.lovable.app/supports/exemple" },
-  elearning_url: { label: "Lien du contenu e-learning", description: "Lien personnel vers le contenu en ligne rattaché à la formation.", sample: "https://super-tools.lovable.app/formation-support/exemple" },
+  access_link: { label: "Lien d'accès", description: "Lien personnel d'accès à la plateforme ou à la formation. Unique par destinataire.", sample: "https://academy.supertilt.fr/acces/exemple" },
+  evaluation_link: { label: "Lien d'évaluation", description: "Lien vers le questionnaire d'évaluation à chaud ou à froid.", sample: "https://academy.supertilt.fr/evaluation/exemple" },
+  questionnaire_link: { label: "Lien du questionnaire", description: "Lien vers le recueil des besoins.", sample: "https://academy.supertilt.fr/questionnaire/exemple" },
+  signature_link: { label: "Lien de signature", description: "Lien vers la feuille d'émargement à signer.", sample: "https://academy.supertilt.fr/emargement/exemple" },
+  deliverables_link: { label: "Lien des livrables", description: "Lien vers la page des livrables partagés.", sample: "https://academy.supertilt.fr/livrables/exemple" },
+  programme_link: { label: "Lien du programme", description: "Lien vers le programme détaillé de la formation.", sample: "https://academy.supertilt.fr/programme/exemple" },
+  supports_url: { label: "Lien des supports", description: "Lien vers les supports de formation.", sample: "https://academy.supertilt.fr/supports/exemple" },
+  elearning_url: { label: "Lien du contenu e-learning", description: "Lien personnel vers le contenu en ligne rattaché à la formation.", sample: "https://academy.supertilt.fr/formation-support/exemple" },
   elearning_button: { label: "Bouton du contenu e-learning", description: "Bouton cliquable menant au contenu en ligne, mis en forme automatiquement.", sample: "Accéder au contenu en ligne", isBlock: true },
   google_review_link: { label: "Lien avis Google", description: "Lien pour déposer un avis Google.", sample: "https://g.page/r/exemple/review" },
   financeur_url: { label: "Lien du financeur", description: "Page d'information de l'organisme financeur.", sample: "https://www.opco-atlas.fr" },
@@ -204,7 +204,7 @@ export function guessVariableDoc(variable: string): VariableDoc {
   const v = variable.toLowerCase();
   const isCondition = v.startsWith("has_") || v.startsWith("is_");
   if (v.endsWith("_link") || v.endsWith("_url")) {
-    return { label: "Lien", description: "URL insérée automatiquement lors de l'envoi.", sample: "https://super-tools.lovable.app/exemple" };
+    return { label: "Lien", description: "URL insérée automatiquement lors de l'envoi.", sample: "https://academy.supertilt.fr/exemple" };
   }
   if (v.includes("email")) return { label: "Adresse email", description: "Adresse email insérée automatiquement.", sample: "sophie.exemple@gmail.com" };
   if (v.includes("date")) return { label: "Date", description: "Date formatée en français.", sample: "12 mars 2026" };

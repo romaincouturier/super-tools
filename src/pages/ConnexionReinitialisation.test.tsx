@@ -11,6 +11,8 @@ const h = vi.hoisted(() => ({
   confirmRecovery: vi.fn(),
   refresh: vi.fn(),
   stage: "ready" as "ready" | "confirm" | "invalid",
+  saveIdentity: vi.fn(),
+  names: { firstName: "Alice", lastName: "Martin" },
   calls: [] as string[],
 }));
 
@@ -31,6 +33,10 @@ vi.mock("@/hooks/useAuthActions", () => ({
     },
   }),
   usePasswordRecoverySession: () => ({ stage: h.stage, confirmRecovery: h.confirmRecovery }),
+}));
+
+vi.mock("@/hooks/usePasswordIdentity", () => ({
+  usePasswordIdentity: () => ({ data: h.names, isPending: false, isError: false, saveIdentity: h.saveIdentity }),
 }));
 
 vi.mock("@/hooks/useSession", () => ({
@@ -58,6 +64,8 @@ function renderPage() {
 describe("ConnexionReinitialisation", () => {
   beforeEach(() => {
     h.calls.length = 0;
+    h.names = { firstName: "Alice", lastName: "Martin" };
+    h.saveIdentity.mockReset().mockResolvedValue(undefined);
     h.stage = "ready";
     h.updatePassword.mockReset().mockResolvedValue(null);
     h.markPasswordChanged.mockReset().mockResolvedValue(undefined);
@@ -66,59 +74,49 @@ describe("ConnexionReinitialisation", () => {
     h.navigate.mockReset();
   });
 
-  it("stage confirm : ni écran ni clic ajoutés, le même formulaire s'affiche directement", () => {
+  it("ne consomme pas le lien à l’ouverture, seulement sur Continuer", async () => {
     h.stage = "confirm";
     renderPage();
-
-    expect(screen.getByRole("heading", { name: "Nouveau mot de passe" })).toBeInTheDocument();
     expect(h.confirmRecovery).not.toHaveBeenCalled();
-  });
-
-  it("stage confirm : enregistrer le mot de passe consomme le jeton avant de l'enregistrer (RG-21)", async () => {
-    h.stage = "confirm";
-    renderPage();
-
-    fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), {
-      target: { value: "Str0ng!Pass" },
-    });
-    fireEvent.change(screen.getByLabelText("Confirmer le mot de passe"), {
-      target: { value: "Str0ng!Pass" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
-
-    await waitFor(() => expect(h.markPasswordChanged).toHaveBeenCalledTimes(1));
-    expect(h.confirmRecovery).toHaveBeenCalledTimes(1);
-    // L'ordre compte : rien n'est consommé avant ce clic, et le mot de passe
-    // n'est enregistré qu'après confirmation du jeton.
-    expect(h.calls).toEqual(["updatePassword", "markPasswordChanged"]);
-    expect(h.confirmRecovery.mock.invocationCallOrder[0]).toBeLessThan(h.updatePassword.mock.invocationCallOrder[0]);
-  });
-
-  it("stage confirm : jeton déjà utilisé ou expiré, le mot de passe n'est jamais enregistré", async () => {
-    h.stage = "confirm";
-    h.confirmRecovery.mockResolvedValue(false);
-    renderPage();
-
-    fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), {
-      target: { value: "Str0ng!Pass" },
-    });
-    fireEvent.change(screen.getByLabelText("Confirmer le mot de passe"), {
-      target: { value: "Str0ng!Pass" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
-
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
     await waitFor(() => expect(h.confirmRecovery).toHaveBeenCalledTimes(1));
     expect(h.updatePassword).not.toHaveBeenCalled();
-    expect(h.markPasswordChanged).not.toHaveBeenCalled();
+  });
+
+  it.each(["Prénom (obligatoire)", "Nom (obligatoire)"])("refuse la sauvegarde sans %s", async (label) => {
+    renderPage();
+    fireEvent.change(screen.getByLabelText(label), { target: { value: "   " } });
+    fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), { target: { value: "Str0ng!Pass" } });
+    expect(h.saveIdentity).not.toHaveBeenCalled();
+    expect(h.updatePassword).not.toHaveBeenCalled();
+  });
+
+  it("préremplit les noms connus et sauvegarde les corrections", async () => {
+    renderPage();
+    expect(screen.queryByLabelText("Confirmer le mot de passe")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Prénom (obligatoire)")).toHaveValue("Alice");
+    expect(screen.getByLabelText("Nom (obligatoire)")).toHaveValue("Martin");
+    fireEvent.change(screen.getByLabelText("Prénom (obligatoire)"), { target: { value: "Alicia" } });
+    fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), { target: { value: "Str0ng!Pass" } });
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
+    await waitFor(() => expect(h.navigate).toHaveBeenCalled());
+    expect(h.saveIdentity).toHaveBeenCalledWith({ firstName: "Alicia", lastName: "Martin" });
+  });
+
+  it("ne change pas le mot de passe si la sauvegarde des noms échoue", async () => {
+    h.saveIdentity.mockRejectedValue(new Error("Refus"));
+    renderPage();
+    fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), { target: { value: "Str0ng!Pass" } });
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
+    await screen.findByText("Votre prénom et votre nom n’ont pas été enregistrés. Réessayez.");
+    expect(h.updatePassword).not.toHaveBeenCalled();
+    expect(h.navigate).not.toHaveBeenCalled();
   });
 
   it("stage ready (ancien format de lien, déjà consommé) : n'appelle jamais confirmRecovery", async () => {
     renderPage();
 
     fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), {
-      target: { value: "Str0ng!Pass" },
-    });
-    fireEvent.change(screen.getByLabelText("Confirmer le mot de passe"), {
       target: { value: "Str0ng!Pass" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
@@ -131,9 +129,6 @@ describe("ConnexionReinitialisation", () => {
     renderPage();
 
     fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), {
-      target: { value: "Str0ng!Pass" },
-    });
-    fireEvent.change(screen.getByLabelText("Confirmer le mot de passe"), {
       target: { value: "Str0ng!Pass" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
@@ -150,9 +145,6 @@ describe("ConnexionReinitialisation", () => {
     renderPage();
 
     fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), {
-      target: { value: "Str0ng!Pass" },
-    });
-    fireEvent.change(screen.getByLabelText("Confirmer le mot de passe"), {
       target: { value: "Str0ng!Pass" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));

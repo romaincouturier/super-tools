@@ -52,6 +52,7 @@ export default function FormationFormSection(props: FormationFormSectionProps) {
         formationDemandee={props.formationDemandee}
         setFormationDemandee={props.setFormationDemandee}
         formationConfigs={props.formationConfigs}
+        demandByFormation={props.demandByFormation}
         loadingConfigs={props.loadingConfigs}
         configDialogOpen={props.configDialogOpen}
         setConfigDialogOpen={props.setConfigDialogOpen}

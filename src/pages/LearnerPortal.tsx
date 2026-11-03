@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { normalizeEmail } from "@/lib/stringUtils";
+import { getLearnerOnboardingSteps } from "@/lib/learnerOnboarding";
 import { useSearchParams, Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -118,7 +119,7 @@ function RecommendedCoursesBlock({
   }
 
   const priceLabel = (c: RecoCourse) =>
-    c.prix === 0 ? "Gratuit" : c.prix != null ? `${c.prix.toLocaleString("fr-FR")} €` : null;
+    c.prix === 0 ? "Gratuit" : c.prix != null ? `${c.prix_from ? "À partir de " : ""}${c.prix.toLocaleString("fr-FR")} €` : null;
 
   if (variant === "compact") {
     return (
@@ -268,17 +269,15 @@ function DashboardView({
   // Liste de tâches d'onboarding : éléments restants pour compléter le profil.
   const onboardingTodos = useMemo(() => {
     const items: { key: string; label: string; onClick: () => void }[] = [];
-    if (!profile?.photo_url) {
+    const steps = getLearnerOnboardingSteps(profile);
+    if (steps.includes("avatar")) {
       items.push({ key: "avatar", label: "Ajoutez votre photo de profil", onClick: () => onNav("compte") });
     }
-    if (!profile?.first_name?.trim() || !profile?.last_name?.trim()) {
+    if (steps.includes("name")) {
       items.push({ key: "name", label: "Complétez votre nom et prénom", onClick: () => onNav("compte") });
     }
-    if (workDeposits.length === 0) {
-      items.push({ key: "deposit", label: "Déposez votre premier travail", onClick: () => onNav("travaux") });
-    }
     return items;
-  }, [profile?.photo_url, profile?.first_name, profile?.last_name, workDeposits.length, onNav]);
+  }, [profile?.photo_url, profile?.first_name, profile?.last_name, onNav]);
 
   return (
     <div className="space-y-6">

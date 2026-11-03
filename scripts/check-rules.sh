@@ -23,8 +23,12 @@ if [ "${1:-}" = "--staged" ]; then
 fi
 
 STAGED_FILES=""
+# Pendant un merge, la base est la branche fusionnée (MERGE_HEAD) : ses fichiers
+# sont déjà passés par ses propres contrôles et ne sont pas apportés ici.
+MERGE_BASE_REF=""
+git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 && MERGE_BASE_REF="MERGE_HEAD"
 if [ "$STAGED_MODE" = "true" ]; then
-  STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM -- '*.ts' '*.tsx' 2>/dev/null || true)
+  STAGED_FILES=$(git diff --cached $MERGE_BASE_REF --name-only --diff-filter=ACM -- '*.ts' '*.tsx' 2>/dev/null || true)
   if [ -z "$STAGED_FILES" ]; then
     echo "Aucun fichier .ts/.tsx staged — skip vérification."
     exit 0
@@ -49,10 +53,11 @@ search_files() {
 # Lignes AJOUTÉES par le commit (mode staged uniquement). Les règles en ratchet
 # portent sur la dette ajoutée : toucher un fichier legacy pour une raison
 # orthogonale n'en ajoute pas, seules les lignes nouvelles comptent.
+# Pendant un merge, comparé à MERGE_HEAD (voir STAGED_FILES).
 search_added_lines() {
   local pattern="$1"
   shift
-  git diff --cached -U0 --diff-filter=ACM -- '*.ts' '*.tsx' 2>/dev/null \
+  git diff --cached $MERGE_BASE_REF -U0 --diff-filter=ACM -- '*.ts' '*.tsx' 2>/dev/null \
     | awk '/^\+\+\+ /{file=substr($0,7); next} /^\+/{print file ":" substr($0,2)}' \
     | grep -E "$pattern" "$@" || true
 }
@@ -141,8 +146,10 @@ if [ "$STAGED_MODE" = "true" ]; then
   check "017" "Utiliser <Spinner> au lieu de <Loader2 animate-spin> (lignes ajoutées)" \
     "search_added_lines '<Loader2[^>]*animate-spin' | grep -v 'components/ui/spinner.tsx'"
 
+  # useEdgeFunction est un hook React : la règle ne vise que le front, comme le
+  # ratchet [020] du mode complet, qui ne compte que src/.
   check "020" "Préférer useEdgeFunction() au lieu de supabase.functions.invoke() inline (lignes ajoutées)" \
-    "search_added_lines 'supabase\\.functions\\.invoke' | grep -v 'src/services/' | grep -v 'src/lib/' | grep -v 'src/hooks/useEdgeFunction.ts'"
+    "search_added_lines 'supabase\\.functions\\.invoke' | grep -v '^supabase/functions/' | grep -v 'src/services/' | grep -v 'src/lib/' | grep -v 'src/hooks/useEdgeFunction.ts'"
 fi
 
 # ==========================================================
@@ -306,9 +313,10 @@ check "040" "Évaluations : filtre formation côté client (pas de refetch .eq(t
   "grep -n 'eq(\"training_id\"' src/pages/Evaluations.tsx; grep -q 'trainingOptions' src/pages/Evaluations.tsx || echo 'VIOLATION: trainingOptions absent de src/pages/Evaluations.tsx'"
 
 # [041] Agent — chaque extracteur d'indexation doit apparaître dans la liste
-# source_types du tool search_content de agent-chat (référentiels synchronisés).
-check "041" "Agent : extracteurs index-documents tous listés dans source_types de agent-chat" \
-  "st_line=\$(grep -A2 'Optional filter by source type' supabase/functions/agent-chat/index.ts); for ex in \$(grep -oE '^  async [a-z_]+\(' supabase/functions/index-documents/index.ts | sed 's/  async //;s/(//'); do echo \"\$st_line\" | grep -qE \"(: |, )\$ex(,|\\\"|\$)\" || echo \"VIOLATION: extracteur '\$ex' absent de source_types dans agent-chat\"; done"
+# source_types du tool search_content du serveur MCP (référentiels synchronisés).
+# agent-chat est gelé depuis le 2026-09-28 : le connecteur MCP est l'agent.
+check "041" "Agent : extracteurs index-documents tous listés dans source_types du serveur MCP" \
+  "st_line=\$(grep 'Optional filter: crm_card' supabase/functions/mcp-server/index.ts); for ex in \$(grep -oE '^  async [a-z_]+\(' supabase/functions/index-documents/index.ts | sed 's/  async //;s/(//'); do echo \"\$st_line\" | grep -qE \"(: |, )\$ex(,|\\\"|\$)\" || echo \"VIOLATION: extracteur '\$ex' absent de source_types dans mcp-server\"; done"
 
 # [041b] Agent — le prompt de schéma doit rester généré depuis le catalogue
 # PostgreSQL. Une liste de colonnes figée dérive (422 colonnes manquantes
@@ -370,7 +378,7 @@ if [ "$STAGED_MODE" = "false" ]; then
 
   # [014b] Nouveaux fichiers src/pages ou src/components ne doivent pas importer supabase directement
   # Whitelist: fichiers legacy connus avec accès direct (ne pas modifier sans migration complète)
-  LEGACY_DIRECT_SUPABASE="Reclamations|Admin|TimeTracker|MicroDevis|FormationEdit|PictoDico|Evaluations|InboundEmails|BPFReport|FailedEmails|Dropshipping|MissionSummary|FormationDetail|Temoignages|Transcripts|LearnerPortal|SupertiltOrders|ArenaDiscussion|ArenaSetup|EventDetail|LmsCourseHomePage|LmsCommunityAdmin|CrmKanbanBoard|CardDetailDrawer|ProvenanceTab|Step5Email|Step0ClientValidation|KanbanBoard|CommentThread|TranscriptGenerationPanel|ScheduledEmailsSummary|NewOpportunityDialog|UserAccessManager|CardTranscriptsSection|LmsCommunities|Landing|FormulaireRedirect|ForcePasswordChange|ChatbotAdmin|SuperTilt|LmsCoursePlayer|AgentChat|BesoinsParticipants|LmsMessages|Auth|CertificateGenerator|PolitiqueConfidentialite|Onboarding|QuoteWorkflow|EventEdit|AdminArchives|ResetPassword|Formations|WoocommerceInbox|LmsLearners|SponsorEvaluation|PartnerPortal|MediaLibrary|Historique|Signup|TrainingSurveyResponse|Catalogue|SignatureConvention|FormationCreate|SignatureLocation|MultiUserSelector|PollingIndicator|GoogleCalendarConnect|WatchItemCard|CardDetailCommunication|CardDetailQualification|CardDetailTabs|CardDetailDialogs|CreateCalendarEventDialog|SentDevisSection|CoachCommercialSettings|CrmDescriptionEditor|CreateTrainingDialog|CronJobsTab|FeatureUsageTab|DbSizeTab|GoogleConnect|RequireStaff|Step1Synthesis|Step3QuoteGeneration|OnboardCollaboratorDialog|EntityMediaManager|MentionTextarea|AiIdeasSearch|NewsletterSection|ContentDashboard|ReviewPanel|ReviewRequestDialog|NotificationBell|UserMenu|ChatbotProvider|KnowledgeBaseManager|ChatbotWidget|ShareEventDialog|SendToContentBoardButton|TemplateReviewReminderCard|TrainerManager|EmailSnippetManager|CrmTagManager|SettingsEmails|AgentIndexationSettings|BackupManager|ApiKeyManager|SettingsGeneral|PostEvaluationEmailManager|BillingSection|TranscriptPromptsSettings|StaffProfileSettings|MissionPages|ImportGoogleEventsDialog|MissionDetailDrawer|GenerateInvoiceDialog|Generate8PDialog|LearnerCourseHeader|CourseHomeSidebar|LessonComments|TrainerSelector|BulkAddParticipantsDialog|FormationDetailSections|AssignedUserSelector|DuplicateParticipantDialog|TrainerEvaluationBlock|TrainerAdequacy|TrainingFormulasManager|ObjectivesEditor|FormationDetailHeader|DuplicateTrainingDialog|ViewQuestionnaireDialog|ParticipantDocumentsDialog|TrainingNameCombobox|UserEmailCombobox|ParticipantFiles|LiveMeetingsSection|ParticipantTraceabilityDrawer|PrerequisitesEditor|FormationDetailParticipants|EmailTimelineComputed|ThankYouEmailPreviewDialog|ProgramSelector|ParticipantEvaluationsBlock|InvoiceSection|DocumentDeliverySection|AttendanceSheetSection|SignedConventionFiles|ConventionSection|ConventionAuditPanel|BroadcastEmailDialog|ForgotPasswordDialog|CatalogFormDialog|OKRAICheckInDraft|OKRAIChat"
+  LEGACY_DIRECT_SUPABASE="Reclamations|Admin|TimeTracker|MicroDevis|FormationEdit|PictoDico|Evaluations|InboundEmails|BPFReport|FailedEmails|Dropshipping|MissionSummary|FormationDetail|Temoignages|Transcripts|LearnerPortal|SupertiltOrders|ArenaDiscussion|ArenaSetup|EventDetail|LmsCourseHomePage|LmsCommunityAdmin|CrmKanbanBoard|CardDetailDrawer|ProvenanceTab|Step5Email|Step0ClientValidation|KanbanBoard|CommentThread|TranscriptGenerationPanel|ScheduledEmailsSummary|NewOpportunityDialog|UserAccessManager|CardTranscriptsSection|LmsCommunities|Landing|FormulaireRedirect|ForcePasswordChange|ChatbotAdmin|LmsCoursePlayer|AgentChat|BesoinsParticipants|LmsMessages|Auth|CertificateGenerator|PolitiqueConfidentialite|Onboarding|QuoteWorkflow|EventEdit|AdminArchives|ResetPassword|Formations|WoocommerceInbox|LmsLearners|SponsorEvaluation|PartnerPortal|MediaLibrary|Historique|Signup|TrainingSurveyResponse|Catalogue|SignatureConvention|FormationCreate|SignatureLocation|MultiUserSelector|PollingIndicator|GoogleCalendarConnect|WatchItemCard|CardDetailCommunication|CardDetailQualification|CardDetailTabs|CardDetailDialogs|CreateCalendarEventDialog|SentDevisSection|CoachCommercialSettings|CrmDescriptionEditor|CreateTrainingDialog|CronJobsTab|FeatureUsageTab|DbSizeTab|GoogleConnect|RequireStaff|Step1Synthesis|Step3QuoteGeneration|OnboardCollaboratorDialog|EntityMediaManager|MentionTextarea|AiIdeasSearch|NewsletterSection|ContentDashboard|ReviewPanel|ReviewRequestDialog|NotificationBell|UserMenu|ChatbotProvider|KnowledgeBaseManager|ChatbotWidget|ShareEventDialog|SendToContentBoardButton|TemplateReviewReminderCard|TrainerManager|EmailSnippetManager|CrmTagManager|SettingsEmails|AgentIndexationSettings|BackupManager|ApiKeyManager|SettingsGeneral|PostEvaluationEmailManager|BillingSection|TranscriptPromptsSettings|StaffProfileSettings|MissionPages|ImportGoogleEventsDialog|MissionDetailDrawer|GenerateInvoiceDialog|Generate8PDialog|LearnerCourseHeader|CourseHomeSidebar|LessonComments|TrainerSelector|BulkAddParticipantsDialog|FormationDetailSections|AssignedUserSelector|DuplicateParticipantDialog|TrainerEvaluationBlock|TrainerAdequacy|TrainingFormulasManager|ObjectivesEditor|FormationDetailHeader|DuplicateTrainingDialog|ViewQuestionnaireDialog|ParticipantDocumentsDialog|TrainingNameCombobox|UserEmailCombobox|ParticipantFiles|LiveMeetingsSection|ParticipantTraceabilityDrawer|PrerequisitesEditor|FormationDetailParticipants|EmailTimelineComputed|ThankYouEmailPreviewDialog|ProgramSelector|ParticipantEvaluationsBlock|InvoiceSection|DocumentDeliverySection|AttendanceSheetSection|SignedConventionFiles|ConventionSection|ConventionAuditPanel|BroadcastEmailDialog|ForgotPasswordDialog|CatalogFormDialog|OKRAICheckInDraft|OKRAIChat"
   check "014b" "Pas de nouveau import supabase direct dans src/pages ou src/components (whitelist legacy)" \
     "grep -rln 'from.*@/integrations/supabase/client' src/pages src/components --include='*.tsx' 2>/dev/null | while read f; do name=\$(basename \"\$f\" .tsx); echo \"\$name\" | grep -qE \"^(\$LEGACY_DIRECT_SUPABASE)\$\" && continue; echo \"VIOLATION [014b]: \$f\"; done"
 
@@ -519,6 +527,13 @@ if [ "$STAGED_MODE" = "false" ]; then
   # dynamique (await import). Voir règle [062] d'IMPROVEMENTS.md.
   check "064" "Pas d'import statique de supabase-client dans _shared/cron-auth.ts" \
     "grep -nE '^import .*from \"\\./supabase-client' supabase/functions/_shared/cron-auth.ts"
+
+  # [064b] Les dossiers joués par vitest n'acceptent pas de test écrit pour
+  # Deno : Deno.test et un import https (deno.land/std) cassent le chargement
+  # du fichier (« no tests »). Cinq fichiers ainsi poussés sur main ont mis la
+  # CI au rouge entre le 28/09 et le 10/10/2026.
+  check "064b" "Pas de test Deno (Deno.test, import https) dans les dossiers joués par vitest" \
+    "grep -rnE \"Deno\\.test\\(|from ['\\\"](https://|jsr:)|^import ['\\\"](https://|jsr:)\" --include='*.test.ts' --include='*.test.tsx' src supabase/functions/_shared supabase/tests 2>/dev/null"
 
   # [044] Aucun CREATE POLICY ne doit lire auth.users : le rôle `authenticated`
   # n'a pas SELECT dessus, la policy échoue en 403 / 42501 et l'écran reste vide
@@ -801,6 +816,10 @@ check "069" "useResolvedStorageUrl ne rend pas l'URL d'un bucket prive avant sa 
   # Le détail des violations : bash scripts/check-demo-mask.sh
   count_065=$(bash scripts/check-demo-mask.sh --count)
   ratchet "065" "Ratchet affichages identifiants sans masque démo (src/lib/demoMask.ts)" "$count_065"
+
+  # [076] Liste de collaborateurs : RPC get_staff_directory, jamais profiles en direct.
+  count_076=$(bash scripts/check-staff-directory.sh --count)
+  ratchet "076" "Ratchet lectures d'annuaire sur profiles (utiliser get_staff_directory)" "$count_076"
 
 fi
 

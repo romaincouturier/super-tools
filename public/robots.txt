@@ -1,51 +1,7 @@
-# SuperTools est une plateforme interne privée.
-# L'indexation et le crawl sont totalement interdits.
+# SuperTilt Academy : seule la page d'accueil (qui contient « Toutes les formations ») est indexable.
 
 User-agent: *
+Allow: /$
 Disallow: /
 
-# Bloquer explicitement les principaux crawlers IA et SEO
-User-agent: GPTBot
-Disallow: /
-
-User-agent: ChatGPT-User
-Disallow: /
-
-User-agent: Google-Extended
-Disallow: /
-
-User-agent: anthropic-ai
-Disallow: /
-
-User-agent: Claude-Web
-Disallow: /
-
-User-agent: ClaudeBot
-Disallow: /
-
-User-agent: PerplexityBot
-Disallow: /
-
-User-agent: CCBot
-Disallow: /
-
-User-agent: Bytespider
-Disallow: /
-
-User-agent: AhrefsBot
-Disallow: /
-
-User-agent: SemrushBot
-Disallow: /
-
-User-agent: MJ12bot
-Disallow: /
-
-User-agent: DotBot
-Disallow: /
-
-User-agent: PetalBot
-Disallow: /
-
-User-agent: DataForSeoBot
-Disallow: /
+Sitemap: https://academy.supertilt.fr/sitemap.xml

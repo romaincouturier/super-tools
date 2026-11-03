@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 
 // ── Hoisted mocks (vi.mock is hoisted, so variables must be too) ────────────
 const {
@@ -433,6 +434,17 @@ describe("sendLearnerAccessEmail", () => {
 
     const [, options] = mockInvoke.mock.calls[0] as [string, { body: Record<string, unknown> }];
     expect(options.body.trainingId).toBeUndefined();
+  });
+
+  it("remonte le motif du refus au lieu d’ignorer une réponse 429", async () => {
+    mockInvoke.mockResolvedValue({ data: null, error: new FunctionsHttpError(new Response(JSON.stringify({ error: "Quota interne atteint" }), { status: 429, headers: { "Content-Type": "application/json" } })) });
+    await expect(sendLearnerAccessEmail("alice@example.com")).rejects.toThrow("Quota interne atteint");
+    expect(mockInvoke).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuse un succès annoncé avec sent à faux", async () => {
+    mockInvoke.mockResolvedValue({ data: { success: true, sent: false }, error: null });
+    await expect(sendLearnerAccessEmail("alice@example.com")).rejects.toThrow("n’a pas été envoyé");
   });
 });
 

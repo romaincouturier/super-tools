@@ -28,7 +28,7 @@ serve(async (req) => {
     if (error) throw error;
 
     const urls = await getAppUrls();
-    const appUrl = (urls.app_url || "https://super-tools.lovable.app").replace(/\/+$/, "");
+    const appUrl = (urls.app_url || "https://academy.supertilt.fr").replace(/\/+$/, "");
     const [signature, bcc] = await Promise.all([getSigniticSignature(), getBccSettings(supabase as any)]);
     const results: { id: string; status: string }[] = [];
 

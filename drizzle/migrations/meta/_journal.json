@@ -148,6 +148,41 @@
       "when": 1793642378235,
       "tag": "0020_order_items_sendcloud_tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793643752745,
+      "tag": "0021_tighten_permissive_rls_and_storage",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793716311274,
+      "tag": "0022_migration",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793718494806,
+      "tag": "0023_migration",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793718814857,
+      "tag": "0024_migration",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793727661806,
+      "tag": "0025_daily_actions_per_user_rpc",
+      "breakpoints": true
     }
   ]
 }

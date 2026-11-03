@@ -4,7 +4,8 @@ import { invokeEdge } from "@/lib/invokeEdge";
 export type CreateAcademyAccountInput = {
   email: string;
   password: string;
-  fullName: string;
+  firstName: string;
+  lastName: string;
 };
 
 type CreateAcademyAccountResponse = {
