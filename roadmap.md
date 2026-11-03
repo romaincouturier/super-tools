@@ -1,5 +1,9 @@
 # Roadmap
 
+## Tests d’accès administrateur (2026-11-03)
+- [ ] Exempter du quota interne uniquement les administrateurs vérifiés côté serveur
+- [ ] Tester les droits, conserver les protections non-admin et déployer seulement send-learner-access-email
+
 ## Sentry JAVASCRIPT-REACT-14 (2026-11-03)
 - [x] Identifier le quota interne atteint (3 demandes dans l’heure pour Colette), aucun échec Resend enregistré
 - [x] Distinguer quota, lien et envoi ; remonter les échecs au personnel sans annoncer un email envoyé ; conserver le quota existant et les droits staff
