@@ -19,6 +19,18 @@ Deux axes indépendants sur chaque post. L'axe validation porte sur tout le grou
 | Programmé | Date posée, pas encore publié |
 | Marqué comme publié | Publié à la main, hors outil |
 
+## Échelle affichée
+
+Elle est calculée à partir des deux axes, et la première condition vraie l'emporte :
+
+| Affiché | Condition |
+| --- | --- |
+| Publié | Publication : marqué comme publié |
+| Programmé | Validation : approuvé, et une date est posée |
+| Approuvé | Validation : approuvé, sans date |
+| En validation | Validation : en attente |
+| Brouillon | Tout le reste, y compris un post refusé, qui affiche alors son motif |
+
 ## Règles
 
 | Événement | Effet |

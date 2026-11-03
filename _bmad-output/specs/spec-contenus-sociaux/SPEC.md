@@ -15,7 +15,7 @@ sources:
 
 ## Why
 
-C'est une opportunité à saisir, doublée d'une douleur. Romain et Emmanuelle publient sur quatre comptes (LinkedIn Romain, LinkedIn Emmanuelle, page LinkedIn SuperTilt, Instagram), sur le blog et dans la newsletter Le Déclic, sans calendrier commun ni circuit de validation. Les posts sociaux se mêlent aux articles dans le kanban newsletter, qui n'est pas fait pour eux. Planable a éprouvé l'ossature (calendrier, campagnes, validation, MCP) ; on la reprend ramenée à un seul espace, sans publication native, avec une validation à un niveau et Claude comme rédacteur via le MCP.
+C'est une opportunité à saisir, doublée d'une douleur. Romain et Emmanuelle publient sur six comptes (LinkedIn Romain, LinkedIn Emmanuelle, page LinkedIn SuperTilt, Instagram, YouTube, Facebook), sur le blog et dans la newsletter Le Déclic, sans calendrier commun ni circuit de validation. Les posts sociaux se mêlent aux articles dans le kanban newsletter, qui n'est pas fait pour eux. Planable a éprouvé l'ossature (calendrier, campagnes, validation, MCP) ; on la reprend ramenée à un seul espace, sans publication native, avec une validation à un niveau et Claude comme rédacteur via le MCP.
 
 ## Capabilities
 
@@ -26,8 +26,8 @@ C'est une opportunité à saisir, doublée d'une douleur. Romain et Emmanuelle p
   - **intent:** Un auteur rédige un contenu une fois et le décline sur plusieurs canaux, avec format, thème, campagne et date facultative.
   - **success:** Un contenu sur trois canaux crée trois posts liés. Tant que la synchro est active, modifier le texte modifie les trois. Fermer le composeur puis le rouvrir retrouve le brouillon sans perte.
 - **CAP-3**
-  - **intent:** Chaque post porte deux statuts indépendants, validation et publication, et peut être marqué publié à la main.
-  - **success:** Les deux axes se filtrent séparément. Un post approuvé et non publié, puis marqué publié, garde son approbation et passe en « marqué comme publié ». Les valeurs sont dans `statuts-et-validation.md`.
+  - **intent:** Chaque post porte deux statuts indépendants, validation et publication, affichés sur une seule échelle, et peut être marqué publié à la main.
+  - **success:** L'écran affiche une seule échelle : Brouillon, En validation, Approuvé, Programmé, Publié. Elle est calculée à partir des deux axes stockés, selon la correspondance de `statuts-et-validation.md`. Les deux axes restent filtrables séparément. Un post approuvé, puis marqué publié, garde son approbation.
 - **CAP-4**
   - **intent:** Un auteur demande une validation, l'approbateur approuve ou refuse avec motif, et une modification du fond annule l'approbation.
   - **success:** Les règles de `statuts-et-validation.md` sont vérifiées par des tests :
@@ -42,10 +42,10 @@ C'est une opportunité à saisir, doublée d'une douleur. Romain et Emmanuelle p
   - **success:** Le tableau a trois colonnes (à valider, retour laissé, validé), un mode revue qui enchaîne les posts un par un, et le menu affiche le nombre de validations en attente de l'utilisateur connecté.
 - **CAP-6**
   - **intent:** Romain et Emmanuelle échangent sur un post et en retrouvent tout l'historique.
-  - **success:** Un commentaire interne accepte les mentions et peut être résolu. L'historique liste chaque action datée et attribuée, avec la version précédente pour un changement de texte ou de date.
+  - **success:** Un commentaire interne accepte les mentions et peut être résolu. L'approbateur corrige directement le texte, sans mode proposition. L'historique liste chaque action datée et attribuée, avec la version précédente pour un changement de texte ou de date.
 - **CAP-7**
   - **intent:** Une campagne regroupe ses posts autour d'un brief, sur une période.
-  - **success:** Une campagne a nom, icône, couleur, statut (préparation, active, terminée), dates facultatives, liens et brief en texte riche. Elle s'affiche en bandeau dans le calendrier et a son propre calendrier. Un post créé depuis la campagne y est rattaché. Un post a au plus une campagne.
+  - **success:** Une campagne a nom, icône, couleur, statut (préparation, active, terminée), dates facultatives, liens et brief en texte riche. Elle s'affiche en bandeau dans le calendrier et a son propre calendrier. Ses visuels se prennent dans la Médiathèque existante. Un post créé depuis la campagne y est rattaché. Un post a au plus une campagne.
 - **CAP-8**
   - **intent:** Un utilisateur pose une note datée dans le calendrier, sans publication.
   - **success:** Une note a un jour, un texte et une couleur, apparaît sur ce jour et ne compte dans aucun statut de post.
@@ -71,6 +71,12 @@ C'est une opportunité à saisir, doublée d'une douleur. Romain et Emmanuelle p
     - lire et ajouter des commentaires.
 
     Un brouillon créé par Claude part non validé.
+- **CAP-14**
+  - **intent:** Romain et Emmanuelle jugent l'harmonie visuelle du profil Instagram avant publication.
+  - **success:** Une vue grille montre les posts Instagram publiés et à venir, disposés comme sur le profil, trois par ligne, dans l'ordre de publication.
+- **CAP-15**
+  - **intent:** Un post incomplet pour son réseau est signalé avant publication.
+  - **success:** Un post sans visuel, ou dont le texte dépasse la limite de son réseau, porte une alerte visible sur sa carte, en liste et dans le détail. L'alerte est remontée par le MCP. Elle disparaît une fois le post corrigé.
 
 ## Constraints
 
@@ -79,7 +85,9 @@ C'est une opportunité à saisir, doublée d'une douleur. Romain et Emmanuelle p
 - Un seul espace, SuperTilt. Pas de clients, pas de séparation équipe/client ni de visibilité « client ».
 - Validation à un seul niveau ; approbateurs : Romain ou Emmanuelle, auteur compris.
 - La rédaction assistée passe uniquement par Claude via le MCP : aucune IA de rédaction dans le composeur.
-- Les canaux sont une liste extensible. Blog et Le Déclic sont des canaux comme les comptes sociaux.
+- Canaux de départ : LinkedIn Romain, LinkedIn Emmanuelle, page LinkedIn SuperTilt, Instagram, YouTube, Facebook, Blog, Le Déclic. La liste est extensible, et Blog et Le Déclic sont des canaux comme les autres.
+- Toute publication porte un visuel, quel que soit son canal.
+- Les visuels viennent de la Médiathèque existante : aucune médiathèque propre au module.
 - Le MCP n'a que les droits de l'utilisateur connecté, et aucun de ses chemins ne contourne le circuit de validation.
 - Conventions du dépôt : flux page, hook, service, Supabase ; RLS sur chaque table ; écrans internes masqués en mode démo. Voir `brownfield.md`.
 
@@ -93,22 +101,16 @@ C'est une opportunité à saisir, doublée d'une douleur. Romain et Emmanuelle p
 - Google Agenda, sessions de formation et événements dans le calendrier.
 - Génération, réécriture ou hashtags par IA dans le composeur.
 - Génération d'images ou de vidéos.
+- Mode proposition de correction (suggestions à accepter ou rejeter) : l'approbateur modifie directement.
 
 ## Success signal
 
-- Une semaine planifiée de bout en bout. Claude crée cinq brouillons datés sur les quatre comptes et le blog. Emmanuelle en approuve quatre et refuse le cinquième avec motif, depuis Mes validations. Romain corrige le refusé, qui repasse en attente, puis il est approuvé. Les cinq sont ensuite marqués publiés.
+- Une semaine planifiée de bout en bout. Claude crée cinq brouillons datés, chacun avec un visuel de la Médiathèque, sur LinkedIn, Instagram et le blog. Emmanuelle en approuve quatre et refuse le cinquième avec motif, depuis Mes validations. Romain corrige le refusé, qui repasse en attente, puis il est approuvé. Les cinq sont ensuite marqués publiés.
 - Le kanban newsletter ne contient plus aucune carte post.
 
 ## Assumptions
 
 - Cartes à migrer : les 6 cartes `content_cards` de type `post` ou `post_linkedin`. Les articles restent au kanban.
 - Un brouillon créé par Claude part en « non validé » et suit le circuit normal, sans exception.
-
-## Open Questions
-
-- Statuts : la maquette affiche une seule échelle (Brouillon, En validation, Approuvé, Programmé, Publié), alors que la spec porte deux axes. Garder une seule échelle à l'écran, sur les deux axes en base ?
-- Canaux : la maquette montre YouTube et Facebook. Les ajouter aux quatre comptes de départ ?
-- Visuels d'une campagne : faut-il un espace d'images propre à chaque campagne, ou piocher dans la Médiathèque existante ?
-- Vue « Instagram » : une page qui montre les posts Instagram à venir disposés comme sur le profil (carrés de 3 par ligne), pour juger l'harmonie visuelle. En V1 ?
-- Alertes avant publication : SuperTools doit-il signaler un post incomplet pour son réseau, par exemple un post Instagram sans image ou un texte trop long pour X ? Si oui, lesquelles en V1 ?
-- Propositions de correction : en plus des commentaires, faut-il pouvoir proposer une modification du texte que l'auteur accepte ou rejette d'un clic, comme le mode révision de Word ?
+- Un post refusé s'affiche « Brouillon », avec le motif du refus visible.
+- Alertes V1 : visuel absent (tous canaux) et texte au-delà de la limite du réseau. Une alerte n'empêche ni la validation ni le marquage publié.

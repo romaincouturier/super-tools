@@ -17,4 +17,5 @@ Maquette de référence fournie par Romain le 3 novembre 2026, avec des contenus
   - liseré gauche à la couleur du thème ;
   - début du titre.
 - **Campagnes** : un bandeau au-dessus des cartes, sur chaque jour qu'elles couvrent.
-- **Légende des statuts** : Brouillon, En validation, Approuvé, Programmé, Publié. Le lien avec les deux axes de `statuts-et-validation.md` reste à trancher (question ouverte).
+- **Légende des statuts** : Brouillon, En validation, Approuvé, Programmé, Publié. C'est l'échelle affichée, calculée à partir des deux axes : voir `statuts-et-validation.md`.
+- **Canaux de la maquette** : LinkedIn, Instagram, YouTube, Facebook. Blog et Le Déclic s'y ajoutent.
