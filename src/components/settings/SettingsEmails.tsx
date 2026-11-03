@@ -183,8 +183,10 @@ const SettingsEmails = ({ settings, loading, initialLoadDone }: SettingsEmailsPr
 
   const handleResetTemplate = (templateType: string, mode: AddressMode) => {
     const dt = DEFAULT_TEMPLATES[templateType];
+    lastEditedTemplateRef.current = { type: templateType, mode };
+    dirtyTemplatesRef.current.add(`${templateType}|${mode}`);
     setEditedTemplates((prev) => ({ ...prev, [templateType]: { ...prev[templateType], [mode]: { subject: dt.subject[mode], content: dt.content[mode] } } }));
-    toast({ title: "Template réinitialisé", description: "Les valeurs par défaut ont été restaurées. N'oubliez pas d'enregistrer." });
+    toast({ title: "Template réinitialisé", description: "Les valeurs par défaut ont été restaurées et seront enregistrées automatiquement." });
   };
 
   const handleImproveWithAI = async (templateType: string, mode: AddressMode) => {
@@ -195,6 +197,8 @@ const SettingsEmails = ({ settings, loading, initialLoadDone }: SettingsEmailsPr
       const { data, error } = await supabase.functions.invoke("improve-email-content", { body: { subject: edited.subject, content: edited.content, templateType, templateName: DEFAULT_TEMPLATES[templateType].name } });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
+      lastEditedTemplateRef.current = { type: templateType, mode };
+      dirtyTemplatesRef.current.add(`${templateType}|${mode}`);
       setEditedTemplates((prev) => ({ ...prev, [templateType]: { ...prev[templateType], [mode]: { subject: data.subject, content: data.content } } }));
       toast({ title: "Contenu amélioré", description: "L'IA a proposé des améliorations. Vérifiez et enregistrez si satisfait." });
     } catch (error: unknown) {
