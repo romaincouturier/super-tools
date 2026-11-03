@@ -67,13 +67,23 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // Le réglage accepte le cookie seul ou la paire complète collée du navigateur.
     const cookie = rawCookie.includes("=") ? rawCookie : `connect.sid=${rawCookie}`;
 
-    // Parcourt la bibliothèque page par page jusqu'à trouver IMPORT_LIMIT vidéos
-    // non importées, sinon les vidéos au-delà des LIST_LIMIT plus récentes ne
-    // seraient jamais rattrapées.
-    const results = { listed: 0, imported: 0, without_transcript: 0, errors: 0 };
-    const missing: Awaited<ReturnType<typeof listLoomVideos>>["videos"] = [];
+    // Parcourt toute la bibliothèque, puis traite au plus `importLimit` vidéos
+    // manquantes. Les vidéos encore sans transcript sont placées en fin de file
+    // pour ne pas bloquer les autres à chaque passage.
+    let importLimit = IMPORT_LIMIT;
+    try {
+      const body = await req.clone().json();
+      const n = Number(body?.import_limit);
+      if (Number.isFinite(n) && n > 0) importLimit = Math.min(Math.floor(n), 25);
+    } catch { /* corps vide */ }
+
+    const results = {
+      listed: 0, missing_total: 0, imported: 0, without_transcript: 0, errors: 0,
+      without_transcript_titles: [] as string[], error_titles: [] as string[],
+    };
+    const allMissing: Awaited<ReturnType<typeof listLoomVideos>>["videos"] = [];
     let pageCursor: string | undefined;
-    for (let page = 0; page < MAX_PAGES && missing.length < IMPORT_LIMIT; page++) {
+    for (let page = 0; page < MAX_PAGES; page++) {
       const { videos, endCursor, hasNextPage } = await listLoomVideos(cookie, LIST_LIMIT, pageCursor);
       results.listed += videos.length;
       if (videos.length > 0) {
@@ -85,11 +95,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const alreadyImported = new Set(
           ((existing as Array<{ external_id: string }>) ?? []).map((r) => r.external_id),
         );
-        missing.push(...videos.filter((v) => !alreadyImported.has(v.id)).slice(0, IMPORT_LIMIT - missing.length));
+        allMissing.push(...videos.filter((v) => !alreadyImported.has(v.id)));
       }
       if (!hasNextPage || !endCursor) break;
       pageCursor = endCursor;
     }
+    results.missing_total = allMissing.length;
+    // Rotation : les plus anciennes d'abord quand body.oldest_first, sinon ordre Loom.
+    const missing = allMissing.slice(-importLimit).length && (await req.clone().json().catch(() => ({})))?.oldest_first
+      ? allMissing.slice(-importLimit)
+      : allMissing.slice(0, importLimit);
 
     for (const video of missing) {
       try {
