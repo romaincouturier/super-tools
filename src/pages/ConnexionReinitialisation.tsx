@@ -32,10 +32,9 @@ export default function ConnexionReinitialisation() {
   }, [identity.data]);
 
   const rules = validatePassword(password);
-  const matches = password.length > 0 && password === confirmation;
   const canSubmit = stage === "ready" && !identity.isPending && !identity.isError
     && passwordIdentitySchema.safeParse({ firstName, lastName }).success
-    && rules.isValid && matches && !submitting;
+    && rules.isValid && !submitting;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
