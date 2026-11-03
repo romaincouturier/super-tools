@@ -10142,6 +10142,7 @@ export type Database = {
       }
       supertilt_actions: {
         Row: {
+          board: string
           assigned_to: string | null
           column_id: string | null
           completed_at: string | null
@@ -10157,6 +10158,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          board?: string
           assigned_to?: string | null
           column_id?: string | null
           completed_at?: string | null
@@ -10172,6 +10174,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          board?: string
           assigned_to?: string | null
           column_id?: string | null
           completed_at?: string | null
@@ -10198,6 +10201,7 @@ export type Database = {
       }
       supertilt_columns: {
         Row: {
+          board: string
           created_at: string
           id: string
           name: string
@@ -10206,6 +10210,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          board?: string
           created_at?: string
           id?: string
           name: string
@@ -10214,6 +10219,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          board?: string
           created_at?: string
           id?: string
           name?: string
@@ -14191,7 +14197,7 @@ export type Database = {
         | "certificates"
         | "ameliorations"
         | "historique"
-        | "contenu"
+        | "supertilt_fr"
         | "besoins"
         | "parametres"
         | "events"
@@ -14211,7 +14217,7 @@ export type Database = {
         | "screenshots"
         | "veille"
         | "web_analytics"
-        | "supertilt"
+        | "projets_transverses"
         | "support"
         | "catalogue"
         | "finances"
@@ -14361,7 +14367,7 @@ export const Constants = {
         "certificates",
         "ameliorations",
         "historique",
-        "contenu",
+        "supertilt_fr",
         "besoins",
         "parametres",
         "events",
@@ -14381,7 +14387,7 @@ export const Constants = {
         "screenshots",
         "veille",
         "web_analytics",
-        "supertilt",
+        "projets_transverses",
         "support",
         "catalogue",
         "finances",

@@ -193,7 +193,7 @@ export default function AiTools() {
   return (
     <ModuleLayout>
       <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
-        <PageHeader icon={Brain} title="IA Augmentée" subtitle="Générez des programmes, quiz et analysez votre activité" />
+        <PageHeader icon={Brain} title="IA Augmentée" subtitle="Générez des programmes, quiz et analysez votre activité" backTo="/parametres" />
         <Tabs defaultValue="program" className="space-y-6">
          <TabsList className="grid w-full grid-cols-4">
            <TabsTrigger value="program" className="gap-2">

@@ -42,8 +42,8 @@ const ContentBoard = () => {
       <main className="flex-1 max-w-full mx-auto p-6 overflow-hidden">
         <PageHeader
           icon={Newspaper}
-          title="Gestion du contenu"
-          subtitle="Tableau Kanban pour le marketing de contenu"
+          title="Newsletter"
+          subtitle="Tableau Kanban de la newsletter et des contenus"
           actions={
             <>
               <Button

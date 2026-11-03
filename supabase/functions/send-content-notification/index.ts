@@ -72,7 +72,7 @@ serve(async (req) => {
     let htmlContent = "";
 
     // Build the card link
-    const cardLink = cardId ? `${APP_URL}/contenu?card=${cardId}` : `${APP_URL}/contenu`;
+    const cardLink = cardId ? `${APP_URL}/supertilt-fr/newsletter?card=${cardId}` : `${APP_URL}/supertilt-fr/newsletter`;
 
     const CONTENT_TYPES: Record<string, { key: string; button: string }> = {
       review_requested: { key: "content_review_requested", button: "Commencer la relecture" },

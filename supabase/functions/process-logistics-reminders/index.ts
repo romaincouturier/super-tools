@@ -414,7 +414,7 @@ serve(async (req) => {
         add("📋", "Articles en relecture", COLORS.purple,
           userReviewCards.map(card => {
             const daysAgo = Math.ceil((Date.now() - new Date(card.createdAt).getTime()) / (1000 * 60 * 60 * 24));
-            return `<li>${linkHtml(`${appUrl}/contenu?card=${card.id}`, card.title)} — ${card.columnName} (${daysAgo}j)</li>`;
+            return `<li>${linkHtml(`${appUrl}/supertilt-fr/newsletter?card=${card.id}`, card.title)} — ${card.columnName} (${daysAgo}j)</li>`;
           })
         );
       }
@@ -422,7 +422,7 @@ serve(async (req) => {
       // 10b. Articles bloqués
       add("🚫", "Articles bloqués", COLORS.orange,
         data.blockedArticles.map(a =>
-          `<li>${linkHtml(`${appUrl}/contenu?card=${a.id}`, a.title)} — ${a.columnName}</li>`
+          `<li>${linkHtml(`${appUrl}/supertilt-fr/newsletter?card=${a.id}`, a.title)} — ${a.columnName}</li>`
         )
       );
 
@@ -431,7 +431,7 @@ serve(async (req) => {
       if (userComments && userComments.length > 0) {
         add("💬", "Commentaires non résolus", COLORS.purple,
           userComments.map(c =>
-            `<li>${linkHtml(`${appUrl}/contenu?card=${c.cardId}`, c.cardTitle)} — ${c.commentCount} commentaire${c.commentCount > 1 ? "s" : ""} en attente</li>`
+            `<li>${linkHtml(`${appUrl}/supertilt-fr/newsletter?card=${c.cardId}`, c.cardTitle)} — ${c.commentCount} commentaire${c.commentCount > 1 ? "s" : ""} en attente</li>`
           )
         );
       }
@@ -580,7 +580,7 @@ serve(async (req) => {
       // 15d-ter. Transcripts à affecter
       add("🎙️", "Transcripts à affecter", COLORS.teal,
         data.unassignedTranscripts.map(t =>
-          `<li>${linkHtml(`${appUrl}/transcripts?affectation=non`, t.title)} — à affecter à une mission, une opportunité ou un événement</li>`
+          `<li>${linkHtml(`${appUrl}/supertilt-fr/transcripts?affectation=non`, t.title)} — à affecter à une mission, une opportunité ou un événement</li>`
         )
       );
 

@@ -30,7 +30,7 @@ const ALL_MODULES: AppModule[] = [
   "certificates",
   "ameliorations",
   "historique",
-  "contenu",
+  "supertilt_fr",
   "besoins",
   "emails",
   "statistiques",

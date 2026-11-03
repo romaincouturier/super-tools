@@ -390,14 +390,14 @@ async function fetchAgenda(today: string, userId: string | null): Promise<Dashbo
 async function fetchAttention(): Promise<DashboardAttentionItem[]> {
   const today = todayAsISO();
 
-  const [improvementsRes, supertiltRes, failedEmailsRes, evalsRes] = await Promise.all([
+  const [improvementsRes, projectsRes, failedEmailsRes, evalsRes] = await Promise.all([
     supabase
       .from("improvements")
       .select("id", { count: "exact", head: true })
       .in("status", ["pending", "in_progress"]),
     supabase
       .from("supertilt_actions")
-      .select("id", { count: "exact", head: true })
+      .select("board")
       .eq("is_completed", false)
       .lte("deadline", today),
     supabase
@@ -422,12 +422,23 @@ async function fetchAttention(): Promise<DashboardAttentionItem[]> {
     });
   }
 
-  const supertilt = supertiltRes.count ?? 0;
-  if (supertilt > 0) {
+  const projects = projectsRes.data ?? [];
+  const transverse = projects.filter((a) => a.board === "transverse").length;
+  if (transverse > 0) {
     items.push({
       icon: "alert",
-      text: `${supertilt} action${supertilt > 1 ? "s" : ""} SuperTilt à échéance`,
-      path: "/supertilt",
+      text: `${transverse} action${transverse > 1 ? "s" : ""} Projets transverses à échéance`,
+      path: "/projets-transverses",
+      tone: "warn",
+    });
+  }
+
+  const site = projects.filter((a) => a.board === "site").length;
+  if (site > 0) {
+    items.push({
+      icon: "alert",
+      text: `${site} action${site > 1 ? "s" : ""} projets supertilt.fr à échéance`,
+      path: "/supertilt-fr/projets",
       tone: "warn",
     });
   }

@@ -18,6 +18,7 @@ import { useNavUsageCounts } from "@/hooks/useNavUsageCounts";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDot } from "@/components/ui/alert-dot";
 import UserMenu from "@/components/UserMenu";
+import { sortNavByUsage, type NavConfig } from "@/lib/navUsage";
 
 const CREAM = "#f7f5f0";
 const ANTHRACITE = "#101820";
@@ -28,26 +29,6 @@ const EXPANDED_WIDTH = 240;
 const SIDEBAR_EXPANDED_KEY = "supertools.sidebar.expanded";
 
 // ── Nav config ─────────────────────────────────────────────────
-
-interface SubNavItem {
-  key: string;
-  sectionLabel?: string;
-  /** Module de droits, quand le sous-item n'est qu'une vue d'un module existant. */
-  module?: AppModule;
-}
-
-interface NavGroupConfig {
-  type: "group";
-  key: string;
-  children: SubNavItem[];
-}
-
-interface NavItemConfig {
-  type: "item";
-  key: string;
-}
-
-type NavConfig = NavGroupConfig | NavItemConfig;
 
 const NAV_CONFIG: NavConfig[] = [
   {
@@ -60,13 +41,15 @@ const NAV_CONFIG: NavConfig[] = [
   { type: "item", key: "missions" },
   {
     type: "group",
-    key: "contenu",
+    key: "supertilt-fr",
     children: [
-      { key: "transcripts" },
-      { key: "temoignages" },
+      { key: "sf-newsletter", module: "supertilt_fr" },
+      { key: "sf-transcripts", module: "supertilt_fr" },
+      { key: "sf-temoignages", module: "supertilt_fr" },
+      { key: "sf-projets", module: "supertilt_fr" },
     ],
   },
-  { type: "item", key: "supertilt" },
+  { type: "item", key: "projets-transverses" },
   {
     type: "group",
     key: "formations",
@@ -105,6 +88,7 @@ const NAV_CONFIG: NavConfig[] = [
     type: "group",
     key: "dropshipping",
     children: [
+      { key: "commandes-jeux", module: "dropshipping" },
       { key: "wc_inbox" },
     ],
   },
@@ -115,38 +99,6 @@ const NAV_CONFIG: NavConfig[] = [
 
 function toAppModule(key: string): AppModule {
   return key.replace(/-/g, "_") as AppModule;
-}
-
-/** Segment de chemin d'une entrée ("/crm/..." -> "crm"), pour matcher les stats d'usage. */
-function pathSegment(key: string): string | null {
-  const path = MODULE_ICONS[key]?.path;
-  return path ? path.split("/")[1] ?? null : null;
-}
-
-/**
- * Trie la nav par popularité globale (clics 90 jours, tous utilisateurs),
- * de la plus cliquée à la moins cliquée. Les groupes sont classés sur le
- * total parent + enfants, et leurs sous-items sont triés aussi. Sans stats
- * (table vide, RPC indisponible), l'ordre de NAV_CONFIG est conservé
- * (tri stable, tout le monde à 0).
- */
-function sortNavByUsage(config: NavConfig[], counts: Map<string, number>): NavConfig[] {
-  const clicksOf = (key: string): number => {
-    const seg = pathSegment(key);
-    return seg ? counts.get(seg) ?? 0 : 0;
-  };
-  const entryClicks = (entry: NavConfig): number =>
-    entry.type === "group"
-      ? clicksOf(entry.key) + entry.children.reduce((s, c) => s + clicksOf(c.key), 0)
-      : clicksOf(entry.key);
-
-  return [...config]
-    .map((entry) =>
-      entry.type === "group"
-        ? { ...entry, children: [...entry.children].sort((a, b) => clicksOf(b.key) - clicksOf(a.key)) }
-        : entry,
-    )
-    .sort((a, b) => entryClicks(b) - entryClicks(a));
 }
 
 // ── AppSidebar ─────────────────────────────────────────────────
@@ -179,7 +131,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const missionsAlert = missionSurveyAlert;
 
   const navUsage = useNavUsageCounts();
-  const sortedNav = useMemo(() => sortNavByUsage(NAV_CONFIG, navUsage), [navUsage]);
+  const sortedNav = useMemo(() => sortNavByUsage(NAV_CONFIG, navUsage, (key) => MODULE_ICONS[key]?.path), [navUsage]);
 
 
 
