@@ -100,7 +100,7 @@ export async function createProjectAction(
     .limit(1);
   const position = ((last?.[0]?.position as number | undefined) ?? -1) + 1;
 
-  await audit(`create_project_action [${board}] « ${title }» → ${column.name}`);
+  await audit(`create_project_action [${board}] « ${title} » → ${column.name}`);
   const { data: created, error } = await (supabase as any)
     .from("supertilt_actions")
     .insert({
