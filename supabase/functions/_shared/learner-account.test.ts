@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ensureLearnerAccount, sendLearnerAccessEmail, learnerAccessLink } from "./learner-account.ts";
+import { ensureLearnerAccount, sendLearnerAccessEmail, learnerAccessLink, sendRegisteredLearnerAccessEmail } from "./learner-account.ts";
 
 vi.mock("./app-urls.ts", () => ({
   getAppUrls: vi.fn().mockResolvedValue({ app_url: "https://app.example.com" }),
@@ -193,6 +193,45 @@ describe("sendLearnerAccessEmail", () => {
     });
 
     await expect(sendLearnerAccessEmail(admin, "panne@example.com")).resolves.toEqual({ sent: false });
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("sendRegisteredLearnerAccessEmail", () => {
+  beforeEach(() => sendEmailMock.mockClear());
+
+  it("recrée le compte d'une apprenante inscrite avant d'envoyer son accès", async () => {
+    const { admin, rpc } = makeAccessAdmin({ passwordSet: false });
+    const { createUser, from, upsert } = makeAdmin(ok("new-user"));
+    admin.auth.admin.createUser = createUser;
+    admin.from = from;
+    const originalRpc = rpc.getMockImplementation();
+    rpc.mockImplementation((name: string) => name === "is_known_learner"
+      ? Promise.resolve({ data: true })
+      : originalRpc?.(name));
+    await expect(sendRegisteredLearnerAccessEmail(admin, "ColetteNicorette@Yahoo.com")).resolves.toEqual({ sent: true });
+    expect(createUser).toHaveBeenCalledWith({ email: "colettenicorette@yahoo.com", email_confirm: true, user_metadata: { role: "learner" } });
+    expect(upsert).toHaveBeenCalledWith({ user_id: "new-user", password_set: false }, { onConflict: "user_id" });
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuse de créer un compte pour une adresse non inscrite", async () => {
+    const { admin, createUser } = makeAdmin(ok("never"));
+    admin.rpc = vi.fn().mockResolvedValue({ data: false, error: null });
+    await expect(sendRegisteredLearnerAccessEmail(admin, "unknown@example.com")).rejects.toThrow("aucune inscription");
+    expect(createUser).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("signale un email non envoyé au lieu d'annoncer un succès", async () => {
+    const { admin, rpc } = makeAccessAdmin({ passwordSet: true, quotaAllowed: false });
+    const { createUser } = makeAdmin({ data: null, error: { message: "User already registered" } });
+    admin.auth.admin.createUser = createUser;
+    const originalRpc = rpc.getMockImplementation();
+    rpc.mockImplementation((name: string) => name === "is_known_learner"
+      ? Promise.resolve({ data: true })
+      : originalRpc?.(name));
+    await expect(sendRegisteredLearnerAccessEmail(admin, "known@example.com")).rejects.toThrow("n'a pas été envoyé");
     expect(sendEmailMock).not.toHaveBeenCalled();
   });
 });
