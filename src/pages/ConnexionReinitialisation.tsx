@@ -19,7 +19,6 @@ export default function ConnexionReinitialisation() {
   const { stage, confirmRecovery } = usePasswordRecoverySession();
   const { updatePassword, markPasswordChanged } = useAuthActions();
   const [password, setPassword] = useState("");
-  const [confirmation, setConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [firstName, setFirstName] = useState("");
