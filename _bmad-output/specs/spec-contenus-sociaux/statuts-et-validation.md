@@ -23,15 +23,15 @@ Deux axes indépendants sur chaque post. L'axe validation porte sur tout le grou
 
 | Événement | Effet |
 | --- | --- |
-| Demande de validation | Validation : en attente ; l'autre approbateur est notifié (canal à trancher) |
-| Approbation | S'applique à tout le groupe ; tracée dans l'historique |
+| Demande de validation | Validation : en attente ; une action quotidienne est créée pour l'autre approbateur |
+| Approbation | Par Romain ou Emmanuelle, auteur compris ; s'applique à tout le groupe ; tracée dans l'historique |
 | Retrait d'approbation | Retour à « non demandée », tracé dans l'historique |
 | Refus | Motif obligatoire ; validation : refusé ; l'auteur est notifié |
 | Modification du texte ou d'un visuel d'un post approuvé | Validation : en attente |
 | Modification du texte ou d'un visuel d'un post refusé | Validation : en attente |
 | Changement de date seul | L'approbation est conservée |
 | Glisser un brouillon sur un jour | Date posée sur tout le groupe ; publication : programmé |
-| Marquer comme publié | Publication : marqué comme publié ; l'approbation est conservée |
+| Marquer comme publié | Publication : marqué comme publié ; l'approbation est conservée ; le post reste modifiable |
 | Brouillon créé par le MCP | Validation : non demandée, ou en attente si l'appel la demande |
 
 Un post groupé est un post par canal, liés. Le texte est commun tant que la synchro est active ; la couper rend chaque déclinaison indépendante.

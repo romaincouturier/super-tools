@@ -1,6 +1,7 @@
 ---
 id: SPEC-contenus-sociaux
 companions:
+  - maquette-calendrier.md
   - statuts-et-validation.md
   - reference-planable.md
   - brownfield.md
@@ -20,7 +21,7 @@ C'est une opportunité à saisir, doublée d'une douleur. Romain et Emmanuelle p
 
 - **CAP-1**
   - **intent:** Romain et Emmanuelle voient dans un calendrier (semaine, mois) tous les posts et contenus de tous les canaux, avec les brouillons sans date à part, et les planifient par glisser-déposer.
-  - **success:** Un brouillon sans date glissé sur un jour reçoit cette date sur toutes ses déclinaisons. Décocher un canal dans la barre des canaux le retire de tous les écrans.
+  - **success:** Chaque jour du calendrier montre un aperçu de ses contenus, conforme à `maquette-calendrier.md` : heure, statut, canaux, couleur du thème, début du titre. Un brouillon sans date glissé sur un jour reçoit cette date sur toutes ses déclinaisons. Décocher un canal le retire de tous les écrans.
 - **CAP-2**
   - **intent:** Un auteur rédige un contenu une fois et le décline sur plusieurs canaux, avec format, thème, campagne et date facultative.
   - **success:** Un contenu sur trois canaux crée trois posts liés. Tant que la synchro est active, modifier le texte modifie les trois. Fermer le composeur puis le rouvrir retrouve le brouillon sans perte.
@@ -29,7 +30,13 @@ C'est une opportunité à saisir, doublée d'une douleur. Romain et Emmanuelle p
   - **success:** Les deux axes se filtrent séparément. Un post approuvé et non publié, puis marqué publié, garde son approbation et passe en « marqué comme publié ». Les valeurs sont dans `statuts-et-validation.md`.
 - **CAP-4**
   - **intent:** Un auteur demande une validation, l'approbateur approuve ou refuse avec motif, et une modification du fond annule l'approbation.
-  - **success:** Les règles de `statuts-et-validation.md` sont vérifiées par des tests : approbation pour tout le groupe, refus impossible sans motif et renvoyé à l'auteur, retour en attente si texte ou visuel changent, approbation conservée si seule la date change.
+  - **success:** Les règles de `statuts-et-validation.md` sont vérifiées par des tests :
+    - l'approbation vaut pour tout le groupe ;
+    - un refus est impossible sans motif, et le post revient à l'auteur ;
+    - modifier le texte ou un visuel remet le post en attente ;
+    - changer seulement la date conserve l'approbation ;
+    - une demande de validation crée une action quotidienne pour l'autre approbateur ;
+    - un auteur peut approuver son propre post.
 - **CAP-5**
   - **intent:** L'approbateur traite ce qui l'attend depuis un tableau « Mes validations ».
   - **success:** Le tableau a trois colonnes (à valider, retour laissé, validé), un mode revue qui enchaîne les posts un par un, et le menu affiche le nombre de validations en attente de l'utilisateur connecté.
@@ -70,7 +77,8 @@ C'est une opportunité à saisir, doublée d'une douleur. Romain et Emmanuelle p
 - Tout vit dans le module supertilt.fr, en sous-modules. Le droit d'accès est `supertilt_fr` : un droit par module, aucun droit par sous-module.
 - Aucune publication native vers les réseaux en V1 : le statut publié se marque à la main.
 - Un seul espace, SuperTilt. Pas de clients, pas de séparation équipe/client ni de visibilité « client ».
-- Validation à un seul niveau ; approbateurs : Romain ou Emmanuelle.
+- Validation à un seul niveau ; approbateurs : Romain ou Emmanuelle, auteur compris.
+- La rédaction assistée passe uniquement par Claude via le MCP : aucune IA de rédaction dans le composeur.
 - Les canaux sont une liste extensible. Blog et Le Déclic sont des canaux comme les comptes sociaux.
 - Le MCP n'a que les droits de l'utilisateur connecté, et aucun de ses chemins ne contourne le circuit de validation.
 - Conventions du dépôt : flux page, hook, service, Supabase ; RLS sur chaque table ; écrans internes masqués en mode démo. Voir `brownfield.md`.
@@ -81,6 +89,9 @@ C'est une opportunité à saisir, doublée d'une douleur. Romain et Emmanuelle p
 - Publication automatique sur les réseaux.
 - Validation multi-niveaux, espaces multiples, portail client.
 - Modèles de posts et créneaux horaires : plus tard.
+- Statistiques par post, même saisies à la main : elles seront automatisées plus tard.
+- Google Agenda, sessions de formation et événements dans le calendrier.
+- Génération, réécriture ou hashtags par IA dans le composeur.
 - Génération d'images ou de vidéos.
 
 ## Success signal
@@ -95,14 +106,9 @@ C'est une opportunité à saisir, doublée d'une douleur. Romain et Emmanuelle p
 
 ## Open Questions
 
-- Un auteur peut-il approuver son propre post, ou l'approbation doit-elle venir de l'autre personne ?
-- Comment l'autre approbateur est-il notifié d'une demande : action quotidienne, email, les deux ?
-- Un post marqué publié reste-t-il modifiable ? Planable l'interdit (`POST_ALREADY_PUBLISHED`).
-- Saisie manuelle de statistiques par post : V1 ou plus tard ?
-- Google Agenda, sessions de formation et événements affichés dans le calendrier : V1 ou plus tard ?
-- Médias de campagne : médiathèque propre à la campagne, ou Médiathèque SuperTools existante ?
-- Grille Instagram : V1 ou plus tard ?
-- Contrôles par réseau (visuel obligatoire sur Instagram, longueur de texte) : lesquels en V1 ?
-- Liste des thèmes éditoriaux de départ.
-- Rédaction assistée dans le composeur (génération, réécriture, hashtags) en V1, ou rédaction par Claude via le MCP seulement ?
-- Suggestions de texte, séparées des commentaires : utiles au binôme, ou les commentaires suffisent ?
+- Statuts : la maquette affiche une seule échelle (Brouillon, En validation, Approuvé, Programmé, Publié), alors que la spec porte deux axes. Garder une seule échelle à l'écran, sur les deux axes en base ?
+- Canaux : la maquette montre YouTube et Facebook. Les ajouter aux quatre comptes de départ ?
+- Visuels d'une campagne : faut-il un espace d'images propre à chaque campagne, ou piocher dans la Médiathèque existante ?
+- Vue « Instagram » : une page qui montre les posts Instagram à venir disposés comme sur le profil (carrés de 3 par ligne), pour juger l'harmonie visuelle. En V1 ?
+- Alertes avant publication : SuperTools doit-il signaler un post incomplet pour son réseau, par exemple un post Instagram sans image ou un texte trop long pour X ? Si oui, lesquelles en V1 ?
+- Propositions de correction : en plus des commentaires, faut-il pouvoir proposer une modification du texte que l'auteur accepte ou rejette d'un clic, comme le mode révision de Word ?
