@@ -84,6 +84,7 @@ export function usePasswordRecoverySession() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return;
+      if (pendingTokenHash) { setStage("confirm"); return; }
       if (session || hashType === "recovery") { setStage("ready"); return; }
       setStage(pendingTokenHash ? "confirm" : "invalid");
     });
@@ -101,6 +102,7 @@ export function usePasswordRecoverySession() {
     if (!tokenHash) { setStage("invalid"); return false; }
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
     if (error) { setStage("invalid"); return false; }
+    setStage("ready");
     // verifyOtp établit déjà la session ; l'événement PASSWORD_RECOVERY
     // (écouté ci-dessus) mettra "ready" à jour en arrière-plan.
     return true;

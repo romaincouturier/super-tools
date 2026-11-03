@@ -43,6 +43,8 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 
 # Architecture rules
 
+- Password setup loads and saves learner names through authenticated session-owned profile access, after an explicit recovery confirmation click; it never consumes recovery tokens on page load or exposes anonymous email-based profile lookup, because name prefill must preserve scanner-safe links and identity privacy.
+
 - Bulk participant progress follows awaited workflow stages and optional per-recipient callbacks in the existing batch email services, because the displayed progress must reflect actual work without changing enrollment or delivery rules.
 
 - Staff learner-access sends provision missing accounts only after checking an existing participant or LMS enrollment, because bulk additions bypass account provisioning and must not silently skip the email or create arbitrary accounts.

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { KeyRound, Lock, ShieldCheck, CheckCircle2, Circle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -8,21 +8,35 @@ import { validatePassword } from "@/lib/passwordValidation";
 import { useAuthActions, usePasswordRecoverySession } from "@/hooks/useAuthActions";
 import { useSession } from "@/hooks/useSession";
 import { resolvePostLoginPath, REDIRECT_PARAM } from "@/lib/authRouting";
+import { usePasswordIdentity } from "@/hooks/usePasswordIdentity";
+import { passwordIdentitySchema } from "@/services/passwordIdentity";
+import { reportHandledError } from "@/lib/sentry";
 
 export default function ConnexionReinitialisation() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isStaff, mustChangePassword, refresh } = useSession();
+  const { isStaff, refresh } = useSession();
   const { stage, confirmRecovery } = usePasswordRecoverySession();
   const { updatePassword, markPasswordChanged } = useAuthActions();
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const identity = usePasswordIdentity(stage === "ready");
+
+  useEffect(() => {
+    if (!identity.data) return;
+    setFirstName(identity.data.firstName);
+    setLastName(identity.data.lastName);
+  }, [identity.data]);
 
   const rules = validatePassword(password);
   const matches = password.length > 0 && password === confirmation;
-  const canSubmit = rules.isValid && matches && !submitting;
+  const canSubmit = stage === "ready" && !identity.isPending && !identity.isError
+    && passwordIdentitySchema.safeParse({ firstName, lastName }).success
+    && rules.isValid && matches && !submitting;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,15 +44,13 @@ export default function ConnexionReinitialisation() {
     setSubmitting(true);
     setErrorMsg(null);
 
-    // RG-21 : pour un lien ?token_hash=...&type=recovery, rien n'a encore été
-    // consommé (usePasswordRecoverySession, stage "confirm") — un filtre de
-    // sécurité de messagerie qui a pré-ouvert l'email n'a donc rien brûlé.
-    // On ne le consomme qu'ici, sur ce clic réel de l'apprenant, sans lui
-    // imposer un écran ni un clic supplémentaires : enregistrer son mot de
-    // passe EST l'action qui prouve qu'il est bien là.
-    if (stage === "confirm") {
-      const confirmed = await confirmRecovery();
-      if (!confirmed) { setSubmitting(false); return; }
+    try {
+      await identity.saveIdentity({ firstName, lastName });
+    } catch (error) {
+      reportHandledError(error);
+      setErrorMsg("Votre prénom et votre nom n’ont pas été enregistrés. Réessayez.");
+      setSubmitting(false);
+      return;
     }
 
     const failure = await updatePassword(password);
@@ -115,7 +127,24 @@ export default function ConnexionReinitialisation() {
               Choisissez un nouveau mot de passe pour sécuriser votre compte.
             </p>
 
-            <form onSubmit={handleSubmit}>
+            {stage === "confirm" ? (
+              <AuthButton type="button" disabled={submitting} onClick={async () => {
+                setSubmitting(true);
+                await confirmRecovery();
+                setSubmitting(false);
+              }}>
+                {submitting ? <Spinner /> : "Continuer"}
+              </AuthButton>
+            ) : identity.isPending ? <Spinner /> : identity.isError ? (
+              <>
+                <p className="mb-4 text-sm text-destructive">Impossible de charger vos informations.</p>
+                <AuthButton type="button" onClick={() => { void identity.refetch(); }}>Réessayer</AuthButton>
+              </>
+            ) : <form onSubmit={handleSubmit}>
+              <AuthField id="first-name" label="Prénom (obligatoire)" value={firstName}
+                onChange={setFirstName} autoComplete="given-name" required autoFocus />
+              <AuthField id="last-name" label="Nom (obligatoire)" value={lastName}
+                onChange={setLastName} autoComplete="family-name" required />
               <AuthField
                 id="new-password"
                 label="Nouveau mot de passe"
@@ -124,7 +153,6 @@ export default function ConnexionReinitialisation() {
                 onChange={setPassword}
                 autoComplete="new-password"
                 icon={<Lock className="h-[18px] w-[18px]" />}
-                autoFocus
                 required
               />
               <AuthField
@@ -151,7 +179,7 @@ export default function ConnexionReinitialisation() {
               <AuthButton disabled={!canSubmit}>
                 {submitting ? <Spinner /> : "Enregistrer mon nouveau mot de passe"}
               </AuthButton>
-            </form>
+            </form>}
 
             <AuthSupportLine />
           </>
