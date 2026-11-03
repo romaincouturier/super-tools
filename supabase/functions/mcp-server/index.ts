@@ -1044,6 +1044,52 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "list_project_board",
+    description:
+      "Read the SuperTools project boards (Projets transverses and Projets supertilt.fr): columns and, for each action card, its id, title, column, assignee, deadline, completion flag and linked mission. Use this to find action ids before update_project_action.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        board: { type: "string", enum: ["transverse", "site"], description: "transverse = Projets transverses, site = Projets supertilt.fr. Omit to read both." },
+      },
+    },
+  },
+  {
+    name: "create_project_action",
+    description:
+      "Create ONE action card on a SuperTools project board (Projets transverses or Projets supertilt.fr), at the end of the chosen column (first column by default). ADDITIVE: never modifies an existing card. An unknown column is rejected with the list of valid ones.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        board: { type: "string", enum: ["transverse", "site"], description: "transverse = Projets transverses, site = Projets supertilt.fr" },
+        title: { type: "string", description: "Action title" },
+        description: { type: "string" },
+        assigned_to: { type: "string", description: "Assignee display name, e.g. 'Romain Couturier'" },
+        deadline: { type: "string", description: "YYYY-MM-DD" },
+        column: { type: "string", description: "Column name or id. Default: first column." },
+      },
+      required: ["board", "title"],
+    },
+  },
+  {
+    name: "update_project_action",
+    description:
+      "Update ONE action card on a SuperTools project board: rename, edit description, assign (assigned_to display name), set or clear the deadline (YYYY-MM-DD or null), move to another column (column name or id), or mark done / reopen (is_completed). Only the provided fields change; the card can never be deleted from here. Get ids from list_project_board.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action_id: { type: "string", description: "UUID from list_project_board" },
+        title: { type: "string" },
+        description: { type: "string", description: "null to clear" },
+        assigned_to: { type: "string", description: "Assignee display name, null to clear" },
+        deadline: { type: "string", description: "YYYY-MM-DD, null to clear" },
+        column: { type: "string", description: "Target column name or id" },
+        is_completed: { type: "boolean", description: "true marks done (sets completed_at), false reopens" },
+      },
+      required: ["action_id"],
+    },
+  },
+  {
     name: "list_newsletters",
     description:
       "History of newsletters, most recent first: date, status (draft / sent), sent date, and the ordered list of articles in each (id, title, themes, type). Content is not returned. Much lighter than get_editorial_brief.",
@@ -2316,6 +2362,28 @@ async function callTool(
         return textResult(JSON.stringify(res));
       } catch (e) {
         return textResult(`Card creation error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "list_project_board": {
+      try {
+        return textResult(await listProjectBoard(supabase, args.board));
+      } catch (e) {
+        return textResult(`Board read error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "create_project_action": {
+      try {
+        return textResult(await createProjectAction(supabase, args as Record<string, unknown>, log));
+      } catch (e) {
+        return textResult(`Action creation error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_project_action": {
+      try {
+        const { action_id, ...fields } = args as Record<string, unknown>;
+        return textResult(await updateProjectAction(supabase, (action_id as string) || "", fields, log));
+      } catch (e) {
+        return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "list_newsletters": {
