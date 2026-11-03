@@ -10,6 +10,8 @@ export type RecoCourse = {
   estimated_duration_minutes: number | null;
   boutique_url: string;
   prix: number | null;
+  /** Plusieurs formules boutique : le prix affiché est le plus bas. */
+  prix_from: boolean;
   expertise: string | null;
   /** Raison affichable de la recommandation (accroche secondaire). */
   reason: string;
@@ -89,14 +91,13 @@ export function useRecommendedCourses(excludedCourseIds: string[]) {
 
       const configs: Config[] = configsRes.data || [];
       const configById = new Map(configs.map((c) => [c.id, c]));
-      const formulaByConfig = new Map<string, { woocommerce_product_id: number; prix: number | null }>();
+      const formulaByConfig = new Map<string, { woocommerce_product_id: number; prices: number[] }>();
       for (const f of formulasRes.data || []) {
-        if (!formulaByConfig.has(f.formation_config_id)) {
-          formulaByConfig.set(f.formation_config_id, {
-            woocommerce_product_id: f.woocommerce_product_id,
-            prix: f.prix,
-          });
-        }
+        const cur = formulaByConfig.get(f.formation_config_id)
+          ?? { woocommerce_product_id: f.woocommerce_product_id, prices: [] };
+        const p = Number(f.prix);
+        if (f.prix != null && p > 0) cur.prices.push(p);
+        formulaByConfig.set(f.formation_config_id, cur);
       }
 
       const all: any[] = coursesRes.data || [];
@@ -124,9 +125,10 @@ export function useRecommendedCourses(excludedCourseIds: string[]) {
       const scored = all
         .filter((c) => !excludedSet.has(c.id) && !isIntra(c))
         .map((c) => {
+          // Seul le lien explicite cours -> fiche catalogue fait foi : un
+          // rapprochement par le nom associait des prix d'autres formations.
           const cfg: Config | undefined =
-            (c.formation_config_id ? configById.get(c.formation_config_id) : undefined) ??
-            configs.find((k) => nameMatches(c.title, k.formation_name));
+            c.formation_config_id ? configById.get(c.formation_config_id) : undefined;
           const formula = cfg ? formulaByConfig.get(cfg.id) : undefined;
           const boutique_url = resolveBoutiqueUrl(
             cfg?.supertilt_link,
@@ -162,7 +164,10 @@ export function useRecommendedCourses(excludedCourseIds: string[]) {
               cover_image_url: c.cover_image_url,
               estimated_duration_minutes: c.estimated_duration_minutes,
               boutique_url,
-              prix: formula?.prix ?? cfg?.prix ?? null,
+              prix: formula?.prices.length
+                ? Math.min(...formula.prices)
+                : (c.access_type ?? "gratuit") === "gratuit" ? 0 : null,
+              prix_from: (formula?.prices.length ?? 0) > 1,
               expertise: c.expertise ?? null,
               reason,
             } as RecoCourse,
