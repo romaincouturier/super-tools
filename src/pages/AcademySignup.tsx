@@ -9,6 +9,8 @@ import SupertiltLogo from "@/components/SupertiltLogo";
 import { useAcademyAccount } from "@/hooks/useAcademyAccount";
 import { useAcademyAuth } from "@/hooks/useAcademyAuth";
 import { useAcademyCatalog } from "@/hooks/useAcademyCatalog";
+import { useAcademyEnrollment } from "@/hooks/useAcademyEnrollment";
+import { useSession } from "@/hooks/useSession";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 
@@ -17,9 +19,14 @@ function isStrongPassword(password: string) {
 }
 
 /**
- * Création de compte Academy. Le choix des formations vient après (écran
- * /academy/choisir-mes-formations), pas avant : ?course= n'est ici qu'une
- * préférence transmise à l'étape suivante, jamais une condition d'accès.
+ * Création de compte Academy. Avec ?course=<id> (lien « Commencer la
+ * formation » du site), l'apprenant est inscrit directement à la formation
+ * juste après la création du compte et arrive sur son tableau de bord, sans
+ * passer par l'écran de choix. Sans paramètre, ou si l'inscription directe
+ * échoue (formation non gratuite ou non publiée), l'écran
+ * /academy/choisir-mes-formations prend le relais. ?course= n'est jamais
+ * une condition d'accès : seules les formations gratuites publiées sont
+ * inscriptibles (contrôle côté serveur dans enroll-academy-courses).
  */
 export default function AcademySignup() {
   const [searchParams] = useSearchParams();
