@@ -44,17 +44,39 @@ export async function insertParticipantsWithQuestionnaires(
     sponsor_email: p.sponsorEmail || null,
   }));
 
-  const { data, error } = await supabase
+  // Un seul doublon rejetait tout le lot : on dédoublonne la liste et on écarte les inscrits existants.
+  const { data: existing, error: existingError } = await supabase
     .from("training_participants")
-    .insert(toInsert)
-    .select();
+    .select("email")
+    .eq("training_id", trainingId);
+  if (existingError) throw new Error(getErrorMessage(existingError));
+  const seen = new Set((existing || []).map((r: { email: string | null }) => (r.email || "").trim().toLowerCase()));
+  const unique = toInsert.filter((row) => {
+    const key = (row.email || "").trim().toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  let duplicateWarning = unique.length < toInsert.length;
 
-  let duplicateWarning = false;
-  if (error) {
-    if (error.code === "23505") {
-      duplicateWarning = true;
-    } else {
-      throw new Error(getErrorMessage(error));
+  const data: InsertedParticipant[] = [];
+  const CHUNK = 50;
+  for (let i = 0; i < unique.length; i += CHUNK) {
+    const chunk = unique.slice(i, i + CHUNK);
+    const { data: rows, error } = await supabase.from("training_participants").insert(chunk).select();
+    if (!error) {
+      data.push(...((rows || []) as InsertedParticipant[]));
+      continue;
+    }
+    if (error.code !== "23505") throw new Error(getErrorMessage(error));
+    duplicateWarning = true;
+    for (const row of chunk) {
+      const { data: one, error: oneError } = await supabase.from("training_participants").insert(row).select();
+      if (oneError) {
+        if (oneError.code === "23505") continue;
+        throw new Error(getErrorMessage(oneError));
+      }
+      data.push(...((one || []) as InsertedParticipant[]));
     }
   }
 
