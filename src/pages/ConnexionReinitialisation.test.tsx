@@ -116,7 +116,6 @@ describe("ConnexionReinitialisation", () => {
     fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), {
       target: { value: "Str0ng!Pass" },
     });
-    });
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
 
     await waitFor(() => expect(h.markPasswordChanged).toHaveBeenCalledTimes(1));
@@ -128,8 +127,6 @@ describe("ConnexionReinitialisation", () => {
 
     fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), {
       target: { value: "Str0ng!Pass" },
-    });
-    });
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
 
     await waitFor(() => expect(h.markPasswordChanged).toHaveBeenCalledTimes(1));
@@ -145,7 +142,6 @@ describe("ConnexionReinitialisation", () => {
 
     fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), {
       target: { value: "Str0ng!Pass" },
-    });
     });
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
 
