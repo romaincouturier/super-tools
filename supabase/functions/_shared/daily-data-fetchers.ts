@@ -1918,7 +1918,11 @@ export async function fetchElearningIntegrationIssues(
       (t) => t.supports_lms_course_id === course.id && t.is_cancelled !== true,
     );
 
+    // Un cours gratuit n'a besoin ni de session ni de produit WooCommerce.
+    const isFree = course.access_type === "gratuit";
+
     if (linked.length === 0) {
+      if (isFree) continue;
       issues.push({
         courseId: course.id,
         courseTitle: course.title || "Cours e-learning",
@@ -1959,7 +1963,7 @@ export async function fetchElearningIntegrationIssues(
     const hasWoo = [...explicit, ...fallback].some(
       (f) => typeof f.woocommerce_product_id === "number" || f.prix === 0,
     );
-    if (!hasWoo) {
+    if (!hasWoo && !isFree) {
       issues.push({
         courseId: course.id,
         courseTitle: course.title || "Cours e-learning",
