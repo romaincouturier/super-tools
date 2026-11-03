@@ -9,6 +9,8 @@ import SupertiltLogo from "@/components/SupertiltLogo";
 import { useAcademyAccount } from "@/hooks/useAcademyAccount";
 import { useAcademyAuth } from "@/hooks/useAcademyAuth";
 import { useAcademyCatalog } from "@/hooks/useAcademyCatalog";
+import { useAcademyEnrollment } from "@/hooks/useAcademyEnrollment";
+import { useSession } from "@/hooks/useSession";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 
@@ -17,9 +19,14 @@ function isStrongPassword(password: string) {
 }
 
 /**
- * Création de compte Academy. Le choix des formations vient après (écran
- * /academy/choisir-mes-formations), pas avant : ?course= n'est ici qu'une
- * préférence transmise à l'étape suivante, jamais une condition d'accès.
+ * Création de compte Academy. Avec ?course=<id> (lien « Commencer la
+ * formation » du site), l'apprenant est inscrit directement à la formation
+ * juste après la création du compte et arrive sur son tableau de bord, sans
+ * passer par l'écran de choix. Sans paramètre, ou si l'inscription directe
+ * échoue (formation non gratuite ou non publiée), l'écran
+ * /academy/choisir-mes-formations prend le relais. ?course= n'est jamais
+ * une condition d'accès : seules les formations gratuites publiées sont
+ * inscriptibles (contrôle côté serveur dans enroll-academy-courses).
  */
 export default function AcademySignup() {
   const [searchParams] = useSearchParams();
@@ -28,6 +35,8 @@ export default function AcademySignup() {
   const { data, isLoading } = useAcademyCatalog();
   const preselectedCourse = useMemo(() => data?.courses.find((item) => item.id === courseId), [courseId, data?.courses]);
   const createAccount = useAcademyAccount();
+  const enroll = useAcademyEnrollment();
+  const { refresh } = useSession();
   const { loading: authLoading, user, signIn } = useAcademyAuth();
   const { toast } = useToast();
   const [firstName, setFirstName] = useState("");
@@ -53,6 +62,20 @@ export default function AcademySignup() {
     try {
       await createAccount.mutateAsync({ firstName: firstName.trim(), lastName: lastName.trim(), email: normalizedEmail, password });
       await signIn(normalizedEmail, password);
+      if (courseId) {
+        try {
+          await enroll.mutateAsync([courseId]);
+          // Le niveau d'accès est mis en cache dans la session : sans cette
+          // relecture, le compte tout juste inscrit reste "none" et la garde
+          // l'enverrait sur "Compte sans accès".
+          await refresh();
+          navigate("/espace-apprenant");
+          return;
+        } catch {
+          // Formation non inscriptible directement : l'écran de choix
+          // reprend la présélection, rien n'est perdu.
+        }
+      }
       const next = courseId ? `?course=${encodeURIComponent(courseId)}` : "";
       navigate(`/academy/choisir-mes-formations${next}`);
     } catch (error) {
