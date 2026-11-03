@@ -2,8 +2,8 @@
 
 ## Sentry JAVASCRIPT-REACT-14 (2026-11-03)
 - [x] Identifier le quota interne atteint (3 demandes dans l’heure pour Colette), aucun échec Resend enregistré
-- [ ] Distinguer quota, lien et envoi ; remonter les échecs au personnel sans annoncer un email envoyé
-- [ ] Tester et déployer uniquement send-learner-access-email, sans renvoyer d’email réel
+- [x] Distinguer quota, lien et envoi ; remonter les échecs au personnel sans annoncer un email envoyé ; conserver le quota existant et les droits staff
+- [x] 97 tests et 99 contrôles réussis ; seule send-learner-access-email déployée ; refus 429 réel vérifié pour Colette sans email, alerte UI vérifiée avec inscription/envoi simulés
 
 ## Progression de l’ajout groupé (2026-11-03)
 - [x] Afficher l’étape en cours, la progression et le compteur pendant l’ajout et les envois
@@ -13,7 +13,7 @@
 - [x] Diagnostiquer l'ajout groupé sans compte de connexion ni email
 - [x] Corriger et tester le provisionnement réservé aux apprenants inscrits : 39 tests et 99 contrôles réussis
 - [x] Déployer uniquement send-learner-access-email ; refus d'adresse non inscrite vérifié en réel
-- [ ] Envoyer une fois à Colette : inscription supprimée à 14h33 Paris pendant le diagnostic ; nouvelle inscription requise, aucun email envoyé
+- [ ] Envoyer une fois à Colette : inscription désormais présente, quota de trois demandes atteint jusqu’au 03/11 14h57m45 Paris au plus tôt ; renvoi non effectué dans ce diagnostic pour éviter un email supplémentaire sans validation
 
 ## Envoi des documents Agirc-Arrco (2026-10-29)
 - [x] Empêcher les doubles soumissions pendant la préparation et l’envoi
