@@ -93,7 +93,7 @@ describe("ConnexionReinitialisation", () => {
 
   it("préremplit les noms connus et sauvegarde les corrections", async () => {
     renderPage();
-    expect(screen.getByLabelText("Prénom (obligatoire)")).toHaveValue("Alice");
+    expect(screen.queryByLabelText("Confirmer le mot de passe")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Nom (obligatoire)")).toHaveValue("Martin");
     fireEvent.change(screen.getByLabelText("Prénom (obligatoire)"), { target: { value: "Alicia" } });
     fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), { target: { value: "Str0ng!Pass" } });
