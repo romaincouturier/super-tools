@@ -71,10 +71,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // manquantes. Les vidéos encore sans transcript sont placées en fin de file
     // pour ne pas bloquer les autres à chaque passage.
     let importLimit = IMPORT_LIMIT;
+    let skip = 0;
     try {
       const body = await req.clone().json();
       const n = Number(body?.import_limit);
       if (Number.isFinite(n) && n > 0) importLimit = Math.min(Math.floor(n), 25);
+      const k = Number(body?.skip);
+      if (Number.isFinite(k) && k > 0) skip = Math.floor(k);
     } catch { /* corps vide */ }
 
     const results = {
@@ -101,10 +104,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       pageCursor = endCursor;
     }
     results.missing_total = allMissing.length;
-    // Rotation : les plus anciennes d'abord quand body.oldest_first, sinon ordre Loom.
-    const missing = allMissing.slice(-importLimit).length && (await req.clone().json().catch(() => ({})))?.oldest_first
-      ? allMissing.slice(-importLimit)
-      : allMissing.slice(0, importLimit);
+    // `skip` permet de passer les vidéos sans transcript lors d'un rattrapage manuel.
+    const missing = allMissing.slice(skip, skip + importLimit);
 
     for (const video of missing) {
       try {
@@ -113,6 +114,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           // Transcription encore en cours chez Loom, ou vidéo sans parole :
           // rien n'est écrit, la vidéo repassera au tick suivant.
           results.without_transcript++;
+          results.without_transcript_titles.push(video.name || video.id);
           continue;
         }
 
@@ -175,6 +177,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       } catch (e) {
         if (e instanceof LoomSessionExpiredError) throw e;
         results.errors++;
+        results.error_titles.push(video.name || video.id);
         console.error(`[poll-loom-transcripts] vidéo ${video.id} échouée`, e);
       }
     }
