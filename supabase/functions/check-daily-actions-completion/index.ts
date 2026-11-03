@@ -166,6 +166,19 @@ serve(async (req) => {
         .in("id", orderItemIds);
       for (const o of data || []) orderItems.set(o.id as string, o);
     }
+
+    // Project board actions: resolved once the card is completed or deleted
+    const projectActionIds = pendingActions
+      .filter((a) => a.entity_type === "supertilt_action")
+      .map((a) => a.entity_id);
+    const projectActions = new Map<string, any>();
+    if (projectActionIds.length > 0) {
+      const { data } = await supabase
+        .from("supertilt_actions")
+        .select("id, is_completed")
+        .in("id", projectActionIds);
+      for (const p of data || []) projectActions.set(p.id as string, p);
+    }
     const ORDER_CATEGORY_STATUS: Record<string, string> = {
       supertilt_a_valider: "to_validate",
       supertilt_formation_a_router: "to_validate",
@@ -230,6 +243,14 @@ serve(async (req) => {
           } else {
             resolved = true; // card deleted
           }
+          break;
+        }
+
+        // Une action de tableau projet est traitée dès que la carte est
+        // terminée sur le tableau (ou supprimée).
+        case "supertilt": {
+          const p = projectActions.get(action.entity_id);
+          if (!p || p.is_completed) resolved = true;
           break;
         }
 

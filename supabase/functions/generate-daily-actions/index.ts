@@ -556,20 +556,24 @@ serve(async (req) => {
       });
     }
 
-    // 18. Projets (transverses et supertilt.fr) — actions personnelles (deadline aujourd'hui ou en retard)
+    // 18. Projets (transverses et supertilt.fr) — toutes les actions en attente
     for (const a of data.supertiltActions) {
-      const dateLabel = a.deadline === today
-        ? "Aujourd'hui"
-        : `En retard (${new Date(a.deadline!).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })})`;
+      const dateLabel = !a.deadline
+        ? "En attente"
+        : a.deadline === today
+          ? "Aujourd'hui"
+          : a.isOverdue
+            ? `En retard (${new Date(a.deadline).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })})`
+            : `Échéance le ${new Date(a.deadline).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`;
       actions.push({
         category: "supertilt",
         title: `⚡ ${a.title}`,
         description: a.isOverdue
           ? `⚠️ ${dateLabel}${a.description ? ` — ${a.description}` : ""}`
-          : (a.description ?? dateLabel),
+          : (a.description ? `${dateLabel} — ${a.description}` : dateLabel),
         link: a.board === "site" ? `${appUrl}/supertilt-fr/projets` : `${appUrl}/projets-transverses`,
         entityType: "supertilt_action", entityId: a.id,
-        assignedTo: a.userId, scope: "strictAssigned",
+        assignedTo: a.assignedTo, scope: "strictAssigned",
       });
     }
 
