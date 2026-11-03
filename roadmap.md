@@ -2,8 +2,9 @@
 
 ## Email d'accès de Colette (2026-11-03)
 - [x] Diagnostiquer l'ajout groupé sans compte de connexion ni email
-- [ ] Corriger et tester le provisionnement réservé aux apprenants inscrits
-- [ ] Déployer uniquement l'envoi d'accès et envoyer une fois à Colette
+- [x] Corriger et tester le provisionnement réservé aux apprenants inscrits : 39 tests et 99 contrôles réussis
+- [x] Déployer uniquement send-learner-access-email ; refus d'adresse non inscrite vérifié en réel
+- [ ] Envoyer une fois à Colette : inscription supprimée à 14h33 Paris pendant le diagnostic ; nouvelle inscription requise, aucun email envoyé
 
 ## Envoi des documents Agirc-Arrco (2026-10-29)
 - [x] Empêcher les doubles soumissions pendant la préparation et l’envoi
