@@ -104,22 +104,24 @@ export async function learnerAccessLink(
 export async function sendLearnerAccessEmail(
   admin: SupabaseClient,
   email: string,
-  opts: { trainingName?: string | null; ip?: string; strict?: boolean } = {},
+  opts: { trainingName?: string | null; ip?: string; strict?: boolean; quotaExempt?: boolean } = {},
 ): Promise<{ sent: boolean }> {
   const normalized = normalizeLearnerEmail(email);
   if (!isUsableLearnerEmail(normalized)) return { sent: false };
 
-  const emailHash = await generateHash(normalized);
-  const { data: allowed, error: quotaError } = await admin.rpc("check_link_quota", {
-    p_email_hash: emailHash,
-    p_ip: opts.ip ?? "unknown",
-  });
-  if (quotaError || allowed !== true) {
-    if (opts.strict) {
-      if (quotaError || allowed !== false) throw new LearnerAccessError("Vérification du quota indisponible : aucun email envoyé, réessayez plus tard.");
-      throw new LearnerAccessError("Quota interne atteint : 3 demandes d’accès maximum par adresse sur une heure (10 par adresse IP). Aucun nouvel email envoyé ; réessayez après expiration des demandes précédentes.", 429);
+  if (!opts.quotaExempt) {
+    const emailHash = await generateHash(normalized);
+    const { data: allowed, error: quotaError } = await admin.rpc("check_link_quota", {
+      p_email_hash: emailHash,
+      p_ip: opts.ip ?? "unknown",
+    });
+    if (quotaError || allowed !== true) {
+      if (opts.strict) {
+        if (quotaError || allowed !== false) throw new LearnerAccessError("Vérification du quota indisponible : aucun email envoyé, réessayez plus tard.");
+        throw new LearnerAccessError("Quota interne atteint : 3 demandes d’accès maximum par adresse sur une heure (10 par adresse IP). Aucun nouvel email envoyé ; réessayez après expiration des demandes précédentes.", 429);
+      }
+      return { sent: false };
     }
-    return { sent: false };
   }
 
   const link = await learnerAccessLink(admin, normalized, opts.strict);
@@ -164,15 +166,21 @@ export async function sendLearnerAccessEmail(
 export async function sendRegisteredLearnerAccessEmail(
   admin: SupabaseClient,
   email: string,
-  opts: { trainingName?: string | null; ip?: string } = {},
+  opts: { trainingName?: string | null; ip?: string; callerId?: string } = {},
 ): Promise<{ sent: boolean }> {
   const normalized = normalizeLearnerEmail(email);
   if (!isUsableLearnerEmail(normalized)) throw new Error("Email invalide");
   const { data: known, error } = await admin.rpc("is_known_learner", { p_email: normalized });
   if (error) throw error;
   if (!known) throw new Error("Cette adresse ne correspond à aucune inscription apprenante");
+  let quotaExempt = false;
+  if (opts.callerId) {
+    const { data: isAdmin, error: adminError } = await admin.rpc("is_admin", { _user_id: opts.callerId });
+    if (adminError) throw new LearnerAccessError("Vérification des droits administrateur indisponible : aucun email envoyé.");
+    quotaExempt = isAdmin === true;
+  }
   await ensureLearnerAccount(admin, normalized);
-  const result = await sendLearnerAccessEmail(admin, normalized, { ...opts, strict: true });
+  const result = await sendLearnerAccessEmail(admin, normalized, { ...opts, strict: true, quotaExempt });
   if (!result.sent) throw new Error("L'email d'accès n'a pas été envoyé : vérifiez le quota et la création du lien");
   return result;
 }

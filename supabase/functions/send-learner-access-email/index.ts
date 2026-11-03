@@ -16,7 +16,8 @@ serve(async (req: Request) => {
   const preflight = handleCorsPreflightIfNeeded(req);
   if (preflight) return preflight;
 
-  if (!(await requireStaff(req))) return createErrorResponse("Forbidden", 403);
+  const caller = await requireStaff(req);
+  if (!caller) return createErrorResponse("Forbidden", 403);
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -33,7 +34,7 @@ serve(async (req: Request) => {
       trainingName = training?.training_name ?? null;
     }
 
-    const { sent } = await sendRegisteredLearnerAccessEmail(admin, email, { trainingName });
+    const { sent } = await sendRegisteredLearnerAccessEmail(admin, email, { trainingName, callerId: caller.id });
     return createJsonResponse({ success: true, sent });
   } catch (error) {
     return createErrorResponse(
