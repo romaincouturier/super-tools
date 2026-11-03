@@ -176,6 +176,13 @@
       "when": 1793718814857,
       "tag": "0024_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793727661806,
+      "tag": "0025_daily_actions_per_user_rpc",
+      "breakpoints": true
     }
   ]
 }

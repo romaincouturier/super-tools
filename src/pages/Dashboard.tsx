@@ -28,6 +28,7 @@ import {
 import { greetingFor, formatToday } from "@/lib/dashboardHelpers";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskAmount, demoBlur } from "@/lib/demoMask";
+import DailyActionsPerUserChart from "@/components/dashboard/DailyActionsPerUserChart";
 
 // ── Palette (charte SuperTools) ──────────────────────────────
 const CREAM = "#f7f5f0";
@@ -155,7 +156,7 @@ function KpiCard({ kpi, demo }: { kpi: DashboardKpi; demo: boolean }) {
 // ── Dashboard ────────────────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { hasAccess } = useModuleAccess();
+  const { hasAccess, isAdmin } = useModuleAccess();
   const dashboard = useDashboardData();
   const { isDemoMode } = useDemoMode();
 
@@ -487,6 +488,29 @@ const Dashboard = () => {
               </section>
             </div>
           </div>
+
+          {/* Actions quotidiennes par personne (admin) */}
+          {isAdmin && (
+            <section
+              style={{
+                background: "#fff",
+                borderRadius: 14,
+                padding: 22,
+                border: "1px solid rgba(16,24,32,0.05)",
+                marginBottom: 32,
+              }}
+            >
+              <div style={{ marginBottom: 12 }}>
+                <h2 style={{ fontFamily: serif, fontSize: 19, fontWeight: 500, letterSpacing: -0.4, margin: 0 }}>
+                  Actions quotidiennes par personne
+                </h2>
+                <div style={{ fontSize: 12, color: "rgba(16,24,32,0.5)", marginTop: 2 }}>
+                  Nombre d&apos;actions créées par semaine, sur les 12 dernières semaines
+                </div>
+              </div>
+              <DailyActionsPerUserChart />
+            </section>
+          )}
 
           {/* Modules grid */}
           <section>

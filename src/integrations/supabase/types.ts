@@ -13536,6 +13536,16 @@ export type Database = {
         Returns: Json
       }
       get_cron_status: { Args: never; Returns: Json }
+      get_daily_actions_per_user: {
+        Args: { p_weeks?: number }
+        Returns: {
+          completed_actions: number
+          display_name: string
+          total_actions: number
+          user_id: string
+          week_start: string
+        }[]
+      }
       get_db_size: { Args: never; Returns: Json }
       get_devis_signature_by_token: { Args: { p_token: string }; Returns: Json }
       get_evaluation_by_token: {
