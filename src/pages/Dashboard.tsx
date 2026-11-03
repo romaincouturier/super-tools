@@ -28,6 +28,7 @@ import {
 import { greetingFor, formatToday } from "@/lib/dashboardHelpers";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskAmount, demoBlur } from "@/lib/demoMask";
+import DailyActionsPerUserChart from "@/components/dashboard/DailyActionsPerUserChart";
 
 // ── Palette (charte SuperTools) ──────────────────────────────
 const CREAM = "#f7f5f0";
@@ -155,7 +156,7 @@ function KpiCard({ kpi, demo }: { kpi: DashboardKpi; demo: boolean }) {
 // ── Dashboard ────────────────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { hasAccess } = useModuleAccess();
+  const { hasAccess, isAdmin } = useModuleAccess();
   const dashboard = useDashboardData();
   const { isDemoMode } = useDemoMode();
 
