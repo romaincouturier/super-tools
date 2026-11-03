@@ -268,6 +268,47 @@ describe("causes des échecs d’accès staff", () => {
   });
 });
 
+describe("quota des tests administrateur", () => {
+  function registeredAdmin(isAdmin: boolean, adminError: unknown = null) {
+    const { admin, rpc } = makeAccessAdmin({ passwordSet: true, quotaAllowed: false });
+    const { createUser } = makeAdmin({ data: null, error: { message: "User already registered" } });
+    admin.auth.admin.createUser = createUser;
+    const originalRpc = rpc.getMockImplementation();
+    rpc.mockImplementation((name: string) => {
+      if (name === "is_known_learner") return Promise.resolve({ data: true, error: null });
+      if (name === "is_admin") return Promise.resolve({ data: isAdmin, error: adminError });
+      return originalRpc?.(name);
+    });
+    return { admin, rpc, createUser };
+  }
+
+  beforeEach(() => sendEmailMock.mockReset().mockResolvedValue({ success: true, id: "email-1" }));
+
+  it("permet plus de trois tests au même destinataire pour un administrateur vérifié", async () => {
+    const { admin, rpc } = registeredAdmin(true);
+    for (let i = 0; i < 12; i += 1) {
+      await expect(sendRegisteredLearnerAccessEmail(admin, "test@example.com", { callerId: "verified-admin" })).resolves.toEqual({ sent: true });
+    }
+    expect(sendEmailMock).toHaveBeenCalledTimes(12);
+    expect(rpc).toHaveBeenCalledWith("is_admin", { _user_id: "verified-admin" });
+    expect(rpc.mock.calls.some(([name]) => name === "check_link_quota")).toBe(false);
+  });
+
+  it("conserve le quota pour un collaborateur non administrateur", async () => {
+    const { admin, rpc } = registeredAdmin(false);
+    await expect(sendRegisteredLearnerAccessEmail(admin, "test@example.com", { callerId: "staff" })).rejects.toMatchObject({ status: 429 });
+    expect(rpc.mock.calls.some(([name]) => name === "check_link_quota")).toBe(true);
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("refuse l’exemption si les droits ne peuvent pas être vérifiés", async () => {
+    const { admin, createUser } = registeredAdmin(true, { message: "lookup failed" });
+    await expect(sendRegisteredLearnerAccessEmail(admin, "test@example.com", { callerId: "staff" })).rejects.toThrow("droits administrateur indisponible");
+    expect(createUser).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+});
+
 describe("learnerAccessLink", () => {
   it("renvoie null pour une adresse inutilisable", async () => {
     const { admin, rpc } = makeAccessAdmin({ passwordSet: true });
