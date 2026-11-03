@@ -390,21 +390,14 @@ async function fetchAgenda(today: string, userId: string | null): Promise<Dashbo
 async function fetchAttention(): Promise<DashboardAttentionItem[]> {
   const today = todayAsISO();
 
-  const [improvementsRes, transverseRes, siteRes, failedEmailsRes, evalsRes] = await Promise.all([
+  const [improvementsRes, projectsRes, failedEmailsRes, evalsRes] = await Promise.all([
     supabase
       .from("improvements")
       .select("id", { count: "exact", head: true })
       .in("status", ["pending", "in_progress"]),
     supabase
       .from("supertilt_actions")
-      .select("id", { count: "exact", head: true })
-      .eq("board", "transverse")
-      .eq("is_completed", false)
-      .lte("deadline", today),
-    supabase
-      .from("supertilt_actions")
-      .select("id", { count: "exact", head: true })
-      .eq("board", "site")
+      .select("board")
       .eq("is_completed", false)
       .lte("deadline", today),
     supabase
@@ -429,7 +422,8 @@ async function fetchAttention(): Promise<DashboardAttentionItem[]> {
     });
   }
 
-  const transverse = transverseRes.count ?? 0;
+  const projects = projectsRes.data ?? [];
+  const transverse = projects.filter((a) => a.board === "transverse").length;
   if (transverse > 0) {
     items.push({
       icon: "alert",
@@ -439,7 +433,7 @@ async function fetchAttention(): Promise<DashboardAttentionItem[]> {
     });
   }
 
-  const site = siteRes.count ?? 0;
+  const site = projects.filter((a) => a.board === "site").length;
   if (site > 0) {
     items.push({
       icon: "alert",

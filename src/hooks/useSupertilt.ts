@@ -267,16 +267,13 @@ interface SystemUser {
   display_name: string | null;
 }
 
+/** Annuaire du staff : profiles n'est lisible qu'en admin, la RPC l'ouvre à tout le staff. */
 export function useSystemUsers() {
   const [users, setUsers] = useState<SystemUser[]>([]);
   useEffect(() => {
-    supabase
-      .from("profiles")
-      .select("user_id, email, display_name")
-      .order("email")
-      .then(({ data }) => {
-        if (data) setUsers(data as SystemUser[]);
-      });
+    sb.rpc("get_staff_directory").then(({ data }: { data: SystemUser[] | null }) => {
+      if (data) setUsers([...data].sort((x, y) => (x.email ?? "").localeCompare(y.email ?? "")));
+    });
   }, []);
   return users;
 }

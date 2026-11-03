@@ -133,15 +133,30 @@ function pathSegment(key: string): string | null {
  * (table vide, RPC indisponible), l'ordre de NAV_CONFIG est conservé
  * (tri stable, tout le monde à 0).
  */
+/** Segments d'avant le renommage des modules (03/11/2026) : leurs clics comptent pour le nouveau. */
+const LEGACY_SEGMENTS: Record<string, string[]> = {
+  "supertilt-fr": ["contenu", "transcripts", "temoignages"],
+  "projets-transverses": ["supertilt"],
+};
+
 function sortNavByUsage(config: NavConfig[], counts: Map<string, number>): NavConfig[] {
+  const segmentClicks = (seg: string): number =>
+    [seg, ...(LEGACY_SEGMENTS[seg] ?? [])].reduce((s, k) => s + (counts.get(k) ?? 0), 0);
   const clicksOf = (key: string): number => {
     const seg = pathSegment(key);
-    return seg ? counts.get(seg) ?? 0 : 0;
+    return seg ? segmentClicks(seg) : 0;
   };
-  const entryClicks = (entry: NavConfig): number =>
-    entry.type === "group"
-      ? clicksOf(entry.key) + entry.children.reduce((s, c) => s + clicksOf(c.key), 0)
-      : clicksOf(entry.key);
+  // Un groupe compte chaque segment une seule fois : ses sous-items peuvent
+  // partager le segment du parent (/supertilt-fr/...).
+  const entryClicks = (entry: NavConfig): number => {
+    if (entry.type !== "group") return clicksOf(entry.key);
+    const segs = new Set(
+      [entry.key, ...entry.children.map((c) => c.key)]
+        .map(pathSegment)
+        .filter((s): s is string => !!s),
+    );
+    return [...segs].reduce((s, seg) => s + segmentClicks(seg), 0);
+  };
 
   return [...config]
     .map((entry) =>

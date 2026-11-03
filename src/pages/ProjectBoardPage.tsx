@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Pencil, Trash2, MoreHorizontal } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";

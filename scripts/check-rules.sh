@@ -802,6 +802,10 @@ check "069" "useResolvedStorageUrl ne rend pas l'URL d'un bucket prive avant sa 
   count_065=$(bash scripts/check-demo-mask.sh --count)
   ratchet "065" "Ratchet affichages identifiants sans masque démo (src/lib/demoMask.ts)" "$count_065"
 
+  # [076] Liste de collaborateurs : RPC get_staff_directory, jamais profiles en direct.
+  count_076=$(bash scripts/check-staff-directory.sh --count)
+  ratchet "076" "Ratchet lectures d'annuaire sur profiles (utiliser get_staff_directory)" "$count_076"
+
 fi
 
 echo ""

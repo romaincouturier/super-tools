@@ -17,3 +17,5 @@
 #   Remonte a 75 le 22/09 : la regle accepte desormais les champs prefixes
 #   (sponsor_email, customer_name), invisibles au premier passage. Redescendu a 0.
 065=0
+# 076 : lectures d'annuaire sur profiles hors get_staff_directory (cible : 0)
+076=4

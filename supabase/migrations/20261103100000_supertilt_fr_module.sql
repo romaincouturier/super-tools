@@ -132,6 +132,10 @@ CREATE POLICY "Board members can delete columns"
 ON public.supertilt_columns FOR DELETE TO authenticated
 USING (public.can_access_project_board(auth.uid(), board));
 
+UPDATE public.agent_schema_registry
+SET description = 'Actions des kanbans projets : board = transverse (Projets transverses) ou site (supertilt.fr / Projets)'
+WHERE table_name = 'supertilt_actions';
+
 -- ── 3. Déplacement des cartes liées au site ────────────────────
 -- Chaque carte garde sa colonne (par nom) et sa mission liée.
 DO $$
