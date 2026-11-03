@@ -87,8 +87,6 @@ describe("ConnexionReinitialisation", () => {
     renderPage();
     fireEvent.change(screen.getByLabelText(label), { target: { value: "   " } });
     fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), { target: { value: "Str0ng!Pass" } });
-    fireEvent.change(screen.getByLabelText("Confirmer le mot de passe"), { target: { value: "Str0ng!Pass" } });
-    fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
     expect(h.saveIdentity).not.toHaveBeenCalled();
     expect(h.updatePassword).not.toHaveBeenCalled();
   });
@@ -99,8 +97,6 @@ describe("ConnexionReinitialisation", () => {
     expect(screen.getByLabelText("Nom (obligatoire)")).toHaveValue("Martin");
     fireEvent.change(screen.getByLabelText("Prénom (obligatoire)"), { target: { value: "Alicia" } });
     fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), { target: { value: "Str0ng!Pass" } });
-    fireEvent.change(screen.getByLabelText("Confirmer le mot de passe"), { target: { value: "Str0ng!Pass" } });
-    fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
     await waitFor(() => expect(h.navigate).toHaveBeenCalled());
     expect(h.saveIdentity).toHaveBeenCalledWith({ firstName: "Alicia", lastName: "Martin" });
   });
@@ -109,8 +105,6 @@ describe("ConnexionReinitialisation", () => {
     h.saveIdentity.mockRejectedValue(new Error("Refus"));
     renderPage();
     fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), { target: { value: "Str0ng!Pass" } });
-    fireEvent.change(screen.getByLabelText("Confirmer le mot de passe"), { target: { value: "Str0ng!Pass" } });
-    fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
     await screen.findByText("Votre prénom et votre nom n’ont pas été enregistrés. Réessayez.");
     expect(h.updatePassword).not.toHaveBeenCalled();
     expect(h.navigate).not.toHaveBeenCalled();
@@ -122,8 +116,6 @@ describe("ConnexionReinitialisation", () => {
     fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), {
       target: { value: "Str0ng!Pass" },
     });
-    fireEvent.change(screen.getByLabelText("Confirmer le mot de passe"), {
-      target: { value: "Str0ng!Pass" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
 
@@ -137,8 +129,6 @@ describe("ConnexionReinitialisation", () => {
     fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), {
       target: { value: "Str0ng!Pass" },
     });
-    fireEvent.change(screen.getByLabelText("Confirmer le mot de passe"), {
-      target: { value: "Str0ng!Pass" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
 
@@ -156,8 +146,6 @@ describe("ConnexionReinitialisation", () => {
     fireEvent.change(screen.getByLabelText("Nouveau mot de passe"), {
       target: { value: "Str0ng!Pass" },
     });
-    fireEvent.change(screen.getByLabelText("Confirmer le mot de passe"), {
-      target: { value: "Str0ng!Pass" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer mon nouveau mot de passe" }));
 
