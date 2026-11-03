@@ -1725,17 +1725,29 @@ export interface UnassignedTranscriptItem {
   createdAt: string;
 }
 
-/** Transcripts prêts des 30 derniers jours, affectés à aucune mission, opportunité, événement ou leçon. */
+/** Date de mise en place du CRM : les enregistrements antérieurs ne sont pas à affecter. */
+export const TRANSCRIPT_ASSIGNMENT_CUTOFF = "2026-02-01T00:00:00+01:00";
+
+/** Date d'enregistrement d'origine (vidéo / réunion), à défaut la date d'import. */
+export function transcriptRecordedAt(t: { created_at: string; metadata?: Record<string, unknown> | null }): string {
+  const m = t.metadata ?? {};
+  const v = (m.loom_created_at ?? m.fireflies_date) as string | undefined;
+  return typeof v === "string" && !Number.isNaN(Date.parse(v)) ? v : t.created_at;
+}
+
+/** Transcripts prêts des 30 derniers jours, affectés à aucune mission, opportunité, événement ou leçon,
+ * et enregistrés à partir de la mise en place du CRM. */
 export async function fetchUnassignedTranscripts(supabase: SupabaseClient): Promise<UnassignedTranscriptItem[]> {
   const since = new Date(Date.now() - 30 * 86400000).toISOString();
   const [{ data: rows }, { data: links }] = await Promise.all([
-    supabase.from("transcripts").select("id, title, ai_title, created_at")
+    supabase.from("transcripts").select("id, title, ai_title, created_at, metadata")
       .eq("status", "ready").gte("created_at", since).order("created_at", { ascending: false }),
     supabase.rpc("get_transcript_assignments"),
   ]);
   const assigned = new Set(((links ?? []) as { transcript_id: string }[]).map((l) => l.transcript_id));
-  return ((rows ?? []) as { id: string; title: string | null; ai_title: string | null; created_at: string }[])
-    .filter((t) => !assigned.has(t.id))
+  const cutoff = Date.parse(TRANSCRIPT_ASSIGNMENT_CUTOFF);
+  return ((rows ?? []) as { id: string; title: string | null; ai_title: string | null; created_at: string; metadata: Record<string, unknown> | null }[])
+    .filter((t) => !assigned.has(t.id) && Date.parse(transcriptRecordedAt(t)) >= cutoff)
     .map((t) => ({ id: t.id, title: t.ai_title || t.title || "Sans titre", createdAt: t.created_at }));
 }
 
