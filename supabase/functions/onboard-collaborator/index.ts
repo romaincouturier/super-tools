@@ -179,7 +179,7 @@ serve(async (req: Request) => {
       .join("");
 
     // Send welcome email with temporary password
-    const APP_URL = Deno.env.get("APP_URL") || "https://super-tools.lovable.app";
+    const APP_URL = Deno.env.get("APP_URL") || "https://academy.supertilt.fr";
     
     const [senderFrom, senderName, bccList] = await Promise.all([getSenderFrom(), getSenderName(), getBccList()]);
     const obRendered = await renderCatalogEmail(supabaseClient, "onboard_collaborator", {

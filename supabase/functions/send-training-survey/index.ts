@@ -111,7 +111,7 @@ serve(async (req) => {
       getAppUrls(),
     ]);
 
-    const baseUrl = urls.app_url || "https://super-tools.lovable.app";
+    const baseUrl = urls.app_url || "https://academy.supertilt.fr";
     const subject =
       survey.email_subject?.trim() ||
       `Sondage : ${survey.title || training?.training_name || "votre formation"}`;

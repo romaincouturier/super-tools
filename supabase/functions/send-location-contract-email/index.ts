@@ -172,7 +172,7 @@ serve(async (req: Request): Promise<Response> => {
     if (enableOnlineSignature) {
       signatureToken = crypto.randomUUID();
       const urls = await getAppUrls();
-      const appUrl = (urls.app_url || "https://super-tools.lovable.app").replace(/\/+$/, "");
+      const appUrl = (urls.app_url || "https://academy.supertilt.fr").replace(/\/+$/, "");
       signatureUrl = `${appUrl}/signature-location/${signatureToken}`;
 
       const expiresAt = new Date();

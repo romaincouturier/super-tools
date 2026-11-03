@@ -179,7 +179,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const internalEmail = String(getSetting("internal_email") ?? "").replace(/^"|"$/g, "");
     const defaultSender = String(getSetting("default_sender") ?? "noreply@supertilt.fr").replace(/^"|"$/g, "");
-    const appBaseUrl = String(getSetting("app_base_url") ?? "https://super-tools.lovable.app").replace(/^"|"$/g, "").replace(/\/$/, "");
+    const appBaseUrl = String(getSetting("app_base_url") ?? "https://academy.supertilt.fr").replace(/^"|"$/g, "").replace(/\/$/, "");
 
     // ── Resolve / create partner tracking link if applicable ────
     let lienSuiviPartenaire = "";
