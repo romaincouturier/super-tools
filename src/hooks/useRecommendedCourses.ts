@@ -36,15 +36,6 @@ function resolveBoutiqueUrl(
   return `${SHOP_BASE}/?post_type=product&s=${encodeURIComponent(title)}`;
 }
 
-/** Rapprochement souple d'un cours LMS et d'une fiche catalogue par le nom. */
-function nameMatches(courseTitle: string, configName: string): boolean {
-  const t = (courseTitle || "").toLowerCase();
-  const n = (configName || "").toLowerCase();
-  if (!t || !n) return false;
-  if (n.includes(t) || t.includes(n)) return true;
-  return n.split(" ").filter((w) => w.length > 4).some((w) => t.includes(w));
-}
-
 type Config = {
   id: string;
   formation_name: string;
