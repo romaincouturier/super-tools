@@ -14,7 +14,7 @@ import icebreakerALaCarte from "@/assets/academy/icebreaker-a-la-carte.png.asset
 import postureManager from "@/assets/academy/posture-manager.png.asset.json";
 import fondamentauxAgilite from "@/assets/academy/fondamentaux-agilite.png.asset.json";
 
-const academyAssetUrl = (url: string) => import.meta.env.DEV ? `https://super-tools.lovable.app${url}` : url;
+const academyAssetUrl = (url: string) => import.meta.env.DEV ? `https://academy.supertilt.fr${url}` : url;
 
 const FREE_COURSE_THUMBNAILS: Record<string, string> = {
   "f794d041-0794-4ced-b2e2-cd3fb7ac8287": academyAssetUrl(icebreakerModeEmploi.url),
