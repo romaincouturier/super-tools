@@ -83,13 +83,18 @@ export async function insertParticipantsWithQuestionnaires(
 export async function sendWelcomeEmailsToBatch(
   participants: InsertedParticipant[],
   trainingId: string,
+  onProgress?: (completed: number, total: number) => void,
 ): Promise<void> {
+  let completed = 0;
   for (const participant of participants) {
     try {
       await sendParticipantWelcomeEmail(participant.id, trainingId);
       await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error: unknown) {
       console.error("Failed to send welcome email to:", participant.email, getErrorMessage(error));
+    } finally {
+      completed += 1;
+      onProgress?.(completed, participants.length);
     }
   }
 }
@@ -97,7 +102,9 @@ export async function sendWelcomeEmailsToBatch(
 export async function sendElearningAccessToBatch(
   participants: InsertedParticipant[],
   trainingId: string,
+  onProgress?: (completed: number, total: number) => void,
 ): Promise<void> {
+  let completed = 0;
   for (const participant of participants) {
     try {
       // Même email d'accès que l'ajout unitaire (W12) : le mode WooCommerce
@@ -106,6 +113,9 @@ export async function sendElearningAccessToBatch(
       await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error: unknown) {
       console.error("Failed to send e-learning access email to:", participant.email, getErrorMessage(error));
+    } finally {
+      completed += 1;
+      onProgress?.(completed, participants.length);
     }
   }
 }
