@@ -61,17 +61,17 @@ describe("getEmailMode", () => {
     });
   });
 
-  it("returns programme + no send when training is 8+ days away", () => {
+  it("returns accueil_envoye + send now when training is 8+ days away", () => {
     withFakeDate(() => {
       const result = getEmailMode("2026-03-18");
-      expect(result).toEqual({ status: "programme", sendWelcomeNow: false });
+      expect(result).toEqual({ status: "accueil_envoye", sendWelcomeNow: true });
     });
   });
 
-  it("returns programme + no send when training is far in the future", () => {
+  it("returns accueil_envoye + send now when training is far in the future", () => {
     withFakeDate(() => {
       const result = getEmailMode("2026-06-15");
-      expect(result).toEqual({ status: "programme", sendWelcomeNow: false });
+      expect(result).toEqual({ status: "accueil_envoye", sendWelcomeNow: true });
     });
   });
 });

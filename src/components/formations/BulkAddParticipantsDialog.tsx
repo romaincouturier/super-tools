@@ -56,9 +56,11 @@ const BulkAddParticipantsDialog = ({
       const { data, status, sendWelcomeNow, duplicateWarning } = await insertParticipantsWithQuestionnaires(parsedParticipants, trainingId, trainingStartDate);
       if (duplicateWarning) toast({ title: "Doublons détectés", description: "Certains participants étaient déjà inscrits et ont été ignorés.", variant: "default" });
       const ongoing = isTrainingOngoing(trainingStartDate, trainingEndDate);
-      // Send welcome email when training is future (existing behaviour) OR ongoing
-      // (mid-session add: participants still need convocation / classe virtuelle link).
-      if (!isFreeTraining && (status !== "non_envoye" || ongoing) && data && data.length > 0 && formatFormation !== "e_learning") {
+      // Même règle que l'ajout unitaire (getEmailMode) : convocation tout de suite
+      // si la session est à 2 jours ou plus, ou déjà en cours (ajout en cours de
+      // session). Sans date, la réconciliation l'enverra quand la date sera fixée ;
+      // à moins de 2 jours, l'envoi reste manuel.
+      if (!isFreeTraining && (sendWelcomeNow || ongoing) && data && data.length > 0 && formatFormation !== "e_learning") {
         await sendWelcomeEmailsToBatch(data, trainingId);
       }
       if (formatFormation === "e_learning" && data && data.length > 0) await sendElearningAccessToBatch(data, trainingId);

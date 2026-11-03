@@ -10,3 +10,11 @@ cd "$CLAUDE_PROJECT_DIR"
 
 # Idempotent. npm install (plutôt que ci) profite du cache du conteneur.
 npm install --no-audit --no-fund
+
+# Orchestrateur bmad-loop (BMAD). Le conteneur est éphémère : réinstaller si absent.
+export PATH="$HOME/.local/bin:$PATH"
+if command -v uv >/dev/null && ! command -v bmad-loop >/dev/null; then
+  # v0.12.0 épinglé par commit : un tag peut être déplacé.
+  uv tool install "bmad-loop[tui] @ git+https://github.com/bmad-code-org/bmad-loop.git@b755a0fa1d88494e0a0742d3f8cf33899528a3c0" >/dev/null \
+    || echo "bmad-loop : installation échouée, l'orchestrateur ne sera pas disponible" >&2
+fi

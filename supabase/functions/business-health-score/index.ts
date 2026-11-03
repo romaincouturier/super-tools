@@ -1,6 +1,7 @@
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logLovableUsage } from "../_shared/api-usage.ts";
+import { isInternalCall } from "../_shared/cron-auth.ts";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -13,19 +14,26 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Get user from JWT
-    const token = authHeader?.replace("Bearer ", "");
-    if (!token) {
-      return new Response(JSON.stringify({ error: "Non authentifié" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Appel interne (connecteur MCP) ou membre de l'équipe. Un apprenant a
+    // aussi un JWT valide : c'est is_staff_user(), évaluée avec le JWT de
+    // l'appelant, qui décide.
+    const internal = isInternalCall(req);
+    if (!internal) {
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Non authentifié" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
+      const userClient = createClient(Deno.env.get("SUPABASE_URL")!, anonKey, {
+        global: { headers: { Authorization: authHeader } },
       });
-    }
-
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Non authentifié" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const { data: isStaff } = await userClient.rpc("is_staff_user");
+      if (isStaff !== true) {
+        return new Response(JSON.stringify({ error: "Accès réservé à l'équipe" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     // Gather business metrics

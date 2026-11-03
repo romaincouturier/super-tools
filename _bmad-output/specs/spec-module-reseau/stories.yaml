@@ -1,0 +1,132 @@
+# V1 : la boucle minimale
+- id: "1"
+  title: Sécuriser network-generate-actions
+  description: >-
+    Authentifier l'appelant de network-generate-actions, aujourd'hui ouvert (verify_jwt = false, aucune vérification).
+    Contrainte « toute edge function réseau authentifie son appelant », voir brownfield.md.
+  spec_checkpoint: true
+  invoke_dev_with: >-
+    Réutiliser les gardes de supabase/functions/_shared/cron-auth.ts ou verifyAuth, sur le modèle de network-ai-assistant.
+    Expliciter l'impact sécurité dans la PR.
+- id: "2"
+  title: Étendre le modèle de données réseau
+  description: >-
+    Ajouter à network_contacts et network_actions les colonnes dont dépendent CAP-3, CAP-5 et CAP-6.
+    Pour les contacts : email unique, entreprise, rôle, vouvoiement, source, dernière collaboration, thèmes, report, exclusion. Pour les actions : raison, utilité, statut de réponse.
+  spec_checkpoint: true
+  invoke_dev_with: >-
+    Migration idempotente dans supabase/migrations/. La RLS reste propriétaire pour la V1.
+    Ajouter un test pgTAP dans supabase/tests/. Rappel : pousser n'applique pas la migration sur la base hébergée.
+- id: "3"
+  title: Importer les contacts déjà connus de SuperTools
+  description: >-
+    CAP-3 : créer ou fusionner les contacts du réseau depuis les cartes CRM gagnées, les contacts de mission, les commanditaires et les participants de formation, dédoublonnés par email.
+    Sources et colonnes dans brownfield.md.
+  invoke_dev_with: >-
+    Flux page -> hook -> service -> Supabase ; logique d'import dans src/services/, testée.
+- id: "4"
+  title: Calculer les suggestions de la semaine
+  description: >-
+    CAP-5 : classer les contacts selon la règle de priorité et les exclusions de SPEC.md, avec pour chacun une raison (« pourquoi maintenant ») et une utilité à offrir.
+    Aucune suggestion n'est produite sans raison ni utilité.
+  invoke_dev_with: >-
+    Fonction pure testée unitairement (comme src/lib/networkUtils.ts), réutilisable par l'écran, les actions quotidiennes et le MCP.
+- id: "5"
+  title: Faire remonter le réseau dans les actions du jour
+  description: >-
+    CAP-1 : ajouter une catégorie réseau à generate-daily-actions, alimentée par les suggestions, avec un lien vers la fiche du contact.
+    L'action disparaît une fois traitée.
+  invoke_dev_with: >-
+    Ajouter le fetcher dans supabase/functions/_shared/daily-data-fetchers.ts et rendre la catégorie côté frontend.
+- id: "6"
+  title: Écran des suggestions et décision de Romain
+  description: >-
+    CAP-5 et CAP-6 dans /reseau : carte suggestion (qui, pourquoi maintenant, quoi offrir) avec Fait, Plus tard, Jamais, et saisie d'une action faite hors outil.
+    Les écrans existants sont conservés.
+  invoke_dev_with: >-
+    Textes UI en français ; masquage du mode démo (src/lib/demoMask.ts) sur les noms.
+- id: "7"
+  title: Outils MCP du réseau
+  description: >-
+    CAP-10 : exposer au serveur MCP la liste des suggestions, la fiche contact avec son historique et la journalisation des actions et interactions.
+    La liste fournit à Claude les éléments pour rédiger le brouillon Gmail (CAP-5).
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Logique dans supabase/functions/_shared/, testée en vitest (règle [064] : pas d'import https: ou jsr: dans les tests).
+    Les écritures ne modifient que les champs transmis et relisent la ligne écrite.
+
+# V2 : enrichir
+- id: "8"
+  title: Ouvrir le module Réseau à Emmanuelle
+  description: >-
+    Étendre la RLS des tables network_* pour donner à la responsable communication l'accès à tout le module, en plus de Romain.
+    Contrainte de SPEC.md.
+  spec_checkpoint: true
+  invoke_dev_with: >-
+    Changement RLS : test pgTAP d'isolation obligatoire et impact sécurité explicité dans la PR.
+- id: "9"
+  title: Bibliothèque de faveurs
+  description: >-
+    Créer la bibliothèque de ce qui peut être offert (titre, lien, type, thèmes, compteur d'usage), alimentée par Emmanuelle et proposée dans les suggestions selon les thèmes du contact.
+    Une même faveur n'est jamais proposée deux fois au même contact.
+- id: "10"
+  title: Importer l'archive LinkedIn et les contacts iPhone
+  description: >-
+    CAP-4 : importer les relations et les messages de l'archive officielle LinkedIn, ainsi qu'un vCard iPhone, avec dédoublonnage et rapport d'import.
+    Réimport régulier sans doublon.
+- id: "11"
+  title: Capturer les rencontres dans la synthèse d'événement
+  description: >-
+    CAP-2 : à partir du récap de l'événement (qui a été croisé, de quoi on a parlé), proposer les contacts avec leur contexte et une date de relance, créés en une confirmation.
+    S'appuie sur l'action evenements_synthese existante.
+- id: "12"
+  title: Avis de mission et qualité de collaboration
+  description: >-
+    CAP-11 : permettre à Romain de laisser un avis sur une mission terminée, et calculer la qualité de collaboration à partir des évaluations de formation, des avis de mission et des récaps d'événement.
+    Cette qualité entre dans l'ordre des suggestions.
+- id: "13"
+  title: Suivre les réponses par type de message
+  description: >-
+    CAP-7 : attribuer un statut de réponse à chaque action faite, et afficher le taux de réponse par type d'action.
+- id: "14"
+  title: Étiquette d'offre par contact
+  description: >-
+    CAP-9, première partie : chaque contact porte l'offre sur laquelle il peut recommander SuperTilt (facilitation graphique, intelligence collective, coaching agile), utilisée pour choisir les apports.
+- id: "15"
+  title: Proposer la tablée d'un Super Déj
+  description: >-
+    CAP-8, première partie : pour un événement Super Déj, proposer 4 à 5 invités lyonnais, managers ou entrepreneurs concernés par le thème, qui ne se connaissent pas, avec les passerelles probables entre eux.
+    Accessible à Claude via le MCP.
+  done_checkpoint: true
+
+# V3 : approfondir
+- id: "16"
+  title: Importer l'historique Dropbox et Gmail
+  description: >-
+    CAP-4 : retrouver les contacts 2012-2023 dans les répertoires et fichiers Dropbox des missions, et les correspondants Gmail des trois dernières années.
+    Les contacts incomplets sont signalés, pas écartés.
+  spec_checkpoint: true
+- id: "17"
+  title: Signaux d'actualité des contacts
+  description: >-
+    CAP-5 : Claude recherche l'actualité d'un contact sur LinkedIn ou Internet en préparant le message et la journalise comme signal, ce qui remonte le contact dans les suggestions.
+    Aucun scraping par SuperTools.
+- id: "18"
+  title: Enchaînement après un rendez-vous
+  description: >-
+    Après un rendez-vous noté (ce qu'ils cherchent, ce que je peux donner, la porte laissée ouverte), suggérer une relance à 48 h, puis un apport à 1 mois, puis une invitation à 3 mois.
+    Voir mecanismes-candidats.md.
+- id: "19"
+  title: Bilan du réseau sur 12 semaines
+  description: >-
+    Afficher la régularité, le volume, le taux de réponse et les liens réactivés sur 12 semaines glissantes, pour mesurer le signal de succès de SPEC.md.
+- id: "20"
+  title: Mail collectif et parrainage du Super Déj
+  description: >-
+    CAP-8, seconde partie : fournir à Claude les éléments du mail collectif J+1 (qui fait quoi, mises en relation), et permettre à chaque invité de parrainer quelqu'un pour la tablée suivante.
+- id: "21"
+  title: Recommandé par et fin de mission
+  description: >-
+    CAP-9, seconde partie : une opportunité CRM désigne le contact qui l'a recommandée, en complément de crm_cards.acquisition_source.
+    Une fin de mission réussie déclenche le suivi réseau du client.
+  done_checkpoint: true

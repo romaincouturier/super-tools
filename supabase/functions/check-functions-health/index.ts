@@ -133,7 +133,6 @@ const EXPECTED_FUNCTIONS = [
   "reclamation-ai-assist",
   "reconcile-indexation",
 
-  "record-db-size",
   "refresh-convention-pdf-url",
   "refresh-training-convention-url",
   "register-event-media",
