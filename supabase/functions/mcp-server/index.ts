@@ -75,6 +75,7 @@ import {
   type ExtractedPart,
 } from "../_shared/mission-tools.ts";
 import { updateOrderItem, ORDER_KANBAN_STATUSES } from "../_shared/order-tools.ts";
+import { logTrainingFeedback, FEEDBACK_SOURCES, FEEDBACK_AUTHOR_ROLES, type FeedbackInput } from "../_shared/feedback-tools.ts";
 import { updateEvent } from "../_shared/event-update-tool.ts";
 import { createProjectAction, listProjectBoard, updateProjectAction } from "../_shared/project-board-tools.ts";
 import {
@@ -1617,6 +1618,26 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "log_training_feedback",
+    description:
+      "Record a free-form feedback received after a training (email, phone call, oral), outside the hot/cold questionnaires, in training_feedbacks: it shows in the participant's Retours tab and on the training page, and feeds analyze-evaluations (Qualiopi 30-32). With gmail_message_id, SuperTools fetches the mail itself, archives it (and its attachments) on the participant card (or the training when no participant) exactly like attach_email_to_record, and uses the mail body as the verbatim unless content is given. The same Gmail message is never logged twice. Pass participant_id (training_participants id; the session is deduced) or training_id for a sponsor or unidentified author. Set consent_publication=true only if the author explicitly agreed to be quoted. Get ids from query_database (training_participants, trainings).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        participant_id: { type: "string", description: "training_participants id (preferred)" },
+        training_id: { type: "string", description: "trainings id, when the author is not a registered participant" },
+        content: { type: "string", description: "Verbatim. Optional with gmail_message_id (the mail body is used)" },
+        gmail_message_id: { type: "string", description: "Gmail id or RFC 822 Message-ID of the mail containing the feedback" },
+        source: { type: "string", enum: [...FEEDBACK_SOURCES], description: "Default email with gmail_message_id, else autre" },
+        received_at: { type: "string", description: "YYYY-MM-DD. Default: mail date, else today" },
+        author_role: { type: "string", enum: [...FEEDBACK_AUTHOR_ROLES], description: "Default participant" },
+        author_name: { type: "string", description: "Default: participant name, else mail sender" },
+        consent_publication: { type: "boolean", description: "Author agreed to be quoted as a testimonial. Default false. When true, the text is queued as a testimonial to review" },
+        follow_up: { type: "string", description: "Action the feedback calls for (e.g. resend e-learning access). Shows in the daily actions until checked" },
+      },
+    },
+  },
+  {
     name: "update_training",
     description:
       "Update a training's start date, end date, place (location) or video-call link (meeting_url, https). meeting_url updates the upcoming live sessions of the training when it has some, otherwise it becomes the training location. Returns the previous values.",
@@ -2526,6 +2547,13 @@ async function callTool(
         return textResult(await attachEmailToRecord(supabase, args as unknown as Parameters<typeof attachEmailToRecord>[1], log, ALLOWED_EMAIL));
       } catch (e) {
         return textResult(`Attach error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "log_training_feedback": {
+      try {
+        return textResult(await logTrainingFeedback(supabase, args as unknown as FeedbackInput, log, ALLOWED_EMAIL));
+      } catch (e) {
+        return textResult(`Feedback error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "update_training": {

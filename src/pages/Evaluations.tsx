@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import ColdEvaluationsBlock from "@/components/formations/ColdEvaluationsBlock";
+import { useTrainingsWithFeedback } from "@/hooks/useTrainingFeedbacks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -100,6 +101,7 @@ const Evaluations = () => {
   const [selectedEvaluation, setSelectedEvaluation] = useState<Evaluation | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const { toast } = useToast();
+  const { data: feedbackTrainings = [] } = useTrainingsWithFeedback();
 
   useEffect(() => {
     if (user) {
@@ -189,7 +191,9 @@ const Evaluations = () => {
           });
         }
         return map;
-      }, new Map<string, { id: string; name: string; startDate: string | null }>())
+      }, new Map<string, { id: string; name: string; startDate: string | null }>(
+        feedbackTrainings.map((t) => [t.id, t]),
+      ))
       .values(),
   ).sort((a, b) => a.name.localeCompare(b.name, "fr"));
 
@@ -375,7 +379,7 @@ const Evaluations = () => {
 
           <Button
             onClick={handleAnalyze}
-            disabled={analyzing || filteredEvaluations.length === 0}
+            disabled={analyzing}
           >
             {analyzing ? (
               <Spinner className="mr-2" />
