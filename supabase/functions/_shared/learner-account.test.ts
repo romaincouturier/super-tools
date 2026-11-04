@@ -13,6 +13,7 @@ vi.mock("./email-settings.ts", () => ({
 const sendEmailMock = vi.fn().mockResolvedValue({ success: true, id: "email-1" });
 vi.mock("./resend.ts", () => ({
   sendEmail: (...args: unknown[]) => sendEmailMock(...args),
+  escapeHtml: (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"),
 }));
 
 type CreateUserResult = { data: { user: { id: string } | null } | null; error: { message: string } | null };
