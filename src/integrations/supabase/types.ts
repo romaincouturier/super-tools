@@ -13907,6 +13907,7 @@ export type Database = {
         Returns: undefined
       }
       mark_password_changed: { Args: never; Returns: undefined }
+      mark_password_proven: { Args: never; Returns: undefined }
       match_documents: {
         Args: {
           filter_source_types?: string[]
