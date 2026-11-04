@@ -7,6 +7,7 @@ import { fetchGmailMessage, type GmailMessage } from "./gmail.ts";
 import { attachEmailToRecord, MAX_FILE_BYTES } from "./record-tools.ts";
 
 // deno-lint-ignore no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = any;
 type Log = (message: string) => Promise<void>;
 
