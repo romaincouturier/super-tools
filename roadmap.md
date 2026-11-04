@@ -1,5 +1,9 @@
 # Roadmap
 
+## Statistiques des opportunités (2026-11-04)
+- [ ] Vérifier puis corriger les catégories exclusives par statut et colonne
+- [ ] Afficher les détails dans l’ordre Entrant, Contacté, Devis envoyé, Gagné, Perdu ; tester les calculs et le graphique connecté
+
 ## Création de session permanente (2026-11-04)
 - [x] Ajouter Solo depuis la session, hériter des valeurs du catalogue et conserver le lien de la formule à l’enregistrement
 - [x] Cours disponibles en premier, tri alphabétique par groupe et pictogramme des cours associés ; 5 tests et 99 contrôles réussis, création réelle Solo temporaire vérifiée puis nettoyée ; aucune session créée
