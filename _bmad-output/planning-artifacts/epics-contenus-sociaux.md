@@ -534,3 +534,92 @@ afin de juger l'harmonie visuelle avant publication.
 **Then** les visuels s'affichent en carrés, trois par ligne, du plus récent au plus ancien comme sur le profil, les posts à venir en tête (UX-DR9)
 **And** un post sans visuel apparaît en case vide avec l'alerte « visuel manquant »
 **And** un clic sur une case ouvre le détail du contenu
+
+**Given** deux posts Instagram à venir dans la grille
+**When** l'utilisateur glisse l'un sur la case de l'autre
+**Then** leurs dates et heures de publication s'échangent, comme le réordonnancement de Planable
+**And** les posts déjà publiés ne se déplacent pas
+**And** l'approbation est conservée, puisque seule la date change
+
+## Epic 4 : Rédiger et valider avec Claude via le MCP
+
+Claude lit le contexte de marque, consulte le calendrier, propose des brouillons datés multi-canaux, valide ou refuse et commente, toujours dans le circuit de validation.
+
+### Story 4.1 : Définir le contexte de marque
+
+En tant que Romain,
+je veux décrire une fois la marque SuperTilt dans le module,
+afin que Claude rédige toujours avec le bon ton, les bonnes offres et le bon vocabulaire.
+
+**Acceptance Criteria:**
+
+**Given** les réglages du sous-module Contenus sociaux
+**When** l'utilisateur ouvre « Contexte de marque »
+**Then** il renseigne description, produits et services, ton, valeurs, terminologie validée et audience, en texte libre, enregistrés en continu
+
+**Given** le connecteur MCP SuperTools
+**When** Claude appelle l'outil de lecture du contexte de marque
+**Then** il reçoit ces six champs à jour
+**And** les instructions du serveur MCP lui demandent de lire ce contexte avant de proposer un contenu
+
+### Story 4.2 : Consulter le calendrier depuis Claude
+
+En tant que Romain dans Claude,
+je veux lister et lire les contenus planifiés,
+afin que Claude repère les trous, les validations en attente et les contenus incomplets.
+
+**Acceptance Criteria:**
+
+**Given** le serveur MCP existant (`supabase/functions/mcp-server/index.ts`), sans second serveur
+**When** Claude liste les contenus
+**Then** il peut filtrer par statut de validation, statut de publication, période, canal, thème et campagne
+**And** chaque contenu renvoie son statut affiché, ses déclinaisons, sa date, son thème, sa campagne et ses alertes (même fonction que la story 1.3)
+
+**Given** un contenu
+**When** Claude le lit
+**Then** il reçoit texte, visuel, canaux, commentaires et historique de validation
+
+**Given** les outils de référence
+**When** Claude a besoin d'identifiants
+**Then** il peut lister les canaux, les thèmes et les campagnes
+**And** chaque appel est journalisé dans `agent_query_audit_log`, la version du serveur est incrémentée et `docs/mcp-connector.md` est mis à jour
+
+### Story 4.3 : Créer des brouillons datés depuis Claude
+
+En tant que Romain dans Claude,
+je veux que Claude crée des brouillons multi-canaux avec une date proposée,
+afin de produire un lot de contenus à partir d'un brief en une conversation.
+
+**Acceptance Criteria:**
+
+**Given** un brief dans la conversation
+**When** Claude crée un brouillon
+**Then** il fournit canaux, format, texte, thème et campagne facultatifs, visuel de la Médiathèque facultatif et date proposée
+**And** un contenu groupé est créé, une déclinaison par canal, comme depuis le composeur
+
+**Given** un brouillon créé par Claude
+**When** il est enregistré
+**Then** son statut de validation est « non demandée », ou « en attente » si l'appel le demande ; jamais « approuvé »
+**And** il est marqué « créé par Claude » dans l'historique, avec l'utilisateur du connecteur comme auteur
+**And** la réponse de l'outil renvoie les alertes du contenu (visuel manquant, texte trop long)
+
+**Given** l'outil de création
+**When** il est appelé
+**Then** il ne fait qu'ajouter : aucun contenu existant n'est modifié ni supprimé
+
+### Story 4.4 : Valider, refuser et commenter depuis Claude
+
+En tant que Romain dans Claude,
+je veux approuver, refuser avec motif et commenter des contenus,
+afin de traiter mes validations sans quitter la conversation.
+
+**Acceptance Criteria:**
+
+**Given** un contenu en attente
+**When** Claude l'approuve ou le refuse avec motif
+**Then** la transition passe par la même fonction SQL que l'écran (story 2.1), avec les mêmes règles : motif obligatoire, effet sur tout le groupe, action quotidienne, historique
+**And** les instructions du serveur imposent l'accord explicite de l'utilisateur dans la conversation avant toute approbation ou tout refus
+
+**Given** un contenu
+**When** Claude lit ou ajoute un commentaire
+**Then** le commentaire apparaît dans le détail du contenu, attribué à l'utilisateur du connecteur et marqué « via Claude »
