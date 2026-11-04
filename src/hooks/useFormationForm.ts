@@ -309,6 +309,7 @@ export function useFormationForm() {
         admin_contact_email: (isInter || adminContactSameAsSponsor) ? null : (adminContactEmail || null),
         admin_contact_phone: (isInter || adminContactSameAsSponsor) ? null : (adminContactPhone || null),
         catalog_id: catalogId || null,
+        ...(opts.isCreate && isPermanent ? { formula_id: selectedFormulaId } : {}),
       };
 
       if (isElearning && lmsCourseId) {
@@ -368,7 +369,7 @@ export function useFormationForm() {
       sessionType, sessionFormat, prerequisites, objectives,
       programFileUrl, supertiltLink, privateGroupUrl,
       sponsorFormalAddress, financeurSameAsSponsor,
-      catalogId, lmsCourseId,
+      catalogId, lmsCourseId, selectedFormulaId,
       clientName, clientAddress, soldPriceHt, ancillaryFeesHt, maxParticipants,
       sponsorFirstName, sponsorLastName, sponsorEmail, sponsorPhone,
       financeurName, financeurUrl,
