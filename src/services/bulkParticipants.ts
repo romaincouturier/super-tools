@@ -6,7 +6,7 @@ import { format, parseISO } from "date-fns";
 import { getErrorMessage } from "@/lib/error-utils";
 import { scheduleEmailsBulk } from "@/services/activityLog";
 import type { ParsedParticipant } from "@/hooks/useParticipantParser";
-import { sendParticipantWelcomeEmail, sendLearnerAccessEmail } from "@/services/participants";
+import { sendParticipantWelcomeEmail } from "@/services/participants";
 
 interface InsertedParticipant {
   id: string;
@@ -131,31 +131,48 @@ export type ElearningAccessBatchReport = {
   failures: { email: string; message: string }[];
 };
 
-export async function sendElearningAccessToBatch(
+/**
+ * Confie les emails d'accès du lot au serveur : l'envoi continue même si la page est fermée.
+ * Le serveur choisit, par personne, création de mot de passe ou accès ouvert.
+ */
+export async function enqueueElearningAccessBatch(
   participants: InsertedParticipant[],
   trainingId: string,
-  onProgress?: (completed: number, total: number) => void,
-): Promise<ElearningAccessBatchReport> {
-  let completed = 0;
-  const report: ElearningAccessBatchReport = { created: 0, confirmed: 0, passwordInvites: 0, failures: [] };
-  for (const participant of participants) {
+): Promise<{ batchId: string; total: number }> {
+  const { data, error } = await supabase.functions.invoke("queue-learner-access-emails", {
+    body: { action: "enqueue", trainingId, emails: participants.map((p) => p.email) },
+  });
+  if (error) throw error;
+  if (!data?.batchId) throw new Error("Les emails d’accès n’ont pas pu être programmés.");
+  return { batchId: data.batchId, total: data.total };
+}
+
+export type ElearningAccessBatchStatus = ElearningAccessBatchReport & { total: number; completed: number; finished: boolean };
+
+export async function fetchElearningAccessBatchStatus(batchId: string): Promise<ElearningAccessBatchStatus> {
+  const { data, error } = await supabase.functions.invoke("queue-learner-access-emails", {
+    body: { action: "status", batchId },
+  });
+  if (error) throw error;
+  return data as ElearningAccessBatchStatus;
+}
+
+/** Suit le lot jusqu'à la fin (tant que l'app reste ouverte) et rend le bilan final. */
+export async function watchElearningAccessBatch(
+  batchId: string,
+  onProgress?: (status: ElearningAccessBatchStatus) => void,
+  intervalMs = 5000,
+): Promise<ElearningAccessBatchStatus> {
+  for (;;) {
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
     try {
-      // Même email d'accès que l'ajout unitaire, un seul par personne : le
-      // serveur choisit création de mot de passe ou accès ouvert.
-      const result = await sendLearnerAccessEmail(participant.email, trainingId);
-      if (result?.accountCreated) report.created += 1;
-      else if (result?.kind === "course_access" || result?.kind === "space_access") report.confirmed += 1;
-      else report.passwordInvites += 1;
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const status = await fetchElearningAccessBatchStatus(batchId);
+      onProgress?.(status);
+      if (status.finished) return status;
     } catch (error: unknown) {
-      console.error("Failed to send e-learning access email to:", participant.email, getErrorMessage(error));
-      report.failures.push({ email: participant.email, message: getErrorMessage(error) });
-    } finally {
-      completed += 1;
-      onProgress?.(completed, participants.length);
+      console.error("Suivi des emails d’accès indisponible :", getErrorMessage(error));
     }
   }
-  return report;
 }
 
 /** Bilan lisible des emails d'accès d'un ajout en lot. */
