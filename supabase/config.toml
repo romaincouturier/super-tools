@@ -749,3 +749,6 @@ verify_jwt = false
 
 [functions.archive-lms-audio]
 verify_jwt = false
+
+[functions.queue-learner-access-emails]
+verify_jwt = false
