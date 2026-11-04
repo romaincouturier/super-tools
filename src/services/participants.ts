@@ -207,27 +207,15 @@ export async function catchUpAttendanceSignaturesForParticipant(
 // generateWoocommerceCoupon removed — feature decommissioned.
 
 /**
- * Invoke the send-elearning-access edge function.
- */
-export async function sendElearningAccess(
-  participantId: string,
-  trainingId: string,
-  couponCode?: string,
-) {
-  await supabase.functions.invoke("send-elearning-access", {
-    body: {
-      participantId,
-      trainingId,
-      couponCode,
-    },
-  });
-}
-
-/**
  * Send the learner access email (account creation / login), never an
  * auto-connecting link.
  */
-export async function sendLearnerAccessEmail(email: string, trainingId?: string) {
+export type LearnerAccessSendResult = {
+  kind?: "create_password" | "course_access" | "space_access";
+  accountCreated?: boolean;
+};
+
+export async function sendLearnerAccessEmail(email: string, trainingId?: string): Promise<LearnerAccessSendResult> {
   const { data, error } = await supabase.functions.invoke("send-learner-access-email", {
     body: { email, trainingId },
   });
@@ -237,6 +225,7 @@ export async function sendLearnerAccessEmail(email: string, trainingId?: string)
   }
   if (error) throw error;
   if (data?.success === false || data?.sent === false) throw new Error("L’email d’accès n’a pas été envoyé.");
+  return { kind: data?.kind, accountCreated: data?.accountCreated };
 }
 
 /**
