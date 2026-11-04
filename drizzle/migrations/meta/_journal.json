@@ -204,6 +204,13 @@
       "when": 1793800943321,
       "tag": "0028_training_feedbacks",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793800969038,
+      "tag": "0029_feedback_quotes_and_follow_ups",
+      "breakpoints": true
     }
   ]
 }
