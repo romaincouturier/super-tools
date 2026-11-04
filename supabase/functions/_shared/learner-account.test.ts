@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ensureLearnerAccount, sendLearnerAccessEmail, learnerAccessLink, sendRegisteredLearnerAccessEmail } from "./learner-account.ts";
+import { ensureLearnerAccount, sendLearnerAccessEmail, learnerAccessLink, sendRegisteredLearnerAccessEmail, decideLearnerAccessEmail } from "./learner-account.ts";
 
 vi.mock("./app-urls.ts", () => ({
   getAppUrls: vi.fn().mockResolvedValue({ app_url: "https://app.example.com" }),
@@ -157,7 +157,7 @@ describe("sendLearnerAccessEmail", () => {
   it("compte sans mot de passe : génère un lien recovery vers l'écran de création, jamais de session ouverte", async () => {
     const { admin, generateLink } = makeAccessAdmin({ passwordSet: false });
 
-    await expect(sendLearnerAccessEmail(admin, "nouveau@example.com")).resolves.toEqual({ sent: true });
+    await expect(sendLearnerAccessEmail(admin, "nouveau@example.com")).resolves.toMatchObject({ sent: true });
 
     expect(generateLink).toHaveBeenCalledWith({
       type: "recovery",
@@ -178,7 +178,7 @@ describe("sendLearnerAccessEmail", () => {
   it("compte avec mot de passe : préremplit /connexion sans générer de lien Supabase ni authentifier", async () => {
     const { admin, generateLink } = makeAccessAdmin({ passwordSet: true });
 
-    await expect(sendLearnerAccessEmail(admin, "Connu@Example.com")).resolves.toEqual({ sent: true });
+    await expect(sendLearnerAccessEmail(admin, "Connu@Example.com")).resolves.toMatchObject({ sent: true });
 
     expect(generateLink).not.toHaveBeenCalled();
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
@@ -211,7 +211,7 @@ describe("sendRegisteredLearnerAccessEmail", () => {
     rpc.mockImplementation((name: string) => name === "is_known_learner"
       ? Promise.resolve({ data: true })
       : originalRpc?.(name));
-    await expect(sendRegisteredLearnerAccessEmail(admin, "ColetteNicorette@Yahoo.com")).resolves.toEqual({ sent: true });
+    await expect(sendRegisteredLearnerAccessEmail(admin, "ColetteNicorette@Yahoo.com")).resolves.toMatchObject({ sent: true });
     expect(createUser).toHaveBeenCalledWith({ email: "colettenicorette@yahoo.com", email_confirm: true, user_metadata: { role: "learner" } });
     expect(upsert).toHaveBeenCalledWith({ user_id: "new-user", password_set: false }, { onConflict: "user_id" });
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
@@ -287,7 +287,7 @@ describe("quota des tests administrateur", () => {
   it("permet plus de trois tests au même destinataire pour un administrateur vérifié", async () => {
     const { admin, rpc } = registeredAdmin(true);
     for (let i = 0; i < 12; i += 1) {
-      await expect(sendRegisteredLearnerAccessEmail(admin, "test@example.com", { callerId: "verified-admin" })).resolves.toEqual({ sent: true });
+      await expect(sendRegisteredLearnerAccessEmail(admin, "test@example.com", { callerId: "verified-admin" })).resolves.toMatchObject({ sent: true });
     }
     expect(sendEmailMock).toHaveBeenCalledTimes(12);
     expect(rpc).toHaveBeenCalledWith("is_admin", { _user_id: "verified-admin" });
@@ -359,5 +359,48 @@ describe("learnerAccessLink", () => {
       generateLink: { data: { properties: {} }, error: null },
     });
     await expect(learnerAccessLink(admin, "panne@example.com")).resolves.toBeNull();
+  });
+});
+
+describe("decideLearnerAccessEmail (règle du 04/11/2026)", () => {
+  it("compte sans mot de passe prouvé : création du mot de passe, même avec une formation", () => {
+    expect(decideLearnerAccessEmail({ passwordSet: false, hasTraining: true })).toBe("create_password");
+  });
+  it("compte avec mot de passe ajouté à une formation : accès ouvert", () => {
+    expect(decideLearnerAccessEmail({ passwordSet: true, hasTraining: true })).toBe("course_access");
+  });
+  it("compte avec mot de passe sans formation : accès à l'espace", () => {
+    expect(decideLearnerAccessEmail({ passwordSet: true, hasTraining: false })).toBe("space_access");
+  });
+});
+
+describe("mails d'accès selon l'état du compte", () => {
+  beforeEach(() => sendEmailMock.mockReset().mockResolvedValue({ success: true, id: "email-1" }));
+
+  it("mot de passe défini : « Votre accès à … est ouvert » avec lien direct vers le cours, sans jeton", async () => {
+    const { admin, generateLink } = makeAccessAdmin({ passwordSet: true });
+    await expect(sendLearnerAccessEmail(admin, "connu@example.com", { trainingName: "Facilitation graphique", courseId: "course-1" }))
+      .resolves.toEqual({ sent: true, kind: "course_access" });
+    expect(generateLink).not.toHaveBeenCalled();
+    const call = sendEmailMock.mock.calls[0][0];
+    expect(call.subject).toBe("Votre accès à « Facilitation graphique » est ouvert");
+    expect(call.html).toContain("https://app.example.com/lms/course-1/home?email=connu%40example.com");
+    expect(call.html).not.toContain("token_hash");
+  });
+
+  it("compte existant sans mot de passe : création du mot de passe, formation nommée et plateforme changée", async () => {
+    const { admin } = makeAccessAdmin({ passwordSet: false });
+    await expect(sendLearnerAccessEmail(admin, "ancien@example.com", { trainingName: "Agilité", accountCreated: false }))
+      .resolves.toEqual({ sent: true, kind: "create_password" });
+    const call = sendEmailMock.mock.calls[0][0];
+    expect(call.subject).toBe("Créez votre mot de passe SuperTools");
+    expect(call.html).toContain("Agilité");
+    expect(call.html).toContain("plateforme de formation a changé");
+  });
+
+  it("compte tout juste créé : création du mot de passe sans mention de changement de plateforme", async () => {
+    const { admin } = makeAccessAdmin({ passwordSet: false });
+    await sendLearnerAccessEmail(admin, "nouveau@example.com", { trainingName: "Agilité", accountCreated: true });
+    expect(sendEmailMock.mock.calls[0][0].html).not.toContain("plateforme de formation a changé");
   });
 });
