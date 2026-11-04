@@ -4728,6 +4728,48 @@ export type Database = {
         }
         Relationships: []
       }
+      learner_access_jobs: {
+        Row: {
+          account_created: boolean
+          batch_id: string
+          created_at: string
+          email: string
+          error_message: string | null
+          id: string
+          processed_at: string | null
+          requested_by: string
+          result_kind: string | null
+          status: string
+          training_id: string
+        }
+        Insert: {
+          account_created?: boolean
+          batch_id: string
+          created_at?: string
+          email: string
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          requested_by: string
+          result_kind?: string | null
+          status?: string
+          training_id: string
+        }
+        Update: {
+          account_created?: boolean
+          batch_id?: string
+          created_at?: string
+          email?: string
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          requested_by?: string
+          result_kind?: string | null
+          status?: string
+          training_id?: string
+        }
+        Relationships: []
+      }
       learner_notifications: {
         Row: {
           body: string
