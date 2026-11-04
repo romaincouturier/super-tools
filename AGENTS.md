@@ -43,6 +43,8 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 
 # Architecture rules
 
+- CRM statistics map outcomes from sales status and use an explicit current-day snapshot boundary while replaying earlier column history; the shared dialog accepts tooltip column order, because incomplete move or closure history must not override current opportunity categories.
+
 - Permanent-session inline Solo creation inherits catalog values through a service and hook; course availability considers both catalog and session links, because the shortcut must not invent prices or hide existing associations.
 
 - Training tables share a pure sorting helper with independent per-tab sort state, because switching tabs must preserve chronological defaults and numeric enrollment sorting.

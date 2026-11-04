@@ -1,5 +1,9 @@
 # Roadmap
 
+## Statistiques des opportunités (2026-11-04)
+- [x] Catégories exclusives par statut et colonne ; état du jour prioritaire sur l’historique incomplet, dates de clôture selon le statut
+- [x] Détails ordonnés sur les deux graphiques ; 35 tests et 99 contrôles réussis, graphiques connectés vérifiés et totaux gagnés/perdus comparés aux opportunités réelles
+
 ## Création de session permanente (2026-11-04)
 - [x] Ajouter Solo depuis la session, hériter des valeurs du catalogue et conserver le lien de la formule à l’enregistrement
 - [x] Cours disponibles en premier, tri alphabétique par groupe et pictogramme des cours associés ; 5 tests et 99 contrôles réussis, création réelle Solo temporaire vérifiée puis nettoyée ; aucune session créée
