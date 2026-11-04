@@ -72,11 +72,11 @@
     -moz-appearance: textfield;
   }
 
-  /* iOS/iPadOS: normalize native date input sizing to match our h-10 inputs */
+  /* iOS/iPadOS: normalize native date input sizing to match our h-control-md inputs */
   input.ui-input[type="date"] {
     -webkit-appearance: none !important;
     appearance: none !important;
-    height: 2.5rem !important; /* h-10 */
+    height: var(--control-md) !important;
     line-height: 1.25rem !important;
     padding-top: 0.5rem !important;
     padding-bottom: 0.5rem !important;
@@ -256,7 +256,7 @@
 /* ProseMirror inside the builder */
 .builder-layout .ProseMirror {
   font-family: 'Lexend', ui-sans-serif, system-ui, sans-serif;
-  color: var(--st-ink);
+  color: hsl(var(--ink));
   outline: none;
   line-height: 1.7;
 }
@@ -264,20 +264,20 @@
 .builder-layout .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
-  color: var(--st-ink-muted);
+  color: hsl(var(--ink) / 0.55);
   pointer-events: none;
   height: 0;
 }
 
 .builder-layout .ProseMirror a {
-  color: var(--st-ink);
+  color: hsl(var(--ink));
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .builder-layout .ProseMirror mark {
-  background: var(--st-yellow);
-  color: var(--st-ink);
+  background: hsl(var(--yellow-brand));
+  color: hsl(var(--ink));
   border-radius: 2px;
   padding: 0 2px;
 }

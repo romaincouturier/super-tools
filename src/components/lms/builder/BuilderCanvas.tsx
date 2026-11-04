@@ -61,7 +61,7 @@ function TiltArcTopRight() {
         right: -120,
         width: 520,
         height: 520,
-        color: "var(--st-yellow)",
+        color: "hsl(var(--yellow-brand))",
         opacity: 0.55,
         zIndex: 0,
       }}
@@ -90,7 +90,7 @@ function TiltArcBottomLeft() {
         left: -100,
         width: 380,
         height: 380,
-        color: "var(--st-yellow)",
+        color: "hsl(var(--yellow-brand))",
         opacity: 0.35,
         zIndex: 0,
       }}
@@ -110,15 +110,15 @@ function EmptyState({ onInsert, onInsertTemplate }: { onInsert: (type: LessonBlo
       {/* Pencil illustration */}
       <div
         className="w-16 h-16 flex items-center justify-center rounded-2xl"
-        style={{ background: "var(--st-yellow-soft)" }}
+        style={{ background: "hsl(var(--yellow-brand) / 0.22)" }}
       >
-        <Pencil size={28} style={{ color: "var(--st-ink)" }} />
+        <Pencil size={28} style={{ color: "hsl(var(--ink))" }} />
       </div>
       <div className="text-center">
-        <p className="text-base font-semibold mb-1" style={{ color: "var(--st-ink)" }}>
+        <p className="text-base font-semibold mb-1" style={{ color: "hsl(var(--ink))" }}>
           Cette leçon est vide
         </p>
-        <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+        <p className="text-sm" style={{ color: "hsl(var(--ink) / 0.55)" }}>
           Ajoutez votre premier bloc pour commencer à rédiger.
         </p>
       </div>
@@ -128,7 +128,7 @@ function EmptyState({ onInsert, onInsertTemplate }: { onInsert: (type: LessonBlo
           onClick={() => setMenuOpen((v) => !v)}
           className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-all hover:-translate-y-px"
           style={{
-            background: "var(--st-ink)",
+            background: "hsl(var(--ink))",
             color: "#fff",
             fontFamily: "inherit",
           }}
@@ -443,7 +443,7 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
   return (
     <div
       className="relative min-h-full overflow-hidden"
-      style={{ background: "var(--st-white)" }}
+      style={{ background: "hsl(var(--white))" }}
     >
       {/* Arc Tilt watermarks */}
       {tweaks.showArc && <TiltArcTopRight />}
@@ -483,7 +483,7 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
             fontSize: h1Size,
             fontWeight: 700,
             lineHeight: 1.2,
-            color: "var(--st-ink)",
+            color: "hsl(var(--ink))",
             letterSpacing: "-0.02em",
             padding: ".25rem 0",
             fontFamily: "inherit",
@@ -494,7 +494,7 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
 
         {/* Blocks */}
         {isLoading ? (
-          <div className="py-12 text-center text-sm" style={{ color: "var(--st-ink-muted)" }}>
+          <div className="py-12 text-center text-sm" style={{ color: "hsl(var(--ink) / 0.55)" }}>
             Chargement…
           </div>
         ) : tree.length === 0 ? (
@@ -728,7 +728,7 @@ function SortableBuilderBlock({
             </SortableContext>
           )}
           {isContainer && !hasChildren && (
-            <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+            <p className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>
               Conteneur vide. Ajoutez un bloc ci-dessous, ou déplacez-y un bloc existant avec le
               bouton « Déplacer dans le conteneur au-dessus » de sa barre d'outils.
             </p>
@@ -752,17 +752,17 @@ function AddAtEndButton({ onInsert, onInsertTemplate }: { onInsert: (type: Lesso
         className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all hover:-translate-y-px border-2 border-dashed"
         style={{
           borderColor: "rgba(16,24,32,0.18)",
-          color: "var(--st-ink-muted)",
+          color: "hsl(var(--ink) / 0.55)",
           background: "transparent",
           fontFamily: "inherit",
         }}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.borderColor = "var(--st-yellow)";
-          (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+          (e.currentTarget as HTMLElement).style.borderColor = "hsl(var(--yellow-brand))";
+          (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
         }}
         onMouseLeave={(e) => {
           (e.currentTarget as HTMLElement).style.borderColor = "rgba(16,24,32,0.18)";
-          (e.currentTarget as HTMLElement).style.color = "var(--st-ink-muted)";
+          (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.55)";
         }}
       >
         + Ajouter un bloc
@@ -785,8 +785,8 @@ function Chip({ icon, children }: { icon: React.ReactNode; children: React.React
     <span
       className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full"
       style={{
-        background: "var(--st-surface)",
-        color: "var(--st-ink-muted)",
+        background: "hsl(var(--grey-light))",
+        color: "hsl(var(--ink) / 0.55)",
         fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif",
       }}
     >

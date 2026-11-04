@@ -75,7 +75,7 @@ export function CommunityCtaButton({ email, courseId, lessonId, isPreview = fals
     <button
       onClick={goToCommunity}
       className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:-translate-y-px hover:shadow-md"
-      style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+      style={{ background: "hsl(var(--yellow-brand))", color: "#101820", fontFamily: "inherit" }}
     >
       <Users size={13} />
       Aller à la communauté
@@ -95,13 +95,13 @@ function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { ema
   return (
     <div className="p-5 border-b" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--st-ink-muted)" }}>
+        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "hsl(var(--ink) / 0.55)" }}>
           Communauté
         </p>
         <button
           onClick={goToCommunity}
           className="text-micro font-semibold uppercase tracking-wider hover:underline"
-          style={{ color: "var(--st-ink-muted)" }}
+          style={{ color: "hsl(var(--ink) / 0.55)" }}
         >
           Voir tout
         </button>
@@ -109,11 +109,11 @@ function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { ema
 
       {posts.length === 0 ? (
         <div className="py-2">
-          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Aucun post pour l'instant.</p>
+          <p className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>Aucun post pour l'instant.</p>
           <button
             onClick={goToCommunity}
             className="mt-2 text-xs font-semibold underline"
-            style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+            style={{ color: "hsl(var(--ink) / 0.55)", fontFamily: "inherit" }}
           >
             Soyez le premier à publier →
           </button>
@@ -131,21 +131,21 @@ function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { ema
                 >
                   <div
                     className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-micro font-bold shrink-0"
-                    style={{ background: post.author_photo_url ? "transparent" : "var(--st-yellow)", color: "#101820" }}
+                    style={{ background: post.author_photo_url ? "transparent" : "hsl(var(--yellow-brand))", color: "#101820" }}
                   >
                     {post.author_photo_url
                       ? <img src={post.author_photo_url} alt={name} className="w-full h-full object-cover" />
                       : initials}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold truncate" style={{ color: "var(--st-ink)" }}>{name}</p>
+                    <p className="text-xs font-semibold truncate" style={{ color: "hsl(var(--ink))" }}>{name}</p>
                     {post.content && (
-                      <p className="text-xs line-clamp-2 mt-0.5" style={{ color: "var(--st-ink-muted)" }}>
+                      <p className="text-xs line-clamp-2 mt-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>
                         {post.content}
                       </p>
                     )}
                     {!post.content && post.file_url && !post.file_mime?.startsWith("image/") && (
-                      <p className="text-xs mt-0.5 italic" style={{ color: "var(--st-ink-muted)" }}>A partagé un fichier</p>
+                      <p className="text-xs mt-0.5 italic" style={{ color: "hsl(var(--ink) / 0.55)" }}>A partagé un fichier</p>
                     )}
                     {post.file_url && post.file_mime?.startsWith("image/") && (
                       <div className="mt-1.5 rounded-md overflow-hidden" style={{ maxWidth: 160 }}>
@@ -159,7 +159,7 @@ function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { ema
                       </div>
                     )}
 
-                    <div className="flex items-center gap-2 mt-1 text-micro" style={{ color: "var(--st-ink-muted)" }}>
+                    <div className="flex items-center gap-2 mt-1 text-micro" style={{ color: "hsl(var(--ink) / 0.55)" }}>
                       <span>{post.reaction_count} j'aime</span>
                       <span>·</span>
                       <span>{post.comment_count} comm.</span>
@@ -237,7 +237,7 @@ export default function CourseHomeSidebar({
   return (
     <aside
       className="flex flex-col w-full"
-      style={{ background: "var(--st-white)" }}
+      style={{ background: "hsl(var(--white))" }}
     >
       {/* Live et replays */}
       {showNextLive && meetings.length > 0 && (() => {
@@ -320,7 +320,7 @@ export default function CourseHomeSidebar({
           </li>
         </ul>
 
-        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--st-ink-muted)" }}>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "hsl(var(--ink) / 0.55)" }}>
           Vos modules
         </p>
         <ul className="space-y-1">
@@ -365,7 +365,7 @@ export default function CourseHomeSidebar({
                           <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
                             <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "#FFD100" }} />
                           </div>
-                          <p className="text-micro shrink-0" style={{ color: "var(--st-ink-muted)" }}>{done}/{total}</p>
+                          <p className="text-micro shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }}>{done}/{total}</p>
                         </div>
                       )}
                     </div>
@@ -379,7 +379,7 @@ export default function CourseHomeSidebar({
                     >
                       <ChevronDown
                         size={14}
-                        style={{ color: "var(--st-ink-muted)", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}
+                        style={{ color: "hsl(var(--ink) / 0.55)", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}
                       />
                     </button>
                   )}
@@ -402,7 +402,7 @@ export default function CourseHomeSidebar({
                               fontFamily: "inherit",
                               background: isActiveLesson ? "rgba(255,209,0,0.16)" : "transparent",
                               boxShadow: isActiveLesson ? "inset 3px 0 0 #FFD100" : undefined,
-                              color: isActiveLesson ? "#101820" : "var(--st-ink-muted)",
+                              color: isActiveLesson ? "#101820" : "hsl(var(--ink) / 0.55)",
                               fontWeight: isActiveLesson ? 600 : 400,
                             }}
                           >

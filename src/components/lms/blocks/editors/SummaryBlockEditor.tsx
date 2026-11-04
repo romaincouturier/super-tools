@@ -32,8 +32,8 @@ export default function SummaryBlockEditor({ content, onChange, slim }: Props) {
     return (
       <div
         style={{
-          borderRadius: "var(--st-br, 20px)",
-          border: "1px solid var(--st-ink-08)",
+          borderRadius: "var(--radius-block)",
+          border: "1px solid hsl(var(--ink) / 0.08)",
           padding: "1.25rem",
         }}
       >
@@ -66,7 +66,7 @@ export default function SummaryBlockEditor({ content, onChange, slim }: Props) {
                 value={stmt.text}
                 onChange={(v) => updateStatement(i, { text: v || "Affirmation" })}
                 placeholder="Affirmation…"
-                style={{ fontSize: "0.8125rem", color: "var(--st-ink)", outline: "none", flex: 1 }}
+                style={{ fontSize: "0.8125rem", color: "hsl(var(--ink))", outline: "none", flex: 1 }}
               />
               {statements.length > 1 && (
                 <button
@@ -83,7 +83,7 @@ export default function SummaryBlockEditor({ content, onChange, slim }: Props) {
           onClick={addStatement}
           style={{
             display: "flex", alignItems: "center", gap: 6,
-            fontSize: "0.8125rem", fontWeight: 500, color: "var(--st-ink-60)",
+            fontSize: "0.8125rem", fontWeight: 500, color: "hsl(var(--ink) / 0.6)",
             border: "none", background: "transparent", cursor: "pointer",
           }}
         >

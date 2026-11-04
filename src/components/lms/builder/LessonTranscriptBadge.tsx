@@ -15,8 +15,8 @@ export default function LessonTranscriptBadge({ transcriptId }: { transcriptId: 
       rel="noopener noreferrer"
       className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full hover:underline"
       style={{
-        background: "var(--st-surface)",
-        color: "var(--st-ink-muted)",
+        background: "hsl(var(--grey-light))",
+        color: "hsl(var(--ink) / 0.55)",
         fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif",
         textDecoration: "none",
       }}

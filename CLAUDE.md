@@ -57,5 +57,5 @@
 - Aucun hex, `dark:` ni couleur de palette Tailwind brute dans un composant : `success`, `danger`, `caution`, `info`, `primary`, `muted`.
 - Texte : `text-micro`, `text-caption`, puis l'échelle Tailwind. Pas de `text-[Npx]`.
 - Un nouveau token qui crée une classe Tailwind s'enregistre dans `extendTailwindMerge` (`src/lib/utils.ts`).
-- Ne plus créer de `--st-*`.
+- Les `--st-*` n'existent plus : utiliser `hsl(var(--ink))`, `bg-ink`, `bg-brand-yellow`, `text-muted-foreground`.
 - Trois surfaces (`landing`, `learner`, `staff`) : socle commun `tokens.css`, couche propre `surfaces.css`, posée par `SurfaceLayout` sur `<html>`. Toute nouvelle route se range dans l'une des trois dans `src/App.tsx`.

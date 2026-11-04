@@ -23,7 +23,7 @@ export default function PollDisplay({
             onClick={() => !disabled && onVote(poll.id, opt.id, poll.my_option_id)}
             disabled={disabled}
             className="relative w-full text-left rounded-lg border overflow-hidden transition-colors hover:bg-black/[0.02] disabled:cursor-default"
-            style={{ borderColor: isMine ? "var(--st-yellow)" : "rgba(16,24,32,0.12)" }}
+            style={{ borderColor: isMine ? "hsl(var(--yellow-brand))" : "rgba(16,24,32,0.12)" }}
           >
             {/* Result bar */}
             {voted && (
@@ -33,11 +33,11 @@ export default function PollDisplay({
               />
             )}
             <div className="relative flex items-center justify-between gap-2 px-3 py-2">
-              <span className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>
+              <span className="text-sm font-medium" style={{ color: "hsl(var(--ink))" }}>
                 {isMine ? "✓ " : ""}{opt.label}
               </span>
               {voted && (
-                <span className="text-xs font-semibold shrink-0" style={{ color: "var(--st-ink-muted)" }}>
+                <span className="text-xs font-semibold shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }}>
                   {pct}%
                 </span>
               )}
@@ -45,7 +45,7 @@ export default function PollDisplay({
           </button>
         );
       })}
-      <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+      <p className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>
         {total} vote{total > 1 ? "s" : ""}{voted ? " · touchez à nouveau votre choix pour l'annuler" : ""}
       </p>
     </div>

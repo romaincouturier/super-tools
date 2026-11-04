@@ -360,7 +360,8 @@ check "066" "Toute règle en ratchet dit ce que son contrôle ne voit pas" \
 # [076] Design system : un seul mode (clair), aucun préfixe dark: ni sélecteur .dark.
 check "076" "Design system : aucun mode sombre (dark:, .dark)" \
   "grep -rnE '(^|[ \"\'\`])dark:[a-z]' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | sed 's/^/VIOLATION [076]: dark: interdit, mode clair unique — /'; \
-   grep -nE '^\\s*\\.dark\\b' src/index.css src/styles/tokens.css 2>/dev/null | sed 's/^/VIOLATION [076]: .dark interdit — /'"
+   grep -nE '^\\s*\\.dark\\b' src/index.css src/styles/tokens.css 2>/dev/null | sed 's/^/VIOLATION [076]: .dark interdit — /'; \\
+   grep -rn -- '--st-' src/ 2>/dev/null | sed 's/^/VIOLATION [076]: --st-* supprimés, utiliser les tokens de tokens.css — /'"
 
 # ====================================================
 # 3. Audit complet uniquement (scans repo-wide lourds)

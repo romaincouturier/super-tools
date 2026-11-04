@@ -98,8 +98,8 @@ function SlimEditor({
   return (
     <div
       style={{
-        borderRadius: "var(--st-br, 20px)",
-        border: "1px solid var(--st-ink-08)",
+        borderRadius: "var(--radius-block)",
+        border: "1px solid hsl(var(--ink) / 0.08)",
         padding: "1.25rem",
       }}
     >
@@ -176,7 +176,7 @@ function SlimEditor({
               value={step.title}
               onChange={(v) => updateStep(i, { title: v })}
               placeholder="Titre de l'étape"
-              style={{ fontWeight: 700, fontSize: "0.8125rem", color: "var(--st-ink)", outline: "none", textAlign: "center", width: "100%" }}
+              style={{ fontWeight: 700, fontSize: "0.8125rem", color: "hsl(var(--ink))", outline: "none", textAlign: "center", width: "100%" }}
             />
 
             {/* Description */}
@@ -184,7 +184,7 @@ function SlimEditor({
               value={step.description ?? ""}
               onChange={(v) => updateStep(i, { description: v || null })}
               placeholder="Description courte…"
-              style={{ fontSize: "0.75rem", color: "var(--st-ink-60)", outline: "none", marginTop: 4, textAlign: "center", width: "100%" }}
+              style={{ fontSize: "0.75rem", color: "hsl(var(--ink) / 0.6)", outline: "none", marginTop: 4, textAlign: "center", width: "100%" }}
             />
 
             {/* Panel toggle */}
@@ -230,7 +230,7 @@ function SlimEditor({
           onClick={addStep}
           style={{
             marginTop: "1rem", display: "flex", alignItems: "center", gap: 6,
-            fontSize: "0.8125rem", fontWeight: 500, color: "var(--st-ink-60)",
+            fontSize: "0.8125rem", fontWeight: 500, color: "hsl(var(--ink) / 0.6)",
             border: "none", background: "transparent", cursor: "pointer",
           }}
         >
@@ -290,7 +290,7 @@ function PanelEditor({
         value={step.panel_title ?? ""}
         onChange={(v) => onChange({ panel_title: v || null })}
         placeholder="Titre de l'encart (ex: Exemples d'usages)"
-        style={{ fontWeight: 700, fontSize: "0.8125rem", color: "var(--st-ink)", outline: "none", marginBottom: 8, display: "block" }}
+        style={{ fontWeight: 700, fontSize: "0.8125rem", color: "hsl(var(--ink))", outline: "none", marginBottom: 8, display: "block" }}
       />
 
       {/* Items */}
@@ -331,7 +331,7 @@ function PanelEditor({
               value={item.label}
               onChange={(v) => updateItem(i, { label: v })}
               placeholder="Texte de l'élément…"
-              style={{ flex: 1, fontSize: "0.8125rem", color: "var(--st-ink)", outline: "none" }}
+              style={{ flex: 1, fontSize: "0.8125rem", color: "hsl(var(--ink))", outline: "none" }}
             />
 
             <button
@@ -348,7 +348,7 @@ function PanelEditor({
         onClick={addItem}
         style={{
           marginTop: 8, display: "flex", alignItems: "center", gap: 4,
-          fontSize: "0.75rem", fontWeight: 500, color: "var(--st-ink-60)",
+          fontSize: "0.75rem", fontWeight: 500, color: "hsl(var(--ink) / 0.6)",
           border: "none", background: "transparent", cursor: "pointer",
         }}
       >

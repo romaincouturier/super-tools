@@ -46,7 +46,7 @@ export default function BulletListBlockEditor({ content, onChange, slim }: Props
   const itemRefs = useRef<(HTMLElement | null)[]>([]);
   const bulletStyle = content.bullet_style ?? "round";
   const bulletChar = BULLET_CHARS[bulletStyle];
-  const bulletColor = content.bullet_color || "var(--st-ink)";
+  const bulletColor = content.bullet_color || "hsl(var(--ink))";
 
   const setItem = (idx: number, value: string) =>
     onChange({ ...content, items: items.map((it, i) => (i === idx ? value : it)) });
@@ -83,7 +83,7 @@ export default function BulletListBlockEditor({ content, onChange, slim }: Props
           style={{
             fontWeight: 400,
             fontSize: "0.9375rem",
-            color: "var(--st-ink)",
+            color: "hsl(var(--ink))",
             outline: "none",
             marginBottom: "0.75rem",
             display: "block",
@@ -116,7 +116,7 @@ export default function BulletListBlockEditor({ content, onChange, slim }: Props
                     setTimeout(() => itemRefs.current[Math.max(0, i - 1)]?.focus(), 10);
                   }
                 }}
-                style={{ flex: 1, color: content.text_color || "var(--st-ink)", outline: "none", lineHeight: "1.5" }}
+                style={{ flex: 1, color: content.text_color || "hsl(var(--ink))", outline: "none", lineHeight: "1.5" }}
               />
               <button
                 onClick={() => items.length > 1 && removeItem(i)}
@@ -124,7 +124,7 @@ export default function BulletListBlockEditor({ content, onChange, slim }: Props
                   opacity: 0.4, fontSize: 16, lineHeight: 1, padding: "1px 5px",
                   borderRadius: 4, border: "none", background: "transparent",
                   cursor: items.length > 1 ? "pointer" : "default", flexShrink: 0,
-                  color: "var(--st-ink)",
+                  color: "hsl(var(--ink))",
                 }}
                 aria-label="Supprimer"
               >×</button>
@@ -137,7 +137,7 @@ export default function BulletListBlockEditor({ content, onChange, slim }: Props
             marginTop: "0.75rem",
             display: "flex", alignItems: "center", gap: "0.375rem",
             fontSize: "0.8125rem", fontWeight: 500,
-            color: "var(--st-ink-60)", cursor: "pointer",
+            color: "hsl(var(--ink) / 0.6)", cursor: "pointer",
             border: "none", background: "transparent", padding: "0.25rem 0",
           }}
         >

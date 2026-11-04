@@ -62,30 +62,30 @@ export function LearnerGreetingDropdown({
         >
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-            style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820", overflow: "hidden" }}
+            style={{ background: photoUrl ? "transparent" : "hsl(var(--yellow-brand))", color: "#101820", overflow: "hidden" }}
           >
             {photoUrl ? <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" /> : initials}
           </div>
           <div className="hidden sm:block text-left">
-            <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Bonjour</p>
-            <p className="text-sm font-semibold leading-none" style={{ color: "var(--st-ink)" }}>{displayName}</p>
+            <p className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>Bonjour</p>
+            <p className="text-sm font-semibold leading-none" style={{ color: "hsl(var(--ink))" }}>{displayName}</p>
           </div>
-          <ChevronDown size={13} className="hidden sm:block shrink-0 opacity-50" style={{ color: "var(--st-ink-muted)" }} />
+          <ChevronDown size={13} className="hidden sm:block shrink-0 opacity-50" style={{ color: "hsl(var(--ink) / 0.55)" }} />
         </button>
 
         {open && (
           <div
             className="absolute right-0 top-full mt-1.5 w-60 rounded-2xl border shadow-lg overflow-hidden z-50"
-            style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.1)" }}
+            style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.1)" }}
           >
             {items.map(({ label, icon: Icon, section }) => (
               <button
                 key={section + label}
                 onClick={() => { onNav(section); setOpen(false); }}
                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors hover:bg-black/5"
-                style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+                style={{ color: "hsl(var(--ink))", fontFamily: "inherit" }}
               >
-                <Icon size={15} style={{ color: "var(--st-ink-muted)" }} />
+                <Icon size={15} style={{ color: "hsl(var(--ink) / 0.55)" }} />
                 {label}
               </button>
             ))}

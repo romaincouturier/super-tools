@@ -67,8 +67,8 @@ export default function FileBlockEditor({ lessonId, content, onChange, slim }: P
               alignItems: "center",
               gap: "0.875rem",
               padding: "0.875rem 1rem",
-              borderRadius: "var(--st-br, 12px)",
-              background: "var(--st-surface)",
+              borderRadius: "var(--radius-block)",
+              background: "hsl(var(--grey-light))",
               border: "1px solid rgba(16,24,32,0.08)",
             }}
           >
@@ -79,14 +79,14 @@ export default function FileBlockEditor({ lessonId, content, onChange, slim }: P
                 display: "grid", placeItems: "center", flexShrink: 0,
               }}
             >
-              <Paperclip size={18} style={{ color: "var(--st-ink-60)" }} />
+              <Paperclip size={18} style={{ color: "hsl(var(--ink) / 0.6)" }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600, color: "var(--st-ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600, color: "hsl(var(--ink))", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {f.name || "Fichier"}
               </p>
               {f.size != null && f.size > 0 && (
-                <p style={{ margin: "0.125rem 0 0", fontSize: "0.75rem", color: "var(--st-ink-50)" }}>
+                <p style={{ margin: "0.125rem 0 0", fontSize: "0.75rem", color: "hsl(var(--ink) / 0.5)" }}>
                   {formatFileSize(f.size)}
                 </p>
               )}
@@ -101,7 +101,7 @@ export default function FileBlockEditor({ lessonId, content, onChange, slim }: P
               }}
               aria-label="Supprimer le fichier"
             >
-              <X size={14} style={{ color: "var(--st-ink-60)" }} />
+              <X size={14} style={{ color: "hsl(var(--ink) / 0.6)" }} />
             </button>
           </div>
         ))}
@@ -117,7 +117,7 @@ export default function FileBlockEditor({ lessonId, content, onChange, slim }: P
           }}
           onClick={() => fileRef.current?.click()}
           style={{
-            borderRadius: "var(--st-br, 12px)",
+            borderRadius: "var(--radius-block)",
             border: `2px dashed ${dragOver ? "rgba(16,24,32,0.35)" : "rgba(16,24,32,0.18)"}`,
             padding: "1.25rem 2rem",
             display: "flex",
@@ -125,7 +125,7 @@ export default function FileBlockEditor({ lessonId, content, onChange, slim }: P
             alignItems: "center",
             gap: "0.5rem",
             cursor: uploading ? "default" : "pointer",
-            background: dragOver ? "var(--st-ink-06)" : "transparent",
+            background: dragOver ? "hsl(var(--ink) / 0.06)" : "transparent",
             transition: "all 120ms",
           }}
         >
@@ -142,25 +142,25 @@ export default function FileBlockEditor({ lessonId, content, onChange, slim }: P
           <div
             style={{
               width: 36, height: 36, borderRadius: "50%",
-              background: "var(--st-ink-06)",
+              background: "hsl(var(--ink) / 0.06)",
               display: "grid", placeItems: "center",
             }}
           >
             {uploading ? (
               <Spinner className="h-4 w-4" />
             ) : (
-              <FileIcon size={16} style={{ color: "var(--st-ink-50)" }} />
+              <FileIcon size={16} style={{ color: "hsl(var(--ink) / 0.5)" }} />
             )}
           </div>
           <div style={{ textAlign: "center" }}>
-            <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 500, color: "var(--st-ink)" }}>
+            <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 500, color: "hsl(var(--ink))" }}>
               {uploading
                 ? "Upload en cours…"
                 : files.length > 0
                   ? "Ajouter un autre fichier"
                   : "Déposer un fichier ou cliquer pour importer"}
             </p>
-            <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: "var(--st-ink-50)" }}>
+            <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: "hsl(var(--ink) / 0.5)" }}>
               PDF, DOCX, ZIP, etc.
             </p>
           </div>

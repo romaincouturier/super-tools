@@ -19,9 +19,9 @@ const WIDTH_LABELS: Record<ContainerMaxWidth, string> = {
 export default function ContainerBlockEditor({ content, onChange, slim }: Props) {
   if (slim) {
     return (
-      <p className="text-xs py-0.5" style={{ color: "var(--st-ink-muted)" }}>
+      <p className="text-xs py-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>
         Largeur max :{" "}
-        <span className="font-medium" style={{ color: "var(--st-ink)" }}>
+        <span className="font-medium" style={{ color: "hsl(var(--ink))" }}>
           {WIDTH_LABELS[content.max_width] ?? content.max_width}
         </span>
       </p>

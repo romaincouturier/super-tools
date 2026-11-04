@@ -20,7 +20,7 @@ function MemberAvatar({ member, size = 7 }: { member: GroupMatchingMember; size?
   return (
     <div
       className="rounded-full overflow-hidden flex items-center justify-center font-bold shrink-0 border-2"
-      style={{ width: px, height: px, fontSize: px * 0.35, background: member.photo_url ? "transparent" : "var(--st-yellow)", color: "#101820", borderColor: "var(--st-white)" }}
+      style={{ width: px, height: px, fontSize: px * 0.35, background: member.photo_url ? "transparent" : "hsl(var(--yellow-brand))", color: "#101820", borderColor: "hsl(var(--white))" }}
       title={name}
     >
       {member.photo_url
@@ -38,7 +38,7 @@ function GroupRow({ group }: { group: GroupMatchingGroup }) {
           <MemberAvatar key={m.learner_email} member={m} />
         ))}
       </div>
-      <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+      <span className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>
         {group.members.map((m) => [m.first_name, m.last_name].filter(Boolean).join(" ") || m.learner_email.split("@")[0]).join(" · ")}
       </span>
     </div>
@@ -64,13 +64,13 @@ function PendingAvatars({ profiles, groupSize }: { profiles: GroupMatchingMember
         {profiles.length > 6 && (
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-micro font-bold border-2"
-            style={{ background: "rgba(16,24,32,0.08)", color: "var(--st-ink-muted)", borderColor: "var(--st-white)" }}
+            style={{ background: "rgba(16,24,32,0.08)", color: "hsl(var(--ink) / 0.55)", borderColor: "hsl(var(--white))" }}
           >
             +{profiles.length - 6}
           </div>
         )}
       </div>
-      <p className="text-xs font-medium" style={{ color: "var(--st-ink)" }}>
+      <p className="text-xs font-medium" style={{ color: "hsl(var(--ink))" }}>
         D'autres participant(e)s sont déjà partant(e)s pour former un {noun}, rejoins-les pour enrichir ton expérience de formation
       </p>
     </div>
@@ -129,8 +129,8 @@ export default function GroupMatchingBlock({
         style={{ background: "rgba(255,209,0,0.08)", border: "1px solid rgba(255,209,0,0.3)" }}
       >
       <div className="flex items-center gap-2">
-        <Users size={14} style={{ color: "var(--st-ink)" }} />
-        <span className="text-xs font-semibold" style={{ color: "var(--st-ink)" }}>
+        <Users size={14} style={{ color: "hsl(var(--ink))" }} />
+        <span className="text-xs font-semibold" style={{ color: "hsl(var(--ink))" }}>
           Trouver un {noun}
         </span>
       </div>
@@ -149,23 +149,23 @@ export default function GroupMatchingBlock({
 
       {/* Mon statut */}
       {myGroup ? (
-        <div className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+        <div className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>
           Ton {noun} ci-dessus — organisez-vous librement !
         </div>
       ) : myReg?.status === "assigned" ? (
-        <div className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+        <div className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>
           Tu es dans un {noun}.
         </div>
       ) : myReg?.status === "pending" ? (
         <div className="space-y-2">
           <PendingAvatars profiles={pendingProfiles} groupSize={config.group_size} />
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Tu es inscrit(e) — mise en relation prochainement</span>
+            <span className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>Tu es inscrit(e) — mise en relation prochainement</span>
             <button
               onClick={handleUnregister}
               disabled={unregister.isPending}
               className="text-xs px-2 py-1 rounded-lg hover:bg-black/5 transition-colors shrink-0"
-              style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+              style={{ color: "hsl(var(--ink) / 0.55)", fontFamily: "inherit" }}
             >
               {unregister.isPending ? <Loader2 size={12} className="animate-spin" /> : "Me désinscrire"}
             </button>
@@ -176,7 +176,7 @@ export default function GroupMatchingBlock({
           onClick={handleRegister}
           disabled={register.isPending}
           className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-all hover:-translate-y-px"
-          style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+          style={{ background: "hsl(var(--yellow-brand))", color: "#101820", fontFamily: "inherit" }}
         >
           {register.isPending ? <Loader2 size={14} className="animate-spin" /> : null}
           Je veux un {noun}

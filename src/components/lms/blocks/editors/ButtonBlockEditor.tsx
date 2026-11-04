@@ -51,7 +51,7 @@ export default function ButtonBlockEditor({ content, onChange, slim }: Props) {
         }
       : isPrimary
       ? {
-          background: "var(--st-ink)",
+          background: "hsl(var(--ink))",
           color: "#fff",
           border: "none",
           borderRadius: 999,
@@ -64,7 +64,7 @@ export default function ButtonBlockEditor({ content, onChange, slim }: Props) {
       : isOutline
       ? {
           background: "transparent",
-          color: "var(--st-ink)",
+          color: "hsl(var(--ink))",
           border: "1px solid rgba(16,24,32,0.25)",
           borderRadius: 999,
           padding: "0.625rem 1.5rem",
@@ -74,8 +74,8 @@ export default function ButtonBlockEditor({ content, onChange, slim }: Props) {
           display: "inline-block",
         }
       : {
-          background: "var(--st-surface)",
-          color: "var(--st-ink)",
+          background: "hsl(var(--grey-light))",
+          color: "hsl(var(--ink))",
           border: "none",
           borderRadius: 999,
           padding: "0.625rem 1.5rem",
@@ -110,7 +110,7 @@ export default function ButtonBlockEditor({ content, onChange, slim }: Props) {
               onClick={() => setShowUrlInput(true)}
               style={{
                 fontSize: "0.75rem",
-                color: "var(--st-ink-50)",
+                color: "hsl(var(--ink) / 0.5)",
                 border: "none",
                 background: "transparent",
                 cursor: "pointer",

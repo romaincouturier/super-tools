@@ -28,7 +28,7 @@ export default function RowBlockEditor({ content, onChange, slim }: Props) {
             style={{ background: "rgba(16,24,32,0.05)", border: "1.5px dashed rgba(16,24,32,0.15)" }}
           />
         ))}
-        <span className="text-xs ml-1 shrink-0" style={{ color: "var(--st-ink-muted)" }}>
+        <span className="text-xs ml-1 shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }}>
           {COL_LABELS[content.column_count] ?? `${content.column_count} col.`}
         </span>
       </div>

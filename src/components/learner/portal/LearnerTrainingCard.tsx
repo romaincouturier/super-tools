@@ -64,10 +64,10 @@ export function ProgressCircle({ pct, size = 80 }: { pct: number; size?: number 
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-bold leading-none" style={{ fontSize: size * 0.22, color: "var(--st-ink)" }}>
+        <span className="font-bold leading-none" style={{ fontSize: size * 0.22, color: "hsl(var(--ink))" }}>
           {Math.round(pct)}%
         </span>
-        <span style={{ fontSize: size * 0.11, color: "var(--st-ink-muted)" }}>terminé</span>
+        <span style={{ fontSize: size * 0.11, color: "hsl(var(--ink) / 0.55)" }}>terminé</span>
       </div>
     </div>
   );
@@ -92,7 +92,7 @@ export function CoachingCircles({ completed, total }: { completed: number; total
           </div>
         );
       })}
-      <span className="text-xs ml-1" style={{ color: "var(--st-ink-muted)" }}>
+      <span className="text-xs ml-1" style={{ color: "hsl(var(--ink) / 0.55)" }}>
         {completed}/{total} séances
       </span>
     </div>
@@ -174,10 +174,10 @@ export function TrainingDetail({
           {/* Objectifs */}
           {(training.objectives?.length ?? 0) > 0 && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "var(--st-ink-muted)" }}>Objectifs</p>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>Objectifs</p>
               <ul className="space-y-1">
                 {training.objectives!.map((obj, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "var(--st-ink)" }}>
+                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "hsl(var(--ink))" }}>
                     <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#FFD100" }} />
                     {obj}
                   </li>
@@ -189,10 +189,10 @@ export function TrainingDetail({
           {/* Prérequis */}
           {(training.prerequisites?.length ?? 0) > 0 && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "var(--st-ink-muted)" }}>Prérequis</p>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>Prérequis</p>
               <ul className="space-y-1">
                 {training.prerequisites!.map((req, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "var(--st-ink)" }}>
+                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "hsl(var(--ink))" }}>
                     <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "rgba(16,24,32,0.25)" }} />
                     {req}
                   </li>
@@ -207,19 +207,19 @@ export function TrainingDetail({
               {training.program_file_url && (
                 <button type="button" onClick={() => { void openStorageUrl(training.program_file_url!); }}
                   className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                  style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
+                  style={{ borderColor: "rgba(16,24,32,0.1)", color: "hsl(var(--ink))" }}>
                   <Download size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
                   Programme
-                  <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
+                  <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }} />
                 </button>
               )}
               {training.reglement_interieur_url && (
                 <a href={training.reglement_interieur_url} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                  style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
+                  style={{ borderColor: "rgba(16,24,32,0.1)", color: "hsl(var(--ink))" }}>
                   <FileText size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
                   Règlement intérieur
-                  <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
+                  <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }} />
                 </a>
               )}
             </div>
@@ -228,7 +228,7 @@ export function TrainingDetail({
           {/* Formateur */}
           {training.trainer_name && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "var(--st-ink-muted)" }}>Votre formateur</p>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>Votre formateur</p>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center text-sm font-bold"
                   style={{ background: training.trainer_photo_url ? "transparent" : "#EDEDED", color: "#101820" }}>
@@ -236,7 +236,7 @@ export function TrainingDetail({
                     ? <img src={training.trainer_photo_url} alt={training.trainer_name} className="w-full h-full object-cover" />
                     : training.trainer_name.split(" ").map(n => n[0]).join("").toUpperCase()}
                 </div>
-                <span className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>{training.trainer_name}</span>
+                <span className="text-sm font-medium" style={{ color: "hsl(var(--ink))" }}>{training.trainer_name}</span>
               </div>
             </div>
           )}
@@ -247,7 +247,7 @@ export function TrainingDetail({
             !training.program_file_url &&
             !training.reglement_interieur_url &&
             !training.trainer_name && (
-            <p className="text-sm py-3" style={{ color: "var(--st-ink-muted)" }}>Aucun détail disponible.</p>
+            <p className="text-sm py-3" style={{ color: "hsl(var(--ink) / 0.55)" }}>Aucun détail disponible.</p>
           )}
         </div>
       </TabsContent>
@@ -260,34 +260,34 @@ export function TrainingDetail({
               <button key={`${doc.file_url}-${i}`} type="button"
                 onClick={() => { void openStorageUrl(doc.file_url); }}
                 className="flex items-center gap-2 p-3 rounded-xl border text-sm text-left transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
+                style={{ borderColor: "rgba(16,24,32,0.1)", color: "hsl(var(--ink))" }}>
                 <Download size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
                 <span className="truncate">{doc.file_name || "Document"}</span>
-                <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
+                <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }} />
               </button>
             ))}
             {training.program_file_url && (
               <button type="button" onClick={() => { void openStorageUrl(training.program_file_url!); }}
                 className="flex items-center gap-2 p-3 rounded-xl border text-sm text-left transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
+                style={{ borderColor: "rgba(16,24,32,0.1)", color: "hsl(var(--ink))" }}>
                 <Download size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
                 Programme de formation
-                <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
+                <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }} />
               </button>
             )}
             {training.supports_url && (
               <a href={training.supports_url} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
+                style={{ borderColor: "rgba(16,24,32,0.1)", color: "hsl(var(--ink))" }}>
                 <FileText size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
                 Supports de formation
-                <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
+                <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }} />
               </a>
             )}
             {questionnaire && (
               <Link to={`/questionnaire/${questionnaire.token}`}
                 className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
+                style={{ borderColor: "rgba(16,24,32,0.1)", color: "hsl(var(--ink))" }}>
                 <ClipboardCheck size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
                 Questionnaire des besoins
                 <span className="ml-auto">{statusBadge(questionnaire.etat)}</span>
@@ -296,7 +296,7 @@ export function TrainingDetail({
             {evaluation && (
               <Link to={`/evaluation/${evaluation.token}`}
                 className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
+                style={{ borderColor: "rgba(16,24,32,0.1)", color: "hsl(var(--ink))" }}>
                 <ClipboardCheck size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
                 Évaluation à chaud
                 <span className="ml-auto">{statusBadge(evaluation.etat)}</span>
@@ -311,11 +311,11 @@ export function TrainingDetail({
         {hasCoaching ? (
           <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium mb-2" style={{ color: "var(--st-ink)" }}>
+                <p className="text-sm font-medium mb-2" style={{ color: "hsl(var(--ink))" }}>
                   Séances de coaching
                 </p>
                 <CoachingCircles completed={coachingCompleted} total={coachingTotal} />
-                <p className="text-xs mt-2" style={{ color: "var(--st-ink-muted)" }}>
+                <p className="text-xs mt-2" style={{ color: "hsl(var(--ink) / 0.55)" }}>
                   {remainingSessions > 0
                     ? `${remainingSessions} séance${remainingSessions > 1 ? "s" : ""} restante${remainingSessions > 1 ? "s" : ""}`
                     : "Toutes les séances ont été réalisées"}
@@ -327,13 +327,13 @@ export function TrainingDetail({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-full transition-all hover:-translate-y-0.5"
-                style={{ background: "var(--st-yellow)", color: "#101820" }}
+                style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}
               >
                 <CalendarPlus size={14} />
                 Prendre rendez-vous →
               </a>
             ) : remainingSessions > 0 ? (
-              <p className="text-sm p-3 rounded-xl" style={{ background: "var(--st-surface, #F2F4F4)", color: "var(--st-ink-muted)" }}>
+              <p className="text-sm p-3 rounded-xl" style={{ background: "hsl(var(--grey-light))", color: "hsl(var(--ink) / 0.55)" }}>
                 Contactez votre formateur pour planifier votre séance.
               </p>
             ) : null}
@@ -343,11 +343,11 @@ export function TrainingDetail({
             style={{ borderColor: "rgba(16,24,32,0.12)", background: "rgba(16,24,32,0.02)" }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto"
               style={{ background: "#EDEDED" }}>
-              <Lock size={16} style={{ color: "var(--st-ink-muted)" }} />
+              <Lock size={16} style={{ color: "hsl(var(--ink) / 0.55)" }} />
             </div>
             <div>
-              <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Coaching individuel non inclus</p>
-              <p className="text-xs mt-1" style={{ color: "var(--st-ink-muted)" }}>
+              <p className="text-sm font-medium" style={{ color: "hsl(var(--ink))" }}>Coaching individuel non inclus</p>
+              <p className="text-xs mt-1" style={{ color: "hsl(var(--ink) / 0.55)" }}>
                 Votre formule actuelle ne comprend pas de sessions de coaching.
               </p>
             </div>
@@ -355,7 +355,7 @@ export function TrainingDetail({
               disabled={requestingCoach === training.training_id}
               onClick={() => onRequestCoach(training)}
               className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-black/5"
-              style={{ borderColor: "rgba(16,24,32,0.2)", color: "var(--st-ink)", fontFamily: "inherit" }}
+              style={{ borderColor: "rgba(16,24,32,0.2)", color: "hsl(var(--ink))", fontFamily: "inherit" }}
             >
               {requestingCoach === training.training_id ? (
                 <Spinner className="mr-1" />
@@ -411,7 +411,7 @@ export function FormationItem({
       className="rounded-2xl border overflow-hidden"
       style={{
         borderColor: "rgba(16,24,32,0.08)",
-        background: "var(--st-white)",
+        background: "hsl(var(--white))",
         boxShadow: "0 2px 20px rgba(16,24,32,0.06)",
       }}
     >
@@ -419,12 +419,12 @@ export function FormationItem({
       <div className="p-5">
         <div className="flex items-start gap-3">
           <div className="w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center"
-            style={{ background: "var(--st-yellow-soft, #FFFBEA)" }}>
+            style={{ background: "hsl(var(--yellow-brand) / 0.22)" }}>
             <BookOpen size={20} style={{ color: "#101820" }} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-2 justify-between">
-              <p className="text-sm font-bold leading-snug" style={{ color: "var(--st-ink)" }}>
+              <p className="text-sm font-bold leading-snug" style={{ color: "hsl(var(--ink))" }}>
                 {training.lms_course_title || training.training_name}
               </p>
               <span className="text-xs px-2 py-0.5 rounded-full shrink-0 font-medium"
@@ -434,9 +434,9 @@ export function FormationItem({
             </div>
             {hasElearning && (
               <div className="mt-3 space-y-1">
-                <div className="flex justify-between text-xs" style={{ color: "var(--st-ink-muted)" }}>
+                <div className="flex justify-between text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>
                   <span>Progression</span>
-                  <span className="font-semibold" style={{ color: "var(--st-ink)" }}>{Math.round(completion)}%</span>
+                  <span className="font-semibold" style={{ color: "hsl(var(--ink))" }}>{Math.round(completion)}%</span>
                 </div>
                 <div className="h-2 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
                   <div className="h-full rounded-full transition-all"
@@ -458,7 +458,7 @@ export function FormationItem({
           <div className="flex flex-col sm:flex-row gap-2 mt-4">
             <Link to={continueUrl}
               className="flex items-center justify-center gap-1.5 text-sm font-semibold px-5 py-2 rounded-full transition-all hover:-translate-y-0.5 w-full sm:w-auto"
-              style={{ background: "var(--st-yellow)", color: "#101820" }}>
+              style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}>
               {isDone
                 ? <><RefreshCw size={13} /> Revoir</>
                 : hasStarted
@@ -467,7 +467,7 @@ export function FormationItem({
             </Link>
             <Link to={`/lms/${training.lms_course_id}/home?email=${encodeURIComponent(email)}`}
               className="flex items-center justify-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-black/5 w-full sm:w-auto"
-              style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink)" }}>
+              style={{ borderColor: "rgba(16,24,32,0.15)", color: "hsl(var(--ink))" }}>
               Accueil du cours
             </Link>
           </div>
@@ -480,7 +480,7 @@ export function FormationItem({
           <button
             onClick={() => setExpanded((v) => !v)}
             className="w-full flex items-center gap-2 px-5 py-3 text-sm transition-all hover:bg-black/5 text-left"
-            style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+            style={{ color: "hsl(var(--ink) / 0.55)", fontFamily: "inherit" }}
           >
             <span className="flex-1">{tabsLabel}</span>
             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}

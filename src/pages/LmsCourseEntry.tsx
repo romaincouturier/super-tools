@@ -16,9 +16,9 @@ export default function LmsCourseEntry() {
     return (
       <div
         className="flex items-center justify-center h-screen"
-        style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif", background: "var(--st-white)" }}
+        style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif", background: "hsl(var(--white))" }}
       >
-        <Loader2 className="animate-spin" size={24} style={{ color: "var(--st-ink-50)" }} />
+        <Loader2 className="animate-spin" size={24} style={{ color: "hsl(var(--ink) / 0.5)" }} />
       </div>
     );
   }

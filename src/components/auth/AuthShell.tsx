@@ -54,7 +54,7 @@ export function AuthShell({
 /** Carte simple, écran de connexion. */
 export function AuthCard({ children }: { children: ReactNode }) {
   return (
-    <div className="relative z-10 w-full max-w-[660px] rounded-[22px] bg-card px-7 pb-10 pt-12 text-center shadow-[0_1px_2px_rgba(26,34,48,.04),0_12px_40px_rgba(26,34,48,.06)] sm:px-16 sm:pt-14">
+    <div className="relative z-10 w-full max-w-[660px] rounded-card bg-card px-7 pb-10 pt-12 text-center shadow-card sm:px-16 sm:pt-14">
       {children}
     </div>
   );
@@ -63,7 +63,7 @@ export function AuthCard({ children }: { children: ReactNode }) {
 /** Carte deux colonnes : formulaire à gauche, panneau d'aide à droite. */
 export function AuthSplitCard({ left, right }: { left: ReactNode; right: ReactNode }) {
   return (
-    <div className="relative z-10 grid w-full max-w-[1240px] grid-cols-1 rounded-[22px] bg-card shadow-[0_1px_2px_rgba(26,34,48,.04),0_12px_40px_rgba(26,34,48,.06)] lg:grid-cols-[1fr_1px_1fr]">
+    <div className="relative z-10 grid w-full max-w-[1240px] grid-cols-1 rounded-card bg-card shadow-card lg:grid-cols-[1fr_1px_1fr]">
       <div className="px-8 pb-10 pt-12 sm:px-14">{left}</div>
       <div className="hidden bg-border lg:block" />
       <div className="flex flex-col gap-8 border-t px-8 pb-11 pt-10 sm:px-14 lg:border-t-0">

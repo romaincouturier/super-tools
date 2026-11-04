@@ -49,7 +49,7 @@ export default function ChecklistBlockEditor({ content, onChange, slim }: Props)
             onChange={(v) => onChange({ ...content, title: v || null })}
             placeholder="Titre (optionnel)"
             style={{
-              fontWeight: 700, fontSize: "1rem", color: "var(--st-ink)",
+              fontWeight: 700, fontSize: "1rem", color: "hsl(var(--ink))",
               outline: "none", marginBottom: "0.75rem", display: "block",
             }}
           />
@@ -64,7 +64,7 @@ export default function ChecklistBlockEditor({ content, onChange, slim }: Props)
                   flexShrink: 0,
                 }}
               />
-              <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--st-ink)", flexShrink: 0 }}>{i + 1}.</span>
+              <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "hsl(var(--ink))", flexShrink: 0 }}>{i + 1}.</span>
               <InlineEdit
                 value={item.label}
                 onChange={(v) => setLabel(item.id, v)}
@@ -76,7 +76,7 @@ export default function ChecklistBlockEditor({ content, onChange, slim }: Props)
                     setTimeout(() => itemRefs.current[Math.max(0, i - 1)]?.focus(), 10);
                   }
                 }}
-                style={{ flex: 1, color: "var(--st-ink)", outline: "none" }}
+                style={{ flex: 1, color: "hsl(var(--ink))", outline: "none" }}
               />
               <button
                 onClick={() => items.length > 1 && removeItem(item.id)}
@@ -84,7 +84,7 @@ export default function ChecklistBlockEditor({ content, onChange, slim }: Props)
                   opacity: 0.4, fontSize: 16, lineHeight: 1, padding: "1px 5px",
                   borderRadius: 4, border: "none", background: "transparent",
                   cursor: items.length > 1 ? "pointer" : "default", flexShrink: 0,
-                  color: "var(--st-ink)",
+                  color: "hsl(var(--ink))",
                 }}
                 aria-label="Supprimer"
               >×</button>
@@ -97,7 +97,7 @@ export default function ChecklistBlockEditor({ content, onChange, slim }: Props)
             marginTop: "0.75rem",
             display: "flex", alignItems: "center", gap: "0.375rem",
             fontSize: "0.8125rem", fontWeight: 500,
-            color: "var(--st-ink-60)", cursor: "pointer",
+            color: "hsl(var(--ink) / 0.6)", cursor: "pointer",
             border: "none", background: "transparent", padding: "0.25rem 0",
           }}
         >

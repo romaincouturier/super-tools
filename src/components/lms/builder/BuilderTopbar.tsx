@@ -45,7 +45,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
       ? { dot: "rgb(249,115,22)", text: "rgb(194,65,12)", border: "rgba(249,115,22,0.35)" }
       : isToReview
         ? { dot: "rgb(245,158,11)", text: "rgb(180,83,9)", border: "rgba(245,158,11,0.35)" }
-        : { dot: "var(--st-ink-muted)", text: "var(--st-ink-muted)", border: "rgba(16,24,32,0.15)" };
+        : { dot: "hsl(var(--ink) / 0.55)", text: "hsl(var(--ink) / 0.55)", border: "rgba(16,24,32,0.15)" };
 
   const togglePublish = async () => {
     const next = isPublished ? "draft" : "published";
@@ -88,7 +88,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
   return (
     <header
       className="sticky top-0 z-30 flex items-center gap-3 px-4 h-16 border-b"
-      style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}
+      style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}
     >
       {/* Hamburger (mobile) */}
       <button
@@ -96,14 +96,14 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
         className="lg:hidden flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5"
         aria-label="Menu"
       >
-        <Menu size={18} style={{ color: "var(--st-ink)" }} />
+        <Menu size={18} style={{ color: "hsl(var(--ink))" }} />
       </button>
 
       {/* Back → courses list */}
       <button
         onClick={() => navigate("/lms")}
         className="flex items-center gap-1.5 text-sm font-medium transition-colors hover:opacity-70 shrink-0"
-        style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+        style={{ color: "hsl(var(--ink))", fontFamily: "inherit" }}
       >
         <ArrowLeft size={15} />
         <span className="hidden lg:inline">Retour</span>
@@ -123,7 +123,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           readOnly={isHome}
           className="w-full max-w-md text-center outline-none truncate"
           style={{
-            color: "var(--st-ink)",
+            color: "hsl(var(--ink))",
             fontFamily: "inherit",
             fontSize: "1.25rem",
             fontWeight: 600,
@@ -135,15 +135,15 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           }}
           onMouseEnter={(e) => {
             if (document.activeElement !== e.currentTarget)
-              (e.currentTarget as HTMLElement).style.background = "var(--st-ink-06)";
+              (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.06)";
           }}
           onMouseLeave={(e) => {
             if (document.activeElement !== e.currentTarget)
               (e.currentTarget as HTMLElement).style.background = "transparent";
           }}
           onFocus={(e) => {
-            (e.currentTarget as HTMLElement).style.background = "var(--st-white)";
-            (e.currentTarget as HTMLElement).style.borderColor = "var(--st-ink-08)";
+            (e.currentTarget as HTMLElement).style.background = "hsl(var(--white))";
+            (e.currentTarget as HTMLElement).style.borderColor = "hsl(var(--ink) / 0.08)";
           }}
           onBlur={(e) => {
             (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -178,7 +178,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           title="Importer des images dans les leçons"
           onClick={() => setImageDialogOpen(true)}
           className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5"
-          style={{ color: "var(--st-ink)" }}
+          style={{ color: "hsl(var(--ink))" }}
         >
           <ImageIcon size={16} />
         </button>
@@ -187,7 +187,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           title="Importer des audios dans les leçons"
           onClick={() => setAudioDialogOpen(true)}
           className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5"
-          style={{ color: "var(--st-ink)" }}
+          style={{ color: "hsl(var(--ink))" }}
         >
           <Mic size={16} />
         </button>
@@ -196,7 +196,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           title="Audios du cours (statuts et transcriptions)"
           onClick={() => setAudiosListOpen(true)}
           className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5"
-          style={{ color: "var(--st-ink)" }}
+          style={{ color: "hsl(var(--ink))" }}
         >
           <AudioLines size={16} />
         </button>
@@ -205,7 +205,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           title="Construire des leçons à partir d'un transcript"
           onClick={() => setTranscriptDialogOpen(true)}
           className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5"
-          style={{ color: "var(--st-ink)" }}
+          style={{ color: "hsl(var(--ink))" }}
         >
           <FileText size={16} />
         </button>
@@ -215,7 +215,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           onClick={() => setVersionsDialogOpen(true)}
           disabled={!lesson}
           className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5 disabled:opacity-40"
-          style={{ color: "var(--st-ink)" }}
+          style={{ color: "hsl(var(--ink))" }}
         >
           <History size={16} />
         </button>
@@ -227,7 +227,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           rel="noopener noreferrer"
           className="hidden sm:flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
           style={{
-            color: "var(--st-ink)",
+            color: "hsl(var(--ink))",
             borderColor: "rgba(16,24,32,0.2)",
             fontFamily: "inherit",
             textDecoration: "none",

@@ -218,7 +218,7 @@ export default function CtaBlockEditor({ lessonId, content, onChange, slim }: Pr
     return (
       <div
         style={{
-          borderRadius: "var(--st-br, 20px)",
+          borderRadius: "var(--radius-block)",
           border: "1px solid #ECECEF",
           borderLeft: `4px solid ${accent}`,
           padding: "1.25rem",

@@ -88,12 +88,12 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
               gap: "0.75rem",
               padding: "0.625rem 0.875rem",
               borderRadius: 12,
-              background: "var(--st-surface)",
-              border: "1px solid var(--st-ink-08)",
+              background: "hsl(var(--grey-light))",
+              border: "1px solid hsl(var(--ink) / 0.08)",
               flexWrap: "wrap",
             }}
           >
-            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.8125rem", color: "var(--st-ink-70)" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.8125rem", color: "hsl(var(--ink) / 0.7)" }}>
               <input
                 type="checkbox"
                 checked={content.display_style === "styled"}
@@ -114,9 +114,9 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
                   type="color"
                   value={content.bg_color || "#FFD100"}
                   onChange={(e) => onChange({ ...content, bg_color: e.target.value })}
-                  style={{ width: 28, height: 28, cursor: "pointer", borderRadius: 6, border: "1px solid var(--st-ink-08)", padding: 2 }}
+                  style={{ width: 28, height: 28, cursor: "pointer", borderRadius: 6, border: "1px solid hsl(var(--ink) / 0.08)", padding: 2 }}
                 />
-                <span style={{ fontSize: "0.75rem", fontFamily: "ui-monospace, monospace", color: "var(--st-ink-50)" }}>
+                <span style={{ fontSize: "0.75rem", fontFamily: "ui-monospace, monospace", color: "hsl(var(--ink) / 0.5)" }}>
                   {content.bg_color || "#FFD100"}
                 </span>
               </div>
@@ -131,7 +131,7 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
                 gap: "0.25rem",
                 padding: "0.25rem 0.625rem",
                 borderRadius: 999,
-                border: "1px solid var(--st-ink-08)",
+                border: "1px solid hsl(var(--ink) / 0.08)",
                 background: "#FFD100",
                 color: "#101820",
                 fontSize: "0.75rem",
@@ -151,7 +151,7 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
       return (
         <div
           style={{
-            borderRadius: "var(--st-br, 20px)",
+            borderRadius: "var(--radius-block)",
             border: "2px dashed rgba(16,24,32,0.18)",
             padding: "1.5rem",
             display: "flex",
@@ -188,14 +188,14 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
           if (f?.type.startsWith("video/")) handleUpload(f);
         }}
         style={{
-          borderRadius: "var(--st-br, 20px)",
+          borderRadius: "var(--radius-block)",
           border: `2px dashed ${dragOver ? "rgba(16,24,32,0.35)" : "rgba(16,24,32,0.18)"}`,
           padding: "2.5rem 2rem",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           gap: "1rem",
-          background: dragOver ? "var(--st-ink-06)" : "transparent",
+          background: dragOver ? "hsl(var(--ink) / 0.06)" : "transparent",
           transition: "all 120ms",
         }}
       >
@@ -215,7 +215,7 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
             width: 48,
             height: 48,
             borderRadius: "50%",
-            background: "var(--st-ink-06)",
+            background: "hsl(var(--ink) / 0.06)",
             display: "grid",
             placeItems: "center",
           }}
@@ -223,14 +223,14 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
           {uploading ? (
             <Spinner className="h-5 w-5" />
           ) : (
-            <VideoIcon size={20} style={{ color: "var(--st-ink-50)" }} />
+            <VideoIcon size={20} style={{ color: "hsl(var(--ink) / 0.5)" }} />
           )}
         </div>
         <div style={{ textAlign: "center" }}>
-          <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 500, color: "var(--st-ink)" }}>
+          <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 500, color: "hsl(var(--ink))" }}>
             {uploading ? "Upload en cours…" : "Déposer une vidéo ou importer"}
           </p>
-          <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: "var(--st-ink-50)" }}>
+          <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: "hsl(var(--ink) / 0.5)" }}>
             MP4, WebM, MOV
           </p>
         </div>
@@ -249,7 +249,7 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
               cursor: "pointer",
               fontSize: "0.8125rem",
               fontWeight: 500,
-              color: "var(--st-ink)",
+              color: "hsl(var(--ink))",
             }}
           >
             <Upload size={14} />
@@ -268,7 +268,7 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
               cursor: "pointer",
               fontSize: "0.8125rem",
               fontWeight: 500,
-              color: "var(--st-ink)",
+              color: "hsl(var(--ink))",
             }}
           >
             <LinkIcon size={14} />

@@ -46,7 +46,7 @@ function renderPostContent(text: string): (string | JSX.Element)[] {
         target="_blank"
         rel="noopener noreferrer"
         className="underline"
-        style={{ color: "var(--st-primary, #2563eb)" }}
+        style={{ color: "hsl(var(--feedback-info))" }}
       >
         {label}
       </a>,
@@ -87,7 +87,7 @@ function StaffBadge() {
   return (
     <span
       className="inline-flex items-center text-micro font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
-      style={{ background: "var(--st-ink)", color: "#fff" }}
+      style={{ background: "hsl(var(--ink))", color: "#fff" }}
     >
       Staff
     </span>
@@ -187,11 +187,11 @@ export default function PracticePostCard({
 
   return (
     <div className="rounded-2xl border space-y-0 overflow-hidden"
-      style={{ background: "var(--st-white)", borderColor: post.is_pinned ? "rgba(255,209,0,0.6)" : "rgba(16,24,32,0.08)" }}>
+      style={{ background: "hsl(var(--white))", borderColor: post.is_pinned ? "rgba(255,209,0,0.6)" : "rgba(16,24,32,0.08)" }}>
       {/* Pinned banner */}
       {post.is_pinned && (
         <div className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold"
-          style={{ background: "rgba(255,209,0,0.15)", color: "var(--st-ink)" }}>
+          style={{ background: "rgba(255,209,0,0.15)", color: "hsl(var(--ink))" }}>
           <Pin size={12} />
           Épinglé
         </div>
@@ -199,17 +199,17 @@ export default function PracticePostCard({
       {/* Header */}
       <div className="flex items-start gap-3 p-4">
         <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
-          style={{ background: post.author_photo_url ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
+          style={{ background: post.author_photo_url ? "transparent" : "hsl(var(--yellow-brand))", color: "#101820" }}>
           {post.author_photo_url
             ? <img src={post.author_photo_url} alt={displayName} className="w-full h-full object-cover" />
             : initials}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold leading-tight flex items-center gap-1.5" style={{ color: "var(--st-ink)" }}>
+          <p className="text-sm font-semibold leading-tight flex items-center gap-1.5" style={{ color: "hsl(var(--ink))" }}>
             {displayName}
             {post.author_is_staff && <StaffBadge />}
           </p>
-          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+          <p className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>
             {formatDistanceToNow(new Date(post.created_at), { locale: fr, addSuffix: true })}
           </p>
         </div>
@@ -217,7 +217,7 @@ export default function PracticePostCard({
           <button
             onClick={() => onPin(post.id, !post.is_pinned)}
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors shrink-0"
-            style={{ color: post.is_pinned ? "var(--st-yellow, #FFD100)" : "var(--st-ink-muted)" }}
+            style={{ color: post.is_pinned ? "hsl(var(--yellow-brand))" : "hsl(var(--ink) / 0.55)" }}
             title={post.is_pinned ? "Désépingler" : "Épingler"}
           >
             {post.is_pinned ? <PinOff size={14} /> : <Pin size={14} />}
@@ -227,7 +227,7 @@ export default function PracticePostCard({
           <button
             onClick={() => { setEditingPostText(post.content ?? ""); setEditingPost(true); }}
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors shrink-0"
-            style={{ color: "var(--st-ink-muted)" }}
+            style={{ color: "hsl(var(--ink) / 0.55)" }}
             title={isOwn ? "Modifier mon message" : "Modifier (admin)"}
           >
             <Pencil size={14} />
@@ -237,7 +237,7 @@ export default function PracticePostCard({
           <button
             onClick={() => onDelete(post.id)}
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors shrink-0"
-            style={{ color: "var(--st-ink-muted)" }}
+            style={{ color: "hsl(var(--ink) / 0.55)" }}
             title={isOwn ? "Supprimer mon message" : "Supprimer (admin)"}
           >
             <Trash2 size={14} />
@@ -250,13 +250,13 @@ export default function PracticePostCard({
         <a
           href={`/lms/${post.course_id}/player?email=${encodeURIComponent(currentEmail)}&lesson=${post.lesson_id}`}
           className="mx-4 mb-3 inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full hover:underline w-fit max-w-[calc(100%-2rem)]"
-          style={{ background: "rgba(255,209,0,0.15)", color: "var(--st-ink)" }}
+          style={{ background: "rgba(255,209,0,0.15)", color: "hsl(var(--ink))" }}
           title={[post.course_title, post.module_title, post.lesson_title].filter(Boolean).join(" › ") || "Voir la leçon d'origine"}
         >
           <BookOpen size={12} className="shrink-0" />
           <span className="truncate">
-            {post.course_title && <span style={{ color: "var(--st-ink-muted)" }}>{post.course_title} › </span>}
-            {post.module_title && <span style={{ color: "var(--st-ink-muted)" }}>{post.module_title} › </span>}
+            {post.course_title && <span style={{ color: "hsl(var(--ink) / 0.55)" }}>{post.course_title} › </span>}
+            {post.module_title && <span style={{ color: "hsl(var(--ink) / 0.55)" }}>{post.module_title} › </span>}
             <strong>{post.lesson_title ?? "leçon"}</strong>
           </span>
         </a>
@@ -265,7 +265,7 @@ export default function PracticePostCard({
 
       {/* Content */}
       {post.content && !editingPost && (
-        <p className="px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>
+        <p className="px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "hsl(var(--ink))" }}>
           {renderPostContent(asciiToEmoji(post.content))}
         </p>
       )}
@@ -273,7 +273,7 @@ export default function PracticePostCard({
         <div className="px-4 pb-3 flex flex-col gap-2">
           <textarea
             className="w-full text-sm rounded-lg border px-3 py-2 resize-none focus:outline-none focus:ring-2"
-            style={{ borderColor: "rgba(16,24,32,0.15)", minHeight: 80, color: "var(--st-ink)", background: "var(--st-surface, #fff)" }}
+            style={{ borderColor: "rgba(16,24,32,0.15)", minHeight: 80, color: "hsl(var(--ink))", background: "hsl(var(--grey-light))" }}
             value={editingPostText}
             onChange={(e) => setEditingPostText(e.target.value)}
             autoFocus
@@ -282,7 +282,7 @@ export default function PracticePostCard({
             <button
               onClick={() => setEditingPost(false)}
               className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg hover:bg-black/5 transition-colors"
-              style={{ color: "var(--st-ink-muted)" }}
+              style={{ color: "hsl(var(--ink) / 0.55)" }}
             >
               <X size={13} /> Annuler
             </button>
@@ -299,7 +299,7 @@ export default function PracticePostCard({
               }}
               disabled={updatePost.isPending || !editingPostText.trim()}
               className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg transition-colors font-medium disabled:opacity-50"
-              style={{ background: "var(--st-ink)", color: "#fff" }}
+              style={{ background: "hsl(var(--ink))", color: "#fff" }}
             >
               <Check size={13} /> Enregistrer
             </button>
@@ -375,14 +375,14 @@ export default function PracticePostCard({
             onClick={() => handleFileDownload(fileHref)}
             disabled={downloadingFile}
             className="flex flex-col items-center justify-center gap-2 w-full px-4 py-10 hover:bg-black/5 transition-colors"
-            style={{ background: "rgba(16,24,32,0.04)", color: "var(--st-ink)", minHeight: 220 }}
+            style={{ background: "rgba(16,24,32,0.04)", color: "hsl(var(--ink))", minHeight: 220 }}
             title={shownFileName ?? "Télécharger le fichier"}
           >
-            <FileText size={48} style={{ color: "var(--st-ink-muted)" }} />
+            <FileText size={48} style={{ color: "hsl(var(--ink) / 0.55)" }} />
             <span className="text-sm font-medium text-center break-all px-4">
               {shownFileName ?? "Télécharger le fichier"}
             </span>
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--st-ink-muted)" }}>
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: "hsl(var(--ink) / 0.55)" }}>
               <Download size={14} />
               {downloadingFile ? "Préparation..." : "Télécharger"}
             </span>
@@ -402,7 +402,7 @@ export default function PracticePostCard({
               key={tag}
               onClick={() => onSelectTag(tag)}
               className="text-xs px-2 py-0.5 rounded-full font-medium transition-colors hover:bg-black/5"
-              style={{ background: "rgba(16,24,32,0.05)", color: "var(--st-ink-muted)" }}
+              style={{ background: "rgba(16,24,32,0.05)", color: "hsl(var(--ink) / 0.55)" }}
             >
               #{tag}
             </button>
@@ -412,7 +412,7 @@ export default function PracticePostCard({
 
       {/* Reaction bar — per-emoji counts + comment count */}
       {(post.reaction_count > 0 || post.comment_count > 0) && (
-        <div className="px-4 py-2 flex items-center gap-2 flex-wrap text-xs border-t" style={{ borderColor: "rgba(16,24,32,0.06)", color: "var(--st-ink-muted)" }}>
+        <div className="px-4 py-2 flex items-center gap-2 flex-wrap text-xs border-t" style={{ borderColor: "rgba(16,24,32,0.06)", color: "hsl(var(--ink) / 0.55)" }}>
           <TooltipProvider delayDuration={300}>
             {REACTION_EMOJIS.filter((e) => (post.reactions_by_type?.[e.emoji] ?? 0) > 0).map((e) => {
               const users = post.reactions_by_type_users?.[e.emoji] ?? [];
@@ -457,7 +457,7 @@ export default function PracticePostCard({
           <div
             ref={emojiPickerRef}
             className="absolute bottom-full left-0 mb-2 flex items-center gap-1 px-2 py-1.5 rounded-2xl shadow-lg border z-10"
-            style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.1)" }}
+            style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.1)" }}
           >
             {REACTION_EMOJIS.map((e) => {
               const already = post.my_reaction_types?.includes(e.emoji);
@@ -482,7 +482,7 @@ export default function PracticePostCard({
         <button
           onClick={() => setShowEmojiPicker(v => !v)}
           className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-black/5"
-          style={{ color: post.i_reacted ? "var(--st-yellow, #FFD100)" : "var(--st-ink-muted)", fontFamily: "inherit" }}
+          style={{ color: post.i_reacted ? "hsl(var(--yellow-brand))" : "hsl(var(--ink) / 0.55)", fontFamily: "inherit" }}
         >
           <Smile size={16} />
           Réagir
@@ -490,7 +490,7 @@ export default function PracticePostCard({
         <button
           onClick={() => setShowComments(v => !v)}
           className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-black/5 border-l"
-          style={{ color: "var(--st-ink-muted)", borderColor: "rgba(16,24,32,0.06)", fontFamily: "inherit" }}
+          style={{ color: "hsl(var(--ink) / 0.55)", borderColor: "rgba(16,24,32,0.06)", fontFamily: "inherit" }}
         >
           <MessageSquare size={16} />
           Commenter
@@ -499,7 +499,7 @@ export default function PracticePostCard({
 
       {/* Comments section */}
       {showComments && (
-        <div className="border-t px-4 py-3 space-y-3" style={{ borderColor: "rgba(16,24,32,0.06)", background: "var(--st-surface, #F2F4F4)" }}>
+        <div className="border-t px-4 py-3 space-y-3" style={{ borderColor: "rgba(16,24,32,0.06)", background: "hsl(var(--grey-light))" }}>
           {comments.map((c) => {
             const cName = c.is_staff_reply && c.author_display_name
               ? c.author_display_name
@@ -545,17 +545,17 @@ export default function PracticePostCard({
             return (
               <div key={c.id} className="flex items-start gap-2 group">
                 <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shrink-0"
-                  style={{ background: c.author_photo_url ? "transparent" : (c.is_staff_reply ? "var(--st-ink)" : "var(--st-yellow)"), color: c.is_staff_reply ? "#fff" : "#101820" }}>
+                  style={{ background: c.author_photo_url ? "transparent" : (c.is_staff_reply ? "hsl(var(--ink))" : "hsl(var(--yellow-brand))"), color: c.is_staff_reply ? "#fff" : "#101820" }}>
                   {c.author_photo_url
                     ? <img src={c.author_photo_url} alt={cName} className="w-full h-full object-cover" />
                     : cInitials}
                 </div>
-                <div className="flex-1 rounded-xl px-3 py-2" style={{ background: "var(--st-white)" }}>
+                <div className="flex-1 rounded-xl px-3 py-2" style={{ background: "hsl(var(--white))" }}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <p className="text-xs font-semibold truncate" style={{ color: "var(--st-ink)" }}>{cName}</p>
+                      <p className="text-xs font-semibold truncate" style={{ color: "hsl(var(--ink))" }}>{cName}</p>
                       {c.is_staff_reply && <StaffBadge />}
-                      <span className="text-micro shrink-0" style={{ color: "var(--st-ink-muted)" }}>
+                      <span className="text-micro shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }}>
                         {formatDistanceToNow(new Date(c.created_at), { locale: fr, addSuffix: true })}
                       </span>
                     </div>
@@ -565,7 +565,7 @@ export default function PracticePostCard({
                           <button
                             onClick={startEdit}
                             className="p-1 rounded hover:bg-black/5 opacity-60 hover:opacity-100"
-                            style={{ color: "var(--st-ink-muted)" }}
+                            style={{ color: "hsl(var(--ink) / 0.55)" }}
                             title="Modifier mon commentaire"
                           >
                             <Pencil size={12} />
@@ -575,7 +575,7 @@ export default function PracticePostCard({
                           <button
                             onClick={handleDeleteComment}
                             className="p-1 rounded hover:bg-black/5 opacity-60 hover:opacity-100"
-                            style={{ color: "var(--st-ink-muted)" }}
+                            style={{ color: "hsl(var(--ink) / 0.55)" }}
                             title={cIsOwn ? "Supprimer mon commentaire" : "Supprimer (admin)"}
                           >
                             <Trash2 size={12} />
@@ -596,13 +596,13 @@ export default function PracticePostCard({
                           if (e.key === "Escape") cancelEdit();
                         }}
                         className="flex-1 text-sm bg-transparent outline-none border-b"
-                        style={{ color: "var(--st-ink)", borderColor: "rgba(16,24,32,0.2)", fontFamily: "inherit" }}
+                        style={{ color: "hsl(var(--ink))", borderColor: "rgba(16,24,32,0.2)", fontFamily: "inherit" }}
                       />
                       <button
                         onClick={saveEdit}
                         disabled={updateComment.isPending || !editingText.trim()}
                         className="p-1 rounded hover:bg-black/5 disabled:opacity-40"
-                        style={{ color: "var(--st-ink)" }}
+                        style={{ color: "hsl(var(--ink))" }}
                         title="Enregistrer"
                       >
                         <Check size={14} />
@@ -610,14 +610,14 @@ export default function PracticePostCard({
                       <button
                         onClick={cancelEdit}
                         className="p-1 rounded hover:bg-black/5"
-                        style={{ color: "var(--st-ink-muted)" }}
+                        style={{ color: "hsl(var(--ink) / 0.55)" }}
                         title="Annuler"
                       >
                         <X size={14} />
                       </button>
                     </div>
                   ) : (
-                    <p className="text-sm mt-0.5 whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>{asciiToEmoji(c.content)}</p>
+                    <p className="text-sm mt-0.5 whitespace-pre-wrap" style={{ color: "hsl(var(--ink))" }}>{asciiToEmoji(c.content)}</p>
                   )}
                 </div>
               </div>
@@ -626,7 +626,7 @@ export default function PracticePostCard({
           {/* Comment input */}
           <div className="flex items-end gap-2">
             <div className="flex-1 flex items-end gap-2 rounded-2xl border px-3 py-1.5"
-              style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.12)" }}>
+              style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.12)" }}>
               <textarea
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
@@ -639,7 +639,7 @@ export default function PracticePostCard({
                 rows={1}
                 placeholder="Ajouter un commentaire... (Entrée pour envoyer, Maj+Entrée pour un retour à la ligne)"
                 className="flex-1 text-sm bg-transparent outline-none resize-none max-h-40 py-1 leading-snug"
-                style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+                style={{ color: "hsl(var(--ink))", fontFamily: "inherit" }}
                 onInput={(e) => {
                   const el = e.currentTarget;
                   el.style.height = "auto";
@@ -652,7 +652,7 @@ export default function PracticePostCard({
               onClick={handleComment}
               disabled={!commentText.trim() || createComment.isPending}
               className="w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 shrink-0"
-              style={{ background: "var(--st-yellow)", color: "#101820" }}
+              style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}
             >
               <Send size={14} />
             </button>

@@ -58,12 +58,12 @@ export default function QuizBlockEditor({ courseId, lessonId, content, onChange,
     return (
       <div
         className="flex items-center gap-3 rounded-xl px-4 py-3"
-        style={{ background: "var(--st-surface)", border: "1px solid var(--st-ink-08)" }}
+        style={{ background: "hsl(var(--grey-light))", border: "1px solid hsl(var(--ink) / 0.08)" }}
       >
-        <HelpCircle size={20} style={{ color: "var(--st-ink-50)", flexShrink: 0 }} />
+        <HelpCircle size={20} style={{ color: "hsl(var(--ink) / 0.5)", flexShrink: 0 }} />
         <div className="flex-1 min-w-0">
           {selected ? (
-            <p className="text-sm font-medium truncate" style={{ color: "var(--st-ink)" }}>
+            <p className="text-sm font-medium truncate" style={{ color: "hsl(var(--ink))" }}>
               {selected.title}
             </p>
           ) : quizzes.length === 0 ? (
@@ -71,7 +71,7 @@ export default function QuizBlockEditor({ courseId, lessonId, content, onChange,
               onClick={handleCreateQuiz}
               disabled={createQuiz.isPending || !courseId}
               className="text-sm font-medium"
-              style={{ color: "var(--st-ink-50)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+              style={{ color: "hsl(var(--ink) / 0.5)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
             >
               {createQuiz.isPending ? "Création…" : "+ Créer un quiz"}
             </button>
@@ -94,7 +94,7 @@ export default function QuizBlockEditor({ courseId, lessonId, content, onChange,
         {selected && (
           <button
             className="text-xs shrink-0 underline"
-            style={{ color: "var(--st-ink-50)" }}
+            style={{ color: "hsl(var(--ink) / 0.5)" }}
             onClick={() => onChange({ ...content, quiz_id: null })}
           >
             Changer

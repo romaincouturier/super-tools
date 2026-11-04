@@ -34,7 +34,7 @@ export default function GalleryBlockViewer({ content }: Props) {
           {img.caption_html && (
             <div
               className="px-2 py-1 text-xs text-center"
-              style={{ color: "var(--st-ink-60)" }}
+              style={{ color: "hsl(var(--ink) / 0.6)" }}
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(img.caption_html) }}
             />
           )}
@@ -99,13 +99,13 @@ function CarouselView({ images }: { images: { url: string | null; caption_html?:
       {images[current].caption_html && (
         <div
           className="mt-2 text-sm text-center"
-          style={{ color: "var(--st-ink-60)" }}
+          style={{ color: "hsl(var(--ink) / 0.6)" }}
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(images[current].caption_html!) }}
         />
       )}
 
       {images.length > 1 && (
-        <p className="mt-1 text-xs text-center" style={{ color: "var(--st-ink-50)" }}>
+        <p className="mt-1 text-xs text-center" style={{ color: "hsl(var(--ink) / 0.5)" }}>
           {current + 1} / {images.length}
         </p>
       )}

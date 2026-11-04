@@ -115,38 +115,12 @@
   --sidebar-ring: var(--action-focus);
 
   /* ── Valeurs structurantes ────────────────────────────────────────── */
-  --radius: 0.5rem;
   --radius-block: 20px;         /* Blocs du builder LMS */
   --radius-pill: 999px;
-  --control-sm: 2rem;
-  --control-md: 2.5rem;         /* Hauteur des champs et boutons par défaut */
   --duration-fast: 120ms;
   --duration-base: 200ms;
   --duration-slow: 300ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --shadow-block: 0 2px 12px hsl(var(--ink) / 0.07);
   --content-width: 768px;       /* Largeur de lecture d'une leçon */
-
-  /* ── Jetons historiques du builder (--st-*) ───────────────────────────
-   * Conservés pour les 760 usages existants ; ils pointent vers la palette.
-   * Ne plus en créer : utiliser les alias de la couche 2.
-   */
-  --st-yellow: hsl(var(--yellow-brand));
-  --st-yellow-soft: hsl(var(--yellow-brand) / 0.22);
-  --st-yellow-border: hsl(var(--yellow-brand) / 0.6);
-  --st-ink: hsl(var(--ink));
-  --st-ink-muted: hsl(var(--ink) / 0.55);
-  --st-ink-soft: hsl(var(--ink) / 0.06);
-  --st-ink-06: hsl(var(--ink) / 0.06);
-  --st-ink-08: hsl(var(--ink) / 0.08);
-  --st-ink-12: hsl(var(--ink) / 0.12);
-  --st-ink-50: hsl(var(--ink) / 0.5);
-  --st-ink-60: hsl(var(--ink) / 0.6);
-  --st-surface: hsl(var(--grey-light));
-  --st-white: hsl(var(--white));
-  --st-radius-block: var(--radius-block);
-  --st-radius-pill: var(--radius-pill);
-  --st-shadow-block: var(--shadow-block);
-  --st-content-width: var(--content-width);
-  --st-br: var(--radius-block);
 }

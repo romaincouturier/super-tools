@@ -79,9 +79,9 @@ export default function BuilderBlockWrapper({
       <div
         className={`relative px-6 ${py} transition-shadow`}
         style={{
-          background: "var(--st-white)",
+          background: "hsl(var(--white))",
           borderRadius: blockRadius,
-          boxShadow: hovered ? "var(--st-shadow-block)" : "none",
+          boxShadow: hovered ? "var(--shadow-block)" : "none",
         }}
       >
         {/* Hover action buttons */}
@@ -104,7 +104,7 @@ export default function BuilderBlockWrapper({
               onMouseEnter={(e) => {
                 if (!dragHandleProps) return;
                 (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
-                (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+                (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -123,7 +123,7 @@ export default function BuilderBlockWrapper({
                 style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
-                  (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+                  (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -143,7 +143,7 @@ export default function BuilderBlockWrapper({
                 style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
-                  (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+                  (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -163,7 +163,7 @@ export default function BuilderBlockWrapper({
                 style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
-                  (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+                  (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -183,7 +183,7 @@ export default function BuilderBlockWrapper({
                 style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
-                  (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+                  (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -203,7 +203,7 @@ export default function BuilderBlockWrapper({
                 style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
-                  (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+                  (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -224,7 +224,7 @@ export default function BuilderBlockWrapper({
                 style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
-                  (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+                  (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -244,7 +244,7 @@ export default function BuilderBlockWrapper({
               style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
-                (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+                (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLElement).style.background = "transparent";

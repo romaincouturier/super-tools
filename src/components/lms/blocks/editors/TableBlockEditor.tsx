@@ -59,7 +59,7 @@ export default function TableBlockEditor({ content, onChange, slim }: Props) {
 
   if (slim) {
     return (
-      <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--st-ink-08)" }}>
+      <div className="rounded-xl overflow-hidden" style={{ border: "1px solid hsl(var(--ink) / 0.08)" }}>
         <EditorContent editor={editor} />
       </div>
     );

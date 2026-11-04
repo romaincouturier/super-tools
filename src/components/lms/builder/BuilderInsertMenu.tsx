@@ -136,8 +136,8 @@ export default function BuilderInsertMenu({ onInsert, onInsertTemplate, onClose,
         width: 320,
         maxHeight: 480,
         overflowY: "auto",
-        background: "var(--st-white)",
-        border: "1px solid var(--st-ink-08)",
+        background: "hsl(var(--white))",
+        border: "1px solid hsl(var(--ink) / 0.08)",
         borderRadius: 20,
         boxShadow: "0 10px 30px rgba(16,24,32,0.1)",
         padding: ".75rem",
@@ -148,7 +148,7 @@ export default function BuilderInsertMenu({ onInsert, onInsertTemplate, onClose,
     >
       {/* Search */}
       <div className="flex items-center gap-2 pb-2">
-        <span className="flex items-center" style={{ color: "var(--st-ink-50)", padding: "0 .5rem" }}>
+        <span className="flex items-center" style={{ color: "hsl(var(--ink) / 0.5)", padding: "0 .5rem" }}>
           <Search size={14} />
         </span>
         <input
@@ -158,10 +158,10 @@ export default function BuilderInsertMenu({ onInsert, onInsertTemplate, onClose,
           placeholder="Rechercher un bloc…"
           className="flex-1 border-none outline-none text-sm"
           style={{
-            background: "var(--st-surface)",
+            background: "hsl(var(--grey-light))",
             borderRadius: 8,
             padding: ".5rem .75rem",
-            color: "var(--st-ink)",
+            color: "hsl(var(--ink))",
             fontFamily: "inherit",
           }}
         />
@@ -177,7 +177,7 @@ export default function BuilderInsertMenu({ onInsert, onInsertTemplate, onClose,
         <Section title="Mise en page" items={filteredLayout} onInsert={onInsert} onClose={onClose} />
       )}
       {filteredTemplates.length === 0 && filteredContent.length === 0 && filteredLayout.length === 0 && (
-        <p className="text-xs text-center py-6" style={{ color: "var(--st-ink-50)" }}>
+        <p className="text-xs text-center py-6" style={{ color: "hsl(var(--ink) / 0.5)" }}>
           Aucun bloc trouvé
         </p>
       )}
@@ -196,7 +196,7 @@ function TemplateSection({
 }) {
   return (
     <div>
-      <div style={{ fontWeight: 700, fontSize: ".6875rem", letterSpacing: ".05em", color: "var(--st-ink-50)", padding: ".625rem .875rem .375rem", textTransform: "uppercase" }}>
+      <div style={{ fontWeight: 700, fontSize: ".6875rem", letterSpacing: ".05em", color: "hsl(var(--ink) / 0.5)", padding: ".625rem .875rem .375rem", textTransform: "uppercase" }}>
         Modèles
       </div>
       {items.map((tpl) => {
@@ -207,16 +207,16 @@ function TemplateSection({
             role="menuitem"
             onClick={() => { onInsertTemplate(tpl.id); onClose(); }}
             className="w-full flex items-center gap-3 text-left"
-            style={{ padding: ".625rem .875rem", borderRadius: 12, color: "var(--st-ink)", fontFamily: "inherit", transition: "background 120ms" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--st-yellow-soft)"; }}
+            style={{ padding: ".625rem .875rem", borderRadius: 12, color: "hsl(var(--ink))", fontFamily: "inherit", transition: "background 120ms" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "hsl(var(--yellow-brand) / 0.22)"; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
           >
-            <span className="flex items-center justify-center shrink-0" style={{ width: 32, height: 32, borderRadius: 8, background: "var(--st-surface)", color: "var(--st-ink)" }}>
+            <span className="flex items-center justify-center shrink-0" style={{ width: 32, height: 32, borderRadius: 8, background: "hsl(var(--grey-light))", color: "hsl(var(--ink))" }}>
               <Icon size={18} />
             </span>
             <span className="flex-1 min-w-0">
-              <div style={{ fontWeight: 500, fontSize: ".875rem", color: "var(--st-ink)", lineHeight: 1.2 }}>{tpl.label}</div>
-              <div style={{ fontSize: ".75rem", color: "var(--st-ink-60)", marginTop: ".125rem", lineHeight: 1.3 }}>{tpl.description}</div>
+              <div style={{ fontWeight: 500, fontSize: ".875rem", color: "hsl(var(--ink))", lineHeight: 1.2 }}>{tpl.label}</div>
+              <div style={{ fontSize: ".75rem", color: "hsl(var(--ink) / 0.6)", marginTop: ".125rem", lineHeight: 1.3 }}>{tpl.description}</div>
             </span>
           </button>
         );
@@ -245,7 +245,7 @@ function Section({
           fontWeight: 700,
           fontSize: ".6875rem",
           letterSpacing: ".05em",
-          color: "var(--st-ink-50)",
+          color: "hsl(var(--ink) / 0.5)",
           padding: ".625rem .875rem .375rem",
           textTransform: "uppercase",
         }}
@@ -272,12 +272,12 @@ function Section({
               borderRadius: 12,
               opacity: item.active ? 1 : 0.4,
               cursor: item.active ? "pointer" : "not-allowed",
-              color: "var(--st-ink)",
+              color: "hsl(var(--ink))",
               fontFamily: "inherit",
               transition: "background 120ms",
             }}
             onMouseEnter={(e) => {
-              if (item.active) (e.currentTarget as HTMLElement).style.background = "var(--st-yellow-soft)";
+              if (item.active) (e.currentTarget as HTMLElement).style.background = "hsl(var(--yellow-brand) / 0.22)";
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -286,17 +286,17 @@ function Section({
             {/* Icon — 32×32 matching design */}
             <span
               className="flex items-center justify-center shrink-0"
-              style={{ width: 32, height: 32, borderRadius: 8, background: "var(--st-surface)", color: "var(--st-ink)" }}
+              style={{ width: 32, height: 32, borderRadius: 8, background: "hsl(var(--grey-light))", color: "hsl(var(--ink))" }}
             >
               <Icon size={18} />
             </span>
             {/* Label + description */}
             <span className="flex-1 min-w-0">
-              <div style={{ fontWeight: 500, fontSize: ".875rem", color: "var(--st-ink)", lineHeight: 1.2 }}>
+              <div style={{ fontWeight: 500, fontSize: ".875rem", color: "hsl(var(--ink))", lineHeight: 1.2 }}>
                 {item.label}
               </div>
               {meta?.desc && (
-                <div style={{ fontSize: ".75rem", color: "var(--st-ink-60)", marginTop: ".125rem", lineHeight: 1.3 }}>
+                <div style={{ fontSize: ".75rem", color: "hsl(var(--ink) / 0.6)", marginTop: ".125rem", lineHeight: 1.3 }}>
                   {meta.desc}
                 </div>
               )}
@@ -307,11 +307,11 @@ function Section({
                 style={{
                   borderRadius: 6,
                   padding: ".125rem .375rem",
-                  border: "1px solid var(--st-ink-08)",
+                  border: "1px solid hsl(var(--ink) / 0.08)",
                   fontFamily: "ui-monospace, monospace",
                   fontSize: ".6875rem",
-                  color: "var(--st-ink-60)",
-                  background: "var(--st-white)",
+                  color: "hsl(var(--ink) / 0.6)",
+                  background: "hsl(var(--white))",
                   flexShrink: 0,
                 }}
               >
@@ -323,11 +323,11 @@ function Section({
                 style={{
                   borderRadius: 6,
                   padding: ".125rem .375rem",
-                  border: "1px solid var(--st-ink-08)",
+                  border: "1px solid hsl(var(--ink) / 0.08)",
                   fontFamily: "ui-monospace, monospace",
                   fontSize: ".6875rem",
-                  color: "var(--st-ink-60)",
-                  background: "var(--st-white)",
+                  color: "hsl(var(--ink) / 0.6)",
+                  background: "hsl(var(--white))",
                   flexShrink: 0,
                 }}
               >
@@ -354,9 +354,9 @@ export function InsertButton({ onClick }: { onClick: () => void }) {
         width: 32,
         height: 32,
         borderRadius: "999px",
-        border: hovered ? "1px solid transparent" : "1px solid var(--st-ink-08)",
-        background: hovered ? "var(--st-yellow)" : "var(--st-white)",
-        color: "var(--st-ink)",
+        border: hovered ? "1px solid transparent" : "1px solid hsl(var(--ink) / 0.08)",
+        background: hovered ? "hsl(var(--yellow-brand))" : "hsl(var(--white))",
+        color: "hsl(var(--ink))",
         transform: hovered ? "translate(-50%, -50%) scale(1.08)" : "translate(-50%, -50%)",
         boxShadow: hovered ? "0 6px 16px rgba(255,209,0,0.4)" : "0 2px 6px rgba(16,24,32,0.06)",
         transition: "all 200ms ease",

@@ -61,11 +61,11 @@ export default function GifPicker({
   return (
     <div
       className="rounded-2xl border overflow-hidden"
-      style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.12)", width: 320, maxHeight: 420, display: "flex", flexDirection: "column" }}
+      style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.12)", width: 320, maxHeight: 420, display: "flex", flexDirection: "column" }}
     >
       {/* Search bar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-        <Search size={14} style={{ color: "var(--st-ink-muted)", flexShrink: 0 }} />
+        <Search size={14} style={{ color: "hsl(var(--ink) / 0.55)", flexShrink: 0 }} />
         <input
           ref={inputRef}
           type="text"
@@ -73,9 +73,9 @@ export default function GifPicker({
           onChange={(e) => handleSearch(e.target.value)}
           placeholder="Rechercher un GIF…"
           className="flex-1 text-sm bg-transparent outline-none"
-          style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+          style={{ color: "hsl(var(--ink))", fontFamily: "inherit" }}
         />
-        <button onClick={onClose} className="p-1 rounded hover:bg-black/5" style={{ color: "var(--st-ink-muted)" }}>
+        <button onClick={onClose} className="p-1 rounded hover:bg-black/5" style={{ color: "hsl(var(--ink) / 0.55)" }}>
           <X size={14} />
         </button>
       </div>
@@ -84,10 +84,10 @@ export default function GifPicker({
       <div className="overflow-y-auto flex-1 p-2">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 size={20} className="animate-spin" style={{ color: "var(--st-ink-muted)" }} />
+            <Loader2 size={20} className="animate-spin" style={{ color: "hsl(var(--ink) / 0.55)" }} />
           </div>
         ) : gifs.length === 0 ? (
-          <p className="text-center text-sm py-8" style={{ color: "var(--st-ink-muted)" }}>Aucun résultat</p>
+          <p className="text-center text-sm py-8" style={{ color: "hsl(var(--ink) / 0.55)" }}>Aucun résultat</p>
         ) : (
           <div className="grid grid-cols-3 gap-1">
             {gifs.map((gif) => (
@@ -111,7 +111,7 @@ export default function GifPicker({
 
       {/* Giphy attribution */}
       <div className="px-3 py-1.5 border-t text-right" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-        <span className="text-micro font-semibold tracking-wide" style={{ color: "var(--st-ink-muted)" }}>
+        <span className="text-micro font-semibold tracking-wide" style={{ color: "hsl(var(--ink) / 0.55)" }}>
           Powered by GIPHY
         </span>
       </div>

@@ -95,9 +95,9 @@ export default function LessonBuilderPage() {
     return (
       <div
         className="builder-layout flex items-center justify-center h-screen"
-        style={{ background: "var(--st-white)", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}
+        style={{ background: "hsl(var(--white))", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}
       >
-        <p style={{ color: "var(--st-ink-muted)", fontSize: 14 }}>Chargement…</p>
+        <p style={{ color: "hsl(var(--ink) / 0.55)", fontSize: 14 }}>Chargement…</p>
       </div>
     );
   }
@@ -152,7 +152,7 @@ export default function LessonBuilderPage() {
         />
 
         {/* Scrollable canvas */}
-        <div className="flex-1 overflow-y-auto" style={{ background: "var(--st-white)" }}>
+        <div className="flex-1 overflow-y-auto" style={{ background: "hsl(var(--white))" }}>
           <BuilderCanvas
             lesson={lesson}
             courseId={courseId}
@@ -196,7 +196,7 @@ function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => v
           width: 2,
           height: hovered ? "60%" : "30%",
           borderRadius: 2,
-          background: hovered ? "var(--st-yellow)" : "rgba(16,24,32,0.12)",
+          background: hovered ? "hsl(var(--yellow-brand))" : "rgba(16,24,32,0.12)",
           transition: "height 160ms ease, background 160ms ease",
           pointerEvents: "none",
         }}

@@ -21,7 +21,7 @@ const ACTION_CONFIG: Record<ActionType, { icon: typeof Linkedin; label: string; 
   email: { icon: Mail, label: "Email", color: "bg-info-surface text-info-ink" },
   phone_call: { icon: Phone, label: "Appel", color: "bg-success-surface text-success" },
   coffee_invite: { icon: Coffee, label: "Café", color: "bg-caution-surface text-caution-ink" },
-  share_content: { icon: Share2, label: "Partage", color: "bg-pink-100 text-pink-800" },
+  share_content: { icon: Share2, label: "Partage", color: "bg-caution-surface text-caution-ink" },
 };
 
 interface WeeklyActionsProps {

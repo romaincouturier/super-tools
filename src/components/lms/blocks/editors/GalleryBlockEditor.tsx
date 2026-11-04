@@ -60,7 +60,7 @@ export default function GalleryBlockEditor({ lessonId, content, onChange, slim }
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium" style={{ color: "var(--st-ink-50)" }}>Affichage</span>
+          <span className="text-xs font-medium" style={{ color: "hsl(var(--ink) / 0.5)" }}>Affichage</span>
           <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: "rgba(16,24,32,0.14)" }}>
             {MODE_OPTIONS.map((opt) => (
               <button
@@ -70,10 +70,10 @@ export default function GalleryBlockEditor({ lessonId, content, onChange, slim }
                 className={cn(
                   "px-3 py-1 text-xs font-medium transition-colors",
                   mode === opt.value
-                    ? "bg-[var(--st-ink)] text-white"
+                    ? "bg-[hsl(var(--ink))] text-white"
                     : "bg-transparent hover:bg-[rgba(16,24,32,0.05)]",
                 )}
-                style={{ color: mode === opt.value ? "#fff" : "var(--st-ink)" }}
+                style={{ color: mode === opt.value ? "#fff" : "hsl(var(--ink))" }}
               >
                 {opt.label}
               </button>
@@ -83,7 +83,7 @@ export default function GalleryBlockEditor({ lessonId, content, onChange, slim }
 
         {mode === "grid" && (
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium" style={{ color: "var(--st-ink-50)" }}>Colonnes</span>
+            <span className="text-xs font-medium" style={{ color: "hsl(var(--ink) / 0.5)" }}>Colonnes</span>
             <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: "rgba(16,24,32,0.14)" }}>
               {COLUMNS_OPTIONS.map((n) => (
                 <button
@@ -93,10 +93,10 @@ export default function GalleryBlockEditor({ lessonId, content, onChange, slim }
                   className={cn(
                     "w-8 py-1 text-xs font-medium transition-colors",
                     columns === n
-                      ? "bg-[var(--st-ink)] text-white"
+                      ? "bg-[hsl(var(--ink))] text-white"
                       : "bg-transparent hover:bg-[rgba(16,24,32,0.05)]",
                   )}
-                  style={{ color: columns === n ? "#fff" : "var(--st-ink)" }}
+                  style={{ color: columns === n ? "#fff" : "hsl(var(--ink))" }}
                 >
                   {n}
                 </button>
@@ -127,17 +127,17 @@ export default function GalleryBlockEditor({ lessonId, content, onChange, slim }
           className="aspect-square flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed transition-colors"
           style={{
             borderColor: "rgba(16,24,32,0.18)",
-            color: "var(--st-ink-50)",
+            color: "hsl(var(--ink) / 0.5)",
             background: "transparent",
             minHeight: 80,
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor = "var(--st-yellow)";
-            (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+            (e.currentTarget as HTMLElement).style.borderColor = "hsl(var(--yellow-brand))";
+            (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLElement).style.borderColor = "rgba(16,24,32,0.18)";
-            (e.currentTarget as HTMLElement).style.color = "var(--st-ink-50)";
+            (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.5)";
           }}
         >
           <Images size={20} />
@@ -146,7 +146,7 @@ export default function GalleryBlockEditor({ lessonId, content, onChange, slim }
       </div>
 
       {images.length === 0 && (
-        <p className="text-xs text-center" style={{ color: "var(--st-ink-50)" }}>
+        <p className="text-xs text-center" style={{ color: "hsl(var(--ink) / 0.5)" }}>
           Cliquez sur « Ajouter » pour insérer votre première image.
         </p>
       )}
@@ -220,9 +220,9 @@ function ImageSlot({
       {uploading ? (
         <Spinner className="h-5 w-5" />
       ) : (
-        <Upload size={16} style={{ color: "var(--st-ink-50)" }} />
+        <Upload size={16} style={{ color: "hsl(var(--ink) / 0.5)" }} />
       )}
-      <span className="text-xs" style={{ color: "var(--st-ink-50)" }}>
+      <span className="text-xs" style={{ color: "hsl(var(--ink) / 0.5)" }}>
         {uploading ? "Upload…" : "Image"}
       </span>
     </div>

@@ -125,19 +125,19 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
       <ConfirmDialog />
       {/* CTA banner */}
       <div className="rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4"
-        style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1.5px solid var(--st-yellow, #FFD100)" }}>
+        style={{ background: "hsl(var(--yellow-brand) / 0.22)", border: "1.5px solid hsl(var(--yellow-brand))" }}>
         <div className="flex-1 space-y-1">
-          <p className="font-bold text-base" style={{ color: "var(--st-ink)", fontFamily: "inherit" }}>
+          <p className="font-bold text-base" style={{ color: "hsl(var(--ink))", fontFamily: "inherit" }}>
             Et si votre travail aidait quelqu'un d'autre ?
           </p>
-          <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+          <p className="text-sm" style={{ color: "hsl(var(--ink) / 0.55)" }}>
             Par votre travail, vous aidez tous les autres participants. Voir les travaux des autres aide à oser et à se lancer. En partageant un travail même imparfait, nous progressons tous ensemble.
           </p>
         </div>
         <button
           onClick={() => setDialogOpen(true)}
           className="shrink-0 px-4 py-2.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-80"
-          style={{ background: "var(--st-yellow, #FFD100)", color: "var(--st-ink)", fontFamily: "inherit" }}>
+          style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit" }}>
           Déposer un nouveau travail
         </button>
       </div>
@@ -146,19 +146,19 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
         {/* Stats sidebar */}
         <div className="lg:w-48 shrink-0 space-y-3">
           <div className="rounded-2xl border p-4 text-center"
-            style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
-            <p className="text-2xl font-bold" style={{ color: "var(--st-ink)" }}>{totalDeposits}</p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>déposés</p>
+            style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}>
+            <p className="text-2xl font-bold" style={{ color: "hsl(var(--ink))" }}>{totalDeposits}</p>
+            <p className="text-xs mt-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>déposés</p>
           </div>
           <div className="rounded-2xl border p-4 text-center"
-            style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
-            <p className="text-2xl font-bold" style={{ color: "var(--st-ink)" }}>{retours}</p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>retours</p>
+            style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}>
+            <p className="text-2xl font-bold" style={{ color: "hsl(var(--ink))" }}>{retours}</p>
+            <p className="text-xs mt-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>retours</p>
           </div>
           <div className="rounded-2xl border p-4 text-center"
-            style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
-            <p className="text-2xl font-bold" style={{ color: "var(--st-ink)" }}>{aCompleter}</p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>à compléter</p>
+            style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}>
+            <p className="text-2xl font-bold" style={{ color: "hsl(var(--ink))" }}>{aCompleter}</p>
+            <p className="text-xs mt-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>à compléter</p>
           </div>
         </div>
 
@@ -173,9 +173,9 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
                   onChange={(e) => setFilterCourseId(e.target.value)}
                   className="appearance-none rounded-xl border pl-3 pr-8 py-2 text-sm font-medium focus:outline-none"
                   style={{
-                    background: "var(--st-white)",
+                    background: "hsl(var(--white))",
                     borderColor: "rgba(16,24,32,0.12)",
-                    color: "var(--st-ink)",
+                    color: "hsl(var(--ink))",
                     fontFamily: "inherit",
                   }}>
                   <option value="">Toutes les formations</option>
@@ -186,7 +186,7 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
                   ))}
                 </select>
                 <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ color: "var(--st-ink-muted)" }} />
+                  style={{ color: "hsl(var(--ink) / 0.55)" }} />
               </div>
             </div>
           )}
@@ -199,11 +199,11 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
             <div className="rounded-2xl border p-10 text-center space-y-3"
               style={{ borderColor: "rgba(16,24,32,0.08)" }}>
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto"
-                style={{ background: "var(--st-surface, #F2F4F4)" }}>
-                <FileText size={22} style={{ color: "var(--st-ink-muted)" }} />
+                style={{ background: "hsl(var(--grey-light))" }}>
+                <FileText size={22} style={{ color: "hsl(var(--ink) / 0.55)" }} />
               </div>
-              <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Aucun travail déposé</p>
-              <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+              <p className="text-sm font-medium" style={{ color: "hsl(var(--ink))" }}>Aucun travail déposé</p>
+              <p className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>
                 Cliquez sur "Déposer un nouveau travail" pour partager votre premier travail.
               </p>
             </div>
@@ -217,16 +217,16 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
                   : null;
                 return (
                   <div key={d.id} className="rounded-2xl border overflow-hidden"
-                    style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
+                    style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}>
                     {/* Post header */}
                     <div className="flex items-center gap-3 px-5 pt-4 pb-2">
                       <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-sm"
-                        style={{ background: "var(--st-yellow, #FFD100)", color: "var(--st-ink)" }}>
+                        style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}>
                         {learnerInitials}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>Mon travail</p>
-                        <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+                        <p className="text-sm font-semibold" style={{ color: "hsl(var(--ink))" }}>Mon travail</p>
+                        <p className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>
                           {format(new Date(d.created_at), "d MMM yyyy", { locale: fr })}
                         </p>
                       </div>
@@ -234,7 +234,7 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
                       <button
                         onClick={() => handleDeleteDeposit(d.id)}
                         className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors shrink-0"
-                        style={{ color: "var(--st-ink-muted)" }}
+                        style={{ color: "hsl(var(--ink) / 0.55)" }}
                         title="Supprimer ce travail"
                       >
                         <Trash2 size={14} />
@@ -255,15 +255,15 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
                     )}
                     {d.file_url && !d.file_mime?.startsWith("image/") && (
                       <div className="mx-5 mb-3 rounded-xl flex items-center gap-3 p-3"
-                        style={{ background: "var(--st-surface, #F2F4F4)" }}>
-                        <FileImage size={20} style={{ color: "var(--st-ink-muted)" }} />
-                        <span className="text-sm truncate" style={{ color: "var(--st-ink)" }}>{d.file_name}</span>
+                        style={{ background: "hsl(var(--grey-light))" }}>
+                        <FileImage size={20} style={{ color: "hsl(var(--ink) / 0.55)" }} />
+                        <span className="text-sm truncate" style={{ color: "hsl(var(--ink))" }}>{d.file_name}</span>
                       </div>
                     )}
 
                     {/* Caption */}
                     {d.comment && (
-                      <p className="px-5 py-2 text-sm" style={{ color: "var(--st-ink)" }}>{d.comment}</p>
+                      <p className="px-5 py-2 text-sm" style={{ color: "hsl(var(--ink))" }}>{d.comment}</p>
                     )}
 
                     {/* Metadata */}
@@ -271,20 +271,20 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
                       <div className="px-5 pb-4 pt-1 flex flex-wrap items-center gap-2">
                         {courseTitle && (
                           <span className="text-xs px-2 py-0.5 rounded-lg"
-                            style={{ background: "var(--st-surface, #F2F4F4)", color: "var(--st-ink-muted)" }}>
+                            style={{ background: "hsl(var(--grey-light))", color: "hsl(var(--ink) / 0.55)" }}>
                             {courseTitle}
                           </span>
                         )}
                         {lessonTitle && (
                           <span className="text-xs px-2 py-0.5 rounded-lg"
-                            style={{ background: "var(--st-surface, #F2F4F4)", color: "var(--st-ink-muted)" }}>
+                            style={{ background: "hsl(var(--grey-light))", color: "hsl(var(--ink) / 0.55)" }}>
                             {lessonTitle}
                           </span>
                         )}
                         {lessonLink && (
                           <a href={lessonLink} target="_blank" rel="noopener noreferrer"
                             className="text-xs font-medium ml-auto flex items-center gap-1 hover:opacity-70 transition-opacity"
-                            style={{ color: "var(--st-ink)" }}>
+                            style={{ color: "hsl(var(--ink))" }}>
                             Voir la leçon <ArrowRight size={12} />
                           </a>
                         )}
@@ -310,8 +310,8 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
             <div
               className="rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors hover:border-primary"
               style={{
-                borderColor: previewUrl ? "var(--st-yellow, #FFD100)" : "rgba(16,24,32,0.15)",
-                background: "var(--st-surface, #F2F4F4)",
+                borderColor: previewUrl ? "hsl(var(--yellow-brand))" : "rgba(16,24,32,0.15)",
+                background: "hsl(var(--grey-light))",
                 minHeight: 180,
               }}
               onClick={() => fileInputRef.current?.click()}
@@ -321,11 +321,11 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
                 <img src={previewUrl} alt="aperçu" className="w-full rounded-xl object-cover" style={{ maxHeight: 240 }} />
               ) : (
                 <div className="flex flex-col items-center gap-2 py-8 px-4 text-center">
-                  <Upload size={28} style={{ color: "var(--st-ink-muted)" }} />
-                  <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>
+                  <Upload size={28} style={{ color: "hsl(var(--ink) / 0.55)" }} />
+                  <p className="text-sm font-medium" style={{ color: "hsl(var(--ink))" }}>
                     Cliquez ou glissez une image
                   </p>
-                  <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>PNG, JPG</p>
+                  <p className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>PNG, JPG</p>
                 </div>
               )}
             </div>
@@ -350,8 +350,8 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
               style={{
                 borderColor: "rgba(16,24,32,0.12)",
                 fontFamily: "inherit",
-                color: "var(--st-ink)",
-                background: "var(--st-white)",
+                color: "hsl(var(--ink))",
+                background: "hsl(var(--white))",
               }}
             />
 
@@ -365,8 +365,8 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
                   style={{
                     borderColor: "rgba(16,24,32,0.12)",
                     fontFamily: "inherit",
-                    color: "var(--st-ink)",
-                    background: "var(--st-white)",
+                    color: "hsl(var(--ink))",
+                    background: "hsl(var(--white))",
                   }}>
                   <option value="">Formation (optionnel)</option>
                   {lmsTrainings.map((t) => (
@@ -376,7 +376,7 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
                   ))}
                 </select>
                 <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ color: "var(--st-ink-muted)" }} />
+                  style={{ color: "hsl(var(--ink) / 0.55)" }} />
               </div>
             )}
 
@@ -385,7 +385,7 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
               onClick={handleSubmit}
               disabled={createDeposit.isPending || !selectedFile}
               className="w-full py-2.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-80 disabled:opacity-40"
-              style={{ background: "var(--st-yellow, #FFD100)", color: "var(--st-ink)", fontFamily: "inherit" }}>
+              style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit" }}>
               {createDeposit.isPending ? "Publication…" : "Publier"}
             </button>
           </div>

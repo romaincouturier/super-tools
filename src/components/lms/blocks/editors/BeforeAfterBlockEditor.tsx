@@ -78,8 +78,8 @@ export default function BeforeAfterBlockEditor({ lessonId, content, onChange, sl
     return (
       <div
         style={{
-          borderRadius: "var(--st-br, 20px)",
-          border: "1px solid var(--st-ink-08)",
+          borderRadius: "var(--radius-block)",
+          border: "1px solid hsl(var(--ink) / 0.08)",
           padding: "1.25rem",
         }}
       >

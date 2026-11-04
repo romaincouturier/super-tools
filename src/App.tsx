@@ -243,22 +243,25 @@ const App = () => {
               <Route path="/formulaire/besoins" element={<FormulaireRedirect />} />
               <Route path="/formulaire/evaluation" element={<FormulaireRedirect />} />
               <Route path="/emargement/:token" element={<Emargement />} />
-              <Route path="/signature-devis/:token" element={<SignatureDevis />} />
-              <Route path="/signature-convention/:token" element={<SignatureConvention />} />
-              <Route path="/signature-location/:token" element={<SignatureLocation />} />
-              <Route path="/reclamation/:token" element={<ReclamationPublic />} />
-              <Route path="/partenaire/:token" element={<PartnerPortal />} />
               {/* Public participant pages */}
               <Route path="/formation-info/:trainingId" element={<TrainingSummary />} />
               <Route path="/formation-support/:trainingId" element={<TrainingSupportPage />} />
               <Route path="/formation-support/:trainingId/lms/:courseId" element={<LmsCoursePlayer />} />
-              <Route path="/mission-info/:missionId" element={<MissionSummary />} />
               <Route path="/sondage/:token" element={<SurveyPublic />} />
               <Route path="/sondage-formation/:token" element={<TrainingSurveyResponse />} />
               {/* Book public share */}
               <Route path="/book/share/:token" element={<BookPublicPage />} />
               {/* SuperTilt shipment confirmation status page (target of edge function redirect) */}
               <Route path="/supertilt/confirmation-envoi" element={<SupertiltConfirmationEnvoi />} />
+              </Route>
+              {/* Pages à jeton pour clients et partenaires : surface landing */}
+              <Route element={<SurfaceLayout surface="landing" />}>
+                <Route path="/signature-devis/:token" element={<SignatureDevis />} />
+                <Route path="/signature-convention/:token" element={<SignatureConvention />} />
+                <Route path="/signature-location/:token" element={<SignatureLocation />} />
+                <Route path="/reclamation/:token" element={<ReclamationPublic />} />
+                <Route path="/partenaire/:token" element={<PartnerPortal />} />
+                <Route path="/mission-info/:missionId" element={<MissionSummary />} />
               </Route>
               {/* OAuth callbacks */}
               <Route path="/google/callback" element={<GoogleCallback />} />

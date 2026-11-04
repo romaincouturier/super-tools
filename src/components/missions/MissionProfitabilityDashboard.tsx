@@ -218,14 +218,14 @@ const MissionProfitabilityDashboard = () => {
                       </TooltipContent>
                     </Tooltip>
                   </p>
-                  <p className="text-xl font-bold text-teal-600">
+                  <p className="text-xl font-bold text-info-ink">
                     {Math.round(indicators.totalBilledDays * 10) / 10}
                     <span className="text-sm font-normal text-muted-foreground">
                       /{(settings || defaultSettings).billableDaysPerYear}
                     </span>
                   </p>
                 </div>
-                <Calendar className="h-8 w-8 text-teal-500/30" />
+                <Calendar className="h-8 w-8 text-info/30" />
               </div>
             </CardContent>
           </Card>

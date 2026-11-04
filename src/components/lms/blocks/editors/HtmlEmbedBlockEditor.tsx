@@ -23,7 +23,7 @@ export default function HtmlEmbedBlockEditor({ content, onChange, slim }: Props)
         style={{
           fontSize: "0.9375rem",
           fontWeight: 600,
-          color: "var(--st-ink)",
+          color: "hsl(var(--ink))",
           outline: "none",
           display: "block",
           width: "100%",
@@ -48,7 +48,7 @@ export default function HtmlEmbedBlockEditor({ content, onChange, slim }: Props)
             background: "rgba(16,24,32,0.03)",
           }}
         >
-          <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--st-ink-50)", fontFamily: "monospace" }}>
+          <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "hsl(var(--ink) / 0.5)", fontFamily: "monospace" }}>
             HTML / Embed
           </span>
           <button
@@ -60,7 +60,7 @@ export default function HtmlEmbedBlockEditor({ content, onChange, slim }: Props)
               gap: "0.375rem",
               fontSize: "0.75rem",
               fontWeight: 500,
-              color: previewOpen ? "var(--st-ink)" : "var(--st-ink-50)",
+              color: previewOpen ? "hsl(var(--ink))" : "hsl(var(--ink) / 0.5)",
               background: "transparent",
               border: "none",
               cursor: "pointer",
@@ -86,7 +86,7 @@ export default function HtmlEmbedBlockEditor({ content, onChange, slim }: Props)
             fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
             fontSize: "0.8125rem",
             lineHeight: 1.6,
-            color: "var(--st-ink)",
+            color: "hsl(var(--ink))",
             background: "transparent",
             border: "none",
             outline: "none",
@@ -112,7 +112,7 @@ export default function HtmlEmbedBlockEditor({ content, onChange, slim }: Props)
               background: "rgba(16,24,32,0.02)",
               fontSize: "0.7rem",
               fontWeight: 600,
-              color: "var(--st-ink-50)",
+              color: "hsl(var(--ink) / 0.5)",
               textTransform: "uppercase",
               letterSpacing: "0.05em",
             }}
@@ -123,7 +123,7 @@ export default function HtmlEmbedBlockEditor({ content, onChange, slim }: Props)
             {content.html.trim() ? (
               <HtmlEmbedBlockViewer content={content} previewMode />
             ) : (
-              <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--st-ink-50)", fontStyle: "italic" }}>
+              <p style={{ margin: 0, fontSize: "0.875rem", color: "hsl(var(--ink) / 0.5)", fontStyle: "italic" }}>
                 Collez du code HTML pour voir l'aperçu.
               </p>
             )}
@@ -131,7 +131,7 @@ export default function HtmlEmbedBlockEditor({ content, onChange, slim }: Props)
         </div>
       )}
 
-      <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--st-ink-50)" }}>
+      <p style={{ margin: 0, fontSize: "0.75rem", color: "hsl(var(--ink) / 0.5)" }}>
         HTML et CSS uniquement. Les scripts et les actions de formulaire sont bloqués.
       </p>
     </div>

@@ -112,9 +112,10 @@ export default {
         block: "var(--shadow-block)",
         card: "var(--shadow-card)",
       },
-      height: {
+      spacing: {
         "control-sm": "var(--control-sm)",
         "control-md": "var(--control-md)",
+        "control-lg": "var(--control-lg)",
       },
       borderRadius: {
         block: "var(--radius-block)",

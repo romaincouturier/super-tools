@@ -685,7 +685,7 @@ export default function ArenaSetup() {
                                   : expert.domain === "business" ? "bg-caution/10 text-caution"
                                     : expert.domain === "creative" ? "bg-info/10 text-info"
                                       : expert.domain === "human" ? "bg-success/10 text-success"
-                                        : expert.domain === "data" ? "bg-cyan-500/10 text-cyan-500"
+                                        : expert.domain === "data" ? "bg-info/10 text-info"
                                           : expert.domain === "academic" ? "bg-danger/10 text-danger"
                                             : "bg-border text-muted-foreground"
                               }`}>

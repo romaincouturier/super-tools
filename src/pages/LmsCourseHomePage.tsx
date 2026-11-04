@@ -88,10 +88,10 @@ function ProgressCircle({ pct }: { pct: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-xl font-bold leading-none" style={{ color: "var(--st-ink)" }}>
+        <span className="text-xl font-bold leading-none" style={{ color: "hsl(var(--ink))" }}>
           {Math.round(pct)}%
         </span>
-        <span className="text-micro mt-0.5" style={{ color: "var(--st-ink-muted)" }}>terminé</span>
+        <span className="text-micro mt-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>terminé</span>
       </div>
     </div>
   );
@@ -170,7 +170,7 @@ function CalendarView({
 
   return (
     <section className="space-y-6">
-      <h2 className="text-xl font-bold" style={{ color: "var(--st-ink)" }}>Calendrier des lives</h2>
+      <h2 className="text-xl font-bold" style={{ color: "hsl(var(--ink))" }}>Calendrier des lives</h2>
 
       <ol className="relative space-y-0 border-l-2" style={{ borderColor: "rgba(16,24,32,0.1)", marginLeft: 8 }}>
         {items.map((item, i) => {
@@ -179,14 +179,14 @@ function CalendarView({
               <li key={i} className="pl-6 pb-8 relative">
                 <span
                   className="absolute -left-[9px] w-4 h-4 rounded-full border-2 flex items-center justify-center"
-                  style={{ top: 2, background: "var(--st-white)", borderColor: "rgba(16,24,32,0.2)" }}
+                  style={{ top: 2, background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.2)" }}
                 >
-                  <Flag size={7} style={{ color: "var(--st-ink-muted)" }} />
+                  <Flag size={7} style={{ color: "hsl(var(--ink) / 0.55)" }} />
                 </span>
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--st-ink-muted)" }}>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "hsl(var(--ink) / 0.55)" }}>
                   {item.label}
                 </p>
-                <p className="text-sm font-medium mt-0.5" style={{ color: "var(--st-ink)" }}>
+                <p className="text-sm font-medium mt-0.5" style={{ color: "hsl(var(--ink))" }}>
                   {new Date(item.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
                 </p>
               </li>
@@ -198,26 +198,26 @@ function CalendarView({
             <li key={m.id} className="pl-6 pb-8 relative">
               <span
                 className="absolute -left-[9px] w-4 h-4 rounded-full flex items-center justify-center"
-                style={{ top: 2, background: "var(--st-yellow)" }}
+                style={{ top: 2, background: "hsl(var(--yellow-brand))" }}
               >
                 <Video size={7} style={{ color: "#101820" }} />
               </span>
               <div
                 className="rounded-2xl border p-4 space-y-3"
-                style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}
+                style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}
               >
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: "var(--st-yellow)" }}>
+                    <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: "hsl(var(--yellow-brand))" }}>
                       {meetingTypeLabel(m.meeting_type)}
                     </p>
-                    <p className="text-sm font-bold" style={{ color: "var(--st-ink)" }}>{m.title}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>
+                    <p className="text-sm font-bold" style={{ color: "hsl(var(--ink))" }}>{m.title}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>
                       {fmtLive(m.scheduled_at)} à {fmtLiveTime(m.scheduled_at)}
                       {" · "}{m.duration_minutes} min
                     </p>
                     {m.description && (
-                      <p className="text-xs mt-1" style={{ color: "var(--st-ink-muted)" }}>{m.description}</p>
+                      <p className="text-xs mt-1" style={{ color: "hsl(var(--ink) / 0.55)" }}>{m.description}</p>
                     )}
                   </div>
                 </div>
@@ -227,7 +227,7 @@ function CalendarView({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
-                    style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink)" }}
+                    style={{ borderColor: "rgba(16,24,32,0.15)", color: "hsl(var(--ink))" }}
                   >
                     <CalendarPlus size={12} />
                     Ajouter au calendrier
@@ -235,7 +235,7 @@ function CalendarView({
                   {!hasReplay && (
                     <span
                       className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full"
-                      style={{ color: "var(--st-ink-muted)", background: "rgba(16,24,32,0.04)" }}
+                      style={{ color: "hsl(var(--ink) / 0.55)", background: "rgba(16,24,32,0.04)" }}
                     >
                       <Play size={11} />
                       Replay à venir
@@ -286,12 +286,12 @@ function ReplayView({ meeting }: { meeting: CourseLiveMeeting }) {
   return (
     <section className="space-y-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--st-ink-muted)" }}>
+        <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "hsl(var(--ink) / 0.55)" }}>
           {meetingTypeLabel(meeting.meeting_type)} · {fmtLive(meeting.scheduled_at)}
         </p>
-        <h2 className="text-xl font-bold" style={{ color: "var(--st-ink)" }}>{meeting.title}</h2>
+        <h2 className="text-xl font-bold" style={{ color: "hsl(var(--ink))" }}>{meeting.title}</h2>
         {meeting.description && (
-          <p className="text-sm mt-1" style={{ color: "var(--st-ink-muted)" }}>{meeting.description}</p>
+          <p className="text-sm mt-1" style={{ color: "hsl(var(--ink) / 0.55)" }}>{meeting.description}</p>
         )}
       </div>
 
@@ -327,8 +327,8 @@ function ReplayView({ meeting }: { meeting: CourseLiveMeeting }) {
           className="rounded-2xl border border-dashed flex flex-col items-center justify-center py-16 gap-3"
           style={{ borderColor: "rgba(16,24,32,0.15)" }}
         >
-          <Video size={32} style={{ color: "var(--st-ink-muted)", opacity: 0.4 }} />
-          <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Le replay n'est pas encore disponible.</p>
+          <Video size={32} style={{ color: "hsl(var(--ink) / 0.55)", opacity: 0.4 }} />
+          <p className="text-sm" style={{ color: "hsl(var(--ink) / 0.55)" }}>Le replay n'est pas encore disponible.</p>
         </div>
       )}
     </section>
@@ -352,17 +352,17 @@ function ProgressCard({
 }) {
   return (
     <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}>
-      <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>Votre progression</p>
+      <p className="text-sm font-semibold" style={{ color: "hsl(var(--ink))" }}>Votre progression</p>
       <div className="flex items-center gap-4">
         <ProgressCircle pct={completionPct} />
         <div className="flex flex-col gap-1.5">
           <div>
-            <p className="text-base font-bold leading-tight" style={{ color: "var(--st-ink)" }}>{completedModules}/{totalModules} modules</p>
-            <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>terminés</p>
+            <p className="text-base font-bold leading-tight" style={{ color: "hsl(var(--ink))" }}>{completedModules}/{totalModules} modules</p>
+            <p className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>terminés</p>
           </div>
           <div>
-            <p className="text-base font-bold leading-tight" style={{ color: "var(--st-ink)" }}>{completedLessons}/{totalLessons} séquences</p>
-            <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>complétées</p>
+            <p className="text-base font-bold leading-tight" style={{ color: "hsl(var(--ink))" }}>{completedLessons}/{totalLessons} séquences</p>
+            <p className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>complétées</p>
           </div>
         </div>
       </div>
@@ -388,7 +388,7 @@ function LiveCard({
 
   return (
     <div className="rounded-2xl p-5 flex flex-col gap-3" style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}>
-      <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>Prochain live</p>
+      <p className="text-sm font-semibold" style={{ color: "hsl(var(--ink))" }}>Prochain live</p>
       {meeting ? (
         <>
           <div className="flex items-start gap-3">
@@ -396,8 +396,8 @@ function LiveCard({
               <Calendar size={18} style={{ color: "#101820" }} />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold leading-snug" style={{ color: "var(--st-ink)" }}>{meeting.title}</p>
-              <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>
+              <p className="text-sm font-bold leading-snug" style={{ color: "hsl(var(--ink))" }}>{meeting.title}</p>
+              <p className="text-xs mt-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>
                 {isLive ? "En direct maintenant" : (
                   <>
                     {new Date(meeting.scheduled_at).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
@@ -406,14 +406,14 @@ function LiveCard({
                 )}
               </p>
               {meeting.description && (
-                <p className="text-xs mt-1 line-clamp-2" style={{ color: "var(--st-ink-muted)" }}>{meeting.description}</p>
+                <p className="text-xs mt-1 line-clamp-2" style={{ color: "hsl(var(--ink) / 0.55)" }}>{meeting.description}</p>
               )}
             </div>
           </div>
           <button
             onClick={onViewCalendar}
             className="flex items-center gap-1.5 text-xs font-medium mt-auto"
-            style={{ color: "var(--st-ink-muted)", fontFamily: "inherit", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            style={{ color: "hsl(var(--ink) / 0.55)", fontFamily: "inherit", background: "none", border: "none", cursor: "pointer", padding: 0 }}
           >
             Voir l'agenda <ChevronRight size={12} />
           </button>
@@ -423,7 +423,7 @@ function LiveCard({
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#F2F4F4" }}>
             <Calendar size={18} style={{ color: "rgba(16,24,32,0.35)" }} />
           </div>
-          <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Aucun live prévu prochainement.</p>
+          <p className="text-sm" style={{ color: "hsl(var(--ink) / 0.55)" }}>Aucun live prévu prochainement.</p>
         </div>
       )}
     </div>
@@ -453,12 +453,12 @@ function CommunityInfoCard({
 
   return (
     <div className="rounded-2xl p-5 flex flex-col gap-3" style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}>
-      <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>Communauté</p>
+      <p className="text-sm font-semibold" style={{ color: "hsl(var(--ink))" }}>Communauté</p>
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#FFFBEA" }}>
           <Users size={18} style={{ color: "#101820" }} />
         </div>
-        <p className="text-sm leading-snug" style={{ color: "var(--st-ink-muted)" }}>
+        <p className="text-sm leading-snug" style={{ color: "hsl(var(--ink) / 0.55)" }}>
           {recentPosts.length > 0
             ? `${recentPosts.length} message${recentPosts.length > 1 ? "s" : ""} cette semaine dans la communauté.`
             : "Échangez, posez vos questions et partagez vos réalisations."}
@@ -476,14 +476,14 @@ function CommunityInfoCard({
             </div>
           ))}
           {recentPosts.length > recentAuthors.length && (
-            <span className="text-xs ml-1" style={{ color: "var(--st-ink-muted)" }}>+{recentPosts.length - recentAuthors.length}</span>
+            <span className="text-xs ml-1" style={{ color: "hsl(var(--ink) / 0.55)" }}>+{recentPosts.length - recentAuthors.length}</span>
           )}
         </div>
       )}
       <div className="mt-auto">
         <CommunityCtaButton email={email} courseId={courseId} isPreview={isPreview} />
       </div>
-      <p className="text-xs text-center" style={{ color: "var(--st-ink-muted)" }}>
+      <p className="text-xs text-center" style={{ color: "hsl(var(--ink) / 0.55)" }}>
         Inspirez-vous des partages, posez vos questions et progressez ensemble !
       </p>
     </div>
@@ -524,8 +524,8 @@ function HeroSection({
       <div className="flex flex-col gap-5">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold leading-tight mb-3" style={{ letterSpacing: "-0.02em" }}>
-            <span style={{ color: "var(--st-ink)" }}>{course.home_config?.welcome_title_1 ?? "Bienvenue dans"} </span>
-            <span style={{ color: "var(--st-yellow)" }}>{course.home_config?.welcome_title_2 ?? "votre formation"}</span>
+            <span style={{ color: "hsl(var(--ink))" }}>{course.home_config?.welcome_title_1 ?? "Bienvenue dans"} </span>
+            <span style={{ color: "hsl(var(--yellow-brand))" }}>{course.home_config?.welcome_title_2 ?? "votre formation"}</span>
           </h1>
         </div>
 
@@ -534,7 +534,7 @@ function HeroSection({
           <button
             onClick={onContinue}
             className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold transition-all hover:-translate-y-0.5 active:translate-y-0"
-            style={{ background: "var(--st-yellow)", color: "var(--st-ink)", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(255,209,0,0.35)" }}
+            style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(255,209,0,0.35)" }}
           >
             {homeCtaLabel(course.home_config, completionPct)}
             <ChevronRight size={16} />
@@ -545,7 +545,7 @@ function HeroSection({
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-sm font-medium"
-              style={{ color: "var(--st-ink-muted)", textDecoration: "none", fontFamily: "inherit" }}
+              style={{ color: "hsl(var(--ink) / 0.55)", textDecoration: "none", fontFamily: "inherit" }}
             >
               Voir le plan de la formation <ChevronRight size={14} />
             </a>
@@ -558,17 +558,17 @@ function HeroSection({
         <div
           className="rounded-2xl p-6 lg:p-8 flex items-center"
           style={{
-            background: "var(--st-ink-04, rgba(16,24,32,0.03))",
+            background: "hsl(var(--ink) / 0.03)",
             border: "1px solid rgba(16,24,32,0.06)",
             minHeight: 180,
           }}
         >
           {heroText ? (
-            <p className="text-base lg:text-lg leading-relaxed whitespace-pre-line" style={{ color: "var(--st-ink)" }}>
+            <p className="text-base lg:text-lg leading-relaxed whitespace-pre-line" style={{ color: "hsl(var(--ink))" }}>
               {heroText}
             </p>
           ) : (
-            <p className="text-sm opacity-40" style={{ color: "var(--st-ink)" }}>
+            <p className="text-sm opacity-40" style={{ color: "hsl(var(--ink))" }}>
               Texte de présentation
             </p>
           )}
@@ -576,14 +576,14 @@ function HeroSection({
       ) : heroType === "image" ? (
         <div
           className="relative rounded-2xl overflow-hidden aspect-video flex items-center justify-center"
-          style={{ boxShadow: "0 8px 32px rgba(16,24,32,0.12)", background: "var(--st-ink-04, rgba(16,24,32,0.03))" }}
+          style={{ boxShadow: "0 8px 32px rgba(16,24,32,0.12)", background: "hsl(var(--ink) / 0.03)" }}
         >
           {heroImageUrl || course.cover_image_url ? (
             <img src={heroImageUrl || course.cover_image_url!} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="flex flex-col items-center gap-3 opacity-40">
-              <ImageIcon size={40} style={{ color: "var(--st-ink)" }} />
-              <p className="text-sm" style={{ color: "var(--st-ink)" }}>Image de présentation</p>
+              <ImageIcon size={40} style={{ color: "hsl(var(--ink))" }} />
+              <p className="text-sm" style={{ color: "hsl(var(--ink))" }}>Image de présentation</p>
             </div>
           )}
         </div>
@@ -658,12 +658,12 @@ function LiveBanner({
       <div className="flex items-center gap-3 min-w-0">
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "var(--st-yellow)" }}
+          style={{ background: "hsl(var(--yellow-brand))" }}
         >
           <Calendar size={18} style={{ color: "#101820" }} />
         </div>
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--st-yellow)" }}>
+          <p className="text-xs font-medium uppercase tracking-wider" style={{ color: "hsl(var(--yellow-brand))" }}>
             {isLive ? "En direct maintenant" : "Prochain live"}
           </p>
           <p className="text-base font-bold text-white">{meeting.title}</p>
@@ -704,7 +704,7 @@ function LiveBanner({
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full transition-all hover:-translate-y-px"
-            style={{ background: "var(--st-yellow)", color: "#101820" }}
+            style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}
           >
             <Play size={14} />
             Rejoindre
@@ -715,7 +715,7 @@ function LiveBanner({
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full transition-all hover:-translate-y-px"
-            style={{ background: "var(--st-yellow)", color: "#101820" }}
+            style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}
           >
             <CalendarPlus size={14} />
             Ajouter au calendrier
@@ -732,16 +732,16 @@ function InfoCard({ icon: Icon, title, children }: { icon: React.ElementType; ti
   return (
     <div
       className="rounded-2xl p-5 flex flex-col gap-3 transition-shadow hover:shadow-md"
-      style={{ background: "var(--st-white)", border: "1px solid rgba(16,24,32,0.08)" }}
+      style={{ background: "hsl(var(--white))", border: "1px solid rgba(16,24,32,0.08)" }}
     >
       <div className="flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "var(--st-yellow-soft, #FFFBEA)" }}>
-          <Icon size={15} style={{ color: "var(--st-ink)" }} />
+          style={{ background: "hsl(var(--yellow-brand) / 0.22)" }}>
+          <Icon size={15} style={{ color: "hsl(var(--ink))" }} />
         </div>
-        <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>{title}</p>
+        <p className="text-sm font-semibold" style={{ color: "hsl(var(--ink))" }}>{title}</p>
       </div>
-      <div className="text-sm leading-relaxed" style={{ color: "var(--st-ink-muted)" }}>
+      <div className="text-sm leading-relaxed" style={{ color: "hsl(var(--ink) / 0.55)" }}>
         {children}
       </div>
     </div>
@@ -780,16 +780,16 @@ function InfoCardsGrid({ config }: { config?: CourseHomeConfig | null }) {
       .toUpperCase()
       .slice(0, 2) || "?";
 
-  const linkStyle = { borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink)", textDecoration: "none" } as const;
+  const linkStyle = { borderColor: "rgba(16,24,32,0.12)", color: "hsl(var(--ink))", textDecoration: "none" } as const;
 
   return (
     <section>
-      <h2 className="text-base font-semibold mb-4" style={{ color: "var(--st-ink)" }}>Infos pratiques</h2>
+      <h2 className="text-base font-semibold mb-4" style={{ color: "hsl(var(--ink))" }}>Infos pratiques</h2>
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {hasPeriod && (
           <InfoCard icon={Calendar} title="Période de formation">
             {(periodStart || periodEnd) && (
-              <p className="font-semibold text-base mb-1" style={{ color: "var(--st-ink)" }}>
+              <p className="font-semibold text-base mb-1" style={{ color: "hsl(var(--ink))" }}>
                 {periodStart && <>Du {periodStart}</>}
                 {periodStart && periodEnd && <br />}
                 {periodEnd && <>au {periodEnd}</>}
@@ -804,7 +804,7 @@ function InfoCardsGrid({ config }: { config?: CourseHomeConfig | null }) {
             <ul className="space-y-1.5">
               {objectives.map((obj) => (
                 <li key={obj} className="flex items-start gap-1.5">
-                  <span style={{ color: "var(--st-yellow)", fontWeight: 700, marginTop: 1 }}>✓</span>
+                  <span style={{ color: "hsl(var(--yellow-brand))", fontWeight: 700, marginTop: 1 }}>✓</span>
                   <span>{obj}</span>
                 </li>
               ))}
@@ -830,7 +830,7 @@ function InfoCardsGrid({ config }: { config?: CourseHomeConfig | null }) {
                   className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all hover:bg-black/5 text-left"
                   style={linkStyle}
                 >
-                  <ExternalLink size={13} style={{ color: "var(--st-ink-muted)" }} />
+                  <ExternalLink size={13} style={{ color: "hsl(var(--ink) / 0.55)" }} />
                   {doc.label || "Document"}
                 </a>
               ))}
@@ -843,19 +843,19 @@ function InfoCardsGrid({ config }: { config?: CourseHomeConfig | null }) {
             <div className="flex items-center gap-3 mb-3">
               <div
                 className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center shrink-0 text-sm font-bold"
-                style={{ background: "var(--st-yellow)", color: "#101820" }}
+                style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}
               >
                 {instructor.photo_url
                   ? <img src={instructor.photo_url} alt={instructor.name || ""} className="w-full h-full object-cover" />
                   : instructorInitials}
               </div>
               <div>
-                <p className="font-semibold text-sm" style={{ color: "var(--st-ink)" }}>{instructor.name || "Votre formateur"}</p>
-                {instructor.subtitle && <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>{instructor.subtitle}</p>}
+                <p className="font-semibold text-sm" style={{ color: "hsl(var(--ink))" }}>{instructor.name || "Votre formateur"}</p>
+                {instructor.subtitle && <p className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>{instructor.subtitle}</p>}
               </div>
             </div>
             {instructor.note && (
-              <p className="text-xs mb-3" style={{ color: "var(--st-ink-muted)" }}>{instructor.note}</p>
+              <p className="text-xs mb-3" style={{ color: "hsl(var(--ink) / 0.55)" }}>{instructor.note}</p>
             )}
             <div className="flex flex-wrap gap-2">
               {instructor.email && (
@@ -894,19 +894,19 @@ function CommunitySection({ email, isPreview = false }: { email?: string; isPrev
   return (
     <section
       className="rounded-2xl flex flex-wrap items-center gap-6 px-6 py-5"
-      style={{ background: "var(--st-surface, #F2F4F4)", border: "1px solid rgba(16,24,32,0.06)" }}
+      style={{ background: "hsl(var(--grey-light))", border: "1px solid rgba(16,24,32,0.06)" }}
     >
       <div className="flex items-center gap-3 shrink-0">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ background: "var(--st-yellow-soft, #FFFBEA)" }}>
-          <Users size={18} style={{ color: "var(--st-ink)" }} />
+          style={{ background: "hsl(var(--yellow-brand) / 0.22)" }}>
+          <Users size={18} style={{ color: "hsl(var(--ink))" }} />
         </div>
         <div>
-          <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>Espace de partage entre apprenants</p>
+          <p className="text-sm font-semibold" style={{ color: "hsl(var(--ink))" }}>Espace de partage entre apprenants</p>
         </div>
       </div>
 
-      <p className="flex-1 min-w-[200px] text-sm leading-relaxed" style={{ color: "var(--st-ink-muted)" }}>
+      <p className="flex-1 min-w-[200px] text-sm leading-relaxed" style={{ color: "hsl(var(--ink) / 0.55)" }}>
         Échangez avec les autres apprenants, posez vos questions, partagez vos réalisations et découvrez celles de la communauté.
       </p>
 
@@ -934,7 +934,7 @@ function CommunitySection({ email, isPreview = false }: { email?: string; isPrev
             window.location.href = communityUrlWithContext(null, null, isPreview ? resolvedEmail : null);
           }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-all hover:-translate-y-px"
-          style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+          style={{ background: "hsl(var(--yellow-brand))", color: "#101820", fontFamily: "inherit" }}
         >
           Accéder à l'espace de partage
           <ChevronRight size={14} />
@@ -1176,17 +1176,17 @@ export default function LmsCourseHomePage() {
           {activeView === "home" && (
             <div
               className="lg:hidden flex items-center gap-3 px-6 py-3 border-b"
-              style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}
+              style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}
             >
               {showProgress ? (
                 <>
                   <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
                     <div
                       className="h-full rounded-full transition-all"
-                      style={{ width: `${completionPct}%`, background: "var(--st-yellow)" }}
+                      style={{ width: `${completionPct}%`, background: "hsl(var(--yellow-brand))" }}
                     />
                   </div>
-                  <span className="text-xs font-semibold shrink-0" style={{ color: "var(--st-ink)" }}>
+                  <span className="text-xs font-semibold shrink-0" style={{ color: "hsl(var(--ink))" }}>
                     {Math.round(completionPct)}%
                   </span>
                 </>
@@ -1196,7 +1196,7 @@ export default function LmsCourseHomePage() {
               <button
                 onClick={handleContinue}
                 className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full transition-all"
-                style={{ background: "var(--st-yellow)", color: "var(--st-ink)", fontFamily: "inherit" }}
+                style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit" }}
               >
                 Continuer
               </button>
@@ -1209,7 +1209,7 @@ export default function LmsCourseHomePage() {
               <button
                 onClick={() => setActiveView("home")}
                 className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink-muted)", fontFamily: "inherit", background: "var(--st-white)" }}
+                style={{ borderColor: "rgba(16,24,32,0.15)", color: "hsl(var(--ink) / 0.55)", fontFamily: "inherit", background: "hsl(var(--white))" }}
               >
                 <ArrowLeft size={13} />
                 Accueil du cours
@@ -1255,17 +1255,17 @@ export default function LmsCourseHomePage() {
             {activeView === "calendar" && (
               isPreview && adminSessions.length > 0 ? (
                 <div className="space-y-10">
-                  <div className="rounded-xl border border-dashed p-3 text-xs" style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink-muted)", background: "rgba(255,209,0,0.08)" }}>
+                  <div className="rounded-xl border border-dashed p-3 text-xs" style={{ borderColor: "rgba(16,24,32,0.15)", color: "hsl(var(--ink) / 0.55)", background: "rgba(255,209,0,0.08)" }}>
                     Vue admin · {adminSessions.length} session{adminSessions.length > 1 ? "s" : ""} de formation en cours ou à venir liée{adminSessions.length > 1 ? "s" : ""} à cet e-learning.
                   </div>
                   {adminSessions.map((s) => (
                     <div key={s.training.id} className="space-y-3">
                       <div className="flex items-center justify-between gap-3 flex-wrap">
-                        <h3 className="text-base font-bold" style={{ color: "var(--st-ink)" }}>{s.training.training_name}</h3>
+                        <h3 className="text-base font-bold" style={{ color: "hsl(var(--ink))" }}>{s.training.training_name}</h3>
                         <a
                           href={`/formations/${s.training.id}`}
                           className="text-xs underline"
-                          style={{ color: "var(--st-ink-muted)" }}
+                          style={{ color: "hsl(var(--ink) / 0.55)" }}
                         >
                           Ouvrir la formation
                         </a>

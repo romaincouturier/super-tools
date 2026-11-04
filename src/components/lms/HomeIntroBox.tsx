@@ -17,13 +17,13 @@ export default function HomeIntroBox({ config }: { config?: CourseHomeConfig | n
     >
       <div className="flex items-center gap-2.5">
         <Sparkles size={16} className="shrink-0" style={{ color: "#FFD100" }} />
-        <p className="text-sm font-bold" style={{ color: "var(--st-ink)" }}>{box.title}</p>
+        <p className="text-sm font-bold" style={{ color: "hsl(var(--ink))" }}>{box.title}</p>
       </div>
       <ul className="space-y-2.5">
         {box.items.map((item, i) => (
           <li key={i} className="flex items-start gap-2.5">
             <CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: "#69C3C4" }} />
-            <p className="text-sm leading-snug break-words" style={{ color: "var(--st-ink-muted)" }}>{item}</p>
+            <p className="text-sm leading-snug break-words" style={{ color: "hsl(var(--ink) / 0.55)" }}>{item}</p>
           </li>
         ))}
       </ul>

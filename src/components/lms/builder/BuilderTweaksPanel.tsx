@@ -46,7 +46,7 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
         onClick={() => setOpen((v) => !v)}
         className="fixed bottom-6 right-6 z-40 w-10 h-10 flex items-center justify-center rounded-full transition-all duration-150 shadow-md hover:scale-105"
         style={{
-          background: "var(--st-ink)",
+          background: "hsl(var(--ink))",
           color: "#fff",
           fontFamily: "inherit",
         }}
@@ -61,21 +61,21 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
           ref={panelRef}
           className="fixed bottom-20 right-6 z-40 w-72 p-5 flex flex-col gap-5"
           style={{
-            background: "var(--st-white)",
-            borderRadius: "var(--st-radius-block)",
+            background: "hsl(var(--white))",
+            borderRadius: "var(--radius-block)",
             boxShadow: "0 8px 32px rgba(16,24,32,0.14)",
             border: "1px solid rgba(16,24,32,0.09)",
             fontFamily: "inherit",
           }}
         >
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>
+            <p className="text-sm font-semibold" style={{ color: "hsl(var(--ink))" }}>
               Apparence
             </p>
             <button
               onClick={() => setOpen(false)}
               className="w-6 h-6 flex items-center justify-center rounded-full transition-colors hover:bg-black/[0.08]"
-              style={{ color: "var(--st-ink-muted)" }}
+              style={{ color: "hsl(var(--ink) / 0.55)" }}
             >
               <X size={14} />
             </button>
@@ -113,7 +113,7 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
 
           {/* Density */}
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-medium" style={{ color: "var(--st-ink-muted)" }}>
+            <p className="text-xs font-medium" style={{ color: "hsl(var(--ink) / 0.55)" }}>
               Densité
             </p>
             <div className="flex gap-1">
@@ -123,8 +123,8 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
                   onClick={() => set("density", d)}
                   className="flex-1 py-1.5 text-xs font-medium rounded-full transition-all capitalize"
                   style={{
-                    background: values.density === d ? "var(--st-ink)" : "var(--st-surface)",
-                    color: values.density === d ? "#fff" : "var(--st-ink-muted)",
+                    background: values.density === d ? "hsl(var(--ink))" : "hsl(var(--grey-light))",
+                    color: values.density === d ? "#fff" : "hsl(var(--ink) / 0.55)",
                     fontFamily: "inherit",
                   }}
                 >
@@ -136,14 +136,14 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
 
           {/* Arc Tilt toggle */}
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium" style={{ color: "var(--st-ink-muted)" }}>
+            <p className="text-xs font-medium" style={{ color: "hsl(var(--ink) / 0.55)" }}>
               Arc Tilt décoratif
             </p>
             <button
               onClick={() => set("showArc", !values.showArc)}
               className="w-10 h-5 rounded-full relative"
               style={{
-                background: values.showArc ? "var(--st-yellow)" : "rgba(16,24,32,0.15)",
+                background: values.showArc ? "hsl(var(--yellow-brand))" : "rgba(16,24,32,0.15)",
                 transition: "background 150ms",
               }}
               aria-checked={values.showArc}
@@ -152,7 +152,7 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
               <span
                 className="absolute top-0.5 w-4 h-4 rounded-full"
                 style={{
-                  background: "var(--st-white)",
+                  background: "hsl(var(--white))",
                   left: values.showArc ? "calc(100% - 18px)" : "2px",
                   boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
                   transition: "left 150ms ease",
@@ -186,10 +186,10 @@ function Slider({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium" style={{ color: "var(--st-ink-muted)" }}>
+        <p className="text-xs font-medium" style={{ color: "hsl(var(--ink) / 0.55)" }}>
           {label}
         </p>
-        <span className="text-xs font-semibold" style={{ color: "var(--st-ink)" }}>
+        <span className="text-xs font-semibold" style={{ color: "hsl(var(--ink))" }}>
           {display}
         </span>
       </div>
@@ -202,8 +202,8 @@ function Slider({
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
         style={{
-          background: `linear-gradient(to right, var(--st-ink) 0%, var(--st-ink) ${((value - min) / (max - min)) * 100}%, rgba(16,24,32,0.12) ${((value - min) / (max - min)) * 100}%, rgba(16,24,32,0.12) 100%)`,
-          accentColor: "var(--st-ink)",
+          background: `linear-gradient(to right, hsl(var(--ink)) 0%, hsl(var(--ink)) ${((value - min) / (max - min)) * 100}%, rgba(16,24,32,0.12) ${((value - min) / (max - min)) * 100}%, rgba(16,24,32,0.12) 100%)`,
+          accentColor: "hsl(var(--ink))",
         }}
       />
     </div>

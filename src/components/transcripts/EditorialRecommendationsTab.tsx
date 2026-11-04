@@ -31,7 +31,7 @@ const ACTION_LABELS: Record<string, string> = {
 const ACTION_STYLES: Record<string, string> = {
   creer_article: "bg-success-surface text-success border-success-line",
   ameliorer_article: "bg-info-surface text-info-ink border-info-line",
-  recycler: "bg-cyan-100 text-cyan-800 border-cyan-200",
+  recycler: "bg-info-surface text-info-ink border-info-line",
   fusionner: "bg-info-surface text-info-ink border-info-line",
   archiver: "bg-muted text-foreground border-border",
   creer_post_linkedin: "bg-info-surface text-info-ink border-info-line",

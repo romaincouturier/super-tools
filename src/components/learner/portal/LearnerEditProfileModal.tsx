@@ -116,7 +116,7 @@ export function LearnerEditProfileModal({
               e.target.value = "";
             }}
           />
-          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+          <p className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>
             Cliquez pour changer la photo
           </p>
         </div>

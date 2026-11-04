@@ -36,7 +36,7 @@ export function AuthField({
       <label htmlFor={id} className="mb-2.5 block text-prose font-bold">
         {label}
       </label>
-      <div className="flex h-[54px] items-center gap-3 rounded-[11px] border border-input bg-card px-4 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20">
+      <div className="flex h-[54px] items-center gap-3 rounded-md border border-input bg-card px-4 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20">
         {icon && <span className="shrink-0 text-muted-foreground">{icon}</span>}
         <input
           id={id}
@@ -83,7 +83,7 @@ export function AuthButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className="flex h-14 w-full items-center justify-center rounded-[11px] bg-primary text-base font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex h-14 w-full items-center justify-center rounded-md bg-primary text-base font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60"
     >
       {children}
     </button>

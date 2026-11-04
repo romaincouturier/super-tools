@@ -1,34 +1,49 @@
 /*
  * Trois surfaces, un seul jeu de tokens de base (tokens.css).
  *
- *   landing : vitrine, catalogue public, connexion       (audience : prospects, apprenants non connectés)
- *   learner : espace apprenant, player LMS, pages à jeton (audience : apprenants, participants, externes)
- *   staff   : back-office SuperTilt, builders              (audience : l'équipe)
+ *   landing : vitrine, catalogue public, connexion, pages à jeton externes (devis, convention, partenaire)
+ *   learner : espace apprenant, player LMS, pages à jeton des participants (évaluations, émargement, sondages)
+ *   staff   : back-office SuperTilt, builders
  *
  * La surface est posée sur <html> par SurfaceLayout (data-surface). Une surface ne
- * redéfinit que des alias sémantiques ou des valeurs structurantes, jamais la palette :
- * la palette de marque, les statuts et le contrat shadcn restent communs.
+ * redéfinit que des valeurs structurantes, jamais la palette : la palette de marque, les
+ * statuts et le contrat shadcn restent communs.
  *
- * Décisions (2026-11-04) : police Inter pour le staff, Lexend pour l'apprenant et la landing ;
- * fond de page crème (--surface-page) sur les trois surfaces. Les rayons, ombres et la densité
- * restent identiques tant qu'aucune décision n'est consignée dans docs/design/README.md.
+ * Décisions (2026-11-04) :
+ *   - Police : Inter pour le staff, Lexend pour l'apprenant et la landing.
+ *   - Fond de page crème (--surface-page) sur les trois surfaces.
+ *   - Rayon : staff 0.5rem (outil dense), apprenant 0.75rem, landing 1rem (accueillant).
+ *   - Relief : staff à plat avec bordure ; apprenant et landing, ombre douce sur fond crème.
+ *   - Contrôles : staff compacts ; apprenant et landing 44px minimum (cible tactile).
  */
 
 :root,
 :root[data-surface="staff"] {
   --font-body: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --radius: 0.5rem;
   --radius-card: var(--radius);
   --shadow-card: none;
+  --control-sm: 2.25rem;
+  --control-md: 2.5rem;
+  --control-lg: 2.75rem;
 }
 
 :root[data-surface="learner"] {
   --font-body: "Lexend", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --radius: 0.75rem;
   --radius-card: var(--radius);
-  --shadow-card: none;
+  --shadow-card: var(--shadow-block);
+  --control-sm: 2.5rem;
+  --control-md: 2.75rem;
+  --control-lg: 3rem;
 }
 
 :root[data-surface="landing"] {
   --font-body: "Lexend", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --radius: 1rem;
   --radius-card: var(--radius);
-  --shadow-card: none;
+  --shadow-card: 0 1px 2px hsl(var(--ink) / 0.04), 0 12px 40px hsl(var(--ink) / 0.06);
+  --control-sm: 2.5rem;
+  --control-md: 2.75rem;
+  --control-lg: 3rem;
 }

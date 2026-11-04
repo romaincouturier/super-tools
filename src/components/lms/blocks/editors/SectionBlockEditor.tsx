@@ -12,23 +12,23 @@ interface Props {
 
 const BG_STYLES: Record<SectionBackground, React.CSSProperties> = {
   default: {},
-  muted: { background: "var(--st-surface)", borderRadius: 12, padding: "1rem 1.25rem" },
-  primary: { background: "var(--st-ink)", borderRadius: 12, padding: "1rem 1.25rem" },
-  accent: { background: "var(--st-yellow-soft)", borderRadius: 12, padding: "1rem 1.25rem" },
+  muted: { background: "hsl(var(--grey-light))", borderRadius: 12, padding: "1rem 1.25rem" },
+  primary: { background: "hsl(var(--ink))", borderRadius: 12, padding: "1rem 1.25rem" },
+  accent: { background: "hsl(var(--yellow-brand) / 0.22)", borderRadius: 12, padding: "1rem 1.25rem" },
 };
 
 const BG_TEXT: Record<SectionBackground, string> = {
-  default: "var(--st-ink)",
-  muted: "var(--st-ink)",
+  default: "hsl(var(--ink))",
+  muted: "hsl(var(--ink))",
   primary: "#fff",
-  accent: "var(--st-ink)",
+  accent: "hsl(var(--ink))",
 };
 
 export default function SectionBlockEditor({ content, onChange, slim }: Props) {
   if (slim) {
     const bg = content.background ?? "default";
     const wrapStyle = BG_STYLES[bg] ?? {};
-    const textColor = BG_TEXT[bg] ?? "var(--st-ink)";
+    const textColor = BG_TEXT[bg] ?? "hsl(var(--ink))";
 
     return (
       <div style={wrapStyle}>

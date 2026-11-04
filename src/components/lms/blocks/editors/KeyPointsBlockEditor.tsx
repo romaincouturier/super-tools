@@ -62,14 +62,14 @@ export default function KeyPointsBlockEditor({ lessonId, content, onChange, slim
     return (
       <div
         style={{
-          background: "var(--st-yellow-soft)",
-          borderRadius: "var(--st-br, 20px)",
+          background: "hsl(var(--yellow-brand) / 0.22)",
+          borderRadius: "var(--radius-block)",
           padding: "1.25rem 1.5rem",
         }}
       >
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
-          <Lightbulb size={20} style={{ color: "var(--st-ink)", flexShrink: 0 }} />
+          <Lightbulb size={20} style={{ color: "hsl(var(--ink))", flexShrink: 0 }} />
           <InlineEdit
             value={content.title || ""}
             onChange={(v) => onChange({ ...content, title: v || null })}
@@ -78,7 +78,7 @@ export default function KeyPointsBlockEditor({ lessonId, content, onChange, slim
               flex: 1,
               fontWeight: 700,
               fontSize: "0.9375rem",
-              color: "var(--st-ink)",
+              color: "hsl(var(--ink))",
               outline: "none",
             }}
           />
@@ -93,7 +93,7 @@ export default function KeyPointsBlockEditor({ lessonId, content, onChange, slim
                   width: 6,
                   height: 6,
                   borderRadius: "50%",
-                  background: "var(--st-ink)",
+                  background: "hsl(var(--ink))",
                   flexShrink: 0,
                   marginTop: "0.45em",
                 }}
@@ -109,7 +109,7 @@ export default function KeyPointsBlockEditor({ lessonId, content, onChange, slim
                     setTimeout(() => listRef.current[Math.max(0, i - 1)]?.focus(), 10);
                   }
                 }}
-                style={{ flex: 1, fontSize: "0.9375rem", color: "var(--st-ink)", outline: "none" }}
+                style={{ flex: 1, fontSize: "0.9375rem", color: "hsl(var(--ink))", outline: "none" }}
               />
               <button
                 onClick={() => items.length > 1 && removeItem(i)}
@@ -123,7 +123,7 @@ export default function KeyPointsBlockEditor({ lessonId, content, onChange, slim
                   background: "transparent",
                   cursor: items.length > 1 ? "pointer" : "default",
                   flexShrink: 0,
-                  color: "var(--st-ink)",
+                  color: "hsl(var(--ink))",
                 }}
                 aria-label="Supprimer ce point"
               >
@@ -143,7 +143,7 @@ export default function KeyPointsBlockEditor({ lessonId, content, onChange, slim
             gap: "0.375rem",
             fontSize: "0.8125rem",
             fontWeight: 500,
-            color: "var(--st-ink-60)",
+            color: "hsl(var(--ink) / 0.6)",
             cursor: "pointer",
             border: "none",
             background: "transparent",
@@ -167,7 +167,7 @@ export default function KeyPointsBlockEditor({ lessonId, content, onChange, slim
           }}
         />
         {content.image_url ? (
-          <div style={{ position: "relative", marginTop: "1rem", borderRadius: "var(--st-br, 20px)", overflow: "hidden" }}>
+          <div style={{ position: "relative", marginTop: "1rem", borderRadius: "var(--radius-block)", overflow: "hidden" }}>
             <img src={content.image_url} alt="" style={{ width: "100%", height: "auto", display: "block" }} />
             <button
               onClick={() => onChange({ ...content, image_url: null })}
@@ -201,7 +201,7 @@ export default function KeyPointsBlockEditor({ lessonId, content, onChange, slim
               gap: "0.375rem",
               fontSize: "0.8125rem",
               fontWeight: 500,
-              color: "var(--st-ink-60)",
+              color: "hsl(var(--ink) / 0.6)",
               cursor: uploading ? "default" : "pointer",
               border: "none",
               background: "transparent",

@@ -248,8 +248,8 @@ export function LearnerAccountMenu({
             {initials}
           </div>
           <div className="hidden sm:block text-left">
-            <p className="text-caption leading-none mb-0.5" style={{ color: "var(--st-ink-muted)" }}>Bonjour</p>
-            <p className="text-sm font-semibold leading-none truncate max-w-[140px]" style={{ color: "var(--st-ink)" }}>
+            <p className="text-caption leading-none mb-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>Bonjour</p>
+            <p className="text-sm font-semibold leading-none truncate max-w-[140px]" style={{ color: "hsl(var(--ink))" }}>
               {displayName}
             </p>
           </div>
@@ -257,7 +257,7 @@ export function LearnerAccountMenu({
             size={14}
             className="hidden sm:block shrink-0 transition-transform duration-200"
             style={{
-              color: "var(--st-ink-muted)",
+              color: "hsl(var(--ink) / 0.55)",
               transform: open ? "rotate(180deg)" : "rotate(0deg)",
             }}
           />
@@ -281,9 +281,9 @@ export function LearnerAccountMenu({
                   key={section}
                   onClick={() => { setOpen(false); void goToPortalSection(section); }}
                   className="w-full flex items-center gap-3 text-sm text-left transition-colors hover:bg-black/[0.04]"
-                  style={{ color: "var(--st-ink)", fontFamily: "inherit", padding: "10px 16px" }}
+                  style={{ color: "hsl(var(--ink))", fontFamily: "inherit", padding: "10px 16px" }}
                 >
-                  <Icon size={16} strokeWidth={1.75} style={{ color: "var(--st-ink-muted)", flexShrink: 0 }} />
+                  <Icon size={16} strokeWidth={1.75} style={{ color: "hsl(var(--ink) / 0.55)", flexShrink: 0 }} />
                   {label}
                 </button>
               ))}

@@ -48,9 +48,9 @@ export default function LmsCourseHomeBuilderPage() {
     return (
       <div
         className="builder-layout flex items-center justify-center h-screen"
-        style={{ background: "var(--st-white)", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}
+        style={{ background: "hsl(var(--white))", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}
       >
-        <p style={{ color: "var(--st-ink-muted)", fontSize: 14 }}>Chargement…</p>
+        <p style={{ color: "hsl(var(--ink) / 0.55)", fontSize: 14 }}>Chargement…</p>
       </div>
     );
   }
@@ -89,7 +89,7 @@ export default function LmsCourseHomeBuilderPage() {
           isHome
         />
 
-        <div className="flex-1 overflow-y-auto" style={{ background: "var(--st-white)" }}>
+        <div className="flex-1 overflow-y-auto" style={{ background: "hsl(var(--white))" }}>
           <main className="max-w-4xl mx-auto px-6 py-8">
             <HomePageEditor course={course} />
           </main>

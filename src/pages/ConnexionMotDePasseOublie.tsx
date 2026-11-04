@@ -69,7 +69,7 @@ export default function ConnexionMotDePasseOublie() {
             </Link>
 
             {sent && (
-              <div className="mt-6 flex items-center gap-3 rounded-[11px] bg-primary/10 px-4 py-3.5 text-prose text-foreground">
+              <div className="mt-6 flex items-center gap-3 rounded-md bg-primary/10 px-4 py-3.5 text-prose text-foreground">
                 <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-primary" />
                 Si un compte existe pour cette adresse, un e-mail vient d'être envoyé.
                 Le lien est valable 1 heure.

@@ -269,7 +269,7 @@ export default function HomePageEditor({ course }: Props) {
 
               <div>
                 <Label className="font-normal">Aperçu</Label>
-                <div className="rounded-xl p-4 max-w-sm" style={{ background: "var(--st-surface, #F7F7F5)" }}>
+                <div className="rounded-xl p-4 max-w-sm" style={{ background: "hsl(var(--grey-light))" }}>
                   {resolveIntroBox(home) ? (
                     <HomeIntroBox config={home} />
                   ) : (

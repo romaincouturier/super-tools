@@ -31,7 +31,7 @@ export default function CourseLoadState({ isLoading, error, onRetry, notFound }:
   return (
     <div
       className="min-h-screen flex items-center justify-center p-6"
-      style={{ background: "var(--st-white)", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}
+      style={{ background: "hsl(var(--white))", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}
     >
       {notFound && !isLoading && !error ? (
         <div className="max-w-sm w-full text-center space-y-4">

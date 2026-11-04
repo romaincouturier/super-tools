@@ -26,7 +26,7 @@ export default function CodeBlockEditor({ content, onChange, slim }: Props) {
         style={{
           fontSize: "0.9375rem",
           fontWeight: 600,
-          color: "var(--st-ink)",
+          color: "hsl(var(--ink))",
           outline: "none",
           display: "block",
           width: "100%",
@@ -68,7 +68,7 @@ export default function CodeBlockEditor({ content, onChange, slim }: Props) {
           type="button"
           onClick={() => setPreviewOpen((v) => !v)}
           className="ml-auto flex items-center gap-1.5 text-xs font-medium rounded-md px-2 py-1"
-          style={{ color: previewOpen ? "var(--st-ink)" : "var(--st-ink-50)" }}
+          style={{ color: previewOpen ? "hsl(var(--ink))" : "hsl(var(--ink) / 0.5)" }}
         >
           {previewOpen ? <EyeOff size={13} /> : <Eye size={13} />}
           {previewOpen ? "Masquer l'aperçu" : "Aperçu"}
@@ -104,7 +104,7 @@ export default function CodeBlockEditor({ content, onChange, slim }: Props) {
         content.code.trim() ? (
           <CodeBlockViewer content={content} />
         ) : (
-          <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--st-ink-50)", fontStyle: "italic" }}>
+          <p style={{ margin: 0, fontSize: "0.875rem", color: "hsl(var(--ink) / 0.5)", fontStyle: "italic" }}>
             Saisissez du code pour voir l'aperçu.
           </p>
         )

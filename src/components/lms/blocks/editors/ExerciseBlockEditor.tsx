@@ -131,7 +131,7 @@ function ExerciseFileUploader({
         disabled={uploading}
         onClick={() => fileRef.current?.click()}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm transition-all hover:bg-black/5"
-        style={{ borderColor: "rgba(16,24,32,0.18)", color: "var(--st-ink-muted)" }}
+        style={{ borderColor: "rgba(16,24,32,0.18)", color: "hsl(var(--ink) / 0.55)" }}
       >
         {uploading ? <Spinner className="h-4 w-4" /> : <FileText size={16} />}
         {uploading ? "Upload en cours…" : "Ajouter un fichier de consigne"}
@@ -201,7 +201,7 @@ function ImageUploader({
         disabled={uploading}
         onClick={() => fileRef.current?.click()}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm transition-all hover:bg-black/5"
-        style={{ borderColor: "rgba(16,24,32,0.18)", color: "var(--st-ink-muted)" }}
+        style={{ borderColor: "rgba(16,24,32,0.18)", color: "hsl(var(--ink) / 0.55)" }}
       >
         {uploading ? <Spinner className="h-4 w-4" /> : <ImageIcon size={16} />}
         {uploading ? "Upload en cours…" : "Ajouter une image de consigne"}
@@ -403,7 +403,7 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
         {content.interactive_html == null && (
           <button
             className="text-xs flex items-center gap-1"
-            style={{ color: "var(--st-ink-50)" }}
+            style={{ color: "hsl(var(--ink) / 0.5)" }}
             onClick={() => onChange({ ...content, interactive_html: "" })}
           >
             <Braces size={13} /> Ajouter un bloc HTML interactif
@@ -413,7 +413,7 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
           <div className="space-y-1 pl-2">
             {checklistItems.map((item) => (
               <div key={item.id} className="flex items-center gap-2">
-                <span style={{ color: "var(--st-ink-50)" }}>☐</span>
+                <span style={{ color: "hsl(var(--ink) / 0.5)" }}>☐</span>
                 <Input
                   value={item.label}
                   onChange={(e) => setChecklistLabel(item.id, e.target.value)}
@@ -424,7 +424,7 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
             ))}
             <button
               className="text-xs mt-1"
-              style={{ color: "var(--st-ink-50)" }}
+              style={{ color: "hsl(var(--ink) / 0.5)" }}
               onClick={addChecklistItem}
             >
               + Ajouter un critère
@@ -434,7 +434,7 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
         {!hasChecklist && (
           <button
             className="text-xs"
-            style={{ color: "var(--st-ink-50)" }}
+            style={{ color: "hsl(var(--ink) / 0.5)" }}
             onClick={enableChecklist}
           >
             + Ajouter une liste de critères

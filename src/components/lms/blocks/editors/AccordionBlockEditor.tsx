@@ -33,8 +33,8 @@ export default function AccordionBlockEditor({ content, onChange, slim }: Props)
     return (
       <div
         style={{
-          borderRadius: "var(--st-br, 20px)",
-          border: "1px solid var(--st-ink-08)",
+          borderRadius: "var(--radius-block)",
+          border: "1px solid hsl(var(--ink) / 0.08)",
           padding: "1.25rem",
         }}
       >
@@ -54,7 +54,7 @@ export default function AccordionBlockEditor({ content, onChange, slim }: Props)
                   value={item.question}
                   onChange={(v) => updateItem(i, { question: v || "Question" })}
                   placeholder="Question…"
-                  style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--st-ink)", outline: "none", flex: 1 }}
+                  style={{ fontSize: "0.875rem", fontWeight: 600, color: "hsl(var(--ink))", outline: "none", flex: 1 }}
                 />
                 {items.length > 1 && (
                   <button
@@ -79,7 +79,7 @@ export default function AccordionBlockEditor({ content, onChange, slim }: Props)
           onClick={addItem}
           style={{
             display: "flex", alignItems: "center", gap: 6,
-            fontSize: "0.8125rem", fontWeight: 500, color: "var(--st-ink-60)",
+            fontSize: "0.8125rem", fontWeight: 500, color: "hsl(var(--ink) / 0.6)",
             border: "none", background: "transparent", cursor: "pointer",
           }}
         >

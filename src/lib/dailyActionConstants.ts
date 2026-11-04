@@ -62,7 +62,7 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
   articles_bloques: { label: "Articles bloqu\u00e9s / en attente", emoji: "\u23f8\ufe0f", color: "text-caution-ink" },
   cfp_soumettre: { label: "CFP \u00e0 soumettre", emoji: "\ud83d\udce8", color: "text-caution-ink" },
   formations_conventions: { label: "Formations", emoji: "\ud83c\udf93", color: "text-danger-ink" },
-  evenements: { label: "\u00c9v\u00e9nements", emoji: "\ud83d\udcc5", color: "text-teal-600" },
+  evenements: { label: "\u00c9v\u00e9nements", emoji: "\ud83d\udcc5", color: "text-info-ink" },
   cfp_surveiller: { label: "CFP \u00e0 surveiller", emoji: "\ud83d\udd01", color: "text-info-ink" },
   emails_a_valider: { label: "Emails à valider", emoji: "\ud83d\udce7", color: "text-info-ink" },
   marches_publics: { label: "Marchés publics", emoji: "⚖️", color: "text-info-ink" },
@@ -74,7 +74,7 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
   elearning_integration: { label: "E-learning — intégration supertilt.fr à corriger", emoji: "🔌", color: "text-danger-ink" },
   supertilt_dropshipping: { label: "SuperTilt — Dropshipping en attente", emoji: "\ud83d\ude9a", color: "text-caution-ink" },
   supertilt_dropshipping_relance: { label: "SuperTilt — Dropshipping relancé", emoji: "\ud83d\udd34", color: "text-danger-ink" },
-  transcripts_a_affecter: { label: "Transcripts à affecter", emoji: "🎙️", color: "text-teal-600" },
+  transcripts_a_affecter: { label: "Transcripts à affecter", emoji: "🎙️", color: "text-info-ink" },
   evaluations_froid_bloquees: { label: "Évaluations à froid non envoyées", emoji: "🧊", color: "text-danger-ink" },
   supertilt: { label: "SuperTilt", emoji: "\u26a1", color: "text-caution-ink" },
 };

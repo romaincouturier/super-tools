@@ -61,7 +61,7 @@ interface CommentThreadProps {
 
 const commentTypeConfig = {
   fond: { label: "Fond", icon: FileText, className: "bg-info-surface text-info-ink" },
-  forme: { label: "Forme", icon: Palette, className: "bg-cyan-100 text-cyan-800" },
+  forme: { label: "Forme", icon: Palette, className: "bg-info-surface text-info-ink" },
 };
 
 const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdded }: CommentThreadProps) => {
@@ -924,7 +924,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
               type="button"
               size="sm"
               variant={commentType === "forme" ? "default" : "ghost"}
-              className={cn("h-7 text-caption", commentType === "forme" && "bg-cyan-100 text-cyan-800 hover:bg-cyan-200")}
+              className={cn("h-7 text-caption", commentType === "forme" && "bg-info-surface text-info-ink hover:bg-info-line")}
               onClick={() => setCommentType(commentType === "forme" ? "" : "forme")}
             >
               <Palette className="h-3 w-3 mr-1" />

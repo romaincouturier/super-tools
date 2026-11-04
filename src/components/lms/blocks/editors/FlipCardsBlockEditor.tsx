@@ -91,8 +91,8 @@ function SlimEditor({
   return (
     <div
       style={{
-        borderRadius: "var(--st-br, 20px)",
-        border: "1px solid var(--st-ink-08)",
+        borderRadius: "var(--radius-block)",
+        border: "1px solid hsl(var(--ink) / 0.08)",
         padding: "1.25rem",
       }}
     >
@@ -124,7 +124,7 @@ function SlimEditor({
           onClick={addCard}
           style={{
             display: "flex", alignItems: "center", gap: 6,
-            fontSize: "0.8125rem", fontWeight: 500, color: "var(--st-ink-60)",
+            fontSize: "0.8125rem", fontWeight: 500, color: "hsl(var(--ink) / 0.6)",
             border: "none", background: "transparent", cursor: "pointer",
           }}
         >
@@ -190,12 +190,12 @@ function SlimCard({
     >
       {/* Face label + toggle */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--st-ink-60)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "hsl(var(--ink) / 0.6)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
           {showBack ? "Verso" : "Recto"}
         </span>
         <button
           onClick={onToggleFace}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--st-ink-60)", display: "flex", alignItems: "center" }}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "hsl(var(--ink) / 0.6)", display: "flex", alignItems: "center" }}
           title="Basculer recto / verso"
         >
           <RefreshCw size={13} />
@@ -233,7 +233,7 @@ function SlimCard({
         onChange={(v) => onChange({ [textKey]: v || null })}
         placeholder={showBack ? "Texte verso…" : "Texte recto…"}
         multiline
-        style={{ fontSize: "0.8125rem", color: "var(--st-ink)", outline: "none", textAlign: "center", whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 120, overflowY: "auto" }}
+        style={{ fontSize: "0.8125rem", color: "hsl(var(--ink))", outline: "none", textAlign: "center", whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 120, overflowY: "auto" }}
       />
 
       {canRemove && (

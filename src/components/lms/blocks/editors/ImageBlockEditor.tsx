@@ -52,7 +52,7 @@ export default function ImageBlockEditor({ lessonId, content, onChange, slim }: 
           }}
           onClick={() => fileRef.current?.click()}
           style={{
-            borderRadius: "var(--st-br, 20px)",
+            borderRadius: "var(--radius-block)",
             border: `2px dashed ${dragOver ? "rgba(16,24,32,0.35)" : "rgba(16,24,32,0.18)"}`,
             padding: "2.5rem 2rem",
             display: "flex",
@@ -60,7 +60,7 @@ export default function ImageBlockEditor({ lessonId, content, onChange, slim }: 
             alignItems: "center",
             gap: "1rem",
             cursor: uploading ? "default" : "pointer",
-            background: dragOver ? "var(--st-ink-06)" : "transparent",
+            background: dragOver ? "hsl(var(--ink) / 0.06)" : "transparent",
             transition: "all 120ms",
           }}
         >
@@ -80,7 +80,7 @@ export default function ImageBlockEditor({ lessonId, content, onChange, slim }: 
               width: 48,
               height: 48,
               borderRadius: "50%",
-              background: "var(--st-ink-06)",
+              background: "hsl(var(--ink) / 0.06)",
               display: "grid",
               placeItems: "center",
             }}
@@ -88,14 +88,14 @@ export default function ImageBlockEditor({ lessonId, content, onChange, slim }: 
             {uploading ? (
               <Spinner className="h-5 w-5" />
             ) : (
-              <ImageIcon size={20} style={{ color: "var(--st-ink-50)" }} />
+              <ImageIcon size={20} style={{ color: "hsl(var(--ink) / 0.5)" }} />
             )}
           </div>
           <div style={{ textAlign: "center" }}>
-            <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 500, color: "var(--st-ink)" }}>
+            <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 500, color: "hsl(var(--ink))" }}>
               {uploading ? "Upload en cours…" : "Déposer une image ou cliquer pour importer"}
             </p>
-            <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: "var(--st-ink-50)" }}>
+            <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: "hsl(var(--ink) / 0.5)" }}>
               PNG, JPG, GIF, WebP
             </p>
           </div>
@@ -105,7 +105,7 @@ export default function ImageBlockEditor({ lessonId, content, onChange, slim }: 
 
     return (
       <div>
-        <div style={{ position: "relative", borderRadius: "var(--st-br, 20px)", overflow: "hidden" }}>
+        <div style={{ position: "relative", borderRadius: "var(--radius-block)", overflow: "hidden" }}>
           <img
             src={content.url}
             alt=""
@@ -139,7 +139,7 @@ export default function ImageBlockEditor({ lessonId, content, onChange, slim }: 
           style={{
             marginTop: "0.5rem",
             fontSize: "0.875rem",
-            color: "var(--st-ink-60)",
+            color: "hsl(var(--ink) / 0.6)",
             textAlign: "center",
             outline: "none",
             display: "block",

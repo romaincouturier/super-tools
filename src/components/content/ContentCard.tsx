@@ -33,8 +33,8 @@ const tagColors = [
   "bg-success-surface text-success",
   "bg-info-surface text-info-ink",
   "bg-caution-surface text-caution-ink",
-  "bg-pink-100 text-pink-800",
-  "bg-cyan-100 text-cyan-800",
+  "bg-caution-surface text-caution-ink",
+  "bg-info-surface text-info-ink",
 ];
 
 const getTagColor = (tag: string) => {

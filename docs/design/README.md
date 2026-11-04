@@ -8,13 +8,23 @@ SuperTilt est un seul produit pour trois audiences. Chacune a son design system 
 
 | Surface | Audience | Routes |
 | --- | --- | --- |
-| `landing` | Prospects, apprenants non connectés | `/`, `/academy/*`, `/connexion*`, `/auth`, `/signup`, `/onboarding`, pages de mot de passe |
-| `learner` | Apprenants, participants, externes à jeton | `/espace-apprenant/*`, player et accueil LMS, `/formation-*`, évaluations, questionnaires, signatures, émargement, sondages, partenaire |
+| `landing` | Prospects, clients, partenaires, apprenants non connectés | `/`, `/academy/*`, `/connexion*`, `/auth`, `/signup`, `/onboarding`, pages de mot de passe, signatures de devis, convention et location, `/partenaire/:token`, `/reclamation/:token`, `/mission-info` |
+| `learner` | Apprenants et participants | `/espace-apprenant/*`, player et accueil LMS, `/formation-*`, évaluations, questionnaires, émargement, sondages |
 | `staff` | L'équipe | Tout ce qui est sous `RequireStaff`, builders LMS (surface par défaut) |
 
 - `SurfaceLayout` (`src/components/SurfaceLayout.tsx`) pose `data-surface` sur `<html>`, pas sur un wrapper : les dialogs et popovers Radix sont rendus dans `<body>`. `<html>` porte `staff` par défaut (`index.html`).
 - Une surface ne redéfinit que des alias sémantiques et des valeurs structurantes (`--font-body`, `--radius-card`, `--shadow-card`, et à venir `--surface-page`, `--control-md`). Jamais la palette ni les statuts.
-- Décisions du 2026-11-04 : police Inter pour le staff, Lexend pour l'apprenant et la landing (choix par défaut, la landing n'a pas été tranchée explicitement) ; fond de page crème (`--surface-page`) partout, y compris les pages à jeton. Les fonds de cartes internes (`--st-surface`, gris clair) restent. Rayon, ombre et densité sont encore identiques entre surfaces : décisions en attente.
+- Décisions du 2026-11-04 :
+
+| | staff | learner | landing |
+| --- | --- | --- | --- |
+| Police | Inter | Lexend | Lexend |
+| Fond de page | crème | crème | crème |
+| Rayon (`--radius`) | 0.5rem | 0.75rem | 1rem |
+| Relief (`--shadow-card`) | aucun, bordure | ombre douce du bloc | ombre douce large |
+| Contrôles `sm / md / lg` | 36 / 40 / 44 px | 40 / 44 / 48 px | 40 / 44 / 48 px |
+
+Les rayons, ombres et hauteurs de `Button`, `Input`, `Select` et `Card` lisent ces tokens (`rounded-card`, `shadow-card`, `h-control-*`). Les fonds de cartes internes (gris clair) restent.
 - Un composant de `components/ui/` est commun aux trois surfaces et lit les tokens : il ne connaît pas la surface. Un composant propre à une surface vit dans `components/learner/`, `components/auth/`, ou dans les dossiers métier du back-office.
 
 ## Décisions
@@ -56,7 +66,7 @@ Correspondance de migration depuis la palette brute : `green-*` vers `success`, 
 ## Règles de maintenance
 
 - Tout token qui crée une classe Tailwind maison s'enregistre dans `extendTailwindMerge` (`src/lib/utils.ts`).
-- Les `--st-*` du builder sont des alias gelés vers la palette. Ne plus en créer.
+- Les `--st-*` du builder ont été supprimés (2026-11-04) : 802 usages remplacés par leur valeur (`hsl(var(--ink) / 0.55)`...). Le check [076] interdit leur retour.
 - Un composant partagé n'existe qu'à sa deuxième utilisation. Il vit dans `src/components/shared/`, sans métier.
 - Les e-mails ignorent les variables CSS : leurs hex vivent dans `supabase/functions/_shared/` et copient les valeurs de `tokens.css`.
 - Les primitives de `components/ui/` modifiées à la main (variantes de marque) seraient écrasées par une réinstallation shadcn : ne pas relancer `shadcn add` sur un composant existant sans relire son diff.
@@ -68,9 +78,7 @@ Correspondance de migration depuis la palette brute : `green-*` vers `success`, 
 
 ## Chantier restant
 
-1. Migrer les 23 teintes restantes (cyan, teal, pink) : décision à prendre, ce ne sont pas des statuts. Les statuts, les gris, `purple`, `violet` et `indigo` (vers `info`) sont migrés.
-2. Supprimer les `style={{}}` avec des couleurs littérales (invisibles au ratchet).
-3. Annoter les variantes de `button.tsx` et `badge.tsx` qui n'ont pas de source de charte ; ajouter `data-slot` aux primitives.
-4. Documenter la typographie (Lexend pour l'interface du builder, Fraunces pour les titres éditoriaux) et fixer un fichier de chargement unique des polices.
-5. Choisir rayon, ombre et densité de chaque surface (voir « Trois surfaces »). Le learner mélange aujourd'hui `--st-*`, Lexend et de grands rayons, le staff est sur le thème shadcn, le landing et la connexion ont leurs rayons arbitraires (`rounded-[22px]`).
-6. Écrire la charte source (logo, planches) dans ce dossier ; elle n'existe pas encore.
+1. Supprimer les `style={{}}` avec des couleurs littérales (invisibles au ratchet), puis les rayons arbitraires restants.
+2. Annoter les variantes de `button.tsx` et `badge.tsx` qui n'ont pas de source de charte ; ajouter `data-slot` aux primitives.
+3. Documenter la typographie (Lexend pour l'interface du builder, Fraunces pour les titres éditoriaux) et fixer un fichier de chargement unique des polices.
+4. Écrire la charte source (logo, planches) dans ce dossier ; elle n'existe pas encore.

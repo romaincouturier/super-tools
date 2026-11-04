@@ -216,7 +216,7 @@ export default function Connexion() {
             <div className="flex flex-col gap-3">
               <Link
                 to="/academy/inscription"
-                className="flex h-14 w-full items-center justify-center rounded-[11px] bg-primary text-base font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:translate-y-px"
+                className="flex h-14 w-full items-center justify-center rounded-md bg-primary text-base font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:translate-y-px"
               >
                 Créer un compte gratuitement
               </Link>

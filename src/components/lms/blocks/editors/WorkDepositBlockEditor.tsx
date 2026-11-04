@@ -38,15 +38,15 @@ export default function WorkDepositBlockEditor({ content, onChange, slim }: Prop
       <div className="space-y-3">
         <div
           className="flex items-center gap-3 rounded-xl px-4 py-3"
-          style={{ background: "var(--st-surface)", border: "1px solid var(--st-ink-08)" }}
+          style={{ background: "hsl(var(--grey-light))", border: "1px solid hsl(var(--ink) / 0.08)" }}
         >
-          <Upload size={20} style={{ color: "var(--st-ink-50)", flexShrink: 0 }} />
+          <Upload size={20} style={{ color: "hsl(var(--ink) / 0.5)", flexShrink: 0 }} />
           <Input
             value={content.title || ""}
             onChange={(e) => onChange({ ...content, title: e.target.value || "Déposer mon travail" })}
             placeholder="Déposer mon travail"
             className="flex-1 border-none bg-transparent px-0 font-medium focus-visible:ring-0"
-            style={{ color: "var(--st-ink)" }}
+            style={{ color: "hsl(var(--ink))" }}
           />
         </div>
         <RichTextEditor
