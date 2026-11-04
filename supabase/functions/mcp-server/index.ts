@@ -1,4 +1,4 @@
-import { columnHint, isMissingColumnError } from "./sql-error-hint.ts";
+import { columnHint, isMissingColumnError } from "../_shared/sql-error-hint.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import {
   handleCorsPreflightIfNeeded,
