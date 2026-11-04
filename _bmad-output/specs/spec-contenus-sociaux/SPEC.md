@@ -88,7 +88,7 @@ C'est une opportunité à saisir, doublée d'une douleur. Romain et Emmanuelle p
 - Canaux de départ : LinkedIn Romain, LinkedIn Emmanuelle, page LinkedIn SuperTilt, Instagram, YouTube, Facebook, Blog, Le Déclic. La liste est extensible, et Blog et Le Déclic sont des canaux comme les autres.
 - Toute publication porte un visuel, quel que soit son canal.
 - Les visuels viennent de la Médiathèque existante : aucune médiathèque propre au module.
-- Le MCP n'a que les droits de l'utilisateur connecté, et aucun de ses chemins ne contourne le circuit de validation.
+- Le MCP n'a que les droits de l'utilisateur connecté, et aucun de ses chemins ne contourne le circuit de validation. En V1, le connecteur reste au seul nom de Romain (`ALLOWED_EMAIL`) : ses actions lui sont attribuées, et Emmanuelle passe par l'écran.
 - Conventions du dépôt : flux page, hook, service, Supabase ; RLS sur chaque table ; écrans internes masqués en mode démo. Voir `brownfield.md`.
 
 ## Non-goals

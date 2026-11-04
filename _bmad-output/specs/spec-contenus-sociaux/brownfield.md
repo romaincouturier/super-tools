@@ -18,6 +18,7 @@ Relevé sur `main` le 3 novembre 2026.
 
 - Serveur : `supabase/functions/mcp-server/index.ts`. Outils de contenu existants : `get_content_card`, `create_content_card`, `add_content_card`, `list_content_board`, `list_newsletters`, `prepare_newsletter`, `get_editorial_brief`, `get_content_performance`.
 - CAP-13 étend ce serveur. Il n'en crée pas un second.
+- Le serveur est mono-utilisateur : chaque requête est liée à `ALLOWED_EMAIL` (`romain@supertilt.fr`), avec la clé service role. L'identité des actions MCP est donc toujours Romain.
 
 ## Briques réutilisables
 

@@ -623,3 +623,57 @@ afin de traiter mes validations sans quitter la conversation.
 **Given** un contenu
 **When** Claude lit ou ajoute un commentaire
 **Then** le commentaire apparaît dans le détail du contenu, attribué à l'utilisateur du connecteur et marqué « via Claude »
+
+## Epic 5 : Sortir les posts du kanban newsletter
+
+Les 6 cartes post deviennent des posts, plus aucune entrée ne crée de post dans le kanban, et un post peut décliner une carte éditoriale avec un lien dans les deux sens.
+
+### Story 5.1 : Migrer les cartes post et rediriger leurs points d'entrée
+
+En tant que Romain,
+je veux que les posts sociaux quittent le kanban newsletter et n'y reviennent plus,
+afin que le kanban ne porte que les articles et que les posts vivent dans le calendrier.
+
+**Acceptance Criteria:**
+
+**Given** les 6 cartes `content_cards` de type `post` ou `post_linkedin`
+**When** la migration de données est jouée en production, après la publication du front, une seule fois, de façon idempotente
+**Then** chaque carte devient un contenu avec son titre et sa description comme texte, son échéance comme date, son visuel et son thème s'il y a lieu
+**And** les cartes en « Diffusion Terminée » deviennent « marqué comme publié », celle en « Idées » un brouillon sans date
+**And** le canal de chaque carte est confirmé par Romain avant l'exécution (un `post` générique ne dit pas son réseau)
+**And** l'historique du contenu indique « migré depuis la carte … »
+**And** la carte d'origine est retirée du kanban une fois le contenu créé ; un rapport liste les 6 cartes, le contenu créé et toute carte ignorée
+
+**Given** le bouton « Envoyer au tableau de contenu » d'un événement (`SendToContentBoardButton`)
+**When** l'utilisateur choisit Post LinkedIn ou Post Instagram
+**Then** un brouillon sans date est créé dans Contenus sociaux, sur le canal correspondant, au lieu d'une carte du kanban
+
+**Given** une recommandation éditoriale acceptée au format `post_linkedin` (`useEditorialRecommendations`)
+**When** elle est acceptée
+**Then** elle crée un brouillon dans Contenus sociaux, et non une carte `post` dans le kanban
+
+**Given** le kanban newsletter après la story
+**When** un utilisateur crée ou modifie une carte
+**Then** les types post ne sont plus proposés ; les outils MCP `create_content_card` et `add_content_card` refusent ces types et orientent vers les outils de l'epic 4
+
+### Story 5.2 : Décliner une carte éditoriale en contenus sociaux
+
+En tant que membre de l'équipe,
+je veux décliner un article du kanban en posts et retrouver le lien des deux côtés,
+afin de promouvoir chaque article sur les réseaux sans perdre le fil.
+
+**Acceptance Criteria:**
+
+**Given** une carte du kanban éditorial
+**When** l'utilisateur clique « Décliner en posts »
+**Then** le composeur s'ouvre, rattaché à cette carte, avec son titre en point de départ
+
+**Given** le détail d'un contenu
+**When** l'utilisateur le rattache à une carte existante, ou retire le lien
+**Then** le lien est enregistré ou retiré
+
+**Given** une carte avec des contenus rattachés
+**When** son détail s'ouvre dans le kanban
+**Then** la liste des contenus liés s'affiche avec leur statut, chacun ouvrable d'un clic
+**And** le détail d'un contenu affiche la carte liée, ouvrable d'un clic
+**And** l'outil MCP de lecture d'un contenu (story 4.2) renvoie la carte liée
