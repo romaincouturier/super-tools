@@ -43,6 +43,12 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 
 # Architecture rules
 
+- CRM statistics map outcomes from sales status and use an explicit current-day snapshot boundary while replaying earlier column history; the shared dialog accepts tooltip column order, because incomplete move or closure history must not override current opportunity categories.
+
+- Permanent-session inline Solo creation inherits catalog values through a service and hook; course availability considers both catalog and session links, because the shortcut must not invent prices or hide existing associations.
+
+- Training tables share a pure sorting helper with independent per-tab sort state, because switching tabs must preserve chronological defaults and numeric enrollment sorting.
+
 - Learner dashboard onboarding derives remaining steps from a pure profile helper and renders only a nonempty list, because completion must hide the block independently of work deposits.
 
 - Password setup loads and saves learner names through authenticated session-owned profile access, after an explicit recovery confirmation click; it never consumes recovery tokens on page load or exposes anonymous email-based profile lookup, because name prefill must preserve scanner-safe links and identity privacy.
@@ -78,3 +84,5 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Micro-devis follow-up sessions are computed by the pure helper `supabase/functions/_shared/micro-devis-followup.ts`, shared by the Micro-devis page and `generate-micro-devis`; the server reads included sessions from the selected catalog formula, descriptions count included plus added sessions, and only additions increase price and catalog duration, because UI and PDF must agree without billing included sessions twice.
 - Cold evaluations are native tokenized questionnaires (`sponsor_cold_evaluations`, `participant_cold_evaluations`) planned by `send-thank-you-email` through the pure helper `_shared/cold-evaluation.ts` (one per distinct sponsor, one per participant), reuse one token per recipient and session, get one reminder scheduled after a successful send, and record failures in `scheduled_emails.error_message` while staying pending, because sends must never fail silently or duplicate.
 - Cold evaluation eligibility is checked by the shared pure helper both before scheduling and before sending (including reminders and forced calls); excluded rows are cancelled, because catch-up and stale queues must not bypass the deployment cutoff.
+- Learner access emails are chosen server-side by a pure helper from `password_set` only (a missing security row means no password; a past sign-in proves nothing unless it was a password sign-in, recorded by `mark_password_proven`): create-password for accounts without a proven password, `learner_course_access` with a direct course link otherwise, because legacy magic-link accounts must never be told to log in with a password they never created.
+- Bulk e-learning access emails are queued in `learner_access_jobs` and sent server-side by `queue-learner-access-emails` (claimed row by row, self-continued past the time budget, original requester kept for quota rights), because browser-driven sequential sends blocked the page for many minutes and stopped when it closed.

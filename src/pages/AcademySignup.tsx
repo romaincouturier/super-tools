@@ -13,7 +13,6 @@ import { useAcademyEnrollment } from "@/hooks/useAcademyEnrollment";
 import { useSession } from "@/hooks/useSession";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
-import { reportHandledError } from "@/lib/sentry";
 
 function isStrongPassword(password: string) {
   return password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password);
@@ -74,8 +73,8 @@ export default function AcademySignup() {
           return;
         } catch (enrollError) {
           // Formation non inscriptible directement : l'écran de choix
-          // reprend la présélection, rien n'est perdu. L'échec reste tracé.
-          reportHandledError(enrollError, { courseId });
+          // reprend la présélection, rien n'est perdu.
+          console.warn("[AcademySignup] Inscription directe impossible, repli sur l'écran de choix", enrollError);
         }
       }
       const next = courseId ? `?course=${encodeURIComponent(courseId)}` : "";

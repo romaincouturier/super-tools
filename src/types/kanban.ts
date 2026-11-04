@@ -64,6 +64,8 @@ export interface KanbanStatsItem {
   createdAt: string;
   /** Date the item reached a "done" column (for cycle time). */
   completedAt?: string | null;
+  /** Snapshot boundary: current column is authoritative from this date onward. */
+  currentColumnAsOf?: string;
   /** Monetary value of the item (e.g. opportunity amount), for the value-weighted CFD. */
   value?: number | null;
   /** Chronological column moves, replayed by the CFD when present. */

@@ -6,7 +6,7 @@ import { format, parseISO } from "date-fns";
 import { getErrorMessage } from "@/lib/error-utils";
 import { scheduleEmailsBulk } from "@/services/activityLog";
 import type { ParsedParticipant } from "@/hooks/useParticipantParser";
-import { sendParticipantWelcomeEmail, sendLearnerAccessEmail } from "@/services/participants";
+import { sendParticipantWelcomeEmail } from "@/services/participants";
 
 interface InsertedParticipant {
   id: string;
@@ -121,28 +121,67 @@ export async function sendWelcomeEmailsToBatch(
   }
 }
 
-export async function sendElearningAccessToBatch(
+export type ElearningAccessBatchReport = {
+  /** Comptes créés pendant l'envoi (mail « Créez votre mot de passe »). */
+  created: number;
+  /** Comptes avec mot de passe : mail « Votre accès à la formation est ouvert ». */
+  confirmed: number;
+  /** Comptes existants sans mot de passe : mail « Créez votre mot de passe ». */
+  passwordInvites: number;
+  failures: { email: string; message: string }[];
+};
+
+/**
+ * Confie les emails d'accès du lot au serveur : l'envoi continue même si la page est fermée.
+ * Le serveur choisit, par personne, création de mot de passe ou accès ouvert.
+ */
+export async function enqueueElearningAccessBatch(
   participants: InsertedParticipant[],
   trainingId: string,
-  onProgress?: (completed: number, total: number) => void,
-): Promise<{ email: string; message: string }[]> {
-  let completed = 0;
-  const failures: { email: string; message: string }[] = [];
-  for (const participant of participants) {
+): Promise<{ batchId: string; total: number }> {
+  const { data, error } = await supabase.functions.invoke("queue-learner-access-emails", {
+    body: { action: "enqueue", trainingId, emails: participants.map((p) => p.email) },
+  });
+  if (error) throw error;
+  if (!data?.batchId) throw new Error("Les emails d’accès n’ont pas pu être programmés.");
+  return { batchId: data.batchId, total: data.total };
+}
+
+export type ElearningAccessBatchStatus = ElearningAccessBatchReport & { total: number; completed: number; finished: boolean };
+
+export async function fetchElearningAccessBatchStatus(batchId: string): Promise<ElearningAccessBatchStatus> {
+  const { data, error } = await supabase.functions.invoke("queue-learner-access-emails", {
+    body: { action: "status", batchId },
+  });
+  if (error) throw error;
+  return data as ElearningAccessBatchStatus;
+}
+
+/** Suit le lot jusqu'à la fin (tant que l'app reste ouverte) et rend le bilan final. */
+export async function watchElearningAccessBatch(
+  batchId: string,
+  onProgress?: (status: ElearningAccessBatchStatus) => void,
+  intervalMs = 5000,
+): Promise<ElearningAccessBatchStatus> {
+  for (;;) {
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
     try {
-      // Même email d'accès que l'ajout unitaire (W12) : le mode WooCommerce
-      // n'est plus une voie d'accès.
-      await sendLearnerAccessEmail(participant.email, trainingId);
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const status = await fetchElearningAccessBatchStatus(batchId);
+      onProgress?.(status);
+      if (status.finished) return status;
     } catch (error: unknown) {
-      console.error("Failed to send e-learning access email to:", participant.email, getErrorMessage(error));
-      failures.push({ email: participant.email, message: getErrorMessage(error) });
-    } finally {
-      completed += 1;
-      onProgress?.(completed, participants.length);
+      console.error("Suivi des emails d’accès indisponible :", getErrorMessage(error));
     }
   }
-  return failures;
+}
+
+/** Bilan lisible des emails d'accès d'un ajout en lot. */
+export function buildAccessReportMessage(report: Pick<ElearningAccessBatchReport, "created" | "confirmed" | "passwordInvites">): string {
+  const parts: string[] = [];
+  if (report.created) parts.push(`${report.created} compte${report.created > 1 ? "s" : ""} créé${report.created > 1 ? "s" : ""}`);
+  if (report.confirmed) parts.push(`${report.confirmed} accès confirmé${report.confirmed > 1 ? "s" : ""}`);
+  if (report.passwordInvites) parts.push(`${report.passwordInvites} invitation${report.passwordInvites > 1 ? "s" : ""} à créer le mot de passe`);
+  return parts.length ? `Emails d’accès : ${parts.join(", ")}.` : "";
 }
 
 export async function scheduleNeedsSurveyEmails(

@@ -17,6 +17,9 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useFormationForm } from "@/hooks/useFormationForm";
 import { useCourses } from "@/hooks/useLms";
+import { usePermanentTraining } from "@/hooks/usePermanentTraining";
+import { orderCourseOptions } from "@/lib/permanentTraining";
+import { Link2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ScheduleEditor from "@/components/formations/ScheduleEditor";
 import TrainingNameCombobox, { FormationConfig } from "@/components/formations/TrainingNameCombobox";
@@ -48,7 +51,22 @@ const FormationCreate = () => {
   const [selectedVenue, setSelectedVenue] = useState<TrainingVenue | null>(null);
   const [catalogDialogOpen, setCatalogDialogOpen] = useState(false);
   const { data: lmsCourses = [] } = useCourses();
-  const publishedCourses = lmsCourses.filter((c) => c.status === "published");
+  const { associations, solo } = usePermanentTraining();
+  const publishedCourses = orderCourseOptions(lmsCourses.filter((c) => c.status === "published"), associations.data ?? []);
+
+  const handleAddSolo = async () => {
+    const catalogId = form.catalogId;
+    if (!catalogId || solo.isPending) return;
+    try {
+      const formulas = await solo.mutateAsync(catalogId);
+      form.setCatalogFormulas(formulas);
+      form.setHasFormulas(true);
+      form.setSelectedFormulaId(formulas[0]?.id ?? null);
+      toast({ title: "Formule disponible", description: "La formule du catalogue est sélectionnée." });
+    } catch (error) {
+      toast({ title: "Impossible d’ajouter la formule", description: error instanceof Error ? error.message : "Réessayez.", variant: "destructive" });
+    }
+  };
 
   // Applique une entrée catalogue fraîchement créée au formulaire.
   const applyCreatedCatalog = async (created: FormationConfig) => {
@@ -237,7 +255,14 @@ const FormationCreate = () => {
         .select()
         .single();
 
-      if (trainingError) throw trainingError;
+      if (trainingError) throw new Error(trainingError.message);
+
+      if (form.isPermanent && form.selectedFormulaId) {
+        const { error: formulaLinkError } = await supabase
+          .from("training_formulas")
+          .insert({ training_id: training.id, formula_id: form.selectedFormulaId });
+        if (formulaLinkError) throw new Error(`Session créée mais formule non rattachée : ${formulaLinkError.message}`);
+      }
 
       // Create schedules
       if (form.schedules.length > 0) {
@@ -518,12 +543,12 @@ const FormationCreate = () => {
                   {/* LMS course - required for e-learning */}
                   {form.isElearning && (
                     <div className="space-y-2">
-                      <Label>Cours e-learning *</Label>
+                      <Label htmlFor="lms-course">Cours e-learning *</Label>
                       <Select
                         value={form.lmsCourseId ?? ""}
                         onValueChange={(v) => form.setLmsCourseId(v || null)}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id="lms-course" disabled={associations.isPending || associations.isError}>
                           <SelectValue placeholder="Sélectionnez le cours à rattacher" />
                         </SelectTrigger>
                         <SelectContent>
@@ -534,12 +559,16 @@ const FormationCreate = () => {
                           ) : (
                             publishedCourses.map((c) => (
                               <SelectItem key={c.id} value={c.id}>
-                                {c.title}
+                                <span className="flex items-center gap-2">
+                                  {c.isAssigned && <Link2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-label="Déjà associé à une formation" />}
+                                  {c.title}
+                                </span>
                               </SelectItem>
                             ))
                           )}
                         </SelectContent>
                       </Select>
+                      {associations.isError && <div role="alert" className="text-sm text-destructive">Impossible de vérifier les cours associés. <Button type="button" variant="link" onClick={() => associations.refetch()}>Réessayer</Button></div>}
                       <p className="text-xs text-muted-foreground">
                         Obligatoire : c'est ce cours qui apparaîtra dans le portail apprenant.
                       </p>
@@ -699,11 +728,15 @@ const FormationCreate = () => {
 
               {/* Warning: permanent mode needs catalog with formulas */}
               {form.isPermanent && form.catalogId && form.catalogFormulas.length === 0 && (
-                <Card className="border-orange-200 bg-orange-50">
-                  <CardContent className="py-4">
-                    <p className="text-sm text-orange-800">
-                      Cette formation n'a pas de formules configurées dans le catalogue. Ajoutez des formules (Solo, Communauté, Coachée...) depuis la page Catalogue.
+                <Card className="border-warning bg-warning/10">
+                  <CardContent className="py-4 space-y-3">
+                    <p className="text-sm">
+                      Cette formation n'a pas de formule configurée dans le catalogue.
                     </p>
+                    <Button type="button" variant="outline" disabled={solo.isPending} onClick={handleAddSolo}>
+                      {solo.isPending ? <Spinner className="mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                      Ajouter une formule solo
+                    </Button>
                   </CardContent>
                 </Card>
               )}

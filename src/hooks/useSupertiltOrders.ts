@@ -134,6 +134,7 @@ export interface OrderItem {
   location_document_id: string | null;
   contrat_reference: string | null;
   location_end_date: string | null;
+  location_returned_at: string | null;
   notes: string | null;
   commission_amount: number | null;
   raw_line_item: Record<string, unknown> | null;

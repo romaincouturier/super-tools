@@ -4728,6 +4728,48 @@ export type Database = {
         }
         Relationships: []
       }
+      learner_access_jobs: {
+        Row: {
+          account_created: boolean
+          batch_id: string
+          created_at: string
+          email: string
+          error_message: string | null
+          id: string
+          processed_at: string | null
+          requested_by: string
+          result_kind: string | null
+          status: string
+          training_id: string
+        }
+        Insert: {
+          account_created?: boolean
+          batch_id: string
+          created_at?: string
+          email: string
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          requested_by: string
+          result_kind?: string | null
+          status?: string
+          training_id: string
+        }
+        Update: {
+          account_created?: boolean
+          batch_id?: string
+          created_at?: string
+          email?: string
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          requested_by?: string
+          result_kind?: string | null
+          status?: string
+          training_id?: string
+        }
+        Relationships: []
+      }
       learner_notifications: {
         Row: {
           body: string
@@ -8136,6 +8178,7 @@ export type Database = {
           location_contract_file_url: string | null
           location_document_id: string | null
           location_end_date: string | null
+          location_returned_at: string | null
           notes: string | null
           product_name: string | null
           quantity: number
@@ -8170,6 +8213,7 @@ export type Database = {
           location_contract_file_url?: string | null
           location_document_id?: string | null
           location_end_date?: string | null
+          location_returned_at?: string | null
           notes?: string | null
           product_name?: string | null
           quantity?: number
@@ -8204,6 +8248,7 @@ export type Database = {
           location_contract_file_url?: string | null
           location_document_id?: string | null
           location_end_date?: string | null
+          location_returned_at?: string | null
           notes?: string | null
           product_name?: string | null
           quantity?: number
@@ -13979,6 +14024,7 @@ export type Database = {
         Returns: undefined
       }
       mark_password_changed: { Args: never; Returns: undefined }
+      mark_password_proven: { Args: never; Returns: undefined }
       match_documents: {
         Args: {
           filter_source_types?: string[]

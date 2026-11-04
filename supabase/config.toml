@@ -187,9 +187,6 @@ verify_jwt = false
 [functions.send-training-documents]
 verify_jwt = false
 
-[functions.send-elearning-access]
-verify_jwt = false
-
 [functions.send-elearning-erratum]
 verify_jwt = false
 
@@ -751,4 +748,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.archive-lms-audio]
+verify_jwt = false
+
+[functions.queue-learner-access-emails]
 verify_jwt = false
