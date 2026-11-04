@@ -1,3 +1,4 @@
+import { columnHint, isMissingColumnError } from "../_shared/sql-error-hint.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import {
   handleCorsPreflightIfNeeded,
@@ -1876,7 +1877,14 @@ async function callTool(
         p_user_id: userId,
         p_explanation: ((args.explanation as string) || "via connecteur MCP Claude").slice(0, 500),
       });
-      if (error) return textResult(`SQL error: ${error.message}`, true);
+      if (error) {
+        let hint = "";
+        if (isMissingColumnError(error.message)) {
+          const { data: schema } = await supabase.rpc("get_agent_schema_prompt");
+          hint = columnHint(args.sql as string, (schema as string) || "");
+        }
+        return textResult(`SQL error: ${error.message}${hint}`, true);
+      }
       return textResult(JSON.stringify(data ?? []));
     }
     case "search_content": {
