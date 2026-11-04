@@ -13,7 +13,9 @@ describe("Formule de session permanente", () => {
       result.current.setLmsCourseId("course-id");
     });
     const payload = result.current.buildTrainingPayload({ isCreate: true });
-    expect(payload.formula_id).toBe("solo-id");
+    // La formule est rattachée via training_formulas : la table trainings n'a pas de colonne formula_id.
+    expect(payload).not.toHaveProperty("formula_id");
+    expect(result.current.selectedFormulaId).toBe("solo-id");
     expect(payload.supports_lms_course_id).toBe("course-id");
     expect(payload.session_format).toBe("distanciel_asynchrone");
   });
