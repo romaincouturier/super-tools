@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useParticipantParser } from "@/hooks/useParticipantParser";
 import { getErrorMessage } from "@/lib/error-utils";
-import { insertParticipantsWithQuestionnaires, sendWelcomeEmailsToBatch, sendElearningAccessToBatch, buildAccessReportMessage, scheduleNeedsSurveyEmails, logBulkAddActivity, buildStatusMessage } from "@/services/bulkParticipants";
+import { insertParticipantsWithQuestionnaires, sendWelcomeEmailsToBatch, enqueueElearningAccessBatch, watchElearningAccessBatch, buildAccessReportMessage, scheduleNeedsSurveyEmails, logBulkAddActivity, buildStatusMessage } from "@/services/bulkParticipants";
 import { catchUpAttendanceSignaturesForParticipant } from "@/services/participants";
 import { scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,12 +78,17 @@ const BulkAddParticipantsDialog = ({
         });
       }
       if (formatFormation === "e_learning" && data && data.length > 0) {
-        setProgress({ value: 25, action: "Création des accès et envoi des emails e-learning…", detail: `0 / ${data.length} participants traités` });
-        const accessReport = await sendElearningAccessToBatch(data, trainingId, (completed, total) => {
-          setProgress({ value: 25 + (completed / total) * 45, action: "Création des accès et envoi des emails e-learning…", detail: `${completed} / ${total} participants traités` });
+        setProgress({ value: 40, action: "Programmation des emails d’accès e-learning…", detail: `${data.length} participants` });
+        const { batchId, total } = await enqueueElearningAccessBatch(data, trainingId);
+        accessSummary = `${total} email${pluralize(total)} d’accès en cours d’envoi en arrière-plan : vous pouvez fermer la page.`;
+        void watchElearningAccessBatch(batchId).then((final) => {
+          const summary = buildAccessReportMessage(final);
+          toast({
+            title: final.failures.length > 0 ? "Emails d’accès terminés, avec des échecs" : "Emails d’accès envoyés",
+            ...(final.failures.length > 0 && { variant: "destructive" as const, duration: 15000 }),
+            description: `${summary}${final.failures.length > 0 ? ` ${final.failures.length} échec${pluralize(final.failures.length)} : ${final.failures.map((f) => `${isDemoMode ? maskEmail(f.email) : f.email} : ${isDemoMode ? "Envoi échoué" : f.message}`).join(" ; ")}` : ""}`,
+          });
         });
-        accessFailures = accessReport.failures;
-        accessSummary = buildAccessReportMessage(accessReport);
       }
       let needsSurveySkipped = false;
       // Needs survey only makes sense before the session starts.
