@@ -78,7 +78,7 @@ export default function ConnexionReinitialisation() {
               <AuthTitle>
                 Ce lien a expiré
               </AuthTitle>
-              <p className="mb-7 max-w-[42ch] text-[15.5px] text-muted-foreground">
+              <p className="mb-7 max-w-[42ch] text-prose text-muted-foreground">
                 Les liens de réinitialisation sont valables 1 heure et ne fonctionnent qu'une fois.
                 Demandez-en un nouveau, nous vous l'envoyons tout de suite.
               </p>
@@ -111,7 +111,7 @@ export default function ConnexionReinitialisation() {
             <AuthTitle>
               Nouveau mot de passe
             </AuthTitle>
-            <p className="mb-5 max-w-[42ch] text-[15.5px] text-muted-foreground">
+            <p className="mb-5 max-w-[42ch] text-prose text-muted-foreground">
               Choisissez un nouveau mot de passe pour sécuriser votre compte.
             </p>
 
@@ -179,7 +179,7 @@ export default function ConnexionReinitialisation() {
 
 function Rule({ ok, label }: { ok: boolean; label: string }) {
   return (
-    <div className={`flex items-center gap-2.5 text-[14.5px] ${ok ? "text-foreground" : "text-muted-foreground"}`}>
+    <div className={`flex items-center gap-2.5 text-prose ${ok ? "text-foreground" : "text-muted-foreground"}`}>
       {ok
         ? <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-primary" />
         : <Circle className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />}

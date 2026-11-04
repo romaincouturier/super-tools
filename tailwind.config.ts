@@ -41,6 +41,12 @@ export default {
           line: "hsl(var(--feedback-info-line))",
         },
         "error-surface": "hsl(var(--error-surface))",
+        partner: {
+          anthropic: "hsl(var(--partner-anthropic))",
+          openai: "hsl(var(--partner-openai))",
+          google: "hsl(var(--partner-google))",
+          linkedin: "hsl(var(--partner-linkedin))",
+        },
         ink: "hsl(var(--ink))",
         cream: "hsl(var(--cream))",
         "brand-yellow": "hsl(var(--yellow-brand))",
@@ -92,6 +98,7 @@ export default {
       fontSize: {
         micro: ["0.625rem", { lineHeight: "0.875rem" }],
         caption: ["0.6875rem", { lineHeight: "1rem" }],
+        prose: ["0.9375rem", { lineHeight: "1.5rem" }],
       },
       transitionDuration: {
         fast: "var(--duration-fast)",

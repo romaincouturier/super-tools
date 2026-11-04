@@ -29,7 +29,7 @@ export default function TimelineBlockViewer({ content }: { content: TimelineBloc
       </div>
       <section id={panelId} aria-label={active.panel_title || active.title} className="rounded-lg border-2 border-[var(--timeline-accent)] bg-card p-5" aria-live="polite">
         <h3 className="mb-2 break-words text-xl font-bold">{active.panel_title || active.title}</h3>
-        {active.description && <p className="whitespace-pre-line break-words text-[1.05rem] leading-relaxed text-foreground">{active.description}</p>}
+        {active.description && <p className="whitespace-pre-line break-words text-base leading-relaxed text-foreground">{active.description}</p>}
         {!!active.panel_items?.length && <ul className="mt-4 space-y-3">
           {active.panel_items.map((item) => <li key={item.id} className="flex items-start gap-3 text-base leading-relaxed">
             {item.icon_url ? <img src={item.icon_url} alt="" className="h-6 w-6 shrink-0 object-contain" /> : <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[var(--timeline-accent)]" />}

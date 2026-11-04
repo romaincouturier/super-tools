@@ -28,6 +28,8 @@ Source unique : `src/styles/tokens.css`. En cas de désaccord entre ce document 
 | Alerte | `text-caution-ink`, `bg-caution-surface`, `border-caution-line` |
 | Information | `text-info-ink`, `bg-info-surface`, `border-info-line` |
 | Texte 10px / 11px | `text-micro`, `text-caption` |
+| Texte courant 15px | `text-prose` |
+| Marque tierce (Anthropic, OpenAI, Google, LinkedIn) | `bg-partner-*`, `text-partner-*` |
 | Rayon bloc LMS | `rounded-block` |
 | Hauteur de champ | `h-control-md` (2.5rem), `h-control-sm` (2rem) |
 | Durée / courbe | `duration-fast|base|slow`, `ease-brand` |
@@ -51,8 +53,8 @@ Correspondance de migration depuis la palette brute : `green-*` vers `success`, 
 
 ## Chantier restant
 
-1. Migrer les teintes restantes de la palette brute (49 : violet, indigo, cyan, teal, pink) ; statuts, gris (vers `muted`, `border`, `foreground`) et `purple` (vers `info`) sont migrés.
-2. Supprimer les 15 hex en classe et les 33 tailles arbitraires restantes.
+1. Migrer les 23 teintes restantes (cyan, teal, pink) : décision à prendre, ce ne sont pas des statuts. Les statuts, les gris, `purple`, `violet` et `indigo` (vers `info`) sont migrés.
+2. Supprimer les `style={{}}` avec des couleurs littérales (invisibles au ratchet).
 3. Annoter les variantes de `button.tsx` et `badge.tsx` qui n'ont pas de source de charte ; ajouter `data-slot` aux primitives.
 4. Documenter la typographie (Lexend pour l'interface du builder, Fraunces pour les titres éditoriaux) et fixer un fichier de chargement unique des polices.
 5. Écrire la charte source (logo, planches) dans ce dossier ; elle n'existe pas encore.

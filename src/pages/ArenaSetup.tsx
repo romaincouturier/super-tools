@@ -167,14 +167,14 @@ export default function ArenaSetup() {
             <div className="rounded-xl border border-border bg-card p-5 space-y-4">
               <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
                 <div className="flex items-center gap-2 text-sm font-medium">
-                  <span className="inline-block h-2 w-2 rounded-full bg-[#D97706]" />
+                  <span className="inline-block h-2 w-2 rounded-full bg-partner-anthropic" />
                   Anthropic (Claude) — <span className="text-primary">disponible</span>
                 </div>
                 <p className="mt-1 text-micro text-muted-foreground">Clé gérée côté serveur. Aucune configuration nécessaire.</p>
               </div>
               <div>
                 <label className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                  <span className="inline-block h-2 w-2 rounded-full bg-[#10A37F]" />
+                  <span className="inline-block h-2 w-2 rounded-full bg-partner-openai" />
                   OpenAI <span className="text-micro">(optionnel)</span>
                 </label>
                 <input
@@ -187,7 +187,7 @@ export default function ArenaSetup() {
               </div>
               <div>
                 <label className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                  <span className="inline-block h-2 w-2 rounded-full bg-[#4285F4]" />
+                  <span className="inline-block h-2 w-2 rounded-full bg-partner-google" />
                   Google Gemini <span className="text-micro">(optionnel)</span>
                 </label>
                 <input
@@ -427,7 +427,7 @@ export default function ArenaSetup() {
                       </button>
                       <button
                         onClick={() => handleDeleteCustomTemplate(template.id)}
-                        className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-destructive text-[8px] text-white group-hover:flex"
+                        className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-destructive text-micro text-white group-hover:flex"
                         title="Supprimer"
                       >&times;</button>
                     </div>
@@ -521,13 +521,13 @@ export default function ArenaSetup() {
                     <div className="mt-3 space-y-3">
                     <div className="rounded-lg bg-primary/5 border border-primary/20 p-2">
                       <div className="flex items-center gap-2 text-xs font-medium">
-                        <span className="inline-block h-2 w-2 rounded-full bg-[#D97706]" />
+                        <span className="inline-block h-2 w-2 rounded-full bg-partner-anthropic" />
                         Claude — <span className="text-primary">disponible (clé serveur)</span>
                       </div>
                     </div>
                       <div>
                         <label className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                          <span className="inline-block h-2 w-2 rounded-full bg-[#10A37F]" />
+                          <span className="inline-block h-2 w-2 rounded-full bg-partner-openai" />
                           OpenAI {usedProviders.has("openai") && <span className="text-primary">*requis</span>}
                         </label>
                         <input
@@ -540,7 +540,7 @@ export default function ArenaSetup() {
                       </div>
                       <div>
                         <label className="mb-1 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                          <span className="inline-block h-2 w-2 rounded-full bg-[#4285F4]" />
+                          <span className="inline-block h-2 w-2 rounded-full bg-partner-google" />
                           Google (Gemini) {usedProviders.has("gemini") && <span className="text-primary">*requis</span>}
                         </label>
                         <input
@@ -683,7 +683,7 @@ export default function ArenaSetup() {
                               <span className={`rounded-full px-1.5 py-0.5 text-micro font-medium ${
                                 expert.domain === "tech" ? "bg-info/10 text-info"
                                   : expert.domain === "business" ? "bg-caution/10 text-caution"
-                                    : expert.domain === "creative" ? "bg-violet-500/10 text-violet-500"
+                                    : expert.domain === "creative" ? "bg-info/10 text-info"
                                       : expert.domain === "human" ? "bg-success/10 text-success"
                                         : expert.domain === "data" ? "bg-cyan-500/10 text-cyan-500"
                                           : expert.domain === "academic" ? "bg-danger/10 text-danger"

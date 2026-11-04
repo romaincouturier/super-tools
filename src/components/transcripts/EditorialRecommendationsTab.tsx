@@ -32,7 +32,7 @@ const ACTION_STYLES: Record<string, string> = {
   creer_article: "bg-success-surface text-success border-success-line",
   ameliorer_article: "bg-info-surface text-info-ink border-info-line",
   recycler: "bg-cyan-100 text-cyan-800 border-cyan-200",
-  fusionner: "bg-violet-100 text-violet-800 border-violet-200",
+  fusionner: "bg-info-surface text-info-ink border-info-line",
   archiver: "bg-muted text-foreground border-border",
   creer_post_linkedin: "bg-info-surface text-info-ink border-info-line",
   a_discuter: "bg-caution-surface text-caution-ink border-caution-line",

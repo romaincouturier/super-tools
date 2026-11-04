@@ -87,7 +87,7 @@ export function PasswordCreationCard({ onDone }: { onDone: () => void }) {
       </form>
 
       <div className="mx-auto w-full max-w-[420px]">
-        <div className="mt-6 flex items-center justify-center gap-2.5 text-[14.5px] text-muted-foreground">
+        <div className="mt-6 flex items-center justify-center gap-2.5 text-prose text-muted-foreground">
           <ShieldCheck className="h-[18px] w-[18px]" />
           Connexion sécurisée
         </div>
@@ -99,7 +99,7 @@ export function PasswordCreationCard({ onDone }: { onDone: () => void }) {
 
 function Rule({ ok, label }: { ok: boolean; label: string }) {
   return (
-    <div className={`flex items-center gap-2.5 text-[14.5px] ${ok ? "text-foreground" : "text-muted-foreground"}`}>
+    <div className={`flex items-center gap-2.5 text-prose ${ok ? "text-foreground" : "text-muted-foreground"}`}>
       {ok
         ? <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-primary" />
         : <Circle className="h-[18px] w-[18px] shrink-0 text-muted-foreground" />}

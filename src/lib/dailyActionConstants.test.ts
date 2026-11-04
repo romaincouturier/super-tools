@@ -17,7 +17,7 @@ describe("getCategoryConfig", () => {
   it("returns config for another known category", () => {
     const config = getCategoryConfig("elearning_groupe");
     expect(config.label).toBe("Groupes priv\u00e9s e-learning");
-    expect(config.color).toBe("text-indigo-600");
+    expect(config.color).toBe("text-info-ink");
   });
 
   it("returns fallback config for unknown category with category as label", () => {

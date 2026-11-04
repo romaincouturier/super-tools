@@ -33,7 +33,7 @@ export function AuthField({
 
   return (
     <div className="mb-5 text-left">
-      <label htmlFor={id} className="mb-2.5 block text-[14.5px] font-bold">
+      <label htmlFor={id} className="mb-2.5 block text-prose font-bold">
         {label}
       </label>
       <div className="flex h-[54px] items-center gap-3 rounded-[11px] border border-input bg-card px-4 focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20">
@@ -49,7 +49,7 @@ export function AuthField({
           autoFocus={autoFocus}
           readOnly={readOnly}
           required={required}
-          className="h-full min-w-0 flex-1 border-0 bg-transparent text-[15.5px] text-foreground outline-none placeholder:text-muted-foreground"
+          className="h-full min-w-0 flex-1 border-0 bg-transparent text-prose text-foreground outline-none placeholder:text-muted-foreground"
         />
         {isPassword && (
           <button

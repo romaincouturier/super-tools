@@ -667,7 +667,7 @@ const PageEditor = ({
     content: ensureHtmlContent(page.content || ""),
     editorProps: {
       attributes: {
-        class: "prose prose-base max-w-none focus:outline-none min-h-[calc(100vh-280px)] py-2 text-[15px] leading-normal",
+        class: "prose prose-base max-w-none focus:outline-none min-h-[calc(100vh-280px)] py-2 text-prose leading-normal",
       },
       handleClick: (_view, _pos, event) => {
         const target = event.target as HTMLElement | null;

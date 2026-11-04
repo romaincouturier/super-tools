@@ -201,7 +201,7 @@ const MacroPricingDialog = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="justify-start text-xs text-violet-600 hover:text-violet-700 px-1 h-8"
+                  className="justify-start text-xs text-info-ink hover:text-info-ink px-1 h-8"
                   onClick={() => setShowTravelCalc(true)}
                 >
                   <Car className="h-3.5 w-3.5 mr-1.5" />
@@ -211,7 +211,7 @@ const MacroPricingDialog = ({
                 <span />
                 <span />
                 <span />
-                <div className="text-sm font-medium text-right pr-1 text-violet-600">
+                <div className="text-sm font-medium text-right pr-1 text-info-ink">
                   {travelTotal > 0 ? `${formatEur(travelTotal)} €` : "—"}
                 </div>
                 {travelTotal > 0 && (

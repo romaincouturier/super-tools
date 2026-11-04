@@ -27,7 +27,7 @@ export function AuthShell({
           <button
             type="button"
             onClick={onBack}
-            className="ml-auto flex items-center gap-2.5 text-[15px] text-foreground hover:opacity-70"
+            className="ml-auto flex items-center gap-2.5 text-prose text-foreground hover:opacity-70"
           >
             <ArrowLeft className="h-[19px] w-[19px]" />
             {backLabel}
@@ -35,7 +35,7 @@ export function AuthShell({
         ) : (
           <a
             href={backHref}
-            className="ml-auto flex items-center gap-2.5 text-[15px] text-foreground hover:opacity-70"
+            className="ml-auto flex items-center gap-2.5 text-prose text-foreground hover:opacity-70"
           >
             <ArrowLeft className="h-[19px] w-[19px]" />
             {backLabel}
@@ -99,8 +99,8 @@ export function AuthInfoPanel({
             {item.icon}
           </div>
           <div>
-            <h3 className="mb-1 text-[15.5px] font-semibold">{item.title}</h3>
-            <p className="text-[14.5px] leading-6 text-muted-foreground">{item.text}</p>
+            <h3 className="mb-1 text-prose font-semibold">{item.title}</h3>
+            <p className="text-prose leading-6 text-muted-foreground">{item.text}</p>
           </div>
         </div>
       ))}
@@ -115,7 +115,7 @@ export function AuthInfoPanel({
  */
 export function AuthTitle({ children }: { children: ReactNode }) {
   return (
-    <h1 className="mb-2.5 text-[26px] font-semibold leading-tight tracking-[-0.7px] sm:text-[31px]">
+    <h1 className="mb-2.5 text-2xl font-semibold leading-tight tracking-[-0.7px] sm:text-3xl">
       {children}
     </h1>
   );
@@ -125,7 +125,7 @@ export function AuthTitle({ children }: { children: ReactNode }) {
 export function AuthSupportLine() {
   const contactEmail = useContactEmail();
   return (
-    <div className="mt-6 flex items-center gap-3 border-t pt-6 text-[14.5px] text-muted-foreground">
+    <div className="mt-6 flex items-center gap-3 border-t pt-6 text-prose text-muted-foreground">
       Besoin d'aide ? Écrivez-nous à{" "}
       <a href={`mailto:${contactEmail}`} className="underline underline-offset-[3px]">
         {contactEmail}

@@ -72,7 +72,7 @@ export function LearnerSidebar({
                 onClick={() => { onNav(id); onClose?.(); }}
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left",
-                  active === id ? "text-[#101820]" : "hover:bg-black/5",
+                  active === id ? "text-ink" : "hover:bg-black/5",
                 )}
                 style={active === id ? { background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" } : { fontFamily: "inherit", color: "var(--st-ink-muted)" }}
               >

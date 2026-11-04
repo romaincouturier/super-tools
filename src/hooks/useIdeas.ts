@@ -46,7 +46,7 @@ export const IDEA_STATUS_CONFIG: Record<IdeaStatus, { label: string; color: stri
   nouvelle: { label: "Nouvelle", color: "bg-info-surface text-info-ink" },
   a_l_etude: { label: "À l'étude", color: "bg-caution-surface text-caution-ink" },
   acceptee: { label: "Acceptée", color: "bg-success-surface text-success" },
-  promue: { label: "Promue", color: "bg-violet-100 text-violet-800" },
+  promue: { label: "Promue", color: "bg-info-surface text-info-ink" },
   realisee: { label: "Réalisée", color: "bg-success-surface text-success" },
   rejetee: { label: "Rejetée", color: "bg-muted text-muted-foreground" },
 };

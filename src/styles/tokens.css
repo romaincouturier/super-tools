@@ -44,6 +44,12 @@
   --blue-surface: 214 100% 97%;
   --blue-line: 213 97% 87%;
 
+  /* Marques tierces : exception assumée à la palette fermée, pour reconnaître un fournisseur. */
+  --partner-anthropic: 32 91% 44%;  /* #D97706 */
+  --partner-openai: 164 82% 34%;    /* #10A37F */
+  --partner-google: 217 89% 61%;    /* #4285F4 */
+  --partner-linkedin: 210 90% 40%;  /* #0A66C2 */
+
   /* ── 2. Alias sémantiques ─────────────────────────────────────────── */
   --text-strong: var(--ink);
   --text-muted: var(--slate);

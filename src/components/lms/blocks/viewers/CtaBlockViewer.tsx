@@ -52,7 +52,7 @@ export default function CtaBlockViewer({ content }: Props) {
   const linkTarget = newTab ? { target: "_blank", rel: "noopener noreferrer" } : {};
 
   const primaryButtonClass =
-    "inline-flex items-center gap-2 justify-center whitespace-normal text-center font-bold text-[0.9375rem] rounded-full px-7 py-3 transition-all hover:-translate-y-px hover:shadow-lg";
+    "inline-flex items-center gap-2 justify-center whitespace-normal text-center font-bold text-prose rounded-full px-7 py-3 transition-all hover:-translate-y-px hover:shadow-lg";
   const primaryButtonStyle: React.CSSProperties = {
     background: INK,
     color: accent,
@@ -108,7 +108,7 @@ export default function CtaBlockViewer({ content }: Props) {
 
           {content.body_html && (
             <div
-              className="prose max-w-none mt-3 break-words text-[0.9375rem] leading-relaxed"
+              className="prose max-w-none mt-3 break-words text-prose leading-relaxed"
               style={{ color: "#3F4753" }}
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content.body_html) }}
             />
@@ -119,7 +119,7 @@ export default function CtaBlockViewer({ content }: Props) {
               {benefits.map((b) => (
                 <li
                   key={b}
-                  className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-2 text-[13px] font-semibold"
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-2 text-sm font-semibold"
                   style={{ border: "1px solid #F1F1F4", color: INK, boxShadow: "0 2px 10px rgba(16, 24, 32, 0.08)" }}
                 >
                   <span

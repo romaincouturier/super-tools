@@ -47,7 +47,7 @@ const ParticipantMobileCard = ({
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-[#0A66C2] transition-colors shrink-0"
+                      className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-partner-linkedin transition-colors shrink-0"
                     >
                       <Linkedin className="h-3 w-3" />
                     </a>

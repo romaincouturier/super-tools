@@ -38,7 +38,7 @@ export default function AiAnalysisSection({ analysis, onUpdate, onDelete, onRean
 
   const isBug = analysis.type === "bug";
   const fields = isBug ? BUG_FIELDS : EVO_FIELDS;
-  const colorClass = isBug ? "border-danger-line bg-danger-surface/30" : "border-violet-200 bg-violet-50/30";
+  const colorClass = isBug ? "border-danger-line bg-danger-surface/30" : "border-info-line bg-info-surface/30";
   const typeLabel = isBug ? "Bug" : "Évolution";
 
   const startEditing = () => {

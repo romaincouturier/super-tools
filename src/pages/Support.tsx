@@ -285,7 +285,7 @@ const Support = () => {
               <div className="flex items-center gap-4 text-sm text-muted-foreground mr-2">
                 <span className="flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5" />{stats.open} ouvert{stats.open > 1 ? "s" : ""}</span>
                 <span className="flex items-center gap-1"><Bug className="h-3.5 w-3.5 text-danger" />{stats.bugs}</span>
-                <span className="flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5 text-violet-500" />{stats.evolutions}</span>
+                <span className="flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5 text-info" />{stats.evolutions}</span>
               </div>
 
               {/* Interrupteur codage auto Claude */}

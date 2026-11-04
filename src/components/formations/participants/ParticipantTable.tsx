@@ -171,7 +171,7 @@ const ParticipantTable = ({
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-[#0A66C2] hover:bg-muted transition-colors shrink-0"
+                          className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-partner-linkedin hover:bg-muted transition-colors shrink-0"
                         >
                           <Linkedin className="h-3 w-3" />
                         </a>

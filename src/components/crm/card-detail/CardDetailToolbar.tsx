@@ -114,7 +114,7 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
 
       {/* Macro pricing */}
       <button
-        className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors cursor-pointer hover:opacity-80 text-violet-700 bg-violet-50 border-violet-200"
+        className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors cursor-pointer hover:opacity-80 text-info-ink bg-info-surface border-info-line"
         onClick={() => { trackFeature("macro_pricing", "crm"); setShowPricingDialog(true); }}
         title="Macro chiffrage"
       >

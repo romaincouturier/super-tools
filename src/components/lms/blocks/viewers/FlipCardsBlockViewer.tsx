@@ -45,7 +45,7 @@ function CardFace({ card, isBack, hidden }: { card: FlipCard; isBack: boolean; h
       isBack ? "bg-accent/10 [transform:rotateY(180deg)]" : "bg-card",
     )}>
       {image && <img src={image} alt="" className={cn("w-full min-h-0 shrink-0 object-contain", !text ? "h-full" : isBack ? "h-[45%]" : "h-[68%]")} />}
-      {text ? <span className={cn("block w-full min-h-0 overflow-y-auto whitespace-pre-line break-words", isBack ? "text-[1.05rem] font-normal leading-relaxed" : "text-xl font-bold leading-snug")}>{text}</span>
+      {text ? <span className={cn("block w-full min-h-0 overflow-y-auto whitespace-pre-line break-words", isBack ? "text-base font-normal leading-relaxed" : "text-xl font-bold leading-snug")}>{text}</span>
         : !image && <span className="text-base text-muted-foreground">{isBack ? "Verso" : "Recto"}</span>}
     </span>
   );

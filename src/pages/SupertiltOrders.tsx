@@ -88,7 +88,7 @@ const GAME_TYPE_COLORS: Record<GameType, string> = {
 const KANBAN_ICONS: Record<KanbanStatus, React.ReactNode> = {
   to_validate: <AlertTriangle className="h-3.5 w-3.5 text-caution-ink" />,
   received: <Clock className="h-3.5 w-3.5 text-info-ink" />,
-  to_ship: <Truck className="h-3.5 w-3.5 text-indigo-600" />,
+  to_ship: <Truck className="h-3.5 w-3.5 text-info-ink" />,
   dropshipping: <RefreshCw className="h-3.5 w-3.5 text-info-ink" />,
   location_pending: <FileText className="h-3.5 w-3.5 text-caution-ink" />,
   location_active: <Clock className="h-3.5 w-3.5 text-caution-ink" />,
@@ -708,7 +708,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
           </p>
         )}
         {item.tracking_url?.startsWith("https://") && (
-          <a href={item.tracking_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-indigo-700 hover:underline">
+          <a href={item.tracking_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-info-ink hover:underline">
             <Truck className="h-3 w-3" />
             Suivi {isDemoMode ? maskText(item.tracking_number) : item.tracking_number ?? "Sendcloud"}
           </a>
@@ -781,7 +781,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
           <Button
             variant="ghost"
             size="sm"
-            className={`h-6 text-xs px-2 ${item.shipped_confirmed_at ? "text-success" : "text-indigo-700"}`}
+            className={`h-6 text-xs px-2 ${item.shipped_confirmed_at ? "text-success" : "text-info-ink"}`}
             disabled={markingShipped || !locationSigned}
             title={locationSigned ? undefined : "Contrat non signé : le jeu ne peut pas encore être expédié"}
             onClick={async () => {

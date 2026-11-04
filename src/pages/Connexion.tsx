@@ -148,7 +148,7 @@ export default function Connexion() {
                 {resolving ? <Spinner /> : "Continuer"}
               </AuthButton>
             </form>
-            <p className="mt-5 text-[15px] text-muted-foreground">
+            <p className="mt-5 text-prose text-muted-foreground">
               Vous n'avez pas encore de compte&nbsp;?{" "}
               <Link to="/academy/inscription" className="font-bold text-foreground underline underline-offset-[3px]">
                 Créer un compte gratuitement
@@ -178,7 +178,7 @@ export default function Connexion() {
                 required
               />
 
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-4 text-[15px]">
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-4 text-prose">
                 <button type="button" onClick={backToEmail} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="h-4 w-4" /> Revenir à la page de connexion
                 </button>
@@ -220,12 +220,12 @@ export default function Connexion() {
               >
                 Créer un compte gratuitement
               </Link>
-              <button type="button" onClick={backToEmail} className="text-[15px] underline underline-offset-[3px] text-muted-foreground">
+              <button type="button" onClick={backToEmail} className="text-prose underline underline-offset-[3px] text-muted-foreground">
                 Essayer une autre adresse
               </button>
               <a
                 href={`mailto:${contactEmail}?subject=${encodeURIComponent("Accès à mon espace apprenant")}&body=${encodeURIComponent(`Bonjour,\n\nJe n'arrive pas à accéder à mon espace apprenant avec l'adresse ${normalizedEmail}.\n\nMerci de votre aide.`)}`}
-                className="text-[15px] underline underline-offset-[3px] text-muted-foreground"
+                className="text-prose underline underline-offset-[3px] text-muted-foreground"
               >
                 Écrire au support
               </a>
@@ -263,7 +263,7 @@ export default function Connexion() {
                 icon={<Lock className="h-[18px] w-[18px]" />}
                 required
               />
-              <div className="mb-6 flex justify-end text-[15px]">
+              <div className="mb-6 flex justify-end text-prose">
                 <Link to="/connexion/mot-de-passe-oublie" className="underline underline-offset-[3px]">
                   Mot de passe oublié&nbsp;?
                 </Link>
@@ -276,7 +276,7 @@ export default function Connexion() {
           </>
         )}
 
-        <div className="mt-6 flex items-center justify-center gap-2.5 border-t pt-6 text-[14.5px] text-muted-foreground">
+        <div className="mt-6 flex items-center justify-center gap-2.5 border-t pt-6 text-prose text-muted-foreground">
           <ShieldCheck className="h-[18px] w-[18px]" />
           Connexion sécurisée
         </div>

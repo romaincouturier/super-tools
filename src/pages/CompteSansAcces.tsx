@@ -18,20 +18,20 @@ export default function CompteSansAcces() {
   return (
     <AuthShell backLabel="Aller à la connexion" onBack={() => navigate("/connexion")}>
       <AuthCard>
-        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[#fdf6e4]">
-          <UserX className="h-7 w-7 text-[#1a2230]" />
+        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-brand-yellow/20">
+          <UserX className="h-7 w-7 text-ink" />
         </div>
         <AuthTitle>
           Votre compte n'a pas encore d'accès
         </AuthTitle>
-        <p className="mb-8 text-base text-[#6b7686]">
+        <p className="mb-8 text-base text-muted-foreground">
           Votre compte {email ? <strong>{email}</strong> : null} existe bien, mais aucune formation
           ni aucun espace ne lui est rattaché. Écrivez-nous, nous réglons cela rapidement.
         </p>
         <div className="flex flex-col gap-3">
           <a
             href={`mailto:${contactEmail}?subject=${encodeURIComponent("Mon compte n'a pas d'accès")}&body=${encodeURIComponent(`Bonjour,\n\nMon compte ${email ?? ""} n'a accès à aucune formation.\n\nMerci de votre aide.`)}`}
-            className="text-[15px] font-bold underline underline-offset-[3px]"
+            className="text-prose font-bold underline underline-offset-[3px]"
           >
             Écrire au support
           </a>

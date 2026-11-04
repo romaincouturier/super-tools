@@ -91,7 +91,7 @@ export default function ArenaKeySettings() {
         <div className="space-y-4">
           <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
             <div className="flex items-center gap-2 text-sm font-medium">
-              <span className="inline-block h-2 w-2 rounded-full bg-[#D97706]" />
+              <span className="inline-block h-2 w-2 rounded-full bg-partner-anthropic" />
               Anthropic (Claude) — <span className="text-primary">disponible</span>
             </div>
             <p className="mt-1 text-caption text-muted-foreground">
@@ -101,7 +101,7 @@ export default function ArenaKeySettings() {
 
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              <span className="inline-block h-2 w-2 rounded-full bg-[#10A37F]" />
+              <span className="inline-block h-2 w-2 rounded-full bg-partner-openai" />
               OpenAI
               <span className="text-xs text-muted-foreground">(optionnel)</span>
             </Label>
@@ -119,7 +119,7 @@ export default function ArenaKeySettings() {
 
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              <span className="inline-block h-2 w-2 rounded-full bg-[#4285F4]" />
+              <span className="inline-block h-2 w-2 rounded-full bg-partner-google" />
               Google Gemini
               <span className="text-xs text-muted-foreground">(optionnel)</span>
             </Label>
