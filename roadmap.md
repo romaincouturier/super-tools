@@ -1,7 +1,7 @@
 # Roadmap
 
 ## Tableaux des formations (2026-11-04)
-- [ ] Retirer Date des permanentes, conserver Lieu, activer les tris par onglet et vérifier le parcours connecté
+- [x] Date retirée des permanentes, Lieu conservé, tris indépendants actifs ; parcours connecté ordinateur/mobile vérifié, 8 tests et 99 contrôles réussis
 
 ## Mails d'accès selon l'état du compte (2026-11-04)
 - [x] Règle serveur : sans mot de passe prouvé (ou sans ligne) -> « Créez votre mot de passe » ; sinon « Votre accès à la formation est ouvert » avec lien direct
