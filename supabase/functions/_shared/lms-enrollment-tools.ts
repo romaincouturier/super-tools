@@ -4,7 +4,7 @@
  * Chaque écriture est tracée dans activity_logs (lms_access_added / lms_access_removed).
  */
 
-import { sendLearnerAccessEmail } from "./learner-account.ts";
+import { ensureLearnerAccount, sendLearnerAccessEmail } from "./learner-account.ts";
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
@@ -104,7 +104,7 @@ export async function enrollLmsLearner(db: Db, input: EnrollInput, log: Log, act
   if (input.confirm !== true) {
     return JSON.stringify({ preview: true, message: PREVIEW_MSG, course: courseInfo, to_enroll: toEnroll, already_enrolled: already, invalid_emails: invalid, warnings,
       ...formulaInfo, ...(formula ? { formula_changes: formulaPlan } : {}),
-      access_email: sendEmail ? `Email « Accéder à votre espace SuperTools » envoyé à : ${valid.join(", ")}` : "Aucun email envoyé (send_access_email=true pour envoyer l'email d'accès à l'espace apprenant)." });
+      access_email: sendEmail ? `Email d’accès envoyé à : ${valid.join(", ")} (« Créez votre mot de passe » sans mot de passe défini, sinon « Votre accès à la formation est ouvert »)` : "Aucun email envoyé (send_access_email=true pour envoyer l'email d'accès à l'espace apprenant)." });
   }
   if (toEnroll.length) {
     const { error: iErr } = await db.from("lms_enrollments")
@@ -132,10 +132,11 @@ export async function enrollLmsLearner(db: Db, input: EnrollInput, log: Log, act
   if (sendEmail) {
     for (const e of valid) {
       try {
-        const { sent } = await sendLearnerAccessEmail(db, e, { trainingName: course.title });
+        const { created } = await ensureLearnerAccount(db, e);
+        const { sent, kind } = await sendLearnerAccessEmail(db, e, { trainingName: course.title, courseId: course.id, accountCreated: created });
         if (sent) await db.from("activity_logs").insert({ action_type: "learner_access_email_sent", recipient_email: e,
           details: { course_id: course.id, course_title: course.title, via: "mcp", actor: actorEmail } });
-        emailResults.push({ email: e, sent });
+        emailResults.push({ email: e, sent, kind, account_created: created });
       } catch (err) { emailResults.push({ email: e, sent: false, error: err instanceof Error ? err.message : "échec" }); }
     }
   }

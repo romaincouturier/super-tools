@@ -21,7 +21,7 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { fetchWorkingDays, subtractWorkingDays, addWorkingDays } from "../_shared/working-days.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
-import { ensureLearnerAccount, sendLearnerAccessEmail } from "../_shared/learner-account.ts";
+import { ensureLearnerAccount, resolveTrainingAccess, sendLearnerAccessEmail } from "../_shared/learner-account.ts";
 import { normalizeTypeStagiaireBpf } from "./bpf.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -582,13 +582,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // l'apprenant clique, sans mot de passe. Puis un seul et même email
       // d'accès, quelle que soit la source de l'inscription — jamais de lien
       // qui ouvre une session automatiquement (plus de lien magique).
+      let accountCreated = false;
       try {
-        await ensureLearnerAccount(admin, email);
+        accountCreated = (await ensureLearnerAccount(admin, email)).created;
       } catch (err) {
         console.error("[add-training-participant] ensureLearnerAccount:", err);
       }
       try {
-        const { sent } = await sendLearnerAccessEmail(admin, email);
+        const access = await resolveTrainingAccess(admin, trainingId);
+        const { sent } = await sendLearnerAccessEmail(admin, email, { ...access, accountCreated });
         elearningAccessSent = sent;
       } catch (err) {
         console.error("[add-training-participant] sendLearnerAccessEmail:", err);
