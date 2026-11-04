@@ -124,6 +124,7 @@ const Finances = lazy(() => import("./pages/Finances"));
 const AdminArchives = lazy(() => import("./pages/AdminArchives"));
 const Transcripts = lazy(() => import("./pages/Transcripts"));
 const Temoignages = lazy(() => import("./pages/Temoignages"));
+const Perles = lazy(() => import("./pages/Perles"));
 const Dropshipping = lazy(() => import("./pages/Dropshipping"));
 const PictoDico = lazy(() => import("./pages/PictoDico"));
 const TimeTracker = lazy(() => import("./pages/TimeTracker"));
@@ -283,6 +284,7 @@ const App = () => {
                 <Route path="/supertilt-fr/newsletter" element={<ContentBoard />} />
                 <Route path="/supertilt-fr/transcripts" element={<Transcripts />} />
                 <Route path="/supertilt-fr/temoignages" element={<Temoignages />} />
+                <Route path="/supertilt-fr/perles" element={<Perles />} />
                 <Route path="/supertilt-fr/projets" element={<ProjectBoardPage board="site" title="Projets supertilt.fr" icon={FolderKanban} />} />
                 <Route path="/contenu" element={<RedirectKeepQuery to="/supertilt-fr/newsletter" />} />
                 <Route path="/chatbot-admin" element={<ChatbotAdmin />} />

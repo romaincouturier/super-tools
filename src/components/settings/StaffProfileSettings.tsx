@@ -17,11 +17,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useEditableAppSetting } from "@/hooks/useAppSetting";
 import { DEMO_MASKED_NAMES_SETTING } from "@/hooks/useDemoClientNames";
+import { useDashboardPearlPreference } from "@/hooks/useDashboardPearlPreference";
 
 export default function StaffProfileSettings() {
   const { toast } = useToast();
   const { isDemoMode, toggleDemoMode } = useDemoMode();
   const { isAdmin } = useModuleAccess();
+  const pearlPref = useDashboardPearlPreference();
   const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -137,6 +139,23 @@ export default function StaffProfileSettings() {
       <Button onClick={handleSave} disabled={saving} size="sm">
         {saving ? <Spinner size="sm" /> : "Sauvegarder"}
       </Button>
+
+      <Separator />
+
+      <div className="flex items-center justify-between">
+        <div className="space-y-0.5">
+          <Label htmlFor="dashboard-pearl-toggle" className="text-base">Perle client sur le tableau de bord</Label>
+          <p className="text-sm text-muted-foreground">
+            Affiche une perle client tirée au hasard en haut de votre tableau de bord. Désactivé par défaut.
+          </p>
+        </div>
+        <Switch
+          id="dashboard-pearl-toggle"
+          checked={pearlPref.enabled}
+          disabled={pearlPref.loading}
+          onCheckedChange={(v) => { pearlPref.setEnabled(v).catch((e) => toastError(toast, "Impossible d'enregistrer la préférence.")); }}
+        />
+      </div>
 
       <Separator />
 

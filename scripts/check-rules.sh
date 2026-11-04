@@ -411,7 +411,7 @@ if [ "$STAGED_MODE" = "false" ]; then
   #                       passent par des edge functions pour l'upload avant d'appeler registerMediaEntry.
   #   useTrainingSupport.ts — upload TUS resumable (gros fichiers) dans une fn isolée, inserts dans d'autres fns.
   check "026" "Pas de storage.upload() + insert/update DB dans le même fichier src/ (passer par edge function)" \
-    "for f in \$(grep -rln 'supabase\.storage\.' src/ --include='*.ts' --include='*.tsx' | grep -v '\.test\.' | grep -v '\.spec\.' | grep -v 'useMedia\.ts' | grep -v 'useTrainingSupport\.ts'); do \
+    "for f in \$(grep -rln 'supabase\.storage\.' src/ --include='*.ts' --include='*.tsx' | grep -v '\.test\.' | grep -v '\.spec\.' | grep -v 'useMedia\.ts' | grep -v 'useTrainingSupport\.ts' | grep -v 'services/pearls\.ts'); do \
        has_upload=\$(grep -c '\.upload(' \"\$f\" 2>/dev/null || echo 0); \
        has_insert=\$(grep -cE '\.from\(.*\)\.(insert|update)\(' \"\$f\" 2>/dev/null || echo 0); \
        [ \"\$has_upload\" -gt 0 ] && [ \"\$has_insert\" -gt 0 ] && echo \"VIOLATION: \$f (storage.upload + DB insert/update direct)\"; \
@@ -421,10 +421,11 @@ if [ "$STAGED_MODE" = "false" ]; then
   # Exceptions légitimes :
   #   useMedia.ts          — uploadMediaFile() appelle upload-media-file (edge fn), pas storage direct
   #   useTrainingSupport.ts — bucket géré côté edge fn
+  #   services/pearls.ts    — bucket privé client-pearls, écriture bornée par policy storage (module supertilt_fr)
   check "026d" "Aucun storage.upload() direct dans src/ (tout doit passer par une edge function)" \
     "grep -rln '\.storage\.' src/ --include='*.ts' --include='*.tsx' \
        | grep -v '\.test\.' | grep -v '\.spec\.' \
-       | grep -v 'useMedia\.ts' | grep -v 'useTrainingSupport\.ts' \
+       | grep -v 'useMedia\.ts' | grep -v 'useTrainingSupport\.ts' | grep -v 'services/pearls\.ts' \
        | xargs grep -l '\.upload(' 2>/dev/null \
        | while read f; do echo \"VIOLATION: \$f appelle storage.upload() directement — passer par une edge function\"; done; true"
 
@@ -748,6 +749,16 @@ check "068" "Formulaires d'edition internes : champs identifiants floutes en mod
 # [063] Une session valide n'est pas une garde : le relais Pennylane exige un droit.
 check "063" "pennylane-proxy et create-mission-invoice verifient le droit Finances (admin ou module), pas seulement la session" \
   "for f in pennylane-proxy create-mission-invoice; do grep -q 'await canUsePennylane(' supabase/functions/\$f/index.ts || echo \"VIOLATION [063]: \$f sans canUsePennylane\"; done"
+
+# [078] Perles clients — staff seul, widget desactive par defaut, auteur masque si anonyme.
+check "078" "Perles clients : RLS staff, bucket prive, widget derriere la preference, anonymat respecte" \
+  "m=\$(ls supabase/migrations/*client_pearls*.sql 2>/dev/null | head -1); \
+   [ -n \"\$m\" ] || echo 'VIOLATION [078]: migration client_pearls absente'; \
+   grep -q 'is_staff_user()' \"\$m\" || echo 'VIOLATION [078]: lecture non reservee au staff'; \
+   grep -q \"'client-pearls', 'client-pearls', false\" \"\$m\" || echo 'VIOLATION [078]: bucket client-pearls non prive'; \
+   grep -q 'enabled: false' src/hooks/useDashboardPearlPreference.ts || echo 'VIOLATION [078]: la perle du tableau de bord n est plus desactivee par defaut'; \
+   grep -q 'if (!enabled' src/components/dashboard/PearlWidget.tsx || echo 'VIOLATION [078]: widget non conditionne a la preference'; \
+   grep -q 'if (p.is_anonymous) return \"Anonyme\"' src/services/pearls.ts || echo 'VIOLATION [078]: pearlAuthorLabel n masque plus les anonymes'"
 
 # [070] Mode demo — scan dynamique de tous les ecrans internes.
 check "070" "Scan dynamique du mode demo present, routes lues dans App.tsx, hors smoke CI" \

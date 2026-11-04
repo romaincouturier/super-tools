@@ -391,6 +391,7 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - create_lms_lesson : crée une leçon dans un module, avec éventuellement ses blocs de contenu initiaux (paramètre « blocks », même schéma que apply_lesson_restructure). Position facultative : si elle est fournie, les leçons suivantes du module sont décalées d'un rang. Écriture additive : aucune leçon existante n'est modifiée dans son contenu. Retourne l'id et l'empreinte de la leçon créée.
 - apply_lesson_restructure : remplace TOUS les blocs de premier niveau d'une leçon par une nouvelle structure proposée. Tous les types du menu « Ajouter un bloc » sont acceptés : blocs de contenu (texte, tableau, encadré, points clés, liste, checklist, synthèse, accordéon, frise, cartes à retourner, code, exercice, auto-évaluation, texte à trous, mots à glisser, quiz, devoir, dépôt de travail, vidéo, image, galerie, fichier, image interactive, avant/après, bouton, CTA, intégration HTML, shortcode) et blocs de mise en page (section, colonnes, conteneur, contenu progressif, séparateur, espace) qui peuvent porter un tableau « children » de blocs de contenu (un seul niveau d'imbrication). EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
 - add_support_note, update_ticket_status : ajoute une note datée à un ticket support, ou change son statut (nouveau, qualification, vibe_coding, resolu, boite_a_idees). Passer en resolu prévient le demandeur par email.
+- list_pearls, add_pearl, update_pearl, archive_pearl : « Perles clients », les messages de remerciement ou d'éloge reçus (page supertilt.fr > Perles clients, affichés au hasard sur le tableau de bord des membres qui l'activent). Quand l'utilisateur transmet un mail ou un message flatteur, l'archiver avec add_pearl (texte d'origine dans message, traduction française dans message_fr si besoin, gmail_thread_id si c'est un mail). Anonyme : is_anonymous. Archiver retire de la rotation sans supprimer.
 - add_content_card : crée une carte dans le kanban éditorial (colonne Idées par défaut). Écriture additive.
 - update_quote_status : change le statut d'un devis SuperTools (table quotes, pas Pennylane). Rien n'est envoyé au client ; un devis signé ne change plus de statut.
 Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress n'est possible depuis ici.
@@ -982,6 +983,71 @@ const MCP_TOOLS = [
         note: { type: "string" },
       },
       required: ["id", "status"],
+    },
+  },
+  {
+    name: "list_pearls",
+    description:
+      "List 'Perles clients': thank-you and praise messages received (message, optional French translation, author or anonymous, date, optional time, source). Filters: search text, source, include_archived (default false), random=true for one random pearl. Most recent first, max 100.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        search: { type: "string" },
+        source: { type: "string", enum: ["mail", "oral", "linkedin", "evaluation", "notion", "autre"] },
+        include_archived: { type: "boolean" },
+        random: { type: "boolean" },
+      },
+    },
+  },
+  {
+    name: "add_pearl",
+    description:
+      "Archive a new 'Perle client' (a message that made us happy: thanks, praise). Keep the original wording in message; put a French translation in message_fr if the original is in another language. Set is_anonymous=true to hide the author on the dashboard. A gmail_thread_id already stored is refused (duplicate). Date defaults to today.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        message: { type: "string" },
+        message_fr: { type: "string" },
+        title: { type: "string" },
+        author_name: { type: "string" },
+        author_company: { type: "string" },
+        is_anonymous: { type: "boolean" },
+        pearl_date: { type: "string", description: "YYYY-MM-DD" },
+        pearl_time: { type: "string", description: "HH:MM, optional" },
+        source: { type: "string", enum: ["mail", "oral", "linkedin", "evaluation", "autre"] },
+        gmail_thread_id: { type: "string" },
+      },
+      required: ["message"],
+    },
+  },
+  {
+    name: "update_pearl",
+    description: "Edit a pearl (same fields as add_pearl, plus archived). Returns before/after.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        message: { type: "string" },
+        message_fr: { type: "string" },
+        title: { type: "string" },
+        author_name: { type: "string" },
+        author_company: { type: "string" },
+        is_anonymous: { type: "boolean" },
+        pearl_date: { type: "string" },
+        pearl_time: { type: "string" },
+        source: { type: "string", enum: ["mail", "oral", "linkedin", "evaluation", "notion", "autre"] },
+        archived: { type: "boolean" },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    name: "archive_pearl",
+    description: "Remove a pearl from the dashboard rotation (archived=true) or put it back (archived=false). Never deletes.",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string" }, archived: { type: "boolean", description: "Default true" } },
+      required: ["id"],
     },
   },
   {
@@ -2337,6 +2403,59 @@ async function callTool(
       if (error) return textResult(`Error: ${error.message}`, true);
       await log("mark_testimonial_request");
       return textResult(JSON.stringify({ before, after }));
+    }
+    case "list_pearls": {
+      if (args.random === true) {
+        const { data, error } = await (supabase as any).rpc("get_random_client_pearl", { p_exclude: null });
+        if (error) return textResult(`Error: ${error.message}`, true);
+        await log("list_pearls");
+        return textResult(JSON.stringify(data));
+      }
+      let q = (supabase as any).from("client_pearls")
+        .select("id, title, message, message_fr, author_name, author_company, is_anonymous, pearl_date, pearl_time, source, archived, gmail_thread_id")
+        .order("pearl_date", { ascending: false }).limit(100);
+      if (args.include_archived !== true) q = q.eq("archived", false);
+      if (args.source) q = q.eq("source", args.source);
+      if (typeof args.search === "string" && args.search.trim()) {
+        const t = args.search.trim().replace(/[%,()]/g, " ");
+        q = q.or(`message.ilike.%${t}%,message_fr.ilike.%${t}%,title.ilike.%${t}%,author_name.ilike.%${t}%,author_company.ilike.%${t}%`);
+      }
+      const { data, error } = await q;
+      if (error) return textResult(`Error: ${error.message}`, true);
+      await log("list_pearls");
+      return textResult(JSON.stringify(data));
+    }
+    case "add_pearl": {
+      const message = typeof args.message === "string" ? args.message.trim() : "";
+      if (!message) return textResult("message is required", true);
+      const fields = ["message_fr", "title", "author_name", "author_company", "is_anonymous", "pearl_date", "pearl_time", "source", "gmail_thread_id"];
+      const row: Record<string, unknown> = { message };
+      for (const f of fields) if (args[f] !== undefined && args[f] !== "") row[f] = args[f];
+      const { data, error } = await (supabase as any).from("client_pearls").insert(row).select("*").single();
+      if (error) return textResult(error.code === "23505" ? "Pearl already stored for this gmail_thread_id" : `Error: ${error.message}`, true);
+      await log("add_pearl");
+      return textResult(JSON.stringify(data));
+    }
+    case "update_pearl": {
+      const { data: before } = await (supabase as any).from("client_pearls").select("*").eq("id", args.id).maybeSingle();
+      if (!before) return textResult("Pearl not found", true);
+      const fields = ["message", "message_fr", "title", "author_name", "author_company", "is_anonymous", "pearl_date", "pearl_time", "source", "archived"];
+      const patch: Record<string, unknown> = {};
+      for (const f of fields) if (args[f] !== undefined) patch[f] = args[f] === "" ? null : args[f];
+      if (patch.message === null) return textResult("message cannot be empty", true);
+      if (Object.keys(patch).length === 0) return textResult("Nothing to update", true);
+      const { data: after, error } = await (supabase as any).from("client_pearls").update(patch).eq("id", args.id).select("*").single();
+      if (error) return textResult(`Error: ${error.message}`, true);
+      await log("update_pearl");
+      return textResult(JSON.stringify({ before, after }));
+    }
+    case "archive_pearl": {
+      const archived = args.archived !== false;
+      const { data, error } = await (supabase as any).from("client_pearls").update({ archived }).eq("id", args.id).select("id, archived").maybeSingle();
+      if (error) return textResult(`Error: ${error.message}`, true);
+      if (!data) return textResult("Pearl not found", true);
+      await log("archive_pearl");
+      return textResult(JSON.stringify(data));
     }
     case "list_unassigned_transcripts": {
       try {
