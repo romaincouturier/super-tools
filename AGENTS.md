@@ -43,6 +43,8 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 
 # Architecture rules
 
+- Permanent-session inline Solo creation inherits catalog values through a service and hook; course availability considers both catalog and session links, because the shortcut must not invent prices or hide existing associations.
+
 - Training tables share a pure sorting helper with independent per-tab sort state, because switching tabs must preserve chronological defaults and numeric enrollment sorting.
 
 - Learner dashboard onboarding derives remaining steps from a pure profile helper and renders only a nonempty list, because completion must hide the block independently of work deposits.
