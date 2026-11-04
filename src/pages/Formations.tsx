@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Calendar, ArrowUpDown, ChevronLeft, ChevronRight, Search, X, MapPin, Building, BarChart3, Star, FileText } from "lucide-react";
+import { Plus, Calendar, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Search, X, MapPin, Building, BarChart3, Star, FileText } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import WeeklyChart from "@/components/dashboard/WeeklyChart";
@@ -10,6 +10,7 @@ import TopImprovements from "@/components/dashboard/TopImprovements";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { parseISO, isPast, isFuture, isToday, differenceInDays } from "date-fns";
 import { formatDateRange } from "@/lib/dateFormatters";
+import { DEFAULT_TRAINING_SORTS, sortTrainings, type TrainingSortField as SortField, type TrainingTab, type TrainingSort } from "@/lib/trainingSorting";
 import ModuleLayout from "@/components/ModuleLayout";
 import { useNewSurveyResponses } from "@/hooks/useNewSurveyResponses";
 import { Button } from "@/components/ui/button";
@@ -94,8 +95,6 @@ interface ParticipantSearchData {
 }
 
 
-type SortField = "date" | "title" | "client" | "location" | "participant_count";
-type SortOrder = "asc" | "desc";
 
 const Formations = () => {
   const isMobile = useIsMobile();
@@ -111,9 +110,7 @@ const Formations = () => {
   const [filterSessionFormat, setFilterSessionFormat] = useState<string>("all");
   const [showStats, setShowStats] = useState(false);
 
-  // Sorting state (for past trainings only)
-  const [sortField, setSortField] = useState<SortField>("date");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [sorts, setSorts] = useState<Record<TrainingTab, TrainingSort>>(DEFAULT_TRAINING_SORTS);
 
   // Pagination state (for past trainings only)
   const [pageSize, setPageSize] = useState<number>(10);
@@ -125,6 +122,8 @@ const Formations = () => {
   // Initialize tab from URL search params
   const initialTab = (searchParams.get("tab") as "upcoming" | "ongoing" | "past" | "permanent") || "upcoming";
   const [filter, setFilterState] = useState<"upcoming" | "ongoing" | "past" | "permanent">(initialTab);
+
+  const { field: sortField, order: sortOrder } = sorts[filter];
 
   const setFilter = (value: "upcoming" | "ongoing" | "past" | "permanent") => {
     setFilterState(value);
@@ -381,31 +380,10 @@ const Formations = () => {
 
   const { newSet: newSurveyTrainings } = useNewSurveyResponses("training");
 
-  // Sort past trainings
-  const sortedPastTrainings = useMemo(() => {
-    const sorted = [...pastTrainings].sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortField) {
-        case "date":
-          comparison = (a.start_date ? new Date(a.start_date).getTime() : 0) - (b.start_date ? new Date(b.start_date).getTime() : 0);
-          break;
-        case "title":
-          comparison = asText(a.training_name).localeCompare(asText(b.training_name), "fr");
-          break;
-        case "client":
-          comparison = asText(a.client_name).localeCompare(asText(b.client_name), "fr");
-          break;
-        case "location":
-          comparison = asText(a.location).localeCompare(asText(b.location), "fr");
-          break;
-      }
-
-      return sortOrder === "asc" ? comparison : -comparison;
-    });
-
-    return sorted;
-  }, [pastTrainings, sortField, sortOrder]);
+  const sortedPastTrainings = useMemo(() => sortTrainings(pastTrainings, sorts.past), [pastTrainings, sorts.past]);
+  const sortedUpcomingTrainings = useMemo(() => sortTrainings(upcomingTrainings, sorts.upcoming), [upcomingTrainings, sorts.upcoming]);
+  const sortedOngoingTrainings = useMemo(() => sortTrainings(ongoingTrainings, sorts.ongoing), [ongoingTrainings, sorts.ongoing]);
+  const sortedPermanentTrainings = useMemo(() => sortTrainings(permanentTrainings, sorts.permanent), [permanentTrainings, sorts.permanent]);
 
   // Paginate past trainings
   const paginatedPastTrainings = useMemo(() => {
@@ -421,15 +399,18 @@ const Formations = () => {
   }, [sortField, sortOrder, pageSize, searchQuery, filterSessionType, filterSessionFormat]);
 
   const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortOrder(field === "date" ? "desc" : "asc");
-    }
+    setSorts((previous) => ({
+      ...previous,
+      [filter]: {
+        field,
+        order: previous[filter].field === field
+          ? previous[filter].order === "asc" ? "desc" : "asc"
+          : field === "participant_count" || (field === "date" && filter === "past") ? "desc" : "asc",
+      },
+    }));
   };
 
-  const filteredTrainings = filter === "upcoming" ? upcomingTrainings : filter === "ongoing" ? ongoingTrainings : filter === "permanent" ? permanentTrainings : paginatedPastTrainings;
+  const filteredTrainings = filter === "upcoming" ? sortedUpcomingTrainings : filter === "ongoing" ? sortedOngoingTrainings : filter === "permanent" ? sortedPermanentTrainings : paginatedPastTrainings;
 
   // formatDateRange imported from @/lib/dateFormatters
 
@@ -457,19 +438,18 @@ const Formations = () => {
     return "opacity-60";
   };
 
-  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-    <TableHead 
-      className="cursor-pointer hover:bg-muted/50 select-none"
-      onClick={() => handleSort(field)}
-    >
-      <div className="flex items-center gap-1">
-        {children}
-        {filter === "past" && (
-          <ArrowUpDown className={`h-3.5 w-3.5 ${sortField === field ? "text-primary" : "text-muted-foreground"}`} />
-        )}
-      </div>
-    </TableHead>
-  );
+  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => {
+    const active = sortField === field;
+    const Icon = active ? sortOrder === "asc" ? ArrowUp : ArrowDown : ArrowUpDown;
+    return (
+      <TableHead aria-sort={active ? sortOrder === "asc" ? "ascending" : "descending" : "none"}>
+        <Button variant="ghost" size="sm" className="-ml-3 gap-1 font-medium" onClick={() => handleSort(field)}>
+          {children}
+          <Icon className={`h-3.5 w-3.5 ${active ? "text-primary" : "text-muted-foreground"}`} />
+        </Button>
+      </TableHead>
+    );
+  };
 
   if (authLoading || dataLoading) {
     return (
@@ -558,6 +538,23 @@ const Formations = () => {
                   </div>
                 )}
               </div>
+
+              {isMobile && (
+                <div className="flex items-center gap-2">
+                  <Select value={sortField} onValueChange={(value) => handleSort(value as SortField)}>
+                    <SelectTrigger className="h-8 flex-1" aria-label="Trier les formations"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {filter !== "permanent" && <SelectItem value="date">Date</SelectItem>}
+                      {filter === "permanent" ? <SelectItem value="participant_count">Inscrits</SelectItem> : <SelectItem value="client">Client</SelectItem>}
+                      <SelectItem value="title">Formation</SelectItem>
+                      <SelectItem value="location">Lieu</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="icon" className="h-8 w-8" aria-label="Inverser le tri" onClick={() => handleSort(sortField)}>
+                    {sortOrder === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+                  </Button>
+                </div>
+              )}
 
               {/* Search + filters */}
               <div className="flex flex-col md:flex-row gap-2">
@@ -728,12 +725,12 @@ const Formations = () => {
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        {filter !== "permanent" && <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
                             {isUndated(training) ? "Date à définir" : formatDateRange(training.start_date, training.end_date)}
                           </span>
-                        </div>
+                        </div>}
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                           {filter === "permanent" ? (
                             <Badge variant="secondary" className="text-xs flex items-center gap-1">
@@ -795,7 +792,7 @@ const Formations = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <SortableHeader field="date">Date</SortableHeader>
+                      {filter !== "permanent" && <SortableHeader field="date">Date</SortableHeader>}
                       {filter === "permanent" ? (
                         <SortableHeader field="participant_count">Inscrits</SortableHeader>
                       ) : (
@@ -816,7 +813,7 @@ const Formations = () => {
                           className={`cursor-pointer hover:bg-muted/50 ${getPastRowStyle(training)}`}
                           onClick={() => navigate(`/formations/${training.id}${filter !== "upcoming" ? `?tab=${filter}` : ""}`)}
                         >
-                          <TableCell className="font-medium">
+                          {filter !== "permanent" && <TableCell className="font-medium">
                             <div className="flex items-center gap-2">
                               {isUndated(training) ? <span className="text-destructive font-semibold">Date à définir</span> : formatDateRange(training.start_date, training.end_date)}
                               {isUpcoming && daysUntil >= 0 && (
@@ -828,7 +825,7 @@ const Formations = () => {
                                 </Badge>
                               )}
                             </div>
-                          </TableCell>
+                          </TableCell>}
                           {filter === "permanent" ? (
                             <TableCell>
                               <Badge variant="secondary">
