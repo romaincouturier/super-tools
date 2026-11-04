@@ -301,3 +301,129 @@ afin de garder un repère (lancement, relance, idée) à côté des publications
 **Given** une note existante
 **When** l'utilisateur la modifie, la déplace sur un autre jour ou la supprime
 **Then** le calendrier se met à jour
+
+## Epic 2 : Faire valider les contenus
+
+Un auteur demande une validation, l'autre personne la reçoit en action quotidienne et approuve, refuse avec motif ou corrige depuis Mes validations ; tout changement de fond est tracé et remet en attente.
+
+### Story 2.1 : Demander une validation et approuver un contenu
+
+En tant qu'auteur puis approbateur,
+je veux demander la validation d'un contenu et l'approuver d'un clic,
+afin qu'aucun contenu ne parte sans un second regard, comme dans Planable.
+
+**Acceptance Criteria:**
+
+**Given** la migration de la story
+**When** elle est jouée
+**Then** chaque post porte un axe validation (non demandée, en attente, approuvé, refusé) indépendant de l'axe publication
+**And** toutes les transitions de validation passent par une seule fonction SQL `SECURITY DEFINER`, testée sur un vrai Postgres ; aucun écran n'écrit le statut en direct (AD-11)
+
+**Given** un contenu en brouillon
+**When** l'auteur clique « Demander une validation »
+**Then** tout le groupe passe « en attente » et le statut affiché devient « En validation »
+
+**Given** un contenu en attente
+**When** Romain ou Emmanuelle, auteur compris, clique la coche d'approbation
+**Then** tout le groupe passe « approuvé », tracé « Approuvé par … » avec date
+**And** un second clic retire l'approbation et ramène le groupe à « non demandée »
+
+**Given** les deux axes
+**When** le statut affiché est calculé
+**Then** l'échelle complète s'applique, première condition vraie : Publié, Programmé (approuvé et daté), Approuvé, En validation, Brouillon (`statuts-et-validation.md`)
+**And** la légende du calendrier affiche les cinq statuts
+
+**Given** des contenus en attente
+**When** `generate-daily-actions` s'exécute
+**Then** une action quotidienne « Contenu à valider », avec lien vers le contenu, est créée pour l'autre approbateur que l'auteur
+**And** l'action disparaît à la génération suivante dès que le contenu n'est plus en attente
+**And** la liste des approbateurs passe par la RPC `get_staff_directory` (règle [076])
+
+### Story 2.2 : Refuser un contenu avec motif
+
+En tant qu'approbateur,
+je veux refuser un contenu en donnant un motif obligatoire,
+afin que l'auteur sache exactement quoi corriger.
+
+**Acceptance Criteria:**
+
+**Given** un contenu en attente
+**When** l'approbateur clique « Refuser » sans saisir de motif
+**Then** le refus est impossible
+
+**Given** un motif saisi
+**When** l'approbateur confirme le refus
+**Then** tout le groupe passe « refusé », le statut affiché est « Brouillon » et le motif est visible sur la carte et dans le détail
+**And** une action quotidienne « Contenu refusé » est créée pour l'auteur, avec le motif
+
+### Story 2.3 : Remettre en attente un contenu modifié et tracer son historique
+
+En tant qu'approbateur,
+je veux qu'un contenu validé dont le texte ou le visuel change revienne en validation, et voir tout son historique,
+afin qu'aucun texte validé ne change sans revalidation.
+
+**Acceptance Criteria:**
+
+**Given** un contenu approuvé ou refusé
+**When** quelqu'un modifie le texte ou le visuel d'une déclinaison
+**Then** le groupe repasse « en attente » et redevient « à valider » pour l'autre approbateur
+
+**Given** un contenu approuvé
+**When** seule sa date ou son heure change, par glisser-déposer ou dans le détail
+**Then** l'approbation est conservée
+
+**Given** un approbateur qui corrige directement le texte (pas de mode proposition)
+**When** il enregistre
+**Then** la correction suit la même règle de remise en attente
+**And** il peut ensuite approuver le contenu, auteur ou non
+
+**Given** le détail d'un contenu
+**When** l'utilisateur ouvre l'historique
+**Then** chaque action est listée, datée et attribuée : création, demande, approbation, retrait, refus et motif, modification, changement de date, marquage publié
+**And** un changement de texte ou de date affiche la version précédente
+
+### Story 2.4 : Échanger par commentaires sur un contenu
+
+En tant que membre de l'équipe,
+je veux commenter un contenu, mentionner l'autre personne et résoudre un commentaire,
+afin de discuter d'un post sans quitter l'outil.
+
+**Acceptance Criteria:**
+
+**Given** le détail d'un contenu
+**When** un utilisateur écrit un commentaire avec une mention `@`
+**Then** le commentaire s'affiche, interne à l'équipe, avec auteur et date
+**And** la mention propose les membres de l'annuaire staff (`get_staff_directory`)
+
+**Given** un commentaire ouvert
+**When** un utilisateur le marque résolu
+**Then** il est replié et ne compte plus dans le compteur de la carte
+
+**Given** une carte du calendrier
+**When** des commentaires ouverts existent
+**Then** leur nombre apparaît sur la carte
+
+### Story 2.5 : Traiter ses validations depuis « Mes validations »
+
+En tant qu'approbateur,
+je veux un tableau de tout ce qui attend ma décision, avec un mode revue,
+afin de valider vite, comme dans l'écran My approvals de Planable.
+
+**Acceptance Criteria:**
+
+**Given** l'utilisateur connecté
+**When** il ouvre « Mes validations »
+**Then** trois colonnes s'affichent : « À valider » (tous les contenus en attente, y compris les siens, puisqu'un auteur peut approuver), « Retour laissé » (contenus qu'il a refusés ou commentés, en attente de correction), « Validé » (contenus qu'il a approuvés)
+**And** chaque carte montre canaux, heure, visuel, début du texte, statut et nombre de commentaires
+
+**Given** des contenus à valider
+**When** l'utilisateur lance le mode revue
+**Then** les contenus s'enchaînent un par un, avec approuver, refuser avec motif, commenter, puis passage au suivant
+
+**Given** plusieurs contenus à valider
+**When** l'utilisateur clique « Tout approuver » et confirme
+**Then** tous passent « approuvé » via la même fonction SQL que l'approbation unitaire
+
+**Given** le menu supertilt.fr
+**When** des validations attendent l'utilisateur connecté
+**Then** un compteur s'affiche sur l'entrée du sous-module
