@@ -1,9 +1,9 @@
 # Roadmap
 
 ## Devis de jeux (2026-11-04)
-- [ ] Proposer les contacts des opportunités CRM ouvertes comme commanditaires
-- [ ] Mémoriser les prix unitaires par jeu et les frais de port/dossier, puis les recharger
-- [ ] Tester le choix du contact et la persistance sans envoyer de devis
+- [x] Proposer les contacts des opportunités CRM ouvertes comme commanditaires et conserver le rattachement du devis
+- [x] Mémoriser immédiatement les prix unitaires par jeu/tarif et les frais de port/dossier dans le navigateur existant, puis les recharger sans modifier le catalogue
+- [x] Six tests et 99 contrôles réussis ; contact réel, sélection répétée et rechargement vérifiés en session connectée, aucun devis envoyé
 
 ## Statistiques des opportunités (2026-11-04)
 - [x] Catégories exclusives par statut et colonne ; état du jour prioritaire sur l’historique incomplet, dates de clôture selon le statut
