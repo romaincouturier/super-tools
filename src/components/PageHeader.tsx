@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 
 interface PageHeaderProps {
   icon?: LucideIcon;
+  /** Logo personnalisé affiché à la place de l'icône Lucide. */
+  logo?: ReactNode;
   title: string;
   subtitle?: string;
   backTo?: string;
@@ -13,7 +15,7 @@ interface PageHeaderProps {
   actions?: ReactNode;
 }
 
-const PageHeader = ({ icon: Icon, title, subtitle, backTo, onBackClick, actions }: PageHeaderProps) => {
+const PageHeader = ({ icon: Icon, logo, title, subtitle, backTo, onBackClick, actions }: PageHeaderProps) => {
   const navigate = useNavigate();
 
   return (
@@ -25,7 +27,8 @@ const PageHeader = ({ icon: Icon, title, subtitle, backTo, onBackClick, actions 
           </Button>
         )}
         <div className="flex items-center gap-3">
-          {Icon && (
+          {logo}
+          {!logo && Icon && (
             <div className="p-2 rounded-lg bg-primary/10">
               <Icon className="h-6 w-6 text-primary" />
             </div>

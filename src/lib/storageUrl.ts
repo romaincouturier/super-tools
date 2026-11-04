@@ -4,6 +4,7 @@ import { reportHandledError } from "@/lib/sentry";
 /** Buckets that are private and therefore require a signed URL to be read. */
 const PRIVATE_BUCKETS = new Set([
   "book-productions",
+  "client-pearls",
   "crm-attachments",
   "devis-pdfs",
   "participant-files",

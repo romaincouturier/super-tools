@@ -90,7 +90,7 @@ const TABLES_TO_BACKUP = [
   "supertilt_actions", "supertilt_columns", "supertilt_settings",
   "support_ticket_attachments", "support_tickets",
   "tender_documents", "tender_opportunities",
-  "testimonial_requests", "testimonials", "time_entries",
+  "client_pearls", "testimonial_requests", "testimonials", "time_entries",
   "trainer_attendance_signatures", "trainer_documents", "trainer_evaluations",
   "trainer_training_adequacy", "trainers",
   "training_actions", "training_coaching_slots", "training_documents",
@@ -114,6 +114,7 @@ const TABLES_TO_BACKUP = [
 // ─── Storage buckets ────────────────────────────────────────────────────────
 
 const STORAGE_BUCKETS = [
+  "client-pearls",
   "training-programs",
   "training-documents",
   "training-media",

@@ -200,6 +200,7 @@ const TABLES_TO_BACKUP = [
   "supertilt_settings",
   "support_ticket_attachments",
   "support_tickets",
+  "client_pearls",
   "testimonial_requests",
   "testimonials",
   "time_entries",
