@@ -1,72 +1,86 @@
-# Analyse : mail « Créez votre mot de passe » envoyé à des apprenants déjà équipés d'un compte
+# Mails d'accès apprenant : bon mail selon l'état réel du compte
 
-## 1. Chemins qui envoient ce mail
+## Constats vérifiés (lecture seule)
 
-Tous finissent dans une seule fonction partagée, `sendLearnerAccessEmail` (`supabase/functions/_shared/learner-account.ts`), avec un seul modèle : **`learner_access`** (« Accès à l'espace apprenant », personnalisé en base en `learner_access_vous`).
+- Un seul modèle aujourd'hui, `learner_access`, à deux variantes, choisies par la RPC `learner_password_set` : `password_set=false` -> « Créez votre mot de passe » ; `true` **ou absence de ligne** -> « Accéder à votre espace » + lien `/connexion`.
+- **29 comptes sans ligne de sécurité** (aucun `password_set`).
+  - 24 créés avant le 19/09 (époque du lien magique).
+  - 5 créés après : test@test.com, severinerenaud78, laurent.broyer, marine@msconseils, mjudeaux (03/11). Tous connectés **à la seconde même de leur création**, sans prénom en métadonnées : ce sont des inscriptions où la personne choisit son mot de passe (pages `Signup`/`Auth` via `signUp`, ou ancienne version de `create-academy-account`). **Aucun de ces chemins n'écrit la ligne de sécurité.** C'est la cause racine : ces comptes ont bien un mot de passe, mais rien ne l'enregistre.
+- Le mot de passe stocké côté authentification n'est pas un indicateur fiable (les 427 comptes `false` en ont un aussi, généré automatiquement), et le journal d'authentification hébergé est vide. Seule preuve exploitable : `login_attempts.success = true` (connexion **par mot de passe** via le formulaire).
+- Parmi les 29 : connexions par mot de passe réussies uniquement pour romain@supertilt.fr, emma.marceau et **anita.bardy (03/11 17:56:20, 7 min après le mail)**. Anita a donc un mot de passe qui fonctionne (défini avant que le drapeau existe) : elle ne doit **pas** recevoir de mail de création.
+- Mauvais mail « Accéder à votre espace » reçu les 03-04/11 (hors comptes internes) : agnesg, gabriela.stoica (2x), gobbberliza (2x), anais.surmin, delphine (04/11 05:41), anita.bardy (déjà OK).
+- Toutes les voies où l'apprenant **définit** un mot de passe appellent bien `mark_password_changed` (lien email `ConnexionReinitialisation`, `PasswordCreationCard`, `ResetPassword`, `ForcePasswordChange`) ; « mot de passe oublié » passe par `ConnexionReinitialisation`, donc OK. Les voies où il le **choisit à l'inscription** ne l'appellent pas.
+- `send-elearning-access` n'est plus appelée par l'interface ni par une autre fonction ; seule `sendElearningAccess` (service front, jamais importé) et les listes de surveillance la mentionnent.
 
-| Chemin | Déclencheur | Fonction serveur |
-|---|---|---|
-| Ajout unitaire (formation e-learning) | `add-training-participant`, étape 10 | `ensureLearnerAccount` puis `sendLearnerAccessEmail` (sans nom de formation) |
-| Import en lot | `BulkAddParticipantsDialog` -> `sendElearningAccessToBatch` -> `send-learner-access-email` (1 appel par personne, 500 ms) | `sendRegisteredLearnerAccessEmail` |
-| Bouton « Renvoyer l'accès » (fiche participant) et repositionnement | `send-learner-access-email` | idem |
-| MCP inscription LMS | `_shared/lms-enrollment-tools.ts` | `sendLearnerAccessEmail` (avec titre du cours) |
-| Relances e-learning (démarrage, inactivité, erratum) | réutilisent seulement le lien (`learnerAccessLink`), contenu propre | — |
+## Ajouté
 
-`send-elearning-access` (ancien mail) existe encore mais n'est plus appelé par l'interface.
+- Modèle éditable **`learner_course_access`** (tu/vous), visible dans Paramètres -> Emails : objet « Votre accès à « {{training_name}} » est ouvert », bouton « Accéder à ma formation » avec **lien direct vers le cours LMS** lié à la formation (`trainings.supports_lms_course_id` / `lms_courses`), à défaut l'espace apprenant ; rappel de connexion par mot de passe et lien « mot de passe oublié ». BCC et signature habituels.
+- Phrase « la plateforme a changé » dans la variante création de mot de passe de `learner_access`, avec le nom de la formation.
+- Helper pur `decideLearnerAccessEmail(état)` + tests, une règle par cas :
 
-## 2. Comment le compte existant est détecté aujourd'hui
-
-- Le code **ne regarde pas** « a un compte » mais « a un mot de passe » : RPC `learner_password_set(email)` qui lit `user_security_metadata.password_set` (absence de ligne = considéré avec mot de passe).
-- `false` -> lien de création de mot de passe + objet « Créez votre mot de passe ». `true` -> lien `/connexion?email=…` + objet « Accéder à votre espace ». Le modèle enregistré contient bien les deux variantes.
-- Donc un apprenant avec mot de passe reçoit déjà, en théorie, la variante « accès ». Le mail « créer un mot de passe » part quand `password_set = false`.
-
-Constat en base (lecture seule) :
-- **427 comptes** sont à `password_set = false`, dont **424 créés en novembre** (migration Academy / provisionnement à l'inscription) et **2 seulement** se sont déjà connectés.
-- Ce sont donc pour l'essentiel des personnes connues côté formation ou WordPress, mais qui **n'ont jamais défini de mot de passe dans SuperTools** : pour le code, elles sont « sans mot de passe », et chaque nouvel ajout leur renvoie « Créez votre mot de passe ».
-- Causes probables restantes (à confirmer à l'implémentation) : personne qui se connecte autrement (Google, ancien lien) sans que le drapeau passe à vrai ; nouvel ajout pendant qu'un premier lien n'a pas encore été utilisé.
-- Autre défaut : même la variante « accès » dit « Votre espace apprenant est prêt » — elle n'annonce pas l'ouverture d'une **nouvelle** formation, et l'ajout unitaire n'envoie pas le nom de la formation.
-
-## 3. Modèles existants
-
-- `learner_access` : seul modèle, à double variante (mot de passe / accès). Pas de modèle dédié « accès à une nouvelle formation ouvert ».
-- `password_reset` : réinitialisation demandée par l'apprenant.
-- Les mails de bienvenue / convocation des formations présentielles sont à part et non concernés.
-
-## 4. Correction proposée
-
-### Règle de décision (un seul helper pur, testé)
 ```text
-compte absent                         -> créer le compte, mail « Créez votre mot de passe »
-compte présent, mot de passe défini
-  ou déjà connecté au moins une fois  -> mail « Accès à la formation X ouvert » (lien direct)
-compte présent, jamais de mot de passe
-  ni de connexion                     -> mail « Créez votre mot de passe », mentionnant la formation
+pas de compte                 -> créer le compte + « Créez votre mot de passe » (avec formation)
+password_set = true           -> learner_course_access, lien direct vers le cours
+password_set = false          -> « Créez votre mot de passe » + formation + « la plateforme a changé »
+pas de ligne de sécurité      -> comme password_set = false
 ```
-- « Mot de passe défini » = `password_set = true` **ou** `last_sign_in_at` non nul (filet pour les comptes dont le drapeau n'a pas suivi). Calculé côté serveur via la RPC existante enrichie, jamais exposé au navigateur.
 
-### Nouveau modèle éditable `learner_course_access`
-- Objet : « Votre accès à « {{training_name}} » est ouvert ».
-- Contenu : formation ouverte, bouton « Accéder à ma formation » vers l'espace apprenant (lien direct sur le cours si identifié), rappel « connectez-vous avec votre adresse et votre mot de passe », lien « mot de passe oublié ».
-- Variantes tu/vous, visible dans Paramètres -> Emails, BCC et signature habituels.
-- Le modèle `learner_access` garde son rôle (création de compte / renvoi d'accès).
+- Bilan de l'import en lot : comptes créés / accès confirmés / échecs (un seul mail par personne, déjà dédoublonné par email).
 
-### Comportement par chemin
-- Ajout unitaire et MCP : appliquer la règle, toujours avec le nom de la formation.
-- Import en lot : **un seul mail par personne** (déjà dédoublonné par email), choisi par la règle ; le compteur de fin distingue « comptes créés », « accès confirmés », « échecs ».
-- Bouton « Renvoyer l'accès » : inchangé (renvoie le lien de connexion ou de création selon l'état), utile pour dépanner.
-- Le quota interne (sauf admins) s'applique aux deux types de mail.
+## Transformé
 
-### Points de vigilance
-- **Compte créé sans mot de passe jamais défini** : doit continuer à recevoir « Créez votre mot de passe » à chaque nouvelle formation, sinon il ne pourra pas entrer. C'est le cas des 424 comptes de novembre.
-- **Apprenants migrés de WordPress** : leur mot de passe WordPress n'existe pas dans SuperTools ; ils sont à juste titre « sans mot de passe ». Le mail doit le dire clairement (« Votre espace a changé d'adresse, créez votre mot de passe une fois »).
-- **Drapeau non mis à jour** : vérifier que toutes les voies de définition du mot de passe (lien email, page pré-espace, changement forcé, Google) passent `password_set` à vrai ; prévoir une correction de données ponctuelle pour les comptes connectés mais restés à faux (2 aujourd'hui), après accord.
-- **Comptes sans ligne de sécurité** (29) : considérés avec mot de passe ; à contrôler.
-- Ne jamais révéler à l'appelant si une adresse a un compte ; aucun lien qui ouvre une session automatiquement.
-- Aucune relance automatique ajoutée.
+- RPC de détection : renvoie `exists` + `password_set` ; **absence de ligne = pas de mot de passe** (suppression du `COALESCE(..., true)`). Service-role uniquement, rien d'exposé au navigateur.
+- Tous les chemins utilisent la règle : ajout unitaire (`add-training-participant`, qui transmet enfin le nom de la formation et l'id du cours), lot, MCP (`lms-enrollment-tools`), bouton « Renvoyer l'accès » et repositionnement (`send-learner-access-email`).
+- **Cause racine** : `create-academy-account` écrit `password_set=true` après création ; les pages `Signup` et `Auth` (inscription avec mot de passe) appellent `mark_password_changed` après `signUp`. Option plus sûre à valider : trigger applicatif sur la création de compte qui crée systématiquement la ligne (`false` par défaut), les chemins avec mot de passe la passant à vrai.
+- Correction ponctuelle des 29 comptes (requête proposée, **non exécutée**) :
+
+```sql
+-- Comptes avec connexion par mot de passe prouvée -> mot de passe défini
+INSERT INTO user_security_metadata (user_id, password_set)
+SELECT u.id, true FROM auth.users u
+LEFT JOIN user_security_metadata m ON m.user_id = u.id
+WHERE m.user_id IS NULL
+  AND EXISTS (SELECT 1 FROM login_attempts l
+              WHERE lower(l.email) = lower(u.email) AND l.success);
+-- concerne romain@supertilt.fr, emma.marceau, anita.bardy
+
+-- Les 5 inscriptions avec mot de passe post-19/09 -> mot de passe défini
+-- (liste nominative, à confirmer : severinerenaud78, laurent.broyer,
+--  marine@msconseils, mjudeaux ; test@test.com à supprimer plutôt)
+
+-- Tous les autres -> sans mot de passe
+INSERT INTO user_security_metadata (user_id, password_set)
+SELECT u.id, false FROM auth.users u
+LEFT JOIN user_security_metadata m ON m.user_id = u.id
+WHERE m.user_id IS NULL;
+```
+
+  Comptes admin/staff (romain@supertilt.fr, couturier.romain) à traiter à part : vérifier le rôle avant, ne jamais leur forcer `false` s'ils se connectent au back-office.
+
+## Supprimé
+
+- La valeur par défaut « absence de ligne = mot de passe défini ».
+- Aucun filet « déjà connecté = mot de passe défini » (une connexion par lien magique ne prouve rien).
+- La fonction `send-elearning-access`, le service front inutilisé `sendElearningAccess` et ses entrées de surveillance (suppression du déploiement après merge).
+
+## Rattrapage (après correction et accord)
+
+Renvoyer « Créez votre mot de passe » (avec formation) à : **delphine@canevetetassocies.fr, gabriela.stoica@charente-maritime.fr, gobbberliza@gmail.com, agnesg@etik.com, anais.surmin@april.com**.
+Exclus : anita.bardy (connectée par mot de passe le 03/11 à 17:56), romain@supertilt.fr, emma.marceau. Juste avant l'envoi, revérifier `login_attempts` de chacun ; envoi par l'outil admin (sans quota), traçé.
+
+## Présentiel ou mixte avec contenus en ligne (à décider)
+
+Workflow actuel constaté :
+- Ajout d'un participant : déclencheur base qui l'**inscrit au cours LMS** si la session a un cours de supports (`supports_lms_course_id`) — inscription seule, **aucun compte créé, aucun mail d'accès**.
+- Mails : questionnaire de besoins, convocation (immédiate si J-7 à J-2 ou en cours, sinon programmée J-7) contenant un lien secondaire « Accéder au e-learning de la formation » vers les supports (avec `?email=`), émargement, puis séquence post-formation.
+- Si un contenu en ligne est rattaché plus tard : `send-elearning-available` prévient les participants une fois par support.
+- Résultat : le participant arrive sur l'espace apprenant sans compte ni mot de passe et doit passer par « première connexion ».
+
+Recommandation : créer le compte à l'ajout (silencieux) et **ne pas envoyer de mail séparé** ; intégrer dans la convocation un bloc conditionnel « Créez votre mot de passe » ou « Votre accès est ouvert » selon la même règle. Exception : contenu à suivre avant la session (pré-requis) -> envoyer le mail d'accès à l'ajout. Après la session, `send-elearning-available` suffit pour les contenus ajoutés.
 
 ## Détails techniques
-- `_shared/learner-account.ts` : nouveau `decideLearnerAccessEmail(state)` pur + tests ; `learner_password_set` remplacé ou complété par une RPC service-role renvoyant `{exists, password_set, has_signed_in}`.
-- `_shared/editable-email-defaults.ts`, `src/components/settings/settingsConstants.ts`, `src/lib/emailVariableDocs.ts` : nouveau modèle.
-- `add-training-participant` : passer `trainingName`. `bulkParticipants.ts` : agréger les résultats par type.
-- Redéployer `add-training-participant`, `send-learner-access-email`, `mcp-server`.
-- Questions : faut-il un lien direct vers le cours (nécessite l'id du cours LMS lié à la session) ou l'espace apprenant suffit-il ? Le mail « accès ouvert » doit-il aussi partir pour les formations présentielles avec contenus en ligne ?
+
+- Fichiers : `_shared/learner-account.ts`, `_shared/editable-email-defaults.ts`, `settingsConstants.ts`, `emailVariableDocs.ts`, `add-training-participant`, `send-learner-access-email`, `_shared/lms-enrollment-tools.ts`, `bulkParticipants.ts`, `BulkAddParticipantsDialog.tsx`, `create-academy-account`, `Signup.tsx`, `Auth.tsx`, migration RPC (+ trigger éventuel).
+- Tests : helper de décision (4 cas), RPC (absence de ligne = false), bilan du lot.
+- Redéploiements : `add-training-participant`, `send-learner-access-email`, `create-academy-account`, `mcp-server` ; suppression de `send-elearning-access`.
+- Sécurité : RPC service-role, aucune révélation d'existence de compte, aucun lien qui ouvre une session.
