@@ -38,6 +38,7 @@ interface KanbanStatsDialogProps {
   wonColumnIds?: string[];
   /** Column IDs representing "lost" outcomes (shown in red on CFD). */
   lostColumnIds?: string[];
+  tooltipColumnIds?: string[];
 }
 
 const CHART_COLORS = [
@@ -227,6 +228,7 @@ export default function KanbanStatsDialog({
   doneColumnIds,
   wonColumnIds = [],
   lostColumnIds = [],
+  tooltipColumnIds,
 }: KanbanStatsDialogProps) {
   const { isDemoMode } = useDemoMode();
   const formatValue = (v: number) => (isDemoMode ? maskAmount(v) : formatEuro(v));
@@ -238,6 +240,11 @@ export default function KanbanStatsDialog({
 
   // For CFD stacking: reverse so early pipeline stages sit on top (standard CFD convention)
   const reversedCols = useMemo(() => [...sortedCols].reverse(), [sortedCols]);
+  const tooltipOrder = tooltipColumnIds ?? sortedCols.map((col) => col.id);
+  const tooltipItemSorter = (item: { dataKey?: string | number }) => {
+    const index = tooltipOrder.indexOf(String(item.dataKey));
+    return index < 0 ? tooltipOrder.length : index;
+  };
 
   const resolvedDoneIds = useMemo(() => {
     if (doneColumnIds && doneColumnIds.length > 0) return doneColumnIds;
@@ -293,6 +300,7 @@ export default function KanbanStatsDialog({
                     />
                     <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                     <Tooltip
+                      itemSorter={tooltipItemSorter}
                       contentStyle={{ fontSize: 12 }}
                       labelStyle={{ fontWeight: "bold" }}
                     />
@@ -350,6 +358,7 @@ export default function KanbanStatsDialog({
                         tickFormatter={(v: number) => formatValue(v)}
                       />
                       <Tooltip
+                        itemSorter={tooltipItemSorter}
                         contentStyle={{ fontSize: 12 }}
                         labelStyle={{ fontWeight: "bold" }}
                         formatter={(value: number, name: string) => [formatValue(value), name]}
