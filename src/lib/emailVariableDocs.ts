@@ -33,6 +33,7 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   progression: { label: "Progression e-learning", description: "Pourcentage du parcours e-learning déjà réalisé par l'apprenant, sans le signe %.", sample: "45" },
   non_demarre: { label: "Si e-learning non démarré", description: "Condition vraie quand l'apprenant n'a encore ouvert aucune leçon.", sample: "", isCondition: true },
   en_cours: { label: "Si e-learning commencé", description: "Condition vraie quand l'apprenant a déjà commencé le parcours.", sample: "1", isCondition: true },
+  forgot_password_link: { label: "Lien « mot de passe oublié »", description: "Lien vers la page de connexion préremplie, pour réinitialiser son mot de passe.", sample: "<a href=\"#\">Mot de passe oublié ?</a>", isBlock: true },
   access_button: { label: "Bouton d'accès à l'espace apprenant", description: "Bouton personnel qui ouvre l'espace apprenant (création du mot de passe si besoin).", sample: "<p><a href=\"#\">Accéder à ma formation</a></p>", isBlock: true },
   training_date: { label: "Date de la formation", description: "Date principale de la session, déjà formatée en français.", sample: "12 mars 2026" },
   training_dates: { label: "Dates de la formation", description: "Toutes les dates de la session, formatées et séparées par des virgules.", sample: "12 et 13 mars 2026" },
@@ -195,6 +196,7 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   some_pending: { label: "Émargements en attente ?", description: "Condition vraie quand des émargements manquent encore. À utiliser sous la forme {{#some_pending}}...{{/some_pending}}.", sample: "oui", isCondition: true },
   is_today: { label: "Aujourd'hui ?", description: "Condition vraie quand l'événement a lieu aujourd'hui. À utiliser sous la forme {{#is_today}}...{{/is_today}}.", sample: "oui", isCondition: true },
   is_tomorrow: { label: "Demain ?", description: "Condition vraie quand l'événement a lieu demain. À utiliser sous la forme {{#is_tomorrow}}...{{/is_tomorrow}}.", sample: "oui", isCondition: true },
+  platform_changed: { label: "Compte existant sans mot de passe ?", description: "Condition vraie quand l'apprenant avait déjà un compte mais n'a jamais créé de mot de passe (ancienne plateforme). À utiliser sous la forme {{#platform_changed}}...{{/platform_changed}}.", sample: "oui", isCondition: true },
   password_set: { label: "Mot de passe défini ?", description: "Condition vraie quand l'apprenant a déjà un mot de passe. À utiliser sous la forme {{#password_set}}...{{/password_set}}.", sample: "oui", isCondition: true },
   no_password: { label: "Sans mot de passe ?", description: "Condition vraie quand l'apprenant doit encore créer son mot de passe. À utiliser sous la forme {{#no_password}}...{{/no_password}}.", sample: "oui", isCondition: true },
 };
