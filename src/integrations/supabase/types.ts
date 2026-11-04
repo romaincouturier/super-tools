@@ -13938,6 +13938,28 @@ export type Database = {
         }
       }
       get_reclamation_by_token: { Args: { p_token: string }; Returns: Json }
+      get_random_client_pearl: {
+        Args: { p_exclude?: string }
+        Returns: {
+          archived: boolean
+          author_company: string | null
+          author_name: string | null
+          created_at: string
+          created_by: string | null
+          gmail_thread_id: string | null
+          id: string
+          image_path: string | null
+          is_anonymous: boolean
+          legacy_notion_id: string | null
+          message: string
+          message_fr: string | null
+          pearl_date: string
+          pearl_time: string | null
+          source: string
+          title: string | null
+          updated_at: string
+        }[]
+      }
       get_sponsor_evaluation_by_token: {
         Args: { p_token: string }
         Returns: Json
