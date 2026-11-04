@@ -186,7 +186,7 @@ export async function sendLearnerAccessEmail(
       vars: { training_name: trainingName },
       blocks: {
         access_button: ctaButton("Accéder à ma formation", target),
-        forgot_password_link: `${urls.app_url}/connexion?email=${encodeURIComponent(normalized)}`,
+        forgot_password_link: `<a href="${urls.app_url}/connexion?email=${encodeURIComponent(normalized)}">Mot de passe oublié ?</a>`,
       },
     });
   } else {
