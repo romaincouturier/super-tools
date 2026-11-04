@@ -44,6 +44,8 @@ Le relevé vient d'un catalogue tiers, et les schémas ne sont pas confirmés. T
 | `approve_post` / `reject_post` | Approuver ; refuser avec un commentaire, le post repasse en brouillon |
 | `list_comments` / `add_comment` | Notes internes et commentaires |
 
+Familles d'outils montrées dans la maquette (onglet MCP) : lister les espaces, lire les posts, créer un brouillon (jamais publié directement), suivre les validations (urgence selon la date de sortie), programmer (fixer ou déplacer la date d'un post approuvé), lire les statistiques (hors V1).
+
 Skills publiées par Planable, à transposer pour Claude :
 - un lot de brouillons créé à partir d'un brief, avec contrôles par réseau ;
 - les validations en attente, avec une alerte sur les posts qui sortent sous 48 h sans validation ;

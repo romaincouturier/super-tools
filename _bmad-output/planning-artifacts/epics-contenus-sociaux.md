@@ -46,9 +46,9 @@ FR23 : Une vue liste et une vue aperçu (rendu réseau) affichent les posts (CAP
 FR24 : Les filtres se combinent : validation, publication, campagne, thème, période, canal, auteur, recherche plein texte. Une vue enregistrée rappelle une combinaison de filtres (CAP-11, maquette).
 FR25 : Les 6 cartes `content_cards` de type `post` ou `post_linkedin` deviennent des posts, avec leur texte et leur date, et quittent le kanban newsletter (CAP-12).
 FR26 : Un post se rattache à une carte du kanban éditorial, et le lien se suit dans les deux sens (CAP-12).
-FR27 : Le MCP liste les posts par statut de validation, de publication et par période. Il lit un post avec ses commentaires, son historique et ses alertes (CAP-13).
+FR27 : Le MCP liste les posts par statut de validation, de publication et par période, avec les validations en attente classées par urgence de date de sortie. Il lit un post avec ses commentaires, son historique et ses alertes (CAP-13).
 FR28 : Le MCP crée un brouillon groupé multi-canaux avec une date proposée. Le brouillon part non validé (CAP-13).
-FR29 : Le MCP approuve, ou refuse avec un motif. Il lit et ajoute des commentaires (CAP-13).
+FR29 : Le MCP approuve, ou refuse avec un motif, et programme un contenu (pose ou déplace sa date, approbation conservée). Il lit et ajoute des commentaires (CAP-13).
 FR30 : Une vue grille montre les posts Instagram publiés et à venir, comme sur le profil, trois par ligne, dans l'ordre de publication (CAP-14).
 FR31 : Une alerte signale un post sans visuel, ou dont le texte dépasse la limite de son réseau. Elle est visible sur la carte, en liste et dans le détail, et disparaît une fois le post corrigé. Elle ne bloque ni la validation ni le marquage comme publié (CAP-15).
 FR32 : Les canaux de départ sont LinkedIn Romain, LinkedIn Emmanuelle, page LinkedIn SuperTilt, Instagram, YouTube, Facebook, Blog et Le Déclic. La liste est extensible (contrainte).
@@ -80,7 +80,7 @@ NFR8 : Les écrans internes passent le mode démo. Les données identifiantes so
 
 ### UX Design Requirements
 
-UX-DR1 : En-tête du module avec quatre onglets : Calendrier, Liste, Aperçus, MCP (maquette).
+UX-DR1 : En-tête du module avec trois onglets : Calendrier, Liste, Aperçus. L'onglet MCP de la maquette illustrait le MCP de Planable et n'est pas repris.
 UX-DR2 : Barre de filtres en pastilles : thème (avec la couleur du thème), réseau, statut. Une liste déroulante « Vue enregistrée » rappelle une combinaison sauvegardée.
 UX-DR3 : Colonne gauche « Non planifiés · N » : cartes d'idées et de brouillons sans date, glissables sur un jour.
 UX-DR4 : Grille mensuelle du lundi au dimanche. Le jour courant est mis en évidence et les jours hors mois sont grisés.
@@ -211,7 +211,7 @@ afin de planifier les publications de tous les canaux d'un seul coup d'œil.
 
 **Given** l'en-tête du calendrier
 **When** il s'affiche
-**Then** les onglets Calendrier, Liste, Aperçus, MCP sont présents (seul Calendrier est actif dans cet epic) (UX-DR1)
+**Then** les onglets Calendrier, Liste, Aperçus sont présents (seul Calendrier est actif dans cet epic) (UX-DR1)
 **And** la légende montre les statuts affichés Brouillon, Programmé, Publié avec leur couleur (UX-DR7)
 **And** l'écran passe le mode démo (`demoMask`) et le contrôle [065]
 
@@ -575,6 +575,10 @@ afin que Claude repère les trous, les validations en attente et les contenus in
 **Then** il peut filtrer par statut de validation, statut de publication, période, canal, thème et campagne
 **And** chaque contenu renvoie son statut affiché, ses déclinaisons, sa date, son thème, sa campagne et ses alertes (même fonction que la story 1.3)
 
+**Given** des contenus en attente de validation
+**When** Claude demande les validations à suivre
+**Then** elles sont classées par date de sortie, la plus proche d'abord, et celles qui sortent sous 48 h sont signalées
+
 **Given** un contenu
 **When** Claude le lit
 **Then** il reçoit texte, visuel, canaux, commentaires et historique de validation
@@ -607,10 +611,10 @@ afin de produire un lot de contenus à partir d'un brief en une conversation.
 **When** il est appelé
 **Then** il ne fait qu'ajouter : aucun contenu existant n'est modifié ni supprimé
 
-### Story 4.4 : Valider, refuser et commenter depuis Claude
+### Story 4.4 : Valider, refuser, programmer et commenter depuis Claude
 
 En tant que Romain dans Claude,
-je veux approuver, refuser avec motif et commenter des contenus,
+je veux approuver, refuser avec motif, programmer et commenter des contenus,
 afin de traiter mes validations sans quitter la conversation.
 
 **Acceptance Criteria:**
@@ -619,6 +623,11 @@ afin de traiter mes validations sans quitter la conversation.
 **When** Claude l'approuve ou le refuse avec motif
 **Then** la transition passe par la même fonction SQL que l'écran (story 2.1), avec les mêmes règles : motif obligatoire, effet sur tout le groupe, action quotidienne, historique
 **And** les instructions du serveur imposent l'accord explicite de l'utilisateur dans la conversation avant toute approbation ou tout refus
+
+**Given** un contenu
+**When** Claude le programme en posant ou déplaçant sa date et son heure
+**Then** seule la date change, sur tout le groupe, et l'approbation est conservée, comme un glisser-déposer dans le calendrier
+**And** un contenu déjà marqué publié ne peut pas être reprogrammé par Claude
 
 **Given** un contenu
 **When** Claude lit ou ajoute un commentaire

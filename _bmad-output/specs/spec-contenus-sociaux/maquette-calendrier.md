@@ -6,7 +6,7 @@ Maquette de référence fournie par Romain le 3 novembre 2026, avec des contenus
 
 ## Ce que la maquette fixe
 
-- **Onglets** : Calendrier, Liste, Aperçus, MCP.
+- **Onglets** : Calendrier, Liste, Aperçus. L'onglet MCP de la maquette illustrait le MCP de Planable et n'est pas repris dans le module.
 - **Filtres** : thème, réseau et statut, par pastilles. Une liste « Vue enregistrée » rappelle une combinaison de filtres.
 - **Colonne « Non planifiés »** : idées et brouillons sans date, avec leur nombre, à glisser sur un jour.
 - **Grille mensuelle** du lundi au dimanche, avec le jour courant mis en évidence.

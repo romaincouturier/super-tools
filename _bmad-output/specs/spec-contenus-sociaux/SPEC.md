@@ -64,10 +64,11 @@ C'est une opportunité à saisir, doublée d'une douleur. Romain et Emmanuelle p
 - **CAP-13**
   - **intent:** Claude, via le connecteur SuperTools, lit les posts, propose des brouillons datés, valide et commente.
   - **success:** Depuis Claude, on peut :
-    - lister les posts par statut de validation, de publication et par période ;
+    - lister les posts par statut de validation, de publication et par période, les validations en attente classées par urgence de date de sortie ;
     - lire un post avec ses commentaires et son historique ;
     - créer un brouillon groupé multi-canaux avec une date proposée ;
     - approuver, ou refuser avec motif ;
+    - programmer : poser ou déplacer la date d'un contenu, l'approbation étant conservée ;
     - lire et ajouter des commentaires.
 
     Un brouillon créé par Claude part non validé.
