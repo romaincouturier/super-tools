@@ -819,13 +819,13 @@ check "069" "useResolvedStorageUrl ne rend pas l'URL d'un bucket prive avant sa 
 
   # [076] Design system : couleurs, tailles et rayons passent par les tokens de
   # src/styles/tokens.css. Détail et migration : docs/design/README.md.
-  count_076a=$(grep -rEo '\b(bg|text|border|ring|from|to|via|fill|stroke|divide|outline)-(red|green|blue|yellow|amber|orange|emerald|slate|gray|zinc|neutral|stone|purple|pink|sky|teal|indigo|violet|rose|cyan|lime|fuchsia)-[0-9]+' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | wc -l)
+  count_076a=$(grep -rEo '\b(bg|text|border|ring|from|to|via|fill|stroke|divide|outline)-(red|green|blue|yellow|amber|orange|emerald|slate|gray|zinc|neutral|stone|purple|pink|sky|teal|indigo|violet|rose|cyan|lime|fuchsia)-[0-9]+' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | wc -l || true)
   ratchet "076a" "Ratchet couleurs de la palette Tailwind brute (utiliser success/danger/caution/info/primary...)" "$count_076a"
 
-  count_076b=$(grep -rEo '(bg|text|border|ring|from|to|via|fill|stroke)-\[#[0-9a-fA-F]+\]' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | wc -l)
+  count_076b=$(grep -rEo '(bg|text|border|ring|from|to|via|fill|stroke)-\[#[0-9a-fA-F]+\]' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | wc -l || true)
   ratchet "076b" "Ratchet couleurs hex littérales dans les classes (utiliser un token)" "$count_076b"
 
-  count_076c=$(grep -rEo 'text-\[[0-9.]+(px|rem)\]' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | wc -l)
+  count_076c=$(grep -rEo 'text-\[[0-9.]+(px|rem)\]' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | wc -l || true)
   ratchet "076c" "Ratchet tailles de texte arbitraires (utiliser text-micro, text-caption, text-xs...)" "$count_076c"
 
   # [065] Mode démo — affichage identifiant non masqué dans un écran interne.
