@@ -8178,6 +8178,7 @@ export type Database = {
           location_contract_file_url: string | null
           location_document_id: string | null
           location_end_date: string | null
+          location_returned_at: string | null
           notes: string | null
           product_name: string | null
           quantity: number
@@ -8212,6 +8213,7 @@ export type Database = {
           location_contract_file_url?: string | null
           location_document_id?: string | null
           location_end_date?: string | null
+          location_returned_at?: string | null
           notes?: string | null
           product_name?: string | null
           quantity?: number
@@ -8246,6 +8248,7 @@ export type Database = {
           location_contract_file_url?: string | null
           location_document_id?: string | null
           location_end_date?: string | null
+          location_returned_at?: string | null
           notes?: string | null
           product_name?: string | null
           quantity?: number
