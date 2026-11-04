@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Création de session permanente (2026-11-04)
-- [ ] Ajouter une formule Solo depuis la session et conserver le lien de la formule à l’enregistrement
-- [ ] Cours disponibles en premier, tri alphabétique par groupe, pictogramme des cours associés ; tests et parcours connecté
+- [x] Ajouter Solo depuis la session, hériter des valeurs du catalogue et conserver le lien de la formule à l’enregistrement
+- [x] Cours disponibles en premier, tri alphabétique par groupe et pictogramme des cours associés ; 5 tests et 99 contrôles réussis, création réelle Solo temporaire vérifiée puis nettoyée ; aucune session créée
 
 ## Tableaux des formations (2026-11-04)
 - [x] Date retirée des permanentes, Lieu conservé, tris indépendants actifs ; parcours connecté ordinateur/mobile vérifié, 8 tests et 99 contrôles réussis
