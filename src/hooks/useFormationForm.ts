@@ -309,7 +309,6 @@ export function useFormationForm() {
         admin_contact_email: (isInter || adminContactSameAsSponsor) ? null : (adminContactEmail || null),
         admin_contact_phone: (isInter || adminContactSameAsSponsor) ? null : (adminContactPhone || null),
         catalog_id: catalogId || null,
-        ...(opts.isCreate && isPermanent ? { formula_id: selectedFormulaId } : {}),
       };
 
       if (isElearning && lmsCourseId) {
