@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [1]
+stepsCompleted: [1, 2]
 inputDocuments:
   - _bmad-output/specs/spec-contenus-sociaux/SPEC.md
   - _bmad-output/specs/spec-contenus-sociaux/maquette-calendrier.md
@@ -92,8 +92,212 @@ UX-DR9 : Vue grille Instagram en carrés, trois par ligne.
 
 ### FR Coverage Map
 
-{{requirements_coverage_map}}
+FR1 : Epic 1 - Calendrier semaine et mois avec aperçu
+FR2 : Epic 1 - Colonne Non planifiés et glisser-déposer
+FR3 : Epic 1 - Filtre global par canal
+FR4 : Epic 1 - Composeur multi-canaux
+FR5 : Epic 1 - Groupe de posts et texte synchronisé
+FR6 : Epic 1 - Sauvegarde continue du brouillon
+FR7 : Epic 2 - Axe validation (l'axe publication arrive dès l'Epic 1)
+FR8 : Epic 1 (Brouillon, Programmé, Publié) puis Epic 2 (échelle complète)
+FR9 : Epic 1 - Marquer comme publié
+FR10 : Epic 2 - Demande de validation et action quotidienne
+FR11 : Epic 2 - Approbation par groupe, retrait
+FR12 : Epic 2 - Refus avec motif
+FR13 : Epic 2 - Retour en attente si le fond change
+FR14 : Epic 2 - Tableau Mes validations
+FR15 : Epic 2 - Commentaires internes, mentions, résolution
+FR16 : Epic 2 - Historique avec version précédente
+FR17 : Epic 3 - Fiche campagne
+FR18 : Epic 3 - Bandeau, calendrier de campagne, rattachement
+FR19 : Epic 1 - Visuels depuis la Médiathèque
+FR20 : Epic 1 - Notes de calendrier
+FR21 : Epic 4 - Contexte de marque
+FR22 : Epic 1 - Thèmes éditoriaux
+FR23 : Epic 3 - Vues liste et aperçu
+FR24 : Epic 3 - Filtres combinés et vues enregistrées
+FR25 : Epic 5 - Migration des cartes post
+FR26 : Epic 5 - Lien post et carte éditoriale
+FR27 : Epic 4 - MCP lecture
+FR28 : Epic 4 - MCP brouillon groupé daté
+FR29 : Epic 4 - MCP validation et commentaires
+FR30 : Epic 3 - Grille Instagram
+FR31 : Epic 1 - Alertes visuel et longueur
+FR32 : Epic 1 - Canaux de départ
 
 ## Epic List
 
-{{epics_list}}
+### Epic 1 : Planifier et rédiger tous les contenus dans un calendrier
+Romain et Emmanuelle rédigent un contenu une fois, le déclinent sur plusieurs canaux avec un visuel de la Médiathèque, le classent par thème et le planifient dans le calendrier mensuel de la maquette. Le module est utilisable au quotidien sans validation.
+**FRs couverts :** FR1, FR2, FR3, FR4, FR5, FR6, FR8 (partiel), FR9, FR19, FR20, FR22, FR31, FR32
+
+### Epic 2 : Faire valider les contenus
+Un auteur demande une validation, l'autre personne la reçoit en action quotidienne et approuve, refuse avec motif ou corrige depuis Mes validations ; tout changement de fond est tracé et remet en attente.
+**FRs couverts :** FR7, FR8, FR10, FR11, FR12, FR13, FR14, FR15, FR16
+
+### Epic 3 : Piloter par campagnes et par vues
+Les posts se regroupent en campagnes avec brief, bandeau et calendrier propre ; on les pilote en liste, en aperçu et en grille Instagram, avec filtres combinés et vues enregistrées.
+**FRs couverts :** FR17, FR18, FR23, FR24, FR30
+
+### Epic 4 : Rédiger et valider avec Claude via le MCP
+Claude lit le contexte de marque, consulte le calendrier, propose des brouillons datés multi-canaux, valide ou refuse et commente, toujours dans le circuit de validation.
+**FRs couverts :** FR21, FR27, FR28, FR29
+
+### Epic 5 : Sortir les posts du kanban newsletter
+Les 6 cartes post deviennent des posts, et un post peut décliner une carte éditoriale avec un lien dans les deux sens.
+**FRs couverts :** FR25, FR26
+
+## Epic 1 : Planifier et rédiger tous les contenus dans un calendrier
+
+Romain et Emmanuelle rédigent un contenu une fois, le déclinent sur plusieurs canaux avec un visuel de la Médiathèque, le classent par thème et le planifient dans le calendrier mensuel de la maquette. Le module est utilisable au quotidien sans validation.
+
+### Story 1.1 : Rédiger un contenu décliné sur plusieurs canaux
+
+En tant que membre de l'équipe ayant le droit supertilt.fr,
+je veux rédiger un contenu une fois et le décliner sur plusieurs canaux,
+afin de préparer mes publications sans les ressaisir pour chaque réseau.
+
+**Acceptance Criteria:**
+
+**Given** un utilisateur avec le droit `supertilt_fr`
+**When** il ouvre le menu supertilt.fr
+**Then** un sous-module « Contenus sociaux » (`/supertilt-fr/contenus-sociaux`) apparaît, sans droit supplémentaire
+**And** un utilisateur sans ce droit ne voit ni le sous-module ni les données (RLS sur chaque nouvelle table via `has_module_access`)
+
+**Given** la migration de la story
+**When** elle est jouée
+**Then** les 8 canaux de départ existent : LinkedIn Romain, LinkedIn Emmanuelle, page LinkedIn SuperTilt, Instagram, YouTube, Facebook, Blog, Le Déclic, chacun avec un nom, une abréviation (LI, IN, YO, FA…) et une limite de texte facultative
+**And** la liste des canaux est extensible sans modification de code
+**And** les nouvelles tables sont ajoutées aux listes de sauvegarde (`scheduled-backup`, `backup-export`)
+
+**Given** le composeur ouvert
+**When** l'auteur coche trois canaux, choisit un format (post, story, reel), saisit un texte et ne pose pas de date
+**Then** l'enregistrement crée trois posts liés par un groupe, statut de publication « sans date »
+**And** tant que la synchro est active, modifier le texte met à jour les trois posts ; la couper rend chaque déclinaison indépendante
+
+**Given** un brouillon en cours de rédaction
+**When** l'auteur ferme le composeur sans enregistrer puis le rouvre
+**Then** son brouillon est retrouvé sans perte (sauvegarde continue par `useAutoSaveForm`)
+
+**Given** des brouillons sans date
+**When** l'utilisateur ouvre le module
+**Then** la colonne « Non planifiés · N » liste ces brouillons avec leurs badges canaux (UX-DR3)
+
+### Story 1.2 : Planifier dans le calendrier avec aperçu des contenus
+
+En tant que membre de l'équipe,
+je veux voir tous les contenus dans un calendrier mensuel et hebdomadaire et y glisser mes brouillons,
+afin de planifier les publications de tous les canaux d'un seul coup d'œil.
+
+**Acceptance Criteria:**
+
+**Given** des posts datés
+**When** l'utilisateur ouvre l'onglet Calendrier en vue mois
+**Then** la grille va du lundi au dimanche, met en évidence le jour courant et grise les jours hors mois (UX-DR4)
+**And** chaque jour montre ses contenus en cartes : pastille de statut, heure, badges canaux, début du titre tronqué (UX-DR5), dans l'ordre horaire
+**And** une vue semaine affiche les mêmes cartes sur sept jours
+
+**Given** un brouillon dans « Non planifiés »
+**When** l'utilisateur le glisse sur un jour
+**Then** la date est posée sur toutes les déclinaisons du groupe, le statut affiché passe à « Programmé » et le brouillon quitte la colonne
+
+**Given** un post daté
+**When** l'utilisateur le glisse sur un autre jour
+**Then** seule la date change, l'heure est conservée
+
+**Given** la barre des canaux
+**When** l'utilisateur décoche un canal
+**Then** ses posts disparaissent de la grille et de la colonne « Non planifiés »
+
+**Given** l'en-tête du calendrier
+**When** il s'affiche
+**Then** les onglets Calendrier, Liste, Aperçus, MCP sont présents (seul Calendrier est actif dans cet epic) (UX-DR1)
+**And** la légende montre les statuts affichés Brouillon, Programmé, Publié avec leur couleur (UX-DR7)
+**And** l'écran passe le mode démo (`demoMask`) et le contrôle [065]
+
+### Story 1.3 : Joindre un visuel de la Médiathèque et être alerté d'un post incomplet
+
+En tant qu'auteur,
+je veux choisir le visuel de chaque contenu dans la Médiathèque et voir quand un post est incomplet pour son réseau,
+afin de ne jamais publier sans visuel ni avec un texte trop long.
+
+**Acceptance Criteria:**
+
+**Given** le composeur
+**When** l'auteur ajoute un visuel
+**Then** il le choisit dans la Médiathèque existante, sans import vers un nouveau stockage
+**And** le visuel est partagé par les déclinaisons tant que la synchro est active
+
+**Given** un post sans visuel
+**When** il s'affiche en carte, dans la colonne Non planifiés ou dans le composeur
+**Then** une alerte « visuel manquant » est visible sans ouvrir le post (UX-DR8)
+
+**Given** un post dont le texte dépasse la limite de son canal
+**When** il s'affiche
+**Then** une alerte « texte trop long » indique la limite et le dépassement
+**And** l'alerte disparaît dès que le post est corrigé
+**And** aucune alerte n'empêche l'enregistrement, la planification ni le marquage publié
+
+**Given** la règle d'alerte
+**When** elle est calculée
+**Then** elle l'est par une fonction pure partagée, testée unitairement, réutilisable par le MCP (Epic 4)
+
+### Story 1.4 : Classer les contenus par thèmes et filtrer
+
+En tant que membre de l'équipe,
+je veux créer des thèmes éditoriaux colorés, les attribuer aux contenus et filtrer le calendrier,
+afin de voir l'équilibre de la ligne éditoriale.
+
+**Acceptance Criteria:**
+
+**Given** le module installé
+**When** l'utilisateur ouvre les réglages des thèmes
+**Then** la liste est vide au départ ; il peut créer, renommer et recolorer un thème
+
+**Given** un thème attribué à un contenu dans le composeur
+**When** la carte s'affiche dans le calendrier
+**Then** son liseré gauche prend la couleur du thème (UX-DR5)
+
+**Given** la barre de filtres
+**When** l'utilisateur sélectionne des pastilles de thème, de réseau et de statut
+**Then** le calendrier et la colonne Non planifiés n'affichent que les contenus qui correspondent (UX-DR2, sans vues enregistrées)
+**And** désélectionner toutes les pastilles d'une famille revient à ne pas filtrer sur cette famille
+
+### Story 1.5 : Ouvrir un contenu, le modifier et le marquer publié
+
+En tant qu'auteur,
+je veux ouvrir le détail d'un contenu, le modifier et le marquer publié quand je l'ai posté sur le réseau,
+afin que le calendrier reflète ce qui est réellement sorti.
+
+**Acceptance Criteria:**
+
+**Given** une carte du calendrier
+**When** l'utilisateur clique dessus
+**Then** le détail s'ouvre avec texte, visuel, canaux, thème, format, date et heure, modifiables
+
+**Given** un post programmé
+**When** l'utilisateur le marque publié
+**Then** son statut de publication devient « marqué comme publié », le statut affiché « Publié »
+**And** le post reste modifiable ; un second geste annule le marquage
+**And** le marquage s'applique à la déclinaison concernée, pas à tout le groupe
+
+**Given** un contenu devenu inutile
+**When** l'utilisateur le supprime
+**Then** une confirmation (`useConfirm()`) est demandée et seule la déclinaison choisie, ou tout le groupe sur demande, est supprimée
+
+### Story 1.6 : Poser des notes dans le calendrier
+
+En tant que membre de l'équipe,
+je veux poser une note datée sur un jour du calendrier,
+afin de garder un repère (lancement, relance, idée) à côté des publications.
+
+**Acceptance Criteria:**
+
+**Given** un jour du calendrier
+**When** l'utilisateur ajoute une note avec un texte et une couleur
+**Then** la note s'affiche sur ce jour, distincte des cartes de contenu
+**And** elle n'entre dans aucun statut, filtre de statut ni compteur de posts
+
+**Given** une note existante
+**When** l'utilisateur la modifie, la déplace sur un autre jour ou la supprime
+**Then** le calendrier se met à jour
