@@ -1,5 +1,10 @@
 # Roadmap
 
+## Devis de jeux (2026-11-04)
+- [ ] Proposer les contacts des opportunités CRM ouvertes comme commanditaires
+- [ ] Mémoriser les prix unitaires par jeu et les frais de port/dossier, puis les recharger
+- [ ] Tester le choix du contact et la persistance sans envoyer de devis
+
 ## Statistiques des opportunités (2026-11-04)
 - [x] Catégories exclusives par statut et colonne ; état du jour prioritaire sur l’historique incomplet, dates de clôture selon le statut
 - [x] Détails ordonnés sur les deux graphiques ; 35 tests et 99 contrôles réussis, graphiques connectés vérifiés et totaux gagnés/perdus comparés aux opportunités réelles
