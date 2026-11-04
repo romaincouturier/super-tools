@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Retour des jeux loués (2026-11-04)
-- [ ] Confirmer un retour reçu depuis la carte, conserver la date et clôturer la location même avant échéance
-- [ ] Vérifier la protection contre une clôture anticipée sans retour et le parcours connecté
+- [x] Bouton « Jeu revenu » avec confirmation, date de retour dédiée et clôture même avant échéance ; date contractuelle conservée
+- [x] 3 tests SQL et 99 contrôles passés ; parcours connecté vérifié avec écriture simulée, aucune commande réelle modifiée
 
 ## Devis de jeux (2026-11-04)
 - [x] Proposer les contacts des opportunités CRM ouvertes comme commanditaires et conserver le rattachement du devis
