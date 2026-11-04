@@ -124,6 +124,11 @@ const alreadyCaptured = new WeakSet<object>();
 export function reportHandledError(err: unknown, extra?: Record<string, unknown>): void {
   if (err instanceof Error) {
     if (alreadyCaptured.has(err)) return;
+    // Refus de quota interne : protection attendue, affichée à l'utilisateur, pas un bug.
+    if (err.message.startsWith("Quota interne atteint")) {
+      Sentry.addBreadcrumb({ category: "handled-error", message: err.message, level: "warning" });
+      return;
+    }
     alreadyCaptured.add(err);
     Sentry.captureException(err, extra ? { extra } : undefined);
     return;
