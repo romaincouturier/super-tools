@@ -11242,6 +11242,69 @@ export type Database = {
           },
         ]
       }
+      training_feedbacks: {
+        Row: {
+          author_name: string | null
+          author_role: string
+          consent_publication: boolean
+          content: string
+          created_at: string
+          created_by: string | null
+          gmail_message_id: string | null
+          id: string
+          participant_id: string | null
+          received_at: string
+          source: string
+          training_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_name?: string | null
+          author_role?: string
+          consent_publication?: boolean
+          content: string
+          created_at?: string
+          created_by?: string | null
+          gmail_message_id?: string | null
+          id?: string
+          participant_id?: string | null
+          received_at?: string
+          source?: string
+          training_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_name?: string | null
+          author_role?: string
+          consent_publication?: boolean
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          gmail_message_id?: string | null
+          id?: string
+          participant_id?: string | null
+          received_at?: string
+          source?: string
+          training_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_feedbacks_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_feedbacks_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_formulas: {
         Row: {
           created_at: string
