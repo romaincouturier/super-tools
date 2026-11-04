@@ -241,7 +241,7 @@ export default function KanbanStatsDialog({
   // For CFD stacking: reverse so early pipeline stages sit on top (standard CFD convention)
   const reversedCols = useMemo(() => [...sortedCols].reverse(), [sortedCols]);
   const tooltipOrder = tooltipColumnIds ?? sortedCols.map((col) => col.id);
-  const tooltipItemSorter = (item: { dataKey?: string | number }) => {
+  const tooltipItemSorter = (item: { dataKey?: unknown }) => {
     const index = tooltipOrder.indexOf(String(item.dataKey));
     return index < 0 ? tooltipOrder.length : index;
   };
