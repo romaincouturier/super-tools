@@ -1,5 +1,9 @@
 # Roadmap
 
+## Retour des jeux loués (2026-11-04)
+- [x] Bouton « Jeu revenu » avec confirmation, date de retour dédiée et clôture même avant échéance ; date contractuelle conservée
+- [x] 3 tests SQL et 99 contrôles passés ; parcours connecté vérifié avec écriture simulée, aucune commande réelle modifiée
+
 ## Devis de jeux (2026-11-04)
 - [x] Proposer les contacts des opportunités CRM ouvertes comme commanditaires et conserver le rattachement du devis
 - [x] Mémoriser immédiatement les prix unitaires par jeu/tarif et les frais de port/dossier dans le navigateur existant, puis les recharger sans modifier le catalogue

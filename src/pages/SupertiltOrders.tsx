@@ -9,6 +9,7 @@ import {
 import { BilanTab, PartenairesTab, DepensesTab, StockTab, AuteursTab } from "@/components/supertilt/SupertiltOrdersV2";
 import { GameRestockTab } from "@/components/supertilt/GameRestockTab";
 import LocationExtensionsSection from "@/components/supertilt/LocationExtensionsSection";
+import LocationGameReturnButton from "@/components/supertilt/LocationGameReturnButton";
 import GameDevisTab from "@/components/dropshipping/GameDevisTab";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -635,7 +636,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
     : rawCustomerName;
 
   const todayParis = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date());
-  const locationRunning = !!item.contrat_reference && (!item.location_end_date || item.location_end_date > todayParis);
+  const locationRunning = !!item.contrat_reference && !item.location_returned_at && (!item.location_end_date || item.location_end_date > todayParis);
   // La signature fait passer la carte en « Location en cours » et fixe l'échéance.
   const locationSigned = item.game_type === "location" && !!item.contrat_reference && item.kanban_status !== "location_pending" && !!item.location_end_date;
 
@@ -691,7 +692,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
               {GAME_TYPE_LABELS[item.game_type]}
             </span>
           )}
-          {item.game_type === "location" && locationSigned && !item.shipped_confirmed_at && !item.hand_delivered_at && (
+          {item.game_type === "location" && locationSigned && !item.location_returned_at && !item.shipped_confirmed_at && !item.hand_delivered_at && (
             <Badge variant="destructive" className="text-[10px] px-1.5 py-0">À expédier</Badge>
           )}
         </div>
@@ -701,6 +702,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
         {order?.date_created && <p>{DATE(order.date_created)}</p>}
         <p>Qté : {item.quantity}{item.line_total ? ` — ${EUR(item.line_total)}` : ""}</p>
         {item.games?.title && <p>Jeu : {item.games.title}</p>}
+        {item.location_returned_at && <p className="text-primary">Jeu revenu le {new Date(item.location_returned_at).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}</p>}
         {item.email_sent_at && (
           <p className="flex items-center gap-1 text-green-700">
             <Send className="h-3 w-3" />
@@ -727,7 +729,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
         <LocationContractSection item={item} />
       )}
 
-      {item.game_type === "location" && item.contrat_reference && item.kanban_status !== "location_pending" && (
+      {item.game_type === "location" && item.contrat_reference && item.kanban_status !== "location_pending" && !item.location_returned_at && (
         <LocationExtensionsSection
           orderItemId={item.id}
           contratReference={item.contrat_reference}
@@ -736,6 +738,9 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
       )}
 
       <div className="flex flex-wrap gap-1 pt-1">
+        {item.game_type === "location" && !item.location_returned_at && (item.kanban_status === "location_active" || item.kanban_status === "processed" || !!item.shipped_confirmed_at || !!item.hand_delivered_at) && (
+          <LocationGameReturnButton id={item.id} />
+        )}
         <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setShowDetail(true)}>
           <Eye className="h-3 w-3 mr-1" />Voir
         </Button>
@@ -777,7 +782,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
             {item.shipped_confirmed_at ? `Envoyé ${DATE(item.shipped_confirmed_at)}` : "Confirmé envoyé"}
           </Button>
         )}
-        {item.game_type === "location" && item.contrat_reference && item.kanban_status !== "blocked" && (
+        {item.game_type === "location" && item.contrat_reference && item.kanban_status !== "blocked" && !item.location_returned_at && (
           <Button
             variant="ghost"
             size="sm"
@@ -795,7 +800,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
             {item.shipped_confirmed_at ? `Expédié ${DATE(item.shipped_confirmed_at)}` : locationSigned ? "Jeu expédié" : "Contrat non signé"}
           </Button>
         )}
-        {(item.game_type as string) !== "formation" && !item.shipped_confirmed_at && item.kanban_status !== "to_validate" && item.kanban_status !== "blocked" && (
+        {(item.game_type as string) !== "formation" && !item.location_returned_at && !item.shipped_confirmed_at && item.kanban_status !== "to_validate" && item.kanban_status !== "blocked" && (
           <Button
             variant="ghost"
             size="sm"
