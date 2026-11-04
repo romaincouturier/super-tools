@@ -46,7 +46,7 @@ export default function SummaryBlockEditor({ content, onChange, slim }: Props) {
                 alignItems: "center",
                 gap: 8,
                 borderRadius: 10,
-                border: `1.5px solid ${stmt.is_correct ? "#69c3c4" : "#e5e7eb"}`,
+                border: `1.5px solid ${stmt.is_correct ? "#69c3c4" : "hsl(var(--border))"}`,
                 padding: "0.5rem 0.75rem",
                 background: stmt.is_correct ? "rgba(105,195,196,0.06)" : "#fff",
               }}
@@ -57,7 +57,7 @@ export default function SummaryBlockEditor({ content, onChange, slim }: Props) {
                 title={stmt.is_correct ? "Correcte" : "Incorrecte"}
                 style={{
                   width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-                  border: `2px solid ${stmt.is_correct ? "#69c3c4" : "#d1d5db"}`,
+                  border: `2px solid ${stmt.is_correct ? "#69c3c4" : "hsl(var(--border))"}`,
                   background: stmt.is_correct ? "#69c3c4" : "#fff",
                   cursor: "pointer",
                 }}
@@ -71,7 +71,7 @@ export default function SummaryBlockEditor({ content, onChange, slim }: Props) {
               {statements.length > 1 && (
                 <button
                   onClick={() => removeStatement(i)}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "#d1d5db" }}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "hsl(var(--border))" }}
                 >
                   <Trash2 size={13} />
                 </button>
@@ -126,7 +126,7 @@ export default function SummaryBlockEditor({ content, onChange, slim }: Props) {
               title={stmt.is_correct ? "Marquer comme incorrecte" : "Marquer comme correcte"}
               style={{
                 width: 20, height: 20, borderRadius: 4, flexShrink: 0,
-                border: `2px solid ${stmt.is_correct ? "#69c3c4" : "#d1d5db"}`,
+                border: `2px solid ${stmt.is_correct ? "#69c3c4" : "hsl(var(--border))"}`,
                 background: stmt.is_correct ? "#69c3c4" : "#fff",
                 cursor: "pointer",
               }}

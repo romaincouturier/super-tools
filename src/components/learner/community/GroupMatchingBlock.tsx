@@ -20,7 +20,7 @@ function MemberAvatar({ member, size = 7 }: { member: GroupMatchingMember; size?
   return (
     <div
       className="rounded-full overflow-hidden flex items-center justify-center font-bold shrink-0 border-2"
-      style={{ width: px, height: px, fontSize: px * 0.35, background: member.photo_url ? "transparent" : "hsl(var(--yellow-brand))", color: "#101820", borderColor: "hsl(var(--white))" }}
+      style={{ width: px, height: px, fontSize: px * 0.35, background: member.photo_url ? "transparent" : "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", borderColor: "hsl(var(--white))" }}
       title={name}
     >
       {member.photo_url
@@ -64,7 +64,7 @@ function PendingAvatars({ profiles, groupSize }: { profiles: GroupMatchingMember
         {profiles.length > 6 && (
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-micro font-bold border-2"
-            style={{ background: "rgba(16,24,32,0.08)", color: "hsl(var(--ink) / 0.55)", borderColor: "hsl(var(--white))" }}
+            style={{ background: "hsl(var(--ink) / 0.08)", color: "hsl(var(--ink) / 0.55)", borderColor: "hsl(var(--white))" }}
           >
             +{profiles.length - 6}
           </div>
@@ -126,7 +126,7 @@ export default function GroupMatchingBlock({
     <div className="px-4 pt-2 pb-6">
       <div
         className="rounded-xl p-3 space-y-3"
-        style={{ background: "rgba(255,209,0,0.08)", border: "1px solid rgba(255,209,0,0.3)" }}
+        style={{ background: "hsl(var(--yellow-brand) / 0.08)", border: "1px solid hsl(var(--yellow-brand) / 0.3)" }}
       >
       <div className="flex items-center gap-2">
         <Users size={14} style={{ color: "hsl(var(--ink))" }} />
@@ -176,7 +176,7 @@ export default function GroupMatchingBlock({
           onClick={handleRegister}
           disabled={register.isPending}
           className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-all hover:-translate-y-px"
-          style={{ background: "hsl(var(--yellow-brand))", color: "#101820", fontFamily: "inherit" }}
+          style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit" }}
         >
           {register.isPending ? <Loader2 size={14} className="animate-spin" /> : null}
           Je veux un {noun}

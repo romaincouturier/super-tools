@@ -61,10 +61,10 @@ export default function GifPicker({
   return (
     <div
       className="rounded-2xl border overflow-hidden"
-      style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.12)", width: 320, maxHeight: 420, display: "flex", flexDirection: "column" }}
+      style={{ background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.12)", width: 320, maxHeight: 420, display: "flex", flexDirection: "column" }}
     >
       {/* Search bar */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
+      <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: "hsl(var(--ink) / 0.08)" }}>
         <Search size={14} style={{ color: "hsl(var(--ink) / 0.55)", flexShrink: 0 }} />
         <input
           ref={inputRef}
@@ -95,7 +95,7 @@ export default function GifPicker({
                 key={gif.id}
                 onClick={() => onSelect(gif.images.original.url, gif.title)}
                 className="rounded-lg overflow-hidden hover:opacity-80 transition-opacity"
-                style={{ aspectRatio: "1", background: "#EDEDED" }}
+                style={{ aspectRatio: "1", background: "hsl(var(--border))" }}
               >
                 <img
                   src={gif.images.fixed_height.url}
@@ -110,7 +110,7 @@ export default function GifPicker({
       </div>
 
       {/* Giphy attribution */}
-      <div className="px-3 py-1.5 border-t text-right" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
+      <div className="px-3 py-1.5 border-t text-right" style={{ borderColor: "hsl(var(--ink) / 0.08)" }}>
         <span className="text-micro font-semibold tracking-wide" style={{ color: "hsl(var(--ink) / 0.55)" }}>
           Powered by GIPHY
         </span>

@@ -17,7 +17,7 @@ export default function LessonTranscriptBadge({ transcriptId }: { transcriptId: 
       style={{
         background: "hsl(var(--grey-light))",
         color: "hsl(var(--ink) / 0.55)",
-        fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif",
+        fontFamily: "var(--font-learner)",
         textDecoration: "none",
       }}
       title="Ouvrir le transcript d'origine"

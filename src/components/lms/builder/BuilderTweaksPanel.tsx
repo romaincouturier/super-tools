@@ -63,8 +63,8 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
           style={{
             background: "hsl(var(--white))",
             borderRadius: "var(--radius-block)",
-            boxShadow: "0 8px 32px rgba(16,24,32,0.14)",
-            border: "1px solid rgba(16,24,32,0.09)",
+            boxShadow: "0 8px 32px hsl(var(--ink) / 0.14)",
+            border: "1px solid hsl(var(--ink) / 0.09)",
             fontFamily: "inherit",
           }}
         >
@@ -143,7 +143,7 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
               onClick={() => set("showArc", !values.showArc)}
               className="w-10 h-5 rounded-full relative"
               style={{
-                background: values.showArc ? "hsl(var(--yellow-brand))" : "rgba(16,24,32,0.15)",
+                background: values.showArc ? "hsl(var(--yellow-brand))" : "hsl(var(--ink) / 0.15)",
                 transition: "background 150ms",
               }}
               aria-checked={values.showArc}
@@ -202,7 +202,7 @@ function Slider({
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
         style={{
-          background: `linear-gradient(to right, hsl(var(--ink)) 0%, hsl(var(--ink)) ${((value - min) / (max - min)) * 100}%, rgba(16,24,32,0.12) ${((value - min) / (max - min)) * 100}%, rgba(16,24,32,0.12) 100%)`,
+          background: `linear-gradient(to right, hsl(var(--ink)) 0%, hsl(var(--ink)) ${((value - min) / (max - min)) * 100}%, hsl(var(--ink) / 0.12) ${((value - min) / (max - min)) * 100}%, hsl(var(--ink) / 0.12) 100%)`,
           accentColor: "hsl(var(--ink))",
         }}
       />

@@ -74,11 +74,22 @@ Correspondance de migration depuis la palette brute : `green-*` vers `success`, 
 ## Garde-fous
 
 - Check bloquant [076] : aucun `dark:` ni `.dark`.
-- Ratchets [076a] palette Tailwind brute, [076b] hex en classe, [076c] tailles de texte arbitraires : la dette ne peut que baisser (`scripts/rules-ratchet.txt`).
+- Ratchets [076a] palette Tailwind brute, [076b] hex en classe, [076c] tailles de texte arbitraires (tous à 0), [076d] hex littéraux dans le code, [076e] `rgb()`/`rgba()`/`hsl()` littéraux, [076f] `fontFamily` littéral : la dette ne peut que baisser (`scripts/rules-ratchet.txt`).
+
+## Couleurs littérales
+
+Migration du 2026-11-04 : les hex et `rgba()` de la marque et des statuts dans les props `style` et les constantes de style des composants (`src/components`, `src/pages`) sont remplacés par `hsl(var(--token))`. Exclus volontairement, car le CSS n'y est pas interprété ou la valeur est une donnée :
+- canvas et PDF (`MonthlyReportPDFExporter`, `attendancePdfExport`, `AttendanceSheetGenerator`, signatures, `SupertiltLogo`) ;
+- HTML généré (aperçu d'e-mail, `HtmlEmbedBlockViewer`) ;
+- couleurs choisies par l'utilisateur ou stockées en base (`CrmTagManager`, `settingsConstants`, `types/support.ts`, `callout-colors.ts`, `arena/templates.ts`) ;
+- e-mails côté edge functions (`supabase/functions/_shared`) : hex littéraux assumés, qui copient `tokens.css`.
+
+Reste : 416 hex dont l'essentiel est de la donnée (gabarits, couleurs d'objectifs, graphiques), 69 `rgba()`, 22 `fontFamily`. À traiter fichier par fichier en abaissant les ratchets.
 
 ## Chantier restant
 
-1. Supprimer les `style={{}}` avec des couleurs littérales (invisibles au ratchet), puis les rayons arbitraires restants.
+1. Trier les 416 hex restants : donnée (à garder, à documenter) ou style (à migrer).
 2. Annoter les variantes de `button.tsx` et `badge.tsx` qui n'ont pas de source de charte ; ajouter `data-slot` aux primitives.
-3. Documenter la typographie (Lexend pour l'interface du builder, Fraunces pour les titres éditoriaux) et fixer un fichier de chargement unique des polices.
-4. Écrire la charte source (logo, planches) dans ce dossier ; elle n'existe pas encore.
+3. Fixer un fichier unique de chargement des polices (Fraunces est chargée et jamais utilisée).
+4. Tokeniser les 114 `borderRadius` en pixels et les dimensions arbitraires (`w-[Npx]`, `p-[Npx]`).
+5. Écrire la charte source (logo, planches) dans ce dossier ; elle n'existe pas encore.

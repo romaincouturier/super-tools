@@ -1,8 +1,8 @@
 import { Lightbulb, Check } from "lucide-react";
 import type { KeyPointsBlockContent } from "@/types/lms-blocks";
 
-const YELLOW = "#FFD100";
-const INK = "#101820";
+const YELLOW = "hsl(var(--yellow-brand))";
+const INK = "hsl(var(--ink))";
 const BORDER = "#EDEDED";
 
 interface Props {
@@ -18,7 +18,7 @@ export default function KeyPointsBlockViewer({ content }: Props) {
       style={{
         borderColor: BORDER,
         borderLeft: `4px solid ${YELLOW}`,
-        boxShadow: "0 8px 24px rgba(16, 24, 32, 0.06)",
+        boxShadow: "0 8px 24px hsl(var(--ink) / 0.06)",
       }}
     >
       <div className="flex items-center gap-3 mb-5">

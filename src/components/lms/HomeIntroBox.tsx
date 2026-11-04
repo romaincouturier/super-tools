@@ -13,10 +13,10 @@ export default function HomeIntroBox({ config }: { config?: CourseHomeConfig | n
   return (
     <div
       className="rounded-2xl p-5 flex flex-col gap-4"
-      style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}
+      style={{ background: "#fff", boxShadow: "0 2px 8px hsl(var(--ink) / 0.06)", border: "1px solid hsl(var(--ink) / 0.06)" }}
     >
       <div className="flex items-center gap-2.5">
-        <Sparkles size={16} className="shrink-0" style={{ color: "#FFD100" }} />
+        <Sparkles size={16} className="shrink-0" style={{ color: "hsl(var(--yellow-brand))" }} />
         <p className="text-sm font-bold" style={{ color: "hsl(var(--ink))" }}>{box.title}</p>
       </div>
       <ul className="space-y-2.5">

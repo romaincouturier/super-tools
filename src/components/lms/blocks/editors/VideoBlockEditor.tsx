@@ -68,7 +68,7 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
                 width: 28,
                 height: 28,
                 borderRadius: "50%",
-                background: "rgba(16,24,32,0.6)",
+                background: "hsl(var(--ink) / 0.6)",
                 color: "#fff",
                 border: "none",
                 cursor: "pointer",
@@ -104,7 +104,7 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
                     onChange({ ...content, display_style: "simple" });
                   }
                 }}
-                style={{ accentColor: "#FFD100", width: 14, height: 14 }}
+                style={{ accentColor: "hsl(var(--yellow-brand))", width: 14, height: 14 }}
               />
               Fond coloré
             </label>
@@ -130,10 +130,10 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
                 alignItems: "center",
                 gap: "0.25rem",
                 padding: "0.25rem 0.625rem",
-                borderRadius: 999,
+                borderRadius: "var(--radius-pill)",
                 border: "1px solid hsl(var(--ink) / 0.08)",
-                background: "#FFD100",
-                color: "#101820",
+                background: "hsl(var(--yellow-brand))",
+                color: "hsl(var(--ink))",
                 fontSize: "0.75rem",
                 fontWeight: 600,
                 cursor: "pointer",
@@ -152,7 +152,7 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
         <div
           style={{
             borderRadius: "var(--radius-block)",
-            border: "2px dashed rgba(16,24,32,0.18)",
+            border: "2px dashed hsl(var(--ink) / 0.18)",
             padding: "1.5rem",
             display: "flex",
             flexDirection: "column",
@@ -189,7 +189,7 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
         }}
         style={{
           borderRadius: "var(--radius-block)",
-          border: `2px dashed ${dragOver ? "rgba(16,24,32,0.35)" : "rgba(16,24,32,0.18)"}`,
+          border: `2px dashed ${dragOver ? "hsl(var(--ink) / 0.35)" : "hsl(var(--ink) / 0.18)"}`,
           padding: "2.5rem 2rem",
           display: "flex",
           flexDirection: "column",
@@ -243,8 +243,8 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
               alignItems: "center",
               gap: "0.375rem",
               padding: "0.5rem 1rem",
-              borderRadius: 999,
-              border: "1px solid rgba(16,24,32,0.15)",
+              borderRadius: "var(--radius-pill)",
+              border: "1px solid hsl(var(--ink) / 0.15)",
               background: "#fff",
               cursor: "pointer",
               fontSize: "0.8125rem",
@@ -262,8 +262,8 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
               alignItems: "center",
               gap: "0.375rem",
               padding: "0.5rem 1rem",
-              borderRadius: 999,
-              border: "1px solid rgba(16,24,32,0.15)",
+              borderRadius: "var(--radius-pill)",
+              border: "1px solid hsl(var(--ink) / 0.15)",
               background: "#fff",
               cursor: "pointer",
               fontSize: "0.8125rem",

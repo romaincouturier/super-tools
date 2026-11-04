@@ -161,7 +161,7 @@ const BrevoDashboard = () => {
                 <Tooltip />
                 <Legend />
                 <Area type="monotone" dataKey="ouvertures" name="Ouvertures uniques" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.15} strokeWidth={2} />
-                <Area type="monotone" dataKey="clics" name="Clics uniques" stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={2} />
+                <Area type="monotone" dataKey="clics" name="Clics uniques" stroke="hsl(var(--feedback-success))" fill="hsl(var(--feedback-success))" fillOpacity={0.1} strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           )}

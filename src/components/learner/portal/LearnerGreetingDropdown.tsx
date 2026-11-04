@@ -62,7 +62,7 @@ export function LearnerGreetingDropdown({
         >
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-            style={{ background: photoUrl ? "transparent" : "hsl(var(--yellow-brand))", color: "#101820", overflow: "hidden" }}
+            style={{ background: photoUrl ? "transparent" : "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", overflow: "hidden" }}
           >
             {photoUrl ? <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" /> : initials}
           </div>
@@ -76,7 +76,7 @@ export function LearnerGreetingDropdown({
         {open && (
           <div
             className="absolute right-0 top-full mt-1.5 w-60 rounded-2xl border shadow-lg overflow-hidden z-50"
-            style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.1)" }}
+            style={{ background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.1)" }}
           >
             {items.map(({ label, icon: Icon, section }) => (
               <button
@@ -89,11 +89,11 @@ export function LearnerGreetingDropdown({
                 {label}
               </button>
             ))}
-            <div style={{ borderTop: "1px solid rgba(16,24,32,0.08)" }}>
+            <div style={{ borderTop: "1px solid hsl(var(--ink) / 0.08)" }}>
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors hover:bg-danger-surface"
-                style={{ color: "#ef4444", fontFamily: "inherit" }}
+                style={{ color: "hsl(var(--feedback-danger))", fontFamily: "inherit" }}
               >
                 <LogOut size={15} />
                 Se déconnecter

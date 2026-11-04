@@ -16,9 +16,9 @@ import { fr } from "date-fns/locale";
 import type { Training } from "@/types/learner-portal";
 
 function pedagogicalStatusBadge(status: string) {
-  let bg = "#f1f5f9";
+  let bg = "hsl(var(--muted))";
   let color = "#475569";
-  if (status === "feedback_received") { bg = "#dcfce7"; color = "#15803d"; }
+  if (status === "feedback_received") { bg = "hsl(var(--feedback-success-surface))"; color = "hsl(var(--feedback-success))"; }
   else if (status === "needs_completion") { bg = "#fef3c7"; color = "#92400e"; }
   else if (status === "validated") { bg = "#dbeafe"; color = "#1d4ed8"; }
   const label = PEDAGOGICAL_STATUS_LABELS[status as keyof typeof PEDAGOGICAL_STATUS_LABELS] ?? status;
@@ -146,17 +146,17 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
         {/* Stats sidebar */}
         <div className="lg:w-48 shrink-0 space-y-3">
           <div className="rounded-2xl border p-4 text-center"
-            style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}>
+            style={{ background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.08)" }}>
             <p className="text-2xl font-bold" style={{ color: "hsl(var(--ink))" }}>{totalDeposits}</p>
             <p className="text-xs mt-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>déposés</p>
           </div>
           <div className="rounded-2xl border p-4 text-center"
-            style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}>
+            style={{ background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.08)" }}>
             <p className="text-2xl font-bold" style={{ color: "hsl(var(--ink))" }}>{retours}</p>
             <p className="text-xs mt-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>retours</p>
           </div>
           <div className="rounded-2xl border p-4 text-center"
-            style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}>
+            style={{ background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.08)" }}>
             <p className="text-2xl font-bold" style={{ color: "hsl(var(--ink))" }}>{aCompleter}</p>
             <p className="text-xs mt-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>à compléter</p>
           </div>
@@ -174,7 +174,7 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
                   className="appearance-none rounded-xl border pl-3 pr-8 py-2 text-sm font-medium focus:outline-none"
                   style={{
                     background: "hsl(var(--white))",
-                    borderColor: "rgba(16,24,32,0.12)",
+                    borderColor: "hsl(var(--ink) / 0.12)",
                     color: "hsl(var(--ink))",
                     fontFamily: "inherit",
                   }}>
@@ -197,7 +197,7 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
             </div>
           ) : filteredDeposits.length === 0 ? (
             <div className="rounded-2xl border p-10 text-center space-y-3"
-              style={{ borderColor: "rgba(16,24,32,0.08)" }}>
+              style={{ borderColor: "hsl(var(--ink) / 0.08)" }}>
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto"
                 style={{ background: "hsl(var(--grey-light))" }}>
                 <FileText size={22} style={{ color: "hsl(var(--ink) / 0.55)" }} />
@@ -217,7 +217,7 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
                   : null;
                 return (
                   <div key={d.id} className="rounded-2xl border overflow-hidden"
-                    style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}>
+                    style={{ background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.08)" }}>
                     {/* Post header */}
                     <div className="flex items-center gap-3 px-5 pt-4 pb-2">
                       <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-sm"
@@ -310,7 +310,7 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
             <div
               className="rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors hover:border-primary"
               style={{
-                borderColor: previewUrl ? "hsl(var(--yellow-brand))" : "rgba(16,24,32,0.15)",
+                borderColor: previewUrl ? "hsl(var(--yellow-brand))" : "hsl(var(--ink) / 0.15)",
                 background: "hsl(var(--grey-light))",
                 minHeight: 180,
               }}
@@ -348,7 +348,7 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
               rows={3}
               className="w-full rounded-xl border px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2"
               style={{
-                borderColor: "rgba(16,24,32,0.12)",
+                borderColor: "hsl(var(--ink) / 0.12)",
                 fontFamily: "inherit",
                 color: "hsl(var(--ink))",
                 background: "hsl(var(--white))",
@@ -363,7 +363,7 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
                   onChange={(e) => setSelectedCourseId(e.target.value)}
                   className="w-full appearance-none rounded-xl border pl-3 pr-8 py-2.5 text-sm focus:outline-none"
                   style={{
-                    borderColor: "rgba(16,24,32,0.12)",
+                    borderColor: "hsl(var(--ink) / 0.12)",
                     fontFamily: "inherit",
                     color: "hsl(var(--ink))",
                     background: "hsl(var(--white))",

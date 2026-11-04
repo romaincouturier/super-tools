@@ -126,7 +126,7 @@ function RecommendedCoursesBlock({
         {promoBanner}
         {courses.slice(0, 3).map((c) => (
           <div key={c.id} className="flex gap-3 p-3 rounded-xl border"
-            style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}>
+            style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))" }}>
             {c.cover_image_url ? (
               <img src={c.cover_image_url} alt={c.title} loading="lazy"
                 className="w-16 h-16 rounded-lg object-cover shrink-0" />
@@ -164,7 +164,7 @@ function RecommendedCoursesBlock({
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {courses.map((c) => (
         <div key={c.id} className="rounded-2xl border overflow-hidden flex flex-col"
-          style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}>
+          style={{ background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.08)" }}>
           {c.cover_image_url ? (
             <img src={c.cover_image_url} alt={c.title} loading="lazy" className="w-full h-40 object-cover" />
           ) : (
@@ -285,7 +285,7 @@ function DashboardView({
       {/* Welcome card */}
       <div
         className="rounded-2xl grid md:grid-cols-5 gap-6 p-6 overflow-hidden relative"
-        style={{ background: "hsl(var(--white))", border: "1px solid rgba(16,24,32,0.08)", boxShadow: "0 2px 20px rgba(16,24,32,0.06)" }}
+        style={{ background: "hsl(var(--white))", border: "1px solid hsl(var(--ink) / 0.08)", boxShadow: "0 2px 20px hsl(var(--ink) / 0.06)" }}
       >
         {/* Left */}
         <div className="md:col-span-3 flex flex-col justify-between gap-5">
@@ -300,7 +300,7 @@ function DashboardView({
               <Link
                 to={`/lms/${mainTraining.lms_course_id}/home?email=${encodeURIComponent(data.email)}${mainTraining.last_lesson_id ? `&lesson=${mainTraining.last_lesson_id}` : ""}`}
                 className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold px-5 py-2 rounded-full transition-all hover:-translate-y-0.5"
-                style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}
+                style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}
               >
                 {(!!mainTraining.last_lesson_id || globalPct > 0)
                   ? <><RotateCcw size={13} /> Reprendre</>
@@ -325,7 +325,7 @@ function DashboardView({
       {onboardingTodos.length > 0 && (
         <div
           className="rounded-2xl p-5"
-          style={{ background: "hsl(var(--white))", border: "1px solid rgba(16,24,32,0.08)", boxShadow: "0 2px 20px rgba(16,24,32,0.06)" }}
+          style={{ background: "hsl(var(--white))", border: "1px solid hsl(var(--ink) / 0.08)", boxShadow: "0 2px 20px hsl(var(--ink) / 0.06)" }}
         >
           <div className="flex items-center gap-2 mb-3">
             <Sparkles size={16} style={{ color: "hsl(var(--ink))" }} />
@@ -343,7 +343,7 @@ function DashboardView({
                 >
                   <span
                     className="w-5 h-5 rounded-full border-2 shrink-0"
-                    style={{ borderColor: "rgba(16,24,32,0.2)" }}
+                    style={{ borderColor: "hsl(var(--ink) / 0.2)" }}
                   />
                   <span className="text-sm flex-1" style={{ color: "hsl(var(--ink))" }}>{todo.label}</span>
                   <ChevronRight size={16} style={{ color: "hsl(var(--ink) / 0.55)" }} />
@@ -357,11 +357,11 @@ function DashboardView({
       {/* Live banner */}
       {nextEvent && (
         <div className="rounded-2xl flex flex-wrap items-center gap-4 px-6 py-5"
-          style={{ background: "#101820" }}>
+          style={{ background: "hsl(var(--ink))" }}>
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
               style={{ background: isClosing ? "#e11d48" : "hsl(var(--yellow-brand))" }}>
-              <Calendar size={18} style={{ color: isClosing ? "#fff" : "#101820" }} />
+              <Calendar size={18} style={{ color: isClosing ? "#fff" : "hsl(var(--ink))" }} />
             </div>
             <div>
               <p className="text-xs font-medium uppercase tracking-wider"
@@ -373,14 +373,14 @@ function DashboardView({
               </p>
             </div>
           </div>
-          <p className="text-sm flex-1 min-w-[160px]" style={{ color: "rgba(255,255,255,0.6)" }}>
+          <p className="text-sm flex-1 min-w-[160px]" style={{ color: "hsl(var(--white) / 0.6)" }}>
             {isClosing ? "Votre dernière séance en direct avec votre formateur." : "Rencontre en direct avec votre formateur"}
           </p>
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {nextEvent.meeting_url && (
               <a href={nextEvent.meeting_url} target="_blank" rel="noopener noreferrer"
                 className="text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-white/10"
-                style={{ borderColor: "rgba(255,255,255,0.2)", color: "#fff" }}>
+                style={{ borderColor: "hsl(var(--white) / 0.2)", color: "#fff" }}>
                 Rejoindre
               </a>
             )}
@@ -393,7 +393,7 @@ function DashboardView({
               url={nextEvent.meeting_url || undefined}
               style={{
                 background: isClosing ? "#e11d48" : "hsl(var(--yellow-brand))",
-                color: isClosing ? "#fff" : "#101820",
+                color: isClosing ? "#fff" : "hsl(var(--ink))",
                 fontFamily: "inherit",
               }}
             />
@@ -436,7 +436,7 @@ function DashboardView({
                   <button
                     onClick={() => onNav("formations")}
                     className="mt-4 w-full flex items-center justify-center gap-1.5 text-sm font-semibold px-5 py-2.5 rounded-full border transition-all hover:bg-black/5"
-                    style={{ borderColor: "rgba(16,24,32,0.15)", color: "hsl(var(--ink))", fontFamily: "inherit" }}
+                    style={{ borderColor: "hsl(var(--ink) / 0.15)", color: "hsl(var(--ink))", fontFamily: "inherit" }}
                   >
                     Voir mes {data.trainings.length} formations →
                   </button>
@@ -488,8 +488,8 @@ function DashboardView({
                       <p className="text-xs font-medium truncate" style={{ color: "hsl(var(--ink))" }}>{d.file_name}</p>
                       <span className="text-xs px-1.5 py-0.5 rounded-full"
                         style={{
-                          background: d.publication_status === "published" ? "#dcfce7" : "#f1f5f9",
-                          color: d.publication_status === "published" ? "#15803d" : "#475569",
+                          background: d.publication_status === "published" ? "hsl(var(--feedback-success-surface))" : "hsl(var(--muted))",
+                          color: d.publication_status === "published" ? "hsl(var(--feedback-success))" : "#475569",
                         }}>
                         {d.publication_status === "published" ? "Partagé" : "Privé"}
                       </span>
@@ -524,7 +524,7 @@ function DashboardView({
                 return (
                   <div key={c.id} className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                      style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}>
+                      style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}>
                       ST
                     </div>
                     <div className="flex-1 min-w-0">
@@ -571,7 +571,7 @@ function DashboardView({
                 return (
                   <div key={post.id} className="flex items-start gap-2.5">
                     <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shrink-0"
-                      style={{ background: post.author_photo_url ? "transparent" : "hsl(var(--yellow-brand))", color: "#101820" }}>
+                      style={{ background: post.author_photo_url ? "transparent" : "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}>
                       {post.author_photo_url
                         ? <img src={post.author_photo_url} alt={name} className="w-full h-full object-cover" />
                         : initials}
@@ -649,7 +649,7 @@ function NextLessonsBlock({
         <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "hsl(var(--grey-light))" }}>
           <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
             style={{ background: "hsl(var(--yellow-brand))" }}>
-            <Play size={12} style={{ color: "#101820" }} />
+            <Play size={12} style={{ color: "hsl(var(--ink))" }} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium" style={{ color: "hsl(var(--ink))" }}>Commencer la formation</p>
@@ -674,7 +674,7 @@ function NextLessonsBlock({
       <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "hsl(var(--grey-light))" }}>
         <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
           style={{ background: "hsl(var(--yellow-brand))" }}>
-          <RotateCcw size={12} style={{ color: "#101820" }} />
+          <RotateCcw size={12} style={{ color: "hsl(var(--ink))" }} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium" style={{ color: "hsl(var(--ink))" }}>Reprendre la formation</p>
@@ -828,7 +828,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
       const el = document.getElementById(`post-${targetPostId}`);
       if (!el) return;
       el.scrollIntoView({ behavior: "smooth", block: "start" });
-      el.style.boxShadow = "0 0 0 3px rgba(255,209,0,0.7)";
+      el.style.boxShadow = "0 0 0 3px hsl(var(--yellow-brand) / 0.7)";
       setTimeout(() => { el.style.boxShadow = ""; }, 2500);
     }, 150);
     return () => clearTimeout(t);
@@ -877,7 +877,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
 
   const emptyState = (label: string) => (
     <div className="rounded-2xl border p-10 text-center space-y-3"
-      style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}>
+      style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))" }}>
       <Palette size={32} className="mx-auto" style={{ color: "hsl(var(--ink) / 0.55)" }} />
       <p className="text-sm font-medium" style={{ color: "hsl(var(--ink))" }}>{label}</p>
     </div>
@@ -918,7 +918,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
         </button>
         <h2 className="text-lg font-bold" style={{ color: "hsl(var(--ink))" }}>Tous les sujets</h2>
         {allTopics.length === 0 ? emptyState("Aucun sujet pour l'instant.") : (
-          <div className="rounded-2xl border divide-y" style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}>
+          <div className="rounded-2xl border divide-y" style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))" }}>
             {allTopics.map((t) => (
               <button key={t.tag} onClick={() => handleSelectTag(t.tag)}
                 className="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-black/5 text-left">
@@ -946,7 +946,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
     leftContent = myComments.length === 0 ? emptyState("Vous n'avez pas encore commenté.") : (
       <div className="space-y-3">
         {myComments.map((cm) => (
-          <div key={cm.id} className="rounded-2xl border p-4 space-y-2" style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}>
+          <div key={cm.id} className="rounded-2xl border p-4 space-y-2" style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))" }}>
             <p className="text-sm" style={{ color: "hsl(var(--ink))" }}>{cm.content}</p>
             <p className="text-xs" style={{ color: "hsl(var(--ink) / 0.55)" }}>
               {formatDistanceToNow(new Date(cm.created_at), { locale: fr, addSuffix: true })}
@@ -964,7 +964,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
     leftContent = (
       <>
         {canManageCommunity ? (
-          <div className="rounded-2xl border p-4 text-sm" style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))", color: "hsl(var(--ink) / 0.55)" }}>
+          <div className="rounded-2xl border p-4 text-sm" style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))", color: "hsl(var(--ink) / 0.55)" }}>
             En tant qu'admin, publie depuis <a href="/lms/communaute" className="underline font-medium" style={{ color: "hsl(var(--ink))" }}>/lms/communaute</a> pour rattacher le message à une communauté.
           </div>
         ) : (
@@ -978,7 +978,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
   const communityBanner = (
     <div
       className="rounded-2xl border px-4 py-3 flex items-center justify-between gap-3"
-      style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}
+      style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))" }}
     >
       <div className="min-w-0">
         <p className="text-xs uppercase tracking-wide" style={{ color: "hsl(var(--ink) / 0.55)" }}>
@@ -993,7 +993,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
           value={activeCourseId ?? ""}
           onChange={(e) => setActiveCourseId(e.target.value || null)}
           className="text-sm rounded-lg border px-2 py-1.5 bg-white shrink-0 max-w-[55%]"
-          style={{ borderColor: "rgba(16,24,32,0.12)", color: "hsl(var(--ink))" }}
+          style={{ borderColor: "hsl(var(--ink) / 0.12)", color: "hsl(var(--ink))" }}
         >
           {canManageCommunity && <option value="">Toutes les communautés</option>}
           {courses.map((c) => (
@@ -1001,7 +1001,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
           ))}
         </select>
       ) : fromCourse ? (
-        <span className="text-xs px-2 py-1 rounded-full" style={{ background: "rgba(16,24,32,0.06)", color: "hsl(var(--ink) / 0.55)" }}>
+        <span className="text-xs px-2 py-1 rounded-full" style={{ background: "hsl(var(--ink) / 0.06)", color: "hsl(var(--ink) / 0.55)" }}>
           depuis votre formation
         </span>
       ) : null}
@@ -1168,7 +1168,7 @@ function CompteView({
         <div className="space-y-5">
           {/* Informations personnelles */}
           <div className="rounded-2xl border p-6 space-y-5"
-            style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}>
+            style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))" }}>
             <div>
               <h3 className="text-base font-bold" style={{ color: "hsl(var(--ink))" }}>Informations personnelles</h3>
               <p className="text-sm mt-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>
@@ -1181,7 +1181,7 @@ function CompteView({
               <div className="relative group cursor-pointer shrink-0" onClick={() => fileRef.current?.click()}>
                 <div
                   className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center text-lg font-bold select-none"
-                  style={{ background: photoUrl ? "transparent" : "hsl(var(--yellow-brand))", color: "#101820" }}
+                  style={{ background: photoUrl ? "transparent" : "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}
                 >
                   {photoUrl ? (
                     <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" />
@@ -1189,7 +1189,7 @@ function CompteView({
                 </div>
                 <div
                   className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ background: "rgba(16,24,32,0.45)" }}
+                  style={{ background: "hsl(var(--ink) / 0.45)" }}
                 >
                   {uploading ? <Spinner className="text-white h-4 w-4" /> : <Camera size={16} className="text-white" />}
                 </div>
@@ -1208,7 +1208,7 @@ function CompteView({
                   type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)}
                   placeholder="Prénom"
                   className="w-full rounded-xl border px-3 py-2 text-sm"
-                  style={{ borderColor: "rgba(16,24,32,0.12)", background: "hsl(var(--white))", color: "hsl(var(--ink))", fontFamily: "inherit" }}
+                  style={{ borderColor: "hsl(var(--ink) / 0.12)", background: "hsl(var(--white))", color: "hsl(var(--ink))", fontFamily: "inherit" }}
                 />
               </div>
               <div>
@@ -1217,7 +1217,7 @@ function CompteView({
                   type="text" value={lastName} onChange={(e) => setLastName(e.target.value)}
                   placeholder="Nom"
                   className="w-full rounded-xl border px-3 py-2 text-sm"
-                  style={{ borderColor: "rgba(16,24,32,0.12)", background: "hsl(var(--white))", color: "hsl(var(--ink))", fontFamily: "inherit" }}
+                  style={{ borderColor: "hsl(var(--ink) / 0.12)", background: "hsl(var(--white))", color: "hsl(var(--ink))", fontFamily: "inherit" }}
                 />
               </div>
             </div>
@@ -1228,7 +1228,7 @@ function CompteView({
                 <input
                   type="email" value={email} readOnly
                   className="flex-1 rounded-xl border px-3 py-2 text-sm cursor-not-allowed"
-                  style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--grey-light))", color: "hsl(var(--ink) / 0.55)", fontFamily: "inherit" }}
+                  style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--grey-light))", color: "hsl(var(--ink) / 0.55)", fontFamily: "inherit" }}
                 />
                 <p className="text-xs shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }}>
                   Pour modifier, contactez SuperTilt.
@@ -1240,7 +1240,7 @@ function CompteView({
               onClick={handleSaveProfile}
               disabled={upsert.isPending || uploading}
               className="px-5 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
-              style={{ background: "hsl(var(--yellow-brand))", color: "#101820", fontFamily: "inherit" }}
+              style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit" }}
             >
               {upsert.isPending ? "Enregistrement..." : "Enregistrer"}
             </button>
@@ -1248,7 +1248,7 @@ function CompteView({
 
           {/* Sécurité */}
           <div className="rounded-2xl border p-6 space-y-4"
-            style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}>
+            style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))" }}>
             <div>
               <h3 className="text-base font-bold" style={{ color: "hsl(var(--ink))" }}>Sécurité</h3>
               {lastSignIn && (
@@ -1261,7 +1261,7 @@ function CompteView({
               onClick={handlePasswordReset}
               disabled={sendingReset}
               className="px-5 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
-              style={{ background: "hsl(var(--yellow-brand))", color: "#101820", fontFamily: "inherit" }}
+              style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit" }}
             >
               {sendingReset ? "Envoi en cours..." : "Modifier mon mot de passe"}
             </button>
@@ -1269,17 +1269,17 @@ function CompteView({
 
           {/* Besoin d'aide */}
           <div className="rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4"
-            style={{ background: "hsl(var(--yellow-brand) / 0.22)", border: "1px solid rgba(255,209,0,0.25)" }}>
+            style={{ background: "hsl(var(--yellow-brand) / 0.22)", border: "1px solid hsl(var(--yellow-brand) / 0.25)" }}>
             <div className="flex-1">
               <p className="text-base font-bold" style={{ color: "hsl(var(--ink))" }}>Besoin d'aide ?</p>
-              <p className="text-sm mt-0.5" style={{ color: "rgba(16,24,32,0.65)" }}>
+              <p className="text-sm mt-0.5" style={{ color: "hsl(var(--ink) / 0.65)" }}>
                 Si vous avez un problème d'accès, de connexion ou une question sur votre formation, vous pouvez nous contacter.
               </p>
             </div>
             <button
               onClick={() => onNav("aide")}
               className="shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px"
-              style={{ background: "hsl(var(--yellow-brand))", color: "#101820", fontFamily: "inherit" }}
+              style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit" }}
             >
               Contacter SuperTilt
             </button>
@@ -1290,7 +1290,7 @@ function CompteView({
         <div className="space-y-5">
           {/* Notifications */}
           <div className="rounded-2xl border p-5 space-y-4"
-            style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}>
+            style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))" }}>
             <div>
               <h3 className="text-base font-bold" style={{ color: "hsl(var(--ink))" }}>Notifications par e-mail</h3>
               <p className="text-sm mt-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>
@@ -1307,11 +1307,11 @@ function CompteView({
                     className="w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5 transition-colors border"
                     style={{
                       background: notifs[key] ? "hsl(var(--yellow-brand))" : "transparent",
-                      borderColor: notifs[key] ? "hsl(var(--yellow-brand))" : "rgba(16,24,32,0.2)",
+                      borderColor: notifs[key] ? "hsl(var(--yellow-brand))" : "hsl(var(--ink) / 0.2)",
                     }}
                   >
                     {notifs[key] && (
-                      <CheckCircle2 size={12} style={{ color: "#101820" }} />
+                      <CheckCircle2 size={12} style={{ color: "hsl(var(--ink))" }} />
                     )}
                   </button>
                   <span className="text-sm leading-snug" style={{ color: "hsl(var(--ink))" }}>{label}</span>
@@ -1322,7 +1322,7 @@ function CompteView({
               onClick={handleSaveNotifs}
               disabled={savingNotifs}
               className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
-              style={{ background: "hsl(var(--yellow-brand))", color: "#101820", fontFamily: "inherit" }}
+              style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit" }}
             >
               {savingNotifs ? "Enregistrement..." : "Enregistrer mes préférences"}
             </button>
@@ -1332,7 +1332,7 @@ function CompteView({
 
       {/* Déconnexion */}
       <div className="rounded-2xl border p-5 flex items-center justify-between gap-4"
-        style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}>
+        style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))" }}>
         <div>
           <p className="text-sm font-semibold" style={{ color: "hsl(var(--ink))" }}>Se déconnecter</p>
           <p className="text-xs mt-0.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>Vous serez redirigé vers la page de connexion.</p>
@@ -1340,7 +1340,7 @@ function CompteView({
         <button
           onClick={onLogout}
           className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all hover:bg-danger-surface hover:border-danger-line hover:text-danger-ink shrink-0"
-          style={{ borderColor: "rgba(16,24,32,0.15)", color: "hsl(var(--ink) / 0.55)", fontFamily: "inherit" }}
+          style={{ borderColor: "hsl(var(--ink) / 0.15)", color: "hsl(var(--ink) / 0.55)", fontFamily: "inherit" }}
         >
           <LogOut size={14} />
           Se déconnecter
@@ -1430,9 +1430,9 @@ function AideView({
 
       {/* Banner */}
       <div className="rounded-2xl p-5 flex items-center gap-5"
-        style={{ background: "hsl(var(--yellow-brand) / 0.22)", border: "1px solid rgba(16,24,32,0.06)" }}>
+        style={{ background: "hsl(var(--yellow-brand) / 0.22)", border: "1px solid hsl(var(--ink) / 0.06)" }}>
         <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}>
+          style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}>
           <HelpCircle size={26} />
         </div>
         <div>
@@ -1446,7 +1446,7 @@ function AideView({
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
         {/* Left: FAQ */}
         <div className="rounded-2xl border p-6 space-y-1"
-          style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}>
+          style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))" }}>
           <p className="text-base font-bold mb-4" style={{ color: "hsl(var(--ink))" }}>Questions fréquentes</p>
           {faqItems.length === 0 ? (
             <p className="text-sm" style={{ color: "hsl(var(--ink) / 0.55)" }}>
@@ -1455,7 +1455,7 @@ function AideView({
           ) : (
             faqItems.map((item) => (
               <div key={item.id} className="border-b last:border-0"
-                style={{ borderColor: "rgba(16,24,32,0.06)" }}>
+                style={{ borderColor: "hsl(var(--ink) / 0.06)" }}>
                 <button
                   className="w-full flex items-center justify-between py-3 text-sm font-medium text-left gap-3"
                   style={{ color: "hsl(var(--ink))", fontFamily: "inherit" }}
@@ -1481,7 +1481,7 @@ function AideView({
         <div className="space-y-4">
           {/* Contact form */}
           <div className="rounded-2xl border p-5 space-y-4"
-            style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}>
+            style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))" }}>
             <p className="text-base font-bold" style={{ color: "hsl(var(--ink))" }}>Besoin d'une aide plus précise ?</p>
             <p className="text-sm" style={{ color: "hsl(var(--ink) / 0.55)" }}>
               Envoyez-nous un message, notre équipe vous répondra dans les plus brefs délais.
@@ -1503,7 +1503,7 @@ function AideView({
                       onClick={() => setIsBug(opt.bug)}
                       className="py-2 rounded-xl text-xs font-semibold border transition-all"
                       style={{
-                        borderColor: isBug === opt.bug ? "hsl(var(--yellow-brand))" : "rgba(16,24,32,0.12)",
+                        borderColor: isBug === opt.bug ? "hsl(var(--yellow-brand))" : "hsl(var(--ink) / 0.12)",
                         background: isBug === opt.bug ? "hsl(var(--yellow-brand) / 0.22)" : "hsl(var(--white))",
                         color: "hsl(var(--ink))",
                         fontFamily: "inherit",
@@ -1524,7 +1524,7 @@ function AideView({
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full rounded-xl border px-3 py-2 text-sm"
                   style={{
-                    borderColor: "rgba(16,24,32,0.12)",
+                    borderColor: "hsl(var(--ink) / 0.12)",
                     background: "hsl(var(--white))",
                     color: category ? "hsl(var(--ink))" : "hsl(var(--ink) / 0.55)",
                     fontFamily: "inherit",
@@ -1546,7 +1546,7 @@ function AideView({
                   placeholder="Ex : Problème d'accès à ma formation"
                   className="w-full rounded-xl border px-3 py-2 text-sm"
                   style={{
-                    borderColor: "rgba(16,24,32,0.12)",
+                    borderColor: "hsl(var(--ink) / 0.12)",
                     background: "hsl(var(--white))",
                     color: "hsl(var(--ink))",
                     fontFamily: "inherit",
@@ -1563,7 +1563,7 @@ function AideView({
                   rows={4}
                   className="w-full rounded-xl border px-3 py-2 text-sm resize-none"
                   style={{
-                    borderColor: "rgba(16,24,32,0.12)",
+                    borderColor: "hsl(var(--ink) / 0.12)",
                     background: "hsl(var(--white))",
                     color: "hsl(var(--ink))",
                     fontFamily: "inherit",
@@ -1594,7 +1594,7 @@ function AideView({
                 onClick={handleSend}
                 disabled={!subject.trim() || !message.trim() || sending}
                 className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
-                style={{ background: "hsl(var(--yellow-brand))", color: "#101820", fontFamily: "inherit" }}
+                style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit" }}
               >
                 {sending ? "Envoi en cours..." : (isBug ? "Signaler le problème" : "Envoyer ma demande")}
               </button>
@@ -1603,7 +1603,7 @@ function AideView({
 
           {/* Useful links */}
           <div className="rounded-2xl border p-5"
-            style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}>
+            style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))" }}>
             <p className="text-base font-bold mb-3" style={{ color: "hsl(var(--ink))" }}>Liens utiles</p>
             <ul className="space-y-0.5">
               {USEFUL_LINKS.map(({ label, icon: Icon, section }) => (
@@ -1848,8 +1848,8 @@ export default function LearnerPortal() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "hsl(var(--surface-page))" }}>
         <div className="w-full max-w-sm rounded-2xl border p-8 text-center space-y-4"
-          style={{ background: "hsl(var(--white))", border: "1px solid rgba(16,24,32,0.08)" }}>
-          <AlertCircle size={40} className="mx-auto" style={{ color: "#dc2626" }} />
+          style={{ background: "hsl(var(--white))", border: "1px solid hsl(var(--ink) / 0.08)" }}>
+          <AlertCircle size={40} className="mx-auto" style={{ color: "hsl(var(--feedback-danger-ink))" }} />
           <p className="text-sm" style={{ color: "hsl(var(--ink) / 0.55)" }}>{error}</p>
           <Link to="/connexion"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold"
@@ -1953,7 +1953,7 @@ export default function LearnerPortal() {
         {/* Header */}
         <header
           className="sticky top-0 z-20 flex items-center gap-4 px-5 h-16 border-b shrink-0"
-          style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}
+          style={{ background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.08)" }}
         >
           <button onClick={() => setSidebarOpen(true)}
             className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5">

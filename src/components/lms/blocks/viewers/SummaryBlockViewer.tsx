@@ -37,10 +37,10 @@ export default function SummaryBlockViewer({ content }: Props) {
   return (
     <div className="space-y-4">
       {content.title && (
-        <p className="font-bold text-base" style={{ color: "#101820" }}>{content.title}</p>
+        <p className="font-bold text-base" style={{ color: "hsl(var(--ink))" }}>{content.title}</p>
       )}
       {content.instructions && (
-        <p className="text-sm" style={{ color: "rgba(16,24,32,0.6)" }}>{content.instructions}</p>
+        <p className="text-sm" style={{ color: "hsl(var(--ink) / 0.6)" }}>{content.instructions}</p>
       )}
 
       <div className="space-y-2">
@@ -87,17 +87,17 @@ export default function SummaryBlockViewer({ content }: Props) {
                   width: 18,
                   height: 18,
                   borderRadius: 4,
-                  border: `2px solid ${isSelected ? "#FFD100" : "#d1d5db"}`,
-                  background: isSelected ? "#FFD100" : "#fff",
+                  border: `2px solid ${isSelected ? "hsl(var(--yellow-brand))" : "hsl(var(--border))"}`,
+                  background: isSelected ? "hsl(var(--yellow-brand))" : "#fff",
                   flexShrink: 0,
                 }}
               />
-              <span className="flex-1 text-sm" style={{ color: "#101820" }}>{stmt.text}</span>
+              <span className="flex-1 text-sm" style={{ color: "hsl(var(--ink))" }}>{stmt.text}</span>
               {checked && (isCorrectlySelected || isMissed) && (
                 <CheckCircle2 size={16} style={{ color: "#69c3c4", flexShrink: 0 }} />
               )}
               {checked && isWronglySelected && (
-                <XCircle size={16} style={{ color: "#ef4444", flexShrink: 0 }} />
+                <XCircle size={16} style={{ color: "hsl(var(--feedback-danger))", flexShrink: 0 }} />
               )}
             </button>
           );
@@ -108,19 +108,19 @@ export default function SummaryBlockViewer({ content }: Props) {
         {!checked ? (
           <button
             onClick={check}
-            style={{ padding: "0.5rem 1.25rem", background: "#FFD100", color: "#101820", borderRadius: 10, fontWeight: 700, fontSize: "0.875rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+            style={{ padding: "0.5rem 1.25rem", background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", borderRadius: 10, fontWeight: 700, fontSize: "0.875rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}
           >
             Vérifier
           </button>
         ) : (
           <>
-            <div className="text-sm font-semibold" style={{ color: wrongSelected === 0 && correctSelected === correctStatements.length ? "#69c3c4" : "#101820" }}>
+            <div className="text-sm font-semibold" style={{ color: wrongSelected === 0 && correctSelected === correctStatements.length ? "#69c3c4" : "hsl(var(--ink))" }}>
               {correctSelected}/{correctStatements.length} bonne{correctStatements.length > 1 ? "s" : ""} réponse{correctStatements.length > 1 ? "s" : ""}
               {wrongSelected > 0 && ` — ${wrongSelected} erreur${wrongSelected > 1 ? "s" : ""}`}
             </div>
             <button
               onClick={reset}
-              style={{ padding: "0.5rem 1.25rem", background: "transparent", color: "#101820", borderRadius: 10, fontWeight: 600, fontSize: "0.875rem", border: "1px solid rgba(16,24,32,0.2)", cursor: "pointer", fontFamily: "inherit" }}
+              style={{ padding: "0.5rem 1.25rem", background: "transparent", color: "hsl(var(--ink))", borderRadius: 10, fontWeight: 600, fontSize: "0.875rem", border: "1px solid hsl(var(--ink) / 0.2)", cursor: "pointer", fontFamily: "inherit" }}
             >
               Recommencer
             </button>

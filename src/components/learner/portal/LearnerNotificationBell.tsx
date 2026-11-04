@@ -67,7 +67,7 @@ const LearnerNotificationBell = ({ email, open, onOpenChange }: LearnerNotificat
           {unreadCount > 0 && (
             <span
               className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full text-micro font-bold flex items-center justify-center"
-              style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}
+              style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}
             >
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
@@ -101,7 +101,7 @@ const LearnerNotificationBell = ({ email, open, onOpenChange }: LearnerNotificat
                     <button
                       onClick={() => handleItemClick(n)}
                       className="w-full flex items-start gap-2 px-3 py-2.5 text-left transition-colors hover:bg-black/5"
-                      style={{ background: n.is_read ? "transparent" : "rgba(255, 209, 0, 0.08)" }}
+                      style={{ background: n.is_read ? "transparent" : "hsl(var(--yellow-brand) / 0.08)" }}
                     >
                       <Icon size={16} className="mt-0.5 shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }} />
                       <div className="min-w-0 flex-1">

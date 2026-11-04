@@ -11,7 +11,7 @@ export function DashCard({
 }) {
   return (
     <div className="rounded-2xl border p-5 transition-shadow hover:shadow-sm"
-      style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}>
+      style={{ background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.08)" }}>
       <div className="flex items-center gap-2 mb-4">
         <div className="w-7 h-7 rounded-lg flex items-center justify-center"
           style={{ background: "hsl(var(--grey-light))" }}>

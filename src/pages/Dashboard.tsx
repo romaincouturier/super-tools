@@ -30,9 +30,9 @@ import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskAmount, demoBlur } from "@/lib/demoMask";
 
 // ── Palette (charte SuperTools) ──────────────────────────────
-const CREAM = "#f7f5f0";
-const ANTHRACITE = "#101820";
-const YELLOW = "#ffd100";
+const CREAM = "hsl(var(--cream))";
+const ANTHRACITE = "hsl(var(--ink))";
+const YELLOW = "hsl(var(--yellow-brand))";
 
 const serif = '"Fraunces", "Playfair Display", Georgia, serif';
 
@@ -124,10 +124,10 @@ function KpiCard({ kpi, demo }: { kpi: DashboardKpi; demo: boolean }) {
         background: "#fff",
         borderRadius: 14,
         padding: "20px 20px 18px",
-        border: "1px solid rgba(16,24,32,0.05)",
+        border: "1px solid hsl(var(--ink) / 0.05)",
       }}
     >
-      <div style={{ fontSize: 12, color: "rgba(16,24,32,0.55)", marginBottom: 10 }}>{kpi.label}</div>
+      <div style={{ fontSize: 12, color: "hsl(var(--ink) / 0.55)", marginBottom: 10 }}>{kpi.label}</div>
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
         <div>
           <div style={{ fontFamily: serif, fontSize: 30, fontWeight: 500, letterSpacing: -0.8, lineHeight: 1 }}>{displayValue}</div>
@@ -195,7 +195,7 @@ const Dashboard = () => {
                   fontWeight: 600,
                   letterSpacing: 1.4,
                   textTransform: "uppercase",
-                  color: "rgba(16,24,32,0.5)",
+                  color: "hsl(var(--ink) / 0.5)",
                   marginBottom: 12,
                 }}
               >
@@ -214,7 +214,7 @@ const Dashboard = () => {
                 {greet},{" "}
                 <em style={{ fontStyle: "italic", fontWeight: 400 }}>{firstName}</em>.
               </h1>
-              <p style={{ fontSize: 16, color: "rgba(16,24,32,0.65)", margin: "10px 0 0", maxWidth: 560, lineHeight: 1.5 }}>
+              <p style={{ fontSize: 16, color: "hsl(var(--ink) / 0.65)", margin: "10px 0 0", maxWidth: 560, lineHeight: 1.5 }}>
                 {dashboard.isLoading ? "Chargement de votre tableau de bord…" : dashboard.subtitle}
               </p>
             </div>
@@ -242,7 +242,7 @@ const Dashboard = () => {
                   fontWeight: 700,
                   letterSpacing: 1.4,
                   textTransform: "uppercase",
-                  color: "rgba(16,24,32,0.65)",
+                  color: "hsl(var(--ink) / 0.65)",
                   marginBottom: 10,
                 }}
               >
@@ -260,7 +260,7 @@ const Dashboard = () => {
               >
                 {dashboard.insight.headline}
               </div>
-              <div style={{ fontSize: 14, color: "rgba(16,24,32,0.75)", marginTop: 12, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 14, color: "hsl(var(--ink) / 0.75)", marginTop: 12, lineHeight: 1.5 }}>
                 {dashboard.insight.detail}
               </div>
               <button
@@ -341,13 +341,13 @@ const Dashboard = () => {
             className="dashboard-twocol"
           >
             {/* Agenda */}
-            <section style={{ background: "#fff", borderRadius: 14, padding: 22, border: "1px solid rgba(16,24,32,0.05)" }}>
+            <section style={{ background: "#fff", borderRadius: 14, padding: 22, border: "1px solid hsl(var(--ink) / 0.05)" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                 <div>
                   <h2 style={{ fontFamily: serif, fontSize: 19, fontWeight: 500, letterSpacing: -0.4, margin: 0 }}>
                     Votre journée
                   </h2>
-                  <div style={{ fontSize: 12, color: "rgba(16,24,32,0.5)", marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: "hsl(var(--ink) / 0.5)", marginTop: 2 }}>
                     {dashboard.agenda.length > 0
                       ? `${dashboard.agenda.length} événement${dashboard.agenda.length > 1 ? "s" : ""}`
                       : "Rien de prévu aujourd'hui"}
@@ -372,7 +372,7 @@ const Dashboard = () => {
                 </button>
               </div>
               {dashboard.agenda.length === 0 ? (
-                <div style={{ padding: "18px 0", fontSize: 13, color: "rgba(16,24,32,0.5)" }}>
+                <div style={{ padding: "18px 0", fontSize: 13, color: "hsl(var(--ink) / 0.5)" }}>
                   Rien de prévu aujourd&apos;hui.
                 </div>
               ) : (
@@ -391,24 +391,24 @@ const Dashboard = () => {
                           gap: 12,
                           alignItems: "center",
                           padding: "10px 4px",
-                          borderTop: i > 0 ? "1px solid rgba(16,24,32,0.05)" : "none",
+                          borderTop: i > 0 ? "1px solid hsl(var(--ink) / 0.05)" : "none",
                           background: "transparent",
                           border: "none",
                           borderRadius: 6,
                           textAlign: "left",
                           cursor: "pointer",
                         }}
-                        onMouseEnter={(ev) => { ev.currentTarget.style.background = "rgba(16,24,32,0.03)"; }}
+                        onMouseEnter={(ev) => { ev.currentTarget.style.background = "hsl(var(--ink) / 0.03)"; }}
                         onMouseLeave={(ev) => { ev.currentTarget.style.background = "transparent"; }}
                       >
                         <div>
                           <div style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 13.5, fontWeight: 600, letterSpacing: -0.2 }}>
                             {e.time || "—"}
                           </div>
-                          <div style={{ fontSize: 11, color: "rgba(16,24,32,0.45)" }}>{e.dur}</div>
+                          <div style={{ fontSize: 11, color: "hsl(var(--ink) / 0.45)" }}>{e.dur}</div>
                         </div>
                         <div style={{ width: 3, height: 28, borderRadius: 2, background: accentColor }} />
-                        <Icon size={14} style={{ color: "rgba(16,24,32,0.55)" }} />
+                        <Icon size={14} style={{ color: "hsl(var(--ink) / 0.55)" }} />
                         <div style={{ fontSize: 14, fontWeight: 500, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", ...demoBlur(isDemoMode) }}>
                           {e.title}
                         </div>
@@ -416,10 +416,10 @@ const Dashboard = () => {
                           style={{
                             fontSize: 11,
                             fontWeight: 500,
-                            color: "rgba(16,24,32,0.55)",
+                            color: "hsl(var(--ink) / 0.55)",
                             padding: "3px 8px",
-                            background: "rgba(16,24,32,0.05)",
-                            borderRadius: 20,
+                            background: "hsl(var(--ink) / 0.05)",
+                            borderRadius: "var(--radius-block)",
                           }}
                         >
                           {e.tag}
@@ -433,10 +433,10 @@ const Dashboard = () => {
 
             {/* Right column: Attention */}
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <section style={{ background: "#fff", borderRadius: 14, padding: 18, border: "1px solid rgba(16,24,32,0.05)" }}>
+              <section style={{ background: "#fff", borderRadius: 14, padding: 18, border: "1px solid hsl(var(--ink) / 0.05)" }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 12 }}>À votre attention</div>
                 {dashboard.attention.length === 0 ? (
-                  <div style={{ fontSize: 12.5, color: "rgba(16,24,32,0.5)" }}>
+                  <div style={{ fontSize: 12.5, color: "hsl(var(--ink) / 0.5)" }}>
                     {dashboard.isLoading ? "Chargement…" : "Tout est à jour — rien d'urgent."}
                   </div>
                 ) : (
@@ -454,7 +454,7 @@ const Dashboard = () => {
                             gap: 10,
                             padding: "8px 10px",
                             borderRadius: 8,
-                            background: "rgba(16,24,32,0.03)",
+                            background: "hsl(var(--ink) / 0.03)",
                             border: "none",
                             width: "100%",
                             cursor: "pointer",
@@ -468,7 +468,7 @@ const Dashboard = () => {
                               width: 26,
                               height: 26,
                               borderRadius: 7,
-                              background: a.tone === "warn" ? "rgba(255,209,0,0.25)" : "rgba(16,24,32,0.06)",
+                              background: a.tone === "warn" ? "hsl(var(--yellow-brand) / 0.25)" : "hsl(var(--ink) / 0.06)",
                               color: a.tone === "warn" ? "#8a6d00" : ANTHRACITE,
                               display: "flex",
                               alignItems: "center",
@@ -494,7 +494,7 @@ const Dashboard = () => {
               <h2 style={{ fontFamily: serif, fontSize: 19, fontWeight: 500, letterSpacing: -0.4, margin: 0 }}>
                 Vos modules
               </h2>
-              <div style={{ fontSize: 12, color: "rgba(16,24,32,0.5)" }}>
+              <div style={{ fontSize: 12, color: "hsl(var(--ink) / 0.5)" }}>
                 {accessibleModules.length} accessibles
               </div>
             </div>
@@ -517,7 +517,7 @@ const Dashboard = () => {
                       background: "#fff",
                       borderRadius: 12,
                       padding: "14px 14px 12px",
-                      border: "1px solid rgba(16,24,32,0.05)",
+                      border: "1px solid hsl(var(--ink) / 0.05)",
                       cursor: "pointer",
                       position: "relative",
                       transition: "transform .14s ease, box-shadow .14s ease",
@@ -527,7 +527,7 @@ const Dashboard = () => {
                     }}
                     onMouseEnter={(ev) => {
                       (ev.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px)";
-                      (ev.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 12px rgba(16,24,32,0.06)";
+                      (ev.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 12px hsl(var(--ink) / 0.06)";
                     }}
                     onMouseLeave={(ev) => {
                       (ev.currentTarget as HTMLButtonElement).style.transform = "";
@@ -544,7 +544,7 @@ const Dashboard = () => {
                         width: 30,
                         height: 30,
                         borderRadius: 8,
-                        background: isFav ? ANTHRACITE : "rgba(16,24,32,0.05)",
+                        background: isFav ? ANTHRACITE : "hsl(var(--ink) / 0.05)",
                         color: isFav ? YELLOW : ANTHRACITE,
                         display: "flex",
                         alignItems: "center",

@@ -78,10 +78,10 @@ function ProgressCircle({ pct }: { pct: number }) {
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: 96, height: 96 }}>
       <svg width={96} height={96} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={48} cy={48} r={r} fill="none" stroke="#EDEDED" strokeWidth={8} />
+        <circle cx={48} cy={48} r={r} fill="none" stroke="hsl(var(--border))" strokeWidth={8} />
         <circle
           cx={48} cy={48} r={r} fill="none"
-          stroke="#FFD100" strokeWidth={8}
+          stroke="hsl(var(--yellow-brand))" strokeWidth={8}
           strokeLinecap="round"
           strokeDasharray={`${dash} ${circ}`}
           style={{ transition: "stroke-dasharray 0.8s ease" }}
@@ -172,14 +172,14 @@ function CalendarView({
     <section className="space-y-6">
       <h2 className="text-xl font-bold" style={{ color: "hsl(var(--ink))" }}>Calendrier des lives</h2>
 
-      <ol className="relative space-y-0 border-l-2" style={{ borderColor: "rgba(16,24,32,0.1)", marginLeft: 8 }}>
+      <ol className="relative space-y-0 border-l-2" style={{ borderColor: "hsl(var(--ink) / 0.1)", marginLeft: 8 }}>
         {items.map((item, i) => {
           if (item.kind === "date") {
             return (
               <li key={i} className="pl-6 pb-8 relative">
                 <span
                   className="absolute -left-[9px] w-4 h-4 rounded-full border-2 flex items-center justify-center"
-                  style={{ top: 2, background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.2)" }}
+                  style={{ top: 2, background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.2)" }}
                 >
                   <Flag size={7} style={{ color: "hsl(var(--ink) / 0.55)" }} />
                 </span>
@@ -200,11 +200,11 @@ function CalendarView({
                 className="absolute -left-[9px] w-4 h-4 rounded-full flex items-center justify-center"
                 style={{ top: 2, background: "hsl(var(--yellow-brand))" }}
               >
-                <Video size={7} style={{ color: "#101820" }} />
+                <Video size={7} style={{ color: "hsl(var(--ink))" }} />
               </span>
               <div
                 className="rounded-2xl border p-4 space-y-3"
-                style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}
+                style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))" }}
               >
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div>
@@ -227,7 +227,7 @@ function CalendarView({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
-                    style={{ borderColor: "rgba(16,24,32,0.15)", color: "hsl(var(--ink))" }}
+                    style={{ borderColor: "hsl(var(--ink) / 0.15)", color: "hsl(var(--ink))" }}
                   >
                     <CalendarPlus size={12} />
                     Ajouter au calendrier
@@ -235,7 +235,7 @@ function CalendarView({
                   {!hasReplay && (
                     <span
                       className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full"
-                      style={{ color: "hsl(var(--ink) / 0.55)", background: "rgba(16,24,32,0.04)" }}
+                      style={{ color: "hsl(var(--ink) / 0.55)", background: "hsl(var(--ink) / 0.04)" }}
                     >
                       <Play size={11} />
                       Replay à venir
@@ -247,7 +247,7 @@ function CalendarView({
                     type="button"
                     onClick={() => onReplay(m.id)}
                     className="relative block w-full rounded-xl overflow-hidden border text-left aspect-video group"
-                    style={{ borderColor: "rgba(16,24,32,0.08)", background: "#000" }}
+                    style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "#000" }}
                     aria-label={`Voir le replay : ${m.title}`}
                   >
                     {(() => {
@@ -260,9 +260,9 @@ function CalendarView({
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div
                         className="w-14 h-14 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
-                        style={{ background: "rgba(255,209,0,0.95)", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}
+                        style={{ background: "hsl(var(--yellow-brand) / 0.95)", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}
                       >
-                        <Play size={20} style={{ color: "#101820", marginLeft: 3 }} />
+                        <Play size={20} style={{ color: "hsl(var(--ink))", marginLeft: 3 }} />
                       </div>
                     </div>
                   </button>
@@ -298,7 +298,7 @@ function ReplayView({ meeting }: { meeting: CourseLiveMeeting }) {
       {meeting.replay_url ? (
         <div
           className="relative rounded-2xl overflow-hidden aspect-video bg-black"
-          style={{ boxShadow: "0 8px 32px rgba(16,24,32,0.12)" }}
+          style={{ boxShadow: "0 8px 32px hsl(var(--ink) / 0.12)" }}
         >
           {playing ? (
             embed ? (
@@ -315,9 +315,9 @@ function ReplayView({ meeting }: { meeting: CourseLiveMeeting }) {
               <div className="absolute inset-0 bg-black/30" />
               <div
                 className="relative w-20 h-20 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
-                style={{ background: "rgba(255,209,0,0.95)", boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
+                style={{ background: "hsl(var(--yellow-brand) / 0.95)", boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
               >
-                <Play size={28} style={{ color: "#101820", marginLeft: 4 }} />
+                <Play size={28} style={{ color: "hsl(var(--ink))", marginLeft: 4 }} />
               </div>
             </button>
           )}
@@ -325,7 +325,7 @@ function ReplayView({ meeting }: { meeting: CourseLiveMeeting }) {
       ) : (
         <div
           className="rounded-2xl border border-dashed flex flex-col items-center justify-center py-16 gap-3"
-          style={{ borderColor: "rgba(16,24,32,0.15)" }}
+          style={{ borderColor: "hsl(var(--ink) / 0.15)" }}
         >
           <Video size={32} style={{ color: "hsl(var(--ink) / 0.55)", opacity: 0.4 }} />
           <p className="text-sm" style={{ color: "hsl(var(--ink) / 0.55)" }}>Le replay n'est pas encore disponible.</p>
@@ -351,7 +351,7 @@ function ProgressCard({
   totalModules: number;
 }) {
   return (
-    <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}>
+    <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ background: "#fff", boxShadow: "0 2px 8px hsl(var(--ink) / 0.06)", border: "1px solid hsl(var(--ink) / 0.06)" }}>
       <p className="text-sm font-semibold" style={{ color: "hsl(var(--ink))" }}>Votre progression</p>
       <div className="flex items-center gap-4">
         <ProgressCircle pct={completionPct} />
@@ -387,13 +387,13 @@ function LiveCard({
   })() : false;
 
   return (
-    <div className="rounded-2xl p-5 flex flex-col gap-3" style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}>
+    <div className="rounded-2xl p-5 flex flex-col gap-3" style={{ background: "#fff", boxShadow: "0 2px 8px hsl(var(--ink) / 0.06)", border: "1px solid hsl(var(--ink) / 0.06)" }}>
       <p className="text-sm font-semibold" style={{ color: "hsl(var(--ink))" }}>Prochain live</p>
       {meeting ? (
         <>
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#FFFBEA" }}>
-              <Calendar size={18} style={{ color: "#101820" }} />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "hsl(var(--feedback-warning-surface))" }}>
+              <Calendar size={18} style={{ color: "hsl(var(--ink))" }} />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold leading-snug" style={{ color: "hsl(var(--ink))" }}>{meeting.title}</p>
@@ -420,8 +420,8 @@ function LiveCard({
         </>
       ) : (
         <div className="flex items-center gap-3 mt-1">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#F2F4F4" }}>
-            <Calendar size={18} style={{ color: "rgba(16,24,32,0.35)" }} />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "hsl(var(--grey-light))" }}>
+            <Calendar size={18} style={{ color: "hsl(var(--ink) / 0.35)" }} />
           </div>
           <p className="text-sm" style={{ color: "hsl(var(--ink) / 0.55)" }}>Aucun live prévu prochainement.</p>
         </div>
@@ -452,11 +452,11 @@ function CommunityInfoCard({
   const recentAuthors = [...new Set(recentPosts.map((p) => p.author_email))].slice(0, 5);
 
   return (
-    <div className="rounded-2xl p-5 flex flex-col gap-3" style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}>
+    <div className="rounded-2xl p-5 flex flex-col gap-3" style={{ background: "#fff", boxShadow: "0 2px 8px hsl(var(--ink) / 0.06)", border: "1px solid hsl(var(--ink) / 0.06)" }}>
       <p className="text-sm font-semibold" style={{ color: "hsl(var(--ink))" }}>Communauté</p>
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#FFFBEA" }}>
-          <Users size={18} style={{ color: "#101820" }} />
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "hsl(var(--feedback-warning-surface))" }}>
+          <Users size={18} style={{ color: "hsl(var(--ink))" }} />
         </div>
         <p className="text-sm leading-snug" style={{ color: "hsl(var(--ink) / 0.55)" }}>
           {recentPosts.length > 0
@@ -470,7 +470,7 @@ function CommunityInfoCard({
             <div
               key={a}
               className="w-7 h-7 rounded-full flex items-center justify-center text-micro font-bold border-2 border-white"
-              style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length], color: "#101820", marginLeft: i > 0 ? -6 : 0 }}
+              style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length], color: "hsl(var(--ink))", marginLeft: i > 0 ? -6 : 0 }}
             >
               {a.split("@")[0].slice(0, 2).toUpperCase()}
             </div>
@@ -515,9 +515,9 @@ function HeroSection({
       className="grid lg:grid-cols-2 gap-8 items-center p-6 lg:p-8"
       style={{
         background: "#fff",
-        borderRadius: 20,
-        boxShadow: "0 2px 8px rgba(16,24,32,0.06)",
-        border: "1px solid rgba(16,24,32,0.06)",
+        borderRadius: "var(--radius-block)",
+        boxShadow: "0 2px 8px hsl(var(--ink) / 0.06)",
+        border: "1px solid hsl(var(--ink) / 0.06)",
       }}
     >
       {/* Welcome text — LEFT */}
@@ -534,7 +534,7 @@ function HeroSection({
           <button
             onClick={onContinue}
             className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold transition-all hover:-translate-y-0.5 active:translate-y-0"
-            style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(255,209,0,0.35)" }}
+            style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit", boxShadow: "0 4px 16px hsl(var(--yellow-brand) / 0.35)" }}
           >
             {homeCtaLabel(course.home_config, completionPct)}
             <ChevronRight size={16} />
@@ -559,7 +559,7 @@ function HeroSection({
           className="rounded-2xl p-6 lg:p-8 flex items-center"
           style={{
             background: "hsl(var(--ink) / 0.03)",
-            border: "1px solid rgba(16,24,32,0.06)",
+            border: "1px solid hsl(var(--ink) / 0.06)",
             minHeight: 180,
           }}
         >
@@ -576,7 +576,7 @@ function HeroSection({
       ) : heroType === "image" ? (
         <div
           className="relative rounded-2xl overflow-hidden aspect-video flex items-center justify-center"
-          style={{ boxShadow: "0 8px 32px rgba(16,24,32,0.12)", background: "hsl(var(--ink) / 0.03)" }}
+          style={{ boxShadow: "0 8px 32px hsl(var(--ink) / 0.12)", background: "hsl(var(--ink) / 0.03)" }}
         >
           {heroImageUrl || course.cover_image_url ? (
             <img src={heroImageUrl || course.cover_image_url!} alt="" className="w-full h-full object-cover" />
@@ -590,7 +590,7 @@ function HeroSection({
       ) : (
         <div
           className="relative rounded-2xl overflow-hidden aspect-video bg-black flex items-center justify-center"
-          style={{ boxShadow: "0 8px 32px rgba(16,24,32,0.12)" }}
+          style={{ boxShadow: "0 8px 32px hsl(var(--ink) / 0.12)" }}
         >
           {playing && videoUrl ? (
             embedUrl ? (
@@ -616,9 +616,9 @@ function HeroSection({
                 >
                   <div
                     className="w-16 h-16 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
-                    style={{ background: "rgba(255,209,0,0.95)", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}
+                    style={{ background: "hsl(var(--yellow-brand) / 0.95)", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}
                   >
-                    <Play size={22} style={{ color: "#101820", marginLeft: 3 }} />
+                    <Play size={22} style={{ color: "hsl(var(--ink))", marginLeft: 3 }} />
                   </div>
                 </button>
               )}
@@ -652,7 +652,7 @@ function LiveBanner({
   return (
     <section
       className="rounded-2xl flex flex-wrap items-center gap-4 px-6 py-5"
-      style={{ background: "#101820" }}
+      style={{ background: "hsl(var(--ink))" }}
     >
       {/* Label + title */}
       <div className="flex items-center gap-3 min-w-0">
@@ -660,7 +660,7 @@ function LiveBanner({
           className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
           style={{ background: "hsl(var(--yellow-brand))" }}
         >
-          <Calendar size={18} style={{ color: "#101820" }} />
+          <Calendar size={18} style={{ color: "hsl(var(--ink))" }} />
         </div>
         <div>
           <p className="text-xs font-medium uppercase tracking-wider" style={{ color: "hsl(var(--yellow-brand))" }}>
@@ -673,7 +673,7 @@ function LiveBanner({
       {/* Date */}
       {!isLive && (
         <div className="flex items-center gap-2 shrink-0">
-          <Clock size={14} style={{ color: "rgba(255,255,255,0.5)" }} />
+          <Clock size={14} style={{ color: "hsl(var(--white) / 0.5)" }} />
           <span className="text-sm text-white font-medium">
             {new Date(meeting.scheduled_at).toLocaleDateString("fr-FR", {
               weekday: "long", day: "numeric", month: "long",
@@ -684,7 +684,7 @@ function LiveBanner({
 
       {/* Description */}
       {meeting.description && (
-        <p className="text-sm flex-1 min-w-0" style={{ color: "rgba(255,255,255,0.65)" }}>
+        <p className="text-sm flex-1 min-w-0" style={{ color: "hsl(var(--white) / 0.65)" }}>
           {meeting.description}
         </p>
       )}
@@ -694,7 +694,7 @@ function LiveBanner({
         <button
           onClick={onViewCalendar}
           className="text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-white/10"
-          style={{ borderColor: "rgba(255,255,255,0.2)", color: "#fff", fontFamily: "inherit" }}
+          style={{ borderColor: "hsl(var(--white) / 0.2)", color: "#fff", fontFamily: "inherit" }}
         >
           Voir toutes les dates
         </button>
@@ -704,7 +704,7 @@ function LiveBanner({
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full transition-all hover:-translate-y-px"
-            style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}
+            style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}
           >
             <Play size={14} />
             Rejoindre
@@ -715,7 +715,7 @@ function LiveBanner({
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full transition-all hover:-translate-y-px"
-            style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}
+            style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}
           >
             <CalendarPlus size={14} />
             Ajouter au calendrier
@@ -732,7 +732,7 @@ function InfoCard({ icon: Icon, title, children }: { icon: React.ElementType; ti
   return (
     <div
       className="rounded-2xl p-5 flex flex-col gap-3 transition-shadow hover:shadow-md"
-      style={{ background: "hsl(var(--white))", border: "1px solid rgba(16,24,32,0.08)" }}
+      style={{ background: "hsl(var(--white))", border: "1px solid hsl(var(--ink) / 0.08)" }}
     >
       <div className="flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
@@ -780,7 +780,7 @@ function InfoCardsGrid({ config }: { config?: CourseHomeConfig | null }) {
       .toUpperCase()
       .slice(0, 2) || "?";
 
-  const linkStyle = { borderColor: "rgba(16,24,32,0.12)", color: "hsl(var(--ink))", textDecoration: "none" } as const;
+  const linkStyle = { borderColor: "hsl(var(--ink) / 0.12)", color: "hsl(var(--ink))", textDecoration: "none" } as const;
 
   return (
     <section>
@@ -843,7 +843,7 @@ function InfoCardsGrid({ config }: { config?: CourseHomeConfig | null }) {
             <div className="flex items-center gap-3 mb-3">
               <div
                 className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center shrink-0 text-sm font-bold"
-                style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}
+                style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}
               >
                 {instructor.photo_url
                   ? <img src={instructor.photo_url} alt={instructor.name || ""} className="w-full h-full object-cover" />
@@ -884,8 +884,8 @@ function InfoCardsGrid({ config }: { config?: CourseHomeConfig | null }) {
 // ── Community section ─────────────────────────────────────────────────────────
 
 const COMMUNITY_THUMBNAILS = [
-  { bg: "#F2F4F4", emoji: "✏️" },
-  { bg: "#FFFBEA", emoji: "🎨" },
+  { bg: "hsl(var(--grey-light))", emoji: "✏️" },
+  { bg: "hsl(var(--feedback-warning-surface))", emoji: "🎨" },
   { bg: "#F0FDF4", emoji: "💡" },
   { bg: "#FFF7ED", emoji: "🖊️" },
 ];
@@ -894,7 +894,7 @@ function CommunitySection({ email, isPreview = false }: { email?: string; isPrev
   return (
     <section
       className="rounded-2xl flex flex-wrap items-center gap-6 px-6 py-5"
-      style={{ background: "hsl(var(--grey-light))", border: "1px solid rgba(16,24,32,0.06)" }}
+      style={{ background: "hsl(var(--grey-light))", border: "1px solid hsl(var(--ink) / 0.06)" }}
     >
       <div className="flex items-center gap-3 shrink-0">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center"
@@ -934,7 +934,7 @@ function CommunitySection({ email, isPreview = false }: { email?: string; isPrev
             window.location.href = communityUrlWithContext(null, null, isPreview ? resolvedEmail : null);
           }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-all hover:-translate-y-px"
-          style={{ background: "hsl(var(--yellow-brand))", color: "#101820", fontFamily: "inherit" }}
+          style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit" }}
         >
           Accéder à l'espace de partage
           <ChevronRight size={14} />
@@ -1176,11 +1176,11 @@ export default function LmsCourseHomePage() {
           {activeView === "home" && (
             <div
               className="lg:hidden flex items-center gap-3 px-6 py-3 border-b"
-              style={{ borderColor: "rgba(16,24,32,0.08)", background: "hsl(var(--white))" }}
+              style={{ borderColor: "hsl(var(--ink) / 0.08)", background: "hsl(var(--white))" }}
             >
               {showProgress ? (
                 <>
-                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
+                  <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "hsl(var(--border))" }}>
                     <div
                       className="h-full rounded-full transition-all"
                       style={{ width: `${completionPct}%`, background: "hsl(var(--yellow-brand))" }}
@@ -1209,7 +1209,7 @@ export default function LmsCourseHomePage() {
               <button
                 onClick={() => setActiveView("home")}
                 className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.15)", color: "hsl(var(--ink) / 0.55)", fontFamily: "inherit", background: "hsl(var(--white))" }}
+                style={{ borderColor: "hsl(var(--ink) / 0.15)", color: "hsl(var(--ink) / 0.55)", fontFamily: "inherit", background: "hsl(var(--white))" }}
               >
                 <ArrowLeft size={13} />
                 Accueil du cours
@@ -1255,7 +1255,7 @@ export default function LmsCourseHomePage() {
             {activeView === "calendar" && (
               isPreview && adminSessions.length > 0 ? (
                 <div className="space-y-10">
-                  <div className="rounded-xl border border-dashed p-3 text-xs" style={{ borderColor: "rgba(16,24,32,0.15)", color: "hsl(var(--ink) / 0.55)", background: "rgba(255,209,0,0.08)" }}>
+                  <div className="rounded-xl border border-dashed p-3 text-xs" style={{ borderColor: "hsl(var(--ink) / 0.15)", color: "hsl(var(--ink) / 0.55)", background: "hsl(var(--yellow-brand) / 0.08)" }}>
                     Vue admin · {adminSessions.length} session{adminSessions.length > 1 ? "s" : ""} de formation en cours ou à venir liée{adminSessions.length > 1 ? "s" : ""} à cet e-learning.
                   </div>
                   {adminSessions.map((s) => (

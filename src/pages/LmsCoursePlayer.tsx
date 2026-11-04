@@ -461,11 +461,11 @@ export default function LmsCoursePlayer() {
                 <div className="space-y-4 w-full">
 
               {/* ── Card 1 : titre + contenu pédagogique ─────────────────── */}
-              <div style={{ background: "#ffffff", borderRadius: 20, padding: "1.75rem", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
+              <div style={{ background: "hsl(var(--white))", borderRadius: "var(--radius-block)", padding: "1.75rem", boxShadow: "0 2px 8px hsl(var(--ink) / 0.05)" }}>
                 <div className="flex items-start gap-3 mb-6">
                   <h1
                     className="text-2xl sm:text-4xl font-bold flex-1 leading-tight"
-                    style={{ color: "#101820" }}
+                    style={{ color: "hsl(var(--ink))" }}
                   >
                     {selectedLesson.title}
                   </h1>
@@ -594,7 +594,7 @@ export default function LmsCoursePlayer() {
 
               {/* ── Card 2 : commentaires ────────────────────────────────── */}
               {!isPreview && learnerEmail && (
-                <div style={{ background: "#ffffff", borderRadius: 20, padding: "1.5rem 1.75rem", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
+                <div style={{ background: "hsl(var(--white))", borderRadius: "var(--radius-block)", padding: "1.5rem 1.75rem", boxShadow: "0 2px 8px hsl(var(--ink) / 0.05)" }}>
                   <LessonComments
                     courseId={courseId!}
                     lessonId={selectedLesson.id}
@@ -605,7 +605,7 @@ export default function LmsCoursePlayer() {
               )}
 
               {/* ── Card 3 : navigation précédent / terminé / suivant ────── */}
-              <div style={{ background: "#ffffff", borderRadius: 20, padding: "1.25rem", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
+              <div style={{ background: "hsl(var(--white))", borderRadius: "var(--radius-block)", padding: "1.25rem", boxShadow: "0 2px 8px hsl(var(--ink) / 0.05)" }}>
                 <div className="flex items-center gap-3">
                   <Button variant="outline" className="flex-1" onClick={goPrev} disabled={currentIndex <= 0}>
                     <ChevronLeft className="w-4 h-4 mr-1" /> Précédent
@@ -615,7 +615,7 @@ export default function LmsCoursePlayer() {
                       onClick={handleMarkComplete}
                       disabled={markComplete.isPending}
                       className="flex-1"
-                      style={{ background: "#FFD100", color: "#101820", fontWeight: 700 }}
+                      style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontWeight: 700 }}
                     >
                       {markComplete.isPending
                         ? <Spinner className="mr-2" />
@@ -638,7 +638,7 @@ export default function LmsCoursePlayer() {
               </div>{/* end grid */}
             </div>
           ) : (
-            <div className="flex items-center justify-center h-full" style={{ color: "rgba(16,24,32,0.4)" }}>
+            <div className="flex items-center justify-center h-full" style={{ color: "hsl(var(--ink) / 0.4)" }}>
               Sélectionnez une leçon pour commencer
             </div>
           )}
@@ -667,32 +667,32 @@ function ModuleProgressWidget({
   const dash = (circ * Math.min(pct, 100)) / 100;
 
   return (
-    <div style={{ background: "#ffffff", borderRadius: 20, padding: "1.25rem", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
-      <p className="text-sm font-bold mb-4" style={{ color: "#101820" }}>Ma progression dans ce module</p>
+    <div style={{ background: "hsl(var(--white))", borderRadius: "var(--radius-block)", padding: "1.25rem", boxShadow: "0 2px 8px hsl(var(--ink) / 0.05)" }}>
+      <p className="text-sm font-bold mb-4" style={{ color: "hsl(var(--ink))" }}>Ma progression dans ce module</p>
       <div className="flex items-center gap-4">
         <div className="relative shrink-0" style={{ width: 80, height: 80 }}>
           <svg width={80} height={80} style={{ transform: "rotate(-90deg)" }}>
-            <circle cx={40} cy={40} r={r} fill="none" stroke="#EDEDED" strokeWidth={7} />
+            <circle cx={40} cy={40} r={r} fill="none" stroke="hsl(var(--border))" strokeWidth={7} />
             <circle
               cx={40} cy={40} r={r} fill="none"
-              stroke={pct === 100 ? "#69C3C4" : "#FFD100"} strokeWidth={7}
+              stroke={pct === 100 ? "#69C3C4" : "hsl(var(--yellow-brand))"} strokeWidth={7}
               strokeLinecap="round"
               strokeDasharray={`${dash} ${circ}`}
               style={{ transition: "stroke-dasharray 0.8s ease" }}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-lg font-bold leading-none" style={{ color: "#101820" }}>{Math.round(pct)}%</span>
+            <span className="text-lg font-bold leading-none" style={{ color: "hsl(var(--ink))" }}>{Math.round(pct)}%</span>
           </div>
         </div>
         <div>
-          <p className="text-base font-bold leading-tight" style={{ color: "#101820" }}>{done} / {total} séquences</p>
-          <p className="text-xs mt-0.5" style={{ color: "rgba(16,24,32,0.45)" }}>terminées</p>
+          <p className="text-base font-bold leading-tight" style={{ color: "hsl(var(--ink))" }}>{done} / {total} séquences</p>
+          <p className="text-xs mt-0.5" style={{ color: "hsl(var(--ink) / 0.45)" }}>terminées</p>
         </div>
       </div>
       <button
         className="mt-4 flex items-center gap-1 text-xs font-medium"
-        style={{ color: "rgba(16,24,32,0.45)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
+        style={{ color: "hsl(var(--ink) / 0.45)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
       >
         Voir toutes les séquences <ChevronRight size={12} />
       </button>
@@ -713,12 +713,12 @@ function CommunityWidget({ courseId, learnerEmail, lessonId, isPreview = false }
   const recentAuthors = [...new Set(recentPosts.map((p) => p.author_email))].slice(0, 4);
 
   return (
-    <div style={{ background: "#FFFBEA", borderRadius: 20, padding: "1.25rem", border: "1px solid rgba(255,209,0,0.3)", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
+    <div style={{ background: "hsl(var(--feedback-warning-surface))", borderRadius: "var(--radius-block)", padding: "1.25rem", border: "1px solid hsl(var(--yellow-brand) / 0.3)", boxShadow: "0 2px 8px hsl(var(--ink) / 0.05)" }}>
       <div className="flex items-center gap-2 mb-2">
-        <MessageSquare size={15} style={{ color: "#101820" }} />
-        <p className="text-sm font-bold" style={{ color: "#101820" }}>Besoin d'échanger ?</p>
+        <MessageSquare size={15} style={{ color: "hsl(var(--ink))" }} />
+        <p className="text-sm font-bold" style={{ color: "hsl(var(--ink))" }}>Besoin d'échanger ?</p>
       </div>
-      <p className="text-xs leading-relaxed mb-3" style={{ color: "rgba(16,24,32,0.6)" }}>
+      <p className="text-xs leading-relaxed mb-3" style={{ color: "hsl(var(--ink) / 0.6)" }}>
         Posez vos questions, partagez vos essais et progressez ensemble.
       </p>
       {recentAuthors.length > 0 && (
@@ -727,7 +727,7 @@ function CommunityWidget({ courseId, learnerEmail, lessonId, isPreview = false }
             <div
               key={a}
               className="w-7 h-7 rounded-full flex items-center justify-center text-micro font-bold border-2 border-white"
-              style={{ background: COMMUNITY_AVATAR_COLORS[i % COMMUNITY_AVATAR_COLORS.length], color: "#101820", marginLeft: i > 0 ? -6 : 0 }}
+              style={{ background: COMMUNITY_AVATAR_COLORS[i % COMMUNITY_AVATAR_COLORS.length], color: "hsl(var(--ink))", marginLeft: i > 0 ? -6 : 0 }}
             >
               {a.split("@")[0].slice(0, 2).toUpperCase()}
             </div>
@@ -736,7 +736,7 @@ function CommunityWidget({ courseId, learnerEmail, lessonId, isPreview = false }
       )}
       <CommunityCtaButton email={learnerEmail} courseId={courseId} lessonId={lessonId} isPreview={isPreview} />
       {recentPosts.length > 0 && (
-        <p className="text-caption text-center mt-2" style={{ color: "rgba(16,24,32,0.45)" }}>
+        <p className="text-caption text-center mt-2" style={{ color: "hsl(var(--ink) / 0.45)" }}>
           {recentPosts.length} apprenant{recentPosts.length > 1 ? "s ont" : " a"} déposé {recentPosts.length > 1 ? "leur" : "son"} exercice cette semaine.
         </p>
       )}
@@ -747,14 +747,14 @@ function CommunityWidget({ courseId, learnerEmail, lessonId, isPreview = false }
 // ── Right panel: tip ─────────────────────────────────────────────────────────
 function TipWidget() {
   return (
-    <div style={{ background: "#ffffff", borderRadius: 20, padding: "1.25rem", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
+    <div style={{ background: "hsl(var(--white))", borderRadius: "var(--radius-block)", padding: "1.25rem", boxShadow: "0 2px 8px hsl(var(--ink) / 0.05)" }}>
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#F2F4F4" }}>
-          <Sparkles size={14} style={{ color: "#101820" }} />
+        <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ background: "hsl(var(--grey-light))" }}>
+          <Sparkles size={14} style={{ color: "hsl(var(--ink))" }} />
         </div>
-        <p className="text-sm font-bold" style={{ color: "#101820" }}>Conseil pratique</p>
+        <p className="text-sm font-bold" style={{ color: "hsl(var(--ink))" }}>Conseil pratique</p>
       </div>
-      <p className="text-xs leading-relaxed" style={{ color: "rgba(16,24,32,0.6)" }}>
+      <p className="text-xs leading-relaxed" style={{ color: "hsl(var(--ink) / 0.6)" }}>
         Pas besoin de savoir dessiner pour avancer ! Ce qui compte, c'est de s'exprimer et de prendre plaisir à pratiquer.
       </p>
     </div>
@@ -766,9 +766,9 @@ function CommunityCtaBlock() {
   return (
     <div
       style={{
-        background: "#FFFBEA",
-        borderRadius: 20,
-        border: "1px solid rgba(255,209,0,0.35)",
+        background: "hsl(var(--feedback-warning-surface))",
+        borderRadius: "var(--radius-block)",
+        border: "1px solid hsl(var(--yellow-brand) / 0.35)",
         padding: "1.25rem 1.5rem",
         display: "flex",
         alignItems: "center",
@@ -777,10 +777,10 @@ function CommunityCtaBlock() {
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontWeight: 700, fontSize: "0.9375rem", color: "#101820", marginBottom: 4 }}>
+        <p style={{ fontWeight: 700, fontSize: "0.9375rem", color: "hsl(var(--ink))", marginBottom: 4 }}>
           Besoin d'un retour sur votre travail ?
         </p>
-        <p style={{ fontSize: "0.8125rem", color: "rgba(16,24,32,0.6)", margin: 0 }}>
+        <p style={{ fontSize: "0.8125rem", color: "hsl(var(--ink) / 0.6)", margin: 0 }}>
           Partagez votre exercice dans l'espace de pratique et échangez avec les autres apprenants.
         </p>
       </div>
@@ -791,8 +791,8 @@ function CommunityCtaBlock() {
           alignItems: "center",
           gap: 6,
           padding: "0.5625rem 1.125rem",
-          background: "#FFD100",
-          color: "#101820",
+          background: "hsl(var(--yellow-brand))",
+          color: "hsl(var(--ink))",
           borderRadius: 12,
           fontWeight: 700,
           fontSize: "0.8125rem",
@@ -993,23 +993,23 @@ function HomeMenuLink({
       onClick={onClick}
       className="flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors hover:bg-black/5"
       style={{
-        color: "#101820",
-        borderBottom: "1px solid rgba(16,24,32,0.07)",
-        fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif",
+        color: "hsl(var(--ink))",
+        borderBottom: "1px solid hsl(var(--ink) / 0.07)",
+        fontFamily: "var(--font-learner)",
         textDecoration: "none",
       }}
     >
       <span
         className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-        style={{ background: "#FFD100" }}
+        style={{ background: "hsl(var(--yellow-brand))" }}
       >
-        <Home size={13} style={{ color: "#101820" }} />
+        <Home size={13} style={{ color: "hsl(var(--ink))" }} />
       </span>
       Accueil
       {isPreview && (
         <span
           className="ml-auto text-micro font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-          style={{ background: "rgba(16,24,32,0.08)", color: "rgba(16,24,32,0.55)" }}
+          style={{ background: "hsl(var(--ink) / 0.08)", color: "hsl(var(--ink) / 0.55)" }}
         >
           Éditable
         </span>

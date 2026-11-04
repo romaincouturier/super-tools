@@ -285,7 +285,7 @@ export default function KanbanStatsDialog({
               <div className="h-[350px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={cfdData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis
                       dataKey="date"
                       tick={{ fontSize: 11 }}
@@ -338,7 +338,7 @@ export default function KanbanStatsDialog({
                 <div className="h-[350px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={valueCfdData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis
                         dataKey="date"
                         tick={{ fontSize: 11 }}
@@ -396,7 +396,7 @@ export default function KanbanStatsDialog({
               <div className="h-[350px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <ScatterChart data={controlChart.points} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis
                       dataKey="date"
                       type="number"
@@ -420,31 +420,31 @@ export default function KanbanStatsDialog({
                     <Legend verticalAlign="top" height={30} />
                     <ReferenceLine
                       y={controlChart.mean}
-                      stroke="#3b82f6"
+                      stroke="hsl(var(--feedback-info))"
                       strokeWidth={2}
                       shape={<HoverableLine hoverLabel={`Moyenne : ${controlChart.mean.toFixed(1)} jours`} />}
-                      label={{ value: `Moy: ${controlChart.mean.toFixed(1)}j`, position: "right", fill: "#3b82f6", fontSize: 11 }}
+                      label={{ value: `Moy: ${controlChart.mean.toFixed(1)}j`, position: "right", fill: "hsl(var(--feedback-info))", fontSize: 11 }}
                     />
                     <ReferenceLine
                       y={controlChart.ucl}
-                      stroke="#ef4444"
+                      stroke="hsl(var(--feedback-danger))"
                       strokeDasharray="5 5"
                       shape={<HoverableLine hoverLabel={`Limite haute (UCL) : ${controlChart.ucl.toFixed(1)} jours`} />}
-                      label={{ value: `UCL: ${controlChart.ucl.toFixed(1)}j`, position: "right", fill: "#ef4444", fontSize: 11 }}
+                      label={{ value: `UCL: ${controlChart.ucl.toFixed(1)}j`, position: "right", fill: "hsl(var(--feedback-danger))", fontSize: 11 }}
                     />
                     {controlChart.lcl > 0 && (
                       <ReferenceLine
                         y={controlChart.lcl}
-                        stroke="#22c55e"
+                        stroke="hsl(var(--feedback-success))"
                         strokeDasharray="5 5"
                         shape={<HoverableLine hoverLabel={`Limite basse (LCL) : ${controlChart.lcl.toFixed(1)} jours`} />}
-                        label={{ value: `LCL: ${controlChart.lcl.toFixed(1)}j`, position: "right", fill: "#22c55e", fontSize: 11 }}
+                        label={{ value: `LCL: ${controlChart.lcl.toFixed(1)}j`, position: "right", fill: "hsl(var(--feedback-success))", fontSize: 11 }}
                       />
                     )}
                     <Scatter
                       name="Temps de cycle"
                       data={controlChart.points}
-                      fill="#3b82f6"
+                      fill="hsl(var(--feedback-info))"
                     />
                   </ScatterChart>
                 </ResponsiveContainer>

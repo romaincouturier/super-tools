@@ -725,19 +725,19 @@ const MissionSummary = () => {
                 <ActionsKanbanColumn
                   title={L.todo}
                   items={actionsKanban.todo}
-                  color="#6b7280"
+                  color="hsl(var(--muted-foreground))"
                   icon={<Clock className="h-3 w-3" />}
                 />
                 <ActionsKanbanColumn
                   title={L.inProgress}
                   items={actionsKanban.inProgress}
-                  color="#3b82f6"
+                  color="hsl(var(--feedback-info))"
                   icon={<Clock className="h-3 w-3" />}
                 />
                 <ActionsKanbanColumn
                   title={L.done}
                   items={actionsKanban.done}
-                  color="#22c55e"
+                  color="hsl(var(--feedback-success))"
                   icon={<CheckCircle2 className="h-3 w-3" />}
                 />
               </div>

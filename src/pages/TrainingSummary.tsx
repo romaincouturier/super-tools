@@ -894,7 +894,7 @@ END:VCALENDAR`;
       <nav
         className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 py-3 backdrop-blur-md shadow-[0_-2px_10px_rgba(0,0,0,0.05)] border-t"
         style={{
-          background: "rgba(255,255,255,0.9)",
+          background: "hsl(var(--white) / 0.9)",
           borderColor: `${c.outlineVariant}30`,
           paddingBottom: "env(safe-area-inset-bottom, 12px)",
         }}
@@ -950,7 +950,7 @@ function NavItem({
       onClick={onClick}
       className="flex flex-col items-center justify-center px-3 py-1 text-micro font-medium transition-transform active:scale-90"
       style={{
-        color: active ? "#92750a" : "#9ca3af",
+        color: active ? "#92750a" : "hsl(var(--muted-foreground))",
         background: active ? "#fef9c333" : "transparent",
         borderRadius: "0.75rem",
       }}

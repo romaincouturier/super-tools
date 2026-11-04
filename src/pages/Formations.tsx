@@ -41,10 +41,10 @@ import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
 import type { KanbanColumnDef, KanbanStatsItem } from "@/types/kanban";
 
 const FORMATION_STATS_COLUMNS: KanbanColumnDef[] = [
-  { id: "a_venir", name: "À venir", position: 0, color: "#3b82f6" },
-  { id: "en_cours", name: "En cours", position: 1, color: "#f59e0b" },
-  { id: "passee", name: "Passée", position: 2, color: "#22c55e" },
-  { id: "annulee", name: "Annulée", position: 3, color: "#ef4444" },
+  { id: "a_venir", name: "À venir", position: 0, color: "hsl(var(--feedback-info))" },
+  { id: "en_cours", name: "En cours", position: 1, color: "hsl(var(--feedback-warning))" },
+  { id: "passee", name: "Passée", position: 2, color: "hsl(var(--feedback-success))" },
+  { id: "annulee", name: "Annulée", position: 3, color: "hsl(var(--feedback-danger))" },
 ];
 
 interface Training {

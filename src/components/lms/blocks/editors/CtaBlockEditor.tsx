@@ -222,7 +222,7 @@ export default function CtaBlockEditor({ lessonId, content, onChange, slim }: Pr
           border: "1px solid #ECECEF",
           borderLeft: `4px solid ${accent}`,
           padding: "1.25rem",
-          boxShadow: "0 4px 16px rgba(16, 24, 32, 0.05)",
+          boxShadow: "0 4px 16px hsl(var(--ink) / 0.05)",
         }}
       >
         {form}

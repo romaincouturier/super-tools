@@ -122,5 +122,6 @@
   --duration-slow: 300ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --shadow-block: 0 2px 12px hsl(var(--ink) / 0.07);
+  --font-learner: "Lexend", ui-sans-serif, system-ui, sans-serif;
   --content-width: 768px;       /* Largeur de lecture d'une leçon */
 }

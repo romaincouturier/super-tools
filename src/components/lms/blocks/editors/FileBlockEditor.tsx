@@ -69,13 +69,13 @@ export default function FileBlockEditor({ lessonId, content, onChange, slim }: P
               padding: "0.875rem 1rem",
               borderRadius: "var(--radius-block)",
               background: "hsl(var(--grey-light))",
-              border: "1px solid rgba(16,24,32,0.08)",
+              border: "1px solid hsl(var(--ink) / 0.08)",
             }}
           >
             <div
               style={{
                 width: 40, height: 40, borderRadius: 8,
-                background: "rgba(16,24,32,0.08)",
+                background: "hsl(var(--ink) / 0.08)",
                 display: "grid", placeItems: "center", flexShrink: 0,
               }}
             >
@@ -95,7 +95,7 @@ export default function FileBlockEditor({ lessonId, content, onChange, slim }: P
               onClick={() => handleRemove(idx)}
               style={{
                 width: 28, height: 28, borderRadius: "50%",
-                border: "none", background: "rgba(16,24,32,0.08)",
+                border: "none", background: "hsl(var(--ink) / 0.08)",
                 cursor: "pointer", display: "grid", placeItems: "center",
                 flexShrink: 0,
               }}
@@ -118,7 +118,7 @@ export default function FileBlockEditor({ lessonId, content, onChange, slim }: P
           onClick={() => fileRef.current?.click()}
           style={{
             borderRadius: "var(--radius-block)",
-            border: `2px dashed ${dragOver ? "rgba(16,24,32,0.35)" : "rgba(16,24,32,0.18)"}`,
+            border: `2px dashed ${dragOver ? "hsl(var(--ink) / 0.35)" : "hsl(var(--ink) / 0.18)"}`,
             padding: "1.25rem 2rem",
             display: "flex",
             flexDirection: "column",

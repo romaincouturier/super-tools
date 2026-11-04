@@ -86,7 +86,7 @@ export default function CodeBlockEditor({ content, onChange, slim }: Props) {
           minHeight: slim ? 140 : 200,
           padding: "0.875rem 1rem",
           borderRadius: 12,
-          border: "1px solid rgba(255,255,255,0.08)",
+          border: "1px solid hsl(var(--white) / 0.08)",
           fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace",
           fontSize: "0.8125rem",
           lineHeight: 1.65,

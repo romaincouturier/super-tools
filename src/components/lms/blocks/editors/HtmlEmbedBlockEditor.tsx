@@ -34,7 +34,7 @@ export default function HtmlEmbedBlockEditor({ content, onChange, slim }: Props)
       <div
         style={{
           borderRadius: 12,
-          border: "1.5px solid rgba(16,24,32,0.14)",
+          border: "1.5px solid hsl(var(--ink) / 0.14)",
           overflow: "hidden",
         }}
       >
@@ -44,8 +44,8 @@ export default function HtmlEmbedBlockEditor({ content, onChange, slim }: Props)
             alignItems: "center",
             justifyContent: "space-between",
             padding: "0.5rem 0.75rem",
-            borderBottom: "1px solid rgba(16,24,32,0.08)",
-            background: "rgba(16,24,32,0.03)",
+            borderBottom: "1px solid hsl(var(--ink) / 0.08)",
+            background: "hsl(var(--ink) / 0.03)",
           }}
         >
           <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "hsl(var(--ink) / 0.5)", fontFamily: "monospace" }}>
@@ -67,7 +67,7 @@ export default function HtmlEmbedBlockEditor({ content, onChange, slim }: Props)
               padding: "0.25rem 0.5rem",
               borderRadius: 6,
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)"; }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.06)"; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
           >
             {previewOpen ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -101,15 +101,15 @@ export default function HtmlEmbedBlockEditor({ content, onChange, slim }: Props)
         <div
           style={{
             borderRadius: 12,
-            border: "1.5px solid rgba(16,24,32,0.10)",
+            border: "1.5px solid hsl(var(--ink) / 0.10)",
             overflow: "hidden",
           }}
         >
           <div
             style={{
               padding: "0.375rem 0.75rem",
-              borderBottom: "1px solid rgba(16,24,32,0.08)",
-              background: "rgba(16,24,32,0.02)",
+              borderBottom: "1px solid hsl(var(--ink) / 0.08)",
+              background: "hsl(var(--ink) / 0.02)",
               fontSize: "0.7rem",
               fontWeight: 600,
               color: "hsl(var(--ink) / 0.5)",

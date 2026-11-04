@@ -31,7 +31,7 @@ export default function LmsCourseLayout({
   return (
     <div
       className="flex flex-col min-h-screen"
-      style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif", background: "#F2F4F4" }}
+      style={{ fontFamily: "var(--font-learner)", background: "hsl(var(--grey-light))" }}
     >
       {previewBanner}
       <LearnerCourseHeader
@@ -50,7 +50,7 @@ export default function LmsCourseLayout({
           style={{ padding: sidebarOpen ? "1rem" : undefined }}
         >
           {sidebarOpen && (
-            <div style={{ background: "#ffffff", borderRadius: 20, boxShadow: "0 2px 12px rgba(16,24,32,0.06)", overflow: "hidden", display: "flex", flexDirection: "column", flex: 1 }}>
+            <div style={{ background: "hsl(var(--white))", borderRadius: "var(--radius-block)", boxShadow: "0 2px 12px hsl(var(--ink) / 0.06)", overflow: "hidden", display: "flex", flexDirection: "column", flex: 1 }}>
               {sidebar(() => {})}
             </div>
           )}
@@ -65,7 +65,7 @@ export default function LmsCourseLayout({
             />
             <div
               className="lg:hidden fixed left-0 top-16 bottom-0 z-50 w-[300px] overflow-hidden"
-              style={{ background: "#ffffff", boxShadow: "4px 0 20px rgba(16,24,32,0.1)" }}
+              style={{ background: "hsl(var(--white))", boxShadow: "4px 0 20px hsl(var(--ink) / 0.1)" }}
             >
               {sidebar(closeSidebar)}
             </div>
@@ -75,7 +75,7 @@ export default function LmsCourseLayout({
         <main
           ref={mainRef}
           className={`flex-1${scrollable ? " overflow-auto" : ""}`}
-          style={{ background: "#F2F4F4" }}
+          style={{ background: "hsl(var(--grey-light))" }}
         >
           {children}
         </main>

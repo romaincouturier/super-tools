@@ -627,7 +627,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
                     <div
                       className="w-1 self-stretch rounded-full shrink-0 mt-0.5"
                       style={{
-                        backgroundColor: card.service_type === "formation" ? "#3b82f6" : card.service_type === "mission" ? "#8b5cf6" : "#6b7280",
+                        backgroundColor: card.service_type === "formation" ? "hsl(var(--feedback-info))" : card.service_type === "mission" ? "hsl(var(--feedback-info))" : "hsl(var(--muted-foreground))",
                       }}
                     />
                     <div className={`flex-1 min-w-0 space-y-0.5 ${isLost ? "line-through opacity-60" : ""}`}>
@@ -737,7 +737,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
             && cardAgeDays(card.created_at) > meanCycleTimeDays;
           return (
             <div
-              style={overdue ? { boxShadow: "0 0 0 2px #fbbf24", borderRadius: "8px" } : undefined}
+              style={overdue ? { boxShadow: "0 0 0 2px hsl(var(--feedback-warning))", borderRadius: "8px" } : undefined}
               title={overdue ? `Délai dépassé (${Math.round(cardAgeDays(card.created_at))}j > moy. ${Math.round(meanCycleTimeDays)}j)` : undefined}
             >
               <CrmCardComponent

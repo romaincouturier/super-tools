@@ -6,7 +6,7 @@ interface Props {
   content: CtaBlockContent;
 }
 
-const INK = "#101820";
+const INK = "hsl(var(--ink))";
 
 /** Trait souligné dessiné à la main, sous le petit label. */
 function HandDrawnUnderline({ color }: { color: string }) {
@@ -56,7 +56,7 @@ export default function CtaBlockViewer({ content }: Props) {
   const primaryButtonStyle: React.CSSProperties = {
     background: INK,
     color: accent,
-    boxShadow: "0 4px 14px rgba(16, 24, 32, 0.22)",
+    boxShadow: "0 4px 14px hsl(var(--ink) / 0.22)",
   };
 
   return (
@@ -65,7 +65,7 @@ export default function CtaBlockViewer({ content }: Props) {
       style={{
         borderRadius: 28,
         border: "1px solid #ECECEF",
-        boxShadow: "0 10px 34px rgba(16, 24, 32, 0.07)",
+        boxShadow: "0 10px 34px hsl(var(--ink) / 0.07)",
       }}
     >
       {content.badge && !content.image_url && (
@@ -120,7 +120,7 @@ export default function CtaBlockViewer({ content }: Props) {
                 <li
                   key={b}
                   className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-2 text-sm font-semibold"
-                  style={{ border: "1px solid #F1F1F4", color: INK, boxShadow: "0 2px 10px rgba(16, 24, 32, 0.08)" }}
+                  style={{ border: "1px solid #F1F1F4", color: INK, boxShadow: "0 2px 10px hsl(var(--ink) / 0.08)" }}
                 >
                   <span
                     className="grid h-4 w-4 shrink-0 place-items-center rounded-full"
@@ -174,7 +174,7 @@ export default function CtaBlockViewer({ content }: Props) {
               className="aspect-[4/3] w-full object-cover"
               style={{
                 borderRadius: "42% 58% 52% 48% / 55% 46% 54% 45%",
-                boxShadow: "0 6px 22px rgba(16, 24, 32, 0.10)",
+                boxShadow: "0 6px 22px hsl(var(--ink) / 0.10)",
               }}
             />
             {content.badge && (

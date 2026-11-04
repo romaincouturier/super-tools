@@ -26,3 +26,12 @@
 # 076c : tailles de texte arbitraires (text-[13px]). Cible : 0.
 #   Le contrôle ne voit pas les tailles posées par style ou par feuille CSS.
 076c=0
+# 076d : hex littéraux (6 chiffres) dans le code TS/TSX. Cible : seulement les couleurs de données (graphiques, étiquettes choisies par l'utilisateur, PDF, e-mails).
+#   Le contrôle ne voit pas les hex à 3 chiffres, les noms CSS (white, red) ni les couleurs construites par concaténation.
+076d=416
+# 076e : rgb()/rgba()/hsl() à valeurs littérales. Cible : 0 hors canvas et PDF.
+#   Le contrôle ne voit pas les couleurs dans des fichiers autres que .ts, .tsx, .css (par exemple le HTML des e-mails côté edge functions).
+076e=69
+# 076f : fontFamily littéral hors inherit. Cible : 0 hors polices à chasse fixe.
+#   Le contrôle ne voit pas les font-family des feuilles CSS ni les classes font-[...].
+076f=22

@@ -187,11 +187,11 @@ export default function PracticePostCard({
 
   return (
     <div className="rounded-2xl border space-y-0 overflow-hidden"
-      style={{ background: "hsl(var(--white))", borderColor: post.is_pinned ? "rgba(255,209,0,0.6)" : "rgba(16,24,32,0.08)" }}>
+      style={{ background: "hsl(var(--white))", borderColor: post.is_pinned ? "hsl(var(--yellow-brand) / 0.6)" : "hsl(var(--ink) / 0.08)" }}>
       {/* Pinned banner */}
       {post.is_pinned && (
         <div className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold"
-          style={{ background: "rgba(255,209,0,0.15)", color: "hsl(var(--ink))" }}>
+          style={{ background: "hsl(var(--yellow-brand) / 0.15)", color: "hsl(var(--ink))" }}>
           <Pin size={12} />
           Épinglé
         </div>
@@ -199,7 +199,7 @@ export default function PracticePostCard({
       {/* Header */}
       <div className="flex items-start gap-3 p-4">
         <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
-          style={{ background: post.author_photo_url ? "transparent" : "hsl(var(--yellow-brand))", color: "#101820" }}>
+          style={{ background: post.author_photo_url ? "transparent" : "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}>
           {post.author_photo_url
             ? <img src={post.author_photo_url} alt={displayName} className="w-full h-full object-cover" />
             : initials}
@@ -250,7 +250,7 @@ export default function PracticePostCard({
         <a
           href={`/lms/${post.course_id}/player?email=${encodeURIComponent(currentEmail)}&lesson=${post.lesson_id}`}
           className="mx-4 mb-3 inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full hover:underline w-fit max-w-[calc(100%-2rem)]"
-          style={{ background: "rgba(255,209,0,0.15)", color: "hsl(var(--ink))" }}
+          style={{ background: "hsl(var(--yellow-brand) / 0.15)", color: "hsl(var(--ink))" }}
           title={[post.course_title, post.module_title, post.lesson_title].filter(Boolean).join(" › ") || "Voir la leçon d'origine"}
         >
           <BookOpen size={12} className="shrink-0" />
@@ -273,7 +273,7 @@ export default function PracticePostCard({
         <div className="px-4 pb-3 flex flex-col gap-2">
           <textarea
             className="w-full text-sm rounded-lg border px-3 py-2 resize-none focus:outline-none focus:ring-2"
-            style={{ borderColor: "rgba(16,24,32,0.15)", minHeight: 80, color: "hsl(var(--ink))", background: "hsl(var(--grey-light))" }}
+            style={{ borderColor: "hsl(var(--ink) / 0.15)", minHeight: 80, color: "hsl(var(--ink))", background: "hsl(var(--grey-light))" }}
             value={editingPostText}
             onChange={(e) => setEditingPostText(e.target.value)}
             autoFocus
@@ -325,7 +325,7 @@ export default function PracticePostCard({
             style={{
               aspectRatio: aspect,
               maxHeight: 480,
-              background: "rgba(16,24,32,0.04)",
+              background: "hsl(var(--ink) / 0.04)",
               containerType: isRotated ? "size" : undefined,
             }}
           >
@@ -375,7 +375,7 @@ export default function PracticePostCard({
             onClick={() => handleFileDownload(fileHref)}
             disabled={downloadingFile}
             className="flex flex-col items-center justify-center gap-2 w-full px-4 py-10 hover:bg-black/5 transition-colors"
-            style={{ background: "rgba(16,24,32,0.04)", color: "hsl(var(--ink))", minHeight: 220 }}
+            style={{ background: "hsl(var(--ink) / 0.04)", color: "hsl(var(--ink))", minHeight: 220 }}
             title={shownFileName ?? "Télécharger le fichier"}
           >
             <FileText size={48} style={{ color: "hsl(var(--ink) / 0.55)" }} />
@@ -402,7 +402,7 @@ export default function PracticePostCard({
               key={tag}
               onClick={() => onSelectTag(tag)}
               className="text-xs px-2 py-0.5 rounded-full font-medium transition-colors hover:bg-black/5"
-              style={{ background: "rgba(16,24,32,0.05)", color: "hsl(var(--ink) / 0.55)" }}
+              style={{ background: "hsl(var(--ink) / 0.05)", color: "hsl(var(--ink) / 0.55)" }}
             >
               #{tag}
             </button>
@@ -412,7 +412,7 @@ export default function PracticePostCard({
 
       {/* Reaction bar — per-emoji counts + comment count */}
       {(post.reaction_count > 0 || post.comment_count > 0) && (
-        <div className="px-4 py-2 flex items-center gap-2 flex-wrap text-xs border-t" style={{ borderColor: "rgba(16,24,32,0.06)", color: "hsl(var(--ink) / 0.55)" }}>
+        <div className="px-4 py-2 flex items-center gap-2 flex-wrap text-xs border-t" style={{ borderColor: "hsl(var(--ink) / 0.06)", color: "hsl(var(--ink) / 0.55)" }}>
           <TooltipProvider delayDuration={300}>
             {REACTION_EMOJIS.filter((e) => (post.reactions_by_type?.[e.emoji] ?? 0) > 0).map((e) => {
               const users = post.reactions_by_type_users?.[e.emoji] ?? [];
@@ -426,7 +426,7 @@ export default function PracticePostCard({
                     <span
                       className="flex items-center gap-1 px-1.5 py-0.5 rounded-full cursor-default"
                       style={{
-                        background: post.my_reaction_types?.includes(e.emoji) ? "rgba(255,209,0,0.18)" : "rgba(16,24,32,0.05)",
+                        background: post.my_reaction_types?.includes(e.emoji) ? "hsl(var(--yellow-brand) / 0.18)" : "hsl(var(--ink) / 0.05)",
                         fontWeight: post.my_reaction_types?.includes(e.emoji) ? 600 : 400,
                       }}
                     >
@@ -451,13 +451,13 @@ export default function PracticePostCard({
       )}
 
       {/* Action buttons */}
-      <div className="flex border-t relative" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
+      <div className="flex border-t relative" style={{ borderColor: "hsl(var(--ink) / 0.06)" }}>
         {/* Emoji picker popup */}
         {showEmojiPicker && (
           <div
             ref={emojiPickerRef}
             className="absolute bottom-full left-0 mb-2 flex items-center gap-1 px-2 py-1.5 rounded-2xl shadow-lg border z-10"
-            style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.1)" }}
+            style={{ background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.1)" }}
           >
             {REACTION_EMOJIS.map((e) => {
               const already = post.my_reaction_types?.includes(e.emoji);
@@ -469,7 +469,7 @@ export default function PracticePostCard({
                   className="text-xl leading-none transition-transform hover:scale-125 px-1"
                   style={{
                     fontFamily: "inherit",
-                    background: already ? "rgba(255,209,0,0.2)" : "transparent",
+                    background: already ? "hsl(var(--yellow-brand) / 0.2)" : "transparent",
                     borderRadius: 8,
                   }}
                 >
@@ -490,7 +490,7 @@ export default function PracticePostCard({
         <button
           onClick={() => setShowComments(v => !v)}
           className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-black/5 border-l"
-          style={{ color: "hsl(var(--ink) / 0.55)", borderColor: "rgba(16,24,32,0.06)", fontFamily: "inherit" }}
+          style={{ color: "hsl(var(--ink) / 0.55)", borderColor: "hsl(var(--ink) / 0.06)", fontFamily: "inherit" }}
         >
           <MessageSquare size={16} />
           Commenter
@@ -499,7 +499,7 @@ export default function PracticePostCard({
 
       {/* Comments section */}
       {showComments && (
-        <div className="border-t px-4 py-3 space-y-3" style={{ borderColor: "rgba(16,24,32,0.06)", background: "hsl(var(--grey-light))" }}>
+        <div className="border-t px-4 py-3 space-y-3" style={{ borderColor: "hsl(var(--ink) / 0.06)", background: "hsl(var(--grey-light))" }}>
           {comments.map((c) => {
             const cName = c.is_staff_reply && c.author_display_name
               ? c.author_display_name
@@ -545,7 +545,7 @@ export default function PracticePostCard({
             return (
               <div key={c.id} className="flex items-start gap-2 group">
                 <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shrink-0"
-                  style={{ background: c.author_photo_url ? "transparent" : (c.is_staff_reply ? "hsl(var(--ink))" : "hsl(var(--yellow-brand))"), color: c.is_staff_reply ? "#fff" : "#101820" }}>
+                  style={{ background: c.author_photo_url ? "transparent" : (c.is_staff_reply ? "hsl(var(--ink))" : "hsl(var(--yellow-brand))"), color: c.is_staff_reply ? "#fff" : "hsl(var(--ink))" }}>
                   {c.author_photo_url
                     ? <img src={c.author_photo_url} alt={cName} className="w-full h-full object-cover" />
                     : cInitials}
@@ -596,7 +596,7 @@ export default function PracticePostCard({
                           if (e.key === "Escape") cancelEdit();
                         }}
                         className="flex-1 text-sm bg-transparent outline-none border-b"
-                        style={{ color: "hsl(var(--ink))", borderColor: "rgba(16,24,32,0.2)", fontFamily: "inherit" }}
+                        style={{ color: "hsl(var(--ink))", borderColor: "hsl(var(--ink) / 0.2)", fontFamily: "inherit" }}
                       />
                       <button
                         onClick={saveEdit}
@@ -626,7 +626,7 @@ export default function PracticePostCard({
           {/* Comment input */}
           <div className="flex items-end gap-2">
             <div className="flex-1 flex items-end gap-2 rounded-2xl border px-3 py-1.5"
-              style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.12)" }}>
+              style={{ background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.12)" }}>
               <textarea
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
@@ -652,7 +652,7 @@ export default function PracticePostCard({
               onClick={handleComment}
               disabled={!commentText.trim() || createComment.isPending}
               className="w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 shrink-0"
-              style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}
+              style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}
             >
               <Send size={14} />
             </button>

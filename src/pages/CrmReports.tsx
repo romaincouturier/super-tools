@@ -194,11 +194,11 @@ const CrmReports = () => {
   const hasPivot = reports.categories.length >= 2;
 
   const kpiChartConfig: Record<string, { dataKey: keyof WeeklyPoint; color: string; label: string; suffix: string }> = {
-    open: { dataKey: "openValue", color: "#6b7280", label: "Pipeline ouvert", suffix: " €" },
+    open: { dataKey: "openValue", color: "hsl(var(--muted-foreground))", label: "Pipeline ouvert", suffix: " €" },
     weighted: { dataKey: "weightedValue", color: "#d97706", label: "Pipeline pondéré", suffix: " €" },
-    won: { dataKey: "wonValue", color: "#16a34a", label: "Gagné", suffix: " €" },
-    lost: { dataKey: "lostValue", color: "#dc2626", label: "Perdu", suffix: " €" },
-    conversion: { dataKey: "conversionRate", color: "#6b7280", label: "Taux de conversion", suffix: "%" },
+    won: { dataKey: "wonValue", color: "hsl(var(--feedback-success))", label: "Gagné", suffix: " €" },
+    lost: { dataKey: "lostValue", color: "hsl(var(--feedback-danger-ink))", label: "Perdu", suffix: " €" },
+    conversion: { dataKey: "conversionRate", color: "hsl(var(--muted-foreground))", label: "Taux de conversion", suffix: "%" },
   };
 
   return (

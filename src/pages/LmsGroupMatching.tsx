@@ -33,7 +33,7 @@ function MiniAvatar({ email, firstName, lastName, photoUrl }: { email: string; f
   return (
     <div
       className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-micro font-bold shrink-0"
-      style={{ background: photoUrl ? "transparent" : "hsl(var(--yellow-brand))", color: "#101820" }}
+      style={{ background: photoUrl ? "transparent" : "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}
       title={isDemoMode ? maskName(fullName) : fullName}
     >
       {photoUrl ? <img src={photoUrl} alt="" className="w-full h-full object-cover" /> : initials}
@@ -253,7 +253,7 @@ function MatchingPostCard({ post }: { post: MatchingPostSummary }) {
       <Card>
         <CardContent className="p-4 flex items-start gap-4">
           <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: "rgba(255,209,0,0.15)" }}>
+            style={{ background: "hsl(var(--yellow-brand) / 0.15)" }}>
             <Users className="h-5 w-5" style={{ color: "hsl(var(--ink))" }} />
           </div>
           <div className="flex-1 min-w-0 space-y-1">

@@ -95,7 +95,7 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle, 
             transition: "background 120ms ease",
           }}
           onMouseEnter={(e) => {
-            if (!activeHome) (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)";
+            if (!activeHome) (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.04)";
           }}
           onMouseLeave={(e) => {
             if (!activeHome) (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -139,7 +139,7 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle, 
             opacity: createModule.isPending ? 0.5 : 1,
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)";
+            (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.04)";
             (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
           }}
           onMouseLeave={(e) => {
@@ -200,13 +200,13 @@ function ReorderButtons({
           padding: 2,
           borderRadius: 4,
           background: "transparent",
-          color: isFirst || disabled ? "rgba(16,24,32,0.2)" : "hsl(var(--ink) / 0.6)",
+          color: isFirst || disabled ? "hsl(var(--ink) / 0.2)" : "hsl(var(--ink) / 0.6)",
           cursor: isFirst || disabled ? "not-allowed" : "pointer",
           display: "flex",
         }}
         onMouseEnter={(e) => {
           if (!isFirst && !disabled) {
-            (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.08)";
+            (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.08)";
             (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
           }
         }}
@@ -231,13 +231,13 @@ function ReorderButtons({
           padding: 2,
           borderRadius: 4,
           background: "transparent",
-          color: isLast || disabled ? "rgba(16,24,32,0.2)" : "hsl(var(--ink) / 0.6)",
+          color: isLast || disabled ? "hsl(var(--ink) / 0.2)" : "hsl(var(--ink) / 0.6)",
           cursor: isLast || disabled ? "not-allowed" : "pointer",
           display: "flex",
         }}
         onMouseEnter={(e) => {
           if (!isLast && !disabled) {
-            (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.08)";
+            (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.08)";
             (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
           }
         }}
@@ -387,7 +387,7 @@ function ModuleItem({
         className="group flex items-start gap-2 cursor-pointer"
         onClick={() => !renaming && setOpen((o) => !o)}
         style={{ padding: ".5rem .75rem", fontWeight: 600, fontSize: ".875rem", color: "hsl(var(--ink))", borderRadius: 8, justifyContent: "space-between" }}
-        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)")}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.04)")}
         onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
       >
         <div className="flex items-start gap-2" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
@@ -412,11 +412,11 @@ function ModuleItem({
               }}
               onClick={(e) => e.stopPropagation()}
               className="flex-1 min-w-0 outline-none rounded px-1"
-              style={{ fontSize: ".875rem", fontWeight: 600, color: "hsl(var(--ink))", background: "hsl(var(--white))", border: "1px solid rgba(16,24,32,0.2)", padding: "1px 4px" }}
+              style={{ fontSize: ".875rem", fontWeight: 600, color: "hsl(var(--ink))", background: "hsl(var(--white))", border: "1px solid hsl(var(--ink) / 0.2)", padding: "1px 4px" }}
             />
           ) : (
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: ".6875rem", fontWeight: 700, color: mod.is_special_section ? "rgba(255,209,0,0.7)" : "hsl(var(--ink) / 0.5)", letterSpacing: ".04em", textTransform: "uppercase", lineHeight: 1.2 }}>
+              <div style={{ fontSize: ".6875rem", fontWeight: 700, color: mod.is_special_section ? "hsl(var(--yellow-brand) / 0.7)" : "hsl(var(--ink) / 0.5)", letterSpacing: ".04em", textTransform: "uppercase", lineHeight: 1.2 }}>
                 {mod.is_special_section ? "Section spéciale" : `Module ${index}`}
               </div>
               <div
@@ -447,7 +447,7 @@ function ModuleItem({
                 onClick={handleStartRename}
                 className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                 style={{ width: 22, height: 22, borderRadius: 4, padding: 0, color: "hsl(var(--ink) / 0.5)", background: "transparent" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.1)"; (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))"; }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.1)"; (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.5)"; }}
               >
                 <Pencil size={11} />
@@ -459,7 +459,7 @@ function ModuleItem({
                 disabled={deleteModule.isPending}
                 className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                 style={{ width: 22, height: 22, borderRadius: 4, padding: 0, color: "hsl(var(--ink) / 0.5)", background: "transparent" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(220,38,38,0.08)"; (e.currentTarget as HTMLElement).style.color = "#dc2626"; }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(220,38,38,0.08)"; (e.currentTarget as HTMLElement).style.color = "hsl(var(--feedback-danger-ink))"; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.5)"; }}
               >
                 <Trash2 size={11} />
@@ -469,9 +469,9 @@ function ModuleItem({
                 aria-label={mod.is_special_section ? "Convertir en module normal" : "Marquer comme section spéciale"}
                 onClick={handleToggleSpecial}
                 className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                style={{ width: 22, height: 22, borderRadius: 4, padding: 0, color: mod.is_special_section ? "rgba(255,209,0,0.9)" : "hsl(var(--ink) / 0.5)", background: mod.is_special_section ? "rgba(255,209,0,0.15)" : "transparent" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,209,0,0.2)"; (e.currentTarget as HTMLElement).style.color = "#b8950a"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = mod.is_special_section ? "rgba(255,209,0,0.15)" : "transparent"; (e.currentTarget as HTMLElement).style.color = mod.is_special_section ? "rgba(255,209,0,0.9)" : "hsl(var(--ink) / 0.5)"; }}
+                style={{ width: 22, height: 22, borderRadius: 4, padding: 0, color: mod.is_special_section ? "hsl(var(--yellow-brand) / 0.9)" : "hsl(var(--ink) / 0.5)", background: mod.is_special_section ? "hsl(var(--yellow-brand) / 0.15)" : "transparent" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "hsl(var(--yellow-brand) / 0.2)"; (e.currentTarget as HTMLElement).style.color = "#b8950a"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = mod.is_special_section ? "hsl(var(--yellow-brand) / 0.15)" : "transparent"; (e.currentTarget as HTMLElement).style.color = mod.is_special_section ? "hsl(var(--yellow-brand) / 0.9)" : "hsl(var(--ink) / 0.5)"; }}
               >
                 <Layers size={11} />
               </button>
@@ -516,7 +516,7 @@ function ModuleItem({
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
-            (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)";
+            (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.04)";
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.5)";
@@ -621,7 +621,7 @@ function LessonItem({
         onMouseEnter={(e) => {
           if (!isActive) {
             (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
-            (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.03)";
+            (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.03)";
           }
         }}
         onMouseLeave={(e) => {
@@ -633,7 +633,7 @@ function LessonItem({
       >
         <span
           className="flex items-center justify-center shrink-0"
-          style={{ width: 16, height: 16, color: isActive ? "hsl(var(--ink))" : "rgba(16,24,32,0.4)" }}
+          style={{ width: 16, height: 16, color: isActive ? "hsl(var(--ink))" : "hsl(var(--ink) / 0.4)" }}
         >
           <FileText size={16} />
         </span>
@@ -662,9 +662,9 @@ function LessonItem({
                 onClick={(e) => { e.stopPropagation(); setShowMoveMenu((v) => !v); }}
                 disabled={moveLesson.isPending}
                 className="flex items-center justify-center"
-                style={{ width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent", cursor: "pointer", color: "rgba(16,24,32,0.4)", flexShrink: 0 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))"; (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.08)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                style={{ width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent", cursor: "pointer", color: "hsl(var(--ink) / 0.4)", flexShrink: 0 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))"; (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.08)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.4)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
               >
                 <ArrowRightLeft size={11} />
               </button>
@@ -672,7 +672,7 @@ function LessonItem({
                 <>
                   <div style={{ position: "fixed", inset: 0, zIndex: 49 }} onClick={(e) => { e.stopPropagation(); setShowMoveMenu(false); }} />
                   <div
-                    style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 50, minWidth: 160, background: "hsl(var(--white))", border: "1px solid rgba(16,24,32,0.12)", borderRadius: 8, boxShadow: "0 4px 16px rgba(16,24,32,0.12)", padding: "4px 0" }}
+                    style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 50, minWidth: 160, background: "hsl(var(--white))", border: "1px solid hsl(var(--ink) / 0.12)", borderRadius: 8, boxShadow: "0 4px 16px hsl(var(--ink) / 0.12)", padding: "4px 0" }}
                   >
                     <div style={{ fontSize: ".6875rem", fontWeight: 600, color: "hsl(var(--ink) / 0.5)", padding: "4px 12px 2px", textTransform: "uppercase", letterSpacing: ".04em" }}>
                       Déplacer vers
@@ -683,7 +683,7 @@ function LessonItem({
                         type="button"
                         onClick={(e) => handleMoveToModule(e, m.id)}
                         style={{ width: "100%", textAlign: "left", padding: "6px 12px", fontSize: ".8125rem", color: "hsl(var(--ink))", background: "transparent", border: "none", cursor: "pointer" }}
-                        onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)"}
+                        onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.04)"}
                         onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = "transparent"}
                       >
                         {m.title.length > 28 ? m.title.slice(0, 28) + "…" : m.title}
@@ -700,9 +700,9 @@ function LessonItem({
             onClick={handleDuplicate}
             disabled={duplicateLesson.isPending}
             className="flex items-center justify-center"
-            style={{ width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent", cursor: "pointer", color: "rgba(16,24,32,0.4)", flexShrink: 0 }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))"; (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.08)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+            style={{ width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent", cursor: "pointer", color: "hsl(var(--ink) / 0.4)", flexShrink: 0 }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))"; (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.08)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.4)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
           >
             <Copy size={11} />
           </button>
@@ -712,9 +712,9 @@ function LessonItem({
             onClick={handleDelete}
             disabled={deleteLesson.isPending}
             className="flex items-center justify-center"
-            style={{ width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent", cursor: "pointer", color: "rgba(16,24,32,0.4)", flexShrink: 0 }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#dc2626"; (e.currentTarget as HTMLElement).style.background = "rgba(220,38,38,0.08)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+            style={{ width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent", cursor: "pointer", color: "hsl(var(--ink) / 0.4)", flexShrink: 0 }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "hsl(var(--feedback-danger-ink))"; (e.currentTarget as HTMLElement).style.background = "rgba(220,38,38,0.08)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.4)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
           >
             <Trash2 size={12} />
           </button>

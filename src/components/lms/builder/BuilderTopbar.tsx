@@ -45,7 +45,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
       ? { dot: "rgb(249,115,22)", text: "rgb(194,65,12)", border: "rgba(249,115,22,0.35)" }
       : isToReview
         ? { dot: "rgb(245,158,11)", text: "rgb(180,83,9)", border: "rgba(245,158,11,0.35)" }
-        : { dot: "hsl(var(--ink) / 0.55)", text: "hsl(var(--ink) / 0.55)", border: "rgba(16,24,32,0.15)" };
+        : { dot: "hsl(var(--ink) / 0.55)", text: "hsl(var(--ink) / 0.55)", border: "hsl(var(--ink) / 0.15)" };
 
   const togglePublish = async () => {
     const next = isPublished ? "draft" : "published";
@@ -88,7 +88,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
   return (
     <header
       className="sticky top-0 z-30 flex items-center gap-3 px-4 h-16 border-b"
-      style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}
+      style={{ background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.08)" }}
     >
       {/* Hamburger (mobile) */}
       <button
@@ -112,7 +112,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
       {/* Divider */}
       <div
         className="hidden lg:block w-px self-stretch my-3 shrink-0"
-        style={{ background: "rgba(16,24,32,0.1)" }}
+        style={{ background: "hsl(var(--ink) / 0.1)" }}
       />
 
       {/* Title — centred, shared state */}
@@ -228,7 +228,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           className="hidden sm:flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
           style={{
             color: "hsl(var(--ink))",
-            borderColor: "rgba(16,24,32,0.2)",
+            borderColor: "hsl(var(--ink) / 0.2)",
             fontFamily: "inherit",
             textDecoration: "none",
           }}

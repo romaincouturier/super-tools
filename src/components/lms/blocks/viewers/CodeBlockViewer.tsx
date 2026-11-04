@@ -37,7 +37,7 @@ export default function CodeBlockViewer({ content }: Props) {
         borderRadius: 12,
         overflow: "hidden",
         background: "#1e242e",
-        border: "1px solid rgba(255,255,255,0.08)",
+        border: "1px solid hsl(var(--white) / 0.08)",
       }}
     >
       <div
@@ -47,7 +47,7 @@ export default function CodeBlockViewer({ content }: Props) {
           gap: "0.75rem",
           padding: "0.5rem 0.75rem 0.5rem 1rem",
           background: "#151a21",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          borderBottom: "1px solid hsl(var(--white) / 0.06)",
         }}
       >
         <span
@@ -71,7 +71,7 @@ export default function CodeBlockViewer({ content }: Props) {
             gap: "0.375rem",
             padding: "0.25rem 0.625rem",
             borderRadius: 6,
-            border: "1px solid rgba(255,255,255,0.12)",
+            border: "1px solid hsl(var(--white) / 0.12)",
             background: "transparent",
             color: copied ? "#98c379" : "#8b949e",
             fontSize: "0.75rem",
@@ -80,7 +80,7 @@ export default function CodeBlockViewer({ content }: Props) {
             flexShrink: 0,
             transition: "color 120ms, background 120ms",
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)"; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "hsl(var(--white) / 0.06)"; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
         >
           {copied ? <Check size={13} /> : <Copy size={13} />}

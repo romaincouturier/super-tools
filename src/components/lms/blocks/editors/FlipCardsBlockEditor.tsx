@@ -12,7 +12,7 @@ import { cryptoRandomId } from "@/types/lms-blocks";
 import type { FlipCardsBlockContent, FlipCard } from "@/types/lms-blocks";
 
 const MAX_CARDS = 4;
-const ACCENT = "#FFD100";
+const ACCENT = "hsl(var(--yellow-brand))";
 
 interface Props {
   lessonId: string;
@@ -179,8 +179,8 @@ function SlimCard({
     <div
       style={{
         borderRadius: 14,
-        border: `2px solid ${showBack ? ACCENT : "#e5e7eb"}`,
-        background: showBack ? "#fffef5" : "#ffffff",
+        border: `2px solid ${showBack ? ACCENT : "hsl(var(--border))"}`,
+        background: showBack ? "#fffef5" : "hsl(var(--white))",
         padding: "0.75rem",
         display: "flex",
         flexDirection: "column",
@@ -206,7 +206,7 @@ function SlimCard({
       <div
         style={{
           width: "100%", height: 40, borderRadius: 6,
-          background: "#f3f4f6",
+          background: "hsl(var(--muted))",
           display: "flex", alignItems: "center", justifyContent: "center",
           cursor: "pointer", overflow: "hidden",
         }}
@@ -216,7 +216,7 @@ function SlimCard({
         {uploading ? <Spinner size="sm" /> : imageUrl ? (
           <img src={imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
-          <Upload size={14} style={{ color: "#9ca3af" }} />
+          <Upload size={14} style={{ color: "hsl(var(--muted-foreground))" }} />
         )}
         <input
           type="file"
@@ -239,7 +239,7 @@ function SlimCard({
       {canRemove && (
         <button
           onClick={onRemove}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#d1d5db", alignSelf: "center", marginTop: 2 }}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "hsl(var(--border))", alignSelf: "center", marginTop: 2 }}
         >
           <X size={13} />
         </button>

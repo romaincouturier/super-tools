@@ -19,9 +19,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { AlertDot } from "@/components/ui/alert-dot";
 import UserMenu from "@/components/UserMenu";
 
-const CREAM = "#f7f5f0";
-const ANTHRACITE = "#101820";
-const YELLOW = "#ffd100";
+const CREAM = "hsl(var(--cream))";
+const ANTHRACITE = "hsl(var(--ink))";
+const YELLOW = "hsl(var(--yellow-brand))";
 
 const COLLAPSED_WIDTH = 72;
 const EXPANDED_WIDTH = 240;

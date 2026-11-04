@@ -17,14 +17,14 @@ export function statusBadge(status: string | null) {
     case "soumis":
       return (
         <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
-          style={{ background: "#dcfce7", color: "#15803d" }}>
+          style={{ background: "hsl(var(--feedback-success-surface))", color: "hsl(var(--feedback-success))" }}>
           <CheckCircle2 size={10} /> Complété
         </span>
       );
     case "en_cours":
       return (
         <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
-          style={{ background: "#f1f5f9", color: "#475569" }}>
+          style={{ background: "hsl(var(--muted))", color: "#475569" }}>
           <Clock size={10} /> En cours
         </span>
       );
@@ -56,8 +56,8 @@ export function ProgressCircle({ pct, size = 80 }: { pct: number; size?: number 
   return (
     <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#EDEDED" strokeWidth={7} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#FFD100" strokeWidth={7}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="hsl(var(--border))" strokeWidth={7} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="hsl(var(--yellow-brand))" strokeWidth={7}
           strokeLinecap="round"
           strokeDasharray={`${dash} ${circ}`}
           style={{ transition: "stroke-dasharray 1s ease" }}
@@ -84,11 +84,11 @@ export function CoachingCircles({ completed, total }: { completed: number; total
             key={i}
             className="h-5 w-5 rounded-full border-2 flex items-center justify-center"
             style={{
-              background: isDone ? "#FFD100" : "transparent",
-              borderColor: isDone ? "#FFD100" : "rgba(16,24,32,0.25)",
+              background: isDone ? "hsl(var(--yellow-brand))" : "transparent",
+              borderColor: isDone ? "hsl(var(--yellow-brand))" : "hsl(var(--ink) / 0.25)",
             }}
           >
-            {isDone && <CheckCircle2 size={10} style={{ color: "#101820" }} />}
+            {isDone && <CheckCircle2 size={10} style={{ color: "hsl(var(--ink))" }} />}
           </div>
         );
       })}
@@ -178,7 +178,7 @@ export function TrainingDetail({
               <ul className="space-y-1">
                 {training.objectives!.map((obj, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "hsl(var(--ink))" }}>
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#FFD100" }} />
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "hsl(var(--yellow-brand))" }} />
                     {obj}
                   </li>
                 ))}
@@ -193,7 +193,7 @@ export function TrainingDetail({
               <ul className="space-y-1">
                 {training.prerequisites!.map((req, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "hsl(var(--ink))" }}>
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "rgba(16,24,32,0.25)" }} />
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "hsl(var(--ink) / 0.25)" }} />
                     {req}
                   </li>
                 ))}
@@ -207,8 +207,8 @@ export function TrainingDetail({
               {training.program_file_url && (
                 <button type="button" onClick={() => { void openStorageUrl(training.program_file_url!); }}
                   className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                  style={{ borderColor: "rgba(16,24,32,0.1)", color: "hsl(var(--ink))" }}>
-                  <Download size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
+                  style={{ borderColor: "hsl(var(--ink) / 0.1)", color: "hsl(var(--ink))" }}>
+                  <Download size={14} style={{ color: "hsl(var(--yellow-brand))", flexShrink: 0 }} />
                   Programme
                   <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }} />
                 </button>
@@ -216,8 +216,8 @@ export function TrainingDetail({
               {training.reglement_interieur_url && (
                 <a href={training.reglement_interieur_url} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                  style={{ borderColor: "rgba(16,24,32,0.1)", color: "hsl(var(--ink))" }}>
-                  <FileText size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
+                  style={{ borderColor: "hsl(var(--ink) / 0.1)", color: "hsl(var(--ink))" }}>
+                  <FileText size={14} style={{ color: "hsl(var(--yellow-brand))", flexShrink: 0 }} />
                   Règlement intérieur
                   <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }} />
                 </a>
@@ -231,7 +231,7 @@ export function TrainingDetail({
               <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "hsl(var(--ink) / 0.55)" }}>Votre formateur</p>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center text-sm font-bold"
-                  style={{ background: training.trainer_photo_url ? "transparent" : "#EDEDED", color: "#101820" }}>
+                  style={{ background: training.trainer_photo_url ? "transparent" : "hsl(var(--border))", color: "hsl(var(--ink))" }}>
                   {training.trainer_photo_url
                     ? <img src={training.trainer_photo_url} alt={training.trainer_name} className="w-full h-full object-cover" />
                     : training.trainer_name.split(" ").map(n => n[0]).join("").toUpperCase()}
@@ -260,8 +260,8 @@ export function TrainingDetail({
               <button key={`${doc.file_url}-${i}`} type="button"
                 onClick={() => { void openStorageUrl(doc.file_url); }}
                 className="flex items-center gap-2 p-3 rounded-xl border text-sm text-left transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.1)", color: "hsl(var(--ink))" }}>
-                <Download size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
+                style={{ borderColor: "hsl(var(--ink) / 0.1)", color: "hsl(var(--ink))" }}>
+                <Download size={14} style={{ color: "hsl(var(--yellow-brand))", flexShrink: 0 }} />
                 <span className="truncate">{doc.file_name || "Document"}</span>
                 <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }} />
               </button>
@@ -269,8 +269,8 @@ export function TrainingDetail({
             {training.program_file_url && (
               <button type="button" onClick={() => { void openStorageUrl(training.program_file_url!); }}
                 className="flex items-center gap-2 p-3 rounded-xl border text-sm text-left transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.1)", color: "hsl(var(--ink))" }}>
-                <Download size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
+                style={{ borderColor: "hsl(var(--ink) / 0.1)", color: "hsl(var(--ink))" }}>
+                <Download size={14} style={{ color: "hsl(var(--yellow-brand))", flexShrink: 0 }} />
                 Programme de formation
                 <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }} />
               </button>
@@ -278,8 +278,8 @@ export function TrainingDetail({
             {training.supports_url && (
               <a href={training.supports_url} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.1)", color: "hsl(var(--ink))" }}>
-                <FileText size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
+                style={{ borderColor: "hsl(var(--ink) / 0.1)", color: "hsl(var(--ink))" }}>
+                <FileText size={14} style={{ color: "hsl(var(--yellow-brand))", flexShrink: 0 }} />
                 Supports de formation
                 <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }} />
               </a>
@@ -287,8 +287,8 @@ export function TrainingDetail({
             {questionnaire && (
               <Link to={`/questionnaire/${questionnaire.token}`}
                 className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.1)", color: "hsl(var(--ink))" }}>
-                <ClipboardCheck size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
+                style={{ borderColor: "hsl(var(--ink) / 0.1)", color: "hsl(var(--ink))" }}>
+                <ClipboardCheck size={14} style={{ color: "hsl(var(--yellow-brand))", flexShrink: 0 }} />
                 Questionnaire des besoins
                 <span className="ml-auto">{statusBadge(questionnaire.etat)}</span>
               </Link>
@@ -296,8 +296,8 @@ export function TrainingDetail({
             {evaluation && (
               <Link to={`/evaluation/${evaluation.token}`}
                 className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.1)", color: "hsl(var(--ink))" }}>
-                <ClipboardCheck size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
+                style={{ borderColor: "hsl(var(--ink) / 0.1)", color: "hsl(var(--ink))" }}>
+                <ClipboardCheck size={14} style={{ color: "hsl(var(--yellow-brand))", flexShrink: 0 }} />
                 Évaluation à chaud
                 <span className="ml-auto">{statusBadge(evaluation.etat)}</span>
               </Link>
@@ -327,7 +327,7 @@ export function TrainingDetail({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-full transition-all hover:-translate-y-0.5"
-                style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}
+                style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}
               >
                 <CalendarPlus size={14} />
                 Prendre rendez-vous →
@@ -340,9 +340,9 @@ export function TrainingDetail({
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed p-6 text-center space-y-4"
-            style={{ borderColor: "rgba(16,24,32,0.12)", background: "rgba(16,24,32,0.02)" }}>
+            style={{ borderColor: "hsl(var(--ink) / 0.12)", background: "hsl(var(--ink) / 0.02)" }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto"
-              style={{ background: "#EDEDED" }}>
+              style={{ background: "hsl(var(--border))" }}>
               <Lock size={16} style={{ color: "hsl(var(--ink) / 0.55)" }} />
             </div>
             <div>
@@ -355,7 +355,7 @@ export function TrainingDetail({
               disabled={requestingCoach === training.training_id}
               onClick={() => onRequestCoach(training)}
               className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-black/5"
-              style={{ borderColor: "rgba(16,24,32,0.2)", color: "hsl(var(--ink))", fontFamily: "inherit" }}
+              style={{ borderColor: "hsl(var(--ink) / 0.2)", color: "hsl(var(--ink))", fontFamily: "inherit" }}
             >
               {requestingCoach === training.training_id ? (
                 <Spinner className="mr-1" />
@@ -410,9 +410,9 @@ export function FormationItem({
     <div
       className="rounded-2xl border overflow-hidden"
       style={{
-        borderColor: "rgba(16,24,32,0.08)",
+        borderColor: "hsl(var(--ink) / 0.08)",
         background: "hsl(var(--white))",
-        boxShadow: "0 2px 20px rgba(16,24,32,0.06)",
+        boxShadow: "0 2px 20px hsl(var(--ink) / 0.06)",
       }}
     >
       {/* Main info */}
@@ -420,7 +420,7 @@ export function FormationItem({
         <div className="flex items-start gap-3">
           <div className="w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center"
             style={{ background: "hsl(var(--yellow-brand) / 0.22)" }}>
-            <BookOpen size={20} style={{ color: "#101820" }} />
+            <BookOpen size={20} style={{ color: "hsl(var(--ink))" }} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-2 justify-between">
@@ -428,7 +428,7 @@ export function FormationItem({
                 {training.lms_course_title || training.training_name}
               </p>
               <span className="text-xs px-2 py-0.5 rounded-full shrink-0 font-medium"
-                style={{ background: isDone ? "#dcfce7" : "#fffbea", color: isDone ? "#15803d" : "#854d0e" }}>
+                style={{ background: isDone ? "hsl(var(--feedback-success-surface))" : "hsl(var(--feedback-warning-surface))", color: isDone ? "hsl(var(--feedback-success))" : "#854d0e" }}>
                 {isDone ? "Terminée" : hasStarted ? "En cours" : "Non commencée"}
               </span>
             </div>
@@ -438,9 +438,9 @@ export function FormationItem({
                   <span>Progression</span>
                   <span className="font-semibold" style={{ color: "hsl(var(--ink))" }}>{Math.round(completion)}%</span>
                 </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
+                <div className="h-2 rounded-full overflow-hidden" style={{ background: "hsl(var(--border))" }}>
                   <div className="h-full rounded-full transition-all"
-                    style={{ width: `${Math.min(completion, 100)}%`, background: "#FFD100" }} />
+                    style={{ width: `${Math.min(completion, 100)}%`, background: "hsl(var(--yellow-brand))" }} />
                 </div>
               </div>
             )}
@@ -458,7 +458,7 @@ export function FormationItem({
           <div className="flex flex-col sm:flex-row gap-2 mt-4">
             <Link to={continueUrl}
               className="flex items-center justify-center gap-1.5 text-sm font-semibold px-5 py-2 rounded-full transition-all hover:-translate-y-0.5 w-full sm:w-auto"
-              style={{ background: "hsl(var(--yellow-brand))", color: "#101820" }}>
+              style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}>
               {isDone
                 ? <><RefreshCw size={13} /> Revoir</>
                 : hasStarted
@@ -467,7 +467,7 @@ export function FormationItem({
             </Link>
             <Link to={`/lms/${training.lms_course_id}/home?email=${encodeURIComponent(email)}`}
               className="flex items-center justify-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-black/5 w-full sm:w-auto"
-              style={{ borderColor: "rgba(16,24,32,0.15)", color: "hsl(var(--ink))" }}>
+              style={{ borderColor: "hsl(var(--ink) / 0.15)", color: "hsl(var(--ink))" }}>
               Accueil du cours
             </Link>
           </div>
@@ -476,7 +476,7 @@ export function FormationItem({
 
       {/* Onglets — uniquement s'il y a quelque chose à afficher */}
       {showTabs && (
-        <div className="border-t" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
+        <div className="border-t" style={{ borderColor: "hsl(var(--ink) / 0.08)" }}>
           <button
             onClick={() => setExpanded((v) => !v)}
             className="w-full flex items-center gap-2 px-5 py-3 text-sm transition-all hover:bg-black/5 text-left"

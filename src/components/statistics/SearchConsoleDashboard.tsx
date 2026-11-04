@@ -288,7 +288,7 @@ const SearchConsoleDashboard = () => {
                 <Tooltip />
                 <Legend />
                 <Area yAxisId="left" type="monotone" dataKey="clics" name="Clics" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.15} strokeWidth={2} />
-                <Area yAxisId="right" type="monotone" dataKey="impressions" name="Impressions" stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={2} />
+                <Area yAxisId="right" type="monotone" dataKey="impressions" name="Impressions" stroke="hsl(var(--feedback-success))" fill="hsl(var(--feedback-success))" fillOpacity={0.1} strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           )}

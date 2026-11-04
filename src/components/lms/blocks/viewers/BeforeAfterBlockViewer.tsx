@@ -93,13 +93,13 @@ export default function BeforeAfterBlockViewer({ content }: Props) {
           onMouseDown={onMouseDown}
           onTouchStart={onTouchStart}
         >
-          <div style={{ width: 3, height: "100%", background: "#FFD100", position: "absolute" }} />
+          <div style={{ width: 3, height: "100%", background: "hsl(var(--yellow-brand))", position: "absolute" }} />
           <div
             style={{
               width: 36,
               height: 36,
               borderRadius: "50%",
-              background: "#FFD100",
+              background: "hsl(var(--yellow-brand))",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -107,7 +107,7 @@ export default function BeforeAfterBlockViewer({ content }: Props) {
               position: "relative",
             }}
           >
-            <ArrowLeftRight size={16} style={{ color: "#101820" }} />
+            <ArrowLeftRight size={16} style={{ color: "hsl(var(--ink))" }} />
           </div>
         </div>
 
@@ -124,7 +124,7 @@ export default function BeforeAfterBlockViewer({ content }: Props) {
         )}
       </div>
       {content.caption && (
-        <p className="text-xs text-center" style={{ color: "rgba(16,24,32,0.5)" }}>{content.caption}</p>
+        <p className="text-xs text-center" style={{ color: "hsl(var(--ink) / 0.5)" }}>{content.caption}</p>
       )}
     </div>
   );

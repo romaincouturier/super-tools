@@ -91,10 +91,10 @@ export default function PostComposer({
   };
 
   return (
-    <div className="rounded-2xl border p-4" style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}>
+    <div className="rounded-2xl border p-4" style={{ background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.08)" }}>
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
-          style={{ background: photoUrl ? "transparent" : "hsl(var(--yellow-brand))", color: "#101820" }}>
+          style={{ background: photoUrl ? "transparent" : "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}>
           {photoUrl ? <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" /> : initials}
         </div>
 
@@ -102,7 +102,7 @@ export default function PostComposer({
           <button
             onClick={() => setExpanded(true)}
             className="flex-1 text-left rounded-full border px-4 py-2.5 text-sm transition-colors hover:bg-black/5"
-            style={{ borderColor: "rgba(16,24,32,0.12)", color: "hsl(var(--ink) / 0.55)", fontFamily: "inherit" }}
+            style={{ borderColor: "hsl(var(--ink) / 0.12)", color: "hsl(var(--ink) / 0.55)", fontFamily: "inherit" }}
           >
             {PLACEHOLDER}
           </button>
@@ -116,7 +116,7 @@ export default function PostComposer({
                 placeholder={PLACEHOLDER}
                 rows={9}
                 className="w-full resize-none rounded-xl border px-3 py-2.5 pr-10 text-sm outline-none"
-                style={{ borderColor: "rgba(16,24,32,0.12)", background: "transparent", color: "hsl(var(--ink))", fontFamily: "inherit" }}
+                style={{ borderColor: "hsl(var(--ink) / 0.12)", background: "transparent", color: "hsl(var(--ink))", fontFamily: "inherit" }}
               />
               <div className="absolute bottom-2 right-2">
                 <EmojiInsert onInsert={(e) => setContent((t) => t + e)} />
@@ -125,7 +125,7 @@ export default function PostComposer({
 
             {/* Attachment preview */}
             {(file || gifUrl) && (
-              <div className="relative rounded-xl border p-2" style={{ borderColor: "rgba(16,24,32,0.12)" }}>
+              <div className="relative rounded-xl border p-2" style={{ borderColor: "hsl(var(--ink) / 0.12)" }}>
                 {gifUrl ? (
                   <img src={gifUrl} alt="GIF" className="w-full rounded-lg object-cover" style={{ maxHeight: 240 }} />
                 ) : preview ? (
@@ -138,7 +138,7 @@ export default function PostComposer({
                 <button
                   onClick={() => { setFile(null); setPreview(null); setGifUrl(null); }}
                   className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(16,24,32,0.6)", color: "#fff" }}
+                  style={{ background: "hsl(var(--ink) / 0.6)", color: "#fff" }}
                 >
                   <X size={14} />
                 </button>
@@ -154,7 +154,7 @@ export default function PostComposer({
 
             {/* Poll editor */}
             {pollOptions !== null && (
-              <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "rgba(16,24,32,0.12)" }}>
+              <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "hsl(var(--ink) / 0.12)" }}>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold" style={{ color: "hsl(var(--ink))" }}>Sondage</span>
                   <button onClick={() => setPollOptions(null)} className="text-xs hover:underline" style={{ color: "hsl(var(--ink) / 0.55)" }}>
@@ -169,7 +169,7 @@ export default function PostComposer({
                       onChange={(e) => setPollOptions((prev) => prev!.map((o, idx) => (idx === i ? e.target.value : o)))}
                       placeholder={`Option ${i + 1}`}
                       className="flex-1 text-sm rounded-lg border px-3 py-1.5 outline-none"
-                      style={{ borderColor: "rgba(16,24,32,0.12)", background: "transparent", color: "hsl(var(--ink))", fontFamily: "inherit" }}
+                      style={{ borderColor: "hsl(var(--ink) / 0.12)", background: "transparent", color: "hsl(var(--ink))", fontFamily: "inherit" }}
                     />
                     {pollOptions.length > 2 && (
                       <button onClick={() => setPollOptions((prev) => prev!.filter((_, idx) => idx !== i))}
@@ -190,7 +190,7 @@ export default function PostComposer({
 
             {/* Matching config panel (staff only) */}
             {isStaff && matchingEnabled && (
-              <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "rgba(16,24,32,0.12)" }}>
+              <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "hsl(var(--ink) / 0.12)" }}>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold" style={{ color: "hsl(var(--ink))" }}>Mise en relation</span>
                   <button onClick={() => setMatchingEnabled(false)} className="text-xs hover:underline" style={{ color: "hsl(var(--ink) / 0.55)" }}>
@@ -247,7 +247,7 @@ export default function PostComposer({
                   onClick={handlePublish}
                   disabled={!canPublish || posting}
                   className="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
-                  style={{ background: "hsl(var(--yellow-brand))", color: "#101820", fontFamily: "inherit" }}
+                  style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit" }}
                 >
                   {posting ? "Publication..." : "Publier"}
                 </button>
@@ -277,7 +277,7 @@ function ToolbarButton({ icon: Icon, label, onClick, active }: {
     <button
       onClick={onClick}
       className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg transition-colors hover:bg-black/5"
-      style={{ color: active ? "#101820" : "hsl(var(--ink) / 0.55)", background: active ? "rgba(255,209,0,0.2)" : "transparent", fontFamily: "inherit" }}
+      style={{ color: active ? "hsl(var(--ink))" : "hsl(var(--ink) / 0.55)", background: active ? "hsl(var(--yellow-brand) / 0.2)" : "transparent", fontFamily: "inherit" }}
     >
       <Icon size={16} /> {label}
     </button>
@@ -289,7 +289,7 @@ function GifToolbarButton({ active, onClick }: { active: boolean; onClick: () =>
     <button
       onClick={onClick}
       className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg transition-colors hover:bg-black/5 font-bold"
-      style={{ color: active ? "#101820" : "hsl(var(--ink) / 0.55)", background: active ? "rgba(255,209,0,0.2)" : "transparent", fontFamily: "inherit", letterSpacing: "0.04em" }}
+      style={{ color: active ? "hsl(var(--ink))" : "hsl(var(--ink) / 0.55)", background: active ? "hsl(var(--yellow-brand) / 0.2)" : "transparent", fontFamily: "inherit", letterSpacing: "0.04em" }}
     >
       GIF
     </button>

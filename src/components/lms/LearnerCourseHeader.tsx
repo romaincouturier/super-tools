@@ -31,14 +31,14 @@ export default function LearnerCourseHeader({
   return (
     <header
       className="sticky top-0 z-30 flex items-center gap-3 h-16 px-6 bg-white shrink-0"
-      style={{ borderBottom: "1px solid #EDEDED" }}
+      style={{ borderBottom: "1px solid hsl(var(--border))" }}
     >
       <button
         onClick={onToggleSidebar}
         className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors hover:bg-black/5 shrink-0"
         aria-label="Ouvrir/fermer le menu de parcours"
       >
-        <Menu size={18} style={{ color: "#101820" }} />
+        <Menu size={18} style={{ color: "hsl(var(--ink))" }} />
       </button>
 
       <a
@@ -49,18 +49,18 @@ export default function LearnerCourseHeader({
         <SupertiltLogo className="h-8" />
       </a>
 
-      <div className="hidden lg:block w-px h-7 shrink-0" style={{ background: "#EDEDED" }} />
+      <div className="hidden lg:block w-px h-7 shrink-0" style={{ background: "hsl(var(--border))" }} />
 
       <div className="flex-1 min-w-0">
         <p
           className="text-caption font-medium leading-none mb-0.5 hidden lg:block"
-          style={{ color: "#9CA3AF" }}
+          style={{ color: "hsl(var(--muted-foreground))" }}
         >
           Mes formations
         </p>
         <p
           className="text-sm font-semibold truncate leading-tight"
-          style={{ color: "#101820" }}
+          style={{ color: "hsl(var(--ink))" }}
         >
           {courseTitle}
         </p>
@@ -75,7 +75,7 @@ export default function LearnerCourseHeader({
           aria-label="Notifications"
           title="Vous n'avez pas eu de retour sur vos travaux"
         >
-          <Bell size={18} style={{ color: "#101820" }} />
+          <Bell size={18} style={{ color: "hsl(var(--ink))" }} />
         </button>
 
         <LearnerAccountMenu learnerEmail={learnerEmail} isPreview={isPreview} />
@@ -113,7 +113,7 @@ export function AdminBackLink() {
       className="hidden md:inline-flex items-center gap-1.5 mr-2"
       style={{
         padding: "6px 12px", borderRadius: 10,
-        background: "rgba(16,24,32,0.06)", color: "#101820",
+        background: "hsl(var(--ink) / 0.06)", color: "hsl(var(--ink))",
         fontWeight: 600, fontSize: "0.8125rem",
         textDecoration: "none", flexShrink: 0,
       }}
@@ -243,7 +243,7 @@ export function LearnerAccountMenu({
         >
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 select-none"
-            style={{ background: "#FFD100", color: "#101820" }}
+            style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}
           >
             {initials}
           </div>
@@ -268,10 +268,10 @@ export function LearnerAccountMenu({
             className="absolute right-0 top-full mt-2 z-50"
             style={{
               width: 240,
-              background: "#ffffff",
-              border: "1px solid rgba(16,24,32,0.08)",
+              background: "hsl(var(--white))",
+              border: "1px solid hsl(var(--ink) / 0.08)",
               borderRadius: 16,
-              boxShadow: "0 8px 32px rgba(16,24,32,0.12), 0 2px 8px rgba(16,24,32,0.06)",
+              boxShadow: "0 8px 32px hsl(var(--ink) / 0.12), 0 2px 8px hsl(var(--ink) / 0.06)",
               overflow: "hidden",
             }}
           >
@@ -289,13 +289,13 @@ export function LearnerAccountMenu({
               ))}
             </div>
             {!isPreview && (
-              <div style={{ borderTop: "1px solid rgba(16,24,32,0.08)" }} className="py-1.5">
+              <div style={{ borderTop: "1px solid hsl(var(--ink) / 0.08)" }} className="py-1.5">
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-3 text-sm text-left transition-colors hover:bg-danger-surface"
-                  style={{ color: "#dc2626", fontFamily: "inherit", padding: "10px 16px" }}
+                  style={{ color: "hsl(var(--feedback-danger-ink))", fontFamily: "inherit", padding: "10px 16px" }}
                 >
-                  <LogOut size={16} strokeWidth={1.75} style={{ color: "#dc2626", flexShrink: 0 }} />
+                  <LogOut size={16} strokeWidth={1.75} style={{ color: "hsl(var(--feedback-danger-ink))", flexShrink: 0 }} />
                   Se déconnecter
                 </button>
               </div>

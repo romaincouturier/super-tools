@@ -40,13 +40,13 @@ export default function FillBlanksBlockViewer({ content }: Props) {
   return (
     <div className="space-y-4">
       {content.title && (
-        <p className="font-bold text-base" style={{ color: "#101820" }}>{content.title}</p>
+        <p className="font-bold text-base" style={{ color: "hsl(var(--ink))" }}>{content.title}</p>
       )}
       {content.instructions && (
-        <p className="text-sm" style={{ color: "rgba(16,24,32,0.6)" }}>{content.instructions}</p>
+        <p className="text-sm" style={{ color: "hsl(var(--ink) / 0.6)" }}>{content.instructions}</p>
       )}
 
-      <div className="text-base leading-[2.2]" style={{ color: "#101820" }}>
+      <div className="text-base leading-[2.2]" style={{ color: "hsl(var(--ink))" }}>
         {parts.map((part, i) => {
           if (part.type === "text") return <span key={i}>{part.value}</span>;
           const idx = blankIdx++;
@@ -61,7 +61,7 @@ export default function FillBlanksBlockViewer({ content }: Props) {
                 onChange={(e) => setAnswers((prev) => ({ ...prev, [idx]: e.target.value }))}
                 disabled={checked}
                 style={{
-                  border: `2px solid ${isCorrect ? "#69c3c4" : isWrong ? "#ef4444" : "rgba(16,24,32,0.2)"}`,
+                  border: `2px solid ${isCorrect ? "#69c3c4" : isWrong ? "hsl(var(--feedback-danger))" : "hsl(var(--ink) / 0.2)"}`,
                   borderRadius: 6,
                   padding: "1px 8px",
                   fontSize: "0.9375rem",
@@ -69,7 +69,7 @@ export default function FillBlanksBlockViewer({ content }: Props) {
                   width: Math.max(80, part.value.length * 11 + 24),
                   background: isCorrect ? "rgba(105,195,196,0.1)" : isWrong ? "rgba(239,68,68,0.07)" : "#fff",
                   outline: "none",
-                  color: "#101820",
+                  color: "hsl(var(--ink))",
                   lineHeight: 1.6,
                 }}
               />
@@ -85,18 +85,18 @@ export default function FillBlanksBlockViewer({ content }: Props) {
         {!checked ? (
           <button
             onClick={check}
-            style={{ padding: "0.5rem 1.25rem", background: "#FFD100", color: "#101820", borderRadius: 10, fontWeight: 700, fontSize: "0.875rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}
+            style={{ padding: "0.5rem 1.25rem", background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", borderRadius: 10, fontWeight: 700, fontSize: "0.875rem", border: "none", cursor: "pointer", fontFamily: "inherit" }}
           >
             Vérifier
           </button>
         ) : (
           <>
-            <div className="text-sm font-semibold" style={{ color: correctCount === blanks.length ? "#69c3c4" : "#101820" }}>
+            <div className="text-sm font-semibold" style={{ color: correctCount === blanks.length ? "#69c3c4" : "hsl(var(--ink))" }}>
               {correctCount} / {blanks.length} correct{correctCount > 1 ? "s" : ""}
             </div>
             <button
               onClick={reset}
-              style={{ padding: "0.5rem 1.25rem", background: "transparent", color: "#101820", borderRadius: 10, fontWeight: 600, fontSize: "0.875rem", border: "1px solid rgba(16,24,32,0.2)", cursor: "pointer", fontFamily: "inherit" }}
+              style={{ padding: "0.5rem 1.25rem", background: "transparent", color: "hsl(var(--ink))", borderRadius: 10, fontWeight: 600, fontSize: "0.875rem", border: "1px solid hsl(var(--ink) / 0.2)", cursor: "pointer", fontFamily: "inherit" }}
             >
               Recommencer
             </button>

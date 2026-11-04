@@ -44,7 +44,7 @@ export default function AccordionBlockEditor({ content, onChange, slim }: Props)
               key={item.id}
               style={{
                 borderRadius: 12,
-                border: "1.5px solid #e5e7eb",
+                border: "1.5px solid hsl(var(--border))",
                 padding: "0.625rem 0.875rem",
                 background: "#fff",
               }}
@@ -59,7 +59,7 @@ export default function AccordionBlockEditor({ content, onChange, slim }: Props)
                 {items.length > 1 && (
                   <button
                     onClick={() => removeItem(i)}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: "#d1d5db" }}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "hsl(var(--border))" }}
                   >
                     <Trash2 size={13} />
                   </button>

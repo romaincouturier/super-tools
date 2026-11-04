@@ -53,7 +53,7 @@ export default function ImageBlockEditor({ lessonId, content, onChange, slim }: 
           onClick={() => fileRef.current?.click()}
           style={{
             borderRadius: "var(--radius-block)",
-            border: `2px dashed ${dragOver ? "rgba(16,24,32,0.35)" : "rgba(16,24,32,0.18)"}`,
+            border: `2px dashed ${dragOver ? "hsl(var(--ink) / 0.35)" : "hsl(var(--ink) / 0.18)"}`,
             padding: "2.5rem 2rem",
             display: "flex",
             flexDirection: "column",
@@ -120,7 +120,7 @@ export default function ImageBlockEditor({ lessonId, content, onChange, slim }: 
               width: 28,
               height: 28,
               borderRadius: "50%",
-              background: "rgba(16,24,32,0.6)",
+              background: "hsl(var(--ink) / 0.6)",
               color: "#fff",
               border: "none",
               cursor: "pointer",

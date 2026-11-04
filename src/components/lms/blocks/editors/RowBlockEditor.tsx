@@ -25,7 +25,7 @@ export default function RowBlockEditor({ content, onChange, slim }: Props) {
           <div
             key={i}
             className="flex-1 h-4 rounded"
-            style={{ background: "rgba(16,24,32,0.05)", border: "1.5px dashed rgba(16,24,32,0.15)" }}
+            style={{ background: "hsl(var(--ink) / 0.05)", border: "1.5px dashed hsl(var(--ink) / 0.15)" }}
           />
         ))}
         <span className="text-xs ml-1 shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }}>

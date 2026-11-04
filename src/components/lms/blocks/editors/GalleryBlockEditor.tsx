@@ -61,7 +61,7 @@ export default function GalleryBlockEditor({ lessonId, content, onChange, slim }
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium" style={{ color: "hsl(var(--ink) / 0.5)" }}>Affichage</span>
-          <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: "rgba(16,24,32,0.14)" }}>
+          <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: "hsl(var(--ink) / 0.14)" }}>
             {MODE_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -84,7 +84,7 @@ export default function GalleryBlockEditor({ lessonId, content, onChange, slim }
         {mode === "grid" && (
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium" style={{ color: "hsl(var(--ink) / 0.5)" }}>Colonnes</span>
-            <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: "rgba(16,24,32,0.14)" }}>
+            <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: "hsl(var(--ink) / 0.14)" }}>
               {COLUMNS_OPTIONS.map((n) => (
                 <button
                   key={n}
@@ -126,7 +126,7 @@ export default function GalleryBlockEditor({ lessonId, content, onChange, slim }
           onClick={handleAddSlot}
           className="aspect-square flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed transition-colors"
           style={{
-            borderColor: "rgba(16,24,32,0.18)",
+            borderColor: "hsl(var(--ink) / 0.18)",
             color: "hsl(var(--ink) / 0.5)",
             background: "transparent",
             minHeight: 80,
@@ -136,7 +136,7 @@ export default function GalleryBlockEditor({ lessonId, content, onChange, slim }
             (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor = "rgba(16,24,32,0.18)";
+            (e.currentTarget as HTMLElement).style.borderColor = "hsl(var(--ink) / 0.18)";
             (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.5)";
           }}
         >
@@ -179,7 +179,7 @@ function ImageSlot({
           type="button"
           onClick={onRemove}
           className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center rounded-full"
-          style={{ background: "rgba(16,24,32,0.6)", color: "#fff" }}
+          style={{ background: "hsl(var(--ink) / 0.6)", color: "#fff" }}
           aria-label="Supprimer l'image"
         >
           <X size={12} />
@@ -192,8 +192,8 @@ function ImageSlot({
     <div
       className="aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors"
       style={{
-        borderColor: dragOver ? "rgba(16,24,32,0.35)" : "rgba(16,24,32,0.18)",
-        background: dragOver ? "rgba(16,24,32,0.04)" : "transparent",
+        borderColor: dragOver ? "hsl(var(--ink) / 0.35)" : "hsl(var(--ink) / 0.18)",
+        background: dragOver ? "hsl(var(--ink) / 0.04)" : "transparent",
         minHeight: 80,
       }}
       onClick={onFileClick}

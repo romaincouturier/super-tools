@@ -40,8 +40,8 @@ export default function ImageHotspotBlockViewer({ content }: Props) {
               width: 28,
               height: 28,
               borderRadius: "50%",
-              background: activeId === spot.id ? "#FFD100" : "#101820",
-              color: activeId === spot.id ? "#101820" : "#ffffff",
+              background: activeId === spot.id ? "hsl(var(--yellow-brand))" : "hsl(var(--ink))",
+              color: activeId === spot.id ? "hsl(var(--ink))" : "hsl(var(--white))",
               border: "2.5px solid white",
               boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
               display: "flex",
@@ -66,20 +66,20 @@ export default function ImageHotspotBlockViewer({ content }: Props) {
                 top: 36,
                 left: "50%",
                 transform: "translateX(-50%)",
-                background: "#ffffff",
+                background: "hsl(var(--white))",
                 borderRadius: 12,
                 padding: "0.75rem 1rem",
                 boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-                border: "1px solid #e5e7eb",
+                border: "1px solid hsl(var(--border))",
                 minWidth: 180,
                 maxWidth: 260,
               }}
             >
               <div className="flex items-start justify-between gap-2 mb-1">
-                <p className="font-bold text-sm" style={{ color: "#101820" }}>{spot.label}</p>
+                <p className="font-bold text-sm" style={{ color: "hsl(var(--ink))" }}>{spot.label}</p>
                 <button
                   onClick={(e) => { e.stopPropagation(); setActiveId(null); }}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 0, flexShrink: 0 }}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "hsl(var(--muted-foreground))", padding: 0, flexShrink: 0 }}
                 >
                   <X size={14} />
                 </button>

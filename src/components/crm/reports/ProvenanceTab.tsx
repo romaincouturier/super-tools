@@ -404,7 +404,7 @@ export default function ProvenanceTab() {
                 <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill="hsl(var(--feedback-info))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -534,9 +534,9 @@ export default function ProvenanceTab() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <DeviceBar label="Desktop" pct={desktopPct} count={stats.desktop} color="#3b82f6" />
-              <DeviceBar label="Mobile" pct={mobilePct} count={stats.mobile /* demo-safe: volume de sessions mobiles, aucune donnee identifiante */} color="#10b981" />
-              <DeviceBar label="Tablette" pct={tabletPct} count={stats.tablet} color="#f59e0b" />
+              <DeviceBar label="Desktop" pct={desktopPct} count={stats.desktop} color="hsl(var(--feedback-info))" />
+              <DeviceBar label="Mobile" pct={mobilePct} count={stats.mobile /* demo-safe: volume de sessions mobiles, aucune donnee identifiante */} color="hsl(var(--feedback-success))" />
+              <DeviceBar label="Tablette" pct={tabletPct} count={stats.tablet} color="hsl(var(--feedback-warning))" />
             </div>
           </CardContent>
         </Card>
@@ -643,7 +643,7 @@ export default function ProvenanceTab() {
                 <XAxis dataKey="hour" tick={{ fontSize: 11 }} interval={1} />
                 <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" fill="hsl(var(--feedback-success))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -664,8 +664,8 @@ export default function ProvenanceTab() {
                 <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="formation" name="Formation" stackId="a" fill="#3b82f6" />
-                <Bar dataKey="mission" name="Mission" stackId="a" fill="#8b5cf6" />
+                <Bar dataKey="formation" name="Formation" stackId="a" fill="hsl(var(--feedback-info))" />
+                <Bar dataKey="mission" name="Mission" stackId="a" fill="hsl(var(--feedback-info))" />
               </BarChart>
             </ResponsiveContainer>
           </div>

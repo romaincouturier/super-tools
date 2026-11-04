@@ -38,23 +38,23 @@ export default function ButtonBlockEditor({ content, onChange, slim }: Props) {
 
     const btnStyle: React.CSSProperties = isSupertilt
       ? {
-          background: "#FFD100",
-          color: "#101820",
+          background: "hsl(var(--yellow-brand))",
+          color: "hsl(var(--ink))",
           border: "none",
-          borderRadius: 20,
+          borderRadius: "var(--radius-block)",
           padding: "0.75rem 1.75rem",
           fontWeight: 600,
           fontSize: "0.9375rem",
           cursor: "text",
           display: "inline-block",
-          boxShadow: "0 4px 12px rgba(255, 209, 0, 0.35)",
+          boxShadow: "0 4px 12px hsl(var(--yellow-brand) / 0.35)",
         }
       : isPrimary
       ? {
           background: "hsl(var(--ink))",
           color: "#fff",
           border: "none",
-          borderRadius: 999,
+          borderRadius: "var(--radius-pill)",
           padding: "0.625rem 1.5rem",
           fontWeight: 600,
           fontSize: "0.9375rem",
@@ -65,8 +65,8 @@ export default function ButtonBlockEditor({ content, onChange, slim }: Props) {
       ? {
           background: "transparent",
           color: "hsl(var(--ink))",
-          border: "1px solid rgba(16,24,32,0.25)",
-          borderRadius: 999,
+          border: "1px solid hsl(var(--ink) / 0.25)",
+          borderRadius: "var(--radius-pill)",
           padding: "0.625rem 1.5rem",
           fontWeight: 500,
           fontSize: "0.9375rem",
@@ -77,7 +77,7 @@ export default function ButtonBlockEditor({ content, onChange, slim }: Props) {
           background: "hsl(var(--grey-light))",
           color: "hsl(var(--ink))",
           border: "none",
-          borderRadius: 999,
+          borderRadius: "var(--radius-pill)",
           padding: "0.625rem 1.5rem",
           fontWeight: 500,
           fontSize: "0.9375rem",

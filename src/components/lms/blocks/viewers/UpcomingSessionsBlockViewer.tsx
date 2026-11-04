@@ -9,8 +9,8 @@ interface Props {
 }
 
 // Couleurs de marque SuperTilt imposées par la charte du bloc.
-const YELLOW = "#FFD100";
-const INK = "#101820";
+const YELLOW = "hsl(var(--yellow-brand))";
+const INK = "hsl(var(--ink))";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function SessionsCard({ content }: Props) {
@@ -37,7 +37,7 @@ function SessionsCard({ content }: Props) {
           )}
         </div>
       ) : (
-        <ul className="divide-y" style={{ borderColor: "rgba(16,24,32,0.1)" }}>
+        <ul className="divide-y" style={{ borderColor: "hsl(var(--ink) / 0.1)" }}>
           {data.sessions.map((s) => (
             <li key={s.session_id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
               <div className="min-w-0">
@@ -46,7 +46,7 @@ function SessionsCard({ content }: Props) {
               </div>
               <span
                 className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
-                style={s.is_full ? { background: "rgba(16,24,32,0.08)", color: INK } : { background: YELLOW, color: INK }}
+                style={s.is_full ? { background: "hsl(var(--ink) / 0.08)", color: INK } : { background: YELLOW, color: INK }}
               >
                 {s.is_full ? "Complet" : "Inscriptions ouvertes"}
               </span>

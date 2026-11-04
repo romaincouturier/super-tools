@@ -49,11 +49,11 @@ export function LearnerSidebar({
   return (
     <aside
       className="flex flex-col h-full"
-      style={{ background: "hsl(var(--white))", borderRight: "1px solid rgba(16,24,32,0.08)" }}
+      style={{ background: "hsl(var(--white))", borderRight: "1px solid hsl(var(--ink) / 0.08)" }}
     >
       {/* Logo */}
       <div className="flex items-center justify-between px-5 h-16 border-b shrink-0"
-        style={{ borderColor: "rgba(16,24,32,0.08)" }}>
+        style={{ borderColor: "hsl(var(--ink) / 0.08)" }}>
         <SupertiltLogo className="h-9" />
         {mobile && onClose && (
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5">
@@ -74,13 +74,13 @@ export function LearnerSidebar({
                   "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left",
                   active === id ? "text-ink" : "hover:bg-black/5",
                 )}
-                style={active === id ? { background: "hsl(var(--yellow-brand))", color: "#101820", fontFamily: "inherit" } : { fontFamily: "inherit", color: "hsl(var(--ink) / 0.55)" }}
+                style={active === id ? { background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit" } : { fontFamily: "inherit", color: "hsl(var(--ink) / 0.55)" }}
               >
                 <Icon size={17} />
                 {label}
               </button>
               {subExpanded && (
-                <div className="mt-0.5 ml-4 pl-3 space-y-0.5 border-l" style={{ borderColor: "rgba(16,24,32,0.1)" }}>
+                <div className="mt-0.5 ml-4 pl-3 space-y-0.5 border-l" style={{ borderColor: "hsl(var(--ink) / 0.1)" }}>
                   {subItems!.map(({ id: sid, label: slabel, icon: SIcon }) => (
                     <button
                       key={sid}
@@ -89,7 +89,7 @@ export function LearnerSidebar({
                         "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left",
                         active === sid ? "font-semibold" : "hover:bg-black/5",
                       )}
-                      style={active === sid ? { color: "#101820", background: "rgba(255,209,0,0.18)", fontFamily: "inherit" } : { fontFamily: "inherit", color: "hsl(var(--ink) / 0.55)" }}
+                      style={active === sid ? { color: "hsl(var(--ink))", background: "hsl(var(--yellow-brand) / 0.18)", fontFamily: "inherit" } : { fontFamily: "inherit", color: "hsl(var(--ink) / 0.55)" }}
                     >
                       <SIcon size={15} />
                       {slabel}
@@ -103,7 +103,7 @@ export function LearnerSidebar({
       </nav>
 
       {/* User block */}
-      <div className="px-3 pb-5 pt-3 border-t" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
+      <div className="px-3 pb-5 pt-3 border-t" style={{ borderColor: "hsl(var(--ink) / 0.08)" }}>
         <button
           onClick={onEditProfile}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all hover:bg-black/5 text-left"
@@ -112,7 +112,7 @@ export function LearnerSidebar({
         >
           <div
             className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
-            style={{ background: photoUrl ? "transparent" : "hsl(var(--yellow-brand))", color: "#101820" }}
+            style={{ background: photoUrl ? "transparent" : "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}
           >
             {photoUrl ? (
               <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" />

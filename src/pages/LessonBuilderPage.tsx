@@ -95,7 +95,7 @@ export default function LessonBuilderPage() {
     return (
       <div
         className="builder-layout flex items-center justify-center h-screen"
-        style={{ background: "hsl(var(--white))", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}
+        style={{ background: "hsl(var(--white))", fontFamily: "var(--font-learner)" }}
       >
         <p style={{ color: "hsl(var(--ink) / 0.55)", fontSize: 14 }}>Chargement…</p>
       </div>
@@ -105,12 +105,12 @@ export default function LessonBuilderPage() {
   return (
     <div
       className="builder-layout flex h-screen overflow-hidden"
-      style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}
+      style={{ fontFamily: "var(--font-learner)" }}
     >
       {/* Sidebar — fixed left on desktop, drawer overlay on mobile */}
       <div
         className="hidden lg:flex flex-col shrink-0 border-r relative"
-        style={{ width: sidebarWidth, borderColor: "rgba(16,24,32,0.08)" }}
+        style={{ width: sidebarWidth, borderColor: "hsl(var(--ink) / 0.08)" }}
       >
         <BuilderSidebar
           courseId={courseId}
@@ -130,7 +130,7 @@ export default function LessonBuilderPage() {
           />
           <div
             className="lg:hidden fixed left-0 top-0 bottom-0 z-50 flex flex-col border-r"
-            style={{ width: 288, borderColor: "rgba(16,24,32,0.08)" }}
+            style={{ width: 288, borderColor: "hsl(var(--ink) / 0.08)" }}
           >
             <BuilderSidebar
               courseId={courseId}
@@ -196,7 +196,7 @@ function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => v
           width: 2,
           height: hovered ? "60%" : "30%",
           borderRadius: 2,
-          background: hovered ? "hsl(var(--yellow-brand))" : "rgba(16,24,32,0.12)",
+          background: hovered ? "hsl(var(--yellow-brand))" : "hsl(var(--ink) / 0.12)",
           transition: "height 160ms ease, background 160ms ease",
           pointerEvents: "none",
         }}

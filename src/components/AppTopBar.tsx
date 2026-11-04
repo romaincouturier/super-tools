@@ -5,9 +5,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ReactNode } from "react";
 
-const CREAM = "#f7f5f0";
-const ANTHRACITE = "#101820";
-const YELLOW = "#ffd100";
+const CREAM = "hsl(var(--cream))";
+const ANTHRACITE = "hsl(var(--ink))";
+const YELLOW = "hsl(var(--yellow-brand))";
 
 interface AppTopBarProps {
   /** Optional mobile hamburger slot rendered on the left. */
@@ -27,7 +27,7 @@ const AppTopBar = ({ mobileSlot }: AppTopBarProps) => {
         alignItems: "center",
         gap: isMobile ? 8 : 16,
         padding: isMobile ? "8px 12px" : "18px 40px",
-        borderBottom: "1px solid rgba(16,24,32,0.06)",
+        borderBottom: "1px solid hsl(var(--ink) / 0.06)",
         background: CREAM,
         color: ANTHRACITE,
         flexShrink: 0,

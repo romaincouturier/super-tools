@@ -76,7 +76,7 @@ export function LearnerEditProfileModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-sm w-full" style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}>
+      <DialogContent className="max-w-sm w-full" style={{ fontFamily: "var(--font-learner)" }}>
         <DialogHeader>
           <DialogTitle>Mon profil</DialogTitle>
         </DialogHeader>
@@ -86,7 +86,7 @@ export function LearnerEditProfileModal({
           <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
             <div
               className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-xl font-bold select-none"
-              style={{ background: photoUrl ? "transparent" : "#FFD100", color: "#101820" }}
+              style={{ background: photoUrl ? "transparent" : "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}
             >
               {photoUrl ? (
                 <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" />
@@ -96,7 +96,7 @@ export function LearnerEditProfileModal({
             </div>
             <div
               className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ background: "rgba(16,24,32,0.45)" }}
+              style={{ background: "hsl(var(--ink) / 0.45)" }}
             >
               {uploading ? (
                 <Spinner className="text-white h-5 w-5" />

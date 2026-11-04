@@ -60,7 +60,7 @@ export default function ChecklistBlockEditor({ content, onChange, slim }: Props)
               <div
                 style={{
                   width: 18, height: 18, borderRadius: 4,
-                  border: "2px solid rgba(16,24,32,0.25)",
+                  border: "2px solid hsl(var(--ink) / 0.25)",
                   flexShrink: 0,
                 }}
               />

@@ -47,7 +47,7 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const { mask: maskClients, pending: clientNamesPending } = useDemoClientNames();
   const pendingBlur = demoBlur(clientNamesPending);
-  const borderColor = typeColors ? (typeColors as any)[card.card_type] || "#3b82f6" : (card.card_type === "post" ? "#a855f7" : "#3b82f6");
+  const borderColor = typeColors ? (typeColors as any)[card.card_type] || "hsl(var(--feedback-info))" : (card.card_type === "post" ? "hsl(var(--feedback-info))" : "hsl(var(--feedback-info))");
 
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;

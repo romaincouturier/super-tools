@@ -72,7 +72,7 @@ export default function ImageHotspotBlockEditor({ lessonId, content, onChange, s
         className="relative rounded-xl overflow-hidden border-2 border-dashed cursor-pointer"
         style={{
           minHeight: 120,
-          borderColor: content.image_url ? "transparent" : "#d1d5db",
+          borderColor: content.image_url ? "transparent" : "hsl(var(--border))",
           background: content.image_url ? "transparent" : "#f9fafb",
         }}
         onClick={content.image_url ? undefined : () => fileRef.current?.click()}
@@ -101,8 +101,8 @@ export default function ImageHotspotBlockEditor({ lessonId, content, onChange, s
                     width: 24,
                     height: 24,
                     borderRadius: "50%",
-                    background: selectedIdx === i ? "#FFD100" : "#101820",
-                    color: selectedIdx === i ? "#101820" : "#fff",
+                    background: selectedIdx === i ? "hsl(var(--yellow-brand))" : "hsl(var(--ink))",
+                    color: selectedIdx === i ? "hsl(var(--ink))" : "#fff",
                     border: "2px solid white",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
                     display: "flex",
@@ -159,7 +159,7 @@ export default function ImageHotspotBlockEditor({ lessonId, content, onChange, s
             <div
               key={spot.id}
               className="rounded-lg border p-3 space-y-2"
-              style={{ borderColor: selectedIdx === i ? "#FFD100" : "#e5e7eb", background: selectedIdx === i ? "#FFFBEA" : "#fff" }}
+              style={{ borderColor: selectedIdx === i ? "hsl(var(--yellow-brand))" : "hsl(var(--border))", background: selectedIdx === i ? "hsl(var(--feedback-warning-surface))" : "#fff" }}
             >
               <div className="flex items-center justify-between">
                 <button
@@ -170,7 +170,7 @@ export default function ImageHotspotBlockEditor({ lessonId, content, onChange, s
                   <span
                     style={{
                       width: 20, height: 20, borderRadius: "50%",
-                      background: "#101820", color: "#fff",
+                      background: "hsl(var(--ink))", color: "#fff",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: "0.6875rem", fontWeight: 700, flexShrink: 0,
                     }}

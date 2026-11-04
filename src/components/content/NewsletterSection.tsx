@@ -473,7 +473,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
                       <div
                         className="h-2 w-2 rounded-full shrink-0"
                         style={{
-                          backgroundColor: nc.card_type === "post" ? "#a855f7" : "#3b82f6",
+                          backgroundColor: nc.card_type === "post" ? "hsl(var(--feedback-info))" : "hsl(var(--feedback-info))",
                         }}
                       />
                       <button
@@ -576,7 +576,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
                                       <div
                                         className="h-1.5 w-1.5 rounded-full shrink-0"
                                         style={{
-                                          backgroundColor: nc.card_type === "post" ? "#a855f7" : "#3b82f6",
+                                          backgroundColor: nc.card_type === "post" ? "hsl(var(--feedback-info))" : "hsl(var(--feedback-info))",
                                         }}
                                       />
                                       <span className="truncate">{nc.card_title}</span>

@@ -27,7 +27,7 @@ export default function SpacerBlockEditor({ content, onChange, slim }: Props) {
         <span
           style={{
             fontSize: "0.6875rem",
-            color: "rgba(16,24,32,0.25)",
+            color: "hsl(var(--ink) / 0.25)",
             fontFamily: "monospace",
             userSelect: "none",
           }}

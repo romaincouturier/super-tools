@@ -64,7 +64,7 @@ function CarouselView({ images }: { images: { url: string | null; caption_html?:
               type="button"
               onClick={prev}
               className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full"
-              style={{ background: "rgba(16,24,32,0.5)", color: "#fff" }}
+              style={{ background: "hsl(var(--ink) / 0.5)", color: "#fff" }}
               aria-label="Image précédente"
             >
               <ChevronLeft size={18} />
@@ -73,7 +73,7 @@ function CarouselView({ images }: { images: { url: string | null; caption_html?:
               type="button"
               onClick={next}
               className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full"
-              style={{ background: "rgba(16,24,32,0.5)", color: "#fff" }}
+              style={{ background: "hsl(var(--ink) / 0.5)", color: "#fff" }}
               aria-label="Image suivante"
             >
               <ChevronRight size={18} />
@@ -86,7 +86,7 @@ function CarouselView({ images }: { images: { url: string | null; caption_html?:
                   onClick={() => setCurrent(idx)}
                   className="w-2 h-2 rounded-full transition-colors"
                   style={{
-                    background: idx === current ? "#fff" : "rgba(255,255,255,0.4)",
+                    background: idx === current ? "#fff" : "hsl(var(--white) / 0.4)",
                   }}
                   aria-label={`Image ${idx + 1}`}
                 />

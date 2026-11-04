@@ -23,13 +23,13 @@ export default function PollDisplay({
             onClick={() => !disabled && onVote(poll.id, opt.id, poll.my_option_id)}
             disabled={disabled}
             className="relative w-full text-left rounded-lg border overflow-hidden transition-colors hover:bg-black/[0.02] disabled:cursor-default"
-            style={{ borderColor: isMine ? "hsl(var(--yellow-brand))" : "rgba(16,24,32,0.12)" }}
+            style={{ borderColor: isMine ? "hsl(var(--yellow-brand))" : "hsl(var(--ink) / 0.12)" }}
           >
             {/* Result bar */}
             {voted && (
               <div
                 className="absolute inset-y-0 left-0"
-                style={{ width: `${pct}%`, background: isMine ? "rgba(255,209,0,0.35)" : "rgba(16,24,32,0.06)" }}
+                style={{ width: `${pct}%`, background: isMine ? "hsl(var(--yellow-brand) / 0.35)" : "hsl(var(--ink) / 0.06)" }}
               />
             )}
             <div className="relative flex items-center justify-between gap-2 px-3 py-2">

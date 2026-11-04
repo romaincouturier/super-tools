@@ -131,7 +131,7 @@ function ExerciseFileUploader({
         disabled={uploading}
         onClick={() => fileRef.current?.click()}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm transition-all hover:bg-black/5"
-        style={{ borderColor: "rgba(16,24,32,0.18)", color: "hsl(var(--ink) / 0.55)" }}
+        style={{ borderColor: "hsl(var(--ink) / 0.18)", color: "hsl(var(--ink) / 0.55)" }}
       >
         {uploading ? <Spinner className="h-4 w-4" /> : <FileText size={16} />}
         {uploading ? "Upload en cours…" : "Ajouter un fichier de consigne"}
@@ -175,7 +175,7 @@ function ImageUploader({
           onClick={onRemove}
           aria-label="Supprimer l'image"
           className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
-          style={{ background: "rgba(16,24,32,0.6)", color: "#fff" }}
+          style={{ background: "hsl(var(--ink) / 0.6)", color: "#fff" }}
         >
           <X size={13} />
         </button>
@@ -201,7 +201,7 @@ function ImageUploader({
         disabled={uploading}
         onClick={() => fileRef.current?.click()}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm transition-all hover:bg-black/5"
-        style={{ borderColor: "rgba(16,24,32,0.18)", color: "hsl(var(--ink) / 0.55)" }}
+        style={{ borderColor: "hsl(var(--ink) / 0.18)", color: "hsl(var(--ink) / 0.55)" }}
       >
         {uploading ? <Spinner className="h-4 w-4" /> : <ImageIcon size={16} />}
         {uploading ? "Upload en cours…" : "Ajouter une image de consigne"}
@@ -368,7 +368,7 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
               onClick={() => updateImages(imageUrls.filter((_, i) => i !== idx))}
               aria-label="Supprimer l'image"
               className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
-              style={{ background: "rgba(16,24,32,0.6)", color: "#fff" }}
+              style={{ background: "hsl(var(--ink) / 0.6)", color: "#fff" }}
             >
               <X size={13} />
             </button>

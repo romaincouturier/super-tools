@@ -47,7 +47,7 @@ function QuestionResults({ question, responses }: { question: TrainingSurveyQues
             <XAxis dataKey="label" tick={{ fontSize: 11 }} />
             <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
             <Tooltip />
-            <Bar dataKey="count" fill="#6366f1" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="count" fill="hsl(var(--feedback-info))" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

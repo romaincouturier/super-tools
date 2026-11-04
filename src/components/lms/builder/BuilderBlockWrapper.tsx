@@ -97,18 +97,18 @@ export default function BuilderBlockWrapper({
               className="w-7 h-7 flex items-center justify-center transition-colors rounded"
               style={{
                 background: "transparent",
-                color: dragHandleProps ? "rgba(16,24,32,0.4)" : "rgba(16,24,32,0.2)",
+                color: dragHandleProps ? "hsl(var(--ink) / 0.4)" : "hsl(var(--ink) / 0.2)",
                 cursor: dragHandleProps ? "grab" : "default",
-                borderRadius: 999,
+                borderRadius: "var(--radius-pill)",
               }}
               onMouseEnter={(e) => {
                 if (!dragHandleProps) return;
-                (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.06)";
                 (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLElement).style.background = "transparent";
-                (e.currentTarget as HTMLElement).style.color = dragHandleProps ? "rgba(16,24,32,0.4)" : "rgba(16,24,32,0.2)";
+                (e.currentTarget as HTMLElement).style.color = dragHandleProps ? "hsl(var(--ink) / 0.4)" : "hsl(var(--ink) / 0.2)";
               }}
               {...(dragHandleProps ?? {})}
             >
@@ -120,14 +120,14 @@ export default function BuilderBlockWrapper({
               <button
                 onClick={onMoveUp}
                 className="w-7 h-7 flex items-center justify-center transition-colors"
-                style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
+                style={{ color: "hsl(var(--ink) / 0.4)", borderRadius: "var(--radius-pill)" }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                  (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.06)";
                   (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "transparent";
-                  (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+                  (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.4)";
                 }}
                 aria-label="Monter le bloc"
               >
@@ -140,14 +140,14 @@ export default function BuilderBlockWrapper({
               <button
                 onClick={onMoveDown}
                 className="w-7 h-7 flex items-center justify-center transition-colors"
-                style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
+                style={{ color: "hsl(var(--ink) / 0.4)", borderRadius: "var(--radius-pill)" }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                  (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.06)";
                   (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "transparent";
-                  (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+                  (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.4)";
                 }}
                 aria-label="Descendre le bloc"
               >
@@ -160,14 +160,14 @@ export default function BuilderBlockWrapper({
               <button
                 onClick={onMoveLeft}
                 className="w-7 h-7 flex items-center justify-center transition-colors"
-                style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
+                style={{ color: "hsl(var(--ink) / 0.4)", borderRadius: "var(--radius-pill)" }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                  (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.06)";
                   (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "transparent";
-                  (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+                  (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.4)";
                 }}
                 aria-label="Déplacer dans la colonne de gauche"
               >
@@ -180,14 +180,14 @@ export default function BuilderBlockWrapper({
               <button
                 onClick={onMoveRight}
                 className="w-7 h-7 flex items-center justify-center transition-colors"
-                style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
+                style={{ color: "hsl(var(--ink) / 0.4)", borderRadius: "var(--radius-pill)" }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                  (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.06)";
                   (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "transparent";
-                  (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+                  (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.4)";
                 }}
                 aria-label="Déplacer dans la colonne de droite"
               >
@@ -200,14 +200,14 @@ export default function BuilderBlockWrapper({
               <button
                 onClick={onIndent}
                 className="w-7 h-7 flex items-center justify-center transition-colors"
-                style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
+                style={{ color: "hsl(var(--ink) / 0.4)", borderRadius: "var(--radius-pill)" }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                  (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.06)";
                   (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "transparent";
-                  (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+                  (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.4)";
                 }}
                 aria-label="Déplacer dans le conteneur au-dessus"
                 title="Déplacer dans le conteneur au-dessus"
@@ -221,14 +221,14 @@ export default function BuilderBlockWrapper({
               <button
                 onClick={onOutdent}
                 className="w-7 h-7 flex items-center justify-center transition-colors"
-                style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
+                style={{ color: "hsl(var(--ink) / 0.4)", borderRadius: "var(--radius-pill)" }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                  (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.06)";
                   (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "transparent";
-                  (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+                  (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.4)";
                 }}
                 aria-label="Sortir du conteneur"
                 title="Sortir du conteneur"
@@ -241,14 +241,14 @@ export default function BuilderBlockWrapper({
             <button
               onClick={onDuplicate}
               className="w-7 h-7 flex items-center justify-center transition-colors"
-              style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
+              style={{ color: "hsl(var(--ink) / 0.4)", borderRadius: "var(--radius-pill)" }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                (e.currentTarget as HTMLElement).style.background = "hsl(var(--ink) / 0.06)";
                 (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLElement).style.background = "transparent";
-                (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+                (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.4)";
               }}
               aria-label="Dupliquer le bloc"
             >
@@ -259,14 +259,14 @@ export default function BuilderBlockWrapper({
             <button
               onClick={onDelete}
               className="w-7 h-7 flex items-center justify-center transition-colors"
-              style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
+              style={{ color: "hsl(var(--ink) / 0.4)", borderRadius: "var(--radius-pill)" }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLElement).style.background = "rgba(220,38,38,0.08)";
-                (e.currentTarget as HTMLElement).style.color = "#dc2626";
+                (e.currentTarget as HTMLElement).style.color = "hsl(var(--feedback-danger-ink))";
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLElement).style.background = "transparent";
-                (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+                (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.4)";
               }}
               aria-label="Supprimer le bloc"
             >
@@ -285,7 +285,7 @@ export default function BuilderBlockWrapper({
         style={{ opacity: hovered || insertOpen ? 1 : 0, transition: "opacity 150ms" }}
         onMouseEnter={() => setHovered(true)}
       >
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px" style={{ background: "rgba(16,24,32,0.08)" }} />
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px" style={{ background: "hsl(var(--ink) / 0.08)" }} />
         <div className="relative z-10">
           <InsertButton onClick={() => setInsertOpen((v) => !v)} />
           {insertOpen && (

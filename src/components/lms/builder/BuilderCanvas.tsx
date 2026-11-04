@@ -68,12 +68,12 @@ function TiltArcTopRight() {
     >
       <defs>
         <linearGradient id="arcg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#FFD100" stopOpacity="0.08" />
-          <stop offset="1" stopColor="#FFD100" stopOpacity="0" />
+          <stop offset="0" stopColor="hsl(var(--yellow-brand))" stopOpacity="0.08" />
+          <stop offset="1" stopColor="hsl(var(--yellow-brand))" stopOpacity="0" />
         </linearGradient>
       </defs>
       <circle cx="260" cy="260" r="240" fill="none" stroke="url(#arcg)" strokeWidth="80" />
-      <path d="M 60 260 A 200 200 0 0 1 460 260" fill="none" stroke="#FFD100" strokeOpacity="0.06" strokeWidth="36" strokeLinecap="round" />
+      <path d="M 60 260 A 200 200 0 0 1 460 260" fill="none" stroke="hsl(var(--yellow-brand))" strokeOpacity="0.06" strokeWidth="36" strokeLinecap="round" />
     </svg>
   );
 }
@@ -95,7 +95,7 @@ function TiltArcBottomLeft() {
         zIndex: 0,
       }}
     >
-      <circle cx="190" cy="190" r="170" fill="none" stroke="#FFD100" strokeOpacity="0.045" strokeWidth="44" />
+      <circle cx="190" cy="190" r="170" fill="none" stroke="hsl(var(--yellow-brand))" strokeOpacity="0.045" strokeWidth="44" />
     </svg>
   );
 }
@@ -659,7 +659,7 @@ function SortableBuilderBlock({
               <div
                 key={colIdx}
                 className="min-w-0 rounded-lg border border-dashed p-2"
-                style={{ borderColor: "rgba(16,24,32,0.12)" }}
+                style={{ borderColor: "hsl(var(--ink) / 0.12)" }}
               >
                 <div className={gapClass}>
                   <SortableContext items={colNodes.map((c) => c.block.id)} strategy={verticalListSortingStrategy}>
@@ -698,7 +698,7 @@ function SortableBuilderBlock({
       {node.block.type !== "row" && (isContainer || hasChildren) && (
         <div
           className={cn(gapClass, "mt-3 ml-4 pl-4 border-l-2 border-dashed")}
-          style={{ borderColor: "rgba(16,24,32,0.12)" }}
+          style={{ borderColor: "hsl(var(--ink) / 0.12)" }}
         >
           {hasChildren && (
             <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
@@ -751,7 +751,7 @@ function AddAtEndButton({ onInsert, onInsertTemplate }: { onInsert: (type: Lesso
         onClick={() => setMenuOpen((v) => !v)}
         className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all hover:-translate-y-px border-2 border-dashed"
         style={{
-          borderColor: "rgba(16,24,32,0.18)",
+          borderColor: "hsl(var(--ink) / 0.18)",
           color: "hsl(var(--ink) / 0.55)",
           background: "transparent",
           fontFamily: "inherit",
@@ -761,7 +761,7 @@ function AddAtEndButton({ onInsert, onInsertTemplate }: { onInsert: (type: Lesso
           (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink))";
         }}
         onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.borderColor = "rgba(16,24,32,0.18)";
+          (e.currentTarget as HTMLElement).style.borderColor = "hsl(var(--ink) / 0.18)";
           (e.currentTarget as HTMLElement).style.color = "hsl(var(--ink) / 0.55)";
         }}
       >
@@ -787,7 +787,7 @@ function Chip({ icon, children }: { icon: React.ReactNode; children: React.React
       style={{
         background: "hsl(var(--grey-light))",
         color: "hsl(var(--ink) / 0.55)",
-        fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif",
+        fontFamily: "var(--font-learner)",
       }}
     >
       {icon}

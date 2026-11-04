@@ -14,7 +14,7 @@ export default function DividerBlockEditor({ content, onChange, slim }: Props) {
       <hr
         style={{
           border: 0,
-          borderTop: `1px ${content.style === "dashed" ? "dashed" : "solid"} rgba(16,24,32,0.12)`,
+          borderTop: `1px ${content.style === "dashed" ? "dashed" : "solid"} hsl(var(--ink) / 0.12)`,
           margin: 0,
         }}
       />

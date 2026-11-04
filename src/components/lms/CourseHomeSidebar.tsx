@@ -21,7 +21,7 @@ export function ModuleStatusIcon({ status, num, active = false }: { status: Modu
   if (status === "completed") {
     return <CheckCircle2 size={36} style={{ color: "#69C3C4", flexShrink: 0 }} />;
   }
-  const borderColor = active ? "#FFD100" : status === "in_progress" ? "#101820" : "#CCCCCC";
+  const borderColor = active ? "hsl(var(--yellow-brand))" : status === "in_progress" ? "hsl(var(--ink))" : "#CCCCCC";
   const bg = "transparent";
   const textColor = active ? "#101820" : status === "in_progress" ? "#101820" : "#AAAAAA";
   return (
@@ -75,7 +75,7 @@ export function CommunityCtaButton({ email, courseId, lessonId, isPreview = fals
     <button
       onClick={goToCommunity}
       className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:-translate-y-px hover:shadow-md"
-      style={{ background: "hsl(var(--yellow-brand))", color: "#101820", fontFamily: "inherit" }}
+      style={{ background: "hsl(var(--yellow-brand))", color: "hsl(var(--ink))", fontFamily: "inherit" }}
     >
       <Users size={13} />
       Aller à la communauté
@@ -93,7 +93,7 @@ function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { ema
   };
 
   return (
-    <div className="p-5 border-b" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
+    <div className="p-5 border-b" style={{ borderColor: "hsl(var(--ink) / 0.08)" }}>
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "hsl(var(--ink) / 0.55)" }}>
           Communauté
@@ -131,7 +131,7 @@ function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { ema
                 >
                   <div
                     className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-micro font-bold shrink-0"
-                    style={{ background: post.author_photo_url ? "transparent" : "hsl(var(--yellow-brand))", color: "#101820" }}
+                    style={{ background: post.author_photo_url ? "transparent" : "hsl(var(--yellow-brand))", color: "hsl(var(--ink))" }}
                   >
                     {post.author_photo_url
                       ? <img src={post.author_photo_url} alt={name} className="w-full h-full object-cover" />
@@ -252,11 +252,11 @@ export default function CourseHomeSidebar({
             })
           : "Aucun live à venir";
         return (
-          <div className="p-3 pb-3 border-b" style={{ borderColor: "rgba(16,24,32,0.06)", background: "#101820" }}>
-            <p className="text-xs font-semibold uppercase tracking-wider mb-1 px-2" style={{ color: "rgba(255,209,0,0.7)", letterSpacing: ".06em" }}>
+          <div className="p-3 pb-3 border-b" style={{ borderColor: "hsl(var(--ink) / 0.06)", background: "hsl(var(--ink))" }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-1 px-2" style={{ color: "hsl(var(--yellow-brand) / 0.7)", letterSpacing: ".06em" }}>
               Live &amp; Replays
             </p>
-            <p className="text-xs px-2 mb-2 flex items-center gap-1.5" style={{ color: "#FFD100" }}>
+            <p className="text-xs px-2 mb-2 flex items-center gap-1.5" style={{ color: "hsl(var(--yellow-brand))" }}>
               <Video size={12} style={{ flexShrink: 0 }} />
               <span className="truncate">Prochain live · {nextLabel}</span>
             </p>
@@ -267,12 +267,12 @@ export default function CourseHomeSidebar({
                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors text-sm"
                   style={{
                     fontFamily: "inherit",
-                    background: activeView === "calendar" ? "#FFD100" : "rgba(255,209,0,0.1)",
-                    color: activeView === "calendar" ? "#101820" : "#FFD100",
+                    background: activeView === "calendar" ? "hsl(var(--yellow-brand))" : "hsl(var(--yellow-brand) / 0.1)",
+                    color: activeView === "calendar" ? "hsl(var(--ink))" : "hsl(var(--yellow-brand))",
                     fontWeight: activeView === "calendar" ? 600 : 500,
                   }}
-                  onMouseEnter={(e) => { if (activeView !== "calendar") (e.currentTarget as HTMLElement).style.background = "rgba(255,209,0,0.2)"; }}
-                  onMouseLeave={(e) => { if (activeView !== "calendar") (e.currentTarget as HTMLElement).style.background = "rgba(255,209,0,0.1)"; }}
+                  onMouseEnter={(e) => { if (activeView !== "calendar") (e.currentTarget as HTMLElement).style.background = "hsl(var(--yellow-brand) / 0.2)"; }}
+                  onMouseLeave={(e) => { if (activeView !== "calendar") (e.currentTarget as HTMLElement).style.background = "hsl(var(--yellow-brand) / 0.1)"; }}
                 >
                   <Calendar size={15} style={{ flexShrink: 0 }} />
                   <span className="truncate leading-snug">Calendrier des lives</span>
@@ -302,16 +302,16 @@ export default function CourseHomeSidebar({
                   )}
                   style={{
                     fontFamily: "inherit",
-                    background: isHomeActive ? "#FFD100" : "transparent",
-                    color: "#101820",
+                    background: isHomeActive ? "hsl(var(--yellow-brand))" : "transparent",
+                    color: "hsl(var(--ink))",
                     fontWeight: isHomeActive ? 600 : 500,
                   }}
                 >
                   <div
                     className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                    style={{ background: isHomeActive ? "rgba(16,24,32,0.08)" : "rgba(16,24,32,0.06)" }}
+                    style={{ background: isHomeActive ? "hsl(var(--ink) / 0.08)" : "hsl(var(--ink) / 0.06)" }}
                   >
-                    <Home size={16} style={{ color: "#101820" }} />
+                    <Home size={16} style={{ color: "hsl(var(--ink))" }} />
                   </div>
                   <span className="text-sm leading-snug">Accueil</span>
                 </button>
@@ -343,8 +343,8 @@ export default function CourseHomeSidebar({
                   )}
                   style={{
                     fontFamily: "inherit",
-                    background: isActiveModule ? "rgba(255,209,0,0.07)" : "transparent",
-                    boxShadow: isActiveModule ? "inset 3px 0 0 #FFD100" : undefined,
+                    background: isActiveModule ? "hsl(var(--yellow-brand) / 0.07)" : "transparent",
+                    boxShadow: isActiveModule ? "inset 3px 0 0 hsl(var(--yellow-brand))" : undefined,
                   }}
                 >
                   <button
@@ -356,14 +356,14 @@ export default function CourseHomeSidebar({
                     <div className="flex-1 min-w-0">
                       <p
                         className="text-sm leading-snug line-clamp-2"
-                        style={{ color: "#101820", fontWeight: isActiveModule ? 600 : 500 }}
+                        style={{ color: "hsl(var(--ink))", fontWeight: isActiveModule ? 600 : 500 }}
                       >
                         {m.title}
                       </p>
                       {showProgress && (
                         <div className="flex items-center gap-2 mt-1">
-                          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
-                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "#FFD100" }} />
+                          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "hsl(var(--border))" }}>
+                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "hsl(var(--yellow-brand))" }} />
                           </div>
                           <p className="text-micro shrink-0" style={{ color: "hsl(var(--ink) / 0.55)" }}>{done}/{total}</p>
                         </div>
@@ -400,15 +400,15 @@ export default function CourseHomeSidebar({
                             )}
                             style={{
                               fontFamily: "inherit",
-                              background: isActiveLesson ? "rgba(255,209,0,0.16)" : "transparent",
-                              boxShadow: isActiveLesson ? "inset 3px 0 0 #FFD100" : undefined,
-                              color: isActiveLesson ? "#101820" : "hsl(var(--ink) / 0.55)",
+                              background: isActiveLesson ? "hsl(var(--yellow-brand) / 0.16)" : "transparent",
+                              boxShadow: isActiveLesson ? "inset 3px 0 0 hsl(var(--yellow-brand))" : undefined,
+                              color: isActiveLesson ? "hsl(var(--ink))" : "hsl(var(--ink) / 0.55)",
                               fontWeight: isActiveLesson ? 600 : 400,
                             }}
                           >
                             {isDone
                               ? <CheckCircle2 size={12} style={{ color: "#69C3C4", flexShrink: 0 }} />
-                              : <Play size={11} style={{ flexShrink: 0, color: isActiveLesson ? "#FFD100" : undefined, opacity: isActiveLesson ? 1 : 0.5 }} />}
+                              : <Play size={11} style={{ flexShrink: 0, color: isActiveLesson ? "hsl(var(--yellow-brand))" : undefined, opacity: isActiveLesson ? 1 : 0.5 }} />}
                             <span className="truncate leading-snug">{lesson.title}</span>
                           </button>
                         </li>

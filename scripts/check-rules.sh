@@ -829,6 +829,15 @@ check "069" "useResolvedStorageUrl ne rend pas l'URL d'un bucket prive avant sa 
   count_076c=$(grep -rEo 'text-\[[0-9.]+(px|rem)\]' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | wc -l || true)
   ratchet "076c" "Ratchet tailles de texte arbitraires (utiliser text-micro, text-caption, text-xs...)" "$count_076c"
 
+  count_076d=$(grep -rEo '#[0-9a-fA-F]{6}\b' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | grep -vE '\.test\.|src/test/' | wc -l || true)
+  ratchet "076d" "Ratchet couleurs hex littérales dans le code (utiliser hsl(var(--token)) ou une classe)" "$count_076d"
+
+  count_076e=$( { grep -rEo 'rgba?\([0-9]|hsla?\([0-9]' src/ --include='*.tsx' --include='*.ts' --include='*.css' 2>/dev/null | grep -v 'src/styles/tokens.css' || true; } | wc -l)
+  ratchet "076e" "Ratchet rgb()/rgba()/hsl() littéraux (utiliser hsl(var(--token) / alpha))" "$count_076e"
+
+  count_076f=$( { grep -rEn 'fontFamily: *["\x27`]' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | grep -vE 'inherit|\.test\.' || true; } | wc -l)
+  ratchet "076f" "Ratchet fontFamily littéral (utiliser var(--font-body), var(--font-learner) ou inherit)" "$count_076f"
+
   # [065] Mode démo — affichage identifiant non masqué dans un écran interne.
   # Le détail des violations : bash scripts/check-demo-mask.sh
   count_065=$(bash scripts/check-demo-mask.sh --count)

@@ -48,7 +48,7 @@ export default function LmsCourseHomeBuilderPage() {
     return (
       <div
         className="builder-layout flex items-center justify-center h-screen"
-        style={{ background: "hsl(var(--white))", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}
+        style={{ background: "hsl(var(--white))", fontFamily: "var(--font-learner)" }}
       >
         <p style={{ color: "hsl(var(--ink) / 0.55)", fontSize: 14 }}>Chargement…</p>
       </div>
@@ -58,11 +58,11 @@ export default function LmsCourseHomeBuilderPage() {
   return (
     <div
       className="builder-layout flex h-screen overflow-hidden"
-      style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}
+      style={{ fontFamily: "var(--font-learner)" }}
     >
       <div
         className="hidden lg:flex flex-col shrink-0 border-r relative"
-        style={{ width: sidebarWidth, borderColor: "rgba(16,24,32,0.08)" }}
+        style={{ width: sidebarWidth, borderColor: "hsl(var(--ink) / 0.08)" }}
       >
         <BuilderSidebar courseId={courseId} activeLessonId="" courseTitle={course.title} activeHome />
         <ResizeHandle onMouseDown={handleResizeStart} />
@@ -73,7 +73,7 @@ export default function LmsCourseHomeBuilderPage() {
           <div className="lg:hidden fixed inset-0 z-40 bg-black/30" onClick={() => setSidebarOpen(false)} />
           <div
             className="lg:hidden fixed left-0 top-0 bottom-0 z-50 flex flex-col border-r"
-            style={{ width: 288, borderColor: "rgba(16,24,32,0.08)" }}
+            style={{ width: 288, borderColor: "hsl(var(--ink) / 0.08)" }}
           >
             <BuilderSidebar courseId={courseId} activeLessonId="" courseTitle={course.title} activeHome />
           </div>
@@ -113,7 +113,7 @@ function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => v
         bottom: 0,
         width: 6,
         cursor: "col-resize",
-        background: hovered ? "rgba(255,209,0,0.35)" : "transparent",
+        background: hovered ? "hsl(var(--yellow-brand) / 0.35)" : "transparent",
         zIndex: 10,
         transition: "background 120ms ease",
       }}

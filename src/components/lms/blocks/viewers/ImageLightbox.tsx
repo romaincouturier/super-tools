@@ -125,8 +125,8 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
     fontSize: ".8125rem",
     fontWeight: 600,
     fontFamily: "inherit",
-    background: accent ? "#FFD100" : "rgba(255,255,255,0.14)",
-    color: accent ? "#101820" : "#fff",
+    background: accent ? "hsl(var(--yellow-brand))" : "hsl(var(--white) / 0.14)",
+    color: accent ? "hsl(var(--ink))" : "#fff",
     transition: "background 120ms",
   });
 
@@ -149,7 +149,7 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "rgba(16,24,32,0.93)",
+        background: "hsl(var(--ink) / 0.93)",
         backdropFilter: "blur(6px)",
         cursor: scale > 1 ? "grab" : "default",
         touchAction: "none",
@@ -173,8 +173,8 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           <button
             style={btnStyle()}
             onClick={reset}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.24)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.14)")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "hsl(var(--white) / 0.24)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "hsl(var(--white) / 0.14)")}
             title="Réinitialiser le zoom"
           >
             <RotateCcw size={14} />
@@ -185,7 +185,7 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           style={btnStyle(true)}
           onClick={handleDownload}
           onMouseEnter={(e) => (e.currentTarget.style.background = "#f0c400")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "#FFD100")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "hsl(var(--yellow-brand))")}
         >
           <Download size={14} />
           Télécharger
@@ -202,12 +202,12 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
             borderRadius: "50%",
             border: "none",
             cursor: "pointer",
-            background: "rgba(255,255,255,0.14)",
+            background: "hsl(var(--white) / 0.14)",
             color: "#fff",
             transition: "background 120ms",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.28)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.14)")}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "hsl(var(--white) / 0.28)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "hsl(var(--white) / 0.14)")}
         >
           <X size={18} />
         </button>
@@ -238,7 +238,7 @@ export default function ImageLightbox({ src, alt, onClose }: Props) {
           bottom: 16,
           left: "50%",
           transform: "translateX(-50%)",
-          color: "rgba(255,255,255,0.38)",
+          color: "hsl(var(--white) / 0.38)",
           fontSize: ".6875rem",
           pointerEvents: "none",
           whiteSpace: "nowrap",
@@ -299,11 +299,11 @@ export function ImageWithLightbox({ src, alt, className, imgStyle, imgClassName 
         {/* Hover overlay — centered call to action */}
         <span
           className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-          style={{ background: "rgba(16,24,32,0.32)" }}
+          style={{ background: "hsl(var(--ink) / 0.32)" }}
         >
           <span
             className="flex items-center gap-1.5 text-xs font-semibold text-white px-3 py-1.5 rounded-full"
-            style={{ background: "rgba(16,24,32,0.82)" }}
+            style={{ background: "hsl(var(--ink) / 0.82)" }}
           >
             <Maximize2 size={13} />
             Cliquer pour agrandir
@@ -312,7 +312,7 @@ export function ImageWithLightbox({ src, alt, className, imgStyle, imgClassName 
         {/* Persistent corner badge — always visible affordance */}
         <span
           className="absolute top-2 right-2 flex items-center justify-center w-8 h-8 rounded-full shadow-md transition-transform group-hover:scale-110 pointer-events-none"
-          style={{ background: "rgba(255,255,255,0.92)", color: "#101820" }}
+          style={{ background: "hsl(var(--white) / 0.92)", color: "hsl(var(--ink))" }}
           aria-hidden
         >
           <Maximize2 size={14} />
@@ -324,7 +324,7 @@ export function ImageWithLightbox({ src, alt, className, imgStyle, imgClassName 
           onClick={(e) => handleDownload(e)}
           onKeyDown={(e) => { if (e.key === "Enter") handleDownload(e); }}
           className="absolute bottom-2 right-2 flex items-center gap-1 text-caption font-medium px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ background: "rgba(16,24,32,0.82)", color: "#fff", cursor: "pointer" }}
+          style={{ background: "hsl(var(--ink) / 0.82)", color: "#fff", cursor: "pointer" }}
           title="Télécharger"
         >
           <Download size={11} />

@@ -29,12 +29,12 @@ export default function ButtonBlockViewer({ content }: Props) {
     const className =
       "inline-flex items-center justify-center gap-2 whitespace-normal text-center font-semibold transition-all hover:-translate-y-px hover:shadow-lg";
     const style = {
-      background: "#FFD100",
-      color: "#101820",
-      borderRadius: 20,
+      background: "hsl(var(--yellow-brand))",
+      color: "hsl(var(--ink))",
+      borderRadius: "var(--radius-block)",
       padding: "0.75rem 1.75rem",
       fontSize: "0.9375rem",
-      boxShadow: "0 4px 12px rgba(255, 209, 0, 0.35)",
+      boxShadow: "0 4px 12px hsl(var(--yellow-brand) / 0.35)",
     };
     const inner = (
       <>

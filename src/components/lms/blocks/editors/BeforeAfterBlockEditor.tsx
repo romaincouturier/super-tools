@@ -52,7 +52,7 @@ export default function BeforeAfterBlockEditor({ lessonId, content, onChange, sl
       <Label className="text-xs font-semibold">{label}</Label>
       <div
         className="h-24 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden hover:border-muted-foreground transition-colors"
-        style={{ borderColor: side === "after" ? "#FFD100" : "#d1d5db", background: side === "after" ? "#FFFBEA" : "#f9fafb" }}
+        style={{ borderColor: side === "after" ? "hsl(var(--yellow-brand))" : "hsl(var(--border))", background: side === "after" ? "hsl(var(--feedback-warning-surface))" : "#f9fafb" }}
         onClick={() => fileRef.current?.click()}
       >
         {uploading ? <Spinner size="sm" /> : url ? (

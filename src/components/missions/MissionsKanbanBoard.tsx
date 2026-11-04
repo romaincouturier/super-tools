@@ -205,7 +205,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
             && cardAgeDays(card.created_at) > meanCycleTimeDays;
           return (
             <div
-              style={overdue ? { boxShadow: "0 0 0 2px #fbbf24", borderRadius: "8px" } : undefined}
+              style={overdue ? { boxShadow: "0 0 0 2px hsl(var(--feedback-warning))", borderRadius: "8px" } : undefined}
               title={overdue ? `Délai dépassé (${Math.round(cardAgeDays(card.created_at))}j > moy. ${Math.round(meanCycleTimeDays)}j)` : undefined}
             >
               <MissionCard

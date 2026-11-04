@@ -12,7 +12,7 @@ import { cryptoRandomId } from "@/types/lms-blocks";
 import type { TimelineBlockContent, TimelineStep, TimelineDetailItem } from "@/types/lms-blocks";
 
 const MAX_STEPS = 5;
-const ACCENT = "#FFD100";
+const ACCENT = "hsl(var(--yellow-brand))";
 
 interface Props {
   lessonId: string;
@@ -107,18 +107,18 @@ function SlimEditor({
       <div style={{ display: "flex", alignItems: "center", marginBottom: "1rem" }}>
         {steps.map((step, i) => (
           <div key={step.id} style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
-            {i > 0 && <div style={{ flex: 1, height: 0, borderTop: "2px dotted #d1d5db" }} />}
+            {i > 0 && <div style={{ flex: 1, height: 0, borderTop: "2px dotted hsl(var(--border))" }} />}
             <div
               style={{
                 width: 32, height: 32, borderRadius: "50%",
-                background: ACCENT, color: "#101820",
+                background: ACCENT, color: "hsl(var(--ink))",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontWeight: 700, fontSize: "0.8125rem", flexShrink: 0,
               }}
             >
               {i + 1}
             </div>
-            {i < steps.length - 1 && <div style={{ flex: 1, height: 0, borderTop: "2px dotted #d1d5db" }} />}
+            {i < steps.length - 1 && <div style={{ flex: 1, height: 0, borderTop: "2px dotted hsl(var(--border))" }} />}
           </div>
         ))}
       </div>
@@ -136,15 +136,15 @@ function SlimEditor({
             key={step.id}
             style={{
               display: "flex", flexDirection: "column", alignItems: "center",
-              textAlign: "center", borderRadius: 16, border: "2px solid #e5e7eb",
-              background: "#ffffff", padding: "0.875rem 0.625rem",
+              textAlign: "center", borderRadius: 16, border: "2px solid hsl(var(--border))",
+              background: "hsl(var(--white))", padding: "0.875rem 0.625rem",
             }}
           >
             {/* Image area */}
             <div
               style={{
                 width: 48, height: 48, borderRadius: 8,
-                background: "#f3f4f6", marginBottom: 8,
+                background: "hsl(var(--muted))", marginBottom: 8,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer", overflow: "hidden", flexShrink: 0,
               }}
@@ -156,7 +156,7 @@ function SlimEditor({
               ) : step.icon_url ? (
                 <img src={step.icon_url} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
               ) : (
-                <Upload size={18} style={{ color: "#9ca3af" }} />
+                <Upload size={18} style={{ color: "hsl(var(--muted-foreground))" }} />
               )}
               <input
                 type="file"
@@ -191,7 +191,7 @@ function SlimEditor({
             <button
               style={{
                 marginTop: 8, width: 26, height: 26, borderRadius: "50%",
-                background: openIdx === i ? ACCENT : "#f3f4f6",
+                background: openIdx === i ? ACCENT : "hsl(var(--muted))",
                 border: "none", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}
@@ -205,7 +205,7 @@ function SlimEditor({
             {steps.length > 1 && (
               <button
                 onClick={() => removeStep(i)}
-                style={{ marginTop: 4, background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: 11 }}
+                style={{ marginTop: 4, background: "none", border: "none", cursor: "pointer", color: "hsl(var(--muted-foreground))", fontSize: 11 }}
               >
                 ×
               </button>
@@ -300,7 +300,7 @@ function PanelEditor({
             {/* Icon upload */}
             <div
               style={{
-                width: 24, height: 24, borderRadius: 4, background: "#f3f4f6",
+                width: 24, height: 24, borderRadius: 4, background: "hsl(var(--muted))",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 cursor: "pointer", overflow: "hidden", flexShrink: 0,
               }}
@@ -312,7 +312,7 @@ function PanelEditor({
               ) : item.icon_url ? (
                 <img src={item.icon_url} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
               ) : (
-                <Upload size={10} style={{ color: "#9ca3af" }} />
+                <Upload size={10} style={{ color: "hsl(var(--muted-foreground))" }} />
               )}
               <input
                 type="file"
@@ -336,7 +336,7 @@ function PanelEditor({
 
             <button
               onClick={() => removeItem(i)}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: "2px 4px" }}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "hsl(var(--muted-foreground))", padding: "2px 4px" }}
             >
               <X size={13} />
             </button>

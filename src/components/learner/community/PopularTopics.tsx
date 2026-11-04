@@ -15,7 +15,7 @@ export default function PopularTopics({
   if (topics.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border p-4" style={{ background: "hsl(var(--white))", borderColor: "rgba(16,24,32,0.08)" }}>
+    <div className="rounded-2xl border p-4" style={{ background: "hsl(var(--white))", borderColor: "hsl(var(--ink) / 0.08)" }}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold" style={{ color: "hsl(var(--ink))" }}>Sujets populaires</h3>
         <button onClick={onSeeAll} className="text-xs hover:underline" style={{ color: "hsl(var(--ink) / 0.55)" }}>
@@ -28,7 +28,7 @@ export default function PopularTopics({
             key={t.tag}
             onClick={() => onSelectTag(t.tag)}
             className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg transition-colors hover:bg-black/5 text-left"
-            style={activeTag === t.tag ? { background: "rgba(255,209,0,0.15)" } : undefined}
+            style={activeTag === t.tag ? { background: "hsl(var(--yellow-brand) / 0.15)" } : undefined}
           >
             <span className="flex items-center gap-1.5 text-sm font-medium min-w-0" style={{ color: "hsl(var(--ink))" }}>
               <Hash size={13} style={{ color: "hsl(var(--ink) / 0.55)" }} />
