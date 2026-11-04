@@ -307,6 +307,12 @@ check "051" "TED : liste CPV par source, pas de filtre de langue inerte" \
 check "038" "Toute table migrée est backupée (backup-export + scheduled-backup) ou exclue explicitement" \
   "bash scripts/check-backup-tables.sh"
 
+# [077] Tables créées seulement par Lovable (drizzle/migrations) : comptées par [038]
+# (check-backup-tables.sh les inclut), et toute migration de supabase/migrations qui
+# les nomme est gardée par to_regclass pour rester rejouable.
+check "077" "Tables drizzle-only : migrations supabase gardées par to_regclass" \
+  "bash scripts/check-drizzle-tables.sh"
+
 # [040] Évaluations — filtre formation côté client : dropdown dérivée des évaluations
 # chargées (trainingOptions), pas de refetch serveur par training_id à la sélection.
 check "040" "Évaluations : filtre formation côté client (pas de refetch .eq(training_id))" \

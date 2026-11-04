@@ -2,6 +2,7 @@
 # check-backup-tables.sh — Règle [038] : toute table créée par une migration
 # doit figurer dans TABLES_TO_BACKUP de backup-export ET scheduled-backup,
 # sauf exclusion documentée dans scripts/backup-exclusions.txt.
+# Règle [077] : les migrations de Lovable (drizzle/migrations) comptent aussi.
 # Sortie vide = OK. Toute ligne émise est une violation (interprétée par check-rules.sh).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -11,9 +12,10 @@ SCHEDULED_FN="supabase/functions/scheduled-backup/index.ts"
 EXCLUSIONS="scripts/backup-exclusions.txt"
 
 # Tables existantes : rejoue les CREATE/DROP TABLE dans l'ordre des migrations
-# (gère les tables supprimées puis restaurées, ex. mission_email_drafts).
+# (gère les tables supprimées puis restaurées, ex. mission_email_drafts), puis
+# celles que Lovable n'écrit que dans drizzle/migrations (règle [077]).
 existing=$(
-  for f in supabase/migrations/*.sql; do
+  for f in supabase/migrations/*.sql drizzle/migrations/*.sql; do
     sed 's/--.*//' "$f" \
       | grep -ioE '\b(create|drop) table (if (not )?exists )?(only )?(public\.)?[a-z_][a-z0-9_]*' \
       | sed -E 's/if (not )?exists //I; s/only //I; s/public\.//I' \
