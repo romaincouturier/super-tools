@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useParticipantParser } from "@/hooks/useParticipantParser";
 import { getErrorMessage } from "@/lib/error-utils";
-import { insertParticipantsWithQuestionnaires, sendWelcomeEmailsToBatch, sendElearningAccessToBatch, scheduleNeedsSurveyEmails, logBulkAddActivity, buildStatusMessage } from "@/services/bulkParticipants";
+import { insertParticipantsWithQuestionnaires, sendWelcomeEmailsToBatch, sendElearningAccessToBatch, buildAccessReportMessage, scheduleNeedsSurveyEmails, logBulkAddActivity, buildStatusMessage } from "@/services/bulkParticipants";
 import { catchUpAttendanceSignaturesForParticipant } from "@/services/participants";
 import { scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,6 +66,7 @@ const BulkAddParticipantsDialog = ({
       if (duplicateWarning) toast({ title: "Doublons détectés", description: "Certains participants étaient déjà inscrits et ont été ignorés.", variant: "default" });
       const ongoing = isTrainingOngoing(trainingStartDate, trainingEndDate);
       let accessFailures: { email: string; message: string }[] = [];
+      let accessSummary = "";
       // Même règle que l'ajout unitaire (getEmailMode) : convocation tout de suite
       // si la session est à 2 jours ou plus, ou déjà en cours (ajout en cours de
       // session). Sans date, la réconciliation l'enverra quand la date sera fixée ;
@@ -78,9 +79,11 @@ const BulkAddParticipantsDialog = ({
       }
       if (formatFormation === "e_learning" && data && data.length > 0) {
         setProgress({ value: 25, action: "Création des accès et envoi des emails e-learning…", detail: `0 / ${data.length} participants traités` });
-        accessFailures = await sendElearningAccessToBatch(data, trainingId, (completed, total) => {
+        const accessReport = await sendElearningAccessToBatch(data, trainingId, (completed, total) => {
           setProgress({ value: 25 + (completed / total) * 45, action: "Création des accès et envoi des emails e-learning…", detail: `${completed} / ${total} participants traités` });
         });
+        accessFailures = accessReport.failures;
+        accessSummary = buildAccessReportMessage(accessReport);
       }
       let needsSurveySkipped = false;
       // Needs survey only makes sense before the session starts.
@@ -121,7 +124,7 @@ const BulkAddParticipantsDialog = ({
       toast({
         title: accessFailures.length > 0 ? "Participants ajoutés, emails d’accès en échec" : "Participants ajoutés",
         ...(accessFailures.length > 0 && { variant: "destructive" as const, duration: 15000 }),
-        description: `${n} participant${pluralize(n)} ajouté${pluralize(n)}. ${baseMessage}`,
+        description: `${n} participant${pluralize(n)} ajouté${pluralize(n)}. ${accessSummary ? `${accessSummary} ` : ""}${baseMessage}`,
         ...(needsSurveySkipped && { duration: 8000 }),
       });
       setBulkText("");

@@ -95,17 +95,56 @@ export async function learnerAccessLink(
   };
 }
 
+export type LearnerAccessEmailKind = "create_password" | "course_access" | "space_access";
+
 /**
- * Envoie l'email générique d'accès à l'espace apprenant (RG-08 : même quota
- * que send-password-reset). Pour un email au contenu spécifique (relance,
- * erratum...) qui a seulement besoin du lien, utiliser learnerAccessLink
- * directement plutôt que cette fonction.
+ * Choix du mail d'accès (règle validée le 04/11/2026) :
+ *  - aucun mot de passe prouvé (password_set faux ou ligne absente) : création
+ *    du mot de passe, même pour un compte existant ;
+ *  - mot de passe défini et formation connue : « accès à la formation ouvert » ;
+ *  - mot de passe défini sans formation : simple accès à l'espace.
+ * Une connexion passée ne compte pas : un lien magique ne prouve rien.
+ */
+export function decideLearnerAccessEmail(state: { passwordSet: boolean; hasTraining: boolean }): LearnerAccessEmailKind {
+  if (!state.passwordSet) return "create_password";
+  return state.hasTraining ? "course_access" : "space_access";
+}
+
+/** Formation et cours LMS rattaché, pour nommer la formation et lier le cours. */
+export async function resolveTrainingAccess(
+  admin: SupabaseClient,
+  trainingId: string | null | undefined,
+): Promise<{ trainingName: string | null; courseId: string | null }> {
+  if (!trainingId) return { trainingName: null, courseId: null };
+  const { data } = await admin
+    .from("trainings")
+    .select("training_name, supports_lms_course_id")
+    .eq("id", trainingId)
+    .maybeSingle();
+  return {
+    trainingName: (data as { training_name?: string | null } | null)?.training_name ?? null,
+    courseId: (data as { supports_lms_course_id?: string | null } | null)?.supports_lms_course_id ?? null,
+  };
+}
+
+/**
+ * Envoie l'email d'accès à l'espace apprenant (RG-08 : même quota que
+ * send-password-reset), choisi par decideLearnerAccessEmail. Pour un email au
+ * contenu spécifique (relance, erratum...) qui a seulement besoin du lien,
+ * utiliser learnerAccessLink directement plutôt que cette fonction.
  */
 export async function sendLearnerAccessEmail(
   admin: SupabaseClient,
   email: string,
-  opts: { trainingName?: string | null; ip?: string; strict?: boolean; quotaExempt?: boolean } = {},
-): Promise<{ sent: boolean }> {
+  opts: {
+    trainingName?: string | null;
+    courseId?: string | null;
+    accountCreated?: boolean;
+    ip?: string;
+    strict?: boolean;
+    quotaExempt?: boolean;
+  } = {},
+): Promise<{ sent: boolean; kind?: LearnerAccessEmailKind }> {
   const normalized = normalizeLearnerEmail(email);
   if (!isUsableLearnerEmail(normalized)) return { sent: false };
 
@@ -130,19 +169,43 @@ export async function sendLearnerAccessEmail(
     return { sent: false };
   }
 
-  const cta = link.passwordSet ? "Accéder à mon espace" : "Créer mon mot de passe";
-  const tpl = EDITABLE_EMAIL_DEFAULTS.learner_access;
-  const rendered = await renderEditableEmail(admin, {
-    type: "learner_access",
-    defaultSubject: tpl.subject.vous,
-    defaultContent: tpl.content.vous,
-    vars: {
-      training_name: opts.trainingName ?? null,
-      password_set: link.passwordSet || null,
-      no_password: link.passwordSet ? null : true,
-    },
-    blocks: { access_button: ctaButton(cta, link.actionLink) },
-  });
+  const trainingName = opts.trainingName ?? null;
+  const kind = decideLearnerAccessEmail({ passwordSet: link.passwordSet, hasTraining: !!trainingName });
+
+  let rendered: { html: string; subject: string };
+  if (kind === "course_access") {
+    const urls = await getAppUrls();
+    const target = opts.courseId
+      ? `${urls.app_url}/lms/${encodeURIComponent(opts.courseId)}/home?email=${encodeURIComponent(normalized)}`
+      : `${urls.app_url}/espace-apprenant`;
+    const tpl = EDITABLE_EMAIL_DEFAULTS.learner_course_access;
+    rendered = await renderEditableEmail(admin, {
+      type: "learner_course_access",
+      defaultSubject: tpl.subject.vous,
+      defaultContent: tpl.content.vous,
+      vars: { training_name: trainingName },
+      blocks: {
+        access_button: ctaButton("Accéder à ma formation", target),
+        forgot_password_link: `<a href="${urls.app_url}/connexion?email=${encodeURIComponent(normalized)}">Mot de passe oublié ?</a>`,
+      },
+    });
+  } else {
+    const cta = kind === "space_access" ? "Accéder à mon espace" : "Créer mon mot de passe";
+    const tpl = EDITABLE_EMAIL_DEFAULTS.learner_access;
+    rendered = await renderEditableEmail(admin, {
+      type: "learner_access",
+      defaultSubject: tpl.subject.vous,
+      defaultContent: tpl.content.vous,
+      vars: {
+        training_name: trainingName,
+        password_set: link.passwordSet || null,
+        no_password: link.passwordSet ? null : true,
+        // Compte déjà existant sans mot de passe : la plateforme a changé.
+        platform_changed: !link.passwordSet && opts.accountCreated !== true ? true : null,
+      },
+      blocks: { access_button: ctaButton(cta, link.actionLink) },
+    });
+  }
 
   const signature = await getSigniticSignature();
   const html = wrapEmailHtml(rendered.html, signature);
@@ -154,20 +217,20 @@ export async function sendLearnerAccessEmail(
     bcc: bccList,
     subject,
     html,
-    _emailType: "learner_access_email",
+    _emailType: kind === "course_access" ? "learner_course_access_email" : "learner_access_email",
   });
 
   if (!result.success && opts.strict) {
     throw new LearnerAccessError(`Envoi de l’email d’accès refusé : ${result.error ?? "erreur du service d’envoi"}. Consultez les emails en échec avant de relancer.`);
   }
-  return { sent: result.success };
+  return { sent: result.success, kind };
 }
 
 export async function sendRegisteredLearnerAccessEmail(
   admin: SupabaseClient,
   email: string,
-  opts: { trainingName?: string | null; ip?: string; callerId?: string } = {},
-): Promise<{ sent: boolean }> {
+  opts: { trainingName?: string | null; courseId?: string | null; ip?: string; callerId?: string } = {},
+): Promise<{ sent: boolean; kind?: LearnerAccessEmailKind; accountCreated: boolean }> {
   const normalized = normalizeLearnerEmail(email);
   if (!isUsableLearnerEmail(normalized)) throw new Error("Email invalide");
   const { data: known, error } = await admin.rpc("is_known_learner", { p_email: normalized });
@@ -179,8 +242,8 @@ export async function sendRegisteredLearnerAccessEmail(
     if (adminError) throw new LearnerAccessError("Vérification des droits administrateur indisponible : aucun email envoyé.");
     quotaExempt = isAdmin === true;
   }
-  await ensureLearnerAccount(admin, normalized);
-  const result = await sendLearnerAccessEmail(admin, normalized, { ...opts, strict: true, quotaExempt });
+  const { created } = await ensureLearnerAccount(admin, normalized);
+  const result = await sendLearnerAccessEmail(admin, normalized, { ...opts, accountCreated: created, strict: true, quotaExempt });
   if (!result.sent) throw new Error("L'email d'accès n'a pas été envoyé : vérifiez le quota et la création du lien");
-  return result;
+  return { ...result, accountCreated: created };
 }

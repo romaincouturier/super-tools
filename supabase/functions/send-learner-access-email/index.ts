@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import { requireStaff } from "../_shared/cron-auth.ts";
-import { LearnerAccessError, sendRegisteredLearnerAccessEmail } from "../_shared/learner-account.ts";
+import { LearnerAccessError, resolveTrainingAccess, sendRegisteredLearnerAccessEmail } from "../_shared/learner-account.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -27,15 +27,9 @@ serve(async (req: Request) => {
     const { email, trainingId } = await req.json();
     if (!email) return createErrorResponse("Email requis", 400);
 
-    let trainingName: string | null = null;
-    if (trainingId) {
-      const { data: training } = await admin
-        .from("trainings").select("training_name").eq("id", trainingId).maybeSingle();
-      trainingName = training?.training_name ?? null;
-    }
-
-    const { sent } = await sendRegisteredLearnerAccessEmail(admin, email, { trainingName, callerId: caller.id });
-    return createJsonResponse({ success: true, sent });
+    const access = await resolveTrainingAccess(admin, trainingId);
+    const { sent, kind, accountCreated } = await sendRegisteredLearnerAccessEmail(admin, email, { ...access, callerId: caller.id });
+    return createJsonResponse({ success: true, sent, kind, accountCreated });
   } catch (error) {
     return createErrorResponse(
       error instanceof Error ? error.message : "Erreur inconnue",

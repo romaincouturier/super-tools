@@ -20,6 +20,8 @@ export function useAuthActions() {
       return { ok: false, isStaff: false, mustChangePassword: false, hasAccess: false };
     }
 
+    // Une connexion réussie par mot de passe prouve qu'il existe (mail d'accès).
+    await supabase.rpc("mark_password_proven");
     // Le routage dépend du rôle du compte, pas de la porte empruntée (RG-14).
     const [level, { data: security }] = await Promise.all([
       fetchAccessLevel(data.user.id),

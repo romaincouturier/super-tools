@@ -193,8 +193,26 @@ describe("progression des envois en lot", () => {
   it("conserve les destinataires en échec et continue les autres envois", async () => {
     mockInvoke.mockResolvedValueOnce({ data: null, error: new Error("Quota interne atteint") });
     mockInvoke.mockResolvedValueOnce({ data: { success: true, sent: true }, error: null });
-    await expect(sendElearningAccessToBatch(batch, "t1")).resolves.toEqual([{ email: "a@example.com", message: "Quota interne atteint" }]);
+    await expect(sendElearningAccessToBatch(batch, "t1")).resolves.toMatchObject({ failures: [{ email: "a@example.com", message: "Quota interne atteint" }] });
     expect(mockInvoke).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("bilan des emails d'accès en lot", () => {
+  const batch = [
+    { id: "p1", email: "nouveau@b.com", first_name: null, last_name: null, company: null, needs_survey_token: "t", sponsor_email: null },
+    { id: "p2", email: "connu@b.com", first_name: null, last_name: null, company: null, needs_survey_token: "t", sponsor_email: null },
+    { id: "p3", email: "ancien@b.com", first_name: null, last_name: null, company: null, needs_survey_token: "t", sponsor_email: null },
+  ];
+
+  it("compte comptes créés, accès confirmés et invitations, un mail par personne", async () => {
+    mockInvoke
+      .mockResolvedValueOnce({ data: { success: true, sent: true, kind: "create_password", accountCreated: true }, error: null })
+      .mockResolvedValueOnce({ data: { success: true, sent: true, kind: "course_access", accountCreated: false }, error: null })
+      .mockResolvedValueOnce({ data: { success: true, sent: true, kind: "create_password", accountCreated: false }, error: null });
+    const report = await sendElearningAccessToBatch(batch, "t1");
+    expect(mockInvoke).toHaveBeenCalledTimes(3);
+    expect(report).toEqual({ created: 1, confirmed: 1, passwordInvites: 1, failures: [] });
   });
 });
 

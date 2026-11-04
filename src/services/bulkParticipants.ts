@@ -121,28 +121,50 @@ export async function sendWelcomeEmailsToBatch(
   }
 }
 
+export type ElearningAccessBatchReport = {
+  /** Comptes créés pendant l'envoi (mail « Créez votre mot de passe »). */
+  created: number;
+  /** Comptes avec mot de passe : mail « Votre accès à la formation est ouvert ». */
+  confirmed: number;
+  /** Comptes existants sans mot de passe : mail « Créez votre mot de passe ». */
+  passwordInvites: number;
+  failures: { email: string; message: string }[];
+};
+
 export async function sendElearningAccessToBatch(
   participants: InsertedParticipant[],
   trainingId: string,
   onProgress?: (completed: number, total: number) => void,
-): Promise<{ email: string; message: string }[]> {
+): Promise<ElearningAccessBatchReport> {
   let completed = 0;
-  const failures: { email: string; message: string }[] = [];
+  const report: ElearningAccessBatchReport = { created: 0, confirmed: 0, passwordInvites: 0, failures: [] };
   for (const participant of participants) {
     try {
-      // Même email d'accès que l'ajout unitaire (W12) : le mode WooCommerce
-      // n'est plus une voie d'accès.
-      await sendLearnerAccessEmail(participant.email, trainingId);
+      // Même email d'accès que l'ajout unitaire, un seul par personne : le
+      // serveur choisit création de mot de passe ou accès ouvert.
+      const result = await sendLearnerAccessEmail(participant.email, trainingId);
+      if (result?.accountCreated) report.created += 1;
+      else if (result?.kind === "course_access" || result?.kind === "space_access") report.confirmed += 1;
+      else report.passwordInvites += 1;
       await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error: unknown) {
       console.error("Failed to send e-learning access email to:", participant.email, getErrorMessage(error));
-      failures.push({ email: participant.email, message: getErrorMessage(error) });
+      report.failures.push({ email: participant.email, message: getErrorMessage(error) });
     } finally {
       completed += 1;
       onProgress?.(completed, participants.length);
     }
   }
-  return failures;
+  return report;
+}
+
+/** Bilan lisible des emails d'accès d'un ajout en lot. */
+export function buildAccessReportMessage(report: Pick<ElearningAccessBatchReport, "created" | "confirmed" | "passwordInvites">): string {
+  const parts: string[] = [];
+  if (report.created) parts.push(`${report.created} compte${report.created > 1 ? "s" : ""} créé${report.created > 1 ? "s" : ""}`);
+  if (report.confirmed) parts.push(`${report.confirmed} accès confirmé${report.confirmed > 1 ? "s" : ""}`);
+  if (report.passwordInvites) parts.push(`${report.passwordInvites} invitation${report.passwordInvites > 1 ? "s" : ""} à créer le mot de passe`);
+  return parts.length ? `Emails d’accès : ${parts.join(", ")}.` : "";
 }
 
 export async function scheduleNeedsSurveyEmails(

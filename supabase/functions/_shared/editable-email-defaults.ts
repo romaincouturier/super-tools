@@ -209,16 +209,47 @@ Merci de le contacter pour lui proposer une formule coachée adaptée.`),
     content: {
       tu: `Bonjour,
 
-Ton espace apprenant{{#training_name}} pour la formation « {{training_name}} »{{/training_name}} est prêt.{{#no_password}} Crée ton mot de passe pour y accéder.{{/no_password}}{{#password_set}} Connecte-toi avec ton adresse et ton mot de passe.{{/password_set}}
+Ton espace apprenant{{#training_name}} pour la formation « {{training_name}} »{{/training_name}} est prêt.{{#platform_changed}} Notre plateforme de formation a changé : crée ton mot de passe une seule fois pour retrouver tes formations.{{/platform_changed}}{{#no_password}} Crée ton mot de passe pour y accéder.{{/no_password}}{{#password_set}} Connecte-toi avec ton adresse et ton mot de passe.{{/password_set}}
 
 {{access_button}}`,
       vous: `Bonjour,
 
-Votre espace apprenant{{#training_name}} pour la formation « {{training_name}} »{{/training_name}} est prêt.{{#no_password}} Créez votre mot de passe pour y accéder.{{/no_password}}{{#password_set}} Connectez-vous avec votre adresse et votre mot de passe.{{/password_set}}
+Votre espace apprenant{{#training_name}} pour la formation « {{training_name}} »{{/training_name}} est prêt.{{#platform_changed}} Notre plateforme de formation a changé : créez votre mot de passe une seule fois pour retrouver vos formations.{{/platform_changed}}{{#no_password}} Créez votre mot de passe pour y accéder.{{/no_password}}{{#password_set}} Connectez-vous avec votre adresse et votre mot de passe.{{/password_set}}
 
 {{access_button}}`,
     },
-    variables: ["training_name", "password_set", "no_password", "access_button"],
+    variables: ["training_name", "password_set", "no_password", "platform_changed", "access_button"],
+  },
+
+  learner_course_access: {
+    name: "Accès à une nouvelle formation ouvert",
+    audience: "client",
+    sendingInfo: "📤 Envoyé à l'apprenant qui a déjà un mot de passe quand il est inscrit à une nouvelle formation",
+    subject: {
+      tu: "Ton accès à « {{training_name}} » est ouvert",
+      vous: "Votre accès à « {{training_name}} » est ouvert",
+    },
+    content: {
+      tu: `Bonjour,
+
+Ton accès à la formation « {{training_name}} » est ouvert sur SuperTilt Academy.
+
+Connecte-toi avec ton adresse email et ton mot de passe habituel pour commencer.
+
+{{access_button}}
+
+{{forgot_password_link}}`,
+      vous: `Bonjour,
+
+Votre accès à la formation « {{training_name}} » est ouvert sur SuperTilt Academy.
+
+Connectez-vous avec votre adresse email et votre mot de passe habituel pour commencer.
+
+{{access_button}}
+
+{{forgot_password_link}}`,
+    },
+    variables: ["training_name", "access_button", "forgot_password_link"],
   },
 
   password_reset: {

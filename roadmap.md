@@ -1,5 +1,14 @@
 # Roadmap
 
+## Mails d'accès selon l'état du compte (2026-11-04)
+- [x] Règle serveur : sans mot de passe prouvé (ou sans ligne) -> « Créez votre mot de passe » ; sinon « Votre accès à la formation est ouvert » avec lien direct
+- [x] Modèle learner_course_access, nom de formation à l'ajout unitaire, bilan de l'import en lot, MCP aligné
+- [x] Cause racine : inscription Academy et connexions par mot de passe enregistrent le mot de passe
+- [x] Ancienne fonction send-elearning-access retirée
+- [ ] Correction des 29 comptes : SQL prêt dans docs/sql, en attente d'accord de Romain
+- [ ] Rattrapage de 5 apprenantes : liste revérifiée, en attente d'accord de Romain (aucun mail envoyé)
+- [ ] Présentiel/mixte : décision de Romain à venir
+
 ## Identité à la création du mot de passe (2026-11-03)
 - [x] Préremplir et enregistrer prénom et nom obligatoires après confirmation explicite du lien, sans consommation à l’ouverture
 - [x] 35 tests et 99 contrôles réussis ; chargement authentifié réel et blocage du prénom vide vérifiés ; sauvegarde testée avec écritures simulées, aucun mot de passe réel modifié
