@@ -31,7 +31,7 @@ interface ContentCardProps {
 const tagColors = [
   "bg-info-surface text-info-ink",
   "bg-success-surface text-success",
-  "bg-purple-100 text-purple-800",
+  "bg-info-surface text-info-ink",
   "bg-caution-surface text-caution-ink",
   "bg-pink-100 text-pink-800",
   "bg-cyan-100 text-cyan-800",

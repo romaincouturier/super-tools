@@ -201,7 +201,7 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
 
         {/* Company */}
         {card.company && ( // demo-safe: garde d'affichage, valeur masquee plus bas
-          <div className="flex items-center gap-1 text-xs text-slate-600">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Building className="h-3 w-3 shrink-0" />
             <span className="truncate">{isDemoMode ? maskText(card.company) : card.company}</span>
           </div>

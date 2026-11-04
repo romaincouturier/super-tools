@@ -68,10 +68,10 @@ const NetworkStatsPanel = ({ stats }: NetworkStatsPanelProps) => {
 
         <Card>
           <CardContent className="pt-4 pb-3 text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 mb-2">
-              <Clock className="h-6 w-6 text-purple-600" />
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-info-surface mb-2">
+              <Clock className="h-6 w-6 text-info-ink" />
             </div>
-            <p className="text-2xl font-bold text-purple-700">{stats.averageDaysSinceContact}j</p>
+            <p className="text-2xl font-bold text-info-ink">{stats.averageDaysSinceContact}j</p>
             <p className="text-xs text-muted-foreground">Moy. sans contact</p>
           </CardContent>
         </Card>

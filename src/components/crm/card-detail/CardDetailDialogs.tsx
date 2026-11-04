@@ -358,8 +358,8 @@ const CardDetailDialogs = (props: Props) => {
               <Button
                 variant="outline"
                 className={cn(
-                  "h-auto flex flex-col items-center gap-2 p-4 hover:border-purple-500 hover:bg-purple-50",
-                  showFirstAction && "border-purple-500 bg-purple-50"
+                  "h-auto flex flex-col items-center gap-2 p-4 hover:border-info hover:bg-info-surface",
+                  showFirstAction && "border-info bg-info-surface"
                 )}
                 onClick={() => {
                   if (serviceType === "mission") {
@@ -369,13 +369,13 @@ const CardDetailDialogs = (props: Props) => {
                   }
                 }}
               >
-                <Rocket className="h-8 w-8 text-purple-600" />
+                <Rocket className="h-8 w-8 text-info-ink" />
                 <span className="font-medium">Créer une mission</span>
                 <span className="text-xs text-muted-foreground text-center">Préremplir avec les infos de l'opportunité</span>
               </Button>
               {showFirstAction && (
-                <div className="border rounded-lg p-3 space-y-2 bg-purple-50/50">
-                  <div className="flex items-center gap-2 text-sm font-medium text-purple-700">
+                <div className="border rounded-lg p-3 space-y-2 bg-info-surface/50">
+                  <div className="flex items-center gap-2 text-sm font-medium text-info-ink">
                     <CalendarPlus className="h-4 w-4" />
                     Première action
                   </div>
@@ -399,7 +399,7 @@ const CardDetailDialogs = (props: Props) => {
                   </div>
                   <Button
                     size="sm"
-                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    className="w-full bg-info hover:bg-info/90"
                     onClick={handleCreateMissionWithAction}
                     disabled={!firstActionDate || savingFirstAction}
                   >

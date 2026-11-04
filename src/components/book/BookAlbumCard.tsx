@@ -25,7 +25,7 @@ export default function BookAlbumCard({
       onClick={onClick}
     >
       {/* Cover */}
-      <div className="relative aspect-video bg-gray-100">
+      <div className="relative aspect-video bg-muted">
         {album.cover_url ? (
           <img
             src={album.cover_url}
@@ -33,8 +33,8 @@ export default function BookAlbumCard({
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-100">
-            <BookImage className="w-12 h-12 text-gray-300" />
+          <div className="w-full h-full flex items-center justify-center bg-muted">
+            <BookImage className="w-12 h-12 text-muted-foreground" />
           </div>
         )}
 

@@ -140,7 +140,7 @@ export function BilanTab() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "CA TTC total", value: money(totals.total_ttc), icon: <Euro className="h-5 w-5 text-success" /> }, // demo-safe: montant masque par money()
-          { label: "Commissions totales", value: money(totals.total_commission), icon: <TrendingUp className="h-5 w-5 text-purple-600" /> },
+          { label: "Commissions totales", value: money(totals.total_commission), icon: <TrendingUp className="h-5 w-5 text-info-ink" /> },
           { label: "Dépenses totales", value: money(totals.total_expenses), icon: <Package className="h-5 w-5 text-danger-ink" /> },
           { label: "Marge estimée", value: money(totals.margin), icon: <TrendingUp className="h-5 w-5 text-info-ink" /> },
         ].map(({ label, value, icon }) => (
@@ -179,7 +179,7 @@ export function BilanTab() {
                 <TableCell className="text-xs text-muted-foreground">{r.game_type}</TableCell>
                 <TableCell className="text-right text-sm">{r.sales_count}</TableCell>
                 <TableCell className="text-right text-sm">{money(r.total_ttc)}{/* demo-safe: montant masque par money() */}</TableCell>
-                <TableCell className="text-right text-sm text-purple-700">{money(r.total_commission)}</TableCell>
+                <TableCell className="text-right text-sm text-info-ink">{money(r.total_commission)}</TableCell>
                 <TableCell className="text-right text-sm text-caution-ink">{money(r.cogs)}</TableCell>
                 <TableCell className="text-right text-sm text-danger-ink">{money(r.total_expenses)}</TableCell>
                 <TableCell className={`text-right text-sm font-medium ${r.margin >= 0 ? "text-success" : "text-danger-ink"}`}>{money(r.margin)}</TableCell>

@@ -212,7 +212,7 @@ const SponsorEvaluation = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-muted">
         <div className="text-center space-y-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
           <p className="text-muted-foreground">Chargement de l'évaluation...</p>
@@ -223,7 +223,7 @@ const SponsorEvaluation = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-muted p-4">
         <Card className="max-w-md w-full">
           <CardHeader className="text-center">
             <img src={supertiltLogo} alt="SuperTilt" className="h-12 mx-auto mb-4" />
@@ -242,7 +242,7 @@ const SponsorEvaluation = () => {
   // Already submitted view
   if (record.etat === "soumis" && record.date_soumission) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-muted p-4">
         <Card className="max-w-md w-full">
           <CardHeader className="text-center">
             <img src={supertiltLogo} alt="SuperTilt" className="h-12 mx-auto mb-4" />
@@ -266,7 +266,7 @@ const SponsorEvaluation = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-muted py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-4">
@@ -339,7 +339,7 @@ const SponsorEvaluation = () => {
                     className={`flex items-center justify-center w-12 h-12 rounded-lg border-2 transition-all ${
                       satisfactionGlobale === n
                         ? "border-primary bg-primary/10 text-primary"
-                        : "border-gray-200 hover:border-gray-300"
+                        : "border-border hover:border-border"
                     }`}
                   >
                     <span className="font-semibold">{n}</span>

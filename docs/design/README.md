@@ -51,7 +51,7 @@ Correspondance de migration depuis la palette brute : `green-*` vers `success`, 
 
 ## Chantier restant
 
-1. Migrer les teintes restantes de la palette brute (230 : purple, gray, etc.) ; les couleurs de statut sont migrées.
+1. Migrer les teintes restantes de la palette brute (49 : violet, indigo, cyan, teal, pink) ; statuts, gris (vers `muted`, `border`, `foreground`) et `purple` (vers `info`) sont migrés.
 2. Supprimer les 15 hex en classe et les 33 tailles arbitraires restantes.
 3. Annoter les variantes de `button.tsx` et `badge.tsx` qui n'ont pas de source de charte ; ajouter `data-slot` aux primitives.
 4. Documenter la typographie (Lexend pour l'interface du builder, Fraunces pour les titres éditoriaux) et fixer un fichier de chargement unique des polices.

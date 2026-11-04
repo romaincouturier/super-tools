@@ -72,8 +72,8 @@ function formatDuration(seconds: number | null): string {
 
 const QUALIFICATION_CONFIG: Record<string, { label: string; className: string }> = {
   pro_exploitable:       { label: "Pro exploitable",       className: "bg-success-surface text-success" },
-  pro_archiver:          { label: "Pro à archiver",        className: "bg-slate-100 text-slate-700" },
-  personnel_hors_sujet:  { label: "Personnel / hors sujet", className: "bg-zinc-100 text-zinc-500" },
+  pro_archiver:          { label: "Pro à archiver",        className: "bg-muted text-foreground" },
+  personnel_hors_sujet:  { label: "Personnel / hors sujet", className: "bg-muted text-muted-foreground" },
   sensible_confidentiel: { label: "Sensible / confidentiel", className: "bg-danger-surface text-danger-ink" },
   non_exploitable:       { label: "Non exploitable",       className: "bg-caution-surface text-caution-ink" },
 };
@@ -164,7 +164,7 @@ function EditorialSheet({ t }: { t: Transcript }) {
               </span>
             )}
             {a?.type_matiere && q === "pro_exploitable" && (
-              <span className="text-caption px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+              <span className="text-caption px-2 py-0.5 rounded-full bg-info-surface text-info-ink">
                 {TYPE_MATIERE_LABELS[a.type_matiere] ?? a.type_matiere}
               </span>
             )}

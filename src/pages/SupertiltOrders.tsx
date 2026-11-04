@@ -80,7 +80,7 @@ const GAME_TYPE_LABELS: Record<GameType, string> = {
 
 const GAME_TYPE_COLORS: Record<GameType, string> = {
   supertilt: "bg-info-surface text-info-ink",
-  dropshipping: "bg-purple-100 text-purple-800",
+  dropshipping: "bg-info-surface text-info-ink",
   location: "bg-caution-surface text-caution-ink",
   partner: "bg-success-surface text-success",
 };
@@ -89,7 +89,7 @@ const KANBAN_ICONS: Record<KanbanStatus, React.ReactNode> = {
   to_validate: <AlertTriangle className="h-3.5 w-3.5 text-caution-ink" />,
   received: <Clock className="h-3.5 w-3.5 text-info-ink" />,
   to_ship: <Truck className="h-3.5 w-3.5 text-indigo-600" />,
-  dropshipping: <RefreshCw className="h-3.5 w-3.5 text-purple-600" />,
+  dropshipping: <RefreshCw className="h-3.5 w-3.5 text-info-ink" />,
   location_pending: <FileText className="h-3.5 w-3.5 text-caution-ink" />,
   location_active: <Clock className="h-3.5 w-3.5 text-caution-ink" />,
   processed: <CheckCircle className="h-3.5 w-3.5 text-success" />,

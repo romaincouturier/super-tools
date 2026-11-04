@@ -131,7 +131,7 @@ export default function ImageHotspotBlockEditor({ lessonId, content, onChange, s
             </button>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center gap-2 py-8 text-gray-400">
+          <div className="flex flex-col items-center justify-center gap-2 py-8 text-muted-foreground">
             <Upload className="h-8 w-8" />
             <span className="text-sm">Importer une image</span>
           </div>

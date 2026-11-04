@@ -15,7 +15,7 @@ export default function BookProfileWidget({ profile }: BookProfileWidgetProps) {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/20 shadow-lg cursor-pointer flex items-center justify-center bg-gray-700">
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/20 shadow-lg cursor-pointer flex items-center justify-center bg-foreground">
               {hasPhoto ? (
                 <img
                   src={profile!.photo_url!}
@@ -23,7 +23,7 @@ export default function BookProfileWidget({ profile }: BookProfileWidgetProps) {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <User className="w-5 h-5 text-gray-300" />
+                <User className="w-5 h-5 text-muted-foreground" />
               )}
             </div>
           </TooltipTrigger>

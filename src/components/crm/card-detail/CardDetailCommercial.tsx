@@ -201,9 +201,9 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
 
       {/* AI Analysis result */}
       {aiAnalysis && (
-        <div className="p-4 bg-purple-50 rounded-lg space-y-2">
+        <div className="p-4 bg-info-surface rounded-lg space-y-2">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-sm flex items-center gap-2 text-purple-700">
+            <h4 className="font-medium text-sm flex items-center gap-2 text-info-ink">
               <Brain className="h-4 w-4" />
               Analyse IA
             </h4>
@@ -216,7 +216,7 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
               </Button>
             </div>
           </div>
-          <div className="text-sm whitespace-pre-wrap text-purple-900">{aiAnalysis}</div>
+          <div className="text-sm whitespace-pre-wrap text-info-ink">{aiAnalysis}</div>
         </div>
       )}
 

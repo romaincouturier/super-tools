@@ -46,7 +46,7 @@ function Dashboard() {
         {[
           { label: "Chiffre d'affaires", value: isDemoMode ? maskAmount(kpis?.totalRevenue ?? 0) : EUR(kpis?.totalRevenue ?? 0), icon: <Euro className="h-5 w-5 text-success" /> },
           { label: "Royalties dues", value: isDemoMode ? maskAmount(kpis?.totalRoyalties ?? 0) : EUR(kpis?.totalRoyalties ?? 0), icon: <TrendingUp className="h-5 w-5 text-info-ink" /> },
-          { label: "Ventes totales", value: kpis?.totalSales ?? 0, icon: <ShoppingCart className="h-5 w-5 text-purple-600" /> },
+          { label: "Ventes totales", value: kpis?.totalSales ?? 0, icon: <ShoppingCart className="h-5 w-5 text-info-ink" /> },
           { label: "Jeux top 5", value: kpis?.topGames?.length ?? 0, icon: <Package className="h-5 w-5 text-caution-ink" /> },
         ].map(({ label, value, icon }) => (
           <Card key={label}>

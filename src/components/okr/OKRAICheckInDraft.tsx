@@ -77,7 +77,7 @@ const OKRAICheckInDraft = ({ objectiveId, year, onDraftReady }: OKRAICheckInDraf
       {isLoading ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin" />
       ) : (
-        <Sparkles className="h-3.5 w-3.5 text-purple-500" />
+        <Sparkles className="h-3.5 w-3.5 text-info" />
       )}
       Pré-remplir avec l'IA
     </Button>

@@ -199,7 +199,7 @@ const CardDetailQualification = ({ state, handlers }: Props) => {
 
         {/* Linked Mission */}
         {serviceType === "mission" && (
-          <div className="p-4 bg-purple-50 rounded-lg space-y-3">
+          <div className="p-4 bg-info-surface rounded-lg space-y-3">
             <h4 className="font-medium text-sm flex items-center gap-2">
               <Briefcase className="h-4 w-4" />
               Mission liée

@@ -39,7 +39,7 @@ const statusColors: Record<string, string> = {
 const accessColors: Record<string, string> = {
   gratuit: "bg-info/10 text-info-ink border-info-line",
   payant: "bg-violet-500/10 text-violet-700 border-violet-200",
-  intra: "bg-slate-500/10 text-slate-700 border-slate-200",
+  intra: "bg-muted-foreground/10 text-foreground border-border",
 };
 
 const difficultyLabels: Record<string, string> = {

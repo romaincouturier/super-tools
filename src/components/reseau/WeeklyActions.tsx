@@ -18,7 +18,7 @@ import type { NetworkContact, UserPositioning, NetworkAction, ActionType } from 
 
 const ACTION_CONFIG: Record<ActionType, { icon: typeof Linkedin; label: string; color: string }> = {
   linkedin_message: { icon: Linkedin, label: "LinkedIn", color: "bg-info-surface text-info-ink" },
-  email: { icon: Mail, label: "Email", color: "bg-purple-100 text-purple-800" },
+  email: { icon: Mail, label: "Email", color: "bg-info-surface text-info-ink" },
   phone_call: { icon: Phone, label: "Appel", color: "bg-success-surface text-success" },
   coffee_invite: { icon: Coffee, label: "Café", color: "bg-caution-surface text-caution-ink" },
   share_content: { icon: Share2, label: "Partage", color: "bg-pink-100 text-pink-800" },

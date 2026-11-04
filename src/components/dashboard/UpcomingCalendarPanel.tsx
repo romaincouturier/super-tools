@@ -66,7 +66,7 @@ const UpcomingCalendarPanel = () => {
                     {entry.type === "formation" ? (
                       <GraduationCap className="h-3.5 w-3.5 text-info-ink mt-0.5 shrink-0" />
                     ) : entry.type === "live" ? (
-                      <Video className="h-3.5 w-3.5 text-purple-600 mt-0.5 shrink-0" />
+                      <Video className="h-3.5 w-3.5 text-info-ink mt-0.5 shrink-0" />
                     ) : (
                       <CalendarDays className="h-3.5 w-3.5 text-teal-600 mt-0.5 shrink-0" />
                     )}
@@ -97,7 +97,7 @@ const UpcomingCalendarPanel = () => {
                         entry.type === "formation"
                           ? "bg-info-surface text-info-ink"
                           : entry.type === "live"
-                          ? "bg-purple-50 text-purple-700"
+                          ? "bg-info-surface text-info-ink"
                           : "bg-teal-50 text-teal-700"
                       }`}
                     >

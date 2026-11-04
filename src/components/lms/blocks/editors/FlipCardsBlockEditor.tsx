@@ -297,12 +297,12 @@ function CardFormFields({
         <div className="space-y-2">
           <Label className="text-xs font-semibold">Recto</Label>
           <div
-            className="h-16 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer overflow-hidden hover:border-gray-400 transition-colors"
+            className="h-16 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer overflow-hidden hover:border-muted-foreground transition-colors"
             onClick={() => frontFileRef.current?.click()}
           >
             {uploadingFront ? <Spinner size="sm" /> : card.front_image_url ? (
               <img src={card.front_image_url} alt="" className="h-full w-full object-cover" />
-            ) : <Upload className="h-5 w-5 text-gray-400" />}
+            ) : <Upload className="h-5 w-5 text-muted-foreground" />}
             <input type="file" accept="image/*" ref={frontFileRef} style={{ display: "none" }}
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload("front", f); e.target.value = ""; }}
             />

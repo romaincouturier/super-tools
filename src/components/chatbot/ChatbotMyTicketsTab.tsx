@@ -16,11 +16,11 @@ const STATUS_LABEL: Record<string, string> = SUPPORT_COLUMNS.reduce((acc, col) =
 }, {} as Record<string, string>);
 
 const STATUS_CLASSES: Record<string, string> = {
-  nouveau: "bg-gray-100 text-gray-700 border-gray-200",
+  nouveau: "bg-muted text-foreground border-border",
   en_cours: "bg-info-surface text-info-ink border-info-line",
   en_attente: "bg-caution-surface text-caution-ink border-caution-line",
   resolu: "bg-success-surface text-success border-success-line",
-  ferme: "bg-gray-100 text-gray-500 border-gray-200",
+  ferme: "bg-muted text-muted-foreground border-border",
 };
 
 function formatRelative(iso: string) {

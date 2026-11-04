@@ -187,7 +187,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
                         <div className="font-medium text-sm flex items-center gap-1.5">
                           {tpl.template_name}
                           {tpl.improvement_count > 0 && (
-                            <span className="inline-flex items-center gap-0.5 text-micro text-purple-600 bg-purple-50 px-1 py-0.5 rounded" title={`Auto-amélioré ${tpl.improvement_count} fois`}>
+                            <span className="inline-flex items-center gap-0.5 text-micro text-info-ink bg-info-surface px-1 py-0.5 rounded" title={`Auto-amélioré ${tpl.improvement_count} fois`}>
                               <Sparkles className="h-2.5 w-2.5" />
                               {tpl.improvement_count}
                             </span>

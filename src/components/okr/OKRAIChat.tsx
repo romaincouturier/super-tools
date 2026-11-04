@@ -115,7 +115,7 @@ const OKRAIChat = ({ year, objectiveId }: OKRAIChatProps) => {
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-500" />
+            <Sparkles className="h-5 w-5 text-info" />
             AI Mode — Parlez à vos OKRs
           </div>
           <div className="flex items-center gap-1">
@@ -153,7 +153,7 @@ const OKRAIChat = ({ year, objectiveId }: OKRAIChatProps) => {
                   onClick={() => sendMessage(qp.prompt, qp.mode)}
                   disabled={isLoading}
                 >
-                  <Icon className="h-4 w-4 mt-0.5 text-purple-500 shrink-0" />
+                  <Icon className="h-4 w-4 mt-0.5 text-info shrink-0" />
                   <div>
                     <p className="text-sm font-medium">{qp.label}</p>
                     <p className="text-xs text-muted-foreground">{qp.description}</p>

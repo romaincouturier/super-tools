@@ -453,7 +453,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                             </Badge>
                           )}
                           {(emailItem.click_count || 0) > 0 && (
-                            <Badge variant="outline" className="text-micro h-4 px-1 gap-0.5 text-purple-600 border-purple-200 bg-purple-50">
+                            <Badge variant="outline" className="text-micro h-4 px-1 gap-0.5 text-info-ink border-info-line bg-info-surface">
                               <MousePointerClick className="h-2.5 w-2.5" /> Clic{emailItem.click_count! > 1 ? ` ×${emailItem.click_count}` : ""}
                             </Badge>
                           )}

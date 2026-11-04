@@ -35,7 +35,7 @@ interface WatchItemCardProps {
 const contentTypeConfig: Record<string, { icon: typeof FileText; label: string; color: string }> = {
   text: { icon: FileText, label: "Texte", color: "bg-info-surface text-info-ink" },
   url: { icon: Link, label: "URL", color: "bg-success-surface text-success" },
-  image: { icon: Image, label: "Image", color: "bg-purple-100 text-purple-700" },
+  image: { icon: Image, label: "Image", color: "bg-info-surface text-info-ink" },
   audio: { icon: Mic, label: "Audio", color: "bg-caution-surface text-caution-ink" },
   document: { icon: File, label: "PDF", color: "bg-danger-surface text-danger-ink" },
 };

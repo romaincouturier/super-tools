@@ -45,11 +45,11 @@ export const STATUS_CONFIG: Record<
   ImprovementStatus,
   { label: string; color: string }
 > = {
-  draft: { label: "Brouillon", color: "bg-gray-100 text-gray-600" },
+  draft: { label: "Brouillon", color: "bg-muted text-muted-foreground" },
   pending: { label: "En attente", color: "bg-caution-surface text-caution-ink" },
   in_progress: { label: "En cours", color: "bg-info-surface text-info-ink" },
   completed: { label: "Terminée", color: "bg-success-surface text-success" },
-  cancelled: { label: "Annulée", color: "bg-gray-100 text-gray-800" },
+  cancelled: { label: "Annulée", color: "bg-muted text-foreground" },
 };
 
 export const CATEGORY_CONFIG: Record<

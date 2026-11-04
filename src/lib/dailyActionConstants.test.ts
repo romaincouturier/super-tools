@@ -31,7 +31,7 @@ describe("getCategoryConfig", () => {
     const config = getCategoryConfig("");
     // empty string is not in CATEGORIES, so it falls back
     expect(config.label).toBe("");
-    expect(config.color).toBe("text-gray-600");
+    expect(config.color).toBe("text-muted-foreground");
   });
 
   it("does not mutate DEFAULT_CATEGORY_CONFIG when returning fallback", () => {

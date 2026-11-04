@@ -112,12 +112,12 @@ export default function BookMediaLibraryPicker({ open, onOpenChange, albumId }: 
                     key={m.id}
                     type="button"
                     onClick={() => toggle(m.id)}
-                    className={`group relative rounded-md overflow-hidden aspect-square bg-gray-100 border-2 transition-all ${
+                    className={`group relative rounded-md overflow-hidden aspect-square bg-muted border-2 transition-all ${
                       isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-transparent'
                     }`}
                   >
                     {m.file_type === 'video' ? (
-                      <div className="relative w-full h-full bg-gray-800">
+                      <div className="relative w-full h-full bg-foreground">
                         <MediaVideoThumb item={m} />
                         <Play className="absolute inset-0 m-auto w-8 h-8 text-white/90 drop-shadow pointer-events-none" />
                       </div>

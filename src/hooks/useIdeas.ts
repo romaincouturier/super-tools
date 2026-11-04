@@ -48,7 +48,7 @@ export const IDEA_STATUS_CONFIG: Record<IdeaStatus, { label: string; color: stri
   acceptee: { label: "Acceptée", color: "bg-success-surface text-success" },
   promue: { label: "Promue", color: "bg-violet-100 text-violet-800" },
   realisee: { label: "Réalisée", color: "bg-success-surface text-success" },
-  rejetee: { label: "Rejetée", color: "bg-gray-100 text-gray-600" },
+  rejetee: { label: "Rejetée", color: "bg-muted text-muted-foreground" },
 };
 
 export const IDEA_COLUMNS: IdeaStatus[] = [

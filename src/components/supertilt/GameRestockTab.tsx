@@ -45,7 +45,7 @@ const STATUS_LABELS: Record<RestockItemStatus, string> = {
   received: "Reçu",
 };
 const STATUS_COLORS: Record<RestockItemStatus, string> = {
-  todo: "bg-gray-100 text-gray-800",
+  todo: "bg-muted text-foreground",
   in_progress: "bg-info-surface text-info-ink",
   awaiting_delivery: "bg-caution-surface text-caution-ink",
   received: "bg-success-surface text-success",

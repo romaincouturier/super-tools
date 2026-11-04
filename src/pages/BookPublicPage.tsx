@@ -35,7 +35,7 @@ export default function BookPublicPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-foreground flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
       </div>
     );
@@ -51,7 +51,7 @@ export default function BookPublicPage() {
 
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-foreground text-white">
       {/* Top bar */}
       <div className="px-6 py-8 max-w-7xl mx-auto flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -118,7 +118,7 @@ export default function BookPublicPage() {
 
 function NotFound() {
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-4 text-white/60">
+    <div className="min-h-screen bg-foreground flex flex-col items-center justify-center gap-4 text-white/60">
       <AlertCircle className="w-12 h-12" />
       <p className="text-xl">Lien introuvable ou révoqué</p>
     </div>

@@ -692,9 +692,9 @@ const MissionSummary = () => {
                     {formatCurrency(totalBilled, lang)} €
                   </div>
                 </div>
-                <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-                  <div className="text-xs text-purple-600 font-medium">{L.remainingToBill}</div>
-                  <div className="text-lg font-bold text-purple-700">
+                <div className="p-3 bg-info-surface rounded-lg border border-info-surface">
+                  <div className="text-xs text-info-ink font-medium">{L.remainingToBill}</div>
+                  <div className="text-lg font-bold text-info-ink">
                     {formatCurrency(Math.max(0, remainingToBill), lang)} €
                   </div>
                 </div>

@@ -23,7 +23,7 @@ const STATUS_CLASS: Record<string, string> = {
   OPEN: "bg-info-surface text-info-ink",
   WON: "bg-success-surface text-success",
   LOST: "bg-danger-surface text-danger-ink",
-  CANCELED: "bg-gray-100 text-gray-700",
+  CANCELED: "bg-muted text-foreground",
 };
 
 function cardLabel(card: CrmCard): string {

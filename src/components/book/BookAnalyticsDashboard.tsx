@@ -116,8 +116,8 @@ export default function BookAnalyticsDashboard({
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                              <Video className="w-5 h-5 text-gray-400" />
+                            <div className="w-full h-full flex items-center justify-center bg-foreground">
+                              <Video className="w-5 h-5 text-muted-foreground" />
                             </div>
                           )
                         ) : (

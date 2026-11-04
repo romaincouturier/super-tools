@@ -43,7 +43,7 @@ export const STATUS_COLORS: Record<string, string> = {
   open: "bg-caution-surface text-caution-ink",
   in_progress: "bg-info-surface text-info-ink",
   closed: "bg-success-surface text-success",
-  draft: "bg-gray-100 text-gray-600",
+  draft: "bg-muted text-muted-foreground",
 };
 
 export const SEVERITY_COLORS: Record<string, string> = {
@@ -61,5 +61,5 @@ export const NATURE_LABELS: Record<string, string> = {
 export const NATURE_COLORS: Record<string, string> = {
   reclamation: "bg-danger-surface text-danger-ink",
   alea: "bg-caution-surface text-caution-ink",
-  difficulte: "bg-purple-100 text-purple-800",
+  difficulte: "bg-info-surface text-info-ink",
 };

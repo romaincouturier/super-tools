@@ -328,8 +328,8 @@ const ApiUsageTab = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100">
-                <Bot className="h-5 w-5 text-purple-600" />
+              <div className="p-2 rounded-lg bg-info-surface">
+                <Bot className="h-5 w-5 text-info-ink" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Part automatique</p>

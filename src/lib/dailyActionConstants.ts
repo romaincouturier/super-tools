@@ -58,7 +58,7 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
   devis_a_faire: { label: "Devis \u00e0 faire", emoji: "\ud83d\udcdd", color: "text-info-ink" },
   devis_a_relancer: { label: "Devis \u00e0 relancer", emoji: "\ud83d\udd04", color: "text-caution-ink" },
   opportunites: { label: "Opportunit\u00e9s \u00e0 contacter", emoji: "\ud83c\udfaf", color: "text-caution-ink" },
-  articles_relire: { label: "Articles \u00e0 relire", emoji: "\ud83d\udccb", color: "text-purple-600" },
+  articles_relire: { label: "Articles \u00e0 relire", emoji: "\ud83d\udccb", color: "text-info-ink" },
   articles_bloques: { label: "Articles bloqu\u00e9s / en attente", emoji: "\u23f8\ufe0f", color: "text-caution-ink" },
   cfp_soumettre: { label: "CFP \u00e0 soumettre", emoji: "\ud83d\udce8", color: "text-caution-ink" },
   formations_conventions: { label: "Formations", emoji: "\ud83c\udf93", color: "text-danger-ink" },
@@ -82,7 +82,7 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
 export const DEFAULT_CATEGORY_CONFIG: CategoryConfig = {
   label: "",
   emoji: "\ud83d\udccc",
-  color: "text-gray-600",
+  color: "text-muted-foreground",
 };
 
 /** Get config for a category, falling back to defaults */

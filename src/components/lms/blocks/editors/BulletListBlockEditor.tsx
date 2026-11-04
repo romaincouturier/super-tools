@@ -210,7 +210,7 @@ export default function BulletListBlockEditor({ content, onChange, slim }: Props
                     ? "border-foreground scale-110"
                     : "border-transparent hover:border-muted-foreground/50",
                   c.value === "" && "bg-muted text-micro flex items-center justify-center",
-                  c.value === "#FFFFFF" && "ring-1 ring-inset ring-gray-200",
+                  c.value === "#FFFFFF" && "ring-1 ring-inset ring-border",
                 )}
                 style={c.value ? { backgroundColor: c.value } : undefined}
                 aria-label={c.label}

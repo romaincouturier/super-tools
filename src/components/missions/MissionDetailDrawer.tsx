@@ -268,7 +268,7 @@ const MissionDetailDrawer = ({
         onClick={handleGenerateMissionSummary}
         disabled={aiSummaryLoading}
         title="Synthèse IA de la mission"
-        className={aiSummary ? "border-purple-300 text-purple-700" : ""}
+        className={aiSummary ? "border-info-line text-info-ink" : ""}
       >
         {aiSummaryLoading ? <Spinner /> : <Sparkles className="h-4 w-4" />}
       </Button>
@@ -376,18 +376,18 @@ const MissionDetailDrawer = ({
 
         {/* AI Mission Summary Panel */}
         {aiSummary && (
-          <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg text-sm relative">
+          <div className="mt-4 p-4 bg-info-surface border border-info-line rounded-lg text-sm relative">
             <button
               onClick={() => setAiSummary(null)}
-              className="absolute top-2 right-2 h-6 w-6 flex items-center justify-center rounded hover:bg-purple-200 text-purple-500"
+              className="absolute top-2 right-2 h-6 w-6 flex items-center justify-center rounded hover:bg-info-line text-info"
             >
               <X className="h-4 w-4" />
             </button>
-            <div className="flex items-center gap-1.5 text-purple-700 font-medium mb-2">
+            <div className="flex items-center gap-1.5 text-info-ink font-medium mb-2">
               <Sparkles className="h-4 w-4" />
               Synthèse IA de la mission
             </div>
-            <div className="text-purple-900 whitespace-pre-wrap leading-relaxed pr-6">{aiSummary}</div>
+            <div className="text-info-ink whitespace-pre-wrap leading-relaxed pr-6">{aiSummary}</div>
           </div>
         )}
 

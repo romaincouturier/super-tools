@@ -103,8 +103,8 @@ const ContentDashboard = () => {
       label: "Relectures en attente",
       value: stats.pendingReviews,
       icon: MessageSquare,
-      color: "text-purple-500",
-      bgColor: "bg-purple-500/10",
+      color: "text-info",
+      bgColor: "bg-info/10",
     },
   ];
 

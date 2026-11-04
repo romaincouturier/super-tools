@@ -175,7 +175,7 @@ const CALLOUT_CLASSES: Record<CalloutColor, string> = {
   amber: "bg-caution-surface border-caution text-caution-ink",
   green: "bg-success-surface border-success text-success",
   red: "bg-danger-surface border-danger text-danger-ink",
-  gray: "bg-gray-100 border-gray-400 text-gray-950",
+  gray: "bg-muted border-muted-foreground text-foreground",
 };
 const CALLOUT_LABELS: Record<CalloutColor, string> = {
   blue: "Bleu",
@@ -189,7 +189,7 @@ const CALLOUT_SWATCHES: Record<CalloutColor, string> = {
   amber: "bg-caution",
   green: "bg-success",
   red: "bg-danger",
-  gray: "bg-gray-400",
+  gray: "bg-muted-foreground",
 };
 
 const CalloutNode = Node.create({
@@ -1023,7 +1023,7 @@ const PageEditor = ({
           title="Résumé IA de cette page"
           className={cn(
             "h-7 px-2 flex items-center gap-1 rounded transition-colors shrink-0 text-xs font-medium",
-            aiSummary ? "bg-purple-100 text-purple-700" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            aiSummary ? "bg-info-surface text-info-ink" : "text-muted-foreground hover:bg-muted hover:text-foreground",
             aiSummaryLoading && "opacity-50 pointer-events-none"
           )}
         >
@@ -1086,18 +1086,18 @@ const PageEditor = ({
 
       {/* AI Summary Panel */}
       {aiSummary && (
-        <div className="mb-2 p-3 bg-purple-50 border border-purple-200 rounded-lg text-sm relative">
+        <div className="mb-2 p-3 bg-info-surface border border-info-line rounded-lg text-sm relative">
           <button
             onClick={() => setAiSummary(null)}
-            className="absolute top-2 right-2 h-5 w-5 flex items-center justify-center rounded hover:bg-purple-200 text-purple-500"
+            className="absolute top-2 right-2 h-5 w-5 flex items-center justify-center rounded hover:bg-info-line text-info"
           >
             <X className="h-3.5 w-3.5" />
           </button>
-          <div className="flex items-center gap-1.5 text-purple-700 font-medium mb-2">
+          <div className="flex items-center gap-1.5 text-info-ink font-medium mb-2">
             <Sparkles className="h-3.5 w-3.5" />
             Résumé IA
           </div>
-          <div className="text-purple-900 whitespace-pre-wrap leading-relaxed pr-4" style={demoBlur(isDemoMode)}>{aiSummary}</div>
+          <div className="text-info-ink whitespace-pre-wrap leading-relaxed pr-4" style={demoBlur(isDemoMode)}>{aiSummary}</div>
         </div>
       )}
 

@@ -51,14 +51,14 @@ export default function BeforeAfterBlockEditor({ lessonId, content, onChange, sl
     <div className="space-y-2">
       <Label className="text-xs font-semibold">{label}</Label>
       <div
-        className="h-24 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden hover:border-gray-400 transition-colors"
+        className="h-24 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden hover:border-muted-foreground transition-colors"
         style={{ borderColor: side === "after" ? "#FFD100" : "#d1d5db", background: side === "after" ? "#FFFBEA" : "#f9fafb" }}
         onClick={() => fileRef.current?.click()}
       >
         {uploading ? <Spinner size="sm" /> : url ? (
           <img src={url} alt={label} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex flex-col items-center gap-1 text-gray-400">
+          <div className="flex flex-col items-center gap-1 text-muted-foreground">
             <Upload className="h-5 w-5" />
             <span className="text-xs">Importer</span>
           </div>

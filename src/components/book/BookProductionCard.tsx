@@ -45,11 +45,11 @@ export default function BookProductionCard({
 
   return (
     <div
-      className="group relative rounded-lg overflow-hidden cursor-pointer bg-gray-100 aspect-square"
+      className="group relative rounded-lg overflow-hidden cursor-pointer bg-muted aspect-square"
       onClick={onClick}
     >
       {production.file_type === 'video' ? (
-        <div className="w-full h-full flex items-center justify-center bg-gray-800">
+        <div className="w-full h-full flex items-center justify-center bg-foreground">
           {production.thumbnail_url && !videoThumbFailed ? (
             <img
               src={production.thumbnail_url}
@@ -68,7 +68,7 @@ export default function BookProductionCard({
               playsInline
             />
           ) : (
-            <Video className="w-12 h-12 text-gray-400" />
+            <Video className="w-12 h-12 text-muted-foreground" />
           )}
         </div>
       ) : imageSrc && !imageFailed ? (
@@ -88,7 +88,7 @@ export default function BookProductionCard({
           }}
         />
       ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gray-200 text-gray-500 p-4 text-center">
+        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-muted text-muted-foreground p-4 text-center">
           <ImageIcon className="w-8 h-8" />
           <span className="text-xs font-medium truncate max-w-full">{production.title}</span>
         </div>

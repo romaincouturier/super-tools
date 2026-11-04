@@ -173,7 +173,7 @@ function ImageSlot({
 
   if (img.url) {
     return (
-      <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-100">
+      <div className="relative aspect-square rounded-xl overflow-hidden bg-muted">
         <img src={img.url} alt="" className="w-full h-full object-cover" />
         <button
           type="button"

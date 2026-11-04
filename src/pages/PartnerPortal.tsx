@@ -211,7 +211,7 @@ export default function PartnerPortal() {
           {[
             { label: "Ventes", value: summary.total_sales, icon: <ShoppingCart className="h-5 w-5 text-info-ink" /> },
             { label: "CA TTC", value: EUR(summary.total_ttc), icon: <Euro className="h-5 w-5 text-success" /> },
-            { label: "Commission totale", value: EUR(summary.total_commission), icon: <TrendingUp className="h-5 w-5 text-purple-600" /> },
+            { label: "Commission totale", value: EUR(summary.total_commission), icon: <TrendingUp className="h-5 w-5 text-info-ink" /> },
             { label: "Restant à reverser", value: EUR(summary.remaining), icon: <CreditCard className="h-5 w-5 text-caution-ink" /> },
           ].map(({ label, value, icon }) => (
             <Card key={label}>
@@ -251,7 +251,7 @@ export default function PartnerPortal() {
                       <TableCell className="text-sm font-mono">{s.woocommerce_orders?.order_number ?? "—"}</TableCell>
                       <TableCell className="text-right text-sm">{s.quantity}</TableCell>
                       <TableCell className="text-right text-sm">{EUR(s.line_total ?? 0)}</TableCell>
-                      <TableCell className="text-right text-sm font-medium text-purple-700">{EUR(s.commission_amount ?? 0)}</TableCell>
+                      <TableCell className="text-right text-sm font-medium text-info-ink">{EUR(s.commission_amount ?? 0)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

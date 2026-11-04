@@ -19,7 +19,7 @@
 065=0
 # 076a : couleurs de la palette Tailwind brute (bg-green-600...). Cible : 0, vers les alias success/danger/caution/info.
 #   Le contrôle ne voit pas les couleurs construites dynamiquement (template strings), les hex dans style={{}}, ni les SVG inline.
-076a=230
+076a=49
 # 076b : couleurs hex littérales dans les classes Tailwind (bg-[#...]). Cible : 0.
 #   Le contrôle ne voit pas les hex hors classes (style, props de graphiques, constantes).
 076b=15

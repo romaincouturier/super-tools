@@ -33,10 +33,10 @@ const ACTION_STYLES: Record<string, string> = {
   ameliorer_article: "bg-info-surface text-info-ink border-info-line",
   recycler: "bg-cyan-100 text-cyan-800 border-cyan-200",
   fusionner: "bg-violet-100 text-violet-800 border-violet-200",
-  archiver: "bg-slate-100 text-slate-700 border-slate-200",
+  archiver: "bg-muted text-foreground border-border",
   creer_post_linkedin: "bg-info-surface text-info-ink border-info-line",
   a_discuter: "bg-caution-surface text-caution-ink border-caution-line",
-  ne_rien_faire: "bg-slate-100 text-slate-700 border-slate-200",
+  ne_rien_faire: "bg-muted text-foreground border-border",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -72,7 +72,7 @@ const CIBLE_LABELS: Record<string, string> = {
 
 function ScoreBadge({ label, value, emphasis = false }: { label: string; value: number | null; emphasis?: boolean }) {
   if (value == null) return null;
-  const tone = value >= 70 ? "text-success" : value >= 40 ? "text-caution-ink" : "text-slate-500";
+  const tone = value >= 70 ? "text-success" : value >= 40 ? "text-caution-ink" : "text-muted-foreground";
   return (
     <div className={`flex flex-col items-center rounded-md border px-2.5 py-1 ${emphasis ? "border-primary/40 bg-primary/5" : ""}`}>
       <span className={`text-sm font-bold ${emphasis ? "text-primary" : tone}`}>{value}</span>

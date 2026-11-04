@@ -35,9 +35,9 @@ const STATUS_FILTER: ("all" | DepositPedagogicalStatus)[] = [
 ];
 
 const STATUS_BADGE: Record<DepositPedagogicalStatus, string> = {
-  submitted: "bg-gray-100 text-gray-700",
+  submitted: "bg-muted text-foreground",
   seen: "bg-info-surface text-info-ink",
-  feedback_received: "bg-purple-50 text-purple-700",
+  feedback_received: "bg-info-surface text-info-ink",
   needs_completion: "bg-caution-surface text-caution-ink",
   validated: "bg-success-surface text-success",
 };
@@ -173,7 +173,7 @@ export default function LmsDeposits() {
                       <span
                         className={cn(
                           "inline-flex items-center text-micro font-medium px-2 py-0.5 rounded-full",
-                          d.visibility === "shared" ? "bg-info-surface text-info-ink border border-info-line" : "bg-gray-50 text-gray-700 border border-gray-200",
+                          d.visibility === "shared" ? "bg-info-surface text-info-ink border border-info-line" : "bg-muted text-foreground border border-border",
                         )}
                       >
                         {d.visibility === "shared" ? <Globe2 className="h-3 w-3 mr-1" /> : <Lock className="h-3 w-3 mr-1" />}

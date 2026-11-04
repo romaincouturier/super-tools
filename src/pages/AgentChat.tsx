@@ -324,7 +324,7 @@ const AgentChat = () => {
               <div className="max-w-3xl mx-auto flex flex-wrap gap-2 mb-2">
                 {attachments.map((att, i) => (
                   <div key={i} className="flex items-center gap-1.5 bg-muted rounded-md px-2 py-1 text-xs">
-                    {att.type === "image" ? <ImageIcon className="h-3 w-3 text-purple-600" /> : <FileText className="h-3 w-3 text-info-ink" />}
+                    {att.type === "image" ? <ImageIcon className="h-3 w-3 text-info-ink" /> : <FileText className="h-3 w-3 text-info-ink" />}
                     <span className="truncate max-w-[120px]">{att.name}</span>
                     <button onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-foreground">
                       <X className="h-3 w-3" />

@@ -300,9 +300,9 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
             {isDemoMode ? maskAmount(totalBilled) : `${totalBilled.toLocaleString("fr-FR")} €`}
           </div>
         </div>
-        <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-          <div className="text-xs text-purple-600 font-medium">Reste à facturer HT</div>
-          <div className="text-lg font-bold text-purple-700">
+        <div className="p-3 bg-info-surface rounded-lg border border-info-surface">
+          <div className="text-xs text-info-ink font-medium">Reste à facturer HT</div>
+          <div className="text-lg font-bold text-info-ink">
             {isDemoMode ? maskAmount(remainingToBill) : `${remainingToBill.toLocaleString("fr-FR")} €`}
           </div>
         </div>

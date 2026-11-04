@@ -113,7 +113,7 @@ export default function CalloutBlockEditor({ content, onChange, slim }: Props) {
                       className={cn(
                         "h-7 w-7 rounded-md border-2 transition-all",
                         isSelected ? "border-foreground scale-110 shadow-sm" : "border-transparent hover:border-muted-foreground/50",
-                        color === "white" && "ring-1 ring-inset ring-gray-200",
+                        color === "white" && "ring-1 ring-inset ring-border",
                       )}
                       style={{ backgroundColor: entry.swatch || entry.bg }}
                       aria-pressed={isSelected}

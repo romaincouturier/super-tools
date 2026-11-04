@@ -420,13 +420,13 @@ function StepFormFields({
       {/* Step icon */}
       <div className="flex items-center gap-3">
         <div
-          className="w-14 h-14 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer overflow-hidden shrink-0 hover:border-gray-400 transition-colors"
+          className="w-14 h-14 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer overflow-hidden shrink-0 hover:border-muted-foreground transition-colors"
           onClick={() => stepFileRef.current?.click()}
         >
           {uploadingStep ? <Spinner size="sm" /> : step.icon_url ? (
             <img src={step.icon_url} alt="" className="w-full h-full object-contain" />
           ) : (
-            <Upload className="h-5 w-5 text-gray-400" />
+            <Upload className="h-5 w-5 text-muted-foreground" />
           )}
           <input type="file" accept="image/*" ref={stepFileRef} style={{ display: "none" }}
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleStepIconUpload(f); e.target.value = ""; }}
@@ -453,12 +453,12 @@ function StepFormFields({
         {items.map((item, i) => (
           <div key={item.id} className="flex items-center gap-2">
             <div
-              className="w-7 h-7 rounded border-dashed border border-gray-300 flex items-center justify-center cursor-pointer overflow-hidden shrink-0"
+              className="w-7 h-7 rounded border-dashed border border-border flex items-center justify-center cursor-pointer overflow-hidden shrink-0"
               onClick={() => itemFileRefs.current[i]?.click()}
             >
               {uploadingItemIdx === i ? <Spinner size="sm" /> : item.icon_url ? (
                 <img src={item.icon_url} alt="" className="w-full h-full object-contain" />
-              ) : <Upload className="h-3 w-3 text-gray-400" />}
+              ) : <Upload className="h-3 w-3 text-muted-foreground" />}
               <input type="file" accept="image/*" ref={(el) => { itemFileRefs.current[i] = el; }} style={{ display: "none" }}
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleItemIconUpload(i, f); e.target.value = ""; }}
               />

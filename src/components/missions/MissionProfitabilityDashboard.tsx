@@ -168,11 +168,11 @@ const MissionProfitabilityDashboard = () => {
                       </TooltipContent>
                     </Tooltip>
                   </p>
-                  <p className="text-xl font-bold text-purple-600">
+                  <p className="text-xl font-bold text-info-ink">
                     {indicators.breakEvenMonthly.toLocaleString("fr-FR")} €
                   </p>
                 </div>
-                <Target className="h-8 w-8 text-purple-500/30" />
+                <Target className="h-8 w-8 text-info/30" />
               </div>
             </CardContent>
           </Card>
@@ -304,7 +304,7 @@ const MissionProfitabilityDashboard = () => {
               <Progress value={indicators.progressPercentage} className="h-2" />
               {/* Expected progress marker */}
               <div
-                className="absolute top-0 w-0.5 h-2 bg-gray-400"
+                className="absolute top-0 w-0.5 h-2 bg-muted-foreground"
                 style={{ left: `${indicators.expectedProgress}%` }}
                 title={`Progression attendue: ${indicators.expectedProgress}%`}
               />
