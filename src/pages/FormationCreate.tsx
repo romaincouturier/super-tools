@@ -255,7 +255,14 @@ const FormationCreate = () => {
         .select()
         .single();
 
-      if (trainingError) throw trainingError;
+      if (trainingError) throw new Error(trainingError.message);
+
+      if (form.isPermanent && form.selectedFormulaId) {
+        const { error: formulaLinkError } = await supabase
+          .from("training_formulas")
+          .insert({ training_id: training.id, formula_id: form.selectedFormulaId });
+        if (formulaLinkError) throw new Error(`Session créée mais formule non rattachée : ${formulaLinkError.message}`);
+      }
 
       // Create schedules
       if (form.schedules.length > 0) {
