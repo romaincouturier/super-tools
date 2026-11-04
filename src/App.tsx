@@ -15,6 +15,7 @@ import { DemoModeProvider } from "@/contexts/DemoModeContext";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import SettingsCommandDialog from "@/components/SettingsCommandDialog";
+import { SurfaceLayout } from "@/components/SurfaceLayout";
 import { RequireStaff } from "@/components/RequireStaff";
 import { RequireLearner } from "@/components/RequireLearner";
 import { SessionProvider } from "@/contexts/SessionProvider";
@@ -200,6 +201,7 @@ const App = () => {
           <RouteErrorBoundary>
             <Routes>
               {/* Public routes — no auth required */}
+              <Route element={<SurfaceLayout surface="landing" />}>
               <Route path="/" element={<Landing />} />
               <Route path="/academy/inscription" element={<AcademySignup />} />
               <Route path="/academy/choisir-mes-formations" element={<AcademyCourseSelection />} />
@@ -215,6 +217,8 @@ const App = () => {
               <Route path="/connexion/reinitialisation" element={<ConnexionReinitialisation />} />
               <Route path="/connexion/definir-mot-de-passe" element={<ConnexionDefinirMotDePasse />} />
               <Route path="/compte-sans-acces" element={<CompteSansAcces />} />
+              </Route>
+              <Route element={<SurfaceLayout surface="learner" />}>
               {/* Learner portal — anciennes URL conservées et redirigées */}
               <Route path="/apprenant" element={<Navigate to="/connexion" replace />} />
               {/* Ancien lien magique : plus de jeton à échanger, on renvoie à la
@@ -255,12 +259,14 @@ const App = () => {
               <Route path="/book/share/:token" element={<BookPublicPage />} />
               {/* SuperTilt shipment confirmation status page (target of edge function redirect) */}
               <Route path="/supertilt/confirmation-envoi" element={<SupertiltConfirmationEnvoi />} />
+              </Route>
               {/* OAuth callbacks */}
               <Route path="/google/callback" element={<GoogleCallback />} />
               <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />
               <Route path="/google-calendar/callback" element={<GoogleCalendarCallback />} />
 
               {/* Back-office routes — staff only, learners redirected to /espace-apprenant */}
+              <Route element={<SurfaceLayout surface="staff" />}>
               <Route element={<RequireStaff />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/agent" element={<Navigate to="/dashboard" replace />} />
@@ -334,6 +340,7 @@ const App = () => {
                 <Route path="/time-tracker" element={<TimeTracker />} />
                 <Route path="/book" element={<BookPage />} />
                 <Route path="/book/album/:albumId" element={<BookAlbumPage />} />
+              </Route>
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

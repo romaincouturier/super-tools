@@ -2,6 +2,21 @@
 
 Source unique : `src/styles/tokens.css`. En cas de désaccord entre ce document et le code, le code a raison et ce document est un bug.
 
+## Trois surfaces
+
+SuperTilt est un seul produit pour trois audiences. Chacune a son design system : un socle commun (`tokens.css` : palette, statuts, contrat shadcn, structure) et une couche propre à la surface (`surfaces.css`).
+
+| Surface | Audience | Routes |
+| --- | --- | --- |
+| `landing` | Prospects, apprenants non connectés | `/`, `/academy/*`, `/connexion*`, `/auth`, `/signup`, `/onboarding`, pages de mot de passe |
+| `learner` | Apprenants, participants, externes à jeton | `/espace-apprenant/*`, player et accueil LMS, `/formation-*`, évaluations, questionnaires, signatures, émargement, sondages, partenaire |
+| `staff` | L'équipe | Tout ce qui est sous `RequireStaff`, builders LMS (surface par défaut) |
+
+- `SurfaceLayout` (`src/components/SurfaceLayout.tsx`) pose `data-surface` sur `<html>`, pas sur un wrapper : les dialogs et popovers Radix sont rendus dans `<body>`. `<html>` porte `staff` par défaut (`index.html`).
+- Une surface ne redéfinit que des alias sémantiques et des valeurs structurantes (`--font-body`, `--radius-card`, `--shadow-card`, et à venir `--surface-page`, `--control-md`). Jamais la palette ni les statuts.
+- Aujourd'hui les trois surfaces ont les mêmes valeurs, celles d'avant la séparation. Elles divergent uniquement par une décision consignée ici. Décisions en attente : police, rayon, fond de page et densité de chaque surface.
+- Un composant de `components/ui/` est commun aux trois surfaces et lit les tokens : il ne connaît pas la surface. Un composant propre à une surface vit dans `components/learner/`, `components/auth/`, ou dans les dossiers métier du back-office.
+
 ## Décisions
 
 - Un seul mode, clair. La marque ne définit pas de variante sombre ; `.dark` et `dark:` sont interdits (check [076]).
@@ -57,4 +72,5 @@ Correspondance de migration depuis la palette brute : `green-*` vers `success`, 
 2. Supprimer les `style={{}}` avec des couleurs littérales (invisibles au ratchet).
 3. Annoter les variantes de `button.tsx` et `badge.tsx` qui n'ont pas de source de charte ; ajouter `data-slot` aux primitives.
 4. Documenter la typographie (Lexend pour l'interface du builder, Fraunces pour les titres éditoriaux) et fixer un fichier de chargement unique des polices.
-5. Écrire la charte source (logo, planches) dans ce dossier ; elle n'existe pas encore.
+5. Choisir les valeurs propres à chaque surface (voir « Trois surfaces »). Le learner mélange aujourd'hui `--st-*`, Lexend et de grands rayons, le staff est sur le thème shadcn, le landing et la connexion ont leurs rayons arbitraires (`rounded-[22px]`).
+6. Écrire la charte source (logo, planches) dans ce dossier ; elle n'existe pas encore.

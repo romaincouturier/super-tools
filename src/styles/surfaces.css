@@ -1,0 +1,34 @@
+/*
+ * Trois surfaces, un seul jeu de tokens de base (tokens.css).
+ *
+ *   landing : vitrine, catalogue public, connexion       (audience : prospects, apprenants non connectés)
+ *   learner : espace apprenant, player LMS, pages à jeton (audience : apprenants, participants, externes)
+ *   staff   : back-office SuperTilt, builders              (audience : l'équipe)
+ *
+ * La surface est posée sur <html> par SurfaceLayout (data-surface). Une surface ne
+ * redéfinit que des alias sémantiques ou des valeurs structurantes, jamais la palette :
+ * la palette de marque, les statuts et le contrat shadcn restent communs.
+ *
+ * Tokens modulables par surface : --font-body, --radius, --radius-card, --surface-page,
+ * --control-md, --shadow-card. Les valeurs ci-dessous reproduisent le rendu d'avant la
+ * séparation ; elles ne divergent que par décision écrite dans docs/design/README.md.
+ */
+
+:root,
+:root[data-surface="staff"] {
+  --font-body: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --radius-card: var(--radius);
+  --shadow-card: none;
+}
+
+:root[data-surface="learner"] {
+  --font-body: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --radius-card: var(--radius);
+  --shadow-card: none;
+}
+
+:root[data-surface="landing"] {
+  --font-body: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --radius-card: var(--radius);
+  --shadow-card: none;
+}

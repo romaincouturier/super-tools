@@ -530,7 +530,8 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
   4. Tailles de texte : `text-micro` (10px), `text-caption` (11px), puis l'échelle Tailwind. Pas de `text-[Npx]`.
   5. Tout token qui crée une classe Tailwind maison s'enregistre dans `extendTailwindMerge` de `src/lib/utils.ts`, sinon `cn()` supprime une classe sur deux.
   6. `src/components/ui/` reste le dossier des primitives shadcn ; un composant partagé sans métier va dans `src/components/shared/`. Les `--st-*` sont gelés : aucun nouveau.
-  7. Une décision d'accessibilité (contraste, focus) s'écrit à côté du token, pas dans la PR.
+  7. Trois surfaces (`landing`, `learner`, `staff`) : le socle est commun, seules les valeurs de `src/styles/surfaces.css` diffèrent, et toute route de `src/App.tsx` est rangée sous un `SurfaceLayout`.
+  8. Une décision d'accessibilité (contraste, focus) s'écrit à côté du token, pas dans la PR.
 - **Vérification** : check [076] de `check-rules.sh` (aucun `dark:` ni `.dark`, bloquant) et ratchets [076a] (palette Tailwind brute), [076b] (hex en classe), [076c] (tailles arbitraires) dans `scripts/rules-ratchet.txt`. Plancher, pas preuve : le contrôle ne voit pas les couleurs construites par template string, les hex dans `style={{}}`, les props de graphiques ni les SVG inline.
 - **Fichiers de référence** : `src/styles/tokens.css`, `tailwind.config.ts`, `src/lib/utils.ts`, `docs/design/README.md`
 - **Origine** : demande de reprise du design system, jamais conçu en amont

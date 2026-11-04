@@ -10,8 +10,8 @@ const twMerge = extendTailwindMerge({
       h: [{ h: ["control-sm", "control-md"] }],
       duration: [{ duration: ["fast", "base", "slow"] }],
       ease: [{ ease: ["brand"] }],
-      shadow: [{ shadow: ["block"] }],
-      rounded: [{ rounded: ["block"] }],
+      shadow: [{ shadow: ["block", "card"] }],
+      rounded: [{ rounded: ["block", "card"] }],
     },
   },
 });

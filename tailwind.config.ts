@@ -110,6 +110,7 @@ export default {
       },
       boxShadow: {
         block: "var(--shadow-block)",
+        card: "var(--shadow-card)",
       },
       height: {
         "control-sm": "var(--control-sm)",
@@ -117,6 +118,7 @@ export default {
       },
       borderRadius: {
         block: "var(--radius-block)",
+        card: "var(--radius-card)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",

@@ -1,4 +1,5 @@
 @import "./styles/tokens.css";
+@import "./styles/surfaces.css";
 
 @tailwind base;
 @tailwind components;
@@ -58,6 +59,7 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body);
   }
 
   /* Hide number input spinners globally */
