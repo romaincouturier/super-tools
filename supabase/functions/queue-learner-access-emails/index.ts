@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import { isInternalCall, requireStaff } from "../_shared/cron-auth.ts";
+import { summarizeLearnerAccessJobs } from "../_shared/learner-access-batch.ts";
 import { resolveTrainingAccess, sendRegisteredLearnerAccessEmail } from "../_shared/learner-account.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -134,16 +135,5 @@ async function batchStatus(admin: SupabaseClient, batchId: string) {
     .select("email, status, result_kind, account_created, error_message")
     .eq("batch_id", batchId);
   if (error) throw error;
-  const rows = data ?? [];
-  const done = rows.filter((r) => r.status === "sent" || r.status === "failed");
-  const sent = rows.filter((r) => r.status === "sent");
-  return {
-    total: rows.length,
-    completed: done.length,
-    finished: rows.length > 0 && done.length === rows.length,
-    created: sent.filter((r) => r.account_created).length,
-    confirmed: sent.filter((r) => !r.account_created && (r.result_kind === "course_access" || r.result_kind === "space_access")).length,
-    passwordInvites: sent.filter((r) => !r.account_created && r.result_kind !== "course_access" && r.result_kind !== "space_access").length,
-    failures: rows.filter((r) => r.status === "failed").map((r) => ({ email: r.email, message: r.error_message ?? "Erreur inconnue" })),
-  };
+  return summarizeLearnerAccessJobs(data ?? []);
 }
