@@ -172,7 +172,7 @@ const FormulaireRedirect = () => {
   // Error state
   if (error && !showRegistration) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted px-4">
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="max-w-md w-full text-center space-y-4">
           <AlertTriangle className="h-12 w-12 text-caution mx-auto" />
           <h1 className="text-xl font-semibold">Formulaire inaccessible</h1>
@@ -185,7 +185,7 @@ const FormulaireRedirect = () => {
   // Registration form for unknown participants
   if (showRegistration) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted px-4">
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-sm border p-6 space-y-6">
           <div className="text-center space-y-2">
             <UserPlus className="h-10 w-10 text-primary mx-auto" />
@@ -261,7 +261,7 @@ const FormulaireRedirect = () => {
 
   // Loading state
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center space-y-3">
         <Spinner size="lg" className="mx-auto text-primary" />
         <p className="text-muted-foreground">Redirection vers le formulaire...</p>

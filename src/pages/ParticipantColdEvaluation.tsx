@@ -158,7 +158,7 @@ const ParticipantColdEvaluation = () => {
   const dates = record.training_start_date ? formatTrainingDates(record.training_start_date, record.training_end_date) : "";
 
   return (
-    <div className="min-h-screen bg-muted/30 py-8 px-4">
+    <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="text-center space-y-3">
           <img src={supertiltLogo} alt="SuperTilt" className="h-14 mx-auto" />

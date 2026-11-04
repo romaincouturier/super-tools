@@ -14,7 +14,7 @@ SuperTilt est un seul produit pour trois audiences. Chacune a son design system 
 
 - `SurfaceLayout` (`src/components/SurfaceLayout.tsx`) pose `data-surface` sur `<html>`, pas sur un wrapper : les dialogs et popovers Radix sont rendus dans `<body>`. `<html>` porte `staff` par défaut (`index.html`).
 - Une surface ne redéfinit que des alias sémantiques et des valeurs structurantes (`--font-body`, `--radius-card`, `--shadow-card`, et à venir `--surface-page`, `--control-md`). Jamais la palette ni les statuts.
-- Aujourd'hui les trois surfaces ont les mêmes valeurs, celles d'avant la séparation. Elles divergent uniquement par une décision consignée ici. Décisions en attente : police, rayon, fond de page et densité de chaque surface.
+- Décisions du 2026-11-04 : police Inter pour le staff, Lexend pour l'apprenant et la landing (choix par défaut, la landing n'a pas été tranchée explicitement) ; fond de page crème (`--surface-page`) partout, y compris les pages à jeton. Les fonds de cartes internes (`--st-surface`, gris clair) restent. Rayon, ombre et densité sont encore identiques entre surfaces : décisions en attente.
 - Un composant de `components/ui/` est commun aux trois surfaces et lit les tokens : il ne connaît pas la surface. Un composant propre à une surface vit dans `components/learner/`, `components/auth/`, ou dans les dossiers métier du back-office.
 
 ## Décisions
@@ -72,5 +72,5 @@ Correspondance de migration depuis la palette brute : `green-*` vers `success`, 
 2. Supprimer les `style={{}}` avec des couleurs littérales (invisibles au ratchet).
 3. Annoter les variantes de `button.tsx` et `badge.tsx` qui n'ont pas de source de charte ; ajouter `data-slot` aux primitives.
 4. Documenter la typographie (Lexend pour l'interface du builder, Fraunces pour les titres éditoriaux) et fixer un fichier de chargement unique des polices.
-5. Choisir les valeurs propres à chaque surface (voir « Trois surfaces »). Le learner mélange aujourd'hui `--st-*`, Lexend et de grands rayons, le staff est sur le thème shadcn, le landing et la connexion ont leurs rayons arbitraires (`rounded-[22px]`).
+5. Choisir rayon, ombre et densité de chaque surface (voir « Trois surfaces »). Le learner mélange aujourd'hui `--st-*`, Lexend et de grands rayons, le staff est sur le thème shadcn, le landing et la connexion ont leurs rayons arbitraires (`rounded-[22px]`).
 6. Écrire la charte source (logo, planches) dans ce dossier ; elle n'existe pas encore.

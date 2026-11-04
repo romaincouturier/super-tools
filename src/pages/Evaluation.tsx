@@ -22,7 +22,7 @@ const Evaluation = () => {
 
   if (form.loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
           <p className="text-muted-foreground">Chargement de l'évaluation...</p>
@@ -33,7 +33,7 @@ const Evaluation = () => {
 
   if (form.error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
           <CardHeader className="text-center">
             <img
@@ -58,7 +58,7 @@ const Evaluation = () => {
     const trainingSummaryUrl = form.evaluation.training_id ? `/formation-info/${form.evaluation.training_id}` : null;
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
           <CardHeader className="text-center">
             <img
@@ -99,7 +99,7 @@ const Evaluation = () => {
   }
 
   return (
-    <div className="min-h-screen bg-muted py-8 px-4">
+    <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-4">

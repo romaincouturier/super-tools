@@ -65,7 +65,7 @@ export default function AcademyCourseSelection() {
   }
 
   return (
-    <main className="min-h-screen bg-secondary">
+    <main className="min-h-screen bg-background">
       <header className="bg-background px-6 py-5">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <SupertiltLogo className="h-9" />

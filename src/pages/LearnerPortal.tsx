@@ -1838,7 +1838,7 @@ export default function LearnerPortal() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--st-surface, #F2F4F4)" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "hsl(var(--surface-page))" }}>
         <Spinner size="lg" />
       </div>
     );
@@ -1846,7 +1846,7 @@ export default function LearnerPortal() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "var(--st-surface, #F2F4F4)" }}>
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "hsl(var(--surface-page))" }}>
         <div className="w-full max-w-sm rounded-2xl border p-8 text-center space-y-4"
           style={{ background: "var(--st-white)", border: "1px solid rgba(16,24,32,0.08)" }}>
           <AlertCircle size={40} className="mx-auto" style={{ color: "#dc2626" }} />
@@ -1902,7 +1902,7 @@ export default function LearnerPortal() {
 
   return (
     <div className="flex h-screen overflow-hidden"
-      style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif", background: "var(--st-surface, #F2F4F4)" }}>
+      style={{ background: "hsl(var(--surface-page))" }}>
 
       {/* Desktop sidebar */}
       <div className="hidden lg:flex flex-col shrink-0" style={{ width: 240 }}>

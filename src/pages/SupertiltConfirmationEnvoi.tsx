@@ -84,7 +84,7 @@ export default function SupertiltConfirmationEnvoi() {
     meta.variant === "success" ? CheckCircle2 : meta.variant === "error" ? XCircle : Info;
 
   return (
-    <main className="min-h-screen bg-muted/40 flex items-center justify-center px-4 py-12">
+    <main className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md bg-card text-card-foreground rounded-xl shadow-sm border p-10 text-center">
         <div
           className={`w-16 h-16 rounded-full ${iconColor} text-white flex items-center justify-center mx-auto mb-6`}
