@@ -1,5 +1,9 @@
 # Roadmap
 
+## Retour des jeux loués (2026-11-04)
+- [ ] Confirmer un retour reçu depuis la carte, conserver la date et clôturer la location même avant échéance
+- [ ] Vérifier la protection contre une clôture anticipée sans retour et le parcours connecté
+
 ## Devis de jeux (2026-11-04)
 - [x] Proposer les contacts des opportunités CRM ouvertes comme commanditaires et conserver le rattachement du devis
 - [x] Mémoriser immédiatement les prix unitaires par jeu/tarif et les frais de port/dossier dans le navigateur existant, puis les recharger sans modifier le catalogue
