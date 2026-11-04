@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 
-const FEES_STORAGE_KEY = "game-devis-last-fees";
-import { Plus, Trash2, Loader2, Send, FileText, ExternalLink, Download } from "lucide-react";
+import { Plus, Trash2, Loader2, Send, FileText, ExternalLink, Download, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +19,9 @@ import { maskAmount, maskEmail, maskText } from "@/lib/demoMask";
 
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useGameDevisDefaults, useOpenGameDevisContacts } from "@/hooks/useGameDevisDefaults";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandItem } from "@/components/ui/command";
 
 const EUR = (v: number) => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
@@ -39,6 +41,9 @@ export default function GameDevisTab() {
   const { data: games = [] } = useGames();
   const { data: priceOptions = [] } = useGamePriceOptions();
   const generateDevis = useGenerateGameDevis();
+  const savedAmounts = useGameDevisDefaults();
+  const { data: contacts = [], isLoading: loadingContacts, isError: contactsError } = useOpenGameDevisContacts();
+  const [contactPickerOpen, setContactPickerOpen] = useState(false);
 
   const sirenSearch = useSirenSearch();
   const { refetch: refetchHistory } = useGameDevisHistory();
@@ -55,25 +60,15 @@ export default function GameDevisTab() {
   const [nomCommanditaire, setNomCommanditaire] = useState("");
 
   const [lines, setLines] = useState<LineItem[]>([]);
-  const [fraisDePort, setFraisDePort] = useState<number | "">("");
-  const [fraisDossier, setFraisDossier] = useState<number | "">("");
+  const [fraisDePort, setFraisDePort] = useState<number | "">(savedAmounts.defaults.fraisDePort ?? "");
+  const [fraisDossier, setFraisDossier] = useState<number | "">(savedAmounts.defaults.fraisDossier ?? "");
   const [noteDevis, setNoteDevis] = useState("");
 
   // Lien opportunité CRM : préremplissage + rattachement du devis à la carte.
   const [searchParams] = useSearchParams();
-  const [crmCardId] = useState<string | null>(() => searchParams.get("crmCardId"));
+  const [crmCardId, setCrmCardId] = useState<string | null>(() => searchParams.get("crmCardId"));
   const { user } = useAuth({ disableRedirect: true, checkPasswordChange: false });
   const senderEmail = user?.email ?? null;
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(FEES_STORAGE_KEY);
-      if (!raw) return;
-      const saved = JSON.parse(raw) as { fraisDePort?: number; fraisDossier?: number };
-      if (typeof saved.fraisDePort === "number") setFraisDePort(saved.fraisDePort);
-      if (typeof saved.fraisDossier === "number") setFraisDossier(saved.fraisDossier);
-    } catch {}
-  }, []);
 
   // Préremplissage depuis les paramètres d'URL (bouton "devis de jeu" du CRM).
   useEffect(() => {
@@ -121,7 +116,7 @@ export default function GameDevisTab() {
       gameId,
       priceOptionId: only?.id ?? "",
       title: only ? `${game.title} — ${priceOptionLabel(only)}` : game.title,
-      ...(only ? { unitPrice: Number(only.prix) || 0 } : {}), // demo-safe: tarif catalogue SuperTilt reporte dans le formulaire
+      unitPrice: savedAmounts.price(gameId, only?.id ?? "", only ? Number(only.prix) || 0 : 0), // demo-safe: tarif saisi ou catalogue
     });
   };
 
@@ -133,7 +128,7 @@ export default function GameDevisTab() {
     updateLine(lineId, {
       priceOptionId: optionId,
       title: `${game.title} — ${priceOptionLabel(opt)}`,
-      unitPrice: Number(opt.prix) || 0,
+      unitPrice: savedAmounts.price(game.id, opt.id, Number(opt.prix) || 0), // demo-safe: tarif saisi ou catalogue
     });
   };
 
@@ -181,15 +176,6 @@ export default function GameDevisTab() {
         ...(crmCardId && { crmCardId, senderEmail: senderEmail ?? undefined }),
       });
       toast({ title: "Devis envoyé !", description: `Le devis a été généré et envoyé à ${isDemoMode ? maskEmail(emailCommanditaire) : emailCommanditaire}` });
-      try {
-        localStorage.setItem(
-          FEES_STORAGE_KEY,
-          JSON.stringify({
-            fraisDePort: typeof fraisDePort === "number" ? fraisDePort : 0,
-            fraisDossier: typeof fraisDossier === "number" ? fraisDossier : 0,
-          }),
-        );
-      } catch {}
       setLines([]);
       refetchHistory();
     } catch (err) {
@@ -206,6 +192,47 @@ export default function GameDevisTab() {
           Ce devis sera rattaché à l'opportunité CRM (montant, PDF, relance et informations client synchronisés).
         </div>
       )}
+      <div className="space-y-2">
+        <Label>Contact d’une opportunité ouverte</Label>
+        <Popover open={contactPickerOpen} onOpenChange={setContactPickerOpen}>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="outline" role="combobox" aria-expanded={contactPickerOpen} className="w-full justify-between" disabled={loadingContacts || contactsError}>
+              {loadingContacts ? "Chargement des contacts…" : "Choisir un contact CRM"}
+              <ChevronsUpDown className="h-4 w-4 shrink-0" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start" onClick={(e) => e.stopPropagation()}>
+            <Command>
+              <CommandInput placeholder="Rechercher un nom, une entreprise, un email…" />
+              <CommandList>
+                <CommandEmpty>Aucun contact d’opportunité ouverte.</CommandEmpty>
+                {contacts.map((contact) => (
+                  <CommandItem key={contact.id} value={`${contact.first_name ?? ""} ${contact.last_name ?? ""} ${contact.company ?? ""} ${contact.email ?? ""} ${contact.title} ${contact.id}`} onSelect={() => {
+                    setCrmCardId(contact.id);
+                    setPrenomCommanditaire(contact.first_name ?? "");
+                    setNomCommanditaire(contact.last_name ?? "");
+                    setEmailCommanditaire(contact.email ?? "");
+                    setCiviliteCommanditaire("");
+                    setNomClient(contact.company ?? "");
+                    setAdresseClient(contact.address ?? "");
+                    setCodePostalClient(contact.postal_code ?? "");
+                    setVilleClient(contact.city ?? "");
+                    sirenSearch.setSiren(contact.siren ?? "");
+                    setContactPickerOpen(false);
+                  }}>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="break-words font-medium">{isDemoMode ? maskText([contact.first_name, contact.last_name].filter(Boolean).join(" ")) : [contact.first_name, contact.last_name].filter(Boolean).join(" ")} {contact.company && <>· {isDemoMode ? maskText(contact.company) : contact.company}</>}</div>
+                      <div className="break-words text-xs text-muted-foreground">{isDemoMode ? maskEmail(contact.email ?? "") : contact.email} · {isDemoMode ? maskText(contact.title) : contact.title}</div>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        {contactsError && <p className="text-sm text-destructive">Les contacts CRM n’ont pas pu être chargés.</p>}
+        {crmCardId && <Button type="button" variant="ghost" size="sm" onClick={() => setCrmCardId(null)}>Retirer le rattachement CRM</Button>}
+      </div>
       <ClientInfoSection
         siren={sirenSearch.siren} // demo-safe: champ de saisie, masquer corromprait le devis
         setSiren={sirenSearch.setSiren}
@@ -290,13 +317,18 @@ export default function GameDevisTab() {
               />
             </div>
             <div className="space-y-1 w-28">
-              <Label className="text-xs">Prix unitaire HT</Label>
+              <Label htmlFor={`unit-price-${line.id}`} className="text-xs">Prix unitaire HT</Label>
               <Input
+                id={`unit-price-${line.id}`}
                 type="number"
                 min={0}
                 step={0.01}
                 value={line.unitPrice || ""}
-                onChange={(e) => updateLine(line.id, { unitPrice: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value) || 0;
+                  updateLine(line.id, { unitPrice: value });
+                  if (line.gameId && e.target.value !== "" && value >= 0) savedAmounts.savePrice(line.gameId, line.priceOptionId, value);
+                }}
                 placeholder="0.00"
               />
             </div>
@@ -336,7 +368,11 @@ export default function GameDevisTab() {
               min={0}
               step={0.01}
               value={fraisDePort}
-              onChange={(e) => setFraisDePort(e.target.value === "" ? "" : parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const value = e.target.value === "" ? "" : parseFloat(e.target.value) || 0;
+                setFraisDePort(value);
+                if (value === "" || value >= 0) savedAmounts.saveFees(value, fraisDossier);
+              }}
               placeholder="0.00"
             />
           </div>
@@ -348,7 +384,11 @@ export default function GameDevisTab() {
               min={0}
               step={0.01}
               value={fraisDossier}
-              onChange={(e) => setFraisDossier(e.target.value === "" ? "" : parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const value = e.target.value === "" ? "" : parseFloat(e.target.value) || 0;
+                setFraisDossier(value);
+                if (value === "" || value >= 0) savedAmounts.saveFees(fraisDePort, value);
+              }}
               placeholder="0.00"
             />
           </div>
