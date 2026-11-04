@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePearlMutations, usePearls } from "@/hooks/usePearls";
 import { maskText } from "@/lib/demoMask";
 import { todayAsISO } from "@/lib/dateFormatters";
-import { formatPearlDate } from "@/lib/pearls";
+import { filterPearls, formatPearlDate } from "@/lib/pearls";
 import { toastError } from "@/lib/toastError";
 import { getSignedUrl } from "@/lib/storageUrl";
 import {
@@ -232,18 +232,10 @@ export default function Perles() {
   const [editing, setEditing] = useState<Pearl | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return data.filter((p) => {
-      if (!showArchived && p.archived) return false;
-      if (source !== "all" && p.source !== source) return false;
-      if (tone === "positive" && !p.is_positive) return false;
-      if (tone === "other" && p.is_positive) return false;
-      if (!q) return true;
-      return [p.title, p.message, p.message_fr, p.author_name, p.author_company]
-        .some((v) => v?.toLowerCase().includes(q));
-    });
-  }, [data, search, source, tone, showArchived]);
+  const filtered = useMemo(
+    () => filterPearls(data, { search, source, tone, showArchived }),
+    [data, search, source, tone, showArchived],
+  );
 
   const openDialog = (p: Pearl | null) => {
     setEditing(p);
