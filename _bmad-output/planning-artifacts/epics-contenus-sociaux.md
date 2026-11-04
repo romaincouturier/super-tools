@@ -427,3 +427,110 @@ afin de valider vite, comme dans l'écran My approvals de Planable.
 **Given** le menu supertilt.fr
 **When** des validations attendent l'utilisateur connecté
 **Then** un compteur s'affiche sur l'entrée du sous-module
+
+## Epic 3 : Piloter par campagnes et par vues
+
+Les posts se regroupent en campagnes avec brief, bandeau et calendrier propre ; on les pilote en liste, en aperçu et en grille Instagram, avec filtres combinés et vues enregistrées.
+
+### Story 3.1 : Créer une campagne avec son brief
+
+En tant que membre de l'équipe,
+je veux créer une campagne avec un brief, des dates et un statut,
+afin de cadrer une opération (session inter, AI4Product) avant d'en produire les contenus.
+
+**Acceptance Criteria:**
+
+**Given** l'écran Campagnes du sous-module
+**When** l'utilisateur crée une campagne
+**Then** il renseigne icône, couleur, nom, statut (préparation par défaut, active, terminée), dates de début et de fin facultatives, liens et brief en texte riche
+**And** la campagne apparaît dans la liste, filtrable par onglets Toutes, Actives, En préparation, Terminées
+
+**Given** une campagne existante
+**When** l'utilisateur ouvre sa fiche
+**Then** l'onglet Vue d'ensemble montre et permet de modifier tous ces champs
+**And** la nouvelle table a la RLS `supertilt_fr` et figure dans les listes de sauvegarde
+
+### Story 3.2 : Rattacher les contenus à une campagne et la voir dans le calendrier
+
+En tant que membre de l'équipe,
+je veux rattacher mes contenus à une campagne et la voir dans le calendrier,
+afin de suivre une opération de bout en bout.
+
+**Acceptance Criteria:**
+
+**Given** le composeur ou le détail d'un contenu
+**When** l'auteur choisit une campagne
+**Then** le contenu, toutes déclinaisons comprises, est rattaché à cette seule campagne ; en choisir une autre remplace la précédente
+
+**Given** une campagne datée
+**When** le calendrier s'affiche
+**Then** un bandeau (chevron et nom tronqué) apparaît au-dessus des cartes sur chaque jour couvert (UX-DR6)
+
+**Given** la fiche d'une campagne
+**When** l'utilisateur ouvre l'onglet Calendrier
+**Then** seuls les contenus de la campagne s'affichent
+**And** l'onglet Médias montre les visuels de la Médiathèque utilisés par ses contenus
+**And** un bouton « Composer » ouvre le composeur avec la campagne déjà choisie
+
+### Story 3.3 : Piloter les contenus en liste avec des filtres combinés
+
+En tant que membre de l'équipe,
+je veux une vue liste de tous les contenus avec des filtres combinés,
+afin de piloter la production autrement qu'au calendrier.
+
+**Acceptance Criteria:**
+
+**Given** l'onglet Liste
+**When** il s'affiche
+**Then** un tableau montre, par contenu : statut affiché, date et heure, canaux, thème, campagne, auteur, début du texte, alertes et nombre de commentaires, trié par date
+
+**Given** le panneau de filtres
+**When** l'utilisateur combine validation, publication, campagne, thème, période, canal, auteur et recherche plein texte
+**Then** la liste et le calendrier n'affichent que les contenus qui correspondent à tous les filtres
+**And** validation et publication se filtrent séparément, comme les deux axes stockés
+
+### Story 3.4 : Relire les contenus en aperçu réseau
+
+En tant qu'approbateur,
+je veux relire les contenus rendus comme sur leur réseau,
+afin de juger le post tel qu'il sera vu.
+
+**Acceptance Criteria:**
+
+**Given** l'onglet Aperçus
+**When** il s'affiche
+**Then** chaque contenu est rendu à la manière de son réseau (visuel, texte, nom du compte), en version ordinateur ou mobile
+**And** ses commentaires sont visibles à côté, avec les gestes de validation de l'epic 2
+**And** les filtres actifs s'appliquent
+
+### Story 3.5 : Enregistrer et partager des vues
+
+En tant que membre de l'équipe,
+je veux enregistrer une combinaison de filtres et la rappeler en un clic,
+afin de retrouver mes vues habituelles (« LinkedIn du mois », « à valider pour AI4Product »).
+
+**Acceptance Criteria:**
+
+**Given** des filtres actifs
+**When** l'utilisateur les enregistre sous un nom
+**Then** la vue apparaît dans la liste déroulante « Vue enregistrée » (UX-DR2)
+**And** la sélectionner réapplique tous ses filtres, en calendrier comme en liste
+
+**Given** une vue enregistrée
+**When** son auteur la partage
+**Then** elle est proposée à l'autre membre de l'équipe ; sinon elle reste personnelle
+**And** l'auteur peut la renommer ou la supprimer
+
+### Story 3.6 : Voir la grille Instagram
+
+En tant que membre de l'équipe,
+je veux voir les posts Instagram disposés comme sur le profil,
+afin de juger l'harmonie visuelle avant publication.
+
+**Acceptance Criteria:**
+
+**Given** des posts Instagram publiés et à venir
+**When** l'utilisateur ouvre la vue grille Instagram
+**Then** les visuels s'affichent en carrés, trois par ligne, du plus récent au plus ancien comme sur le profil, les posts à venir en tête (UX-DR9)
+**And** un post sans visuel apparaît en case vide avec l'alerte « visuel manquant »
+**And** un clic sur une case ouvre le détail du contenu
