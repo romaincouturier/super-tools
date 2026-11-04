@@ -1,5 +1,6 @@
-import { Loader2, PackageCheck } from "lucide-react";
+import { PackageCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { useLocationGameReturn } from "@/hooks/useLocationGameReturn";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +17,7 @@ export default function LocationGameReturnButton({ id }: { id: string }) {
       title: "Confirmer le retour du jeu ?",
       description: "Le jeu a été reçu. La date de retour sera enregistrée et la carte passera dans les commandes traitées, même avant l’échéance de location.",
       confirmText: "Confirmer le retour",
+      variant: "default",
     })) return;
     try {
       await mutateAsync(id);
@@ -27,7 +29,7 @@ export default function LocationGameReturnButton({ id }: { id: string }) {
 
   return <>
     <Button variant="outline" size="sm" className="h-6 text-xs px-2" onClick={handleReturn} disabled={isPending}>
-      {isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <PackageCheck className="h-3 w-3 mr-1" />}
+      {isPending ? <Spinner className="h-3 w-3 mr-1" /> : <PackageCheck className="h-3 w-3 mr-1" />}
       Jeu revenu
     </Button>
     <ConfirmDialog />
