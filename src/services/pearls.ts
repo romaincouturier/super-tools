@@ -41,6 +41,7 @@ export type PearlInput = Partial<
   >
 > & { message: string };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = () => supabase as any;
 
 export async function listPearls(): Promise<Pearl[]> {
