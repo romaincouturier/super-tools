@@ -13563,6 +13563,18 @@ export type Database = {
       }
       cleanup_agent_embedding_cache: { Args: never; Returns: number }
       connexion_indicators: { Args: { p_days?: number }; Returns: Json }
+      create_quote_testimonial: {
+        Args: {
+          p_author: string
+          p_company: string
+          p_participant_id: string
+          p_quote: string
+          p_source_id: string
+          p_source_type: string
+          p_training_id: string
+        }
+        Returns: undefined
+      }
       current_user_access_level: { Args: never; Returns: string }
       decay_watch_relevance: { Args: never; Returns: undefined }
       decrypt_token: {
