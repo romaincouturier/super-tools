@@ -926,6 +926,85 @@ export async function saveMissionDocument(
   });
 }
 
+/**
+ * Équivalent CRM de saveMissionDocument : strictement additif, même allowlist
+ * et même plafond. Même stockage que l'upload de l'application
+ * (upload-crm-attachment) : bucket privé crm-attachments + crm_attachments,
+ * donc le fichier apparaît dans l'onglet Documents de l'opportunité.
+ */
+export async function saveOpportunityDocument(
+  supabase: Supabase,
+  cardId: string,
+  fileName: string,
+  mimeType: string,
+  contentBase64: string,
+  description: string,
+  actorEmail: string,
+  audit: AuditFn,
+): Promise<string> {
+  if (!UUID_RE.test(cardId.trim())) throw new Error("card_id doit être un UUID de carte CRM");
+  const name = fileName.trim();
+  if (!name) throw new Error("file_name est requis");
+  const mime = (mimeType || "").trim().toLowerCase().split(";")[0];
+  if (!DOCUMENT_MIME_ALLOWLIST.includes(mime)) {
+    throw new Error(
+      `Type de fichier refusé (${mimeType || "vide"}). Types acceptés : ${DOCUMENT_MIME_ALLOWLIST.join(", ")}.`,
+    );
+  }
+  if (contentBase64.length > DOCUMENT_MAX_BASE64_CHARS) {
+    throw tooLarge(Math.floor((contentBase64.length * 3) / 4));
+  }
+  const bytes = decodeBase64(contentBase64);
+  if (bytes.length > DOCUMENT_MAX_BYTES) throw tooLarge(bytes.length);
+  if (!bytes.length) throw new Error("content_base64 est vide");
+
+  const { data: card } = await supabase
+    .from("crm_cards")
+    .select("id, title")
+    .eq("id", cardId)
+    .maybeSingle();
+  if (!card) throw new Error("Opportunité introuvable");
+
+  await audit(
+    `save_opportunity_document sur ${card.title}: ${name.slice(0, 120)} (${mime}, ${bytes.length} octets)` +
+      (description ? ` — ${description.slice(0, 300)}` : ""),
+  );
+
+  const path = `${cardId}/${Date.now()}_${sanitizeDocumentFileName(name)}`;
+  const { error: uploadError } = await supabase.storage
+    .from("crm-attachments")
+    .upload(path, bytes, { contentType: mime, upsert: false });
+  if (uploadError) throw new Error(`Upload impossible : ${uploadError.message}`);
+
+  const { data: created, error } = await supabase
+    .from("crm_attachments")
+    .insert({ card_id: cardId, file_name: name, file_path: path, file_size: bytes.length, mime_type: mime })
+    .select("id")
+    .single();
+  if (error) {
+    await supabase.storage.from("crm-attachments").remove([path]);
+    throw new Error(error.message);
+  }
+
+  await supabase.from("crm_activity_log").insert([{
+    card_id: cardId,
+    action_type: "attachment_added",
+    new_value: name,
+    actor_email: actorEmail,
+    metadata: { via: "mcp", tool: "save_opportunity_document", ...(description ? { description: description.slice(0, 500) } : {}) },
+  }]);
+
+  return JSON.stringify({
+    saved: true,
+    id: created.id,
+    file_name: name,
+    file_size: bytes.length,
+    mime_type: mime,
+    opportunity: { id: card.id, title: card.title },
+    hint: "Document ajouté aux documents de l'opportunité et à son historique. Rien n'a été remplacé.",
+  });
+}
+
 // ── Activités de mission (création / mise à jour) ────────────
 
 const DURATION_TYPES = ["hours", "days", "half_days"];
