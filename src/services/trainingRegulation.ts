@@ -1,6 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import { REGULATION_SETTING_KEYS, type RegulationVersion } from "@/lib/trainingRegulation";
 
+export async function prepareRegulationDownload(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Le règlement n'est pas disponible");
+  const blob = await response.blob();
+  if (!blob.size || !blob.type.includes("application/pdf")) throw new Error("Le règlement reçu n'est pas un PDF");
+  return blob;
+}
+
 export async function loadTrainingRegulation() {
   const { data, error } = await supabase.from("app_settings").select("setting_key,setting_value").in("setting_key", REGULATION_SETTING_KEYS);
   if (error) throw error;
