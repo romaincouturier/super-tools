@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 import { useNetworkContacts } from "@/hooks/useReseauContacts";
 import { useLinkTranscriptToNetworkContact } from "@/hooks/useNetworkTranscripts";
 import { WARMTH_LABELS, type WarmthLevel } from "@/types/reseau";
@@ -19,6 +21,7 @@ export default function LinkTranscriptToNetworkDialog({ transcriptId }: { transc
   const [context, setContext] = useState("");
   const [warmth, setWarmth] = useState<WarmthLevel>("warm");
   const [linkedin, setLinkedin] = useState("");
+  const { isDemoMode } = useDemoMode();
   const { data: contacts = [] } = useNetworkContacts();
   const link = useLinkTranscriptToNetworkContact();
 
@@ -79,7 +82,7 @@ export default function LinkTranscriptToNetworkDialog({ transcriptId }: { transc
                   onClick={() => setContactId(c.id)}
                   className={`w-full text-left rounded border px-3 py-2 text-sm ${contactId === c.id ? "border-primary bg-accent" : "hover:bg-muted"}`}
                 >
-                  <span className="font-medium">{c.name}</span>
+                  <span className="font-medium">{isDemoMode ? maskName(c.name) : c.name}</span>
                   <span className="text-xs text-muted-foreground"> · {WARMTH_LABELS[c.warmth]}{c.context ? ` · ${c.context}` : ""}</span>
                 </button>
               ))}

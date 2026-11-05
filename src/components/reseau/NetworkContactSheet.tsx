@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { ExternalLink, FileText } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 import { useNetworkInteractions } from "@/hooks/useReseauInteractions";
 import { useNetworkContactTranscripts } from "@/hooks/useNetworkTranscripts";
 import { WARMTH_LABELS, type NetworkContact } from "@/types/reseau";
@@ -18,6 +20,7 @@ const INTERACTION_LABELS: Record<string, string> = {
 };
 
 export default function NetworkContactSheet({ contact, onClose }: { contact: NetworkContact; onClose: () => void }) {
+  const { isDemoMode } = useDemoMode();
   const { data: transcripts = [], isLoading } = useNetworkContactTranscripts(contact.id);
   const { data: interactions = [] } = useNetworkInteractions();
   const mine = interactions.filter((i) => i.contact_id === contact.id);
@@ -26,7 +29,7 @@ export default function NetworkContactSheet({ contact, onClose }: { contact: Net
     <Sheet open onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="w-full sm:max-w-xl flex flex-col">
         <SheetHeader>
-          <SheetTitle className="text-left">{contact.name}</SheetTitle>
+          <SheetTitle className="text-left">{isDemoMode ? maskName(contact.name) : contact.name}</SheetTitle>
           <p className="text-xs text-muted-foreground text-left">
             {WARMTH_LABELS[contact.warmth]}
             {contact.context ? ` · ${contact.context}` : ""}
