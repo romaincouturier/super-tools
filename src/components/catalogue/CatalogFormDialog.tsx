@@ -117,6 +117,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   const [fundingTerms, setFundingTerms] = useState("");
   const [accessDelay, setAccessDelay] = useState("");
   const [accessibilityTerms, setAccessibilityTerms] = useState("");
+  const [formatFormation, setFormatFormation] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [expertise, setExpertise] = useState(NO_EXPERTISE);
   const [isFeatured, setIsFeatured] = useState(false);
@@ -146,7 +147,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
     supertiltLink, requiredEquipment, objectives, prerequisites,
     elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf,
-    recognitionType, fundingTerms, accessDelay, accessibilityTerms, isActive,
+    recognitionType, fundingTerms, accessDelay, accessibilityTerms, formatFormation, isActive,
     expertise, isFeatured,
     formulas,
   };
@@ -157,7 +158,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
     supertiltLink, requiredEquipment, objectives, prerequisites,
     elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf,
-    recognitionType, fundingTerms, accessDelay, accessibilityTerms, isActive,
+    recognitionType, fundingTerms, accessDelay, accessibilityTerms, formatFormation, isActive,
     expertise, isFeatured,
     fml: activeFormulas.map(f => `${f.id || ""}|${f.name}|${f.duree_heures}|${f.prix}|${f.woocommerce_product_id}|${f.learndash_course_id}|${f.supports_url}|${f.elearning_access_email_content}`), // demo-safe: empreinte pour l'auto-save, non affichee
   });
@@ -172,7 +173,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       elearningAccessEmailContent: string; woocommerceProductId: string;
       codeSpecialiteNsf: string; labelSpecialiteNsf: string;
       recognitionType: string; fundingTerms: string;
-      accessDelay: string; accessibilityTerms: string;
+      accessDelay: string; accessibilityTerms: string; formatFormation: string;
       isActive: boolean; expertise: string; isFeatured: boolean; formulas: FormulaEdit[];
     };
 
@@ -197,6 +198,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       funding_terms: v.fundingTerms.trim() || null,
       access_delay: v.accessDelay.trim() || null,
       accessibility_terms: v.accessibilityTerms.trim() || null,
+      format_formation: v.formatFormation || null,
       is_active: v.isActive,
       expertise: v.expertise && v.expertise !== NO_EXPERTISE ? v.expertise : null,
       is_featured: v.isFeatured,
@@ -322,6 +324,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setFundingTerms((entry as unknown as { funding_terms?: string | null }).funding_terms || "");
         setAccessDelay((entry as unknown as { access_delay?: string | null }).access_delay || "");
         setAccessibilityTerms((entry as unknown as { accessibility_terms?: string | null }).accessibility_terms || "");
+        setFormatFormation((entry as unknown as { format_formation?: string | null }).format_formation || "");
         setIsActive(entry.is_active);
         setExpertise(entry.expertise || NO_EXPERTISE);
         setIsFeatured(!!entry.is_featured);
@@ -360,6 +363,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setFundingTerms("");
         setAccessDelay("");
         setAccessibilityTerms("");
+        setFormatFormation("");
         setIsActive(true);
         setExpertise(NO_EXPERTISE);
         setIsFeatured(false);
@@ -415,6 +419,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         funding_terms: fundingTerms.trim() || null,
         access_delay: accessDelay.trim() || null,
         accessibility_terms: accessibilityTerms.trim() || null,
+        format_formation: formatFormation || null,
         is_active: isActive,
         expertise: expertise !== NO_EXPERTISE ? expertise : null,
         is_featured: isFeatured,
@@ -610,6 +615,29 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                     <SelectItem value="autre">Autre</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* La colonne existait en base mais n'était ni lue ni écrite par
+                  cet écran : quatre formations portaient une valeur que personne
+                  ne pouvait voir ni corriger. */}
+              <div className="space-y-2">
+                <Label htmlFor="formatFormation">Modalité par défaut</Label>
+                <Select value={formatFormation || "none"} onValueChange={(v) => setFormatFormation(v === "none" ? "" : v)}>
+                  <SelectTrigger id="formatFormation">
+                    <SelectValue placeholder="Non renseignée" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Non renseignée</SelectItem>
+                    <SelectItem value="presentiel">Présentiel</SelectItem>
+                    <SelectItem value="classe_virtuelle">Classe virtuelle</SelectItem>
+                    <SelectItem value="e_learning">E-learning</SelectItem>
+                    <SelectItem value="intra">Intra</SelectItem>
+                    <SelectItem value="mixte">Mixte</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Modalité la plus courante de cette formation. Chaque session garde la sienne.
+                </p>
               </div>
 
               <div className="space-y-2">
