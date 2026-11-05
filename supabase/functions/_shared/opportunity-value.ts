@@ -175,3 +175,19 @@ export function parseValueSignals(raw: Record<string, unknown>): Pick<Opportunit
     participants: Number.isFinite(p) && p > 0 && p < 1000 ? Math.round(p) : null,
   };
 }
+
+// deno-lint-ignore no-explicit-any
+export async function loadOpportunityValueData(client: any): Promise<{ catalog: CatalogFormation[]; won: WonOpportunity[] }> {
+  const [cfg, wonRes] = await Promise.all([
+    client.from("formation_configs").select("formation_name, prix, formation_formulas(name, prix)"),
+    client.from("crm_cards").select("estimated_value, service_type, company, title").eq("sales_status", "WON").gt("estimated_value", 0),
+  ]);
+  // deno-lint-ignore no-explicit-any
+  const catalog: CatalogFormation[] = (cfg.data || []).map((c: any) => ({
+    name: c.formation_name,
+    price: c.prix != null ? Number(c.prix) : null,
+    // deno-lint-ignore no-explicit-any
+    formulas: (c.formation_formulas || []).map((f: any) => ({ name: f.name, price: f.prix != null ? Number(f.prix) : null })),
+  }));
+  return { catalog, won: (wonRes.data || []) as WonOpportunity[] };
+}

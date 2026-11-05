@@ -58,6 +58,9 @@ interface ExtractionResult {
   brief_questions: BriefQuestion[];
   suggested_tag_ids: string[];
   suggested_next_action: SuggestedNextAction | null;
+  formation_name?: string | null;
+  format?: OpportunityFormat | null;
+  participants?: number | null;
 }
 
 interface NormalizedField {
@@ -213,7 +216,7 @@ function buildRawInput(s: NormalizedSubmission): string {
 
 // ─── AI extraction (mirrors crm-extract-opportunity) ────────────────────
 
-function buildSystemPrompt(today: string, availableTags: AvailableTag[]): string {
+function buildSystemPrompt(today: string, availableTags: AvailableTag[], catalogNames: string[]): string {
   const tagList = availableTags.length > 0
     ? availableTags.map((t) => `- "${t.name}"${t.category ? ` (${t.category})` : ""}`).join("\n")
     : "(aucun tag disponible)";
@@ -229,6 +232,7 @@ Date du jour : ${today} (utilise-la pour calculer la date de la prochaine action
 - brief_questions: tableau de 3-5 questions pertinentes pour qualifier l'opportunité
 - suggested_tag_names: tableau de noms de tags pertinents (vide si aucun) choisis STRICTEMENT parmi la liste ci-dessous
 - suggested_next_action: objet { text: "Action courte à mener", date: "YYYY-MM-DD" } recommandant la prochaine action commerciale, ou null
+${valueSignalsPrompt(catalogNames)}
 
 Tags disponibles (ne propose RIEN d'autre que des noms de cette liste, copie le nom exactement) :
 ${tagList}
@@ -268,6 +272,7 @@ async function extractOpportunity(
   rawInput: string,
   fallbackEmail: string | null,
   availableTags: AvailableTag[],
+  catalogNames: string[],
 ): Promise<ExtractionResult> {
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -279,7 +284,7 @@ async function extractOpportunity(
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: buildSystemPrompt(today, availableTags) },
+        { role: "system", content: buildSystemPrompt(today, availableTags, catalogNames) },
         { role: "user", content: rawInput },
       ],
     }),
@@ -347,45 +352,18 @@ async function extractOpportunity(
     brief_questions: briefQuestions,
     suggested_tag_ids: resolveSuggestedTagIds(extracted.suggested_tag_names, availableTags),
     suggested_next_action: normalizeNextAction(extracted.suggested_next_action, today),
+    ...parseValueSignals(extracted),
   };
 }
 
-// ─── Value estimation from CRM history (mirrors NewOpportunityDialog) ───
+// ─── Value estimation: shared catalog + history model ───
 
-async function estimateValueFromHistory(
-  supabase: any,
-  extraction: ExtractionResult,
-): Promise<number> {
+async function estimateValue(supabase: any, extraction: ExtractionResult): Promise<ValueEstimate> {
   try {
-    const { data } = await supabase
-      .from("crm_cards")
-      .select("estimated_value, service_type, company")
-      .eq("sales_status", "WON")
-      .gt("estimated_value", 0);
-
-    if (!data || data.length === 0) return 0;
-
-    let matches = data.filter((c: any) =>
-      extraction.company &&
-      c.company?.toLowerCase() === extraction.company.toLowerCase() &&
-      extraction.service_type &&
-      c.service_type === extraction.service_type,
-    );
-
-    if (matches.length === 0 && extraction.company) {
-      matches = data.filter((c: any) => c.company?.toLowerCase() === extraction.company?.toLowerCase());
-    }
-
-    if (matches.length === 0 && extraction.service_type) {
-      matches = data.filter((c: any) => c.service_type === extraction.service_type);
-    }
-
-    if (matches.length === 0) matches = data;
-
-    const avg = matches.reduce((sum: number, c: any) => sum + (c.estimated_value || 0), 0) / matches.length;
-    return Math.max(0, Math.round(avg / 100) * 100);
+    const { catalog, won } = await loadOpportunityValueData(supabase);
+    return estimateOpportunityValue(extraction, catalog, won);
   } catch {
-    return 0;
+    return { value: 0, basis: "estimation indisponible", count: 0 };
   }
 }
 
@@ -590,7 +568,9 @@ serve(async (req) => {
     // ─── AI extraction ───
     let extraction: ExtractionResult;
     try {
-      extraction = await extractOpportunity(rawInput, detectedEmail, availableTags);
+      const { data: catalogRows } = await supabase.from("formation_configs").select("formation_name");
+      const catalogNames = (catalogRows || []).map((r: any) => r.formation_name).filter(Boolean);
+      extraction = await extractOpportunity(rawInput, detectedEmail, availableTags, catalogNames);
     } catch (e) {
       console.error("AI extraction failed, using detected fields fallback:", e);
       const company = detectedCompany || extractCompanyFromEmail(detectedEmail);
@@ -621,8 +601,8 @@ serve(async (req) => {
     extraction.company = extraction.company || detectedCompany || extractCompanyFromEmail(extraction.email);
 
     // ─── Value estimation + acquisition source ───
-    const [estimatedValue, acquisitionSource] = await Promise.all([
-      estimateValueFromHistory(supabase, extraction),
+    const [valueEstimate, acquisitionSource] = await Promise.all([
+      estimateValue(supabase, extraction),
       detectAcquisitionSource(supabase, extraction.email),
     ]);
 
@@ -666,7 +646,7 @@ serve(async (req) => {
         status_operational: "WAITING",
         waiting_next_action_date: nextActionDate,
         waiting_next_action_text: nextActionText,
-        estimated_value: estimatedValue,
+        estimated_value: valueEstimate.value,
         first_name: capitalizeName(extraction.first_name),
         last_name: capitalizeName(extraction.last_name),
         phone: extraction.phone || null,
@@ -678,7 +658,7 @@ serve(async (req) => {
         raw_input: rawInput,
         acquisition_source: acquisitionSource,
         emoji: pickRandomEmoji(),
-        source_metadata: sourceMetadata,
+        source_metadata: { ...sourceMetadata, value_estimation: valueEstimate },
       })
       .select()
       .single();
