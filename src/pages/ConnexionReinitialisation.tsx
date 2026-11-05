@@ -89,7 +89,7 @@ export default function ConnexionReinitialisation() {
               <AuthTitle>
                 Ce lien a expiré
               </AuthTitle>
-              <p className="mb-7 max-w-[42ch] text-[15.5px] text-muted-foreground">
+              <p className="mb-7 w-full text-[15.5px] text-muted-foreground">
                 Ce lien n'est plus valable : il a expiré ou a déjà servi.
                 {canResend
                   ? " Recevez un nouveau lien à votre adresse email, valable 24 heures."
