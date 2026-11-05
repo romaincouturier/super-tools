@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, BookOpen, Search, X, ArrowUpDown, ArrowUp, ArrowDown, FileDown, Copy } from "lucide-react";
+import { Plus, BookOpen, Search, X, ArrowUpDown, ArrowUp, ArrowDown, FileDown, Copy, AlertTriangle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -31,8 +31,13 @@ import {
 import { buildDisclosureText } from "@/lib/satisfactionDisclosure";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { expertiseLabel } from "@/lib/lmsCourseMeta";
+import {
+  countIncomplete,
+  summarizeDisclosures,
+  type CatalogDisclosureFields,
+} from "@/lib/catalogDisclosure";
 
-interface CatalogEntry {
+interface CatalogEntry extends CatalogDisclosureFields {
   id: string;
   formation_name: string;
   prix: number;
@@ -102,6 +107,34 @@ const SatisfactionCell = ({
         <Copy className="h-3.5 w-3.5" />
       </button>
     </span>
+  );
+};
+
+/**
+ * Les quatre mentions de l'indicateur 1. Une formation à qui il en manque une
+ * se voit depuis la liste : sinon il faut ouvrir les 18 fiches pour savoir
+ * laquelle est incomplète.
+ */
+const DisclosureCell = ({ entry }: { entry: CatalogEntry }) => {
+  const { filled, total, missing, complete } = summarizeDisclosures(entry);
+
+  if (complete) {
+    return (
+      <Badge variant="outline" className="text-xs">
+        {filled}/{total}
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge
+      variant="secondary"
+      className="text-xs gap-1"
+      title={`Manque : ${missing.join(", ")}`}
+    >
+      <AlertTriangle className="h-3 w-3" />
+      {filled}/{total}
+    </Badge>
   );
 };
 
@@ -256,6 +289,13 @@ const Catalogue = () => {
     });
   }, [catalogEntries, searchQuery, sortColumn, sortDirection, selectedYear]);
 
+  const subtitle = useMemo(() => {
+    const base = `${catalogEntries.length} formation${catalogEntries.length > 1 ? "s" : ""}`;
+    const incomplete = countIncomplete(catalogEntries);
+    if (incomplete === 0) return base;
+    return `${base} · ${incomplete} sans mentions complètes`;
+  }, [catalogEntries]);
+
   const handleCreate = () => {
     setEditingEntry(null);
     setDialogOpen(true);
@@ -321,7 +361,7 @@ const Catalogue = () => {
         <PageHeader
           icon={BookOpen}
           title="Catalogue de formations"
-          subtitle={`${catalogEntries.length} formation${catalogEntries.length > 1 ? "s" : ""}`}
+          subtitle={subtitle}
           actions={
             <Button onClick={handleCreate}>
               <Plus className="h-4 w-4 mr-2" />
@@ -425,6 +465,8 @@ const Catalogue = () => {
                       </span>
                       <span>&middot;</span>
                       <SatisfactionCell entry={entry} year={selectedYear} years={years} />
+                      <span>&middot;</span>
+                      <DisclosureCell entry={entry} />
                     </div>
                   </div>
                 ))}
@@ -478,6 +520,9 @@ const Catalogue = () => {
                         Expertise
                         <SortIcon column="expertise" />
                       </div>
+                    </TableHead>
+                    <TableHead className="w-[90px]" title="Délai d'accès, financement, accessibilité, sanction">
+                      Mentions
                     </TableHead>
                     <TableHead
                       className="w-[130px] cursor-pointer select-none"
@@ -556,6 +601,9 @@ const Catalogue = () => {
                           )}
                           {entry.is_featured && <Badge className="text-xs">★</Badge>}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <DisclosureCell entry={entry} />
                       </TableCell>
                       <TableCell>
                         <SatisfactionCell entry={entry} year={selectedYear} years={years} />
