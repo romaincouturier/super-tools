@@ -88,3 +88,4 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Bulk e-learning access emails are queued in `learner_access_jobs` and sent server-side by `queue-learner-access-emails` with the requester's rights, because browser-driven sends blocked the page.
 - Password emails use hashed `password_setup_links` redeemed on click, because native recovery tokens expire too soon.
 - Learner community reads (posts and children) use security-definer enrollment-scoped helpers, because intra client feeds must stay private.
+- CRM opportunity values come from the pure helper `_shared/opportunity-value.ts` shared by both extractors and the manual dialog, because amounts must follow the catalog and history identically.
