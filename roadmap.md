@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Marque apprenant (2026-11-05)
-- [ ] Renommer le mail de redemande et supprimer les mentions SuperTools visibles pour les apprenants
-- [ ] Vérifier les textes, tests et déployer les fonctions concernées sans envoyer de mail
+- [x] Mail de redemande « Créez votre mot de passe SuperTilt Academy », sujets d’accès et bandeau de connexion renommés ; aucun modèle personnalisé contenant SuperTools trouvé en base
+- [x] 75 tests et 103 contrôles réussis ; connexion vérifiée avec bandeau simulé, compilation OK ; six fonctions d’envoi concernées déployées, aucun email envoyé
 
 ## Lives, tickets et notifications (2026-11-05)
 - [x] Lecture seule : Marie a une inscription session de novembre ; RPC et calendrier retournent novembre/décembre aujourd’hui, sélection globale par cours et non par inscription ; 53 inscrits LMS potentiellement concernés par cette sélection
