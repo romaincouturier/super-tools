@@ -90,3 +90,4 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Learner community reads (posts and children) use security-definer enrollment-scoped helpers, because intra client feeds must stay private.
 - CRM opportunity values use the shared pure `_shared/opportunity-value.ts`, so all entry points agree.
 - Transcript→Réseau links use `link_transcript_to_network_contact` (UI) or `_shared/network-tools.ts` (MCP); unlinking keeps the meeting interaction, because network history must survive link corrections.
+- Picto-Dico guards live in the DB (word/text validation, challenge words must be valid demande_ajout rows, linked event sets challenge number/date/times) and are mirrored in `_shared/pictodico-validation.ts`, because the webhook is public.
