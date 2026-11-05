@@ -75,6 +75,7 @@ export const SETTINGS_CATALOG: SettingsCatalogEntry[] = [
   { id: "tva_rate", label: "Taux de TVA", keywords: "tva taxe taux", tab: "general", anchorId: "tva-rate" },
   { id: "website_url", label: "Site web", keywords: "site web url", tab: "general", anchorId: "website-url" },
   { id: "reglement_interieur", label: "Règlement intérieur des formations", keywords: "règlement intérieur pdf formation brouillon markdown publier", tab: "general", anchorId: "reglement-interieur" },
+  { id: "referent_handicap", label: "Référent handicap", keywords: "handicap référent accessibilité aménagement psh indicateur 26", tab: "general", anchorId: "referent-handicap" },
 
   // ── Entrées par onglet (navigation directe) ─────────────────────────
   { id: "tab:profile", label: "Mon profil", keywords: "profil prénom nom photo avatar", tab: "profile" },

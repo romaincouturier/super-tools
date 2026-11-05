@@ -139,6 +139,25 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
 
           <Separator />
 
+          {/* Référent handicap — indicateur 26 : un interlocuteur désigné et joignable,
+              affiché au bénéficiaire dans le recueil des besoins et la politique
+              de confidentialité. Vide, ces écrans donnent le contact général. */}
+          <div className="space-y-4" id="referent-handicap">
+            <h3 className="text-sm font-medium">Référent handicap</h3>
+            <p className="text-sm text-muted-foreground">
+              Interlocuteur désigné pour les demandes d'aménagement. Ses coordonnées sont affichées
+              aux bénéficiaires dans le recueil des besoins et la politique de confidentialité.
+            </p>
+            <div className="space-y-3 max-w-lg">
+              <div className="space-y-2"><Label htmlFor="referent-handicap-name">Nom</Label><Input id="referent-handicap-name" value={settings.referent_handicap_name} onChange={(e) => updateSetting("referent_handicap_name", e.target.value)} placeholder="Prénom Nom" /></div>
+              <div className="space-y-2"><Label htmlFor="referent-handicap-email">Email</Label><Input id="referent-handicap-email" type="email" value={settings.referent_handicap_email} onChange={(e) => updateSetting("referent_handicap_email", e.target.value)} placeholder="referent@supertilt.fr" /></div>
+              <div className="space-y-2"><Label htmlFor="referent-handicap-phone">Téléphone (facultatif)</Label><Input id="referent-handicap-phone" value={settings.referent_handicap_phone} onChange={(e) => updateSetting("referent_handicap_phone", e.target.value)} placeholder="06 00 00 00 00" /></div>
+              <div className="space-y-2"><Label htmlFor="referent-handicap-designated-at">Date de désignation</Label><Input id="referent-handicap-designated-at" type="date" value={settings.referent_handicap_designated_at} onChange={(e) => updateSetting("referent_handicap_designated_at", e.target.value)} /></div>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Technical URLs */}
           <div className="space-y-4">
             <h3 className="text-sm font-medium">URLs techniques</h3>
