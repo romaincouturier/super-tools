@@ -50,6 +50,7 @@ Elle est calculée à partir des deux axes, et la première condition vraie l'em
 | Nouvelle demande pour un contenu refusé non modifié | Interdite |
 | Changement de thème, de format ou de campagne | Sans effet sur la validation |
 | Ajout d'un canal à un contenu approuvé | Validation : en attente |
+| Date ou texte synchronisé changé sur un contenu partiellement publié | Seules les déclinaisons non publiées changent ; le contenu affiche le statut le moins avancé de ses déclinaisons |
 
 Garde : seule la fonction de transition écrit le statut de validation. Un trigger refuse toute autre écriture, y compris avec la clé service role. La fonction reçoit l'acteur : `auth.uid()` depuis le navigateur, un paramètre acteur accepté seulement en service role (MCP). Les approbateurs sont Romain et Emmanuelle, dans une liste réglable.
 

@@ -209,6 +209,7 @@ afin de préparer mes publications sans les ressaisir pour chaque réseau.
 - Une carte du calendrier représente un contenu (le groupe) avec les badges de ses canaux, pas une déclinaison.
 - La pose de date sur un groupe se fait en base, en une seule écriture atomique.
 - La barre des canaux et la pastille « réseau » des filtres sont un seul et même filtre.
+- Contenu partiellement publié : poser ou changer la date, ou modifier le texte synchronisé, ne touche que les déclinaisons non publiées ; une déclinaison publiée garde sa date et son texte. Pour l'affichage et les filtres, le contenu prend le statut le moins avancé de ses déclinaisons.
 
 En tant que membre de l'équipe,
 je veux voir tous les contenus dans un calendrier mensuel et hebdomadaire et y glisser mes brouillons,
