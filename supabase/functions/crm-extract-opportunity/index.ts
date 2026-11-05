@@ -8,6 +8,7 @@ import {
   todayAsISO,
 } from "../_shared/mod.ts";
 import { aiChat } from "../_shared/ai.ts";
+import { parseValueSignals, valueSignalsPrompt, type OpportunityFormat } from "../_shared/opportunity-value.ts";
 
 interface BriefQuestion {
   id: string;
@@ -39,6 +40,9 @@ interface ExtractionResult {
   brief_questions: BriefQuestion[];
   suggested_tag_ids: string[];
   suggested_next_action: SuggestedNextAction | null;
+  formation_name?: string | null;
+  format?: OpportunityFormat | null;
+  participants?: number | null;
 }
 
 function extractCompanyFromEmail(email: string): string | null {
@@ -57,7 +61,7 @@ function generateId(): string {
   return crypto.randomUUID();
 }
 
-function buildSystemPrompt(today: string, availableTags: AvailableTag[]): string {
+function buildSystemPrompt(today: string, availableTags: AvailableTag[], catalogNames: string[]): string {
   const tagList = availableTags.length > 0
     ? availableTags.map((t) => `- "${t.name}"${t.category ? ` (${t.category})` : ""}`).join("\n")
     : "(aucun tag disponible)";
@@ -79,6 +83,7 @@ Date du jour : ${today} (utilise-la pour calculer la date de la prochaine action
 - brief_questions: tableau de 3-5 questions pertinentes à poser lors du brief initial
 - suggested_tag_names: tableau de noms de tags pertinents (vide si aucun) choisis STRICTEMENT parmi la liste de tags disponibles ci-dessous
 - suggested_next_action: objet { text: "Action courte à mener", date: "YYYY-MM-DD" } recommandant la prochaine action commerciale, ou null si aucune action évidente
+${valueSignalsPrompt(catalogNames)}
 
 Tags disponibles (ne propose RIEN d'autre que des noms de cette liste, copie le nom exactement) :
 ${tagList}
@@ -129,11 +134,12 @@ function resolveSuggestedTagIds(
 async function extractWithAI(
   rawInput: string,
   availableTags: AvailableTag[],
+  catalogNames: string[],
 ): Promise<ExtractionResult> {
   const today = todayAsISO();
 
   const content = (await aiChat({
-    system: buildSystemPrompt(today, availableTags),
+    system: buildSystemPrompt(today, availableTags, catalogNames),
     messages: [{ role: "user", content: rawInput }],
     tier: "fast",
     origin: "crm-extract-opportunity",
@@ -185,6 +191,7 @@ async function extractWithAI(
       brief_questions: briefQuestions,
       suggested_tag_ids: resolveSuggestedTagIds(extracted.suggested_tag_names, availableTags),
       suggested_next_action: normalizeNextAction(extracted.suggested_next_action, today),
+      ...parseValueSignals(extracted),
     };
   } catch (parseError) {
     console.error("Failed to parse AI response:", cleanContent);
@@ -253,7 +260,9 @@ serve(async (req) => {
 
     console.log("Extracting opportunity from:", raw_input.substring(0, 100), "with", safeTags.length, "tags");
 
-    const extraction = await extractWithAI(truncatedInput, safeTags);
+    const { data: catalogRows } = await supabase.from("formation_configs").select("formation_name");
+    const catalogNames = (catalogRows || []).map((r: { formation_name: string | null }) => r.formation_name).filter(Boolean) as string[];
+    const extraction = await extractWithAI(truncatedInput, safeTags, catalogNames);
 
     console.log("Extraction result:", JSON.stringify(extraction, null, 2));
 
