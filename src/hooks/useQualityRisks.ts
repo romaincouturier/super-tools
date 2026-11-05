@@ -5,6 +5,7 @@ import { toastError } from "@/lib/toastError";
 import { todayAsISO } from "@/lib/dateFormatters";
 import {
   buildRiskRecord,
+  nextReviewDate,
   summarizeRisks,
   type QualityRiskFormValues,
   type RiskStatus,
@@ -37,6 +38,7 @@ export interface QualityRisk {
   framework_version: string;
   created_at: string;
   formation_configs?: { formation_name: string } | null;
+  quality_risk_improvements?: { improvement_id: string }[];
 }
 
 export interface RiskLinkOption {
@@ -56,7 +58,7 @@ export function useQualityRisks() {
   const fetchRisks = useCallback(async () => {
     const { data, error } = await supabase
       .from("quality_risks")
-      .select("*, formation_configs(formation_name)")
+      .select("*, formation_configs(formation_name), quality_risk_improvements(improvement_id)")
       .order("criticality", { ascending: false })
       .order("review_date", { ascending: true, nullsFirst: false });
 
@@ -82,10 +84,9 @@ export function useQualityRisks() {
         .limit(100),
       supabase
         .from("improvements")
-        .select("id, title")
-        .neq("status", "completed")
+        .select("id, title, status")
         .order("created_at", { ascending: false })
-        .limit(100),
+        .limit(300),
     ]);
 
     setFormations((configs.data || []).map((c) => ({ id: c.id, label: c.formation_name })));
@@ -97,7 +98,7 @@ export function useQualityRisks() {
           .join(" · "),
       })),
     );
-    setImprovements((imps.data || []).map((i) => ({ id: i.id, label: i.title })));
+    setImprovements((imps.data || []).map((i) => ({ id: i.id, label: i.status === "completed" ? `${i.title} (terminée)` : i.title })));
   }, []);
 
   useEffect(() => {
@@ -119,13 +120,42 @@ export function useQualityRisks() {
     async (form: QualityRiskFormValues, userId?: string, existingId?: string) => {
       const record = buildRiskRecord(form);
 
+      let riskId = existingId;
       if (existingId) {
         const { error } = await supabase.from("quality_risks").update(record).eq("id", existingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("quality_risks")
-          .insert({ ...record, created_by: userId });
+          .insert({ ...record, created_by: userId })
+          .select("id")
+          .single();
+        if (error) throw error;
+        riskId = data.id;
+      }
+
+      // Liens additifs : on n'efface que ceux retirés explicitement du formulaire.
+      const { data: current, error: linkErr } = await supabase
+        .from("quality_risk_improvements")
+        .select("improvement_id")
+        .eq("risk_id", riskId!);
+      if (linkErr) throw linkErr;
+      const before = new Set((current || []).map((l) => l.improvement_id));
+      const after = new Set(form.improvement_ids);
+      const toAdd = [...after].filter((id) => !before.has(id));
+      const toRemove = [...before].filter((id) => !after.has(id));
+      if (toAdd.length) {
+        const { error } = await supabase
+          .from("quality_risk_improvements")
+          .insert(toAdd.map((improvement_id) => ({ risk_id: riskId!, improvement_id, created_by: userId })));
+        if (error) throw error;
+      }
+      if (toRemove.length) {
+        const { error } = await supabase
+          .from("quality_risk_improvements")
+          .delete()
+          .eq("risk_id", riskId!)
+          .in("improvement_id", toRemove);
         if (error) throw error;
       }
 
@@ -142,6 +172,23 @@ export function useQualityRisks() {
         toastError(toast, "Impossible de mettre à jour le statut");
         return;
       }
+      await fetchRisks();
+    },
+    [toast, fetchRisks],
+  );
+
+  /** Revue effectuée aujourd'hui : prochaine revue dans un mois (revue mensuelle). */
+  const markReviewed = useCallback(
+    async (id: string) => {
+      const { error } = await supabase
+        .from("quality_risks")
+        .update({ review_date: nextReviewDate(todayAsISO()) })
+        .eq("id", id);
+      if (error) {
+        toastError(toast, "Impossible d'enregistrer la revue");
+        return;
+      }
+      toast({ title: "Revue enregistrée", description: "Prochaine revue dans un mois." });
       await fetchRisks();
     },
     [toast, fetchRisks],
@@ -172,6 +219,7 @@ export function useQualityRisks() {
     saveRisk,
     deleteRisk,
     changeStatus,
+    markReviewed,
     refresh: fetchRisks,
   };
 }

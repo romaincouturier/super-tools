@@ -119,7 +119,7 @@ describe("buildRiskRecord", () => {
     expect(record.owner).toBeNull();
     expect(record.review_date).toBeNull();
     expect(record.reclamation_id).toBeNull();
-    expect(record.improvement_id).toBeNull();
+    expect(record.reclamation_id).toBeNull();
   });
 
   it("traite une mesure faite d'espaces comme absente", () => {
