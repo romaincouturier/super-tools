@@ -5,6 +5,13 @@ import { useSearchParams, Link, useNavigate, useParams } from "react-router-dom"
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { rpc } from "@/lib/supabase-rpc";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
+import {
+  LEARNER_HELP_CATEGORIES,
+  helpDestination,
+  reclamationFieldsFor,
+} from "@/lib/learnerHelpRouting";
 import { setSentryUser, reportHandledError } from "@/lib/sentry";
 import {
   GraduationCap, FileText, Calendar,
@@ -1351,12 +1358,7 @@ function CompteView({
 
 // ── Aide view ────────────────────────────────────────────────────────────────
 
-const LEARNER_CATEGORIES = [
-  { value: "acces_connexion", label: "Accès / Connexion" },
-  { value: "technique", label: "Problème technique" },
-  { value: "pedagogique", label: "Question pédagogique" },
-  { value: "administratif", label: "Administratif" },
-];
+const LEARNER_CATEGORIES = LEARNER_HELP_CATEGORIES;
 
 const USEFUL_LINKS: { label: string; icon: React.ElementType; section: NavSection }[] = [
   { label: "Mon compte", icon: User2, section: "dashboard" },
@@ -1376,6 +1378,11 @@ function AideView({
   const { data: faqItems = [] } = useFaqItems(true);
   const createTicket = useCreateSupportTicket();
   const { toast } = useToast();
+  // L'accusé de réception ne doit pas faire échouer le dépôt : la réclamation
+  // est déjà au registre quand il part.
+  const { invoke: sendAcknowledgement } = useEdgeFunction("send-reclamation-acknowledgement", {
+    silentOnError: true,
+  });
 
   const [openFaq, setOpenFaq] = useState<string | null>(null);
   const [category, setCategory] = useState("");
@@ -1389,6 +1396,32 @@ function AideView({
     if (!subject.trim() || !message.trim()) return;
     setSending(true);
     try {
+      // Ce qui relève de la prestation va au registre des réclamations, pas
+      // au kanban produit où il se perdait entre les bugs (indicateur 31).
+      const reclamationFields = reclamationFieldsFor(category);
+      if (helpDestination(category) === "reclamation" && reclamationFields) {
+        const { data, error } = await rpc.createLearnerReclamation({
+          subject: subject.trim(),
+          description: message.trim(),
+          nature: reclamationFields.nature,
+          problemType: reclamationFields.problemType,
+          trainingId: mainTraining?.training_id ?? null,
+        });
+        if (error) throw error;
+        if (data?.token) await sendAcknowledgement({ token: data.token });
+
+        toast({
+          title: "Message envoyé",
+          description: "Nous accusons réception par email et revenons vers vous.",
+        });
+        setCategory("");
+        setIsBug(false);
+        setSubject("");
+        setMessage("");
+        setFiles([]);
+        return;
+      }
+
       await createTicket.mutateAsync({
         // Un problème technique est traité comme un bug (comme côté staff),
         // sinon comme une demande/évolution.

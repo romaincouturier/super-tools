@@ -461,6 +461,26 @@ export const rpc = {
       p_exclude_id: excludeId,
     }),
 
+  // --- Réclamations (espace apprenant) ---
+  /**
+   * Dépôt par un apprenant connecté. L'identité vient du compte côté base :
+   * ni l'adresse ni le nom ne transitent par l'appelant.
+   */
+  createLearnerReclamation: (input: {
+    subject: string;
+    description: string;
+    nature: string;
+    problemType: string;
+    trainingId?: string | null;
+  }) =>
+    call<{ id: string; token: string }>("create_learner_reclamation", {
+      p_subject: input.subject,
+      p_description: input.description,
+      p_nature: input.nature,
+      p_problem_type: input.problemType,
+      p_training_id: input.trainingId ?? null,
+    }),
+
   // --- Sponsor evaluation ---
   getSponsorEvaluationByToken: (token: string) =>
     call<SponsorEvaluationByToken>("get_sponsor_evaluation_by_token", { p_token: token }),
