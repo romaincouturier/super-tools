@@ -26,6 +26,7 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   financeur_name: { label: "Nom du financeur", description: "Organisme qui finance la formation (OPCO, entreprise, particulier).", sample: "OPCO Atlas" },
   sender_email: { label: "Email de l'expéditeur", description: "Adresse d'envoi configurée dans les paramètres.", sample: "contact@supertilt.fr" },
   greeting: { label: "Formule d'appel", description: "Salutation calculée automatiquement selon le tutoiement/vouvoiement et le prénom.", sample: "Bonjour Sophie" },
+  date_reclamation: { label: "Date de la réclamation", description: "Date à laquelle la réclamation a été enregistrée, en toutes lettres.", sample: "5 novembre 2026" },
 
   // Formation
   training_name: { label: "Nom de la formation", description: "Intitulé de la session de formation.", sample: "Facilitation graphique - niveau 1" },

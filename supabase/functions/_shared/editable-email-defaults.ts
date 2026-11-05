@@ -165,6 +165,23 @@ L'équipe SuperTilt`,
     variables: ["first_name", "course_title", "feedback_button"],
   },
 
+  reclamation_acknowledgement: {
+    name: "Accusé de réception d'une réclamation",
+    audience: "client",
+    sendingInfo: "📤 Envoyé automatiquement au réclamant dès l'enregistrement de sa réclamation",
+    subject: same("Nous avons bien reçu votre réclamation"),
+    content: same(`Bonjour {{client_name}},
+
+Nous accusons réception de votre réclamation, enregistrée le {{date_reclamation}}.
+
+Elle est inscrite à notre registre et va être examinée. Nous revenons vers vous avec les suites données sous un mois.
+
+Si vous souhaitez nous transmettre un élément complémentaire, répondez simplement à ce message.
+
+Nous vous remercions de nous avoir signalé cette situation : c'est ce qui nous permet d'améliorer nos formations.`),
+    variables: ["client_name", "date_reclamation"],
+  },
+
   coached_formula_request: {
     name: "Demande de formule coachée",
     audience: "internal",

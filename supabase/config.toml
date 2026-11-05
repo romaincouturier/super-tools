@@ -755,3 +755,6 @@ verify_jwt = false
 
 [functions.redeem-password-link]
 verify_jwt = false
+
+[functions.send-reclamation-acknowledgement]
+verify_jwt = false

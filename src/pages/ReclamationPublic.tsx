@@ -12,12 +12,18 @@ import { CheckCircle2, AlertTriangle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import supertiltLogo from "@/assets/supertilt-logo-anthracite-transparent.png";
 import { NATURES, CANALS, PROBLEM_TYPES, SEVERITIES } from "@/lib/reclamationConstants";
 
 const ReclamationPublic = () => {
   const { token } = useParams<{ token: string }>();
   const { toast } = useToast();
+  // L'accusé de réception ne doit pas faire échouer l'enregistrement : la
+  // réclamation est déjà en base quand il part.
+  const { invoke: sendAcknowledgement } = useEdgeFunction("send-reclamation-acknowledgement", {
+    silentOnError: true,
+  });
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -117,6 +123,10 @@ const ReclamationPublic = () => {
 
       setSubmitted(true);
       toast({ title: "Réclamation envoyée", description: "Votre réclamation a bien été enregistrée. Nous reviendrons vers vous rapidement." });
+
+      // Indicateur 31 : le réclamant reçoit un accusé de réception. L'envoi
+      // suit l'enregistrement et n'en conditionne pas le succès.
+      await sendAcknowledgement({ token });
     } catch (e) {
       console.error("Failed to submit reclamation", e);
       toastError(toast, "Impossible d'envoyer la réclamation. Veuillez réessayer.");
