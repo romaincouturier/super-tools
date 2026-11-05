@@ -1,9 +1,9 @@
 # Roadmap
 
 ## Lives, tickets et notifications (2026-11-05)
-- [ ] Analyser uniquement les dates de Marie et les autres inscriptions, sans modifier les lives
-- [ ] Vérifier la correction déjà déployée du numéro de ticket sous concurrence et chercher la demande de Myriam
-- [ ] Clarifier objets et introductions des notifications internes de travaux/commentaires, puis déployer les fonctions concernées
+- [x] Lecture seule : Marie a une inscription session de novembre ; RPC et calendrier retournent novembre/décembre aujourd’hui, sélection globale par cours et non par inscription ; 53 inscrits LMS potentiellement concernés par cette sélection
+- [x] Numérotation corrigée en base le 04/11 à 17:50 UTC : ancien code reproduit avec 24 collisions/30, actuel vérifié avec 30 transactions sans collision ; 4 tests conservés ; aucun ticket ni contenu de Myriam retrouvé
+- [x] Objets/intros internes clarifiés avec nom du cours, deux fonctions redéployées ; 5 tests Vitest et 4 tests Deno passés, 101 contrôles OK ; aucun email de test envoyé
 
 ## Retour des jeux loués (2026-11-04)
 - [x] Bouton « Jeu revenu » avec confirmation, date de retour dédiée et clôture même avant échéance ; date contractuelle conservée
