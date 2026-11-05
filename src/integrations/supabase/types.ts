@@ -9293,6 +9293,42 @@ export type Database = {
         }
         Relationships: []
       }
+      quality_risk_improvements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          improvement_id: string
+          risk_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          improvement_id: string
+          risk_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          improvement_id?: string
+          risk_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_risk_improvements_improvement_id_fkey"
+            columns: ["improvement_id"]
+            isOneToOne: false
+            referencedRelation: "improvements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_risk_improvements_risk_id_fkey"
+            columns: ["risk_id"]
+            isOneToOne: false
+            referencedRelation: "quality_risks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quality_risks: {
         Row: {
           cause: string | null
