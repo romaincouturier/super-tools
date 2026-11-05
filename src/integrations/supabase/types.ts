@@ -1278,10 +1278,12 @@ export type Database = {
           legacy_notion_id: string | null
           message: string
           message_fr: string | null
+          mission_id: string | null
           pearl_date: string
           pearl_time: string | null
           source: string
           title: string | null
+          training_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1298,10 +1300,12 @@ export type Database = {
           legacy_notion_id?: string | null
           message: string
           message_fr?: string | null
+          mission_id?: string | null
           pearl_date?: string
           pearl_time?: string | null
           source?: string
           title?: string | null
+          training_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1318,13 +1322,30 @@ export type Database = {
           legacy_notion_id?: string | null
           message?: string
           message_fr?: string | null
+          mission_id?: string | null
           pearl_date?: string
           pearl_time?: string | null
           source?: string
           title?: string | null
+          training_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "client_pearls_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_pearls_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       coaching_bookings: {
         Row: {
@@ -13955,10 +13976,12 @@ export type Database = {
           legacy_notion_id: string | null
           message: string
           message_fr: string | null
+          mission_id: string | null
           pearl_date: string
           pearl_time: string | null
           source: string
           title: string | null
+          training_id: string | null
           updated_at: string
         }[]
         SetofOptions: {
