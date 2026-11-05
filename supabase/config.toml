@@ -758,3 +758,6 @@ verify_jwt = false
 
 [functions.send-reclamation-acknowledgement]
 verify_jwt = false
+
+[functions.run-qualiopi-audit]
+verify_jwt = false

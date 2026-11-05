@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { AuditFacts } from "@/lib/auditChecks";
+import { buildFacts, type AuditFacts } from "@/lib/auditChecks";
 
 /**
  * Collecte des faits de l'audit blanc.
@@ -113,90 +113,36 @@ export function useAuditFacts() {
         supabase.from("improvements").select("id"),
       ]);
 
-      const formationRows = formations.data ?? [];
-      const filled = (v: string | null | undefined) => typeof v === "string" && v.trim().length > 0;
-      const formationsWithAllDisclosures = formationRows.filter(
-        (f) =>
-          filled(f.recognition_type) &&
-          filled(f.funding_terms) &&
-          filled(f.access_delay) &&
-          filled(f.accessibility_terms),
-      ).length;
-
-      const withEvaluation = new Set((evaluations.data ?? []).map((e) => e.training_id));
-      const surveyRows = surveys.data ?? [];
-      const withSurvey = new Set(surveyRows.map((s) => s.training_id));
-      const withPrerequisite = new Set(
-        surveyRows.filter((s) => filled(s.prerequis_validation)).map((s) => s.training_id),
-      );
-      const withConvocation = new Set(
-        (participants.data ?? []).filter((p) => p.needs_survey_sent_at).map((p) => p.training_id),
-      );
-      const withAdequacy = new Set((adequacy.data ?? []).map((a) => a.training_id));
-
       const lessonRows = lessons.data ?? [];
-      const mandatoryModuleIds = new Set(
-        lessonRows.filter((l) => l.is_mandatory !== false).map((l) => l.module_id),
-      );
-
-      const trainerRows = trainers.data ?? [];
-      const docTrainerIds = new Set((trainerDocs.data ?? []).map((d) => d.trainer_id));
-      const hasContinuingEducation = (value: unknown) =>
-        Array.isArray(value) ? value.length > 0 : false;
-
-      const reclamationRows = reclamations.data ?? [];
-      const riskRows = risks.data ?? [];
-
-      const facts: AuditFacts = {
-        activeFormations: formationRows.length,
-        formationsWithAllDisclosures,
-        formationsWithSatisfaction: withEvaluation.size,
-        satisfactionMethodAvailable: true,
-        sampleSize: sampleRows.length,
-        sampleWithObjectives: sampleRows.filter((t) => (t.objectives ?? []).length > 0).length,
-        sampleWithProgramme: sampleRows.filter((t) => t.program_file_url || t.supports_lms_course_id).length,
-        sampleWithTrainer: sampleRows.filter((t) => t.trainer_id).length,
-        sampleWithNeedsSurvey: sampleIds.filter((id) => withSurvey.has(id)).length,
-        sampleWithPrerequisiteCheck: sampleIds.filter((id) => withPrerequisite.has(id)).length,
-        sampleWithEvaluations: sampleIds.filter((id) => withEvaluation.has(id)).length,
-        sampleWithConvocation: sampleIds.filter((id) => withConvocation.has(id)).length,
-        sampleWithTrainerAdequacy: sampleIds.filter((id) => withAdequacy.has(id)).length,
-        reglementInterieurPublished: filled(reglement.data as string | null),
-        vhdProcedureActive: count(vhd.data) > 0,
-        vhdProcedurePublished: count(vhd.data) > 0,
-        elearningCourses: count(courses.data),
-        elearningCoursesWithMandatoryLessons: mandatoryModuleIds.size > 0 ? count(courses.data) : 0,
-        distanceThresholdConfigured: false,
-        trainers: trainerRows.length,
-        trainersWithCompetences: trainerRows.filter((t) => (t.competences ?? []).length > 0).length,
-        trainersWithDocuments: trainerRows.filter((t) => docTrainerIds.has(t.id)).length,
-        trainersWithContinuingEducation: trainerRows.filter((t) =>
-          hasContinuingEducation(t.formations_suivies),
-        ).length,
+      const facts = buildFacts({
+        sampleIds,
+        sampleTrainings: sampleRows,
+        activeFormations: formations.data ?? [],
+        submittedEvaluations: evaluations.data ?? [],
+        submittedSurveys: surveys.data ?? [],
+        participants: participants.data ?? [],
+        adequacy: adequacy.data ?? [],
+        reglementUrl: (reglement.data as string | null) ?? null,
+        activeVhdProcedures: count(vhd.data),
+        lmsCourses: count(courses.data),
+        mandatoryLessons: lessonRows.filter((l) => l.is_mandatory !== false).length,
+        trainers: trainers.data ?? [],
+        trainerDocumentOwners: (trainerDocs.data ?? []).map((d) => d.trainer_id),
         watchItemsLastYear: count(watchItems.data),
         watchSourcesFollowed: count(watchSources.data),
         // Aucun rattachement entre un élément de veille et une décision
-        // n'existe encore dans le schéma : le compte reste à zéro tant que le
-        // lien n'est pas posé, plutôt que de laisser croire à une exploitation.
+        // n'existe encore dans le schéma.
         watchItemsLinkedToAction: 0,
-        handicapReferentDesignated:
-          filled(referentName.data as string | null) && filled(referentEmail.data as string | null),
+        referentName: (referentName.data as string | null) ?? null,
+        referentEmail: (referentEmail.data as string | null) ?? null,
         handicapPartnersActive: count(partners.data),
         coldEvaluationsSubmitted: count(coldParticipant.data),
         sponsorEvaluationsSubmitted: count(coldSponsor.data),
         funderAppreciations: count(funder.data),
-        reclamations: reclamationRows.length,
-        reclamationsAcknowledged: reclamationRows.filter((r) => r.acknowledgement_sent_at).length,
-        reclamationsAnswered: reclamationRows.filter((r) => r.response_date).length,
-        qualityRisks: riskRows.length,
-        highRisksWithoutMeasure: riskRows.filter(
-          (r) =>
-            (r.criticality ?? 0) >= 8 &&
-            r.status !== "closed" &&
-            !filled(r.preventive_measure),
-        ).length,
+        reclamations: reclamations.data ?? [],
+        risks: risks.data ?? [],
         improvements: count(improvements.data),
-      };
+      });
 
       return { facts, sample };
     } finally {

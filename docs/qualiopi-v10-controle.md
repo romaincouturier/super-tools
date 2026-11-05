@@ -84,3 +84,34 @@ Les écrans publics annonçaient un référent en affichant l'expéditeur géné
 - **Trace de l'adaptation décidée** (10, majeure) : le besoin d'aménagement est recueilli, un email part, rien n'est tracé ensuite. Les analyses de besoins générées ne sont pas conservées.
 - **Les cinq informations manquantes de l'indicateur 1** : modalités pédagogiques, modalités d'évaluation, méthodes mobilisées, modalités d'accès et d'inscription, contact par formation.
 - **La publication hors de l'application** : les mentions et les résultats de satisfaction existent en base, aucune page publique ne les porte.
+
+---
+
+## Audit blanc
+
+L'écran `/audit-blanc` déroule les 22 indicateurs applicables : tirage d'un échantillon de sessions récentes, contrôles sur les données, questions pour ce qu'aucune donnée ne tranche, verdict par indicateur selon la gradation du guide. Chaque passage est conservé dans `audit_runs` avec les faits figés à sa date.
+
+Le moteur vit dans `supabase/functions/_shared/qualiopi-referential.ts` et `qualiopi-checks.ts`, partagé entre l'écran et la tâche de nuit : un indicateur ne doit pas être apprécié différemment selon qu'on le regarde depuis le navigateur ou depuis un cron.
+
+### Mise en service de la tâche de nuit
+
+`run-qualiopi-audit` repasse les contrôles automatiques chaque nuit et inscrit chaque constat en défaut dans les actions quotidiennes des administrateurs. Elle n'est pas planifiée par une migration : la règle [036] l'interdit, `vault.decrypted_secrets` étant vide sur ce projet. Deux étapes, à faire une fois :
+
+1. Créer le secret d'edge function `QUALIOPI_CRON_SECRET` avec une valeur aléatoire.
+2. Planifier le cron en base, en recopiant la valeur du secret inline :
+
+```sql
+select cron.schedule(
+  'run-qualiopi-audit',
+  '30 6 * * *',
+  $$
+  select net.http_post(
+    url := 'https://<projet>.supabase.co/functions/v1/run-qualiopi-audit',
+    headers := jsonb_build_object('Content-Type','application/json','x-cron-secret','<valeur du secret>'),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+
+Vérifier `cron.job_run_details` après la première exécution : un cron en échec sur ce projet échoue silencieusement.
