@@ -66,7 +66,7 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 
 - Watch sources canonicalize URLs with a database trigger and a matching browser helper; watch-item source links adjust counts through a database trigger, because imports and UI writes must preserve the same identity and counters.
 
-- Course covers use authenticated native Storage uploads in the existing public LMS bucket and are uploaded on save, because cancelling the settings dialog must not upload files or change the course.
+- Course covers upload via authenticated Storage to the public LMS bucket only on save, because cancelling must not change the course.
 
 - HTML/embed and exercise interactive HTML share an explicit HTML/CSS allowlist across MCP writes and browser rendering, render in an isolated iframe whose CSP forbids all scripts (nested srcdoc frames are script-free sandboxes, only third-party `src` players get script flags), with parent-side resize observation, because author CSS must stay isolated, no author JavaScript may run, and YouTube/Vimeo/LinkedIn players must still work.
 - Interactive LMS blocks use the same viewers in learner pages and builder previews; drag words use dnd-kit with uniquely identified word instances, because touch accessibility and repeated words must behave consistently.
@@ -87,3 +87,4 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Learner access emails are chosen server-side by a pure helper from `password_set` only (a missing security row means no password; a past sign-in proves nothing unless it was a password sign-in, recorded by `mark_password_proven`): create-password for accounts without a proven password, `learner_course_access` with a direct course link otherwise, because legacy magic-link accounts must never be told to log in with a password they never created.
 - Bulk e-learning access emails are queued in `learner_access_jobs` and sent server-side by `queue-learner-access-emails` with the requester's rights, because browser-driven sends blocked the page.
 - Password emails use hashed `password_setup_links` redeemed on click, because native recovery tokens expire too soon.
+- Learner community reads (posts and children) use security-definer enrollment-scoped helpers, because intra client feeds must stay private.
