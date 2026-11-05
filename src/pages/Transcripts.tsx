@@ -480,9 +480,9 @@ export default function Transcripts() {
   const [source, setSource] = useState<TranscriptSource | "">("");
   const [status, setStatus] = useState<TranscriptStatus | "">("");
   const [qualification, setQualification] = useState<string>("");
-  const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("transcript"));
   const [page, setPage] = useState(0);
   const [searchParams] = useSearchParams();
+  const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("transcript"));
   const [assignment, setAssignment] = useState<"" | "assigned" | "unassigned">(
     searchParams.get("affectation") === "non" ? "unassigned" : "",
   );
