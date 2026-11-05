@@ -1,8 +1,9 @@
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { beforeEach, afterEach, describe, it, expect } from "vitest";
 
-const migration = readFileSync(new URL("../../drizzle/migrations/0034_editable_training_regulation.sql", import.meta.url), "utf8");
+const migration = readFileSync(fileURLToPath(import.meta.url).replace(/supabase\/tests\/training-regulation\.test\.ts$/, "drizzle/migrations/0034_editable_training_regulation.sql"), "utf8");
 const admin = "00000000-0000-0000-0000-000000000001";
 const oldUrl = "https://example.test/storage/v1/object/public/training-documents/reglement-interieur/old.pdf";
 const newUrl = "https://example.test/storage/v1/object/public/training-documents/reglement-interieur/new.pdf";
