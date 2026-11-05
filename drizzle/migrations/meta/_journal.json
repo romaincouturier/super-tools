@@ -225,6 +225,13 @@
       "when": 1793873242673,
       "tag": "0031_password_setup_links",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793890147006,
+      "tag": "0032_community_read_scope_by_enrollment",
+      "breakpoints": true
     }
   ]
 }

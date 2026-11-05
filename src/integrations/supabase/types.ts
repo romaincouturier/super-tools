@@ -14122,6 +14122,18 @@ export type Database = {
         Args: { p_emails: string[] }
         Returns: string[]
       }
+      learner_can_read_community: {
+        Args: { _course_id: string }
+        Returns: boolean
+      }
+      learner_can_read_practice_poll: {
+        Args: { _poll_id: string }
+        Returns: boolean
+      }
+      learner_can_read_practice_post: {
+        Args: { _post_id: string }
+        Returns: boolean
+      }
       learner_evaluation_course_id: {
         Args: { p_email: string; p_lms_course_id: string }
         Returns: number
