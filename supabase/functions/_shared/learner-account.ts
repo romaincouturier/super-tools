@@ -1,3 +1,4 @@
+import { renderLiveRecordingNotice, trainingHasLives } from "./live-recording-notice.ts";
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { normalizeLearnerEmail, isUsableLearnerEmail } from "./learner-email.ts";
 import { generateHash } from "./crypto.ts";
@@ -114,16 +115,18 @@ export function decideLearnerAccessEmail(state: { passwordSet: boolean; hasTrain
 export async function resolveTrainingAccess(
   admin: SupabaseClient,
   trainingId: string | null | undefined,
-): Promise<{ trainingName: string | null; courseId: string | null }> {
+): Promise<{ trainingName: string | null; courseId: string | null; formal?: boolean | null; hasLives?: boolean }> {
   if (!trainingId) return { trainingName: null, courseId: null };
   const { data } = await admin
     .from("trainings")
-    .select("training_name, supports_lms_course_id")
+    .select("training_name, supports_lms_course_id, participants_formal_address")
     .eq("id", trainingId)
     .maybeSingle();
   return {
     trainingName: (data as { training_name?: string | null } | null)?.training_name ?? null,
     courseId: (data as { supports_lms_course_id?: string | null } | null)?.supports_lms_course_id ?? null,
+    formal: (data as { participants_formal_address?: boolean | null } | null)?.participants_formal_address ?? null,
+    hasLives: data ? await trainingHasLives(admin, trainingId) : false,
   };
 }
 
@@ -143,6 +146,8 @@ export async function sendLearnerAccessEmail(
     ip?: string;
     strict?: boolean;
     quotaExempt?: boolean;
+    formal?: boolean | null;
+    hasLives?: boolean;
   } = {},
 ): Promise<{ sent: boolean; kind?: LearnerAccessEmailKind }> {
   const normalized = normalizeLearnerEmail(email);
@@ -181,8 +186,9 @@ export async function sendLearnerAccessEmail(
     const tpl = EDITABLE_EMAIL_DEFAULTS.learner_course_access;
     rendered = await renderEditableEmail(admin, {
       type: "learner_course_access",
-      defaultSubject: tpl.subject.vous,
-      defaultContent: tpl.content.vous,
+      formal: opts.formal,
+      defaultSubject: tpl.subject[opts.formal === false ? "tu" : "vous"],
+      defaultContent: tpl.content[opts.formal === false ? "tu" : "vous"],
       vars: { training_name: trainingName },
       blocks: {
         access_button: ctaButton("Accéder à ma formation", target),
@@ -194,8 +200,9 @@ export async function sendLearnerAccessEmail(
     const tpl = EDITABLE_EMAIL_DEFAULTS.learner_access;
     rendered = await renderEditableEmail(admin, {
       type: "learner_access",
-      defaultSubject: tpl.subject.vous,
-      defaultContent: tpl.content.vous,
+      formal: opts.formal,
+      defaultSubject: tpl.subject[opts.formal === false ? "tu" : "vous"],
+      defaultContent: tpl.content[opts.formal === false ? "tu" : "vous"],
       vars: {
         training_name: trainingName,
         password_set: link.passwordSet || null,
@@ -208,7 +215,8 @@ export async function sendLearnerAccessEmail(
   }
 
   const signature = await getSigniticSignature();
-  const html = wrapEmailHtml(rendered.html, signature);
+  const notice = opts.hasLives ? await renderLiveRecordingNotice(admin, opts.formal) : "";
+  const html = wrapEmailHtml(rendered.html + notice, signature);
   const subject = rendered.subject;
 
   const bccList = await getBccList();
@@ -229,7 +237,7 @@ export async function sendLearnerAccessEmail(
 export async function sendRegisteredLearnerAccessEmail(
   admin: SupabaseClient,
   email: string,
-  opts: { trainingName?: string | null; courseId?: string | null; ip?: string; callerId?: string } = {},
+  opts: { trainingName?: string | null; courseId?: string | null; ip?: string; callerId?: string; formal?: boolean | null; hasLives?: boolean } = {},
 ): Promise<{ sent: boolean; kind?: LearnerAccessEmailKind; accountCreated: boolean }> {
   const normalized = normalizeLearnerEmail(email);
   if (!isUsableLearnerEmail(normalized)) throw new Error("Email invalide");

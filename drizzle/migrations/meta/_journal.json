@@ -260,6 +260,13 @@
       "when": 1793900848361,
       "tag": "0036_pictodico_guards_and_event_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793902075207,
+      "tag": "0037_training_summary_live_recording_notice",
+      "breakpoints": true
     }
   ]
 }

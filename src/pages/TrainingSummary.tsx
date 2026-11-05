@@ -1,3 +1,4 @@
+import { liveRecordingNoticeText } from "@/lib/liveRecordingNotice";
 import { useState, useEffect, useRef } from "react";
 import { getInitials } from "@/lib/stringUtils";
 import { useParams } from "react-router-dom";
@@ -55,6 +56,9 @@ function MIcon({
 interface Training {
   id: string;
   training_name: string;
+  has_lives?: boolean;
+  live_recording_notice?: string | null;
+  participants_formal_address?: boolean | null;
   client_name: string;
   start_date: string | null;
   end_date: string | null;
@@ -524,6 +528,11 @@ END:VCALENDAR`;
                 Convertir
               </a>
             </div>
+          )}
+          {training.has_lives && (
+            <p className="text-xs leading-relaxed" style={{ color: c.onSurfaceVariant }}>
+              {liveRecordingNoticeText(training.live_recording_notice, training.participants_formal_address)}
+            </p>
           )}
         </section>
 
