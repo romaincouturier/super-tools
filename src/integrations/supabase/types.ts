@@ -14389,7 +14389,9 @@ export type Database = {
           word: string
         }[]
       }
+      pictodico_text_is_safe: { Args: { p_text: string }; Returns: boolean }
       pictodico_url_decode: { Args: { t: string }; Returns: string }
+      pictodico_word_is_valid: { Args: { p_word: string }; Returns: boolean }
       practice_popular_hashtags: {
         Args: { p_limit?: number }
         Returns: {
