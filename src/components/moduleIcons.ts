@@ -39,6 +39,7 @@ import {
   Gamepad2,
   Earth,
   Shell,
+  Share2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -60,6 +61,7 @@ export const MODULE_ICONS: Record<string, ModuleIconInfo> = {
   "sf-transcripts": { icon: Mic, label: "Transcripts", path: "/supertilt-fr/transcripts" },
   "sf-temoignages": { icon: Star, label: "Témoignages", path: "/supertilt-fr/temoignages" },
   "sf-perles": { icon: Shell, label: "Perles clients", path: "/supertilt-fr/perles" },
+  "sf-contenus-sociaux": { icon: Share2, label: "Contenus sociaux", path: "/supertilt-fr/contenus-sociaux" },
   "sf-projets": { icon: FolderKanban, label: "Projets", path: "/supertilt-fr/projets" },
   "micro-devis": { icon: FileText, label: "Micro-devis", path: "/micro-devis" },
   catalogue: { icon: BookOpen, label: "Catalogue", path: "/catalogue" },

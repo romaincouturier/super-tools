@@ -47,6 +47,7 @@ const NAV_CONFIG: NavConfig[] = [
       { key: "sf-transcripts", module: "supertilt_fr" },
       { key: "sf-temoignages", module: "supertilt_fr" },
       { key: "sf-perles", module: "supertilt_fr" },
+      { key: "sf-contenus-sociaux", module: "supertilt_fr" },
       { key: "sf-projets", module: "supertilt_fr" },
     ],
   },

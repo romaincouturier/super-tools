@@ -2,7 +2,7 @@
 title: 'Story 1.1 : rédiger un contenu décliné sur plusieurs canaux'
 type: 'feature'
 created: '2026-11-05'
-status: 'in-review'
+status: 'done'
 baseline_commit: 'd41a0f4f8f1ecd5d25ebd608824cec12314004b3'
 route: 'dispatch'
 review_loop_iteration: 0

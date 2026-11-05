@@ -22,3 +22,5 @@ learner_accounts_for_emails
 get_nav_usage_counts
 get_previous_trainer_evaluations
 get_staff_directory
+social_posts_propagate_text
+save_social_content_group
