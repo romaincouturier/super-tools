@@ -9,6 +9,7 @@ import {
   truncateForLog,
   STRICT_JSON_INSTRUCTION,
 } from "../_shared/ai-json.ts";
+import { isValidPictoWord } from "../_shared/pictodico-validation.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -132,7 +133,7 @@ serve(async (req) => {
       words
         .map((w) => String(w).trim().toLowerCase())
         // Les signalements d'erreur ne sont pas des mots à proposer.
-        .filter((w) => w.length > 1 && !/^erreur\s*signal/i.test(w)),
+        .filter((w) => w.length > 1 && isValidPictoWord(w)),
     ),
   ];
 
