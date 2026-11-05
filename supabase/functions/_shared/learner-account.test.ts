@@ -171,7 +171,7 @@ describe("sendLearnerAccessEmail", () => {
     });
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
     const call = sendEmailMock.mock.calls[0][0];
-    expect(call.subject).toBe("Créez votre mot de passe SuperTools");
+    expect(call.subject).toBe("Créez votre mot de passe SuperTilt Academy");
     // RG-21 : jamais l'action_link Supabase (auth/v1/verify), qui consommerait
     // le jeton dès la requête GET — seulement notre propre URL avec le
     // token_hash, consommé au clic sur ConnexionReinitialisation.tsx.
@@ -189,7 +189,7 @@ describe("sendLearnerAccessEmail", () => {
     expect(generateLink).not.toHaveBeenCalled();
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
     const call = sendEmailMock.mock.calls[0][0];
-    expect(call.subject).toBe("Accéder à votre espace SuperTools");
+    expect(call.subject).toBe("Accéder à votre espace SuperTilt Academy");
     expect(call.html).toContain("https://app.example.com/connexion?email=connu%40example.com");
     expect(call.html).not.toContain("token_hash");
   });
@@ -398,7 +398,7 @@ describe("mails d'accès selon l'état du compte", () => {
     await expect(sendLearnerAccessEmail(admin, "ancien@example.com", { trainingName: "Agilité", accountCreated: false }))
       .resolves.toEqual({ sent: true, kind: "create_password" });
     const call = sendEmailMock.mock.calls[0][0];
-    expect(call.subject).toBe("Créez votre mot de passe SuperTools");
+    expect(call.subject).toBe("Créez votre mot de passe SuperTilt Academy");
     expect(call.html).toContain("Agilité");
     expect(call.html).toContain("plateforme de formation a changé");
   });
