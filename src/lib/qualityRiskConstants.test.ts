@@ -90,7 +90,7 @@ describe("buildRiskRecord", () => {
     review_date: "2026-12-01",
     status: "monitored",
     reclamation_id: "rec-1",
-    improvement_id: "imp-1",
+    improvement_ids: ["imp-1"],
   };
 
   it("nettoie les espaces et conserve les rattachements", () => {
@@ -100,7 +100,7 @@ describe("buildRiskRecord", () => {
     expect(record.cause).toBe("Débit du formateur");
     expect(record.formation_config_id).toBe("cfg-1");
     expect(record.reclamation_id).toBe("rec-1");
-    expect(record.improvement_id).toBe("imp-1");
+    expect("improvement_id" in record).toBe(false);
   });
 
   it("n'écrit jamais de criticité : la base la calcule", () => {
@@ -180,5 +180,21 @@ describe("summarizeRisks", () => {
     );
 
     expect(summary.unmitigated).toBe(2);
+  });
+});
+
+import { nextReviewDate, needsImprovementAlert } from "./qualityRiskConstants";
+
+describe("revue mensuelle et alerte amélioration", () => {
+  it("prochaine revue un mois plus tard", () => {
+    expect(nextReviewDate("2026-11-05")).toBe("2026-12-05");
+    expect(nextReviewDate("2026-12-15")).toBe("2027-01-15");
+    expect(nextReviewDate("2027-01-31")).toBe("2027-02-28");
+  });
+  it("alerte si criticité >= 8 sans amélioration liée", () => {
+    expect(needsImprovementAlert({ status: "open", criticality: 8 }, 0)).toBe(true);
+    expect(needsImprovementAlert({ status: "open", criticality: 6 }, 0)).toBe(false);
+    expect(needsImprovementAlert({ status: "open", criticality: 12 }, 2)).toBe(false);
+    expect(needsImprovementAlert({ status: "closed", criticality: 12 }, 0)).toBe(false);
   });
 });
