@@ -203,8 +203,8 @@ Merci de le contacter pour lui proposer une formule coachée adaptée.`),
     audience: "client",
     sendingInfo: "📤 Envoyé à l'apprenant quand son compte est créé ou qu'il redemande son accès",
     subject: {
-      tu: "{{#password_set}}Accéder à ton espace SuperTools{{/password_set}}{{#no_password}}Crée ton mot de passe SuperTools{{/no_password}}",
-      vous: "{{#password_set}}Accéder à votre espace SuperTools{{/password_set}}{{#no_password}}Créez votre mot de passe SuperTools{{/no_password}}",
+      tu: "{{#password_set}}Accéder à ton espace SuperTilt Academy{{/password_set}}{{#no_password}}Crée ton mot de passe SuperTilt Academy{{/no_password}}",
+      vous: "{{#password_set}}Accéder à votre espace SuperTilt Academy{{/password_set}}{{#no_password}}Créez votre mot de passe SuperTilt Academy{{/no_password}}",
     },
     content: {
       tu: `Bonjour,
@@ -256,10 +256,10 @@ Connectez-vous avec votre adresse email et votre mot de passe habituel pour comm
     name: "Réinitialisation du mot de passe",
     audience: "client",
     sendingInfo: "📤 Envoyé quand un utilisateur demande à réinitialiser son mot de passe",
-    subject: same("Réinitialisation de votre mot de passe SuperTools"),
+    subject: same("Créez votre mot de passe SuperTilt Academy"),
     content: same(`Bonjour,
 
-Vous avez demandé à réinitialiser votre mot de passe SuperTools.
+Vous avez demandé un nouveau lien pour définir votre mot de passe SuperTilt Academy.
 
 Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :
 

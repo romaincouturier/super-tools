@@ -219,7 +219,7 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
       onChange={(e) => updateSetting("maintenance_banner_message", e.target.value)}
       rows={4}
     />
-    <p className="text-xs text-muted-foreground">Le titre « On fait quelques travaux sur SuperTools » est fixe. Ce texte est la suite du message.</p>
+    <p className="text-xs text-muted-foreground">Le titre « On fait quelques travaux sur SuperTilt Academy » est fixe. Ce texte est la suite du message.</p>
   </div>
 </div>
 
