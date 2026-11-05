@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { expertiseLabel } from "@/lib/lmsCourseMeta";
+import { HIDDEN_FREE_COURSE_IDS } from "@/lib/academyFreeCourses";
 
 export type RecoCourse = {
   id: string;
@@ -24,7 +25,12 @@ const SHOP_BASE = "https://supertilt.fr";
  * plus générique, pour qu'une recommandation ait TOUJOURS une destination
  * valide (le bloc ne doit jamais être vide faute de lien).
  */
-function resolveBoutiqueUrl(
+/** Cours gratuit : inscription en un clic sur SuperTilt Academy. */
+export function academyCourseUrl(courseId: string): string {
+  return `/academy/choisir-mes-formations?course=${encodeURIComponent(courseId)}`;
+}
+
+export function resolveBoutiqueUrl(
   supertiltLink: string | null | undefined,
   wcProductId: number | null | undefined,
   title: string,
@@ -114,14 +120,15 @@ export function useRecommendedCourses(excludedCourseIds: string[]) {
         (c.access_type ?? "gratuit") === "intra" || c.expertise === "intra_clients";
 
       const scored = all
-        .filter((c) => !excludedSet.has(c.id) && !isIntra(c))
+        .filter((c) => !excludedSet.has(c.id) && !isIntra(c) && !HIDDEN_FREE_COURSE_IDS.has(c.id))
         .map((c) => {
           // Seul le lien explicite cours -> fiche catalogue fait foi : un
           // rapprochement par le nom associait des prix d'autres formations.
           const cfg: Config | undefined =
             c.formation_config_id ? configById.get(c.formation_config_id) : undefined;
           const formula = cfg ? formulaByConfig.get(cfg.id) : undefined;
-          const boutique_url = resolveBoutiqueUrl(
+          const isFree = (c.access_type ?? "gratuit") === "gratuit";
+          const boutique_url = isFree ? academyCourseUrl(c.id) : resolveBoutiqueUrl(
             cfg?.supertilt_link,
             formula?.woocommerce_product_id,
             c.title,
