@@ -151,7 +151,7 @@ const BulkAddParticipantsDialog = ({
         description: `${n} participant${pluralize(n)} ajouté${pluralize(n)}. ${accessSummary ? `${accessSummary} ` : ""}${baseMessage}`,
         ...(needsSurveySkipped && { duration: 8000 }),
       });
-      setBulkText("");
+      setBulkText(""); setFormulaOverrides({}); setDefaultFormulaId(""); setShowPerParticipant(false);
       setOpen(false);
       onParticipantsAdded();
       onScheduledEmailsRefresh?.();

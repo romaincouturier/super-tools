@@ -38,6 +38,7 @@ const {
   enqueueElearningAccessBatch,
   logBulkAddActivity,
   buildStatusMessage,
+  formulaColumns,
 } = await import("./bulkParticipants");
 
 beforeEach(() => {
@@ -251,5 +252,19 @@ describe("buildStatusMessage", () => {
   it("returns needs survey skipped warning when only that is skipped", () => {
     const msg = buildStatusMessage("programme", false, true);
     expect(msg).toContain("recueil des besoins n'a pas \u00e9t\u00e9 programm\u00e9");
+  });
+});
+
+describe("formulaColumns", () => {
+  it("n'ajoute rien sans formule", () => {
+    expect(formulaColumns(null)).toEqual({});
+  });
+  it("renseigne la formule sans coaching", () => {
+    expect(formulaColumns({ id: "f1", name: "Solo", coaching_sessions_count: 0 })).toEqual({ formula: "Solo", formula_id: "f1" });
+  });
+  it("ouvre le coaching sur un an si la formule en inclut", () => {
+    expect(formulaColumns({ id: "f2", name: "Coachée", coaching_sessions_count: 3 }, new Date("2026-11-05T10:00:00Z"))).toEqual({
+      formula: "Coachée", formula_id: "f2", coaching_sessions_total: 3, coaching_sessions_completed: 0, coaching_deadline: "2027-11-05",
+    });
   });
 });
