@@ -1,5 +1,10 @@
 # Roadmap
 
+## Règlement intérieur éditable (2026-11-05)
+- [ ] Édition texte, brouillon sauvegardé et aperçu à la charte SuperTilt
+- [ ] Publication PDF conservant le lien actuel et les versions précédentes datées
+- [ ] Reprise du contenu PDF actuel sans publication automatique ; tests et parcours connecté
+
 ## Marque apprenant (2026-11-05)
 - [x] Mail de redemande « Créez votre mot de passe SuperTilt Academy », sujets d’accès et bandeau de connexion renommés ; aucun modèle personnalisé contenant SuperTools trouvé en base
 - [x] 75 tests et 103 contrôles réussis ; connexion vérifiée avec bandeau simulé, compilation OK ; six fonctions d’envoi concernées déployées, aucun email envoyé
