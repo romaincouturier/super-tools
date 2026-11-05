@@ -21,7 +21,7 @@ type CreateUserResult = { data: { user: { id: string } | null } | null; error: {
 function makeAdmin(result: CreateUserResult) {
   const createUser = vi.fn().mockResolvedValue(result);
   const upsert = vi.fn().mockResolvedValue({ error: null });
-  const from = vi.fn(() => ({ upsert }));
+  const from = vi.fn(() => ({ upsert, insert: vi.fn().mockResolvedValue({ error: null }) }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = { auth: { admin: { createUser } }, from } as any;
   return { admin, createUser, upsert, from };
