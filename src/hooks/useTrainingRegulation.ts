@@ -10,6 +10,7 @@ export function useTrainingRegulation(onPublished: (url: string) => void) {
   const [url, setUrl] = useState("");
   const [versions, setVersions] = useState<RegulationVersion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [status, setStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [error, setError] = useState("");
   const [publishing, setPublishing] = useState(false);
@@ -39,24 +40,36 @@ export function useTrainingRegulation(onPublished: (url: string) => void) {
     loadTrainingRegulation().then(data => {
       if (!active) return;
       saved.current = data.draft;
-      latest.current = data.draft || initialContent;
+      latest.current = data.draft;
       setContent(latest.current);
       setUrl(data.url);
       setVersions(data.versions);
-      setStatus(data.draft ? "saved" : "unsaved");
+      setLoaded(true);
+      if (!data.hasDraft) {
+        latest.current = initialContent;
+        setContent(initialContent);
+      }
+      setStatus(data.hasDraft ? "saved" : "unsaved");
     }).catch(failed).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [failed]);
 
   useEffect(() => {
-    if (loading || error || latest.current === saved.current) return;
+    if (loading || !loaded || error || latest.current === saved.current) return;
     const timer = setTimeout(() => { void save(latest.current).catch(() => undefined); }, 1500);
     return () => clearTimeout(timer);
-  }, [content, loading, error, save]);
+  }, [content, loading, loaded, error, save]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const flush = () => { void save(latest.current).catch(() => undefined); };
+    window.addEventListener("pagehide", flush);
+    return () => { window.removeEventListener("pagehide", flush); flush(); };
+  }, [loaded, save]);
 
   const change = (value: string) => { latest.current = value; setContent(value); setStatus("unsaved"); };
   const publish = async () => {
-    if (publishing || !latest.current.trim()) return;
+    if (publishing || !loaded || !latest.current.trim()) return;
     setPublishing(true);
     try {
       const snapshot = latest.current;
@@ -68,5 +81,5 @@ export function useTrainingRegulation(onPublished: (url: string) => void) {
     finally { setPublishing(false); }
   };
 
-  return { content, change, url, versions, loading, status, error, publishing, publish, save: () => save(latest.current) };
+  return { content, change, url, versions, loading, status, error, publishing, publish, save: () => loaded ? save(latest.current) : Promise.resolve() };
 }

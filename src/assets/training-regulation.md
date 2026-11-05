@@ -1,6 +1,6 @@
 ## Article 1 – Objet et champ d’application
 
-Le présent règlement intérieur est établi conformément aux dispositions des articles L.6352- 3 et L.6352-4 et R.6352-1 à R.6352-15 du Code du travail. Il s’applique à tous les stagiaires inscrits à une formation dispensée par SuperTilt, quelle qu’en soit la durée et la modalité : formation en présentiel, classe virtuelle, e-learning ou accompagnement individuel ou collectif. Chaque stagiaire est considéré comme ayant accepté les termes du présent règlement dès lors qu’il participe à une formation dispensée par SuperTilt.
+Le présent règlement intérieur est établi conformément aux dispositions des articles L.6352-3 et L.6352-4 et R.6352-1 à R.6352-15 du Code du travail. Il s’applique à tous les stagiaires inscrits à une formation dispensée par SuperTilt, quelle qu’en soit la durée et la modalité : formation en présentiel, classe virtuelle, e-learning ou accompagnement individuel ou collectif. Chaque stagiaire est considéré comme ayant accepté les termes du présent règlement dès lors qu’il participe à une formation dispensée par SuperTilt.
 
 ## Article 2 – Assiduité et ponctualité
 

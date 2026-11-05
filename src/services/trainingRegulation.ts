@@ -5,7 +5,7 @@ export async function loadTrainingRegulation() {
   const { data, error } = await supabase.from("app_settings").select("setting_key,setting_value").in("setting_key", REGULATION_SETTING_KEYS);
   if (error) throw error;
   const values = Object.fromEntries((data ?? []).map(row => [row.setting_key, row.setting_value]));
-  return { url: values.reglement_interieur_url ?? "", draft: values.reglement_interieur_draft ?? "", versions: JSON.parse(values.reglement_interieur_versions || "[]") as RegulationVersion[] };
+  return { url: values.reglement_interieur_url ?? "", draft: values.reglement_interieur_draft ?? "", hasDraft: "reglement_interieur_draft" in values, versions: JSON.parse(values.reglement_interieur_versions || "[]") as RegulationVersion[] };
 }
 
 export async function saveRegulationDraft(content: string, expected: string) {
