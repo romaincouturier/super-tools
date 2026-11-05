@@ -1240,6 +1240,22 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
     if (searchOpen) searchInputRef.current?.focus();
   }, [searchOpen]);
 
+  // Échap doit fermer la recherche, pas le tiroir de la mission : la touche est
+  // arrêtée sur le champ lui-même, avant que le panneau ne la reçoive.
+  useEffect(() => {
+    if (!searchOpen) return;
+    const field = searchInputRef.current;
+    if (!field) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      setSearchTerm("");
+      setSearchOpen(false);
+    };
+    field.addEventListener("keydown", onKeyDown);
+    return () => field.removeEventListener("keydown", onKeyDown);
+  }, [searchOpen]);
+
   const rootPages = (pages || [])
     .filter((p) => !p.parent_page_id && (!search || search.visibleIds.has(p.id)))
     .sort((a, b) => {
@@ -1651,14 +1667,6 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
               ref={searchInputRef}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  // Sans stopPropagation, Échap fermerait aussi le tiroir de la mission.
-                  e.stopPropagation();
-                  setSearchTerm("");
-                  setSearchOpen(false);
-                }
-              }}
               placeholder="Titre ou contenu…"
               aria-label="Rechercher une page"
               className="h-7 pl-7 pr-7 text-xs"
