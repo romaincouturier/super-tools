@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -96,9 +96,11 @@ import {
   FileAudio,
   Package,
   MessageSquare,
+  Search,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { VoiceDictationButton } from "@/components/ui/voice-dictation-button";
 import { MeetingRecorderButton } from "@/components/missions/MeetingRecorderButton";
@@ -133,6 +135,7 @@ import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { registerMediaEntry } from "@/hooks/useMedia";
 import { resolveContentType } from "@/lib/file-utils";
 import { sanitizeLmsHtml } from "@/lib/sanitizeLmsHtml";
+import { searchMissionPages } from "@/lib/missionPageSearch";
 
 interface MissionPagesProps {
   mission: Mission;
@@ -160,6 +163,10 @@ interface PageTreeItemProps {
   manualOrder: boolean;
   selectedPageId: string | null;
   sortFn: (a: MissionPage, b: MissionPage) => number;
+  /** Pages à afficher pendant une recherche (null hors recherche). */
+  visibleIds: Set<string> | null;
+  /** Pages correspondant au terme cherché (null hors recherche). */
+  matchIds: Set<string> | null;
 }
 
 // ─── Custom TipTap Extensions ────────────────────────────
@@ -359,6 +366,8 @@ const PageTreeItem = ({
   manualOrder,
   selectedPageId,
   sortFn,
+  visibleIds,
+  matchIds,
 }: PageTreeItemProps) => {
   const { isDemoMode } = useDemoMode();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -374,8 +383,9 @@ const PageTreeItem = ({
     position: "relative",
   };
 
+  const forceExpand = !!matchIds;
   const childPages = allPages
-    .filter((p) => p.parent_page_id === page.id)
+    .filter((p) => p.parent_page_id === page.id && (!visibleIds || visibleIds.has(p.id)))
     .sort(sortFn);
   const childIds = childPages.map((p) => p.id);
   const hasChildren = childPages.length > 0;
@@ -389,6 +399,7 @@ const PageTreeItem = ({
             ? "bg-primary/10 text-primary font-medium"
             : "hover:bg-muted/60 text-muted-foreground hover:text-foreground",
           isDragging && "z-50",
+          matchIds && !matchIds.has(page.id) && "opacity-60",
         )}
         style={{ paddingLeft: `${level * 12 + 4}px` }}
         onClick={() => onSelect(page)}
@@ -401,7 +412,7 @@ const PageTreeItem = ({
           className="w-4 h-4 flex items-center justify-center shrink-0"
         >
           {hasChildren ? (
-            page.is_expanded ? (
+            (page.is_expanded || forceExpand) ? (
               <ChevronDown className="h-3 w-3" />
             ) : (
               <ChevronRight className="h-3 w-3" />
@@ -476,7 +487,7 @@ const PageTreeItem = ({
         </div>
       </div>
 
-      {hasChildren && page.is_expanded && (
+      {hasChildren && (page.is_expanded || forceExpand) && (
         <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
           {childPages.map((child) => (
             <PageTreeItem
@@ -493,6 +504,8 @@ const PageTreeItem = ({
               manualOrder={manualOrder}
               selectedPageId={selectedPageId}
               sortFn={sortFn}
+              visibleIds={visibleIds}
+              matchIds={matchIds}
             />
           ))}
         </SortableContext>
