@@ -573,6 +573,34 @@ serve(async (req) => {
     ]);
     actions.push(...buildFollowUpActions(coldNeeds || [], feedbackFollowUps || [], appUrl));
 
+    // 17septies. Risques qualité : revue arrivée à échéance, risque élevé sans amélioration liée
+    const { data: qualityRisks } = await supabase
+      .from("quality_risks")
+      .select("id, label, criticality, review_date, status, quality_risk_improvements(improvement_id)")
+      .neq("status", "closed");
+    for (const r of qualityRisks || []) {
+      if (r.review_date && r.review_date <= today) {
+        actions.push({
+          category: "risques_revue",
+          title: `🛡️ Revue du risque : ${r.label}`,
+          description: `Criticité ${r.criticality} — revue prévue le ${new Date(r.review_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} : réévaluer puis cliquer sur « Revu »`,
+          link: `${appUrl}/risques`,
+          entityType: "quality_risk", entityId: r.id,
+          scope: "global",
+        });
+      }
+      if ((r.criticality ?? 0) >= 8 && !((r as any).quality_risk_improvements?.length)) {
+        actions.push({
+          category: "risques_sans_amelioration",
+          title: `🛡️ Risque coté ${r.criticality} sans amélioration : ${r.label}`,
+          description: "Lier ou créer une action d'amélioration qui met en œuvre la mesure",
+          link: `${appUrl}/risques`,
+          entityType: "quality_risk", entityId: r.id,
+          scope: "global",
+        });
+      }
+    }
+
     // 18. Projets (transverses et supertilt.fr) — toutes les actions en attente
     for (const a of data.supertiltActions) {
       const dateLabel = !a.deadline

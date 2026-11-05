@@ -43,6 +43,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   elearning_integration: "🔌 E-learning — intégration supertilt.fr à corriger",
   supertilt_dropshipping: "SuperTilt — Dropshipping en attente",
   supertilt_dropshipping_relance: "🔴 SuperTilt — Dropshipping relancé sans réponse",
+  risques_revue: "🛡️ Risques qualité — revue à faire",
+  risques_sans_amelioration: "🛡️ Risques qualité — sans amélioration liée",
 };
 
 serve(async (req) => {
