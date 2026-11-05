@@ -90,3 +90,4 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - CRM opportunity values use the shared pure `_shared/opportunity-value.ts`, so entry points agree.
 - Transcript→Réseau links: `link_transcript_to_network_contact` (UI), `_shared/network-tools.ts` (MCP); unlinking keeps the interaction, preserving history.
 - Picto-Dico input and challenge guards are DB triggers mirrored in `_shared/pictodico-validation.ts`; the linked event drives challenge number/date, because the webhook is public.
+- The live-recording notice is one editable catalog template (`live_recording_notice`) appended as small text by access, live-reminder emails and formation-info (via `get_training_summary_info.has_lives`), only for trainings with non-cancelled lives, because one wording must stay consistent everywhere.
