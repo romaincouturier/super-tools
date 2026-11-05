@@ -5,6 +5,7 @@ import { timingSafeEqualSecret } from "../_shared/crypto.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { postCrmOpportunityToSlack } from "../_shared/crm-slack.ts";
 import { logLovableUsage } from "../_shared/api-usage.ts";
+import { estimateOpportunityValue, loadOpportunityValueData, parseValueSignals, valueSignalsPrompt, type OpportunityFormat, type ValueEstimate } from "../_shared/opportunity-value.ts";
 
 /**
  * Edge Function: crm-elementor-webhook
@@ -706,7 +707,7 @@ serve(async (req) => {
         card_id: newCard.id,
         title: extraction.title,
         column: targetColumn.name,
-        estimated_value: estimatedValue,
+        estimated_value: valueEstimate.value,
         tags_assigned: extraction.suggested_tag_ids.length,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
