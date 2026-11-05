@@ -49,6 +49,9 @@ export interface TrainingSummaryInfo extends TrainingPublicInfo {
   trainer_id: string | null;
   session_format: string | null;
   specific_instructions: string | null;
+  participants_formal_address?: boolean | null;
+  has_lives?: boolean;
+  live_recording_notice?: string | null;
 }
 
 export interface ParticipantPublicInfo {

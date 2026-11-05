@@ -1,3 +1,4 @@
+import { liveRecordingNoticeText } from "@/lib/liveRecordingNotice";
 import { useState, useEffect, useRef } from "react";
 import { getInitials } from "@/lib/stringUtils";
 import { useParams } from "react-router-dom";
@@ -524,6 +525,11 @@ END:VCALENDAR`;
                 Convertir
               </a>
             </div>
+          )}
+          {training.has_lives && (
+            <p className="text-xs leading-relaxed" style={{ color: c.onSurfaceVariant }}>
+              {liveRecordingNoticeText(training.live_recording_notice, training.participants_formal_address)}
+            </p>
           )}
         </section>
 
