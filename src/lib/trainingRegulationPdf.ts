@@ -2,7 +2,7 @@ import { jsPDF } from "jspdf";
 import { marked, type Token } from "marked";
 import logo from "@/assets/supertilt-logo-anthracite.jpg";
 
-type PdfLine = { text: string; size: number; bold: boolean; gap: number; indent: number };
+type PdfLine = { text: string; size: number; bold: boolean; gap: number; indent: number; source?: string };
 
 function plainInline(text: string): string {
   return marked.lexer(text).map(token => "text" in token ? String(token.text) : "").join(" ")
@@ -19,7 +19,7 @@ export function regulationPdfBlocks(markdown: string): PdfLine[] {
         lines.push({ text: `${token.ordered ? `${Number(token.start) + i}.` : "•"} ${plainInline(item.text)}`, size: 10, bold: false, gap: 1, indent: indent + 4 });
       });
       else if (token.type === "blockquote") visit(token.tokens, indent + 4);
-      else if (token.type === "paragraph" || token.type === "text" || token.type === "code") lines.push({ text: plainInline(token.text), size: 10, bold: false, gap: 3, indent });
+      else if (token.type === "paragraph" || token.type === "text" || token.type === "code") lines.push({ text: plainInline(token.text), source: token.text, size: 10, bold: false, gap: 3, indent });
       else if (token.type === "table") {
         lines.push({ text: token.header.map(cell => plainInline(cell.text)).join(" | "), size: 10, bold: true, gap: 3, indent });
         token.rows.forEach(row => lines.push({ text: row.map(cell => plainInline(cell.text)).join(" | "), size: 10, bold: false, gap: 3, indent }));
@@ -87,6 +87,28 @@ export async function generateRegulationPdf(markdown: string, date: string): Pro
       doc.addPage(); header(); y = 49;
     }
     y += block.gap;
+    if (block.source && /\*\*|__/.test(block.source)) {
+      let x = 18 + block.indent;
+      const spans = block.source.split(/(\*\*[^*]+\*\*|__[^_]+__)/g);
+      for (const span of spans) {
+        const bold = /^(\*\*|__)/.test(span);
+        const words = plainInline(span).split(/(\s+)/).filter(Boolean);
+        for (const word of words) {
+          doc.setFont("helvetica", bold ? "bold" : "normal");
+          doc.setFontSize(block.size);
+          const width = doc.getTextWidth(word);
+          if (x + width > 192) { x = 18 + block.indent; y += lineHeight; }
+          if (y + lineHeight > 274) { doc.addPage(); header(); y = 52; x = 18 + block.indent; }
+          doc.setTextColor(...ink);
+          doc.setFont("helvetica", bold ? "bold" : "normal");
+          doc.setFontSize(block.size);
+          doc.text(word, x, y);
+          x += width;
+        }
+      }
+      y += lineHeight;
+      continue;
+    }
     for (const line of wrapped) {
       if (y + lineHeight > 274) { doc.addPage(); header(); y = 52; }
       doc.setTextColor(...ink);
