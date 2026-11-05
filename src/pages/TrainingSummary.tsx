@@ -56,6 +56,9 @@ function MIcon({
 interface Training {
   id: string;
   training_name: string;
+  has_lives?: boolean;
+  live_recording_notice?: string | null;
+  participants_formal_address?: boolean | null;
   client_name: string;
   start_date: string | null;
   end_date: string | null;
