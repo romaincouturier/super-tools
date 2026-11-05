@@ -18,7 +18,7 @@ lastSaved: '2026-11-05'
 
 **Synthèse des risques :**
 
-- Risques identifiés : 19
+- Risques identifiés : 20
 - Risques élevés (score >= 6) : 6, dont un à 9 (R-001, écriture directe du statut)
 - Catégories critiques : SEC (contournement du circuit, identité de l'acteur), DATA (cohérence du groupe, historique), BUS (règles de transition)
 
@@ -58,7 +58,7 @@ Le centre de gravité du plan est la base de données : la fonction de transitio
 | R-003 | DATA | **Divergence de statut dans un groupe.** La validation porte sur le groupe mais est stockée par post (FR7) : une mise à jour partielle, une déclinaison ajoutée à un groupe approuvé ou une synchro coupée laissent des déclinaisons dans des états différents. | 2 | 3 | **6** | Une seule écriture par groupe dans la fonction ; invariant « un statut par groupe » vérifié après chaque opération par un test de séquences aléatoires. Test 2.1-SQL-011. | Dev story 2.1 | Avant merge de 2.1 |
 | R-004 | SEC | **Identité de l'acteur.** Le serveur MCP s'exécute avec la clé `service_role` et lie chaque requête à `ALLOWED_EMAIL` (`supabase/functions/mcp-server/index.ts`) : `auth.uid()` y vaut NULL. Une fonction qui se fie à `auth.uid()` enregistre une approbation sans auteur ; une fonction qui accepte un paramètre d'acteur laisse le navigateur se faire passer pour l'autre approbateur. | 2 | 3 | **6** | Acteur = `auth.uid()` pour un appel authentifié ; paramètre d'acteur accepté **uniquement** en `service_role`, refusé sinon ; acteur jamais NULL. Tests 2.1-SQL-008, 2.3-SQL-015. | Dev story 2.1 | Avant merge de 2.1 |
 | R-005 | BUS | **Table de transitions incomplète.** Une transition interdite est acceptée (approuver un refusé non modifié, refuser un approuvé, approuver un brouillon jamais soumis), ou un refus passe avec un motif vide ou fait d'espaces. | 2 | 3 | **6** | Table de transitions exhaustive en fixture partagée, jouée contre la fonction SQL et contre l'aide d'affichage des boutons (AD-14). Tests 2.1-SQL-001, 2.1-SQL-002, 2.2-SQL-001, 2.1-UNIT-004. | Dev story 2.1, Romain (questions Q1 à Q3) | Questions tranchées avant 2.1 |
-| R-006 | TECH | **Notification perdue en silence.** Le critère 2.1 demande que la liste des approbateurs passe par `get_staff_directory`. Or cette RPC lève « Accès refusé » quand `is_staff_user()` est faux, et `is_staff_user()` exige `auth.uid()` non NULL : appelée par `generate-daily-actions` avec la clé `service_role`, elle échoue. Les fetchers de `supabase/functions/_shared/daily-data-fetchers.ts` journalisent l'erreur et renvoient une liste vide : aucune action « Contenu à valider » n'est créée, sans alerte. | 3 | 2 | **6** | Côté serveur, lire les approbateurs par une source qui fonctionne sans session (par exemple `fetchRecipients`, qui lit déjà `profiles` en `service_role`, ou une RPC dédiée). La règle [076] vise `src/`. Test 2.1-SQL-009 qui fixe le piège. Constructeur d'actions pur et testé (2.1-UNIT-010 à 015). | Dev story 2.1 | Avant merge de 2.1 |
+| R-006 | TECH | **Notification perdue en silence.** Le critère 2.1 demande que la liste des approbateurs passe par `get_staff_directory`. Or cette RPC lève « Accès refusé » quand `is_staff_user()` est faux, et `is_staff_user()` exige `auth.uid()` non NULL : appelée par `generate-daily-actions` avec la clé `service_role`, elle échoue. Les fetchers de `supabase/functions/_shared/daily-data-fetchers.ts` journalisent l'erreur et renvoient une liste vide : aucune action « Contenu à valider » n'est créée, sans alerte. | 3 | 2 | **6** | Côté serveur, lire les approbateurs par une source qui fonctionne sans session (par exemple `fetchRecipients`, qui lit déjà `profiles` en `service_role`, ou une RPC dédiée). La règle [076] vise `src/`. Test 2.1-SQL-009 qui fixe le piège. Constructeur d'actions pur et testé (2.1-UNIT-010, 011, 012, 015). | Dev story 2.1 | Avant merge de 2.1 |
 
 ### Risques moyens (score 3 à 4)
 
@@ -70,7 +70,7 @@ Le centre de gravité du plan est la base de données : la fonction de transitio
 | R-010 | DATA | Historique incomplet, non attribué, inondé par l'auto-sauvegarde, ou sans version précédente pour un changement de texte ou de date. | 2 | 2 | 4 | Historique écrit côté base (trigger et fonction), pas par l'écran. Tests 2.3-SQL-013 à 015, 2.3-PGTAP-001. | Dev story 2.3 |
 | R-011 | BUS | Compteur de Mes validations différent de la colonne « À valider » (compte par post au lieu de par groupe, oubli des contenus de l'utilisateur lui-même). | 2 | 2 | 4 | Une seule source SQL pour la colonne et le compteur. Tests 2.5-SQL-001, 2.5-SQL-004, 2.5-COMP-003. | Dev story 2.5 |
 | R-012 | BUS | « Tout approuver » écrit en lot sans la fonction, ou annonce un succès global alors qu'un contenu a été refusé par la fonction. | 2 | 2 | 4 | Lot côté serveur qui appelle la fonction unitaire par groupe et rend le détail des échecs. Tests 2.5-SQL-005, 2.5-COMP-001. La garde de R-001 bloque déjà l'écriture en lot. | Dev story 2.5 |
-| R-013 | BUS | Action quotidienne mal ciblée ou obsolète : « Contenu à valider » adressée à l'auteur, une action par déclinaison au lieu d'une par groupe, « Contenu refusé » sans motif, action maintenue après décision. | 2 | 2 | 4 | Constructeur pur à extraire de `generate-daily-actions/index.ts`, testé ; régénération qui supprime les actions non terminées du jour (comportement existant) testée sur la nouvelle catégorie. Tests 2.1-UNIT-010 à 015, 2.2-UNIT-001. | Dev story 2.1 et 2.2 |
+| R-013 | BUS | Action quotidienne mal ciblée ou obsolète : « Contenu à valider » adressée à l'auteur, une action par déclinaison au lieu d'une par groupe, « Contenu refusé » sans motif, action maintenue après décision. | 2 | 2 | 4 | Constructeur pur à extraire de `generate-daily-actions/index.ts`, testé ; régénération qui supprime les actions non terminées du jour (comportement existant) testée sur la nouvelle catégorie. Tests 2.1-UNIT-010, 011, 012, 015, 2.2-UNIT-001. | Dev story 2.1 et 2.2 |
 | R-014 | SEC | Un membre du staff qui a le droit `supertilt_fr` sans être Romain ou Emmanuelle approuve (NFR4). L'ensemble des approbateurs n'est défini nulle part. | 2 | 2 | 4 | Source explicite des approbateurs (question Q4), vérifiée dans la fonction. Test 2.1-SQL-007. | Romain (décision), Dev |
 | R-015 | OPS | Migration non jouée en production alors que le front est publié (RPC absente), ou trigger de garde qui casse une écriture du front de l'Epic 1 déjà en ligne. | 2 | 2 | 4 | Vérifier que le front de l'Epic 1 n'écrit aucune colonne de validation ; sinon passer par `supabase/migrations-apres-front/`. Test 2.1-SQL-012 (remplissage des posts existants). | Dev, Romain (mise en production) |
 | R-016 | BUS | Changement de perception : avec l'échelle complète, un post daté non approuvé s'affiche « Brouillon » alors qu'il s'affichait « Programmé » depuis l'Epic 1 (story 1.2). | 2 | 2 | 4 | Assumé par la spec (« Programmé » exige « approuvé ») ; tests de l'Epic 1 à mettre à jour ; légende à cinq statuts. Tests 2.1-UNIT-001, 2.1-COMP-003. | Romain (validation du comportement) |
@@ -84,8 +84,6 @@ Le centre de gravité du plan est la base de données : la fonction de transitio
 | R-019 | OPS | Fuite de données identifiantes dans les nouveaux écrans en mode démo (« Approuvé par … », mentions, historique). | 1 | 2 | 2 | Surveiller : faux backend du scan démo complété (2.5-E2E-001), ratchet [065]. |
 | R-020 | PERF | Requête du compteur du menu lente ou exécutée à chaque rendu. Volume attendu : quelques dizaines de groupes. | 1 | 1 | 1 | Surveiller : index sur le statut de validation, mesure ponctuelle (2.5-SQL-006). |
 
-Le registre compte 20 lignes : R-001 à R-019 sont des risques fonctionnels ou techniques, R-020 un risque de performance documenté pour mémoire. Le décompte retenu dans le résumé (19) exclut R-020, de score 1, que la checklist demande seulement de documenter.
-
 ### Légende des catégories
 
 - **TECH** : architecture, intégration (edge functions, RPC)
@@ -97,7 +95,7 @@ Le registre compte 20 lignes : R-001 à R-019 sont des risques fonctionnels ou t
 
 ### Risque résiduel
 
-Après mitigation, R-001 tombe à 1 x 3 = 3 si la garde est un trigger (indépendant des privilèges de table, qui relèvent de la plateforme et non des migrations, comme le rappelle `supabase/tests/rls_learner_isolation.test.sql`). Une garde fondée sur un `REVOKE UPDATE` de colonne ne serait pas démontrable sur une instance neuve : elle laisserait R-001 à 2 x 3 = 6. R-006 tombe à 1 x 2 = 2 si la source des approbateurs côté serveur est testée. R-007 reste à 1 x 2 si le contrôle de version n'est pas retenu, et devient alors une limite connue.
+Après mitigation, R-001 tombe à 1 x 3 = 3 si la garde est un trigger (indépendant des privilèges de table, qui relèvent de la plateforme et non des migrations, comme le rappelle `supabase/tests/rls_learner_isolation.test.sql`). Une garde fondée sur un `REVOKE UPDATE` de colonne ne serait pas démontrable sur une instance neuve : elle laisserait R-001 à 2 x 3 = 6. R-006 tombe à 1 x 2 = 2 si la source des approbateurs côté serveur est testée. R-007 tombe à 1 x 2 = 2 avec le contrôle de version ; sans lui, il reste à 4 et devient une limite connue.
 
 ---
 
@@ -156,7 +154,7 @@ Si une contrainte de la base interdit « marqué publié sans date », la derni�
 
 - [ ] 100 % des P0 passent ; >= 95 % des P1 passent, tout échec P1 ayant une dérogation écrite
 - [ ] Aucun bug ouvert de sévérité haute sur le circuit de validation
-- [ ] Les 15 cellules de la table de transitions et les 16 combinaisons de l'échelle sont jouées
+- [ ] Les 16 cellules de la table de transitions et les 16 combinaisons de l'échelle sont jouées
 - [ ] R-001 à R-006 atténués (tests verts) ou dérogation signée par Romain
 - [ ] Recette manuelle du signal de succès (2.5-E2E-002) faite une fois sur l'environnement de prévisualisation
 - [ ] `npm run typecheck`, `bash scripts/check-rules.sh`, `npm test` passent ; `RLS tests` vert sur la PR de migration
@@ -374,7 +372,7 @@ Principe : tout tourne en PR tant que la suite reste sous 15 minutes ; seul ce q
 
 ### Couverture
 
-- Table de transitions : 15 cellules sur 15 ; échelle affichée : 16 combinaisons sur 16
+- Table de transitions : 16 cellules sur 16 ; échelle affichée : 16 combinaisons sur 16
 - Scénarios SEC : 100 %
 - Modules purs nouveaux (échelle, aide des boutons, constructeur d'actions) : >= 90 % de lignes
 - Chemins critiques : >= 80 % ; logique métier : >= 70 % ; cas limites : >= 50 %
@@ -437,7 +435,7 @@ Principe : tout tourne en PR tant que la suite reste sous 15 minutes ; seul ce q
 **Responsable :** Dev story 2.1
 **Échéance :** avant merge de 2.1
 **Statut :** prévu
-**Vérification :** 2.1-SQL-009, 2.1-UNIT-010 à 015, contrôle hebdomadaire.
+**Vérification :** 2.1-SQL-009, 2.1-UNIT-010, 011, 012, 015, contrôle hebdomadaire.
 
 ---
 
