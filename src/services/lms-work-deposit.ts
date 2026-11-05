@@ -156,7 +156,7 @@ export async function uploadDepositFile(
           await wait(UPLOAD_RETRY_DELAYS_MS[attempt]);
           continue;
         }
-        throw new Error(DEPOSIT_NETWORK_ERROR_MESSAGE, { cause: error });
+        throw Object.assign(new Error(DEPOSIT_NETWORK_ERROR_MESSAGE), { cause: error });
       }
       throw error;
     }
