@@ -20,7 +20,7 @@ import { catchUpAttendanceSignaturesForParticipant } from "@/services/participan
 import { scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 import { supabase } from "@/integrations/supabase/client";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskEmail } from "@/lib/demoMask";
+import { maskEmail, maskName } from "@/lib/demoMask";
 
 interface BulkAddParticipantsDialogProps {
   trainingId: string;
@@ -244,7 +244,7 @@ const BulkAddParticipantsDialog = ({
                       const name = [p.firstName, p.lastName].filter(Boolean).join(" ");
                       return (
                         <div key={key} className="flex items-center gap-2 p-2 text-sm">
-                          <span className="min-w-0 flex-1 truncate">{name || (isDemoMode ? maskEmail(p.email) : p.email)}</span>
+                          <span className="min-w-0 flex-1 truncate">{isDemoMode ? (name ? maskName(name) : maskEmail(p.email)) : (name || p.email)}</span>
                           <Select value={formulaIdFor(p.email)} onValueChange={(v) => setFormulaOverrides((prev) => ({ ...prev, [key]: v }))} disabled={saving}>
                             <SelectTrigger className="w-56" aria-label={`Formule de ${name || "ce participant"}`}><SelectValue placeholder="Formule" /></SelectTrigger>
                             <SelectContent>
