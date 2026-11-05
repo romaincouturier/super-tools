@@ -43,6 +43,8 @@ export const CATEGORY_ORDER = [
   "transcripts_a_affecter",
   "evaluations_froid_bloquees",
   "suites_retours",
+  "risques_revue",
+  "risques_sans_amelioration",
 ] as const;
 
 export const CATEGORIES: Record<string, CategoryConfig> = {
@@ -78,6 +80,8 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
   transcripts_a_affecter: { label: "Transcripts à affecter", emoji: "🎙️", color: "text-teal-600" },
   evaluations_froid_bloquees: { label: "Évaluations à froid non envoyées", emoji: "🧊", color: "text-red-600" },
   suites_retours: { label: "Suites à donner aux retours de formation", emoji: "💬", color: "text-blue-600" },
+  risques_revue: { label: "Risques qualité — revue à faire", emoji: "🛡️", color: "text-red-600" },
+  risques_sans_amelioration: { label: "Risques qualité — sans amélioration liée", emoji: "🛡️", color: "text-orange-600" },
   supertilt: { label: "Projets", emoji: "\u26a1", color: "text-yellow-600" },
 };
 
