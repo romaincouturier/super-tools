@@ -74,7 +74,7 @@ export const SETTINGS_CATALOG: SettingsCatalogEntry[] = [
   { id: "newsletter_tool_url", label: "Outil de newsletter", keywords: "newsletter brevo mailchimp", tab: "general", anchorId: "newsletter-tool-url" },
   { id: "tva_rate", label: "Taux de TVA", keywords: "tva taxe taux", tab: "general", anchorId: "tva-rate" },
   { id: "website_url", label: "Site web", keywords: "site web url", tab: "general", anchorId: "website-url" },
-  { id: "reglement_interieur", label: "Règlement intérieur des formations", keywords: "règlement intérieur pdf formation", tab: "general" },
+  { id: "reglement_interieur", label: "Règlement intérieur des formations", keywords: "règlement intérieur pdf formation brouillon markdown publier", tab: "general", anchorId: "reglement-interieur" },
 
   // ── Entrées par onglet (navigation directe) ─────────────────────────
   { id: "tab:profile", label: "Mon profil", keywords: "profil prénom nom photo avatar", tab: "profile" },

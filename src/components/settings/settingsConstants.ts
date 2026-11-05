@@ -1460,6 +1460,8 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   delay_follow_up_news_days: { default: "30", description: "Délai après formation pour envoyer un message informel de prise de nouvelles (en jours ouvrables)" },
   can_delete_evaluations_emails: { default: "", description: "Emails des utilisateurs autorisés à supprimer des évaluations (séparés par des virgules)" },
   reglement_interieur_url: { default: "", description: "URL du règlement intérieur des formations (PDF uploadé)" },
+  reglement_interieur_draft: { default: "", description: "Brouillon Markdown du règlement intérieur" },
+  reglement_interieur_versions: { default: "[]", description: "Historique des versions publiées du règlement intérieur" },
   company_stamp_url: { default: "", description: "URL du tampon de la société (image), apposé sur les feuilles d'émargement" },
   slack_crm_channel: { default: "general", description: "Nom du canal Slack pour les notifications CRM (ex: crm, general)" },
   slack_editorial_channel: { default: "article", description: "Nom du canal Slack pour le digest hebdomadaire du moteur éditorial" },
