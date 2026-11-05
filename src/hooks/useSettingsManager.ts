@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { SETTINGS_REGISTRY, SETTINGS_DEFAULTS } from "@/components/settings/settingsConstants";
+import { REGULATION_SETTING_KEYS } from "@/lib/trainingRegulation";
 
 export function useSettingsManager() {
   const [user, setUser] = useState<User | null>(null);
@@ -90,7 +91,7 @@ export function useSettingsManager() {
   const performSave = async (currentSettings: Record<string, string>) => {
     setAutoSaveStatus("saving");
     try {
-      const settingsToSave = Object.entries(SETTINGS_REGISTRY).map(([key, { description }]) => ({
+      const settingsToSave = Object.entries(SETTINGS_REGISTRY).filter(([key]) => !REGULATION_SETTING_KEYS.includes(key)).map(([key, { description }]) => ({
         setting_key: key,
         setting_value: currentSettings[key] ?? "",
         description,

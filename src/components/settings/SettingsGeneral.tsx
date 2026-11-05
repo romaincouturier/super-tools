@@ -16,6 +16,7 @@ import { isSentryActive, sendSentryTestEvent } from "@/lib/sentry";
 import PageTemplateManager from "@/components/missions/PageTemplateManager";
 import { AutoSaveIndicator } from "@/components/settings/SettingsAutoSaveIndicator";
 import SettingsGeneralDelays from "@/components/settings/SettingsGeneralDelays";
+import TrainingRegulationEditor from "@/components/settings/TrainingRegulationEditor";
 
 interface SettingsGeneralProps {
   settings: Record<string, string>;
@@ -25,7 +26,6 @@ interface SettingsGeneralProps {
 
 const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGeneralProps) => {
   const { toast } = useToast();
-  const [uploadingReglement, setUploadingReglement] = useState(false);
   const [uploadingStamp, setUploadingStamp] = useState(false);
 
   const bccEnabled = settings.bcc_enabled === "true";
@@ -268,58 +268,7 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
 
           <Separator />
 
-          {/* Règlement intérieur */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium">Règlement intérieur des formations</h3>
-            <p className="text-sm text-muted-foreground">Uploadez le règlement intérieur de vos formations (PDF). Il sera consultable depuis la page de synthèse de chaque formation.</p>
-            {settings.reglement_interieur_url ? (
-              <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30 max-w-lg">
-                <FileText className="h-5 w-5 text-primary shrink-0" />
-                <span className="text-sm font-medium truncate flex-1">Règlement intérieur</span>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={settings.reglement_interieur_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5 mr-1.5" />Consulter</a>
-                </Button>
-                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => updateSetting("reglement_interieur_url", "")}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor="reglement-upload" className="sr-only">Règlement intérieur (PDF)</Label>
-                <div className="flex items-center gap-2 max-w-lg">
-                  <Button variant="outline" disabled={uploadingReglement} onClick={() => document.getElementById("reglement-upload")?.click()}>
-                    {uploadingReglement ? <Spinner className="mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                    Choisir un fichier PDF
-                  </Button>
-                  <input id="reglement-upload" type="file" accept=".pdf" className="hidden" onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    if (resolveContentType(file) !== "application/pdf") { toast({ title: "Format invalide", description: "Seuls les fichiers PDF sont acceptés.", variant: "destructive" }); return; }
-                    setUploadingReglement(true);
-                    try {
-                      const ext = file.name.split(".").pop();
-                      const path = `reglement-interieur/reglement-interieur-${Date.now()}.${ext}`;
-                      const formData = new FormData();
-                      formData.append("file", file, file.name);
-                      formData.append("path", path);
-                      const { data, error } = await supabase.functions.invoke("upload-training-file", { body: formData });
-                      if (error) throw error;
-                      const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
-                      if (!publicUrl) throw new Error("URL introuvable après l'upload");
-                      updateSetting("reglement_interieur_url", publicUrl);
-                      toast({ title: "Fichier uploadé" });
-                    } catch (error: unknown) {
-                      console.error("Upload error:", error);
-                      toastError(toast, error);
-                    } finally {
-                      setUploadingReglement(false);
-                      e.target.value = "";
-                    }
-                  }} />
-                </div>
-              </div>
-            )}
-          </div>
+          <TrainingRegulationEditor onPublished={url => updateSetting("reglement_interieur_url", url)} />
 
           <Separator />
 

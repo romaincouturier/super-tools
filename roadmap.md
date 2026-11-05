@@ -1,5 +1,10 @@
 # Roadmap
 
+## Règlement intérieur éditable (2026-11-05)
+- [x] Édition Markdown avec titres/gras/listes, brouillon sauvegardé et aperçu PDF SuperTilt
+- [x] Publication explicite, archivage atomique des PDF précédents et protection contre les éditions concurrentes ; droits administrateur conservés
+- [x] Texte du PDF actuel repris en brouillon ; sauvegarde/rechargement réels vérifiés, confirmation annulée, PDF diffusé inchangé ; 12 tests et 103 contrôles réussis, aucune publication réelle ni email
+
 ## Marque apprenant (2026-11-05)
 - [x] Mail de redemande « Créez votre mot de passe SuperTilt Academy », sujets d’accès et bandeau de connexion renommés ; aucun modèle personnalisé contenant SuperTools trouvé en base
 - [x] 75 tests et 103 contrôles réussis ; connexion vérifiée avec bandeau simulé, compilation OK ; six fonctions d’envoi concernées déployées, aucun email envoyé

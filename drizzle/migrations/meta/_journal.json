@@ -239,6 +239,13 @@
       "when": 1793891630207,
       "tag": "0033_faq_items_learner_read",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793895233737,
+      "tag": "0034_editable_training_regulation",
+      "breakpoints": true
     }
   ]
 }

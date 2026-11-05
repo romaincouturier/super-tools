@@ -14340,6 +14340,10 @@ export type Database = {
           tag: string
         }[]
       }
+      publish_training_regulation: {
+        Args: { p_content: string; p_expected_url: string; p_url: string }
+        Returns: Json
+      }
       purge_api_usage_events: { Args: never; Returns: undefined }
       purge_identity_resolution_log: { Args: never; Returns: number }
       purge_seo_history: { Args: never; Returns: undefined }
@@ -14378,6 +14382,10 @@ export type Database = {
         Returns: undefined
       }
       revoke_other_sessions: { Args: never; Returns: number }
+      save_training_regulation_draft: {
+        Args: { p_content: string; p_expected: string }
+        Returns: undefined
+      }
       seo_cannibalisation: {
         Args: {
           p_from: string
