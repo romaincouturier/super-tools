@@ -42,8 +42,8 @@ describe("passwordResetLink", () => {
 });
 
 describe("durée des liens", () => {
-  it("7 jours pour le mail d'accès, 24 h sur redemande", () => {
-    expect(SETUP_LINK_TTL_HOURS).toBe(168);
+  it("24 h pour le mail d'accès comme sur redemande", () => {
+    expect(SETUP_LINK_TTL_HOURS).toBe(24);
     expect(RESET_LINK_TTL_HOURS).toBe(24);
   });
 
@@ -52,8 +52,8 @@ describe("durée des liens", () => {
     const before = Date.now();
     await passwordResetLink(admin, "a@example.com", false, SETUP_LINK_TTL_HOURS);
     const exp = new Date(insert.mock.calls[0][0].expires_at).getTime();
-    expect(exp - before).toBeGreaterThanOrEqual(168 * 3600_000 - 1000);
-    expect(exp - before).toBeLessThanOrEqual(168 * 3600_000 + 1000);
+    expect(exp - before).toBeGreaterThanOrEqual(SETUP_LINK_TTL_HOURS * 3600_000 - 1000);
+    expect(exp - before).toBeLessThanOrEqual(SETUP_LINK_TTL_HOURS * 3600_000 + 1000);
   });
 
   it("valide avant l'échéance, expiré après, utilisé une seule fois", () => {
