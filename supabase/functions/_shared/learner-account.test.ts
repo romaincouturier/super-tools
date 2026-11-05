@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ensureLearnerAccount, sendLearnerAccessEmail, learnerAccessLink, sendRegisteredLearnerAccessEmail } from "./learner-account.ts";
+import { ensureLearnerAccount, sendLearnerAccessEmail, learnerAccessLink, sendRegisteredLearnerAccessEmail, decideLearnerAccessEmail } from "./learner-account.ts";
 
 vi.mock("./app-urls.ts", () => ({
   getAppUrls: vi.fn().mockResolvedValue({ app_url: "https://app.example.com" }),
@@ -13,6 +13,7 @@ vi.mock("./email-settings.ts", () => ({
 const sendEmailMock = vi.fn().mockResolvedValue({ success: true, id: "email-1" });
 vi.mock("./resend.ts", () => ({
   sendEmail: (...args: unknown[]) => sendEmailMock(...args),
+  escapeHtml: (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"),
 }));
 
 type CreateUserResult = { data: { user: { id: string } | null } | null; error: { message: string } | null };
@@ -20,7 +21,7 @@ type CreateUserResult = { data: { user: { id: string } | null } | null; error: {
 function makeAdmin(result: CreateUserResult) {
   const createUser = vi.fn().mockResolvedValue(result);
   const upsert = vi.fn().mockResolvedValue({ error: null });
-  const from = vi.fn(() => ({ upsert }));
+  const from = vi.fn(() => ({ upsert, insert: vi.fn().mockResolvedValue({ error: null }) }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = { auth: { admin: { createUser } }, from } as any;
   return { admin, createUser, upsert, from };
@@ -123,8 +124,12 @@ function makeAccessAdmin(opts: {
     },
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const admin = { rpc, auth: { admin: { generateLink } } } as any;
-  return { admin, rpc, generateLink };
+  const insert = vi.fn().mockResolvedValue({ error: null });
+  const upsert = vi.fn().mockResolvedValue({ error: null });
+  const from = vi.fn(() => ({ insert, upsert }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin = { rpc, auth: { admin: { generateLink } }, from } as any;
+  return { admin, rpc, generateLink, insert };
 }
 
 describe("sendLearnerAccessEmail", () => {
@@ -157,7 +162,7 @@ describe("sendLearnerAccessEmail", () => {
   it("compte sans mot de passe : génère un lien recovery vers l'écran de création, jamais de session ouverte", async () => {
     const { admin, generateLink } = makeAccessAdmin({ passwordSet: false });
 
-    await expect(sendLearnerAccessEmail(admin, "nouveau@example.com")).resolves.toEqual({ sent: true });
+    await expect(sendLearnerAccessEmail(admin, "nouveau@example.com")).resolves.toMatchObject({ sent: true });
 
     expect(generateLink).toHaveBeenCalledWith({
       type: "recovery",
@@ -166,11 +171,12 @@ describe("sendLearnerAccessEmail", () => {
     });
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
     const call = sendEmailMock.mock.calls[0][0];
-    expect(call.subject).toBe("Créez votre mot de passe SuperTools");
+    expect(call.subject).toBe("Créez votre mot de passe SuperTilt Academy");
     // RG-21 : jamais l'action_link Supabase (auth/v1/verify), qui consommerait
     // le jeton dès la requête GET — seulement notre propre URL avec le
     // token_hash, consommé au clic sur ConnexionReinitialisation.tsx.
-    expect(call.html).toContain("https://app.example.com/connexion/reinitialisation?token_hash=abc123&type=recovery");
+    expect(call.html).toMatch(/https:\/\/app\.example\.com\/connexion\/reinitialisation\?link=[a-f0-9]{64}/);
+    expect(call.html).not.toContain("abc123");
     expect(call.html).not.toContain("auth/v1/verify");
     expect(call.html).toContain("Créer mon mot de passe");
   });
@@ -178,12 +184,12 @@ describe("sendLearnerAccessEmail", () => {
   it("compte avec mot de passe : préremplit /connexion sans générer de lien Supabase ni authentifier", async () => {
     const { admin, generateLink } = makeAccessAdmin({ passwordSet: true });
 
-    await expect(sendLearnerAccessEmail(admin, "Connu@Example.com")).resolves.toEqual({ sent: true });
+    await expect(sendLearnerAccessEmail(admin, "Connu@Example.com")).resolves.toMatchObject({ sent: true });
 
     expect(generateLink).not.toHaveBeenCalled();
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
     const call = sendEmailMock.mock.calls[0][0];
-    expect(call.subject).toBe("Accéder à votre espace SuperTools");
+    expect(call.subject).toBe("Accéder à votre espace SuperTilt Academy");
     expect(call.html).toContain("https://app.example.com/connexion?email=connu%40example.com");
     expect(call.html).not.toContain("token_hash");
   });
@@ -211,7 +217,7 @@ describe("sendRegisteredLearnerAccessEmail", () => {
     rpc.mockImplementation((name: string) => name === "is_known_learner"
       ? Promise.resolve({ data: true })
       : originalRpc?.(name));
-    await expect(sendRegisteredLearnerAccessEmail(admin, "ColetteNicorette@Yahoo.com")).resolves.toEqual({ sent: true });
+    await expect(sendRegisteredLearnerAccessEmail(admin, "ColetteNicorette@Yahoo.com")).resolves.toMatchObject({ sent: true });
     expect(createUser).toHaveBeenCalledWith({ email: "colettenicorette@yahoo.com", email_confirm: true, user_metadata: { role: "learner" } });
     expect(upsert).toHaveBeenCalledWith({ user_id: "new-user", password_set: false }, { onConflict: "user_id" });
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
@@ -287,7 +293,7 @@ describe("quota des tests administrateur", () => {
   it("permet plus de trois tests au même destinataire pour un administrateur vérifié", async () => {
     const { admin, rpc } = registeredAdmin(true);
     for (let i = 0; i < 12; i += 1) {
-      await expect(sendRegisteredLearnerAccessEmail(admin, "test@example.com", { callerId: "verified-admin" })).resolves.toEqual({ sent: true });
+      await expect(sendRegisteredLearnerAccessEmail(admin, "test@example.com", { callerId: "verified-admin" })).resolves.toMatchObject({ sent: true });
     }
     expect(sendEmailMock).toHaveBeenCalledTimes(12);
     expect(rpc).toHaveBeenCalledWith("is_admin", { _user_id: "verified-admin" });
@@ -324,10 +330,9 @@ describe("learnerAccessLink", () => {
   it("compte sans mot de passe : lien token_hash vers l'écran de création, jamais action_link (RG-21)", async () => {
     const { admin, generateLink } = makeAccessAdmin({ passwordSet: false });
 
-    await expect(learnerAccessLink(admin, "nouveau@example.com")).resolves.toEqual({
-      actionLink: "https://app.example.com/connexion/reinitialisation?token_hash=abc123&type=recovery",
-      passwordSet: false,
-    });
+    const result = await learnerAccessLink(admin, "nouveau@example.com");
+    expect(result?.passwordSet).toBe(false);
+    expect(result?.actionLink).toMatch(/^https:\/\/app\.example\.com\/connexion\/reinitialisation\?link=[a-f0-9]{64}$/);
     expect(generateLink).toHaveBeenCalledWith({
       type: "recovery",
       email: "nouveau@example.com",
@@ -359,5 +364,48 @@ describe("learnerAccessLink", () => {
       generateLink: { data: { properties: {} }, error: null },
     });
     await expect(learnerAccessLink(admin, "panne@example.com")).resolves.toBeNull();
+  });
+});
+
+describe("decideLearnerAccessEmail (règle du 04/11/2026)", () => {
+  it("compte sans mot de passe prouvé : création du mot de passe, même avec une formation", () => {
+    expect(decideLearnerAccessEmail({ passwordSet: false, hasTraining: true })).toBe("create_password");
+  });
+  it("compte avec mot de passe ajouté à une formation : accès ouvert", () => {
+    expect(decideLearnerAccessEmail({ passwordSet: true, hasTraining: true })).toBe("course_access");
+  });
+  it("compte avec mot de passe sans formation : accès à l'espace", () => {
+    expect(decideLearnerAccessEmail({ passwordSet: true, hasTraining: false })).toBe("space_access");
+  });
+});
+
+describe("mails d'accès selon l'état du compte", () => {
+  beforeEach(() => sendEmailMock.mockReset().mockResolvedValue({ success: true, id: "email-1" }));
+
+  it("mot de passe défini : « Votre accès à … est ouvert » avec lien direct vers le cours, sans jeton", async () => {
+    const { admin, generateLink } = makeAccessAdmin({ passwordSet: true });
+    await expect(sendLearnerAccessEmail(admin, "connu@example.com", { trainingName: "Facilitation graphique", courseId: "course-1" }))
+      .resolves.toEqual({ sent: true, kind: "course_access" });
+    expect(generateLink).not.toHaveBeenCalled();
+    const call = sendEmailMock.mock.calls[0][0];
+    expect(call.subject).toBe("Votre accès à « Facilitation graphique » est ouvert");
+    expect(call.html).toContain("https://app.example.com/lms/course-1/home?email=connu%40example.com");
+    expect(call.html).not.toContain("token_hash");
+  });
+
+  it("compte existant sans mot de passe : création du mot de passe, formation nommée et plateforme changée", async () => {
+    const { admin } = makeAccessAdmin({ passwordSet: false });
+    await expect(sendLearnerAccessEmail(admin, "ancien@example.com", { trainingName: "Agilité", accountCreated: false }))
+      .resolves.toEqual({ sent: true, kind: "create_password" });
+    const call = sendEmailMock.mock.calls[0][0];
+    expect(call.subject).toBe("Créez votre mot de passe SuperTilt Academy");
+    expect(call.html).toContain("Agilité");
+    expect(call.html).toContain("plateforme de formation a changé");
+  });
+
+  it("compte tout juste créé : création du mot de passe sans mention de changement de plateforme", async () => {
+    const { admin } = makeAccessAdmin({ passwordSet: false });
+    await sendLearnerAccessEmail(admin, "nouveau@example.com", { trainingName: "Agilité", accountCreated: true });
+    expect(sendEmailMock.mock.calls[0][0].html).not.toContain("plateforme de formation a changé");
   });
 });

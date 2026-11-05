@@ -19,7 +19,7 @@ export default function MaintenanceBanner() {
       <div className="mx-auto flex max-w-3xl items-start gap-3">
         <Wrench className="mt-0.5 h-[18px] w-[18px] shrink-0 text-foreground" />
         <div className="text-[14.5px] leading-6 text-foreground">
-          <p className="font-semibold">On fait quelques travaux sur SuperTools</p>
+          <p className="font-semibold">On fait quelques travaux sur SuperTilt Academy</p>
           <p className="mt-0.5 text-muted-foreground">{data.message}</p>
         </div>
       </div>

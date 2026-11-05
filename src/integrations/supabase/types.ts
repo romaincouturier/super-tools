@@ -1263,6 +1263,90 @@ export type Database = {
           },
         ]
       }
+      client_pearls: {
+        Row: {
+          archived: boolean
+          author_company: string | null
+          author_name: string | null
+          created_at: string
+          created_by: string | null
+          gmail_thread_id: string | null
+          id: string
+          image_path: string | null
+          is_anonymous: boolean
+          is_positive: boolean
+          legacy_notion_id: string | null
+          message: string
+          message_fr: string | null
+          mission_id: string | null
+          pearl_date: string
+          pearl_time: string | null
+          source: string
+          title: string | null
+          training_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          archived?: boolean
+          author_company?: string | null
+          author_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          gmail_thread_id?: string | null
+          id?: string
+          image_path?: string | null
+          is_anonymous?: boolean
+          is_positive?: boolean
+          legacy_notion_id?: string | null
+          message: string
+          message_fr?: string | null
+          mission_id?: string | null
+          pearl_date?: string
+          pearl_time?: string | null
+          source?: string
+          title?: string | null
+          training_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archived?: boolean
+          author_company?: string | null
+          author_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          gmail_thread_id?: string | null
+          id?: string
+          image_path?: string | null
+          is_anonymous?: boolean
+          is_positive?: boolean
+          legacy_notion_id?: string | null
+          message?: string
+          message_fr?: string | null
+          mission_id?: string | null
+          pearl_date?: string
+          pearl_time?: string | null
+          source?: string
+          title?: string | null
+          training_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_pearls_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_pearls_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coaching_bookings: {
         Row: {
           confirmed_at: string | null
@@ -4728,6 +4812,48 @@ export type Database = {
         }
         Relationships: []
       }
+      learner_access_jobs: {
+        Row: {
+          account_created: boolean
+          batch_id: string
+          created_at: string
+          email: string
+          error_message: string | null
+          id: string
+          processed_at: string | null
+          requested_by: string
+          result_kind: string | null
+          status: string
+          training_id: string
+        }
+        Insert: {
+          account_created?: boolean
+          batch_id: string
+          created_at?: string
+          email: string
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          requested_by: string
+          result_kind?: string | null
+          status?: string
+          training_id: string
+        }
+        Update: {
+          account_created?: boolean
+          batch_id?: string
+          created_at?: string
+          email?: string
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          requested_by?: string
+          result_kind?: string | null
+          status?: string
+          training_id?: string
+        }
+        Relationships: []
+      }
       learner_notifications: {
         Row: {
           body: string
@@ -8136,6 +8262,7 @@ export type Database = {
           location_contract_file_url: string | null
           location_document_id: string | null
           location_end_date: string | null
+          location_returned_at: string | null
           notes: string | null
           product_name: string | null
           quantity: number
@@ -8170,6 +8297,7 @@ export type Database = {
           location_contract_file_url?: string | null
           location_document_id?: string | null
           location_end_date?: string | null
+          location_returned_at?: string | null
           notes?: string | null
           product_name?: string | null
           quantity?: number
@@ -8204,6 +8332,7 @@ export type Database = {
           location_contract_file_url?: string | null
           location_document_id?: string | null
           location_end_date?: string | null
+          location_returned_at?: string | null
           notes?: string | null
           product_name?: string | null
           quantity?: number
@@ -8336,6 +8465,7 @@ export type Database = {
           etat: string
           exemple_application: string | null
           first_name: string | null
+          follow_up_done_at: string | null
           freins: string[]
           freins_details: string | null
           frequence_utilisation: string | null
@@ -8369,6 +8499,7 @@ export type Database = {
           etat?: string
           exemple_application?: string | null
           first_name?: string | null
+          follow_up_done_at?: string | null
           freins?: string[]
           freins_details?: string | null
           frequence_utilisation?: string | null
@@ -8402,6 +8533,7 @@ export type Database = {
           etat?: string
           exemple_application?: string | null
           first_name?: string | null
+          follow_up_done_at?: string | null
           freins?: string[]
           freins_details?: string | null
           frequence_utilisation?: string | null
@@ -8550,6 +8682,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      password_setup_links: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          token_hash: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          token_hash: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          token_hash?: string
+          used_at?: string | null
+        }
+        Relationships: []
       }
       pictodico_challenges: {
         Row: {
@@ -11197,6 +11356,75 @@ export type Database = {
           },
         ]
       }
+      training_feedbacks: {
+        Row: {
+          author_name: string | null
+          author_role: string
+          consent_publication: boolean
+          content: string
+          created_at: string
+          created_by: string | null
+          follow_up: string | null
+          follow_up_done_at: string | null
+          gmail_message_id: string | null
+          id: string
+          participant_id: string | null
+          received_at: string
+          source: string
+          training_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_name?: string | null
+          author_role?: string
+          consent_publication?: boolean
+          content: string
+          created_at?: string
+          created_by?: string | null
+          follow_up?: string | null
+          follow_up_done_at?: string | null
+          gmail_message_id?: string | null
+          id?: string
+          participant_id?: string | null
+          received_at?: string
+          source?: string
+          training_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_name?: string | null
+          author_role?: string
+          consent_publication?: boolean
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          follow_up?: string | null
+          follow_up_done_at?: string | null
+          gmail_message_id?: string | null
+          id?: string
+          participant_id?: string | null
+          received_at?: string
+          source?: string
+          training_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_feedbacks_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_feedbacks_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_formulas: {
         Row: {
           created_at: string
@@ -13446,6 +13674,18 @@ export type Database = {
       }
       cleanup_agent_embedding_cache: { Args: never; Returns: number }
       connexion_indicators: { Args: { p_days?: number }; Returns: Json }
+      create_quote_testimonial: {
+        Args: {
+          p_author: string
+          p_company: string
+          p_participant_id: string
+          p_quote: string
+          p_source_id: string
+          p_source_type: string
+          p_training_id: string
+        }
+        Returns: undefined
+      }
       current_user_access_level: { Args: never; Returns: string }
       decay_watch_relevance: { Args: never; Returns: undefined }
       decrypt_token: {
@@ -13720,6 +13960,37 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_random_client_pearl: {
+        Args: { p_exclude?: string }
+        Returns: {
+          archived: boolean
+          author_company: string | null
+          author_name: string | null
+          created_at: string
+          created_by: string | null
+          gmail_thread_id: string | null
+          id: string
+          image_path: string | null
+          is_anonymous: boolean
+          is_positive: boolean
+          legacy_notion_id: string | null
+          message: string
+          message_fr: string | null
+          mission_id: string | null
+          pearl_date: string
+          pearl_time: string | null
+          source: string
+          title: string | null
+          training_id: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "client_pearls"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_reclamation_by_token: { Args: { p_token: string }; Returns: Json }
       get_sponsor_evaluation_by_token: {
         Args: { p_token: string }
@@ -13851,6 +14122,18 @@ export type Database = {
         Args: { p_emails: string[] }
         Returns: string[]
       }
+      learner_can_read_community: {
+        Args: { _course_id: string }
+        Returns: boolean
+      }
+      learner_can_read_practice_poll: {
+        Args: { _poll_id: string }
+        Returns: boolean
+      }
+      learner_can_read_practice_post: {
+        Args: { _post_id: string }
+        Returns: boolean
+      }
       learner_evaluation_course_id: {
         Args: { p_email: string; p_lms_course_id: string }
         Returns: number
@@ -13907,6 +14190,7 @@ export type Database = {
         Returns: undefined
       }
       mark_password_changed: { Args: never; Returns: undefined }
+      mark_password_proven: { Args: never; Returns: undefined }
       match_documents: {
         Args: {
           filter_source_types?: string[]
@@ -14056,6 +14340,10 @@ export type Database = {
           tag: string
         }[]
       }
+      publish_training_regulation: {
+        Args: { p_content: string; p_expected_url: string; p_url: string }
+        Returns: Json
+      }
       purge_api_usage_events: { Args: never; Returns: undefined }
       purge_identity_resolution_log: { Args: never; Returns: number }
       purge_seo_history: { Args: never; Returns: undefined }
@@ -14094,6 +14382,10 @@ export type Database = {
         Returns: undefined
       }
       revoke_other_sessions: { Args: never; Returns: number }
+      save_training_regulation_draft: {
+        Args: { p_content: string; p_expected: string }
+        Returns: undefined
+      }
       seo_cannibalisation: {
         Args: {
           p_from: string

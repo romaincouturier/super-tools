@@ -56,6 +56,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## DX
 
+### [077] Migrations Lovable — une table créée dans `drizzle/migrations` compte autant qu'une table de `supabase/migrations` pour les sauvegardes et le rejeu
+- **Constat** : 04/11/2026. Lovable écrit ses migrations dans `drizzle/migrations`, et pas toujours en double dans `supabase/migrations`. Quatre tables n'existent que de ce côté : `participant_cold_evaluations` (0018), `testimonial_requests` (0008), `lms_audio_archives` (0009), `watch_sources` (0015). `check-backup-tables.sh` ([038]) ne rejouait que `supabase/migrations` : les quatre étaient absentes des sauvegardes, avec un contrôle vert. Les réponses au questionnaire à froid, les signaux de témoignage, le suivi des archives audio et le registre des sources de veille n'étaient donc pas sauvegardés. En sens inverse, `scripts/replay-migrations.sh` et la CI « RLS tests » ne rejouent que `supabase/migrations` : une migration qui y ajoute une colonne ou un trigger sur une de ces tables échoue au rejeu sur base vierge, alors qu'elle passe en production où la table existe (cas de `20261103150000_feedback_quotes_and_follow_ups.sql`).
+- **Règle** : (1) Toute table créée dans `drizzle/migrations` est sauvegardée ou exclue explicitement, comme celles de `supabase/migrations`. (2) Une migration de `supabase/migrations` qui touche une table créée seulement dans `drizzle/migrations` conditionne ce code à son existence (`IF to_regclass('public.<table>') IS NOT NULL THEN ... END IF` dans un bloc `DO`, ou `EXECUTE` dans une fonction). Ne pas recopier la migration Lovable dans `supabase/migrations` : deux sources pour un même `CREATE TABLE` divergent.
+- **Vérification** : check [038] (`scripts/check-backup-tables.sh` rejoue aussi `drizzle/migrations/*.sql`) et check [077] (`scripts/check-drizzle-tables.sh` : tout fichier de `supabase/migrations` qui nomme une table créée seulement dans `drizzle/migrations` contient `to_regclass('public.<table>')`). Angle mort : [077] vérifie la présence du garde dans le fichier, pas qu'il entoure chaque instruction ; un `CREATE TABLE` écrit autrement que `CREATE TABLE [IF NOT EXISTS] [public.]nom` (guillemets, schéma autre) échappe aux deux contrôles.
+- **Fichiers de référence** : `scripts/check-backup-tables.sh`, `scripts/check-drizzle-tables.sh`, `supabase/migrations/20261103150000_feedback_quotes_and_follow_ups.sql` (gardes `to_regclass`)
+- **Origine** : PR #476 (retours après formation) : `participant_cold_evaluations` absente des sauvegardes sans qu'aucun contrôle ne le voie
+- **Date** : 2026-11-04
+
 ### [067] Un numéro de règle n'est réservé qu'au merge — le vérifier après chaque rebase
 
 - **Constat** : 22/09/2026, branche d'anonymisation du mode démo. Trois collisions de numéro en une journée. La règle écrite sous `[062]` est entrée en conflit avec une `[062]` arrivée sur `main` entre-temps, puis la `[063]` de remplacement avec une `[063]` livrée au rebase suivant. Aucune des deux n'était détectable localement : le rebase ne signale rien (les blocs sont à des endroits différents du fichier) et `check-rules.sh` sur la branche ne voit que la branche. La CI l'a vu parce qu'elle évalue le commit de merge, pas la branche. Pire : `main` portait lui-même un doublon `[062]`, deux PR mergées le même jour ayant chacune pris ce numéro — `main` échouait donc son propre check `[034b]`, ce qui rendait **toute** PR non mergeable.
@@ -711,3 +719,24 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 - **Vérification** : check [075] de `scripts/check-rules.sh`.
 - **Date** : 2026-10-05
 
+
+### [078] Perles clients — staff seul, désactivées par défaut, auteur jamais montré si anonyme
+- **Constat** : Novembre 2026, les messages d'éloge reçus (Notion, mails) n'avaient pas de lieu d'archivage et ne remontaient jamais au quotidien.
+- **Règle** : `client_pearls` est lisible par le staff seul (`is_staff_user()`), son image vit dans le bucket privé `client-pearls`, et le widget du tableau de bord ne s'affiche que si la préférence utilisateur `dashboard_pearl` vaut `enabled: true` (défaut : désactivé). Le tirage au hasard se fait en base (`get_random_client_pearl`) et ne retient que les perles positives non archivées (`is_positive`) ; les autres restent dans la page Perles clients. Une perle `is_anonymous` n'expose jamais son auteur sur le tableau de bord (`pearlAuthorLabel`).
+- **Vérification** : check [078] de `scripts/check-rules.sh`.
+- **Date** : 2026-11-04
+
+### [079] Types Supabase générés — ne jamais les écrire à la main, un doublon casse le typecheck
+- **Constat** : Novembre 2026, `client_pearls` et `get_random_client_pearl` ont été ajoutés à `src/integrations/supabase/types.ts` à la main pendant que Lovable régénérait le même fichier sur `main`. Après le rebase, git a gardé les deux blocs à des endroits différents : `get_random_client_pearl` était défini deux fois et le typecheck échouait (TS2300).
+- **Règle** : `types.ts` est un fichier généré par Lovable à partir de la base. Après une migration, l'appliquer, attendre la régénération sur `main`, puis tirer `main`. Si une édition manuelle est inévitable pour avancer, se limiter aux lignes de la migration et, après tout rebase, reprendre la version de `main` du fichier avant de la retoucher. Jamais deux définitions de la même table ou fonction.
+- **Vérification** : check [079] de `scripts/check-rules.sh` (aucune clé de table ou de fonction en double dans `types.ts`), en plus du typecheck.
+- **Fichiers de référence** : `src/integrations/supabase/types.ts`
+- **Origine** : PR Perles clients, doublon apparu au rebase
+- **Date** : 2026-11-05
+
+### [080] Rebase — aucun marqueur de conflit ne doit entrer dans un commit
+- **Constat** : Novembre 2026, au cours d'un rebase, une résolution automatique de conflit n'a rien remplacé (le motif ne correspondait pas à l'ordre des côtés, inversé en rebase) et `git add -A` suivi de `git rebase --continue` a commité des marqueurs `<<<<<<<` dans deux edge functions de sauvegarde. Rattrapé avant le push, mais rien ne l'aurait signalé : l'échec du script était silencieux dans l'enchaînement de commandes.
+- **Règle** : Après toute résolution de conflit, vérifier l'absence de marqueurs avant `git add`, et ne jamais enchaîner `add` et `rebase --continue` dans la même commande qu'une résolution scriptée. Pendant un rebase, « HEAD » est la base, pas la branche : ne pas supposer l'ordre des deux côtés.
+- **Vérification** : check [080] de `scripts/check-rules.sh` : `git grep -nE '^(<<<<<<< |>>>>>>> )'` sur les fichiers suivis hors Markdown ne doit rien trouver.
+- **Origine** : rebase de la PR Perles clients sur `main`
+- **Date** : 2026-11-05

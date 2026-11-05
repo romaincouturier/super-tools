@@ -75,7 +75,7 @@ serve(async (req: Request) => {
       type: "password_reset",
       defaultSubject: tpl.subject.vous,
       defaultContent: tpl.content.vous,
-      blocks: { reset_button: ctaButton("Réinitialiser mon mot de passe", resetLink) },
+      blocks: { reset_button: ctaButton("Créer mon mot de passe", resetLink) },
     });
     const emailResponse = await sendEmail({
       from: senderFrom,

@@ -203,38 +203,69 @@ Merci de le contacter pour lui proposer une formule coachée adaptée.`),
     audience: "client",
     sendingInfo: "📤 Envoyé à l'apprenant quand son compte est créé ou qu'il redemande son accès",
     subject: {
-      tu: "{{#password_set}}Accéder à ton espace SuperTools{{/password_set}}{{#no_password}}Crée ton mot de passe SuperTools{{/no_password}}",
-      vous: "{{#password_set}}Accéder à votre espace SuperTools{{/password_set}}{{#no_password}}Créez votre mot de passe SuperTools{{/no_password}}",
+      tu: "{{#password_set}}Accéder à ton espace SuperTilt Academy{{/password_set}}{{#no_password}}Crée ton mot de passe SuperTilt Academy{{/no_password}}",
+      vous: "{{#password_set}}Accéder à votre espace SuperTilt Academy{{/password_set}}{{#no_password}}Créez votre mot de passe SuperTilt Academy{{/no_password}}",
     },
     content: {
       tu: `Bonjour,
 
-Ton espace apprenant{{#training_name}} pour la formation « {{training_name}} »{{/training_name}} est prêt.{{#no_password}} Crée ton mot de passe pour y accéder.{{/no_password}}{{#password_set}} Connecte-toi avec ton adresse et ton mot de passe.{{/password_set}}
+Ton espace apprenant{{#training_name}} pour la formation « {{training_name}} »{{/training_name}} est prêt.{{#platform_changed}} Notre plateforme de formation a changé : crée ton mot de passe une seule fois pour retrouver tes formations.{{/platform_changed}}{{#no_password}} Crée ton mot de passe pour y accéder.{{/no_password}}{{#password_set}} Connecte-toi avec ton adresse et ton mot de passe.{{/password_set}}
 
 {{access_button}}`,
       vous: `Bonjour,
 
-Votre espace apprenant{{#training_name}} pour la formation « {{training_name}} »{{/training_name}} est prêt.{{#no_password}} Créez votre mot de passe pour y accéder.{{/no_password}}{{#password_set}} Connectez-vous avec votre adresse et votre mot de passe.{{/password_set}}
+Votre espace apprenant{{#training_name}} pour la formation « {{training_name}} »{{/training_name}} est prêt.{{#platform_changed}} Notre plateforme de formation a changé : créez votre mot de passe une seule fois pour retrouver vos formations.{{/platform_changed}}{{#no_password}} Créez votre mot de passe pour y accéder.{{/no_password}}{{#password_set}} Connectez-vous avec votre adresse et votre mot de passe.{{/password_set}}
 
 {{access_button}}`,
     },
-    variables: ["training_name", "password_set", "no_password", "access_button"],
+    variables: ["training_name", "password_set", "no_password", "platform_changed", "access_button"],
+  },
+
+  learner_course_access: {
+    name: "Accès à une nouvelle formation ouvert",
+    audience: "client",
+    sendingInfo: "📤 Envoyé à l'apprenant qui a déjà un mot de passe quand il est inscrit à une nouvelle formation",
+    subject: {
+      tu: "Ton accès à « {{training_name}} » est ouvert",
+      vous: "Votre accès à « {{training_name}} » est ouvert",
+    },
+    content: {
+      tu: `Bonjour,
+
+Ton accès à la formation « {{training_name}} » est ouvert sur SuperTilt Academy.
+
+Connecte-toi avec ton adresse email et ton mot de passe habituel pour commencer.
+
+{{access_button}}
+
+{{forgot_password_link}}`,
+      vous: `Bonjour,
+
+Votre accès à la formation « {{training_name}} » est ouvert sur SuperTilt Academy.
+
+Connectez-vous avec votre adresse email et votre mot de passe habituel pour commencer.
+
+{{access_button}}
+
+{{forgot_password_link}}`,
+    },
+    variables: ["training_name", "access_button", "forgot_password_link"],
   },
 
   password_reset: {
     name: "Réinitialisation du mot de passe",
     audience: "client",
     sendingInfo: "📤 Envoyé quand un utilisateur demande à réinitialiser son mot de passe",
-    subject: same("Réinitialisation de votre mot de passe SuperTools"),
+    subject: same("Créez votre mot de passe SuperTilt Academy"),
     content: same(`Bonjour,
 
-Vous avez demandé à réinitialiser votre mot de passe SuperTools.
+Vous avez demandé un nouveau lien pour définir votre mot de passe SuperTilt Academy.
 
 Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :
 
 {{reset_button}}
 
-Ce lien expire dans 1 heure.
+Ce lien expire dans 24 heures.
 
 Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.`),
     variables: ["reset_button"],
@@ -365,15 +396,15 @@ L'équipe SuperTilt`),
     name: "Commentaire communauté (équipe)",
     audience: "internal",
     sendingInfo: "🔔 Envoyé à l'équipe quand un commentaire est posté dans la communauté",
-    subject: same("💬 Nouveau commentaire dans la communauté"),
+    subject: same("À traiter : nouveau commentaire d'apprenant, formation en ligne {{course_title}}"),
     content: same(`Bonjour,
 
-**{{commenter_name}}** a posté un commentaire dans la communauté :
+Un nouveau commentaire de **{{commenter_name}}** est à traiter dans la communauté des apprenants de la formation en ligne **{{course_title}}** :
 
 {{comment_quote}}
 
 {{discussion_button}}`),
-    variables: ["commenter_name", "comment_quote", "discussion_button"],
+    variables: ["commenter_name", "course_title", "comment_quote", "discussion_button"],
   },
 
   practice_comment_owner: {
@@ -927,10 +958,10 @@ Le statut de la relecture a été mis à jour pour :
     name: "Publication communauté (formateur)",
     audience: "internal",
     sendingInfo: "📚 Envoyé au formateur quand un apprenant publie un travail (regroupé sur 5 min)",
-    subject: same("Nouvelle publication communauté — {{course_title}}"),
+    subject: same("À traiter : nouveau travail d'apprenant, formation en ligne {{course_title}}"),
     content: same(`Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-**{{learner_name}}** vient de publier un travail dans la communauté de la formation **{{course_title}}**.
+Un nouveau travail de l'apprenant **{{learner_name}}** est à traiter dans la communauté de la formation en ligne **{{course_title}}**.
 
 {{deposits_preview}}
 
@@ -945,10 +976,10 @@ L'équipe SuperTilt`),
     name: "Publications communauté groupées (formateur)",
     audience: "internal",
     sendingInfo: "📚 Envoyé au formateur quand un apprenant publie plusieurs travaux en 5 min",
-    subject: same("{{count}} nouvelles publications communauté — {{course_title}}"),
+    subject: same("À traiter : {{count}} nouveaux travaux d'apprenant, formation en ligne {{course_title}}"),
     content: same(`Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-**{{learner_name}}** vient de publier **{{count}} travaux** dans la communauté de la formation **{{course_title}}**.
+**{{count}} nouveaux travaux** de l'apprenant **{{learner_name}}** sont à traiter dans la communauté de la formation en ligne **{{course_title}}**.
 
 {{deposits_preview}}
 

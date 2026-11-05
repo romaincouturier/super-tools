@@ -71,6 +71,14 @@ serve(async (req) => {
       return createErrorResponse(createError.message, 500, { cause: createError, fn: "create-academy-account" });
     }
 
+    // Mot de passe choisi à l'inscription : le mail d'accès suivant ne doit pas
+    // lui demander d'en créer un.
+    if (created.user?.id) {
+      await admin
+        .from("user_security_metadata")
+        .upsert({ user_id: created.user.id, password_set: true }, { onConflict: "user_id" });
+    }
+
     return createJsonResponse({ success: true, email });
   } catch (error) {
     return createErrorResponse(error instanceof Error ? error.message : "Erreur inconnue", 500, {

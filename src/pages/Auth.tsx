@@ -112,6 +112,7 @@ const Auth = () => {
 
         // Logger le succès
         await logAttempt(email, true);
+        await supabase.rpc("mark_password_proven");
         setShowAttemptFeedback(false);
         
         // Restrict /auth to SuperTools team members only.

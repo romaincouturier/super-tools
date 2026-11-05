@@ -11,6 +11,7 @@ import {
   type Recipient,
 } from "../_shared/daily-data-fetchers.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import { buildFollowUpActions } from "../_shared/feedback-follow-ups.ts";
 
 /**
  * Generate Daily Actions
@@ -556,20 +557,40 @@ serve(async (req) => {
       });
     }
 
-    // 18. Projets (transverses et supertilt.fr) — actions personnelles (deadline aujourd'hui ou en retard)
+    // 17sexies. Suites à donner aux retours après formation (besoins du questionnaire à froid, suites saisies sur un retour libre)
+    const [{ data: coldNeeds }, { data: feedbackFollowUps }] = await Promise.all([
+      supabase
+        .from("participant_cold_evaluations")
+        .select("id, training_id, first_name, last_name, email, besoins_complementaires, trainings(training_name)")
+        .eq("etat", "soumis")
+        .is("follow_up_done_at", null)
+        .neq("besoins_complementaires", "{}"),
+      supabase
+        .from("training_feedbacks")
+        .select("id, training_id, author_name, follow_up, trainings(training_name)")
+        .not("follow_up", "is", null)
+        .is("follow_up_done_at", null),
+    ]);
+    actions.push(...buildFollowUpActions(coldNeeds || [], feedbackFollowUps || [], appUrl));
+
+    // 18. Projets (transverses et supertilt.fr) — toutes les actions en attente
     for (const a of data.supertiltActions) {
-      const dateLabel = a.deadline === today
-        ? "Aujourd'hui"
-        : `En retard (${new Date(a.deadline!).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })})`;
+      const dateLabel = !a.deadline
+        ? "En attente"
+        : a.deadline === today
+          ? "Aujourd'hui"
+          : a.isOverdue
+            ? `En retard (${new Date(a.deadline).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })})`
+            : `Échéance le ${new Date(a.deadline).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`;
       actions.push({
         category: "supertilt",
         title: `⚡ ${a.title}`,
         description: a.isOverdue
           ? `⚠️ ${dateLabel}${a.description ? ` — ${a.description}` : ""}`
-          : (a.description ?? dateLabel),
+          : (a.description ? `${dateLabel} — ${a.description}` : dateLabel),
         link: a.board === "site" ? `${appUrl}/supertilt-fr/projets` : `${appUrl}/projets-transverses`,
         entityType: "supertilt_action", entityId: a.id,
-        assignedTo: a.userId, scope: "strictAssigned",
+        assignedTo: a.assignedTo, scope: "strictAssigned",
       });
     }
 

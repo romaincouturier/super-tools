@@ -43,11 +43,17 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 
 # Architecture rules
 
+- CRM statistics map outcomes from sales status and use an explicit current-day snapshot boundary while replaying earlier column history; the shared dialog accepts tooltip column order, because incomplete move or closure history must not override current opportunity categories.
+
+- Permanent-session inline Solo creation inherits catalog values through a service and hook; course availability considers both catalog and session links, because the shortcut must not invent prices or hide existing associations.
+
+- Training tables share a pure sorting helper with per-tab sort state.
+
 - Learner dashboard onboarding derives remaining steps from a pure profile helper and renders only a nonempty list, because completion must hide the block independently of work deposits.
 
 - Password setup loads and saves learner names through authenticated session-owned profile access, after an explicit recovery confirmation click; it never consumes recovery tokens on page load or exposes anonymous email-based profile lookup, because name prefill must preserve scanner-safe links and identity privacy.
 
-- Bulk participant progress follows awaited workflow stages and optional per-recipient callbacks in the existing batch email services, because the displayed progress must reflect actual work without changing enrollment or delivery rules.
+- Bulk participant progress follows awaited stages and per-recipient callbacks, so it reflects real work.
 
 - Staff learner-access sends provision missing accounts only after checking an existing participant or LMS enrollment, because bulk additions bypass account provisioning and must not silently skip the email or create arbitrary accounts.
 - Staff learner-access failures preserve their stage and use HTTP 429 for non-admin link quotas; only a server-verified caller checked by is_admin may bypass the internal quota, and browser batches report failed recipients without undoing enrollment, because administrator tests must not weaken public protections or duplicate participant records.
@@ -60,7 +66,7 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 
 - Watch sources canonicalize URLs with a database trigger and a matching browser helper; watch-item source links adjust counts through a database trigger, because imports and UI writes must preserve the same identity and counters.
 
-- Course covers use authenticated native Storage uploads in the existing public LMS bucket and are uploaded on save, because cancelling the settings dialog must not upload files or change the course.
+- Course covers upload via authenticated Storage to the public LMS bucket only on save, because cancelling must not change the course.
 
 - HTML/embed and exercise interactive HTML share an explicit HTML/CSS allowlist across MCP writes and browser rendering, render in an isolated iframe whose CSP forbids all scripts (nested srcdoc frames are script-free sandboxes, only third-party `src` players get script flags), with parent-side resize observation, because author CSS must stay isolated, no author JavaScript may run, and YouTube/Vimeo/LinkedIn players must still work.
 - Interactive LMS blocks use the same viewers in learner pages and builder previews; drag words use dnd-kit with uniquely identified word instances, because touch accessibility and repeated words must behave consistently.
@@ -78,3 +84,8 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Micro-devis follow-up sessions are computed by the pure helper `supabase/functions/_shared/micro-devis-followup.ts`, shared by the Micro-devis page and `generate-micro-devis`; the server reads included sessions from the selected catalog formula, descriptions count included plus added sessions, and only additions increase price and catalog duration, because UI and PDF must agree without billing included sessions twice.
 - Cold evaluations are native tokenized questionnaires (`sponsor_cold_evaluations`, `participant_cold_evaluations`) planned by `send-thank-you-email` through the pure helper `_shared/cold-evaluation.ts` (one per distinct sponsor, one per participant), reuse one token per recipient and session, get one reminder scheduled after a successful send, and record failures in `scheduled_emails.error_message` while staying pending, because sends must never fail silently or duplicate.
 - Cold evaluation eligibility is checked by the shared pure helper both before scheduling and before sending (including reminders and forced calls); excluded rows are cancelled, because catch-up and stale queues must not bypass the deployment cutoff.
+- Learner access emails are chosen server-side by a pure helper from `password_set` only (a missing security row means no password; a past sign-in proves nothing unless it was a password sign-in, recorded by `mark_password_proven`): create-password for accounts without a proven password, `learner_course_access` with a direct course link otherwise, because legacy magic-link accounts must never be told to log in with a password they never created.
+- Bulk e-learning access emails are queued in `learner_access_jobs` and sent server-side by `queue-learner-access-emails` with the requester's rights, because browser-driven sends blocked the page.
+- Password emails use hashed `password_setup_links` redeemed on click, because native recovery tokens expire too soon.
+- Learner community reads (posts and children) use security-definer enrollment-scoped helpers, because intra client feeds must stay private.
+- CRM opportunity values use the shared pure `_shared/opportunity-value.ts`, so all entry points agree.

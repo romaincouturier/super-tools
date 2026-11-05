@@ -1,5 +1,51 @@
 # Roadmap
 
+## Règlement intérieur éditable (2026-11-05)
+- [x] Migration initiale publiée : huit articles identiques à l’ancien PDF ; téléchargement réel dans Formation et Documents avec le compte demandeur, 14 tests et 103 contrôles réussis
+- [x] Ancien fichier supprimé du stockage et lien retiré des archives : ancienne URL répond 400 sans PDF, aucun réglage ne le référence
+- [ ] Copie de sauvegarde privée Google Drive de l’ancien PDF : identifiée dans le manifeste, suppression bloquée faute d’accès Drive disponible ; aucune sauvegarde modifiée
+- [x] Édition Markdown avec titres/gras/listes, brouillon sauvegardé et aperçu PDF SuperTilt
+- [x] Publication explicite, archivage atomique des PDF précédents et protection contre les éditions concurrentes ; droits administrateur conservés
+- [x] Texte du PDF actuel repris en brouillon ; sauvegarde/rechargement réels vérifiés, confirmation annulée, PDF diffusé inchangé ; 12 tests et 103 contrôles réussis, aucune publication réelle ni email
+
+## Marque apprenant (2026-11-05)
+- [x] Mail de redemande « Créez votre mot de passe SuperTilt Academy », sujets d’accès et bandeau de connexion renommés ; aucun modèle personnalisé contenant SuperTools trouvé en base
+- [x] 75 tests et 103 contrôles réussis ; connexion vérifiée avec bandeau simulé, compilation OK ; six fonctions d’envoi concernées déployées, aucun email envoyé
+
+## Lives, tickets et notifications (2026-11-05)
+- [x] Lecture seule : Marie a une inscription session de novembre ; RPC et calendrier retournent novembre/décembre aujourd’hui, sélection globale par cours et non par inscription ; 53 inscrits LMS potentiellement concernés par cette sélection
+- [x] Numérotation corrigée en base le 04/11 à 17:50 UTC : ancien code reproduit avec 24 collisions/30, actuel vérifié avec 30 transactions sans collision ; 4 tests conservés ; aucun ticket ni contenu de Myriam retrouvé
+- [x] Objets/intros internes clarifiés avec nom du cours, deux fonctions redéployées ; 5 tests Vitest et 4 tests Deno passés, 101 contrôles OK ; aucun email de test envoyé
+
+## Retour des jeux loués (2026-11-04)
+- [x] Bouton « Jeu revenu » avec confirmation, date de retour dédiée et clôture même avant échéance ; date contractuelle conservée
+- [x] 3 tests SQL et 99 contrôles passés ; parcours connecté vérifié avec écriture simulée, aucune commande réelle modifiée
+
+## Devis de jeux (2026-11-04)
+- [x] Proposer les contacts des opportunités CRM ouvertes comme commanditaires et conserver le rattachement du devis
+- [x] Mémoriser immédiatement les prix unitaires par jeu/tarif et les frais de port/dossier dans le navigateur existant, puis les recharger sans modifier le catalogue
+- [x] Six tests et 99 contrôles réussis ; contact réel, sélection répétée et rechargement vérifiés en session connectée, aucun devis envoyé
+
+## Statistiques des opportunités (2026-11-04)
+- [x] Catégories exclusives par statut et colonne ; état du jour prioritaire sur l’historique incomplet, dates de clôture selon le statut
+- [x] Détails ordonnés sur les deux graphiques ; 35 tests et 99 contrôles réussis, graphiques connectés vérifiés et totaux gagnés/perdus comparés aux opportunités réelles
+
+## Création de session permanente (2026-11-04)
+- [x] Ajouter Solo depuis la session, hériter des valeurs du catalogue et conserver le lien de la formule à l’enregistrement
+- [x] Cours disponibles en premier, tri alphabétique par groupe et pictogramme des cours associés ; 5 tests et 99 contrôles réussis, création réelle Solo temporaire vérifiée puis nettoyée ; aucune session créée
+
+## Tableaux des formations (2026-11-04)
+- [x] Date retirée des permanentes, Lieu conservé, tris indépendants actifs ; parcours connecté ordinateur/mobile vérifié, 8 tests et 99 contrôles réussis
+
+## Mails d'accès selon l'état du compte (2026-11-04)
+- [x] Règle serveur : sans mot de passe prouvé (ou sans ligne) -> « Créez votre mot de passe » ; sinon « Votre accès à la formation est ouvert » avec lien direct
+- [x] Modèle learner_course_access, nom de formation à l'ajout unitaire, bilan de l'import en lot, MCP aligné
+- [x] Cause racine : inscription Academy et connexions par mot de passe enregistrent le mot de passe
+- [x] Ancienne fonction send-elearning-access retirée
+- [ ] Correction des 29 comptes : SQL prêt dans docs/sql, en attente d'accord de Romain
+- [x] Rattrapage : quatre emails envoyés après accord et vérification ; Delphine exclue, mot de passe désormais défini
+- [ ] Présentiel/mixte : décision de Romain à venir
+
 ## Identité à la création du mot de passe (2026-11-03)
 - [x] Préremplir et enregistrer prénom et nom obligatoires après confirmation explicite du lien, sans consommation à l’ouverture
 - [x] 35 tests et 99 contrôles réussis ; chargement authentifié réel et blocage du prénom vide vérifiés ; sauvegarde testée avec écritures simulées, aucun mot de passe réel modifié

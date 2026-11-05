@@ -41,3 +41,5 @@ deposit_reaction_tokens
 # Manifeste de la synchro storage incrémentale : index des fichiers déjà copiés
 # dans le miroir Drive. Perdu, il provoque seulement une recopie complète.
 backup_storage_manifest
+# Jetons hachés de liens de mot de passe (24 h max) : inutiles à restaurer.
+password_setup_links

@@ -12,6 +12,7 @@ export function columnAtDay(
   entryColumnId: string | undefined,
 ): string | null {
   if (new Date(item.createdAt) > dayEnd) return null;
+  if (item.currentColumnAsOf && new Date(item.currentColumnAsOf) <= dayEnd) return item.columnId;
   if (item.completedAt && new Date(item.completedAt) <= dayEnd) return item.columnId;
   const moves = item.moves ?? [];
   let col: string | null = null;

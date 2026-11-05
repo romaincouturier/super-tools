@@ -25,7 +25,7 @@ export function base64UrlToBytes(input: string): Uint8Array {
   return out;
 }
 
-interface GmailPart {
+export interface GmailPart {
   partId?: string;
   mimeType?: string;
   filename?: string;
@@ -48,6 +48,8 @@ export interface GmailMessage {
   to: string;
   date: string;
   snippet: string;
+  /** Corps du mail en texte brut (partie text/plain, sinon text/html débarrassée des balises). */
+  text: string;
   raw: Uint8Array;
   attachments: GmailAttachment[];
 }
@@ -55,6 +57,30 @@ export interface GmailMessage {
 function collectAttachmentParts(part: GmailPart, acc: GmailPart[]) {
   if (part.filename && part.body?.attachmentId) acc.push(part);
   for (const p of part.parts || []) collectAttachmentParts(p, acc);
+}
+
+function findBody(part: GmailPart, mime: string): string | null {
+  if (!part.filename && part.mimeType === mime && part.body?.data) return part.body.data;
+  for (const p of part.parts || []) {
+    const found = findBody(p, mime);
+    if (found) return found;
+  }
+  return null;
+}
+
+export function extractPlainText(payload: GmailPart): string {
+  const decode = (data: string) => new TextDecoder().decode(base64UrlToBytes(data));
+  const plain = findBody(payload, "text/plain");
+  if (plain) return decode(plain).trim();
+  const html = findBody(payload, "text/html");
+  if (!html) return "";
+  return decode(html)
+    .replace(/<(style|script)[\s\S]*?<\/\1>/gi, "")
+    .replace(/<br\s*\/?>|<\/(p|div|li|tr|h\d)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"')
+    .replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 /** Accepte un id Gmail ou un Message-ID RFC 822 (<...@...>). */
@@ -101,6 +127,7 @@ export async function fetchGmailMessage(messageId: string, maxBytesPerFile: numb
     to: header("To"),
     date: header("Date"),
     snippet: String(full.snippet || ""),
+    text: extractPlainText(payload),
     raw,
     attachments,
   };

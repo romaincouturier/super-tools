@@ -29,6 +29,7 @@ import { greetingFor, formatToday } from "@/lib/dashboardHelpers";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskAmount, demoBlur } from "@/lib/demoMask";
 import DailyActionsPerUserChart from "@/components/dashboard/DailyActionsPerUserChart";
+import PearlWidget from "@/components/dashboard/PearlWidget";
 
 // ── Palette (charte SuperTools) ──────────────────────────────
 const CREAM = "#f7f5f0";
@@ -312,6 +313,8 @@ const Dashboard = () => {
               </svg>
             </div>
           </section>
+
+          <PearlWidget />
 
           {/* KPIs */}
           <section

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAccessLevel } from "@/lib/accessLevel";
+import { redeemPasswordLink, resendPasswordLink } from "@/services/passwordLink";
 
 export type SignInOutcome = {
   ok: boolean;
@@ -20,6 +21,8 @@ export function useAuthActions() {
       return { ok: false, isStaff: false, mustChangePassword: false, hasAccess: false };
     }
 
+    // Une connexion réussie par mot de passe prouve qu'il existe (mail d'accès).
+    await supabase.rpc("mark_password_proven");
     // Le routage dépend du rôle du compte, pas de la porte empruntée (RG-14).
     const [level, { data: security }] = await Promise.all([
       fetchAccessLevel(data.user.id),
@@ -76,7 +79,7 @@ export function usePasswordRecoverySession() {
     let cancelled = false;
     const hashType = new URLSearchParams(window.location.hash.substring(1)).get("type");
     const search = new URLSearchParams(window.location.search);
-    const pendingTokenHash = search.get("type") === "recovery" ? search.get("token_hash") : null;
+    const pendingTokenHash = (search.get("type") === "recovery" ? search.get("token_hash") : null) || search.get("link");
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" && !cancelled) setStage("ready");
@@ -98,7 +101,14 @@ export function usePasswordRecoverySession() {
    * renvoie faux, sans que l'appelant ait à relire le stage lui-même.
    */
   const confirmRecovery = useCallback(async (): Promise<boolean> => {
-    const tokenHash = new URLSearchParams(window.location.search).get("token_hash");
+    const search = new URLSearchParams(window.location.search);
+    let tokenHash = search.get("token_hash");
+    const link = search.get("link");
+    if (link) {
+      const redeemed = await redeemPasswordLink(link);
+      if (redeemed.status !== "valid") { setStage("invalid"); return false; }
+      tokenHash = redeemed.tokenHash;
+    }
     if (!tokenHash) { setStage("invalid"); return false; }
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
     if (error) { setStage("invalid"); return false; }
@@ -108,5 +118,9 @@ export function usePasswordRecoverySession() {
     return true;
   }, []);
 
-  return { stage, confirmRecovery };
+  /** Lien expiré : présent seulement pour les liens SuperTools, dont l'adresse est connue côté serveur. */
+  const expiredLink = new URLSearchParams(window.location.search).get("link");
+  const requestNewLink = useCallback(async () => (expiredLink ? resendPasswordLink(expiredLink) : false), [expiredLink]);
+
+  return { stage, confirmRecovery, canResend: !!expiredLink, requestNewLink };
 }

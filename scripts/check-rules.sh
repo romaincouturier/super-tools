@@ -307,6 +307,12 @@ check "051" "TED : liste CPV par source, pas de filtre de langue inerte" \
 check "038" "Toute table migrée est backupée (backup-export + scheduled-backup) ou exclue explicitement" \
   "bash scripts/check-backup-tables.sh"
 
+# [077] Tables créées seulement par Lovable (drizzle/migrations) : comptées par [038]
+# (check-backup-tables.sh les inclut), et toute migration de supabase/migrations qui
+# les nomme est gardée par to_regclass pour rester rejouable.
+check "077" "Tables drizzle-only : migrations supabase gardées par to_regclass" \
+  "bash scripts/check-drizzle-tables.sh"
+
 # [040] Évaluations — filtre formation côté client : dropdown dérivée des évaluations
 # chargées (trainingOptions), pas de refetch serveur par training_id à la sélection.
 check "040" "Évaluations : filtre formation côté client (pas de refetch .eq(training_id))" \
@@ -352,8 +358,8 @@ RATCHET_LEGACY="017|020|037a|037b"
 check "066" "Toute règle en ratchet dit ce que son contrôle ne voit pas" \
   "for id in \$(grep -oE '^[0-9]+[a-z]?=' scripts/rules-ratchet.txt | tr -d '='); do \
      echo \"\$id\" | grep -qE \"^(\$RATCHET_LEGACY)\\\$\" && continue; \
-     sed -n \"/^### \\[\$id\\]/,/^---\$/p\" IMPROVEMENTS.md \
-       | grep -qiE 'plancher|ne voit pas|angle mort' \
+     [ \"\$(sed -n \"/^### \\[\$id\\]/,/^### \\[[0-9]/p\" IMPROVEMENTS.md \
+       | grep -ciE 'plancher|ne voit pas|angle mort')\" -gt 0 ] \
        || echo \"VIOLATION [066]: la regle [\$id] est en ratchet sans dire ce que son controle ne voit pas\"; \
    done"
 
@@ -405,7 +411,7 @@ if [ "$STAGED_MODE" = "false" ]; then
   #                       passent par des edge functions pour l'upload avant d'appeler registerMediaEntry.
   #   useTrainingSupport.ts — upload TUS resumable (gros fichiers) dans une fn isolée, inserts dans d'autres fns.
   check "026" "Pas de storage.upload() + insert/update DB dans le même fichier src/ (passer par edge function)" \
-    "for f in \$(grep -rln 'supabase\.storage\.' src/ --include='*.ts' --include='*.tsx' | grep -v '\.test\.' | grep -v '\.spec\.' | grep -v 'useMedia\.ts' | grep -v 'useTrainingSupport\.ts'); do \
+    "for f in \$(grep -rln 'supabase\.storage\.' src/ --include='*.ts' --include='*.tsx' | grep -v '\.test\.' | grep -v '\.spec\.' | grep -v 'useMedia\.ts' | grep -v 'useTrainingSupport\.ts' | grep -v 'services/pearls\.ts'); do \
        has_upload=\$(grep -c '\.upload(' \"\$f\" 2>/dev/null || echo 0); \
        has_insert=\$(grep -cE '\.from\(.*\)\.(insert|update)\(' \"\$f\" 2>/dev/null || echo 0); \
        [ \"\$has_upload\" -gt 0 ] && [ \"\$has_insert\" -gt 0 ] && echo \"VIOLATION: \$f (storage.upload + DB insert/update direct)\"; \
@@ -415,10 +421,11 @@ if [ "$STAGED_MODE" = "false" ]; then
   # Exceptions légitimes :
   #   useMedia.ts          — uploadMediaFile() appelle upload-media-file (edge fn), pas storage direct
   #   useTrainingSupport.ts — bucket géré côté edge fn
+  #   services/pearls.ts    — bucket privé client-pearls, écriture bornée par policy storage (module supertilt_fr)
   check "026d" "Aucun storage.upload() direct dans src/ (tout doit passer par une edge function)" \
     "grep -rln '\.storage\.' src/ --include='*.ts' --include='*.tsx' \
        | grep -v '\.test\.' | grep -v '\.spec\.' \
-       | grep -v 'useMedia\.ts' | grep -v 'useTrainingSupport\.ts' \
+       | grep -v 'useMedia\.ts' | grep -v 'useTrainingSupport\.ts' | grep -v 'services/pearls\.ts' \
        | xargs grep -l '\.upload(' 2>/dev/null \
        | while read f; do echo \"VIOLATION: \$f appelle storage.upload() directement — passer par une edge function\"; done; true"
 
@@ -742,6 +749,25 @@ check "068" "Formulaires d'edition internes : champs identifiants floutes en mod
 # [063] Une session valide n'est pas une garde : le relais Pennylane exige un droit.
 check "063" "pennylane-proxy et create-mission-invoice verifient le droit Finances (admin ou module), pas seulement la session" \
   "for f in pennylane-proxy create-mission-invoice; do grep -q 'await canUsePennylane(' supabase/functions/\$f/index.ts || echo \"VIOLATION [063]: \$f sans canUsePennylane\"; done"
+
+# [078] Perles clients — staff seul, widget desactive par defaut, auteur masque si anonyme.
+check "078" "Perles clients : RLS staff, bucket prive, widget derriere la preference, anonymat respecte" \
+  "m=\$(ls supabase/migrations/*client_pearls*.sql 2>/dev/null | head -1); \
+   [ -n \"\$m\" ] || echo 'VIOLATION [078]: migration client_pearls absente'; \
+   grep -q 'is_staff_user()' \"\$m\" || echo 'VIOLATION [078]: lecture non reservee au staff'; \
+   grep -q \"'client-pearls', 'client-pearls', false\" \"\$m\" || echo 'VIOLATION [078]: bucket client-pearls non prive'; \
+   grep -q 'enabled: false' src/hooks/useDashboardPearlPreference.ts || echo 'VIOLATION [078]: la perle du tableau de bord n est plus desactivee par defaut'; \
+   grep -rq 'is_positive = true' supabase/migrations/*client_pearls_positive_flag*.sql || echo 'VIOLATION [078]: le tirage du tableau de bord ne filtre plus sur is_positive'; \
+   grep -q 'if (!enabled' src/components/dashboard/PearlWidget.tsx || echo 'VIOLATION [078]: widget non conditionne a la preference'; \
+   grep -q 'if (p.is_anonymous) return \"Anonyme\"' src/services/pearls.ts || echo 'VIOLATION [078]: pearlAuthorLabel n masque plus les anonymes'"
+
+# [079] Types Supabase generes : aucune table ni fonction definie deux fois.
+check "079" "types.ts : aucune cle de table ou de fonction en double" \
+  "grep -E '^      [a-z_0-9]+: \\{\$' src/integrations/supabase/types.ts | sort | uniq -d | sed 's/^/VIOLATION [079]: cle en double dans types.ts :/'"
+
+# [080] Aucun marqueur de conflit commite (hors Markdown, ou ils s'ecrivent parfois en exemple).
+check "080" "Aucun marqueur de conflit de merge dans les fichiers suivis" \
+  "git grep -nE '^(<<<<<<< |>>>>>>> )' -- . ':!*.md' | sed 's/^/VIOLATION [080]: marqueur de conflit /'"
 
 # [070] Mode demo — scan dynamique de tous les ecrans internes.
 check "070" "Scan dynamique du mode demo present, routes lues dans App.tsx, hors smoke CI" \

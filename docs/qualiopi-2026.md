@@ -12,7 +12,7 @@ Le diff des 32 libellés entre le V9 et l'annexe du décret donne **six indicate
 
 | Ind. | Ajout du décret | Statut |
 |---|---|---|
-| 1 | type de reconnaissance, modalités de financement, interdiction de toute mention trompeuse | livré |
+| 1 | type de reconnaissance, modalités de financement, interdiction de toute mention trompeuse | livré, saisie à faire |
 | 2 | diffusion des résultats « en précisant de manière transparente leurs modalités de calcul » | livré |
 | 12 | prévention et traitement des violences, du harcèlement et des discriminations | livré |
 | 19 | vérification de l'effectivité du suivi à distance, référent pédagogique au-delà d'un seuil | livré |
@@ -22,6 +22,15 @@ Le diff des 32 libellés entre le V9 et l'annexe du décret donne **six indicate
 **Exclusions justifiées.** L'indicateur 33 (évaluation des contenus par les apprenants) n'est coché que dans la colonne apprentissage de l'annexe : il ne s'applique pas. Idem pour les 13, 14, 15, 20 et 29. Les 3, 7 et 16 visent les formations certifiantes. Les 9 et 30 ne changent que sur la formulation. Tous les autres sont inchangés au mot près.
 
 L'indicateur 27 ne s'applique pas : l'organisme ne sous-traite pas. Le formateur externe hébergé sur la plateforme facture ses propres clients et verse une commission ; l'organisme n'est pas le prestataire de cette action.
+
+### Indicateur 1 : ce que le code fait, et ce qu'il ne fait pas
+
+Les quatre colonnes existent et se saisissent dans l'écran du catalogue. Deux limites, constatées le 3 novembre 2026 :
+
+- **Aucune n'est renseignée en production**, sauf `recognition_type` sur une formation. La colonne « Mentions » du catalogue (`src/lib/catalogDisclosure.ts`) rend ce manque visible depuis la liste, formation par formation, et le sous-titre de l'écran compte celles qui sont incomplètes.
+- **Rien ne les affiche hors de l'application.** Aucune page publique, aucune vue, aucune RPC ne les expose : les remplir alimente la base sans porter l'information à la connaissance d'un public. Publier ces mentions reste à faire, et le canal n'est pas décidé.
+
+Les valeurs elles-mêmes ne sont pas dans le code : ce sont des engagements de l'organisme, pas des constantes. Le site supertilt.fr ne les porte pas non plus, ses fiches formation s'arrêtant au public cible, à la pédagogie, à la capacité, aux prérequis, à la durée et au tarif.
 
 ## Migration
 

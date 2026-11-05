@@ -21,6 +21,7 @@ import { isAfter, startOfDay } from "date-fns";
 import { computeMeanCycleTime, cardAgeDays } from "@/lib/kanban-metrics";
 import { celebrateWin } from "@/lib/celebrateWin";
 import { isWonColumnName, isLostColumnName } from "@/lib/crmColumnStatus";
+import { crmStatsItem, STATS_WON_COL_ID, STATS_LOST_COL_ID } from "@/lib/crmStats";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
 import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
 import { useCardMoveHistory } from "@/hooks/crm/useCardMoveHistory";
@@ -30,11 +31,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 type CrmKanbanCard = CrmCard & KanbanCardDef;
 type CrmKanbanColumn = CrmColumnType & KanbanColumnDef;
-
-// Synthetic columns used only by the stats dialog so won/lost bands are derived
-// from sales_status, regardless of how the user named their pipeline columns.
-const STATS_WON_COL_ID = "__stats_won__";
-const STATS_LOST_COL_ID = "__stats_lost__";
 
 interface CrmKanbanBoardProps {
   initialCardId?: string | null;
@@ -272,20 +268,9 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     if (!boardData?.cards) return [];
     const statsColIds = new Set(statsColumns.map((col) => col.id));
     return boardData.cards.map((c) => {
-      const columnId =
-        c.sales_status === "WON" ? STATS_WON_COL_ID
-        : c.sales_status === "LOST" ? STATS_LOST_COL_ID
-        : c.column_id;
-      return {
-        id: c.id,
-        columnId,
-        createdAt: c.created_at,
-        completedAt: c.won_at || c.lost_at,
-        value: c.estimated_value,
-        moves: (moveHistory?.get(c.id) ?? [])
+      return crmStatsItem(c, (moveHistory?.get(c.id) ?? [])
           .filter((m) => statsColIds.has(m.to))
-          .map((m) => ({ ...m, from: m.from && statsColIds.has(m.from) ? m.from : null })),
-      };
+          .map((m) => ({ ...m, from: m.from && statsColIds.has(m.from) ? m.from : null })));
     });
   }, [boardData?.cards, statsColumns, moveHistory]);
 
@@ -815,6 +800,14 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         doneColumnIds={doneColumnIds}
         wonColumnIds={wonColumnIds}
         lostColumnIds={lostColumnIds}
+        tooltipColumnIds={statsColumns.slice().sort((a, b) => {
+          const order = ["entrant", "contacté", "devis envoyé", "gagné", "perdu"];
+          const rank = (name: string) => {
+            const index = order.indexOf(name.trim().toLocaleLowerCase("fr"));
+            return index < 0 ? order.length : index;
+          };
+          return rank(a.name) - rank(b.name);
+        }).map((col) => col.id)}
       />
     </div>
   );

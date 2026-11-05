@@ -1,3 +1,4 @@
+import { columnHint, isMissingColumnError } from "../_shared/sql-error-hint.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import {
   handleCorsPreflightIfNeeded,
@@ -6,6 +7,7 @@ import {
   corsHeaders,
 } from "../_shared/mod.ts";
 import { searchContent } from "../_shared/agent-search.ts";
+import { addPearl, archivePearl, listPearls, updatePearl, type PearlDb, type PearlToolResult } from "../_shared/pearl-tools.ts";
 import {
   listPendingTenders,
   TENDER_NO_GO_REASONS,
@@ -66,6 +68,7 @@ import {
   readMissionPage,
   saveMissionActivity,
   saveMissionDocument,
+  saveOpportunityDocument,
   saveMissionNote,
   updateMissionActivity,
   updateMission,
@@ -74,7 +77,9 @@ import {
   type ExtractedPart,
 } from "../_shared/mission-tools.ts";
 import { updateOrderItem, ORDER_KANBAN_STATUSES } from "../_shared/order-tools.ts";
+import { logTrainingFeedback, FEEDBACK_SOURCES, FEEDBACK_AUTHOR_ROLES, type FeedbackInput } from "../_shared/feedback-tools.ts";
 import { updateEvent } from "../_shared/event-update-tool.ts";
+import { createProjectAction, listProjectBoard, updateProjectAction } from "../_shared/project-board-tools.ts";
 import {
   applyLessonRestructure,
   createLmsLesson,
@@ -370,6 +375,7 @@ MÉTHODE ATTENDUE
 ÉCRITURE
 Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou soumises à validation explicite ; aucune ne supprime ni n'écrase silencieusement des données existantes.
 - save_mission_note : crée ou met à jour une page de mission, pour capitaliser un travail long hors de la conversation. HTML simple, <svg> accepté pour incruster un schéma vectoriel.
+- save_opportunity_document : attache un fichier (PDF, image, texte) aux documents d'une opportunité CRM, additif.
 - save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
 - save_mission_activity : ajoute une activité au journal d'une mission (description + date obligatoires, durée en heures/jours/demi-journées, montant facturable facultatif). Une durée de 0 correspond à une action programmée sans temps consommé. Écriture additive.
 - update_mission_activity : corrige une activité existante à partir de son id (listé par get_mission_dossier). Seuls les champs transmis sont modifiés ; aucune activité ne peut être supprimée ni déplacée vers une autre mission.
@@ -388,6 +394,7 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - create_lms_lesson : crée une leçon dans un module, avec éventuellement ses blocs de contenu initiaux (paramètre « blocks », même schéma que apply_lesson_restructure). Position facultative : si elle est fournie, les leçons suivantes du module sont décalées d'un rang. Écriture additive : aucune leçon existante n'est modifiée dans son contenu. Retourne l'id et l'empreinte de la leçon créée.
 - apply_lesson_restructure : remplace TOUS les blocs de premier niveau d'une leçon par une nouvelle structure proposée. Tous les types du menu « Ajouter un bloc » sont acceptés : blocs de contenu (texte, tableau, encadré, points clés, liste, checklist, synthèse, accordéon, frise, cartes à retourner, code, exercice, auto-évaluation, texte à trous, mots à glisser, quiz, devoir, dépôt de travail, vidéo, image, galerie, fichier, image interactive, avant/après, bouton, CTA, intégration HTML, shortcode) et blocs de mise en page (section, colonnes, conteneur, contenu progressif, séparateur, espace) qui peuvent porter un tableau « children » de blocs de contenu (un seul niveau d'imbrication). EXIGE : l'empreinte de la leçon (fingerprint) à jour et une validation humaine explicite dans la conversation. Un snapshot est automatiquement créé avant application, restorable via restore_lesson_version. Ne JAMAIS appeler sans avoir d'abord obtenu le consentement explicite de l'utilisateur.
 - add_support_note, update_ticket_status : ajoute une note datée à un ticket support, ou change son statut (nouveau, qualification, vibe_coding, resolu, boite_a_idees). Passer en resolu prévient le demandeur par email.
+- list_pearls, add_pearl, update_pearl, archive_pearl : « Perles clients », les messages de remerciement ou d'éloge reçus (page supertilt.fr > Perles clients, affichés au hasard sur le tableau de bord des membres qui l'activent). Quand l'utilisateur transmet un mail ou un message flatteur, l'archiver avec add_pearl (texte d'origine dans message, traduction française dans message_fr si besoin, gmail_thread_id si c'est un mail). Anonyme : is_anonymous. Seules les perles positives (is_positive, défaut true) s'affichent sur le tableau de bord ; un message négatif ou neutre (question, reproche, remarque) s'archive avec is_positive=false. Archiver retire de la rotation sans supprimer.
 - add_content_card : crée une carte dans le kanban éditorial (colonne Idées par défaut). Écriture additive.
 - update_quote_status : change le statut d'un devis SuperTools (table quotes, pas Pennylane). Rien n'est envoyé au client ; un devis signé ne change plus de statut.
 Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress n'est possible depuis ici.
@@ -448,7 +455,7 @@ const MCP_TOOLS = [
           type: "array",
           items: { type: "string" },
           description:
-            "Optional filter: crm_card, crm_comment, crm_email, inbound_email, training, mission, mission_page, mission_activity, quote, support_ticket, coaching_summary, content_card, lms_lesson, activity_log, evaluation_analysis, questionnaire_besoins, okr_objective, okr_key_result, okr_initiative, crm_attachment, support_attachment, transcript, testimonial",
+            "Optional filter: crm_card, crm_comment, crm_email, inbound_email, training, mission, mission_page, mission_activity, quote, support_ticket, coaching_summary, content_card, lms_lesson, activity_log, evaluation_analysis, questionnaire_besoins, okr_objective, okr_key_result, okr_initiative, crm_attachment, support_attachment, transcript, testimonial, client_pearl",
         },
         max_results: { type: "number", description: "Number of results (default 10, max 20)" },
         mission_id: {
@@ -594,6 +601,23 @@ const MCP_TOOLS = [
         },
       },
       required: ["mission_id", "file_name", "mime_type", "content_base64"],
+    },
+  },
+  {
+    name: "save_opportunity_document",
+    description:
+      "Attach a FILE (PDF, image, text) to a CRM opportunity (crm_cards) in SuperTools: it appears in the opportunity's Documents tab and an 'attachment added' entry is written to the card history. Pass the file base64-encoded in content_base64. Accepted types: " +
+      `${DOCUMENT_MIME_ALLOWLIST.join(", ")}. Size limit: ${DOCUMENT_MAX_BYTES / (1024 * 1024)} MB once decoded. This write is strictly ADDITIVE: it only creates a new document and never overwrites, modifies or deletes anything; the same file name twice creates two documents.`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        card_id: { type: "string", description: "UUID of the crm_cards row" },
+        file_name: { type: "string", description: "File name with extension, e.g. 'proposition.pdf'" },
+        mime_type: { type: "string", enum: DOCUMENT_MIME_ALLOWLIST, description: "MIME type of the file — must match its actual content" },
+        content_base64: { type: "string", description: "File content, base64-encoded (a data: URL prefix is tolerated)" },
+        description: { type: "string", description: "Optional: what this file is. Kept in the audit log and card history metadata." },
+      },
+      required: ["card_id", "file_name", "mime_type", "content_base64"],
     },
   },
   {
@@ -982,6 +1006,80 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "list_pearls",
+    description:
+      "List 'Perles clients': thank-you and praise messages received (message, optional French translation, author or anonymous, is_positive flag, date, optional time, source). Filters: search text, source, positive (true = best of only, false = not shown on the dashboard), include_archived (default false), random=true for one random dashboard-eligible (positive, non-archived) pearl. Most recent first, max 100.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        search: { type: "string" },
+        source: { type: "string", enum: ["mail", "oral", "linkedin", "evaluation", "notion", "autre"] },
+        include_archived: { type: "boolean" },
+        positive: { type: "boolean" },
+        mission_id: { type: "string" },
+        training_id: { type: "string" },
+        random: { type: "boolean" },
+      },
+    },
+  },
+  {
+    name: "add_pearl",
+    description:
+      "Archive a new 'Perle client' (a message that made us happy: thanks, praise). Keep the original wording in message; put a French translation in message_fr if the original is in another language. Set is_anonymous=true to hide the author on the dashboard. Set is_positive=false for a negative or neutral message (question, complaint, remark): it stays in the Perles clients page but never appears on the dashboard (default true). A gmail_thread_id already stored is refused (duplicate). Date defaults to today.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        message: { type: "string" },
+        message_fr: { type: "string" },
+        title: { type: "string" },
+        author_name: { type: "string" },
+        author_company: { type: "string" },
+        is_anonymous: { type: "boolean" },
+        is_positive: { type: "boolean", description: "Default true. false = kept in the page, hidden from the dashboard." },
+        mission_id: { type: "string", description: "Optional UUID of the related mission" },
+        training_id: { type: "string", description: "Optional UUID of the related training" },
+        pearl_date: { type: "string", description: "YYYY-MM-DD" },
+        pearl_time: { type: "string", description: "HH:MM, optional" },
+        source: { type: "string", enum: ["mail", "oral", "linkedin", "evaluation", "autre"] },
+        gmail_thread_id: { type: "string" },
+      },
+      required: ["message"],
+    },
+  },
+  {
+    name: "update_pearl",
+    description: "Edit a pearl (same fields as add_pearl, plus archived). Returns before/after.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        message: { type: "string" },
+        message_fr: { type: "string" },
+        title: { type: "string" },
+        author_name: { type: "string" },
+        author_company: { type: "string" },
+        is_anonymous: { type: "boolean" },
+        is_positive: { type: "boolean" },
+        mission_id: { type: "string", description: "UUID, or empty string to unlink" },
+        training_id: { type: "string", description: "UUID, or empty string to unlink" },
+        pearl_date: { type: "string" },
+        pearl_time: { type: "string" },
+        source: { type: "string", enum: ["mail", "oral", "linkedin", "evaluation", "notion", "autre"] },
+        archived: { type: "boolean" },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    name: "archive_pearl",
+    description: "Remove a pearl from the dashboard rotation (archived=true) or put it back (archived=false). Never deletes.",
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string" }, archived: { type: "boolean", description: "Default true" } },
+      required: ["id"],
+    },
+  },
+  {
     name: "list_unassigned_transcripts",
     description:
       "List ready transcripts not yet assigned to any opportunity, mission, event or e-learning lesson, most recent first: id, title, date, source, summary excerpt. Use it to find which call belongs where, then assign_transcript.",
@@ -1040,6 +1138,52 @@ const MCP_TOOLS = [
         deadline: { type: "string", description: "YYYY-MM-DD" },
       },
       required: ["title"],
+    },
+  },
+  {
+    name: "list_project_board",
+    description:
+      "Read the SuperTools project boards (Projets transverses and Projets supertilt.fr): columns and, for each action card, its id, title, column, assignee, deadline, completion flag and linked mission. Use this to find action ids before update_project_action.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        board: { type: "string", enum: ["transverse", "site"], description: "transverse = Projets transverses, site = Projets supertilt.fr. Omit to read both." },
+      },
+    },
+  },
+  {
+    name: "create_project_action",
+    description:
+      "Create ONE action card on a SuperTools project board (Projets transverses or Projets supertilt.fr), at the end of the chosen column (first column by default). ADDITIVE: never modifies an existing card. An unknown column is rejected with the list of valid ones.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        board: { type: "string", enum: ["transverse", "site"], description: "transverse = Projets transverses, site = Projets supertilt.fr" },
+        title: { type: "string", description: "Action title" },
+        description: { type: "string" },
+        assigned_to: { type: "string", description: "Assignee display name, e.g. 'Romain Couturier'" },
+        deadline: { type: "string", description: "YYYY-MM-DD" },
+        column: { type: "string", description: "Column name or id. Default: first column." },
+      },
+      required: ["board", "title"],
+    },
+  },
+  {
+    name: "update_project_action",
+    description:
+      "Update ONE action card on a SuperTools project board: rename, edit description, assign (assigned_to display name), set or clear the deadline (YYYY-MM-DD or null), move to another column (column name or id), or mark done / reopen (is_completed). Only the provided fields change; the card can never be deleted from here. Get ids from list_project_board.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action_id: { type: "string", description: "UUID from list_project_board" },
+        title: { type: "string" },
+        description: { type: "string", description: "null to clear" },
+        assigned_to: { type: "string", description: "Assignee display name, null to clear" },
+        deadline: { type: "string", description: "YYYY-MM-DD, null to clear" },
+        column: { type: "string", description: "Target column name or id" },
+        is_completed: { type: "boolean", description: "true marks done (sets completed_at), false reopens" },
+      },
+      required: ["action_id"],
     },
   },
   {
@@ -1569,6 +1713,26 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "log_training_feedback",
+    description:
+      "Record a free-form feedback received after a training (email, phone call, oral), outside the hot/cold questionnaires, in training_feedbacks: it shows in the participant's Retours tab and on the training page, and feeds analyze-evaluations (Qualiopi 30-32). With gmail_message_id, SuperTools fetches the mail itself, archives it (and its attachments) on the participant card (or the training when no participant) exactly like attach_email_to_record, and uses the mail body as the verbatim unless content is given. The same Gmail message is never logged twice. Pass participant_id (training_participants id; the session is deduced) or training_id for a sponsor or unidentified author. Set consent_publication=true only if the author explicitly agreed to be quoted. Get ids from query_database (training_participants, trainings).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        participant_id: { type: "string", description: "training_participants id (preferred)" },
+        training_id: { type: "string", description: "trainings id, when the author is not a registered participant" },
+        content: { type: "string", description: "Verbatim. Optional with gmail_message_id (the mail body is used)" },
+        gmail_message_id: { type: "string", description: "Gmail id or RFC 822 Message-ID of the mail containing the feedback" },
+        source: { type: "string", enum: [...FEEDBACK_SOURCES], description: "Default email with gmail_message_id, else autre" },
+        received_at: { type: "string", description: "YYYY-MM-DD. Default: mail date, else today" },
+        author_role: { type: "string", enum: [...FEEDBACK_AUTHOR_ROLES], description: "Default participant" },
+        author_name: { type: "string", description: "Default: participant name, else mail sender" },
+        consent_publication: { type: "boolean", description: "Author agreed to be quoted as a testimonial. Default false. When true, the text is queued as a testimonial to review" },
+        follow_up: { type: "string", description: "Action the feedback calls for (e.g. resend e-learning access). Shows in the daily actions until checked" },
+      },
+    },
+  },
+  {
     name: "update_training",
     description:
       "Update a training's start date, end date, place (location) or video-call link (meeting_url, https). meeting_url updates the upcoming live sessions of the training when it has some, otherwise it becomes the training location. Returns the previous values.",
@@ -1829,7 +1993,14 @@ async function callTool(
         p_user_id: userId,
         p_explanation: ((args.explanation as string) || "via connecteur MCP Claude").slice(0, 500),
       });
-      if (error) return textResult(`SQL error: ${error.message}`, true);
+      if (error) {
+        let hint = "";
+        if (isMissingColumnError(error.message)) {
+          const { data: schema } = await supabase.rpc("get_agent_schema_prompt");
+          hint = columnHint(args.sql as string, (schema as string) || "");
+        }
+        return textResult(`SQL error: ${error.message}${hint}`, true);
+      }
       return textResult(JSON.stringify(data ?? []));
     }
     case "search_content": {
@@ -1930,6 +2101,24 @@ async function callTool(
             (args.content_base64 as string) || "",
             args.is_deliverable !== false,
             (args.description as string) || "",
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Save error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "save_opportunity_document": {
+      try {
+        return textResult(
+          await saveOpportunityDocument(
+            supabase,
+            (args.card_id as string) || "",
+            (args.file_name as string) || "",
+            (args.mime_type as string) || "",
+            (args.content_base64 as string) || "",
+            (args.description as string) || "",
+            ALLOWED_EMAIL,
             log,
           ),
         );
@@ -2262,6 +2451,18 @@ async function callTool(
       await log("mark_testimonial_request");
       return textResult(JSON.stringify({ before, after }));
     }
+    case "list_pearls":
+    case "add_pearl":
+    case "update_pearl":
+    case "archive_pearl": {
+      const runners: Record<string, (db: PearlDb, a: Record<string, unknown>) => Promise<PearlToolResult>> = {
+        list_pearls: listPearls, add_pearl: addPearl, update_pearl: updatePearl, archive_pearl: archivePearl,
+      };
+      const res = await runners[name](supabase as unknown as PearlDb, args);
+      if ("error" in res) return textResult(res.error, true);
+      await log(name);
+      return textResult(JSON.stringify(res.data));
+    }
     case "list_unassigned_transcripts": {
       try {
         await log("list_unassigned_transcripts");
@@ -2315,6 +2516,28 @@ async function callTool(
         return textResult(JSON.stringify(res));
       } catch (e) {
         return textResult(`Card creation error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "list_project_board": {
+      try {
+        return textResult(await listProjectBoard(supabase, args.board));
+      } catch (e) {
+        return textResult(`Board read error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "create_project_action": {
+      try {
+        return textResult(await createProjectAction(supabase, args as Record<string, unknown>, log));
+      } catch (e) {
+        return textResult(`Action creation error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "update_project_action": {
+      try {
+        const { action_id, ...fields } = args as Record<string, unknown>;
+        return textResult(await updateProjectAction(supabase, (action_id as string) || "", fields, log));
+      } catch (e) {
+        return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "list_newsletters": {
@@ -2449,6 +2672,13 @@ async function callTool(
         return textResult(await attachEmailToRecord(supabase, args as unknown as Parameters<typeof attachEmailToRecord>[1], log, ALLOWED_EMAIL));
       } catch (e) {
         return textResult(`Attach error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "log_training_feedback": {
+      try {
+        return textResult(await logTrainingFeedback(supabase, args as unknown as FeedbackInput, log, ALLOWED_EMAIL));
+      } catch (e) {
+        return textResult(`Feedback error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "update_training": {

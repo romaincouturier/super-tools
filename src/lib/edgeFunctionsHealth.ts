@@ -152,8 +152,6 @@ export const EXPECTED_FUNCTIONS = [
   "send-deposit-trainer-notification",
   "deposit-email-reaction",
 
-  "send-elearning-access",
-
   "send-event-share-email",
   "send-event-update-email",
   "send-group-matching-email",

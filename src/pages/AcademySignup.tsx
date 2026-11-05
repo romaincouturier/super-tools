@@ -71,9 +71,10 @@ export default function AcademySignup() {
           await refresh();
           navigate("/espace-apprenant");
           return;
-        } catch {
+        } catch (enrollError) {
           // Formation non inscriptible directement : l'écran de choix
           // reprend la présélection, rien n'est perdu.
+          console.warn("[AcademySignup] Inscription directe impossible, repli sur l'écran de choix", enrollError);
         }
       }
       const next = courseId ? `?course=${encodeURIComponent(courseId)}` : "";

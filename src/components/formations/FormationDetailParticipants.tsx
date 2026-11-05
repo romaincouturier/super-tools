@@ -180,6 +180,8 @@ const FormationDetailParticipants = ({
                 isInterEntreprise={isInterSession}
                 isFreeTraining={!!training.is_free}
                 formatFormation={training.format_formation}
+                availableFormulas={availableFormulas}
+                trainingFormulaId={(training as unknown as { formula_id?: string | null }).formula_id ?? undefined}
               />
               <AddParticipantDialog
                 trainingId={training.id}

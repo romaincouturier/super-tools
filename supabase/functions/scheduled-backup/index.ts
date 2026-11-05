@@ -57,7 +57,7 @@ const TABLES_TO_BACKUP = [
   "gsc_metrics_daily", "gsc_sitemaps", "gsc_url_inspections",
   "idea_votes", "ideas", "improvements", "inbound_emails",
   "learner_notifications", "learner_profiles",
-  "lms_assignment_submissions", "lms_assignments", "lms_badge_awards", "lms_badges",
+  "lms_assignment_submissions", "lms_assignments", "lms_audio_archives", "lms_badge_awards", "lms_badges",
   "lms_course_folders", "lms_courses", "lms_deposit_comments", "lms_deposit_feedback", "lms_deposit_reactions",
   "lms_enrollments", "lms_forum_posts", "lms_forums",
   "lms_lesson_blocks", "lms_lesson_comments", "lms_lesson_snapshots", "lms_lessons",
@@ -77,7 +77,7 @@ const TABLES_TO_BACKUP = [
   "okr_check_ins", "okr_initiatives", "okr_key_results", "okr_objectives", "okr_participants",
   
   "order_email_log", "order_items", "org_members", "organizations",
-  "participant_files", "partner_access_tokens", "partner_payments",
+  "participant_cold_evaluations", "participant_files", "partner_access_tokens", "partner_payments",
   "pictodico_challenges", "pictodico_words",
   "polling_cursors", "post_evaluation_emails",
   "practice_poll_options", "practice_poll_votes", "practice_polls",
@@ -90,11 +90,11 @@ const TABLES_TO_BACKUP = [
   "supertilt_actions", "supertilt_columns", "supertilt_settings",
   "support_ticket_attachments", "support_tickets",
   "tender_documents", "tender_opportunities",
-  "testimonials", "time_entries",
+  "client_pearls", "testimonial_requests", "testimonials", "time_entries",
   "trainer_attendance_signatures", "trainer_documents", "trainer_evaluations",
   "trainer_training_adequacy", "trainers",
   "training_actions", "training_coaching_slots", "training_documents",
-  "training_evaluations", "training_formulas", "training_live_meetings", "training_media",
+  "training_evaluations", "training_feedbacks", "training_formulas", "training_live_meetings", "training_media",
   "training_participants", "training_schedules",
   "training_support_imports", "training_support_media", "training_support_sections",
   "training_support_template_sections", "training_support_templates", "training_supports",
@@ -105,7 +105,7 @@ const TABLES_TO_BACKUP = [
   "usage_records", "user_module_access", "user_positioning",
   "user_preferences", "user_security_metadata",
   "vhd_procedures", "vhd_reports",
-  "watch_clusters", "watch_digests", "watch_items",
+  "watch_clusters", "watch_digests", "watch_items", "watch_sources",
   "webhook_logs",
   "woocommerce_coupons", "woocommerce_orders", "woocommerce_pending_formations",
   "wp_articles", "wp_traffic_daily",
@@ -114,6 +114,7 @@ const TABLES_TO_BACKUP = [
 // ─── Storage buckets ────────────────────────────────────────────────────────
 
 const STORAGE_BUCKETS = [
+  "client-pearls",
   "training-programs",
   "training-documents",
   "training-media",

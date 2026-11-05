@@ -3,7 +3,7 @@
  * mail Gmail + pièces jointes, logistique (train/hôtel...), trace d'interaction.
  * Toutes les écritures sont additives, sauf la case logistique (booléen).
  */
-import { fetchGmailMessage } from "./gmail.ts";
+import { fetchGmailMessage, type GmailMessage } from "./gmail.ts";
 import { sanitizeFileName } from "./file-utils.ts";
 
 // deno-lint-ignore no-explicit-any
@@ -16,7 +16,7 @@ export const ATTACH_RECORD_TYPES = [...RECORD_TYPES, "participant"] as const;
 export const DOCUMENT_ROLES = ["signed_convention", "other"] as const;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const MAX_FILE_BYTES = 20 * 1024 * 1024;
+export const MAX_FILE_BYTES = 20 * 1024 * 1024;
 
 function todayParis(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date());
@@ -120,6 +120,7 @@ export async function attachEmailToRecord(
   },
   log: Log,
   actorEmail: string,
+  prefetched?: GmailMessage,
 ): Promise<string> {
   const type = input.record_type as (typeof ATTACH_RECORD_TYPES)[number];
   if (!ATTACH_RECORD_TYPES.includes(type)) throw new Error(`record_type invalide : ${ATTACH_RECORD_TYPES.join(", ")}`);
@@ -128,10 +129,10 @@ export async function attachEmailToRecord(
   if (!DOCUMENT_ROLES.includes(role as (typeof DOCUMENT_ROLES)[number])) throw new Error(`document_role invalide : ${DOCUMENT_ROLES.join(", ")}`);
   if (role === "signed_convention" && type !== "participant") throw new Error("document_role=signed_convention exige record_type=participant");
 
-  if (type !== "participant") return attachToRecord(db, { ...input, record_type: type }, log, actorEmail);
+  if (type !== "participant") return attachToRecord(db, { ...input, record_type: type }, log, actorEmail, prefetched);
 
   const p = await loadParticipant(db, input.record_id);
-  const msg = await fetchGmailMessage(input.gmail_message_id, MAX_FILE_BYTES);
+  const msg = prefetched ?? await fetchGmailMessage(input.gmail_message_id, MAX_FILE_BYTES);
 
   let conventionName: string | null = null;
   if (role === "signed_convention") {
@@ -205,11 +206,12 @@ async function attachToRecord(
   input: { record_type: RecordType; record_id: string; gmail_message_id: string; include_email?: boolean; note?: string },
   log: Log,
   actorEmail: string,
+  prefetched?: GmailMessage,
 ): Promise<string> {
   const type = input.record_type;
   const recLabel = await recordLabel(db, type, input.record_id);
 
-  const msg = await fetchGmailMessage(input.gmail_message_id, MAX_FILE_BYTES);
+  const msg = prefetched ?? await fetchGmailMessage(input.gmail_message_id, MAX_FILE_BYTES);
   const saved: Array<{ file_name: string; size: number }> = [];
   let emlError: string | null = null;
   if (input.include_email !== false) {

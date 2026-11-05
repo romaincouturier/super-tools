@@ -35,9 +35,10 @@ vi.mock("@/lib/workingDays", () => ({
 const {
   insertParticipantsWithQuestionnaires,
   sendWelcomeEmailsToBatch,
-  sendElearningAccessToBatch,
+  enqueueElearningAccessBatch,
   logBulkAddActivity,
   buildStatusMessage,
+  formulaColumns,
 } = await import("./bulkParticipants");
 
 beforeEach(() => {
@@ -149,52 +150,39 @@ describe("sendWelcomeEmailsToBatch", () => {
   });
 });
 
-describe("sendElearningAccessToBatch", () => {
+describe("enqueueElearningAccessBatch", () => {
   const batch = [
     { id: "p1", email: "a@b.com", first_name: null, last_name: null, company: null, needs_survey_token: "t", sponsor_email: null },
+    { id: "p2", email: "c@d.com", first_name: null, last_name: null, company: null, needs_survey_token: "t", sponsor_email: null },
   ];
 
-  it("envoie l'email d'accès, comme l'ajout unitaire", async () => {
-    mockInvoke.mockResolvedValueOnce({ data: null, error: null });
-
-    await sendElearningAccessToBatch(batch, "t1");
+  it("confie tout le lot au serveur en un seul appel", async () => {
+    mockInvoke.mockResolvedValueOnce({ data: { success: true, batchId: "b1", total: 2 }, error: null });
+    await expect(enqueueElearningAccessBatch(batch, "t1")).resolves.toEqual({ batchId: "b1", total: 2 });
     expect(mockInvoke).toHaveBeenCalledTimes(1);
-    expect(mockInvoke).toHaveBeenNthCalledWith(1, "send-learner-access-email", {
-      body: { email: "a@b.com", trainingId: "t1" },
+    expect(mockInvoke).toHaveBeenCalledWith("queue-learner-access-emails", {
+      body: { action: "enqueue", trainingId: "t1", emails: ["a@b.com", "c@d.com"] },
     });
+  });
+
+  it("signale un échec de programmation", async () => {
+    mockInvoke.mockResolvedValueOnce({ data: null, error: new Error("Forbidden") });
+    await expect(enqueueElearningAccessBatch(batch, "t1")).rejects.toThrow("Forbidden");
   });
 });
 
-describe("progression des envois en lot", () => {
+describe("progression des envois d'accueil en lot", () => {
   const batch = [
     { id: "p1", email: "a@example.com", first_name: null, last_name: null, company: null, needs_survey_token: "t1", sponsor_email: null },
     { id: "p2", email: "b@example.com", first_name: null, last_name: null, company: null, needs_survey_token: "t2", sponsor_email: null },
   ];
 
-  it.each([
-    ["accueil", sendWelcomeEmailsToBatch],
-    ["accès e-learning", sendElearningAccessToBatch],
-  ])("compte chaque participant traité pour %s, même après un échec", async (_name, sendBatch) => {
+  it("compte chaque participant traité, même après un échec", async () => {
     mockInvoke.mockRejectedValueOnce(new Error("network error"));
     mockInvoke.mockResolvedValueOnce({ data: null, error: null });
     const updates: number[][] = [];
-    await sendBatch(batch, "t1", (completed, total) => updates.push([completed, total]));
+    await sendWelcomeEmailsToBatch(batch, "t1", (completed, total) => updates.push([completed, total]));
     expect(updates).toEqual([[1, 2], [2, 2]]);
-    expect(mockInvoke).toHaveBeenCalledTimes(2);
-  });
-
-  it("ne signale aucun participant pour un lot vide", async () => {
-    const updates: number[][] = [];
-    await sendElearningAccessToBatch([], "t1", (completed, total) => updates.push([completed, total]));
-    expect(updates).toEqual([]);
-    expect(mockInvoke).not.toHaveBeenCalled();
-  });
-
-  it("conserve les destinataires en échec et continue les autres envois", async () => {
-    mockInvoke.mockResolvedValueOnce({ data: null, error: new Error("Quota interne atteint") });
-    mockInvoke.mockResolvedValueOnce({ data: { success: true, sent: true }, error: null });
-    await expect(sendElearningAccessToBatch(batch, "t1")).resolves.toEqual([{ email: "a@example.com", message: "Quota interne atteint" }]);
-    expect(mockInvoke).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -264,5 +252,19 @@ describe("buildStatusMessage", () => {
   it("returns needs survey skipped warning when only that is skipped", () => {
     const msg = buildStatusMessage("programme", false, true);
     expect(msg).toContain("recueil des besoins n'a pas \u00e9t\u00e9 programm\u00e9");
+  });
+});
+
+describe("formulaColumns", () => {
+  it("n'ajoute rien sans formule", () => {
+    expect(formulaColumns(null)).toEqual({});
+  });
+  it("renseigne la formule sans coaching", () => {
+    expect(formulaColumns({ id: "f1", name: "Solo", coaching_sessions_count: 0 })).toEqual({ formula: "Solo", formula_id: "f1" });
+  });
+  it("ouvre le coaching sur un an si la formule en inclut", () => {
+    expect(formulaColumns({ id: "f2", name: "Coachée", coaching_sessions_count: 3 }, new Date("2026-11-05T10:00:00Z"))).toEqual({
+      formula: "Coachée", formula_id: "f2", coaching_sessions_total: 3, coaching_sessions_completed: 0, coaching_deadline: "2027-11-05",
+    });
   });
 });
