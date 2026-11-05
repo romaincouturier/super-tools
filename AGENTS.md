@@ -55,7 +55,7 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Bulk participant progress follows awaited stages and per-recipient callbacks, so it reflects real work.
 
 - Staff learner-access sends provision missing accounts only after checking an existing participant or LMS enrollment, because bulk additions bypass account provisioning and must not silently skip the email or create arbitrary accounts.
-- Staff learner-access failures preserve their stage and use HTTP 429 for non-admin link quotas; only a server-verified caller checked by is_admin may bypass the internal quota, and browser batches report failed recipients without undoing enrollment, because administrator tests must not weaken public protections or duplicate participant records.
+- Staff learner-access failures keep their stage, return 429 for non-admin quotas (only server-verified is_admin bypasses), and browser batches report failures without undoing enrollment, so admin tests never weaken public protections.
 
 - Training document delivery locks submission before preparation, checks trainer signatures, generates certificates without sending separate emails, and uses provider idempotency per confirmation; only attached documents are marked sent, because an incomplete or repeated preparation must not send invoices alone or claim missing documents were delivered.
 
@@ -90,4 +90,4 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - CRM opportunity values use the shared pure `_shared/opportunity-value.ts`, so entry points agree.
 - Transcript→Réseau links: `link_transcript_to_network_contact` (UI), `_shared/network-tools.ts` (MCP); unlinking keeps the interaction, preserving history.
 - Picto-Dico input and challenge guards are DB triggers mirrored in `_shared/pictodico-validation.ts`; the linked event drives challenge number/date, because the webhook is public.
-- Live-recording notice: one editable template `live_recording_notice`, appended to access/live emails and formation-info only when lives exist, for consistent wording.
+- Live-recording notice: one editable template `live_recording_notice`, shown in access/live emails and formation-info when lives exist.
