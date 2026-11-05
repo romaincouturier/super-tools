@@ -88,5 +88,5 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Password emails use hashed `password_setup_links` redeemed on click, because native recovery tokens expire too soon.
 - Learner community reads (posts and children) use security-definer enrollment-scoped helpers, because intra client feeds must stay private.
 - CRM opportunity values use the shared pure `_shared/opportunity-value.ts`, so entry points agree.
-- Transcript→Réseau links: `link_transcript_to_network_contact` (UI), `_shared/network-tools.ts` (MCP); unlinking keeps the interaction, to preserve history.
+- Transcript→Réseau links: `link_transcript_to_network_contact` (UI), `_shared/network-tools.ts` (MCP); unlinking keeps the interaction, preserving history.
 - Picto-Dico input and challenge guards are DB triggers mirrored in `_shared/pictodico-validation.ts`; the linked event drives challenge number/date, because the webhook is public.
