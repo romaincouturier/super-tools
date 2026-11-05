@@ -2,7 +2,7 @@
 title: 'Story 1.1 : rédiger un contenu décliné sur plusieurs canaux'
 type: 'feature'
 created: '2026-11-05'
-status: 'in-progress'
+status: 'in-review'
 baseline_commit: 'd41a0f4f8f1ecd5d25ebd608824cec12314004b3'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -68,14 +68,14 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `supabase/migrations/20261105120000_social_contents.sql` -- tables `social_channels` (nom, abréviation, limite de texte, ordre, actif), `social_content_groups` (format, synchro, auteur, dates) et `social_posts` (groupe, canal, texte, `scheduled_at`, `publication_status`) ; RLS ; trigger de propagation du texte ; 8 canaux insérés. -- Socle de l'epic.
-- [ ] `supabase/functions/scheduled-backup/index.ts`, `supabase/functions/backup-export/index.ts` -- ajouter les 3 tables. -- Règle [038].
-- [ ] `src/services/socialContents.ts` -- types locaux, `listChannels`, `getGroup`, `saveGroupWithPosts`. -- Seul point d'accès à Supabase.
-- [ ] `src/hooks/useSocialContents.ts` -- requêtes et mutations React Query. -- Couche hook.
-- [ ] `src/components/social/SocialComposerDialog.tsx` -- canaux à cocher, format, bascule de synchro, texte commun ou un onglet par canal, date et heure facultatives, sauvegarde continue. -- Composeur.
-- [ ] `src/pages/SocialContentsPage.tsx`, plus la route, le menu et l'icône -- `ModuleLayout` et `PageHeader`, bouton « Nouveau contenu ». -- Sous-module.
-- [ ] `supabase/tests/social-contents.test.ts`, `scripts/sql-tested-functions.txt` -- propagation avec synchro active et coupée, format refusé hors CHECK, RLS avec un compte autre que Romain. -- Règle [058].
-- [ ] `src/services/socialContents.test.ts` -- construction des posts d'un groupe à partir des canaux cochés. -- Logique pure.
+- [x] `supabase/migrations/20261105120000_social_contents.sql` -- tables `social_channels` (nom, abréviation, limite de texte, ordre, actif), `social_content_groups` (format, synchro, auteur, dates) et `social_posts` (groupe, canal, texte, `scheduled_at`, `publication_status`) ; RLS ; trigger de propagation du texte ; 8 canaux insérés. -- Socle de l'epic.
+- [x] `supabase/functions/scheduled-backup/index.ts`, `supabase/functions/backup-export/index.ts` -- ajouter les 3 tables. -- Règle [038].
+- [x] `src/services/socialContents.ts` -- types locaux, `listChannels`, `getGroup`, `saveGroupWithPosts`. -- Seul point d'accès à Supabase.
+- [x] `src/hooks/useSocialContents.ts` -- requêtes et mutations React Query. -- Couche hook.
+- [x] `src/components/social/SocialComposerDialog.tsx` -- canaux à cocher, format, bascule de synchro, texte commun ou un onglet par canal, date et heure facultatives, sauvegarde continue. -- Composeur.
+- [x] `src/pages/SocialContentsPage.tsx`, plus la route, le menu et l'icône -- `ModuleLayout` et `PageHeader`, bouton « Nouveau contenu ». -- Sous-module.
+- [x] `supabase/tests/social-contents.test.ts`, `scripts/sql-tested-functions.txt` -- propagation avec synchro active et coupée, format refusé hors CHECK, RLS avec un compte autre que Romain. -- Règle [058].
+- [x] `src/services/socialContents.test.ts` -- construction des posts d'un groupe à partir des canaux cochés. -- Logique pure.
 
 **Acceptance Criteria:**
 - Given un utilisateur avec `supertilt_fr`, when il ouvre le menu supertilt.fr, then « Contenus sociaux » apparaît et mène à `/supertilt-fr/contenus-sociaux`.
@@ -84,9 +84,44 @@ context:
 
 ## Implementation Notes
 
+- Enregistrement atomique par la RPC `save_social_content_group` (SECURITY INVOKER, RLS appliquée), avec un identifiant de groupe fourni par le client : la sauvegarde continue réécrit le même groupe, sans doublon. Un canal décoché perd son post ; une déclinaison publiée n'est jamais réécrite.
+- Choix faits faute d'indication dans la spec : une date saisie sans heure prend 09:00, visible dans le champ ; réactiver la synchro garde le texte de l'onglet actif ; limites YouTube (5 000) et Facebook (63 206) choisies.
+- Aucun moyen de rouvrir un brouillon fermé tant que la colonne « Non planifiés » (reportée) n'existe pas ; le composeur accepte déjà un `groupId`.
+- Test ajouté au contrôle : `src/components/social/SocialComposerDialog.test.tsx` couvre la ligne « Sauvegarde continue » du tableau (fermeture sans Enregistrer).
+- À faire pour la mise en production : jouer la migration explicitement, puis laisser Lovable régénérer `types.ts` et retirer le client non typé du service.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+Passe 1 (5 nov.), trois couches : chasseur à l'aveugle, chasseur de cas limites, trous de vérification.
+
+| # | Constat | Verdict | Preuve et décision |
+|---|---|---|---|
+| 1 | Le DELETE de la RPC supprime une déclinaison publiée quand on décoche son canal | medium | Le DELETE n'a pas le filtre `publication_status <> 'published'` que l'upsert a. Corrigé (patch). |
+| 2 | La modification d'un post publié se propage aux autres déclinaisons du groupe | low | Le trigger ne regarde pas `NEW.publication_status`. Contraire à la décision sur les contenus partiellement publiés. Corrigé (patch). |
+| 3 | Tout utilisateur `supertilt_fr` peut modifier la liste des canaux | medium | Les policies INSERT, UPDATE et DELETE ne sont pas réservées aux admins, alors qu'aucun écran ne gère cette donnée de référence. Restreint aux admins (patch). |
+| 4 | `social_contents_touch_updated_at` double `update_updated_at_column` | low | La fonction existe déjà dans les migrations. Réutilisée (patch). |
+| 5 | Index `social_posts_group_idx` redondant | low | Il est couvert par la colonne de tête de la contrainte unique. Supprimé (patch). |
+| 6 | Re-sauvegarde avec synchro ou format changés non testée | medium | Trou de vérification déjà vérifié par la couche. Test ajouté (patch). |
+| 7 | Protection des posts publiés non testée côté RPC | medium | Trou de vérification déjà vérifié par la couche. Test ajouté (patch). |
+| 8 | Groupe en erreur ou introuvable initialisé vide, puis la sauvegarde continue efface ses posts | medium | `groupFetching` passe à false alors que `group` est absent, et l'id existant est conservé. Garde ajoutée (patch). |
+| 9 | À la réouverture, le texte commun est pris d'un post publié | low | `posts[0]` peut être publié. Corrigé (patch). |
+| 10 | Des sauvegardes peuvent se croiser | medium | Rien n'attend la mutation en cours. Les sauvegardes sont mises en file (patch). |
+| 11 | Une sauvegarde échouée puis la fermeture perdent la saisie | medium | Après un échec, `flushAndGetPending` renvoie null : rien n'est retenté. La fermeture retente (patch). |
+| 12 | Un texte saisi sans canal est perdu sans avertissement | low | `handleAutoSave` renvoie false sans prévenir. Toast ajouté (patch). |
+| 13 | Réactiver la synchro écrase les textes par canal sans prévenir | medium | `toggleSync(true)` ne garde que l'onglet actif. Confirmation `useConfirm` ajoutée (patch). |
+| 14 | Une heure effacée s'enregistre à 09:00 alors que le champ affiche vide | low | `toDraft` applique `DEFAULT_TIME`. Le champ est remis à 09:00 (patch). |
+| 15 | Enregistrer et le passage de la date à `scheduledAt` non testés dans le composeur | medium | Trou de vérification déjà vérifié par la couche. Test ajouté (patch). |
+| 16 | Les heures de changement d'heure (inexistante, ambiguë) ne sont pas testées | low | Saisie rare mais possible. Tests ajoutés pour fixer le comportement (patch). |
+| 17 | La page ne permet pas de rouvrir un brouillon | false | Exclu par l'intention : la colonne « Non planifiés » est reportée dans `deferred-work.md`. |
+| 18 | `text_limit` chargé mais non utilisé | false | Les alertes de longueur appartiennent à la story 1.3, exclue par l'intention. |
+| 19 | Trois canaux partagent l'abréviation LI | false | C'est la décision de la maquette, inscrite dans la spec. |
+| 20 | `created_by` modifiable en écriture directe | low | Aucun écran ne l'expose ; le défaut est rare et la garde ajouterait de la complexité. Rejeté. |
+| 21 | Posts sur un canal désactivé, invisibles mais conservés | low | Aucun écran ne désactive de canal (et c'est réservé aux admins depuis le n° 3). Rejeté. |
+| 22 | Chaque sauvegarde continue relit le groupe ouvert | low | Coût négligeable, aucun effet visible, protégé par `initializedFor`. Rejeté. |
+| 23 | Doublon de canal dans `p_posts` : résultat non déterministe | low | Le client dédoublonne déjà (`buildGroupPosts`). Rejeté. |
+| 24 | Le garde `pg_trigger_depth` ignore les écritures faites depuis un autre trigger | maybe-false | Aucun autre trigger n'écrit dans `social_posts` aujourd'hui. Rejeté : l'enjeu serait faible. |
 
 ## Design Notes
 
