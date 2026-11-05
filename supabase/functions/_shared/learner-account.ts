@@ -2,7 +2,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4
 import { normalizeLearnerEmail, isUsableLearnerEmail } from "./learner-email.ts";
 import { generateHash } from "./crypto.ts";
 import { getAppUrls } from "./app-urls.ts";
-import { passwordResetLink } from "./password-reset.ts";
+import { passwordResetLink, SETUP_LINK_TTL_HOURS } from "./password-reset.ts";
 import { getSigniticSignature } from "./signitic.ts";
 import { getBccList } from "./email-settings.ts";
 import { sendEmail } from "./resend.ts";
@@ -84,7 +84,7 @@ export async function learnerAccessLink(
   if (passwordSet === null) return null;
 
   if (passwordSet === false) {
-    const actionLink = await passwordResetLink(admin, normalized, strict);
+    const actionLink = await passwordResetLink(admin, normalized, strict, SETUP_LINK_TTL_HOURS);
     return actionLink ? { actionLink, passwordSet: false } : null;
   }
 

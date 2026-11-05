@@ -16,7 +16,8 @@ export default function ConnexionReinitialisation() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isStaff, refresh } = useSession();
-  const { stage, confirmRecovery } = usePasswordRecoverySession();
+  const { stage, confirmRecovery, canResend, requestNewLink } = usePasswordRecoverySession();
+  const [resend, setResend] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const { updatePassword, markPasswordChanged } = useAuthActions();
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -89,12 +90,27 @@ export default function ConnexionReinitialisation() {
                 Ce lien a expiré
               </AuthTitle>
               <p className="mb-7 max-w-[42ch] text-[15.5px] text-muted-foreground">
-                Les liens de réinitialisation sont valables 1 heure et ne fonctionnent qu'une fois.
-                Demandez-en un nouveau, nous vous l'envoyons tout de suite.
+                Ce lien n'est plus valable : il a expiré ou a déjà servi.
+                {canResend
+                  ? " Recevez un nouveau lien à votre adresse email, valable 24 heures."
+                  : " Demandez-en un nouveau, nous vous l'envoyons tout de suite."}
               </p>
-              <AuthButton type="button" onClick={() => navigate("/connexion/mot-de-passe-oublie")}>
-                Recevoir un nouveau lien
-              </AuthButton>
+              {resend === "sent" ? (
+                <p className="mb-4 text-[15.5px] text-foreground" role="status">
+                  Un nouveau lien vient de vous être envoyé par email. Il est valable 24 heures.
+                </p>
+              ) : (
+                <AuthButton type="button" disabled={resend === "sending"} onClick={async () => {
+                  if (!canResend) { navigate("/connexion/mot-de-passe-oublie"); return; }
+                  setResend("sending");
+                  setResend((await requestNewLink()) ? "sent" : "error");
+                }}>
+                  {resend === "sending" ? <Spinner /> : "Recevoir un nouveau lien"}
+                </AuthButton>
+              )}
+              {resend === "error" && (
+                <p className="mt-3 text-sm text-destructive">L'envoi a échoué. Réessayez dans quelques minutes.</p>
+              )}
               <AuthSupportLine />
             </>
           }

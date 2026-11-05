@@ -21,7 +21,7 @@ type CreateUserResult = { data: { user: { id: string } | null } | null; error: {
 function makeAdmin(result: CreateUserResult) {
   const createUser = vi.fn().mockResolvedValue(result);
   const upsert = vi.fn().mockResolvedValue({ error: null });
-  const from = vi.fn(() => ({ upsert }));
+  const from = vi.fn(() => ({ upsert, insert: vi.fn().mockResolvedValue({ error: null }) }));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = { auth: { admin: { createUser } }, from } as any;
   return { admin, createUser, upsert, from };
@@ -124,8 +124,12 @@ function makeAccessAdmin(opts: {
     },
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const admin = { rpc, auth: { admin: { generateLink } } } as any;
-  return { admin, rpc, generateLink };
+  const insert = vi.fn().mockResolvedValue({ error: null });
+  const upsert = vi.fn().mockResolvedValue({ error: null });
+  const from = vi.fn(() => ({ insert, upsert }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin = { rpc, auth: { admin: { generateLink } }, from } as any;
+  return { admin, rpc, generateLink, insert };
 }
 
 describe("sendLearnerAccessEmail", () => {
@@ -171,7 +175,8 @@ describe("sendLearnerAccessEmail", () => {
     // RG-21 : jamais l'action_link Supabase (auth/v1/verify), qui consommerait
     // le jeton dès la requête GET — seulement notre propre URL avec le
     // token_hash, consommé au clic sur ConnexionReinitialisation.tsx.
-    expect(call.html).toContain("https://app.example.com/connexion/reinitialisation?token_hash=abc123&type=recovery");
+    expect(call.html).toMatch(/https:\/\/app\.example\.com\/connexion\/reinitialisation\?link=[a-f0-9]{64}/);
+    expect(call.html).not.toContain("abc123");
     expect(call.html).not.toContain("auth/v1/verify");
     expect(call.html).toContain("Créer mon mot de passe");
   });
@@ -325,10 +330,9 @@ describe("learnerAccessLink", () => {
   it("compte sans mot de passe : lien token_hash vers l'écran de création, jamais action_link (RG-21)", async () => {
     const { admin, generateLink } = makeAccessAdmin({ passwordSet: false });
 
-    await expect(learnerAccessLink(admin, "nouveau@example.com")).resolves.toEqual({
-      actionLink: "https://app.example.com/connexion/reinitialisation?token_hash=abc123&type=recovery",
-      passwordSet: false,
-    });
+    const result = await learnerAccessLink(admin, "nouveau@example.com");
+    expect(result?.passwordSet).toBe(false);
+    expect(result?.actionLink).toMatch(/^https:\/\/app\.example\.com\/connexion\/reinitialisation\?link=[a-f0-9]{64}$/);
     expect(generateLink).toHaveBeenCalledWith({
       type: "recovery",
       email: "nouveau@example.com",

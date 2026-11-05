@@ -72,7 +72,7 @@ export default function ConnexionMotDePasseOublie() {
               <div className="mt-6 flex items-center gap-3 rounded-[11px] bg-primary/10 px-4 py-3.5 text-[14.5px] text-foreground">
                 <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-primary" />
                 Si un compte existe pour cette adresse, un e-mail vient d'être envoyé.
-                Le lien est valable 1 heure.
+                Le lien est valable 24 heures.
               </div>
             )}
 
@@ -85,7 +85,7 @@ export default function ConnexionMotDePasseOublie() {
               {
                 icon: <Mail className="h-[21px] w-[21px]" />,
                 title: "Vérifiez votre boîte mail",
-                text: "Vous recevrez un e-mail contenant un lien valable 1 heure, utilisable une seule fois.",
+                text: "Vous recevrez un e-mail contenant un lien valable 24 heures, utilisable une seule fois.",
               },
               {
                 icon: <ShieldCheck className="h-[21px] w-[21px]" />,

@@ -265,7 +265,7 @@ Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :
 
 {{reset_button}}
 
-Ce lien expire dans 1 heure.
+Ce lien expire dans 24 heures.
 
 Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.`),
     variables: ["reset_button"],
