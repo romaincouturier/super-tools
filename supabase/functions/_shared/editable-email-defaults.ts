@@ -221,6 +221,18 @@ Votre espace apprenant{{#training_name}} pour la formation « {{training_name}} 
     variables: ["training_name", "password_set", "no_password", "platform_changed", "access_button"],
   },
 
+  live_recording_notice: {
+    name: "Mention enregistrement des lives",
+    audience: "client",
+    sendingInfo: "🎥 Petit texte ajouté en fin des emails d'accès, des rappels de live et de la page infos, pour les formations avec lives (l'objet n'est pas utilisé)",
+    subject: same("Mention enregistrement des lives"),
+    content: {
+      tu: "Les lives sont enregistrés pour que chacun puisse les revoir : les replays sont partagés uniquement avec les participants de la formation. Les échanges et le partage des dessins font toute la richesse du groupe, dans un esprit de bienveillance. Si tu préfères ne pas apparaître à l'image, tu peux simplement garder ta caméra coupée, et seuls les dessins que tu publies dans la communauté sont partagés en live.",
+      vous: "Les lives sont enregistrés pour que chacun puisse les revoir : les replays sont partagés uniquement avec les participants de la formation. Les échanges et le partage des dessins font toute la richesse du groupe, dans un esprit de bienveillance. Si vous préférez ne pas apparaître à l'image, vous pouvez simplement garder votre caméra coupée, et seuls les dessins que vous publiez dans la communauté sont partagés en live.",
+    },
+    variables: [],
+  },
+
   learner_course_access: {
     name: "Accès à une nouvelle formation ouvert",
     audience: "client",
