@@ -330,8 +330,6 @@ describe("learnerAccessLink", () => {
   it("compte sans mot de passe : lien token_hash vers l'écran de création, jamais action_link (RG-21)", async () => {
     const { admin, generateLink } = makeAccessAdmin({ passwordSet: false });
 
-    const { admin: _a, insert } = { admin, insert: (admin.from as ReturnType<typeof vi.fn>) };
-    void _a; void insert;
     const result = await learnerAccessLink(admin, "nouveau@example.com");
     expect(result?.passwordSet).toBe(false);
     expect(result?.actionLink).toMatch(/^https:\/\/app\.example\.com\/connexion\/reinitialisation\?link=[a-f0-9]{64}$/);
