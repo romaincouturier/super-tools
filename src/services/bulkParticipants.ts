@@ -24,14 +24,39 @@ export interface BulkAddResult {
   duplicateWarning: boolean;
 }
 
+export interface BulkFormula {
+  id: string;
+  name: string;
+  coaching_sessions_count?: number | null;
+}
+
+/** Mêmes colonnes que l'ajout unitaire : formule, et coaching sur 1 an si la formule en inclut. */
+export function formulaColumns(formula: BulkFormula | null | undefined, now: Date = new Date()): Record<string, unknown> {
+  if (!formula) return {};
+  const coaching = formula.coaching_sessions_count || 0;
+  const deadline = new Date(now);
+  deadline.setFullYear(deadline.getFullYear() + 1);
+  return {
+    formula: formula.name || null,
+    formula_id: formula.id,
+    ...(coaching > 0 && {
+      coaching_sessions_total: coaching,
+      coaching_sessions_completed: 0,
+      coaching_deadline: format(deadline, "yyyy-MM-dd"),
+    }),
+  };
+}
+
 export async function insertParticipantsWithQuestionnaires(
   parsedParticipants: ParsedParticipant[],
   trainingId: string,
   trainingStartDate: string | undefined,
+  formulaFor?: (email: string) => BulkFormula | null | undefined,
 ): Promise<{ data: InsertedParticipant[] | null; status: string; sendWelcomeNow: boolean; duplicateWarning: boolean }> {
   const { status, sendWelcomeNow } = getEmailMode(trainingStartDate);
 
   const toInsert = parsedParticipants.map((p) => ({
+    ...formulaColumns(formulaFor?.(p.email)),
     training_id: trainingId,
     email: p.email,
     first_name: capitalizeName(p.firstName || "") || null,

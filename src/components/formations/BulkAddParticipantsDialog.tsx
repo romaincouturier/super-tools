@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { FormationFormula } from "@/types/training";
 import { Users, AlertCircle, AlertTriangle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { isManualEmailMode, isTrainingOngoing } from "@/lib/emailScheduling";
@@ -18,7 +20,7 @@ import { catchUpAttendanceSignaturesForParticipant } from "@/services/participan
 import { scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 import { supabase } from "@/integrations/supabase/client";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskEmail } from "@/lib/demoMask";
+import { maskEmail, maskName } from "@/lib/demoMask";
 
 interface BulkAddParticipantsDialogProps {
   trainingId: string;
@@ -29,12 +31,14 @@ interface BulkAddParticipantsDialogProps {
   isInterEntreprise?: boolean;
   isFreeTraining?: boolean;
   formatFormation?: string | null;
+  availableFormulas?: FormationFormula[];
+  trainingFormulaId?: string;
 }
 
 const pluralize = (count: number) => (count !== 1 ? "s" : "");
 
 const BulkAddParticipantsDialog = ({
-  trainingId, trainingStartDate, trainingEndDate, onParticipantsAdded, onScheduledEmailsRefresh, isInterEntreprise = false, isFreeTraining = false, formatFormation,
+  trainingId, trainingStartDate, trainingEndDate, onParticipantsAdded, onScheduledEmailsRefresh, isInterEntreprise = false, isFreeTraining = false, formatFormation, availableFormulas = [], trainingFormulaId,
 }: BulkAddParticipantsDialogProps) => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -45,6 +49,17 @@ const BulkAddParticipantsDialog = ({
   const { isDemoMode } = useDemoMode();
   const { parsedParticipants, parseErrors } = useParticipantParser(bulkText, isInterEntreprise);
   const count = parsedParticipants.length;
+  const showFormulas = availableFormulas.length >= 2 && !trainingFormulaId;
+  const [defaultFormulaId, setDefaultFormulaId] = useState("");
+  const [formulaOverrides, setFormulaOverrides] = useState<Record<string, string>>({});
+  const [showPerParticipant, setShowPerParticipant] = useState(false);
+  const formulaIdFor = (email: string) => formulaOverrides[email.trim().toLowerCase()] || defaultFormulaId;
+  const missingFormula = showFormulas && parsedParticipants.some((p) => !formulaIdFor(p.email));
+  const formulaLabel = (f: FormationFormula) => `${f.name}${f.prix != null ? ` — ${f.prix}€` : ""}`; // demo-safe: tarif du catalogue SuperTilt
+  const overrideCount = useMemo(
+    () => parsedParticipants.filter((p) => { const o = formulaOverrides[p.email.trim().toLowerCase()]; return o && o !== defaultFormulaId; }).length, // demo-safe: comptage, rien affiché
+    [parsedParticipants, formulaOverrides, defaultFormulaId],
+  );
 
   useEffect(() => {
     if (trainingStartDate) setIsManualMode(isManualEmailMode(trainingStartDate));
@@ -57,10 +72,14 @@ const BulkAddParticipantsDialog = ({
       toastError(toast, "Veuillez entrer au moins une adresse email valide.", { title: "Aucun participant" });
       return;
     }
+    if (missingFormula) {
+      toastError(toast, "Choisissez une formule pour tous les participants.", { title: "Formule manquante" });
+      return;
+    }
     setSaving(true);
     setProgress({ value: 0, action: "Ajout des participants et préparation des questionnaires…", detail: `${count} participant${pluralize(count)} à ajouter` });
     try {
-      const { data, status, sendWelcomeNow, duplicateWarning } = await insertParticipantsWithQuestionnaires(parsedParticipants, trainingId, trainingStartDate);
+      const { data, status, sendWelcomeNow, duplicateWarning } = await insertParticipantsWithQuestionnaires(parsedParticipants, trainingId, trainingStartDate, showFormulas ? (email) => availableFormulas.find((f) => f.id === formulaIdFor(email)) : undefined);
       const insertedCount = data?.length ?? 0;
       setProgress({ value: 25, action: "Participants ajoutés", detail: `${insertedCount} participant${pluralize(insertedCount)} ajouté${pluralize(insertedCount)}` });
       if (duplicateWarning) toast({ title: "Doublons détectés", description: "Certains participants étaient déjà inscrits et ont été ignorés.", variant: "default" });
@@ -132,7 +151,7 @@ const BulkAddParticipantsDialog = ({
         description: `${n} participant${pluralize(n)} ajouté${pluralize(n)}. ${accessSummary ? `${accessSummary} ` : ""}${baseMessage}`,
         ...(needsSurveySkipped && { duration: 8000 }),
       });
-      setBulkText("");
+      setBulkText(""); setFormulaOverrides({}); setDefaultFormulaId(""); setShowPerParticipant(false);
       setOpen(false);
       onParticipantsAdded();
       onScheduledEmailsRefresh?.();
@@ -203,6 +222,42 @@ const BulkAddParticipantsDialog = ({
                 {isInterEntreprise && <div className="text-xs">{parsedParticipants.filter((p) => p.sponsorEmail).length} avec commanditaire renseigné</div>}
               </div>
             )}
+            {showFormulas && (
+              <div className="space-y-2">
+                <Label>Formule pour tous les participants</Label>
+                <Select value={defaultFormulaId} onValueChange={setDefaultFormulaId} disabled={saving}>
+                  <SelectTrigger aria-label="Formule pour tous les participants"><SelectValue placeholder="Sélectionner une formule" /></SelectTrigger>
+                  <SelectContent>
+                    {availableFormulas.map((f) => <SelectItem key={f.id} value={f.id}>{formulaLabel(f)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {count > 0 && (
+                  <Button type="button" variant="link" className="h-auto p-0 text-sm" disabled={saving} onClick={() => setShowPerParticipant((v) => !v)}>
+                    {showPerParticipant ? "Masquer le choix par participant" : "Choisir une formule différente pour certains participants"}
+                    {overrideCount > 0 && ` (${overrideCount} personnalisée${pluralize(overrideCount)})`}
+                  </Button>
+                )}
+                {showPerParticipant && count > 0 && (
+                  <div className="max-h-64 overflow-y-auto rounded-md border divide-y">
+                    {parsedParticipants.map((p) => {
+                      const key = p.email.trim().toLowerCase();
+                      const name = [p.firstName, p.lastName].filter(Boolean).join(" ");
+                      return (
+                        <div key={key} className="flex items-center gap-2 p-2 text-sm">
+                          <span className="min-w-0 flex-1 truncate">{isDemoMode ? (name ? maskName(name) : maskEmail(p.email)) : (name || p.email)}</span>
+                          <Select value={formulaIdFor(p.email)} onValueChange={(v) => setFormulaOverrides((prev) => ({ ...prev, [key]: v }))} disabled={saving}>
+                            <SelectTrigger className="w-56" aria-label={`Formule de ${name || "ce participant"}`}><SelectValue placeholder="Formule" /></SelectTrigger>
+                            <SelectContent>
+                              {availableFormulas.map((f) => <SelectItem key={f.id} value={f.id}>{formulaLabel(f)}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           {saving && (
             <div className="space-y-2 pb-4" role="status" aria-live="polite" aria-atomic="true">
@@ -216,7 +271,7 @@ const BulkAddParticipantsDialog = ({
           )}
           <DialogFooter>
             <Button type="button" variant="outline" disabled={saving} onClick={() => setOpen(false)}>Annuler</Button>
-            <Button type="submit" disabled={saving || count === 0}>
+            <Button type="submit" disabled={saving || count === 0 || missingFormula}>
               {saving ? <><Spinner className="mr-2" />Ajout...</> : `Ajouter ${count} participant${pluralize(count)}`}
             </Button>
           </DialogFooter>
