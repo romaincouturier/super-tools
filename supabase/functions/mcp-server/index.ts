@@ -33,6 +33,8 @@ import {
   updateTraining,
 } from "../_shared/record-tools.ts";
 import { getEventHistory } from "../_shared/event-tools.ts";
+import { createNetworkContact, logNetworkInteraction, INTERACTION_TYPES } from "../_shared/network-tools.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
 import { addPictoRequests, checkPictoEntries, type PictoRequestInput } from "../_shared/pictodico-tools.ts";
 import { enrollLmsLearner, unenrollLmsLearner } from "../_shared/lms-enrollment-tools.ts";
 import { addTrainingParticipant, removeTrainingParticipant, SOURCE_FINANCEMENT_BPF, TYPE_STAGIAIRE_BPF } from "../_shared/participant-tools.ts";
@@ -385,7 +387,8 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - save_watch_item : dépose un contenu dans le module Veille (un contenu par appel : lien de la source, résumé dans body, angle dans comment, 2 à 5 tags). Écriture additive, doublons refusés : même URL déjà présente ou contenu sémantiquement quasi identique, l'appel ne crée rien et rend l'élément existant.
 - create_quote : crée un devis en BROUILLON dans Pennylane (comptabilité SuperTilt). Aucun envoi au client, aucune validation, aucune transformation en facture n'est possible depuis ici : le brouillon reste à relire et à envoyer manuellement dans Pennylane.
 - create_content_card : dépose une carte (idée ou article rédigé) dans le kanban éditorial, au stade choisi (colonne, « Idées » par défaut), avec titre, contenu et thèmes. Écriture additive. Réutiliser les thèmes existants (list_content_board) plutôt que d'en inventer.
-- refresh_transcripts / list_unassigned_transcripts / assign_transcript / unassign_transcript : récupèrent les nouveaux transcripts, listent ceux non affectés, les associent à une opportunité, un événement ou une mission (page créée) ou retirent le lien. Proposer l'association à l'utilisateur avant de l'appliquer ; si le transcript est déjà affecté ailleurs, demander avant d'utiliser allow_multiple.
+- create_network_contact / log_network_interaction : créent un contact Réseau ou journalisent une interaction (ajout seul).
+- refresh_transcripts / list_unassigned_transcripts / assign_transcript / unassign_transcript : récupèrent les nouveaux transcripts, listent ceux non affectés, les associent à une opportunité, un événement, une mission (page créée) ou un contact Réseau (interaction « réunion ») ou retirent le lien. Proposer l'association à l'utilisateur avant de l'appliquer ; si le transcript est déjà affecté ailleurs, demander avant d'utiliser allow_multiple.
 - prepare_newsletter : compose le sommaire ordonné d'une newsletter en BROUILLON (création du brouillon ou reprise d'un brouillon existant), à partir de cartes existantes et/ou de nouveaux contenus créés au passage. Remplace le sommaire du brouillon visé uniquement ; refuse toute newsletter déjà envoyée. Aucun envoi n'est possible d'ici : ne jamais prétendre avoir envoyé une newsletter. Récapituler le sommaire et obtenir l'accord de l'utilisateur avant d'écraser le sommaire d'un brouillon existant.
 - update_lms_block : modifie le contenu texte/HTML d'un seul bloc pédagogique d'une leçon (encadré, points clés, exercice, etc.). Ne change JAMAIS le type d'un bloc : le paramètre « type » doit être le type actuel du bloc, sinon l'appel est refusé. Pour convertir un bloc en un autre type, passer par apply_lesson_restructure.
 - create_lms_quiz / create_lms_assignment : créent un quiz (avec ses questions) ou un devoir dans un cours et renvoient le bloc prêt à insérer ({type:"quiz",content:{quiz_id}} ou {type:"assignment",content:{assignment_id}}). Créer d'abord le quiz/devoir, puis référencer son id dans apply_lesson_restructure ou create_lms_lesson. read_lms_quiz relit un quiz.
@@ -1096,13 +1099,13 @@ const MCP_TOOLS = [
   {
     name: "assign_transcript",
     description:
-      "Assign a transcript to a CRM opportunity (link), to an event (link) or to a mission (creates a mission page from the transcript, like the app does). If the transcript is already assigned elsewhere, nothing is done and current assignments are returned: confirm with the user, then retry with allow_multiple=true.",
+      "Assign a transcript to a CRM opportunity (link), to an event (link), to a mission (creates a mission page from the transcript, like the app does) or to a Réseau contact (network_contact: link + 'meeting' interaction with the summary and transcript link, updates last_contact_date to the meeting date). If the transcript is already assigned elsewhere, nothing is done and current assignments are returned: confirm with the user, then retry with allow_multiple=true.",
     inputSchema: {
       type: "object",
       properties: {
         transcript_id: { type: "string" },
-        target_type: { type: "string", enum: ["opportunity", "mission", "event"] },
-        target_id: { type: "string", description: "crm_cards id, missions id or events id" },
+        target_type: { type: "string", enum: ["opportunity", "mission", "event", "network_contact"] },
+        target_id: { type: "string", description: "crm_cards id, missions id, events id or network_contacts id" },
         allow_multiple: { type: "boolean", description: "Keep existing assignments and add this one. Default false." },
       },
       required: ["transcript_id", "target_type", "target_id"],
@@ -1111,15 +1114,45 @@ const MCP_TOOLS = [
   {
     name: "unassign_transcript",
     description:
-      "Remove the link between a transcript and an opportunity, an event or a mission. For a mission, the page created from the transcript is kept; only its link is removed.",
+      "Remove the link between a transcript and an opportunity, an event, a mission or a Réseau contact. For a mission, the page created from the transcript is kept; for a Réseau contact, the logged meeting interaction is kept; only the link is removed.",
     inputSchema: {
       type: "object",
       properties: {
         transcript_id: { type: "string" },
-        target_type: { type: "string", enum: ["opportunity", "mission", "event"] },
+        target_type: { type: "string", enum: ["opportunity", "mission", "event", "network_contact"] },
         target_id: { type: "string" },
       },
       required: ["transcript_id", "target_type", "target_id"],
+    },
+  },
+  {
+    name: "create_network_contact",
+    description:
+      "Create a contact in the Réseau module (peer, partner, network acquaintance). ADDITIVE: never modifies existing contacts. Check list via query_database on network_contacts first to avoid duplicates.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        context: { type: "string", description: "How you know them (peer facilitator, partnership project...)" },
+        warmth: { type: "string", enum: ["hot", "warm", "cold"], description: "Default warm" },
+        linkedin_url: { type: "string" },
+        notes: { type: "string" },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "log_network_interaction",
+    description:
+      "Log an interaction with a Réseau contact (additive) and set its last contact date to today if older.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        contact_id: { type: "string", description: "network_contacts id" },
+        type: { type: "string", enum: [...INTERACTION_TYPES] },
+        notes: { type: "string" },
+      },
+      required: ["contact_id", "type"],
     },
   },
   {
@@ -2473,11 +2506,31 @@ async function callTool(
     }
     case "assign_transcript": {
       try {
-        const res = await assignTranscript(supabase, args);
+        const ownerId = await getAllowedUserId(supabase);
+        const appUrl = (await getAppUrls()).app_url;
+        const res = await assignTranscript(supabase, args, { ownerId, appUrl });
         await log("assign_transcript");
         return textResult(JSON.stringify(res));
       } catch (e) {
         return textResult(`Assignment error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "create_network_contact": {
+      try {
+        const res = await createNetworkContact(supabase, await getAllowedUserId(supabase), args);
+        await log("create_network_contact");
+        return textResult(JSON.stringify(res));
+      } catch (e) {
+        return textResult(`Network error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "log_network_interaction": {
+      try {
+        const res = await logNetworkInteraction(supabase, await getAllowedUserId(supabase), args);
+        await log("log_network_interaction");
+        return textResult(JSON.stringify(res));
+      } catch (e) {
+        return textResult(`Network error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "unassign_transcript": {
