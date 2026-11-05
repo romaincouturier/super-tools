@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranscriptAssignments, useUnassignTranscript, ASSIGNMENT_KIND_LABELS, type TranscriptAssignment } from "@/hooks/useTranscriptAssignments";
 import TranscriptAssignmentMarker from "@/components/transcripts/TranscriptAssignmentMarker";
+import LinkTranscriptToNetworkDialog from "@/components/reseau/LinkTranscriptToNetworkDialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -401,6 +402,11 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
               ))}
             </div>
           )}
+          {t && t.status === "ready" && (
+            <div className="text-left">
+              <LinkTranscriptToNetworkDialog transcriptId={t.id} />
+            </div>
+          )}
         </SheetHeader>
         <ScrollArea className="flex-1 mt-4">
           {isLoading && <div className="flex justify-center py-8"><Spinner size="md" /></div>}
@@ -474,7 +480,7 @@ export default function Transcripts() {
   const [source, setSource] = useState<TranscriptSource | "">("");
   const [status, setStatus] = useState<TranscriptStatus | "">("");
   const [qualification, setQualification] = useState<string>("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("transcript"));
   const [page, setPage] = useState(0);
   const [searchParams] = useSearchParams();
   const [assignment, setAssignment] = useState<"" | "assigned" | "unassigned">(
