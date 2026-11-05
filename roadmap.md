@@ -1,5 +1,10 @@
 # Roadmap
 
+## Lives, tickets et notifications (2026-11-05)
+- [ ] Analyser uniquement les dates de Marie et les autres inscriptions, sans modifier les lives
+- [ ] Vérifier la correction déjà déployée du numéro de ticket sous concurrence et chercher la demande de Myriam
+- [ ] Clarifier objets et introductions des notifications internes de travaux/commentaires, puis déployer les fonctions concernées
+
 ## Retour des jeux loués (2026-11-04)
 - [x] Bouton « Jeu revenu » avec confirmation, date de retour dédiée et clôture même avant échéance ; date contractuelle conservée
 - [x] 3 tests SQL et 99 contrôles passés ; parcours connecté vérifié avec écriture simulée, aucune commande réelle modifiée
