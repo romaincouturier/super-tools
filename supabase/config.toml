@@ -752,3 +752,6 @@ verify_jwt = false
 
 [functions.queue-learner-access-emails]
 verify_jwt = false
+
+[functions.redeem-password-link]
+verify_jwt = false
