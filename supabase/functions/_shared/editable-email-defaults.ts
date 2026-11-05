@@ -396,15 +396,15 @@ L'équipe SuperTilt`),
     name: "Commentaire communauté (équipe)",
     audience: "internal",
     sendingInfo: "🔔 Envoyé à l'équipe quand un commentaire est posté dans la communauté",
-    subject: same("💬 Nouveau commentaire dans la communauté"),
+    subject: same("À traiter : nouveau commentaire d'apprenant, formation en ligne {{course_title}}"),
     content: same(`Bonjour,
 
-**{{commenter_name}}** a posté un commentaire dans la communauté :
+Un nouveau commentaire de **{{commenter_name}}** est à traiter dans la communauté des apprenants de la formation en ligne **{{course_title}}** :
 
 {{comment_quote}}
 
 {{discussion_button}}`),
-    variables: ["commenter_name", "comment_quote", "discussion_button"],
+    variables: ["commenter_name", "course_title", "comment_quote", "discussion_button"],
   },
 
   practice_comment_owner: {
@@ -958,10 +958,10 @@ Le statut de la relecture a été mis à jour pour :
     name: "Publication communauté (formateur)",
     audience: "internal",
     sendingInfo: "📚 Envoyé au formateur quand un apprenant publie un travail (regroupé sur 5 min)",
-    subject: same("Nouvelle publication communauté — {{course_title}}"),
+    subject: same("À traiter : nouveau travail d'apprenant, formation en ligne {{course_title}}"),
     content: same(`Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-**{{learner_name}}** vient de publier un travail dans la communauté de la formation **{{course_title}}**.
+Un nouveau travail de l'apprenant **{{learner_name}}** est à traiter dans la communauté de la formation en ligne **{{course_title}}**.
 
 {{deposits_preview}}
 
@@ -976,10 +976,10 @@ L'équipe SuperTilt`),
     name: "Publications communauté groupées (formateur)",
     audience: "internal",
     sendingInfo: "📚 Envoyé au formateur quand un apprenant publie plusieurs travaux en 5 min",
-    subject: same("{{count}} nouvelles publications communauté — {{course_title}}"),
+    subject: same("À traiter : {{count}} nouveaux travaux d'apprenant, formation en ligne {{course_title}}"),
     content: same(`Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-**{{learner_name}}** vient de publier **{{count}} travaux** dans la communauté de la formation **{{course_title}}**.
+**{{count}} nouveaux travaux** de l'apprenant **{{learner_name}}** sont à traiter dans la communauté de la formation en ligne **{{course_title}}**.
 
 {{deposits_preview}}
 

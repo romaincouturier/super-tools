@@ -9,7 +9,7 @@ import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { learnerHasNotifEnabled } from "../_shared/learner-prefs.ts";
 
-const VERSION = "notify-practice-comment@2026-06-23.1";
+const VERSION = "notify-practice-comment@2026-11-05.1";
 
 /**
  * Notify the author of a practice (community) post when a new comment is added.
@@ -41,7 +41,7 @@ serve(async (req) => {
     // Load post + comment
     const { data: post } = await supabase
       .from("practice_posts")
-      .select("id, author_email, content")
+      .select("id, author_email, content, course_id, deposit_id")
       .eq("id", postId)
       .maybeSingle();
 
@@ -69,6 +69,17 @@ serve(async (req) => {
     const commenterName = [commenterProfile?.first_name, commenterProfile?.last_name]
       .filter(Boolean).join(" ").trim() || commenter;
 
+    let courseId = post.course_id;
+    if (!courseId && post.deposit_id) {
+      const { data: deposit } = await supabase.from("lms_work_deposits")
+        .select("course_id").eq("id", post.deposit_id).maybeSingle();
+      courseId = deposit?.course_id;
+    }
+    const { data: course } = courseId
+      ? await supabase.from("lms_courses").select("title").eq("id", courseId).maybeSingle()
+      : { data: null };
+    const courseTitle = course?.title || "(communauté générale)";
+
     const senderFrom = await getSenderFrom();
     const signature = await getSigniticSignature();
     const bccList = await getBccList();
@@ -94,7 +105,7 @@ serve(async (req) => {
         type: "practice_comment_admin",
         defaultSubject: adminTpl.subject.vous,
         defaultContent: adminTpl.content.vous,
-        vars: { commenter_name: commenterName },
+        vars: { commenter_name: commenterName, course_title: courseTitle },
         blocks: {
           comment_quote: `<blockquote style="border-left:3px solid #e5e7eb;padding:8px 16px;margin:16px 0;color:#374151;background:#f9fafb;border-radius:4px">${excerptHtml}</blockquote>`,
           discussion_button: ctaButton("Voir la discussion", link),

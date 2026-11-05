@@ -1274,6 +1274,7 @@ export type Database = {
           id: string
           image_path: string | null
           is_anonymous: boolean
+          is_positive: boolean
           legacy_notion_id: string | null
           message: string
           message_fr: string | null
@@ -1293,6 +1294,7 @@ export type Database = {
           id?: string
           image_path?: string | null
           is_anonymous?: boolean
+          is_positive?: boolean
           legacy_notion_id?: string | null
           message: string
           message_fr?: string | null
@@ -1312,6 +1314,7 @@ export type Database = {
           id?: string
           image_path?: string | null
           is_anonymous?: boolean
+          is_positive?: boolean
           legacy_notion_id?: string | null
           message?: string
           message_fr?: string | null
@@ -13921,6 +13924,7 @@ export type Database = {
           id: string
           image_path: string | null
           is_anonymous: boolean
+          is_positive: boolean
           legacy_notion_id: string | null
           message: string
           message_fr: string | null
