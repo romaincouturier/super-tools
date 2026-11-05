@@ -7734,6 +7734,55 @@ export type Database = {
           },
         ]
       }
+      network_contact_transcripts: {
+        Row: {
+          contact_id: string
+          created_at: string
+          id: string
+          interaction_id: string | null
+          transcript_id: string
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          interaction_id?: string | null
+          transcript_id: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          interaction_id?: string | null
+          transcript_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "network_contact_transcripts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "network_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "network_contact_transcripts_interaction_id_fkey"
+            columns: ["interaction_id"]
+            isOneToOne: false
+            referencedRelation: "network_interactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "network_contact_transcripts_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       network_contacts: {
         Row: {
           context: string | null
@@ -14140,6 +14189,14 @@ export type Database = {
       }
       learner_password_set: { Args: { p_email: string }; Returns: boolean }
       link_tender_duplicates: { Args: never; Returns: number }
+      link_transcript_to_network_contact: {
+        Args: {
+          p_contact_id: string
+          p_transcript_id: string
+          p_transcript_url: string
+        }
+        Returns: Json
+      }
       list_dormant_learner_accounts: {
         Args: { p_years?: number }
         Returns: {
@@ -14450,6 +14507,10 @@ export type Database = {
       sync_training_schedules_from_lives: {
         Args: { p_training_id: string }
         Returns: undefined
+      }
+      transcript_meeting_date: {
+        Args: { p_created_at: string; p_metadata: Json }
+        Returns: string
       }
       update_api_key_last_used: { Args: { key_id: string }; Returns: undefined }
       update_evaluation_by_token: {
