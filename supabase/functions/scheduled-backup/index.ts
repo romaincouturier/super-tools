@@ -47,7 +47,7 @@ const TABLES_TO_BACKUP = [
   "db_size_snapshots", "devis_signatures", "document_embeddings", "edge_function_health",
   "editorial_recommendations", "editorial_theme_sources", "editorial_themes",
   "email_snippets", "email_templates", "evaluation_analyses",
-  "event_media", "event_shares", "event_transcripts", "events",
+  "event_media", "event_shares", "event_transcripts", "events", "network_contact_transcripts",
   "failed_emails", "faq_items", "feature_usage",
   "formation_configs", "formation_dates", "formation_formulas",
   "game_authors", "game_expenses", "game_price_options", "game_restock_action_files", "game_restock_actions",
