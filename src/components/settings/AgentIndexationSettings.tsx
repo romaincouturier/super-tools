@@ -34,6 +34,7 @@ const SOURCE_TYPES = [
   { key: "support_attachment", label: "Pièces jointes Support", description: "Fichiers joints aux tickets support" },
   { key: "transcript", label: "Transcripts", description: "Réunions Fireflies et Google Drive" },
   { key: "testimonial", label: "Témoignages", description: "Vidéos clients transcrites" },
+  { key: "client_pearl", label: "Perles clients", description: "Mots de remerciement et d'éloge reçus" },
 ];
 
 type BackfillStatus = "idle" | "running" | "done" | "error";
