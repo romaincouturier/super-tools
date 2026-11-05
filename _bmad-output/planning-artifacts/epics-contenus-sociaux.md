@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [1, 2]
+stepsCompleted: [1, 2, 3, 4]
 inputDocuments:
   - _bmad-output/specs/spec-contenus-sociaux/SPEC.md
   - _bmad-output/specs/spec-contenus-sociaux/maquette-calendrier.md
@@ -15,6 +15,15 @@ inputDocuments:
 ## Overview
 
 Ce document découpe en epics et en stories implémentables le module Contenus sociaux, intégré au module supertilt.fr. Il s'appuie sur la spec `spec-contenus-sociaux`, la maquette du calendrier et l'architecture de super-tools.
+
+**Critères communs à toutes les stories** (non répétés dans chacune) :
+- chaque nouvelle table a la RLS `supertilt_fr` et figure dans les listes de sauvegarde (AD-1, AD-9) ;
+- l'accès aux données passe par `src/hooks/` et `src/services/`, jamais depuis une page ou un composant (AD-5) ;
+- chaque écran interne passe le mode démo (`demoMask`, contrôle [065]) ;
+- `npm run typecheck`, `bash scripts/check-rules.sh` et `npm test` passent ; textes UI en français ;
+- une migration de `supabase/migrations/` est jouée explicitement en production ; un changement de `supabase/` explicite son impact sécurité dans la PR.
+
+**Choix de structure** : les epics 1, 2 et 3 touchent les mêmes écrans (calendrier, composeur, détail). La séparation est gardée volontairement : l'epic 1 livre un module utilisable seul, et le circuit de validation (epic 2) est la zone de risque sur laquelle un retour d'usage peut changer la suite.
 
 ## Requirements Inventory
 
@@ -153,6 +162,8 @@ Romain et Emmanuelle rédigent un contenu une fois, le déclinent sur plusieurs 
 
 ### Story 1.1 : Rédiger un contenu décliné sur plusieurs canaux
 
+**Exigences :** FR4, FR5, FR6, FR32 ; UX-DR3
+
 En tant que membre de l'équipe ayant le droit supertilt.fr,
 je veux rédiger un contenu une fois et le décliner sur plusieurs canaux,
 afin de préparer mes publications sans les ressaisir pour chaque réseau.
@@ -184,6 +195,8 @@ afin de préparer mes publications sans les ressaisir pour chaque réseau.
 **Then** la colonne « Non planifiés · N » liste ces brouillons avec leurs badges canaux (UX-DR3)
 
 ### Story 1.2 : Planifier dans le calendrier avec aperçu des contenus
+
+**Exigences :** FR1, FR2, FR3, FR8 (partiel) ; UX-DR1, UX-DR4, UX-DR5, UX-DR7
 
 En tant que membre de l'équipe,
 je veux voir tous les contenus dans un calendrier mensuel et hebdomadaire et y glisser mes brouillons,
@@ -217,6 +230,8 @@ afin de planifier les publications de tous les canaux d'un seul coup d'œil.
 
 ### Story 1.3 : Joindre un visuel de la Médiathèque et être alerté d'un post incomplet
 
+**Exigences :** FR19, FR31 ; UX-DR8
+
 En tant qu'auteur,
 je veux choisir le visuel de chaque contenu dans la Médiathèque et voir quand un post est incomplet pour son réseau,
 afin de ne jamais publier sans visuel ni avec un texte trop long.
@@ -244,6 +259,8 @@ afin de ne jamais publier sans visuel ni avec un texte trop long.
 
 ### Story 1.4 : Classer les contenus par thèmes et filtrer
 
+**Exigences :** FR22, FR24 (partiel) ; UX-DR2, UX-DR5
+
 En tant que membre de l'équipe,
 je veux créer des thèmes éditoriaux colorés, les attribuer aux contenus et filtrer le calendrier,
 afin de voir l'équilibre de la ligne éditoriale.
@@ -264,6 +281,8 @@ afin de voir l'équilibre de la ligne éditoriale.
 **And** désélectionner toutes les pastilles d'une famille revient à ne pas filtrer sur cette famille
 
 ### Story 1.5 : Ouvrir un contenu, le modifier et le marquer publié
+
+**Exigences :** FR9
 
 En tant qu'auteur,
 je veux ouvrir le détail d'un contenu, le modifier et le marquer publié quand je l'ai posté sur le réseau,
@@ -287,6 +306,8 @@ afin que le calendrier reflète ce qui est réellement sorti.
 
 ### Story 1.6 : Poser des notes dans le calendrier
 
+**Exigences :** FR20
+
 En tant que membre de l'équipe,
 je veux poser une note datée sur un jour du calendrier,
 afin de garder un repère (lancement, relance, idée) à côté des publications.
@@ -308,6 +329,8 @@ Un auteur demande une validation, l'autre personne la reçoit en action quotidie
 
 ### Story 2.1 : Demander une validation et approuver un contenu
 
+**Exigences :** FR7, FR8, FR10, FR11
+
 En tant qu'auteur puis approbateur,
 je veux demander la validation d'un contenu et l'approuver d'un clic,
 afin qu'aucun contenu ne parte sans un second regard, comme dans Planable.
@@ -325,7 +348,7 @@ afin qu'aucun contenu ne parte sans un second regard, comme dans Planable.
 
 **Given** un contenu en attente
 **When** Romain ou Emmanuelle, auteur compris, clique la coche d'approbation
-**Then** tout le groupe passe « approuvé », tracé « Approuvé par … » avec date
+**Then** tout le groupe passe « approuvé » ; l'approbateur et la date sont enregistrés et affichés « Approuvé par … » (l'historique complet arrive en story 2.3)
 **And** un second clic retire l'approbation et ramène le groupe à « non demandée »
 
 **Given** les deux axes
@@ -340,6 +363,8 @@ afin qu'aucun contenu ne parte sans un second regard, comme dans Planable.
 **And** la liste des approbateurs passe par la RPC `get_staff_directory` (règle [076])
 
 ### Story 2.2 : Refuser un contenu avec motif
+
+**Exigences :** FR12
 
 En tant qu'approbateur,
 je veux refuser un contenu en donnant un motif obligatoire,
@@ -357,6 +382,8 @@ afin que l'auteur sache exactement quoi corriger.
 **And** une action quotidienne « Contenu refusé » est créée pour l'auteur, avec le motif
 
 ### Story 2.3 : Remettre en attente un contenu modifié et tracer son historique
+
+**Exigences :** FR13, FR15 (correction directe), FR16
 
 En tant qu'approbateur,
 je veux qu'un contenu validé dont le texte ou le visuel change revienne en validation, et voir tout son historique,
@@ -384,6 +411,8 @@ afin qu'aucun texte validé ne change sans revalidation.
 
 ### Story 2.4 : Échanger par commentaires sur un contenu
 
+**Exigences :** FR15
+
 En tant que membre de l'équipe,
 je veux commenter un contenu, mentionner l'autre personne et résoudre un commentaire,
 afin de discuter d'un post sans quitter l'outil.
@@ -404,6 +433,8 @@ afin de discuter d'un post sans quitter l'outil.
 **Then** leur nombre apparaît sur la carte
 
 ### Story 2.5 : Traiter ses validations depuis « Mes validations »
+
+**Exigences :** FR14
 
 En tant qu'approbateur,
 je veux un tableau de tout ce qui attend ma décision, avec un mode revue,
@@ -434,6 +465,8 @@ Les posts se regroupent en campagnes avec brief, bandeau et calendrier propre ; 
 
 ### Story 3.1 : Créer une campagne avec son brief
 
+**Exigences :** FR17
+
 En tant que membre de l'équipe,
 je veux créer une campagne avec un brief, des dates et un statut,
 afin de cadrer une opération (session inter, AI4Product) avant d'en produire les contenus.
@@ -451,6 +484,8 @@ afin de cadrer une opération (session inter, AI4Product) avant d'en produire le
 **And** la nouvelle table a la RLS `supertilt_fr` et figure dans les listes de sauvegarde
 
 ### Story 3.2 : Rattacher les contenus à une campagne et la voir dans le calendrier
+
+**Exigences :** FR18, FR19 ; UX-DR6
 
 En tant que membre de l'équipe,
 je veux rattacher mes contenus à une campagne et la voir dans le calendrier,
@@ -474,6 +509,8 @@ afin de suivre une opération de bout en bout.
 
 ### Story 3.3 : Piloter les contenus en liste avec des filtres combinés
 
+**Exigences :** FR23, FR24
+
 En tant que membre de l'équipe,
 je veux une vue liste de tous les contenus avec des filtres combinés,
 afin de piloter la production autrement qu'au calendrier.
@@ -491,6 +528,8 @@ afin de piloter la production autrement qu'au calendrier.
 
 ### Story 3.4 : Relire les contenus en aperçu réseau
 
+**Exigences :** FR23
+
 En tant qu'approbateur,
 je veux relire les contenus rendus comme sur leur réseau,
 afin de juger le post tel qu'il sera vu.
@@ -504,6 +543,8 @@ afin de juger le post tel qu'il sera vu.
 **And** les filtres actifs s'appliquent
 
 ### Story 3.5 : Enregistrer et partager des vues
+
+**Exigences :** FR24 ; UX-DR2
 
 En tant que membre de l'équipe,
 je veux enregistrer une combinaison de filtres et la rappeler en un clic,
@@ -522,6 +563,8 @@ afin de retrouver mes vues habituelles (« LinkedIn du mois », « à valider po
 **And** l'auteur peut la renommer ou la supprimer
 
 ### Story 3.6 : Voir la grille Instagram
+
+**Exigences :** FR30 ; UX-DR9
 
 En tant que membre de l'équipe,
 je veux voir les posts Instagram disposés comme sur le profil,
@@ -547,6 +590,8 @@ Claude lit le contexte de marque, consulte le calendrier, propose des brouillons
 
 ### Story 4.1 : Définir le contexte de marque
 
+**Exigences :** FR21
+
 En tant que Romain,
 je veux décrire une fois la marque SuperTilt dans le module,
 afin que Claude rédige toujours avec le bon ton, les bonnes offres et le bon vocabulaire.
@@ -563,6 +608,8 @@ afin que Claude rédige toujours avec le bon ton, les bonnes offres et le bon vo
 **And** les instructions du serveur MCP lui demandent de lire ce contexte avant de proposer un contenu
 
 ### Story 4.2 : Consulter le calendrier depuis Claude
+
+**Exigences :** FR27
 
 En tant que Romain dans Claude,
 je veux lister et lire les contenus planifiés,
@@ -590,6 +637,8 @@ afin que Claude repère les trous, les validations en attente et les contenus in
 
 ### Story 4.3 : Créer des brouillons datés depuis Claude
 
+**Exigences :** FR28
+
 En tant que Romain dans Claude,
 je veux que Claude crée des brouillons multi-canaux avec une date proposée,
 afin de produire un lot de contenus à partir d'un brief en une conversation.
@@ -612,6 +661,8 @@ afin de produire un lot de contenus à partir d'un brief en une conversation.
 **Then** il ne fait qu'ajouter : aucun contenu existant n'est modifié ni supprimé
 
 ### Story 4.4 : Valider, refuser, programmer et commenter depuis Claude
+
+**Exigences :** FR29
 
 En tant que Romain dans Claude,
 je veux approuver, refuser avec motif, programmer et commenter des contenus,
@@ -638,6 +689,8 @@ afin de traiter mes validations sans quitter la conversation.
 Les 6 cartes post deviennent des posts, plus aucune entrée ne crée de post dans le kanban, et un post peut décliner une carte éditoriale avec un lien dans les deux sens.
 
 ### Story 5.1 : Migrer les cartes post et rediriger leurs points d'entrée
+
+**Exigences :** FR25
 
 En tant que Romain,
 je veux que les posts sociaux quittent le kanban newsletter et n'y reviennent plus,
@@ -666,6 +719,8 @@ afin que le kanban ne porte que les articles et que les posts vivent dans le cal
 **Then** les types post ne sont plus proposés ; les outils MCP `create_content_card` et `add_content_card` refusent ces types et orientent vers les outils de l'epic 4
 
 ### Story 5.2 : Décliner une carte éditoriale en contenus sociaux
+
+**Exigences :** FR26
 
 En tant que membre de l'équipe,
 je veux décliner un article du kanban en posts et retrouver le lien des deux côtés,
