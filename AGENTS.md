@@ -47,13 +47,13 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 
 - Permanent-session inline Solo creation inherits catalog values through a service and hook; course availability considers both catalog and session links, because the shortcut must not invent prices or hide existing associations.
 
-- Training tables share a pure sorting helper with independent per-tab sort state, because switching tabs must preserve chronological defaults and numeric enrollment sorting.
+- Training tables share a pure sorting helper with per-tab sort state.
 
 - Learner dashboard onboarding derives remaining steps from a pure profile helper and renders only a nonempty list, because completion must hide the block independently of work deposits.
 
 - Password setup loads and saves learner names through authenticated session-owned profile access, after an explicit recovery confirmation click; it never consumes recovery tokens on page load or exposes anonymous email-based profile lookup, because name prefill must preserve scanner-safe links and identity privacy.
 
-- Bulk participant progress follows awaited workflow stages and optional per-recipient callbacks in the existing batch email services, because the displayed progress must reflect actual work without changing enrollment or delivery rules.
+- Bulk participant progress follows awaited stages and per-recipient callbacks, so it reflects real work.
 
 - Staff learner-access sends provision missing accounts only after checking an existing participant or LMS enrollment, because bulk additions bypass account provisioning and must not silently skip the email or create arbitrary accounts.
 - Staff learner-access failures preserve their stage and use HTTP 429 for non-admin link quotas; only a server-verified caller checked by is_admin may bypass the internal quota, and browser batches report failed recipients without undoing enrollment, because administrator tests must not weaken public protections or duplicate participant records.
@@ -88,4 +88,4 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Bulk e-learning access emails are queued in `learner_access_jobs` and sent server-side by `queue-learner-access-emails` with the requester's rights, because browser-driven sends blocked the page.
 - Password emails use hashed `password_setup_links` redeemed on click, because native recovery tokens expire too soon.
 - Learner community reads (posts and children) use security-definer enrollment-scoped helpers, because intra client feeds must stay private.
-- CRM opportunity values come from the pure helper `_shared/opportunity-value.ts` shared by both extractors and the manual dialog, because amounts must follow the catalog and history identically.
+- CRM opportunity values use the shared pure `_shared/opportunity-value.ts`, so all entry points agree.
