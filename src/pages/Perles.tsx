@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Archive, ArchiveRestore, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -15,7 +16,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { useToast } from "@/hooks/use-toast";
-import { usePearlMutations, usePearls } from "@/hooks/usePearls";
+import { usePearlLinkTargets, usePearlMutations, usePearls } from "@/hooks/usePearls";
 import { maskText } from "@/lib/demoMask";
 import { todayAsISO } from "@/lib/dateFormatters";
 import { filterPearls, formatPearlDate } from "@/lib/pearls";
@@ -67,6 +68,16 @@ function PearlCard({ p, onEdit }: { p: Pearl; onEdit: (p: Pearl) => void }) {
         </div>
         <p className="text-sm whitespace-pre-line">{mask(p.message)}</p>
         {p.message_fr && <p className="text-sm whitespace-pre-line text-muted-foreground">{mask(p.message_fr)}</p>}
+        {(p.mission || p.training) && (
+          <p className="text-xs text-muted-foreground flex flex-wrap gap-x-3">
+            {p.mission && p.mission_id && (
+              <Link to={`/missions/${p.mission_id}`} className="underline">Mission : {mask(p.mission.title)}</Link>
+            )}
+            {p.training && p.training_id && (
+              <Link to={`/formations/${p.training_id}`} className="underline">Formation : {mask(p.training.training_name)}</Link>
+            )}
+          </p>
+        )}
         {image && <img src={image} alt="" className="max-h-48 rounded border" />}
         <div className="flex gap-1 justify-end">
           <Button size="sm" variant="ghost" onClick={() => onEdit(p)}><Pencil className="h-4 w-4" /></Button>
@@ -110,6 +121,9 @@ function PearlDialog({ pearl, open, onClose }: { pearl: Pearl | null; open: bool
   const [time, setTime] = useState("");
   const [source, setSource] = useState<PearlSource>("autre");
   const [image, setImage] = useState<File | null>(null);
+  const [missionId, setMissionId] = useState("none");
+  const [trainingId, setTrainingId] = useState("none");
+  const targets = usePearlLinkTargets(open).data;
 
   useEffect(() => {
     if (!open) return;
@@ -124,6 +138,8 @@ function PearlDialog({ pearl, open, onClose }: { pearl: Pearl | null; open: bool
     setTime(pearl?.pearl_time?.slice(0, 5) ?? "");
     setSource(pearl?.source ?? "autre");
     setImage(null);
+    setMissionId(pearl?.mission_id ?? "none");
+    setTrainingId(pearl?.training_id ?? "none");
   }, [open, pearl]);
 
   const pending = create.isPending || update.isPending;
@@ -140,6 +156,8 @@ function PearlDialog({ pearl, open, onClose }: { pearl: Pearl | null; open: bool
       pearl_date: date,
       pearl_time: time || null,
       source,
+      mission_id: missionId === "none" ? null : missionId,
+      training_id: trainingId === "none" ? null : trainingId,
     };
     const opts = { onSuccess: onClose, onError: (e: unknown) => toastError(toast, e) };
     if (pearl) update.mutate({ id: pearl.id, input, image }, opts);
@@ -198,6 +216,28 @@ function PearlDialog({ pearl, open, onClose }: { pearl: Pearl | null; open: bool
                   {Object.entries(PEARL_SOURCE_LABELS).map(([k, l]) => (
                     <SelectItem key={k} value={k}>{l}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Mission liée</Label>
+              <Select value={missionId} onValueChange={setMissionId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Aucune</SelectItem>
+                  {(targets?.missions ?? []).map((m) => <SelectItem key={m.id} value={m.id}>{m.title}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Formation liée</Label>
+              <Select value={trainingId} onValueChange={setTrainingId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Aucune</SelectItem>
+                  {(targets?.trainings ?? []).map((t) => <SelectItem key={t.id} value={t.id}>{t.training_name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

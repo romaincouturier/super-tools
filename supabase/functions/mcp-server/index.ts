@@ -7,6 +7,7 @@ import {
   corsHeaders,
 } from "../_shared/mod.ts";
 import { searchContent } from "../_shared/agent-search.ts";
+import { addPearl, archivePearl, listPearls, updatePearl, type PearlDb, type PearlToolResult } from "../_shared/pearl-tools.ts";
 import {
   listPendingTenders,
   TENDER_NO_GO_REASONS,
@@ -452,7 +453,7 @@ const MCP_TOOLS = [
           type: "array",
           items: { type: "string" },
           description:
-            "Optional filter: crm_card, crm_comment, crm_email, inbound_email, training, mission, mission_page, mission_activity, quote, support_ticket, coaching_summary, content_card, lms_lesson, activity_log, evaluation_analysis, questionnaire_besoins, okr_objective, okr_key_result, okr_initiative, crm_attachment, support_attachment, transcript, testimonial",
+            "Optional filter: crm_card, crm_comment, crm_email, inbound_email, training, mission, mission_page, mission_activity, quote, support_ticket, coaching_summary, content_card, lms_lesson, activity_log, evaluation_analysis, questionnaire_besoins, okr_objective, okr_key_result, okr_initiative, crm_attachment, support_attachment, transcript, testimonial, client_pearl",
         },
         max_results: { type: "number", description: "Number of results (default 10, max 20)" },
         mission_id: {
@@ -996,6 +997,8 @@ const MCP_TOOLS = [
         source: { type: "string", enum: ["mail", "oral", "linkedin", "evaluation", "notion", "autre"] },
         include_archived: { type: "boolean" },
         positive: { type: "boolean" },
+        mission_id: { type: "string" },
+        training_id: { type: "string" },
         random: { type: "boolean" },
       },
     },
@@ -1014,6 +1017,8 @@ const MCP_TOOLS = [
         author_company: { type: "string" },
         is_anonymous: { type: "boolean" },
         is_positive: { type: "boolean", description: "Default true. false = kept in the page, hidden from the dashboard." },
+        mission_id: { type: "string", description: "Optional UUID of the related mission" },
+        training_id: { type: "string", description: "Optional UUID of the related training" },
         pearl_date: { type: "string", description: "YYYY-MM-DD" },
         pearl_time: { type: "string", description: "HH:MM, optional" },
         source: { type: "string", enum: ["mail", "oral", "linkedin", "evaluation", "autre"] },
@@ -1036,6 +1041,8 @@ const MCP_TOOLS = [
         author_company: { type: "string" },
         is_anonymous: { type: "boolean" },
         is_positive: { type: "boolean" },
+        mission_id: { type: "string", description: "UUID, or empty string to unlink" },
+        training_id: { type: "string", description: "UUID, or empty string to unlink" },
         pearl_date: { type: "string" },
         pearl_time: { type: "string" },
         source: { type: "string", enum: ["mail", "oral", "linkedin", "evaluation", "notion", "autre"] },
@@ -2407,59 +2414,17 @@ async function callTool(
       await log("mark_testimonial_request");
       return textResult(JSON.stringify({ before, after }));
     }
-    case "list_pearls": {
-      if (args.random === true) {
-        const { data, error } = await (supabase as any).rpc("get_random_client_pearl", { p_exclude: null });
-        if (error) return textResult(`Error: ${error.message}`, true);
-        await log("list_pearls");
-        return textResult(JSON.stringify(data));
-      }
-      let q = (supabase as any).from("client_pearls")
-        .select("id, title, message, message_fr, author_name, author_company, is_anonymous, is_positive, pearl_date, pearl_time, source, archived, gmail_thread_id")
-        .order("pearl_date", { ascending: false }).limit(100);
-      if (args.include_archived !== true) q = q.eq("archived", false);
-      if (args.source) q = q.eq("source", args.source);
-      if (typeof args.positive === "boolean") q = q.eq("is_positive", args.positive);
-      if (typeof args.search === "string" && args.search.trim()) {
-        const t = args.search.trim().replace(/[%,()]/g, " ");
-        q = q.or(`message.ilike.%${t}%,message_fr.ilike.%${t}%,title.ilike.%${t}%,author_name.ilike.%${t}%,author_company.ilike.%${t}%`);
-      }
-      const { data, error } = await q;
-      if (error) return textResult(`Error: ${error.message}`, true);
-      await log("list_pearls");
-      return textResult(JSON.stringify(data));
-    }
-    case "add_pearl": {
-      const message = typeof args.message === "string" ? args.message.trim() : "";
-      if (!message) return textResult("message is required", true);
-      const fields = ["message_fr", "title", "author_name", "author_company", "is_anonymous", "is_positive", "pearl_date", "pearl_time", "source", "gmail_thread_id"];
-      const row: Record<string, unknown> = { message };
-      for (const f of fields) if (args[f] !== undefined && args[f] !== "") row[f] = args[f];
-      const { data, error } = await (supabase as any).from("client_pearls").insert(row).select("*").single();
-      if (error) return textResult(error.code === "23505" ? "Pearl already stored for this gmail_thread_id" : `Error: ${error.message}`, true);
-      await log("add_pearl");
-      return textResult(JSON.stringify(data));
-    }
-    case "update_pearl": {
-      const { data: before } = await (supabase as any).from("client_pearls").select("*").eq("id", args.id).maybeSingle();
-      if (!before) return textResult("Pearl not found", true);
-      const fields = ["message", "message_fr", "title", "author_name", "author_company", "is_anonymous", "is_positive", "pearl_date", "pearl_time", "source", "archived"];
-      const patch: Record<string, unknown> = {};
-      for (const f of fields) if (args[f] !== undefined) patch[f] = args[f] === "" ? null : args[f];
-      if (patch.message === null) return textResult("message cannot be empty", true);
-      if (Object.keys(patch).length === 0) return textResult("Nothing to update", true);
-      const { data: after, error } = await (supabase as any).from("client_pearls").update(patch).eq("id", args.id).select("*").single();
-      if (error) return textResult(`Error: ${error.message}`, true);
-      await log("update_pearl");
-      return textResult(JSON.stringify({ before, after }));
-    }
+    case "list_pearls":
+    case "add_pearl":
+    case "update_pearl":
     case "archive_pearl": {
-      const archived = args.archived !== false;
-      const { data, error } = await (supabase as any).from("client_pearls").update({ archived }).eq("id", args.id).select("id, archived").maybeSingle();
-      if (error) return textResult(`Error: ${error.message}`, true);
-      if (!data) return textResult("Pearl not found", true);
-      await log("archive_pearl");
-      return textResult(JSON.stringify(data));
+      const runners: Record<string, (db: PearlDb, a: Record<string, unknown>) => Promise<PearlToolResult>> = {
+        list_pearls: listPearls, add_pearl: addPearl, update_pearl: updatePearl, archive_pearl: archivePearl,
+      };
+      const res = await runners[name](supabase as unknown as PearlDb, args);
+      if ("error" in res) return textResult(res.error, true);
+      await log(name);
+      return textResult(JSON.stringify(res.data));
     }
     case "list_unassigned_transcripts": {
       try {
