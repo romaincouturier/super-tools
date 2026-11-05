@@ -93,6 +93,7 @@ const TABLES_TO_BACKUP = [
   "gsc_metrics_daily",
   "gsc_sitemaps",
   "gsc_url_inspections",
+  "handicap_partners",
   "idea_votes",
   "ideas",
   "improvements",

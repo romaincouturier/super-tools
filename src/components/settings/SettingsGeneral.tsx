@@ -17,6 +17,7 @@ import PageTemplateManager from "@/components/missions/PageTemplateManager";
 import { AutoSaveIndicator } from "@/components/settings/SettingsAutoSaveIndicator";
 import SettingsGeneralDelays from "@/components/settings/SettingsGeneralDelays";
 import TrainingRegulationEditor from "@/components/settings/TrainingRegulationEditor";
+import HandicapPartnerManager from "@/components/settings/HandicapPartnerManager";
 
 interface SettingsGeneralProps {
   settings: Record<string, string>;
@@ -155,6 +156,10 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
               <div className="space-y-2"><Label htmlFor="referent-handicap-designated-at">Date de désignation</Label><Input id="referent-handicap-designated-at" type="date" value={settings.referent_handicap_designated_at} onChange={(e) => updateSetting("referent_handicap_designated_at", e.target.value)} /></div>
             </div>
           </div>
+
+          <Separator />
+
+          <HandicapPartnerManager />
 
           <Separator />
 

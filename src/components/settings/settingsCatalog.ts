@@ -76,6 +76,7 @@ export const SETTINGS_CATALOG: SettingsCatalogEntry[] = [
   { id: "website_url", label: "Site web", keywords: "site web url", tab: "general", anchorId: "website-url" },
   { id: "reglement_interieur", label: "Règlement intérieur des formations", keywords: "règlement intérieur pdf formation brouillon markdown publier", tab: "general", anchorId: "reglement-interieur" },
   { id: "referent_handicap", label: "Référent handicap", keywords: "handicap référent accessibilité aménagement psh indicateur 26", tab: "general", anchorId: "referent-handicap" },
+  { id: "partenaires_handicap", label: "Réseau de partenaires handicap", keywords: "handicap partenaires agefiph cap emploi mdph fiphfp réseau orientation indicateur 26", tab: "general", anchorId: "partenaires-handicap" },
 
   // ── Entrées par onglet (navigation directe) ─────────────────────────
   { id: "tab:profile", label: "Mon profil", keywords: "profil prénom nom photo avatar", tab: "profile" },

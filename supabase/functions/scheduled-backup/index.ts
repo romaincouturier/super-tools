@@ -51,6 +51,7 @@ const TABLES_TO_BACKUP = [
   "failed_emails", "faq_items", "feature_usage",
   "formation_configs", "formation_dates", "formation_formulas",
   "game_authors", "game_expenses", "game_price_options", "game_restock_action_files", "game_restock_actions",
+  "handicap_partners",
   "game_restock_items", "game_restocks", "game_sales", "games",
   "google_calendar_tokens", "google_drive_tokens", "google_tokens",
   "group_matching_configs", "group_matching_groups", "group_matching_members", "group_matching_registrations",

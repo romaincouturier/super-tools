@@ -4505,6 +4505,54 @@ export type Database = {
         }
         Relationships: []
       }
+      handicap_partners: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          handicap_type: string
+          id: string
+          is_active: boolean
+          last_contact_date: string | null
+          notes: string | null
+          organisation: string
+          phone: string | null
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          handicap_type?: string
+          id?: string
+          is_active?: boolean
+          last_contact_date?: string | null
+          notes?: string | null
+          organisation: string
+          phone?: string | null
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          handicap_type?: string
+          id?: string
+          is_active?: boolean
+          last_contact_date?: string | null
+          notes?: string | null
+          organisation?: string
+          phone?: string | null
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       idea_votes: {
         Row: {
           created_at: string
