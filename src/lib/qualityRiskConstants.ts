@@ -137,7 +137,7 @@ export const EMPTY_RISK_FORM: QualityRiskFormValues = {
   review_date: "",
   status: "open",
   reclamation_id: "",
-  improvement_id: "",
+  improvement_ids: [],
 };
 
 /**
