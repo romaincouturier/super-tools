@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { extractPictoSearchWord, isSafePictoText, isValidPictoWord } from "../_shared/pictodico-validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -131,10 +131,7 @@ serve(async (req) => {
 
   const reject = (reason: string) => {
     console.warn("[pictodico-webhook] saisie rejetée:", reason);
-    return new Response(JSON.stringify({ error: "Invalid input" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return createErrorResponse("Invalid input", 400, { fn: "pictodico-webhook" });
   };
   if (typeof pageUrl !== "string" || pageUrl.length > 1000) return reject("url");
   const word = extractPictoSearchWord(pageUrl);
