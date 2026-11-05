@@ -1653,6 +1653,8 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Escape") {
+                  // Sans stopPropagation, Échap fermerait aussi le tiroir de la mission.
+                  e.stopPropagation();
                   setSearchTerm("");
                   setSearchOpen(false);
                 }
@@ -1664,6 +1666,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
+                onMouseDown={(e) => e.preventDefault()}
                 title="Effacer la recherche"
                 aria-label="Effacer la recherche"
                 className="absolute right-4 top-1/2 flex h-4 w-4 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:text-foreground"
