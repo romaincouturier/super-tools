@@ -31,7 +31,7 @@ const TABLES_TO_BACKUP = [
   "activity_logs", "admin_documents",
   "agent_conversations", "agent_feedback", "agent_query_audit_log", "agent_schema_registry",
   "ai_brand_settings", "api_keys", "api_request_logs", "app_settings",
-  "attendance_signatures", "balance_sheets", "billing_plans",
+  "attendance_signatures", "audit_runs", "balance_sheets", "billing_plans",
   "book_albums", "book_analytics_events", "book_productions", "book_profiles", "book_share_links",
   "bpf_reports", "breakeven_scenarios", "cashflow_forecast",
   "chatbot_conversations", "chatbot_knowledge_base",

@@ -17,6 +17,7 @@ const TABLES_TO_BACKUP = [
   "api_request_logs",
   "app_settings",
   "attendance_signatures",
+  "audit_runs",
   "balance_sheets",
   "billing_plans",
   "book_albums",

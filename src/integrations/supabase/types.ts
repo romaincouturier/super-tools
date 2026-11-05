@@ -531,6 +531,54 @@ export type Database = {
           },
         ]
       }
+      audit_runs: {
+        Row: {
+          answers: Json
+          created_at: string
+          created_by: string | null
+          facts: Json
+          findings: Json
+          finished_at: string | null
+          framework_version: string
+          id: string
+          label: string | null
+          notes: string | null
+          sample_training_ids: string[]
+          started_at: string
+          updated_at: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          created_by?: string | null
+          facts?: Json
+          findings?: Json
+          finished_at?: string | null
+          framework_version?: string
+          id?: string
+          label?: string | null
+          notes?: string | null
+          sample_training_ids?: string[]
+          started_at?: string
+          updated_at?: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          created_by?: string | null
+          facts?: Json
+          findings?: Json
+          finished_at?: string | null
+          framework_version?: string
+          id?: string
+          label?: string | null
+          notes?: string | null
+          sample_training_ids?: string[]
+          started_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       backup_runs: {
         Row: {
           chunks_done: number
@@ -9813,6 +9861,7 @@ export type Database = {
       reclamations: {
         Row: {
           actions_decided: string | null
+          acknowledgement_sent_at: string | null
           ai_analysis: string | null
           ai_response_draft: string | null
           canal: string | null
@@ -9836,6 +9885,7 @@ export type Database = {
         }
         Insert: {
           actions_decided?: string | null
+          acknowledgement_sent_at?: string | null
           ai_analysis?: string | null
           ai_response_draft?: string | null
           canal?: string | null
@@ -9859,6 +9909,7 @@ export type Database = {
         }
         Update: {
           actions_decided?: string | null
+          acknowledgement_sent_at?: string | null
           ai_analysis?: string | null
           ai_response_draft?: string | null
           canal?: string | null
