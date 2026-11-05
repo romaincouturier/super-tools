@@ -66,7 +66,7 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 
 - Watch sources canonicalize URLs with a database trigger and a matching browser helper; watch-item source links adjust counts through a database trigger, because imports and UI writes must preserve the same identity and counters.
 
-- Course covers use authenticated native Storage uploads in the existing public LMS bucket and are uploaded on save, because cancelling the settings dialog must not upload files or change the course.
+- Course covers upload via authenticated Storage to the public LMS bucket only on save, because cancelling must not change the course.
 
 - HTML/embed and exercise interactive HTML share an explicit HTML/CSS allowlist across MCP writes and browser rendering, render in an isolated iframe whose CSP forbids all scripts (nested srcdoc frames are script-free sandboxes, only third-party `src` players get script flags), with parent-side resize observation, because author CSS must stay isolated, no author JavaScript may run, and YouTube/Vimeo/LinkedIn players must still work.
 - Interactive LMS blocks use the same viewers in learner pages and builder previews; drag words use dnd-kit with uniquely identified word instances, because touch accessibility and repeated words must behave consistently.
