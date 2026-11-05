@@ -1,0 +1,161 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, within } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { MemoryRouter } from "react-router-dom";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import SocialContentsPage from "@/pages/SocialContentsPage";
+import type { SocialChannel, SocialContentGroup, SocialPost } from "@/services/socialContents";
+
+const h = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  rangeArgs: vi.fn(),
+  refetch: vi.fn(),
+  undatedError: false,
+  onDragEnd: null as null | ((e: unknown) => void),
+  dated: [] as unknown[],
+  undated: [] as unknown[],
+}));
+
+vi.mock("@dnd-kit/core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@dnd-kit/core")>();
+  const Actual = actual.DndContext;
+  return {
+    ...actual,
+    DndContext: (props: Parameters<typeof Actual>[0]) => {
+      h.onDragEnd = props.onDragEnd as (e: unknown) => void;
+      return <Actual {...props} />;
+    },
+  };
+});
+
+const channel = (id: string, name: string, abbreviation: string, sort_order: number): SocialChannel => ({
+  id, slug: id, name, abbreviation, text_limit: null, sort_order, is_active: true,
+});
+
+vi.mock("@/hooks/useSocialContents", () => ({
+  useSocialChannels: () => ({
+    data: [channel("li", "LinkedIn Romain", "LI", 10), channel("in", "Instagram", "IN", 40)],
+    isLoading: false,
+    isError: false,
+    refetch: h.refetch,
+  }),
+  useSocialGroupsInRange: (fromIso: string, toIso: string) => {
+    h.rangeArgs(fromIso, toIso);
+    return { data: h.dated, isLoading: false, isError: false, refetch: h.refetch };
+  },
+  useUndatedSocialGroups: () => ({ data: h.undated, isLoading: false, isError: h.undatedError, refetch: h.refetch }),
+  useSetSocialGroupDate: () => ({ mutate: h.mutate }),
+}));
+vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
+vi.mock("@/components/ModuleLayout", () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
+vi.mock("@/components/social/SocialComposerDialog", () => ({
+  default: ({ open, groupId }: { open: boolean; groupId: string | null }) =>
+    open ? <div data-testid="composer">{groupId ?? "nouveau"}</div> : null,
+}));
+
+const post = (group_id: string, channel_id: string, text: string, scheduled_at: string | null): SocialPost => ({
+  id: `${group_id}-${channel_id}`, group_id, channel_id, text, scheduled_at,
+  publication_status: scheduled_at ? "scheduled" : "unscheduled",
+});
+const group = (id: string, posts: SocialPost[]): SocialContentGroup => ({
+  id, format: "post", sync: true, created_by: null, created_at: "", updated_at: "", posts,
+});
+
+const renderPage = () => render(<MemoryRouter><TooltipProvider><SocialContentsPage /></TooltipProvider></MemoryRouter>);
+
+describe("Calendrier des contenus sociaux", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-05T10:00:00Z"));
+    vi.clearAllMocks();
+    h.undatedError = false;
+    h.dated = [
+      // 23:30 à Paris le 12 novembre (22:30 UTC).
+      group("soir", [post("soir", "li", "Post du soir", "2026-11-12T22:30:00.000Z")]),
+      // 18:00 à Paris le 3 novembre, Instagram seul.
+      group("insta", [post("insta", "in", "Reel Instagram", "2026-11-03T17:00:00.000Z")]),
+    ];
+    h.undated = [
+      group("brouillon", [post("brouillon", "li", "Idée", null), post("brouillon", "in", "Idée", null)]),
+    ];
+  });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it("place les datés sur leur jour de Paris et compte les non datés", () => {
+    renderPage();
+    expect(within(screen.getByTestId("day-2026-11-12")).getByText("Post du soir")).toBeInTheDocument();
+    expect(within(screen.getByTestId("day-2026-11-12")).getByText("23:30")).toBeInTheDocument();
+    expect(within(screen.getByTestId("day-2026-11-13")).queryByText("Post du soir")).toBeNull();
+    expect(screen.getByText("Non planifiés · 1")).toBeInTheDocument();
+    expect(screen.getByTestId("day-2026-11-20").textContent).toBe("20");
+  });
+
+  it("masque les contenus d'un canal décoché", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "Instagram" }));
+    expect(screen.queryByText("Reel Instagram")).toBeNull();
+    expect(screen.getByText("Non planifiés · 1")).toBeInTheDocument();
+    expect(within(screen.getByTestId("social-card-brouillon")).queryByText("IN")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "LinkedIn Romain" }));
+    expect(screen.getByText("Non planifiés · 0")).toBeInTheDocument();
+  });
+
+  it("ouvre le composeur sur le contenu cliqué", () => {
+    renderPage();
+    fireEvent.click(screen.getByTestId("social-card-soir"));
+    expect(screen.getByTestId("composer")).toHaveTextContent("soir");
+  });
+
+  it("dépose un brouillon à 09:00 et déplace un daté en gardant son heure", () => {
+    renderPage();
+    const brouillon = h.undated[0] as SocialContentGroup;
+    h.onDragEnd?.({
+      active: { id: "brouillon", data: { current: { card: { group: brouillon, posts: brouillon.posts, status: "unscheduled", scheduledAt: null } } } },
+      over: { id: "day:2026-11-12" },
+    });
+    expect(h.mutate).toHaveBeenLastCalledWith({ groupId: "brouillon", scheduledAt: "2026-11-12T08:00:00.000Z" }, expect.anything());
+
+    const insta = h.dated[1] as SocialContentGroup;
+    h.onDragEnd?.({
+      active: { id: "insta", data: { current: { card: { group: insta, posts: insta.posts, status: "scheduled", scheduledAt: "2026-11-03T17:00:00.000Z" } } } },
+      over: { id: "day:2026-11-10" },
+    });
+    expect(h.mutate).toHaveBeenLastCalledWith({ groupId: "insta", scheduledAt: "2026-11-10T17:00:00.000Z" }, expect.anything());
+  });
+
+  it("ne réécrit rien quand une carte est déposée sur son propre jour", () => {
+    renderPage();
+    const insta = h.dated[1] as SocialContentGroup;
+    h.onDragEnd?.({
+      // Format renvoyé par la base, différent de celui que produit moveKeepingTime.
+      active: { id: "insta", data: { current: { card: { group: insta, posts: insta.posts, status: "scheduled", scheduledAt: "2026-11-03T17:00:00+00:00" } } } },
+      over: { id: "day:2026-11-03" },
+    });
+    expect(h.mutate).not.toHaveBeenCalled();
+  });
+
+  it("charge la plage de la grille du mois, puis celle du mois suivant", () => {
+    renderPage();
+    // Novembre 2026 : du lundi 26 octobre au dimanche 6 décembre, minuit à Paris (heure d'hiver).
+    expect(h.rangeArgs).toHaveBeenLastCalledWith("2026-10-25T23:00:00.000Z", "2026-12-06T23:00:00.000Z");
+    fireEvent.click(screen.getByRole("button", { name: "Suivant" }));
+    expect(h.rangeArgs).toHaveBeenLastCalledWith("2026-11-29T23:00:00.000Z", "2027-01-03T23:00:00.000Z");
+  });
+
+  it("charge la plage de la semaine, puis celle de la semaine suivante", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("radio", { name: "Semaine" }));
+    // Semaine du 5 novembre : lundi 2 au dimanche 8.
+    expect(h.rangeArgs).toHaveBeenLastCalledWith("2026-11-01T23:00:00.000Z", "2026-11-08T23:00:00.000Z");
+    fireEvent.click(screen.getByRole("button", { name: "Suivant" }));
+    expect(h.rangeArgs).toHaveBeenLastCalledWith("2026-11-08T23:00:00.000Z", "2026-11-15T23:00:00.000Z");
+  });
+
+  it("affiche une erreur avec Réessayer au lieu d'un calendrier vide", () => {
+    h.undatedError = true;
+    renderPage();
+    expect(screen.queryByText(/Non planifiés/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+    expect(h.refetch).toHaveBeenCalledTimes(1);
+  });
+});

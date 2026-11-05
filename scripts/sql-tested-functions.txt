@@ -24,3 +24,4 @@ get_previous_trainer_evaluations
 get_staff_directory
 social_posts_propagate_text
 save_social_content_group
+set_social_group_date

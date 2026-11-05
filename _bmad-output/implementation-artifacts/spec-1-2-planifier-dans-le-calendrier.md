@@ -2,7 +2,7 @@
 title: 'Story 1.2 : planifier dans le calendrier avec aperçu des contenus'
 type: 'feature'
 created: '2026-11-05'
-status: 'in-review'
+status: 'done'
 baseline_commit: '63cb343f48d5957085c0b3c9b77c26244cb02a9a'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -84,9 +84,9 @@ Un clic sur une carte rouvre le composeur de la story 1.1.
 
 - RPC `set_social_group_date` : un groupe invisible pour l'appelant (RLS) lève « Contenu introuvable » au lieu de ne rien faire en silence ; elle renvoie le nombre de déclinaisons modifiées. `anon` n'a pas le droit d'exécution.
 - Lectures en deux temps (ids des groupes par `social_posts`, puis groupes avec tous leurs posts), pour que la carte voie aussi les déclinaisons hors de la plage ou publiées. La page fusionne les deux listes et `placeGroups` les répartit (dédoublonnage, filtre de canal, statut le moins avancé, jour de Paris, tri horaire).
-- Date d'une carte : la plus tôt des déclinaisons visibles au statut affiché. Une carte « Publié » sans date n'apparaît nulle part (le marquage publié arrive en 1.5).
+- Date d'une carte : dès qu'une déclinaison visible est datée (quel que soit son statut), la carte va sur le jour de la plus tôt d'entre elles dans la plage chargée, à défaut la plus tôt ; elle ne va dans « Non planifiés » que si aucune déclinaison visible n'a de date. Le statut affiché reste le moins avancé. Une carte Publié n'est pas glissable.
 - Mutation optimiste sur les seules clés `range` et `undated`, retour au cliché en cas d'erreur, toast par `toastError` dans la page, invalidation à la fin.
-- Glisser-déposer : capteurs de `useKanbanDnd` (souris à 8 px, ce qui laisse passer le clic). La colonne « Non planifiés » n'est pas une zone de dépôt (retirer la date n'est pas demandé).
+- Glisser-déposer : capteurs de `useKanbanDnd` (souris à 8 px, ce qui laisse passer le clic). Capteur clavier non activé : ses touches d'activation (Entrée, Espace) sont celles qui ouvrent la carte, et `sortableKeyboardCoordinates` ne déplace pas un élément hors `SortableContext`. La colonne « Non planifiés » n'est pas une zone de dépôt (retirer la date n'est pas demandé).
 - Tests ajoutés hors liste : `src/hooks/useSocialContents.test.tsx` (mise à jour optimiste et retour arrière, ligne « Erreur » du tableau). Le test de dépôt appelle le `onDragEnd` capturé du `DndContext` ; la mécanique réelle du glisser reste à couvrir par l'E2E Playwright prévu à l'epic.
 - Production : jouer `20261105130000_social_group_date.sql` explicitement, après celle de la story 1.1.
 
@@ -104,7 +104,7 @@ Passe 1 (5 nov.), trois couches : chasseur à l'aveugle, chasseur de cas limites
 | 4 | Déposer une carte sur son propre jour écrit quand même | low | La comparaison de chaînes échoue entre le format du helper et celui de la base. `Date.parse`, avec un test (patch). |
 | 5 | Une erreur de chargement affiche un calendrier vide | medium | La page ne lit que `isLoading`. Message d'erreur et bouton « Réessayer » (patch). |
 | 6 | Une carte Publié reste glissable sans effet | low | La RPC ne touche pas les déclinaisons publiées. Glisser désactivé (patch). |
-| 7 | Clavier : Espace ignoré, gestionnaire dnd-kit écrasé | medium | `onKeyDown` est placé après `{...listeners}`. Corrigé, capteur clavier activé (patch). |
+| 7 | Clavier : Espace ignoré, gestionnaire dnd-kit écrasé | medium | `onKeyDown` est placé après `{...listeners}`. Corrigé : Entrée et Espace ouvrent la carte, et le gestionnaire dnd-kit est appelé. Le capteur clavier reste désactivé : ses touches sont les mêmes que celles qui ouvrent la carte. La date se change au clavier dans le composeur (patch). |
 | 8 | La pastille de statut n'est pas annoncée par les lecteurs d'écran | low | `aria-label` sans rôle. `role="img"` (patch). |
 | 9 | La plage (début, fin) chargée par le calendrier n'est pas testée | medium | Trou de vérification déjà vérifié par la couche. Test ajouté (patch). |
 | 10 | La mise à jour optimiste de RANGE_KEY n'est pas testée | medium | Trou de vérification déjà vérifié par la couche. Test ajouté (patch). |

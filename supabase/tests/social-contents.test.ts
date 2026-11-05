@@ -12,6 +12,7 @@ import { readFunctionSql } from "./helpers/db";
  */
 const here = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATION = path.resolve(here, "../migrations/20261105120000_social_contents.sql");
+const DATE_MIGRATION = path.resolve(here, "../migrations/20261105130000_social_group_date.sql");
 const UPDATED_AT_MIGRATION = path.resolve(here, "../migrations/20260108203546_738a153d-fdf5-43d3-a2c6-75e98647a71f.sql");
 
 /** update_updated_at_column, telle que livrée (forme `$$ LANGUAGE ...;` hors du motif de readFunctionSql). */
@@ -47,8 +48,11 @@ beforeAll(async () => {
   await db.exec(readFunctionSql("20261103100000_supertilt_fr_module.sql", "has_module_access"));
   await db.exec(readUpdatedAtFunction());
   const migration = fs.readFileSync(MIGRATION, "utf8");
-  await db.exec(migration);
-  await db.exec(migration);
+  const dateMigration = fs.readFileSync(DATE_MIGRATION, "utf8");
+  for (let i = 0; i < 2; i++) {
+    await db.exec(migration);
+    await db.exec(dateMigration);
+  }
   await db.exec(`
     GRANT ALL ON public.social_channels, public.social_content_groups, public.social_posts TO anon, authenticated;
     INSERT INTO auth.users VALUES
@@ -161,6 +165,53 @@ describe("save_social_content_group", () => {
     await save(GROUP, three("x"), { format: "reel" });
     const g = await db.query<{ format: string }>("SELECT format FROM social_content_groups");
     expect(g.rows[0].format).toBe("reel");
+  });
+});
+
+describe("set_social_group_date", () => {
+  const setDate = (groupId: string, at: string | null) =>
+    db.query<{ n: number }>("SELECT public.set_social_group_date($1, $2::timestamptz) AS n", [groupId, at]);
+
+  it("date toutes les déclinaisons du groupe et les passe en programmé", async () => {
+    await actAs(EMMA);
+    await save(GROUP, three("Brouillon"));
+    const res = await setDate(GROUP, "2026-11-12T08:00:00Z");
+    expect(res.rows[0].n).toBe(3);
+    const rows = await posts(GROUP);
+    expect(rows.every((r) => r.publication_status === "scheduled" && r.scheduled_at?.toISOString() === "2026-11-12T08:00:00.000Z")).toBe(true);
+  });
+
+  it("laisse intacte une déclinaison publiée", async () => {
+    await actAs(EMMA);
+    await save(GROUP, three("Mixte", "2026-11-03T17:00:00Z"));
+    await db.query("UPDATE social_posts SET publication_status = 'published' WHERE group_id = $1 AND channel_id = $2", [GROUP, channels[0]]);
+    const res = await setDate(GROUP, "2026-11-10T17:00:00Z");
+    expect(res.rows[0].n).toBe(2);
+    const byChannel = Object.fromEntries((await posts(GROUP)).map((r) => [r.channel_id, [r.publication_status, r.scheduled_at?.toISOString()]]));
+    expect(byChannel).toEqual({
+      [channels[0]]: ["published", "2026-11-03T17:00:00.000Z"],
+      [channels[1]]: ["scheduled", "2026-11-10T17:00:00.000Z"],
+      [channels[2]]: ["scheduled", "2026-11-10T17:00:00.000Z"],
+    });
+  });
+
+  it("retire la date avec null et repasse en sans date", async () => {
+    await actAs(EMMA);
+    await save(GROUP, three("Daté", "2026-11-20T08:30:00Z"));
+    await setDate(GROUP, null);
+    const rows = await posts(GROUP);
+    expect(rows.every((r) => r.publication_status === "unscheduled" && r.scheduled_at === null)).toBe(true);
+  });
+
+  it("refuse un compte sans droit et anon, sans rien modifier", async () => {
+    await actAs(EMMA);
+    await save(GROUP, three("Privé"));
+    await actAs(OTHER);
+    await expect(setDate(GROUP, "2026-11-12T08:00:00Z")).rejects.toThrow("Contenu introuvable");
+    await actAs(null);
+    await expect(setDate(GROUP, "2026-11-12T08:00:00Z")).rejects.toThrow(/permission denied/);
+    await db.exec("RESET ROLE");
+    expect((await posts(GROUP)).every((r) => r.publication_status === "unscheduled" && r.scheduled_at === null)).toBe(true);
   });
 });
 
