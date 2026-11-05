@@ -48,7 +48,6 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Permanent-session inline Solo creation inherits catalog values through a service and hook; course availability considers both catalog and session links, because the shortcut must not invent prices or hide existing associations.
 
 - Training tables share a pure sorting helper with per-tab sort state.
-
 - Learner dashboard onboarding derives remaining steps from a pure profile helper and renders only a nonempty list, because completion must hide the block independently of work deposits.
 
 - Password setup loads and saves learner names through authenticated session-owned profile access, after an explicit recovery confirmation click; it never consumes recovery tokens on page load or exposes anonymous email-based profile lookup, because name prefill must preserve scanner-safe links and identity privacy.
@@ -78,7 +77,7 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - A game order line is out of daily alerts and shipment follow-up once it is archived, shipped (`shipped_confirmed_at`) or hand-delivered (`hand_delivered_at`); daily to-dos for order lines auto-close when the line leaves the status that created them, because status changes after the morning run otherwise left stale alerts.
 - Course blocks read training dates live via read-only security-definer RPCs (`get_lms_upcoming_sessions`) returning session/venue facts only, because hardcoded dates go stale and learners lack training RLS.
 - Review/testimonial requests for missions are hand-written signals in `testimonial_requests` (one per mission contact), never generated emails; `mission_email_drafts` is read-only history, because requests are now tailored by the assistant.
-- LMS audio originals are copied to a readable Google Drive tree ("SuperTools - Audios e-learning/<course>/<Paris date> - <course> - <original name>") by `archive-lms-audio`, tracked in `lms_audio_archives`; each call catches up every unarchived audio, because storage paths are machine-named and unusable for humans.
+- LMS audio originals are copied by `archive-lms-audio` to a readable Drive tree (course / Paris date / original name), tracked in `lms_audio_archives` with catch-up per call, because storage paths are unreadable.
 - The mission "Facture à émettre" flag (`missions.invoice_to_issue*`) is separate from the next action and is cleared by a DB trigger when an activity gets an invoice number, because every invoicing path (UI, Pennylane, MCP) must clear it without client code.
 - LMS course audio transcripts live on their `media` row (`transcript`, `transcription_status` pending/transcribed/processed/error, duration); blocks generated from an audio carry `lms_lesson_blocks.source_media_id`, and uploads are de-duplicated per course by `media.content_hash` (legacy rows by name+size), because course audios must stay out of the meetings `transcripts` pipeline while remaining traceable.
 - Micro-devis follow-up sessions are computed by the pure helper `supabase/functions/_shared/micro-devis-followup.ts`, shared by the Micro-devis page and `generate-micro-devis`; the server reads included sessions from the selected catalog formula, descriptions count included plus added sessions, and only additions increase price and catalog duration, because UI and PDF must agree without billing included sessions twice.
@@ -88,5 +87,6 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Bulk e-learning access emails queue in `learner_access_jobs`, sent server-side by `queue-learner-access-emails` with requester rights, because browser sends blocked the page.
 - Password emails use hashed `password_setup_links` redeemed on click, because native recovery tokens expire too soon.
 - Learner community reads (posts and children) use security-definer enrollment-scoped helpers, because intra client feeds must stay private.
-- CRM opportunity values use the shared pure `_shared/opportunity-value.ts`, so all entry points agree.
-- Transcript→Réseau links use `link_transcript_to_network_contact` (UI) or `_shared/network-tools.ts` (MCP); unlinking keeps the meeting interaction, because network history must survive link corrections.
+- CRM opportunity values use the shared pure `_shared/opportunity-value.ts`, so entry points agree.
+- Transcript→Réseau links: `link_transcript_to_network_contact` (UI), `_shared/network-tools.ts` (MCP); unlinking keeps the interaction, preserving history.
+- Picto-Dico input and challenge guards are DB triggers mirrored in `_shared/pictodico-validation.ts`; the linked event drives challenge number/date, because the webhook is public.
