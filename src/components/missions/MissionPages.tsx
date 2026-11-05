@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -96,9 +96,11 @@ import {
   FileAudio,
   Package,
   MessageSquare,
+  Search,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { VoiceDictationButton } from "@/components/ui/voice-dictation-button";
 import { MeetingRecorderButton } from "@/components/missions/MeetingRecorderButton";
@@ -133,6 +135,7 @@ import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { registerMediaEntry } from "@/hooks/useMedia";
 import { resolveContentType } from "@/lib/file-utils";
 import { sanitizeLmsHtml } from "@/lib/sanitizeLmsHtml";
+import { searchMissionPages } from "@/lib/missionPageSearch";
 
 interface MissionPagesProps {
   mission: Mission;
@@ -160,6 +163,10 @@ interface PageTreeItemProps {
   manualOrder: boolean;
   selectedPageId: string | null;
   sortFn: (a: MissionPage, b: MissionPage) => number;
+  /** Pages à afficher pendant une recherche (null hors recherche). */
+  visibleIds: Set<string> | null;
+  /** Pages correspondant au terme cherché (null hors recherche). */
+  matchIds: Set<string> | null;
 }
 
 // ─── Custom TipTap Extensions ────────────────────────────
@@ -359,6 +366,8 @@ const PageTreeItem = ({
   manualOrder,
   selectedPageId,
   sortFn,
+  visibleIds,
+  matchIds,
 }: PageTreeItemProps) => {
   const { isDemoMode } = useDemoMode();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -374,8 +383,9 @@ const PageTreeItem = ({
     position: "relative",
   };
 
+  const forceExpand = !!matchIds;
   const childPages = allPages
-    .filter((p) => p.parent_page_id === page.id)
+    .filter((p) => p.parent_page_id === page.id && (!visibleIds || visibleIds.has(p.id)))
     .sort(sortFn);
   const childIds = childPages.map((p) => p.id);
   const hasChildren = childPages.length > 0;
@@ -389,6 +399,7 @@ const PageTreeItem = ({
             ? "bg-primary/10 text-primary font-medium"
             : "hover:bg-muted/60 text-muted-foreground hover:text-foreground",
           isDragging && "z-50",
+          matchIds && !matchIds.has(page.id) && "opacity-60",
         )}
         style={{ paddingLeft: `${level * 12 + 4}px` }}
         onClick={() => onSelect(page)}
@@ -401,7 +412,7 @@ const PageTreeItem = ({
           className="w-4 h-4 flex items-center justify-center shrink-0"
         >
           {hasChildren ? (
-            page.is_expanded ? (
+            (page.is_expanded || forceExpand) ? (
               <ChevronDown className="h-3 w-3" />
             ) : (
               <ChevronRight className="h-3 w-3" />
@@ -476,7 +487,7 @@ const PageTreeItem = ({
         </div>
       </div>
 
-      {hasChildren && page.is_expanded && (
+      {hasChildren && (page.is_expanded || forceExpand) && (
         <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
           {childPages.map((child) => (
             <PageTreeItem
@@ -493,6 +504,8 @@ const PageTreeItem = ({
               manualOrder={manualOrder}
               selectedPageId={selectedPageId}
               sortFn={sortFn}
+              visibleIds={visibleIds}
+              matchIds={matchIds}
             />
           ))}
         </SortableContext>
@@ -1167,6 +1180,9 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   const [selectedPage, setSelectedPage] = useState<MissionPage | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sortMode, setSortMode] = useState<PageSortMode>("manual");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     if (typeof window === "undefined") return SIDEBAR_DEFAULT_WIDTH;
@@ -1215,8 +1231,17 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
     }
   }, [sortMode]);
 
+  const search = useMemo(
+    () => (searchTerm.trim() ? searchMissionPages(pages || [], searchTerm) : null),
+    [pages, searchTerm],
+  );
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
   const rootPages = (pages || [])
-    .filter((p) => !p.parent_page_id)
+    .filter((p) => !p.parent_page_id && (!search || search.visibleIds.has(p.id)))
     .sort((a, b) => {
       const da = (a as any).is_deliverable ? 1 : 0;
       const db = (b as any).is_deliverable ? 1 : 0;
@@ -1545,6 +1570,24 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         <div className="p-2 border-b flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">Pages</span>
           <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => {
+                if (searchOpen) {
+                  setSearchOpen(false);
+                  setSearchTerm("");
+                } else {
+                  setSearchOpen(true);
+                }
+              }}
+              className={cn(
+                "h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground",
+                searchOpen && "bg-muted text-foreground",
+              )}
+              title="Rechercher une page"
+              aria-label="Rechercher une page"
+            >
+              <Search className="h-3.5 w-3.5" />
+            </button>
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <button className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Trier">
@@ -1600,7 +1643,38 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
             </button>
           </div>
         </div>
+
+        {searchOpen && (
+          <div className="relative p-2 border-b">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              ref={searchInputRef}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Titre ou contenu…"
+              aria-label="Rechercher une page"
+              className="h-7 pl-7 pr-7 text-xs"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                onMouseDown={(e) => e.preventDefault()}
+                title="Effacer la recherche"
+                aria-label="Effacer la recherche"
+                className="absolute right-4 top-1/2 flex h-4 w-4 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto py-1 px-1">
+          {search && rootPages.length === 0 ? (
+            <p className="px-3 py-4 text-xs text-muted-foreground">
+              Aucune page ne correspond à « {searchTerm.trim()} ».
+            </p>
+          ) : (
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -1619,13 +1693,16 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
                   onDuplicate={handleDuplicatePage}
                   onToggleExpand={handleToggleExpand}
                   onUpdateIcon={handleUpdatePageIcon}
-                  manualOrder={sortMode === "manual"}
+                  manualOrder={sortMode === "manual" && !search}
                   selectedPageId={selectedPage?.id || null}
                   sortFn={sortFn}
+                  visibleIds={search?.visibleIds ?? null}
+                  matchIds={search?.matchIds ?? null}
                 />
               ))}
             </SortableContext>
           </DndContext>
+          )}
         </div>
       </div>
 
