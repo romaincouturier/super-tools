@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Règlement intérieur éditable (2026-11-05)
+- [ ] Publier la migration initiale ; vérifier le téléchargement dans les espaces participants puis supprimer le PDF ancien et ses liens accessibles
 - [x] Édition Markdown avec titres/gras/listes, brouillon sauvegardé et aperçu PDF SuperTilt
 - [x] Publication explicite, archivage atomique des PDF précédents et protection contre les éditions concurrentes ; droits administrateur conservés
 - [x] Texte du PDF actuel repris en brouillon ; sauvegarde/rechargement réels vérifiés, confirmation annulée, PDF diffusé inchangé ; 12 tests et 103 contrôles réussis, aucune publication réelle ni email
