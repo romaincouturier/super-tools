@@ -1,6 +1,9 @@
 # Roadmap
 
 ## Règlement intérieur éditable (2026-11-05)
+- [x] Migration initiale publiée : huit articles identiques à l’ancien PDF ; téléchargement réel dans Formation et Documents avec le compte demandeur, 14 tests et 103 contrôles réussis
+- [x] Ancien fichier supprimé du stockage et lien retiré des archives : ancienne URL répond 400 sans PDF, aucun réglage ne le référence
+- [ ] Copie de sauvegarde privée Google Drive de l’ancien PDF : identifiée dans le manifeste, suppression bloquée faute d’accès Drive disponible ; aucune sauvegarde modifiée
 - [x] Édition Markdown avec titres/gras/listes, brouillon sauvegardé et aperçu PDF SuperTilt
 - [x] Publication explicite, archivage atomique des PDF précédents et protection contre les éditions concurrentes ; droits administrateur conservés
 - [x] Texte du PDF actuel repris en brouillon ; sauvegarde/rechargement réels vérifiés, confirmation annulée, PDF diffusé inchangé ; 12 tests et 103 contrôles réussis, aucune publication réelle ni email

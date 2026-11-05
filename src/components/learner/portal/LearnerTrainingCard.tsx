@@ -10,6 +10,7 @@ import { Spinner } from "@/components/ui/spinner";
 import AddToCalendarButton from "@/components/learner/AddToCalendarButton";
 import type { Training, Questionnaire } from "@/types/learner-portal";
 import { openStorageUrl } from "@/lib/storageUrl";
+import RegulationDownload from "@/components/learner/RegulationDownload";
 
 export function statusBadge(status: string | null) {
   switch (status) {
@@ -111,6 +112,7 @@ export function hasLearnerDocuments(
   return (
     (training.documents?.length ?? 0) > 0 ||
     !!training.program_file_url ||
+    !!training.reglement_interieur_url ||
     !!training.supports_url ||
     !!questionnaire ||
     !!evaluation
@@ -214,13 +216,7 @@ export function TrainingDetail({
                 </button>
               )}
               {training.reglement_interieur_url && (
-                <a href={training.reglement_interieur_url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                  style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
-                  <FileText size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
-                  Règlement intérieur
-                  <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
-                </a>
+                <RegulationDownload url={training.reglement_interieur_url} />
               )}
             </div>
           )}
@@ -255,6 +251,7 @@ export function TrainingDetail({
       {hasDocuments && (
       <TabsContent value="documents">
           <div className="grid sm:grid-cols-2 gap-2">
+            {training.reglement_interieur_url && <RegulationDownload url={training.reglement_interieur_url} />}
             {documents.map((doc, i) => (
               // Buckets privés : on résout une URL signée au clic.
               <button key={`${doc.file_url}-${i}`} type="button"

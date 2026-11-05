@@ -3,7 +3,7 @@ const invoke = vi.fn();
 const rpc = vi.fn();
 const inQuery = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke: (...args: unknown[]) => invoke(...args) }, rpc: (...args: unknown[]) => rpc(...args), from: () => ({ select: () => ({ in: (...args: unknown[]) => inQuery(...args) }) }) } }));
-import { publishRegulation, loadTrainingRegulation } from "./trainingRegulation";
+import { publishRegulation, loadTrainingRegulation, prepareRegulationDownload } from "./trainingRegulation";
 beforeEach(() => { vi.clearAllMocks(); });
 describe("publication du règlement", () => {
   it("ne publie jamais après un échec d'upload", async () => {
@@ -22,5 +22,22 @@ describe("publication du règlement", () => {
     expect(await loadTrainingRegulation()).toMatchObject({ draft: "", hasDraft: true });
     inQuery.mockResolvedValue({ data: [] });
     expect(await loadTrainingRegulation()).toMatchObject({ hasDraft: false });
+  });
+});
+
+describe("téléchargement du règlement", () => {
+  it("prépare un vrai PDF non vide avant le clic", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("%PDF-test", { headers: { "Content-Type": "application/pdf" } }));
+    const blob = await prepareRegulationDownload("https://example.test/reglement.pdf");
+    expect(blob.type).toBe("application/pdf");
+    expect(blob.size).toBe(9);
+    vi.restoreAllMocks();
+  });
+  it("refuse une réponse HTML ou un fichier absent", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("<html>Erreur</html>", { headers: { "Content-Type": "text/html" } }));
+    await expect(prepareRegulationDownload("https://example.test/reglement.pdf")).rejects.toThrow("n'est pas un PDF");
+    fetchMock.mockResolvedValue(new Response("Introuvable", { status: 404 }));
+    await expect(prepareRegulationDownload("https://example.test/reglement.pdf")).rejects.toThrow("n'est pas disponible");
+    vi.restoreAllMocks();
   });
 });

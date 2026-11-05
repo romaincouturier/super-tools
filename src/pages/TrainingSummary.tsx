@@ -25,6 +25,7 @@ import {
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { openStorageUrl } from "@/lib/storageUrl";
+import RegulationDownload from "@/components/learner/RegulationDownload";
 
 // ── Material Symbol helper ──────────────────────────────────────────────────
 
@@ -730,20 +731,7 @@ END:VCALENDAR`;
               </a>
             )}
             {reglementInterieurUrl && (
-              <a
-                href={reglementInterieurUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col items-center justify-center p-4 border rounded-xl transition-colors"
-                style={{
-                  background: c.surfaceContainerLowest,
-                  borderColor: `${c.outlineVariant}30`,
-                  color: c.onSurface,
-                }}
-              >
-                <MIcon icon="gavel" className="mb-2" />
-                <span className="text-xs font-bold text-center">Règlement intérieur</span>
-              </a>
+              <RegulationDownload url={reglementInterieurUrl} />
             )}
             {vhdProcedure && (
               <button
