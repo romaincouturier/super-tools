@@ -57,7 +57,7 @@ const BulkAddParticipantsDialog = ({
   const missingFormula = showFormulas && parsedParticipants.some((p) => !formulaIdFor(p.email));
   const formulaLabel = (f: FormationFormula) => `${f.name}${f.prix != null ? ` — ${f.prix}€` : ""}`; // demo-safe: tarif du catalogue SuperTilt
   const overrideCount = useMemo(
-    () => parsedParticipants.filter((p) => { const o = formulaOverrides[p.email.trim().toLowerCase()]; return o && o !== defaultFormulaId; }).length,
+    () => parsedParticipants.filter((p) => { const o = formulaOverrides[p.email.trim().toLowerCase()]; return o && o !== defaultFormulaId; }).length, // demo-safe: comptage, rien affiché
     [parsedParticipants, formulaOverrides, defaultFormulaId],
   );
 
