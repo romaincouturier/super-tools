@@ -1180,6 +1180,9 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   const [selectedPage, setSelectedPage] = useState<MissionPage | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sortMode, setSortMode] = useState<PageSortMode>("manual");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     if (typeof window === "undefined") return SIDEBAR_DEFAULT_WIDTH;
@@ -1228,8 +1231,17 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
     }
   }, [sortMode]);
 
+  const search = useMemo(
+    () => (searchTerm.trim() ? searchMissionPages(pages || [], searchTerm) : null),
+    [pages, searchTerm],
+  );
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
   const rootPages = (pages || [])
-    .filter((p) => !p.parent_page_id)
+    .filter((p) => !p.parent_page_id && (!search || search.visibleIds.has(p.id)))
     .sort((a, b) => {
       const da = (a as any).is_deliverable ? 1 : 0;
       const db = (b as any).is_deliverable ? 1 : 0;
@@ -1558,6 +1570,24 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         <div className="p-2 border-b flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">Pages</span>
           <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => {
+                if (searchOpen) {
+                  setSearchOpen(false);
+                  setSearchTerm("");
+                } else {
+                  setSearchOpen(true);
+                }
+              }}
+              className={cn(
+                "h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground",
+                searchOpen && "bg-muted text-foreground",
+              )}
+              title="Rechercher une page"
+              aria-label="Rechercher une page"
+            >
+              <Search className="h-3.5 w-3.5" />
+            </button>
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <button className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Trier">
@@ -1613,7 +1643,43 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
             </button>
           </div>
         </div>
+
+        {searchOpen && (
+          <div className="relative p-2 border-b">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              ref={searchInputRef}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setSearchTerm("");
+                  setSearchOpen(false);
+                }
+              }}
+              placeholder="Titre ou contenu…"
+              aria-label="Rechercher une page"
+              className="h-7 pl-7 pr-7 text-xs"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                title="Effacer la recherche"
+                aria-label="Effacer la recherche"
+                className="absolute right-4 top-1/2 flex h-4 w-4 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto py-1 px-1">
+          {search && rootPages.length === 0 ? (
+            <p className="px-3 py-4 text-xs text-muted-foreground">
+              Aucune page ne correspond à « {searchTerm.trim()} ».
+            </p>
+          ) : (
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -1632,13 +1698,16 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
                   onDuplicate={handleDuplicatePage}
                   onToggleExpand={handleToggleExpand}
                   onUpdateIcon={handleUpdatePageIcon}
-                  manualOrder={sortMode === "manual"}
+                  manualOrder={sortMode === "manual" && !search}
                   selectedPageId={selectedPage?.id || null}
                   sortFn={sortFn}
+                  visibleIds={search?.visibleIds ?? null}
+                  matchIds={search?.matchIds ?? null}
                 />
               ))}
             </SortableContext>
           </DndContext>
+          )}
         </div>
       </div>
 
