@@ -22,6 +22,7 @@ export interface Pearl {
   author_name: string | null;
   author_company: string | null;
   is_anonymous: boolean;
+  is_positive: boolean;
   pearl_date: string;
   pearl_time: string | null;
   source: PearlSource;
@@ -36,7 +37,7 @@ export interface Pearl {
 export type PearlInput = Partial<
   Pick<
     Pearl,
-    | "title" | "message_fr" | "author_name" | "author_company" | "is_anonymous"
+    | "title" | "message_fr" | "author_name" | "author_company" | "is_anonymous" | "is_positive"
     | "pearl_date" | "pearl_time" | "source" | "image_path" | "archived"
   >
 > & { message: string };

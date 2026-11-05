@@ -722,6 +722,6 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ### [078] Perles clients — staff seul, désactivées par défaut, auteur jamais montré si anonyme
 - **Constat** : Novembre 2026, les messages d'éloge reçus (Notion, mails) n'avaient pas de lieu d'archivage et ne remontaient jamais au quotidien.
-- **Règle** : `client_pearls` est lisible par le staff seul (`is_staff_user()`), son image vit dans le bucket privé `client-pearls`, et le widget du tableau de bord ne s'affiche que si la préférence utilisateur `dashboard_pearl` vaut `enabled: true` (défaut : désactivé). Le tirage au hasard se fait en base (`get_random_client_pearl`), et une perle `is_anonymous` n'expose jamais son auteur sur le tableau de bord (`pearlAuthorLabel`).
+- **Règle** : `client_pearls` est lisible par le staff seul (`is_staff_user()`), son image vit dans le bucket privé `client-pearls`, et le widget du tableau de bord ne s'affiche que si la préférence utilisateur `dashboard_pearl` vaut `enabled: true` (défaut : désactivé). Le tirage au hasard se fait en base (`get_random_client_pearl`) et ne retient que les perles positives non archivées (`is_positive`) ; les autres restent dans la page Perles clients. Une perle `is_anonymous` n'expose jamais son auteur sur le tableau de bord (`pearlAuthorLabel`).
 - **Vérification** : check [078] de `scripts/check-rules.sh`.
 - **Date** : 2026-11-04

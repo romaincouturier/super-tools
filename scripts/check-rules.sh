@@ -757,6 +757,7 @@ check "078" "Perles clients : RLS staff, bucket prive, widget derriere la prefer
    grep -q 'is_staff_user()' \"\$m\" || echo 'VIOLATION [078]: lecture non reservee au staff'; \
    grep -q \"'client-pearls', 'client-pearls', false\" \"\$m\" || echo 'VIOLATION [078]: bucket client-pearls non prive'; \
    grep -q 'enabled: false' src/hooks/useDashboardPearlPreference.ts || echo 'VIOLATION [078]: la perle du tableau de bord n est plus desactivee par defaut'; \
+   grep -rq 'is_positive = true' supabase/migrations/*client_pearls_positive_flag*.sql || echo 'VIOLATION [078]: le tirage du tableau de bord ne filtre plus sur is_positive'; \
    grep -q 'if (!enabled' src/components/dashboard/PearlWidget.tsx || echo 'VIOLATION [078]: widget non conditionne a la preference'; \
    grep -q 'if (p.is_anonymous) return \"Anonyme\"' src/services/pearls.ts || echo 'VIOLATION [078]: pearlAuthorLabel n masque plus les anonymes'"
 

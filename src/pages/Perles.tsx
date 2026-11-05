@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePearlMutations, usePearls } from "@/hooks/usePearls";
 import { maskText } from "@/lib/demoMask";
 import { todayAsISO } from "@/lib/dateFormatters";
-import { formatPearlDate } from "@/lib/pearls";
+import { filterPearls, formatPearlDate } from "@/lib/pearls";
 import { toastError } from "@/lib/toastError";
 import { getSignedUrl } from "@/lib/storageUrl";
 import {
@@ -60,7 +60,10 @@ function PearlCard({ p, onEdit }: { p: Pearl; onEdit: (p: Pearl) => void }) {
               {p.is_anonymous && " (anonyme au tableau de bord)"}
             </p>
           </div>
-          <Badge variant="outline">{PEARL_SOURCE_LABELS[p.source]}</Badge>
+          <div className="flex items-center gap-1 shrink-0">
+            {!p.is_positive && <Badge variant="secondary">Hors tableau de bord</Badge>}
+            <Badge variant="outline">{PEARL_SOURCE_LABELS[p.source]}</Badge>
+          </div>
         </div>
         <p className="text-sm whitespace-pre-line">{mask(p.message)}</p>
         {p.message_fr && <p className="text-sm whitespace-pre-line text-muted-foreground">{mask(p.message_fr)}</p>}
@@ -102,6 +105,7 @@ function PearlDialog({ pearl, open, onClose }: { pearl: Pearl | null; open: bool
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [anonymous, setAnonymous] = useState(false);
+  const [positive, setPositive] = useState(true);
   const [date, setDate] = useState(todayAsISO());
   const [time, setTime] = useState("");
   const [source, setSource] = useState<PearlSource>("autre");
@@ -115,6 +119,7 @@ function PearlDialog({ pearl, open, onClose }: { pearl: Pearl | null; open: bool
     setName(pearl?.author_name ?? "");
     setCompany(pearl?.author_company ?? "");
     setAnonymous(pearl?.is_anonymous ?? false);
+    setPositive(pearl?.is_positive ?? true);
     setDate(pearl?.pearl_date ?? todayAsISO());
     setTime(pearl?.pearl_time?.slice(0, 5) ?? "");
     setSource(pearl?.source ?? "autre");
@@ -131,6 +136,7 @@ function PearlDialog({ pearl, open, onClose }: { pearl: Pearl | null; open: bool
       author_name: name.trim() || null,
       author_company: company.trim() || null,
       is_anonymous: anonymous,
+      is_positive: positive,
       pearl_date: date,
       pearl_time: time || null,
       source,
@@ -166,6 +172,10 @@ function PearlDialog({ pearl, open, onClose }: { pearl: Pearl | null; open: bool
               <Label htmlFor="pearl-company">Entreprise</Label>
               <Input id="pearl-company" value={company} onChange={(e) => setCompany(e.target.value)} />
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox id="pearl-positive" checked={positive} onCheckedChange={(v) => setPositive(v === true)} />
+            <Label htmlFor="pearl-positive">Positive : peut s'afficher sur le tableau de bord</Label>
           </div>
           <div className="flex items-center gap-2">
             <Checkbox id="pearl-anon" checked={anonymous} onCheckedChange={(v) => setAnonymous(v === true)} />
@@ -218,19 +228,14 @@ export default function Perles() {
   const [search, setSearch] = useState("");
   const [source, setSource] = useState<string>("all");
   const [showArchived, setShowArchived] = useState(false);
+  const [tone, setTone] = useState<string>("all");
   const [editing, setEditing] = useState<Pearl | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return data.filter((p) => {
-      if (!showArchived && p.archived) return false;
-      if (source !== "all" && p.source !== source) return false;
-      if (!q) return true;
-      return [p.title, p.message, p.message_fr, p.author_name, p.author_company]
-        .some((v) => v?.toLowerCase().includes(q));
-    });
-  }, [data, search, source, showArchived]);
+  const filtered = useMemo(
+    () => filterPearls(data, { search, source, tone, showArchived }),
+    [data, search, source, tone, showArchived],
+  );
 
   const openDialog = (p: Pearl | null) => {
     setEditing(p);
@@ -259,6 +264,14 @@ export default function Perles() {
               {Object.entries(PEARL_SOURCE_LABELS).map(([k, l]) => (
                 <SelectItem key={k} value={k}>{l}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          <Select value={tone} onValueChange={setTone}>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les perles</SelectItem>
+              <SelectItem value="positive">Positives (best of)</SelectItem>
+              <SelectItem value="other">Hors tableau de bord</SelectItem>
             </SelectContent>
           </Select>
           <div className="flex items-center gap-2">
