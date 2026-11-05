@@ -2,7 +2,8 @@
 title: 'Story 1.2 : planifier dans le calendrier avec aperçu des contenus'
 type: 'feature'
 created: '2026-11-05'
-status: 'draft'
+status: 'in-progress'
+baseline_commit: '63cb343f48d5957085c0b3c9b77c26244cb02a9a'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
