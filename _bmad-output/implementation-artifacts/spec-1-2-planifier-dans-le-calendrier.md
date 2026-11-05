@@ -2,7 +2,7 @@
 title: 'Story 1.2 : planifier dans le calendrier avec aperçu des contenus'
 type: 'feature'
 created: '2026-11-05'
-status: 'in-progress'
+status: 'in-review'
 baseline_commit: '63cb343f48d5957085c0b3c9b77c26244cb02a9a'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -65,15 +65,15 @@ Un clic sur une carte rouvre le composeur de la story 1.1.
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `supabase/migrations/20261105130000_social_group_date.sql` -- RPC `set_social_group_date(p_group_id uuid, p_scheduled_at timestamptz)` : pose la date sur les déclinaisons non publiées, statut `scheduled` (ou `unscheduled` si null), en une seule instruction ; accordée à `authenticated` seulement. -- Date atomique (R-03).
-- [ ] `supabase/tests/social-contents.test.ts`, `scripts/sql-tested-functions.txt` -- tests de la RPC : groupe entier daté, déclinaison publiée intacte, date null, refus sans droit. -- Règle [058].
-- [ ] `src/services/socialContents.ts` et `src/services/socialContents.test.ts` -- lectures, `setGroupDate`, fonctions pures et tests (statut le moins avancé, jour de Paris en soirée et aux changements d'heure, garde de l'heure, grilles du lundi au dimanche, mois à cheval sur deux semaines). -- Logique testable.
-- [ ] `src/hooks/useSocialContents.ts` -- requêtes et mutation optimiste. -- Couche hook.
-- [ ] `src/components/social/UndatedColumn.tsx` -- « Non planifiés · N », cartes glissables, clic qui rouvre le composeur. -- UX-DR3.
-- [ ] `src/components/social/ContentCard.tsx` -- pastille de statut, heure, badges des canaux (nom en infobulle), début du texte tronqué. -- UX-DR5 sans liseré.
-- [ ] `src/components/social/SocialCalendar.tsx` -- vues mois et semaine, navigation précédent et suivant, jour courant en évidence, jours hors mois grisés, cases déposables, légende à trois statuts. -- UX-DR4, UX-DR7.
-- [ ] `src/components/social/ChannelFilterBar.tsx` et `src/pages/SocialContentsPage.tsx` -- barre des canaux, onglets Calendrier (actif), Liste et Aperçus (désactivés), composition de la page. -- UX-DR1, FR3.
-- [ ] `src/components/social/SocialCalendar.test.tsx` -- rendu d'une carte sur le bon jour, filtre de canal, clic qui ouvre le composeur, dépôt qui appelle la mutation avec la bonne date. -- Composant.
+- [x] `supabase/migrations/20261105130000_social_group_date.sql` -- RPC `set_social_group_date(p_group_id uuid, p_scheduled_at timestamptz)` : pose la date sur les déclinaisons non publiées, statut `scheduled` (ou `unscheduled` si null), en une seule instruction ; accordée à `authenticated` seulement. -- Date atomique (R-03).
+- [x] `supabase/tests/social-contents.test.ts`, `scripts/sql-tested-functions.txt` -- tests de la RPC : groupe entier daté, déclinaison publiée intacte, date null, refus sans droit. -- Règle [058].
+- [x] `src/services/socialContents.ts` et `src/services/socialContents.test.ts` -- lectures, `setGroupDate`, fonctions pures et tests (statut le moins avancé, jour de Paris en soirée et aux changements d'heure, garde de l'heure, grilles du lundi au dimanche, mois à cheval sur deux semaines). -- Logique testable.
+- [x] `src/hooks/useSocialContents.ts` -- requêtes et mutation optimiste. -- Couche hook.
+- [x] `src/components/social/UndatedColumn.tsx` -- « Non planifiés · N », cartes glissables, clic qui rouvre le composeur. -- UX-DR3.
+- [x] `src/components/social/ContentCard.tsx` -- pastille de statut, heure, badges des canaux (nom en infobulle), début du texte tronqué. -- UX-DR5 sans liseré.
+- [x] `src/components/social/SocialCalendar.tsx` -- vues mois et semaine, navigation précédent et suivant, jour courant en évidence, jours hors mois grisés, cases déposables, légende à trois statuts. -- UX-DR4, UX-DR7.
+- [x] `src/components/social/ChannelFilterBar.tsx` et `src/pages/SocialContentsPage.tsx` -- barre des canaux, onglets Calendrier (actif), Liste et Aperçus (désactivés), composition de la page. -- UX-DR1, FR3.
+- [x] `src/components/social/SocialCalendar.test.tsx` -- rendu d'une carte sur le bon jour, filtre de canal, clic qui ouvre le composeur, dépôt qui appelle la mutation avec la bonne date. -- Composant.
 
 **Acceptance Criteria:**
 - Given des contenus datés et non datés, when la page s'ouvre, then les datés sont sur leur jour et les non datés dans « Non planifiés · N », avec N juste.
@@ -82,9 +82,46 @@ Un clic sur une carte rouvre le composeur de la story 1.1.
 
 ## Implementation Notes
 
+- RPC `set_social_group_date` : un groupe invisible pour l'appelant (RLS) lève « Contenu introuvable » au lieu de ne rien faire en silence ; elle renvoie le nombre de déclinaisons modifiées. `anon` n'a pas le droit d'exécution.
+- Lectures en deux temps (ids des groupes par `social_posts`, puis groupes avec tous leurs posts), pour que la carte voie aussi les déclinaisons hors de la plage ou publiées. La page fusionne les deux listes et `placeGroups` les répartit (dédoublonnage, filtre de canal, statut le moins avancé, jour de Paris, tri horaire).
+- Date d'une carte : la plus tôt des déclinaisons visibles au statut affiché. Une carte « Publié » sans date n'apparaît nulle part (le marquage publié arrive en 1.5).
+- Mutation optimiste sur les seules clés `range` et `undated`, retour au cliché en cas d'erreur, toast par `toastError` dans la page, invalidation à la fin.
+- Glisser-déposer : capteurs de `useKanbanDnd` (souris à 8 px, ce qui laisse passer le clic). La colonne « Non planifiés » n'est pas une zone de dépôt (retirer la date n'est pas demandé).
+- Tests ajoutés hors liste : `src/hooks/useSocialContents.test.tsx` (mise à jour optimiste et retour arrière, ligne « Erreur » du tableau). Le test de dépôt appelle le `onDragEnd` capturé du `DndContext` ; la mécanique réelle du glisser reste à couvrir par l'E2E Playwright prévu à l'epic.
+- Production : jouer `20261105130000_social_group_date.sql` explicitement, après celle de la story 1.1.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+Passe 1 (5 nov.), trois couches : chasseur à l'aveugle, chasseur de cas limites, trous de vérification.
+
+| # | Constat | Verdict | Preuve et décision |
+|---|---|---|---|
+| 1 | Un contenu partiellement publié quitte le calendrier pour « Non planifiés » | medium | `placeGroups` place la carte d'après les déclinaisons au statut le moins avancé, ici sans date. Le cas du tableau attend que la carte reste au calendrier. Corrigé (patch). |
+| 2 | Un groupe chargé pour la plage se place hors de la grille | medium | Même cause : la date retenue peut tomber hors de la plage. Corrigé avec le n° 1 (patch). |
+| 3 | Cartes d'un jour triées sur des chaînes ISO aux formats mélangés | low | `localeCompare` sur « Z » et « +00:00 ». Tri par `Date.parse` (patch). |
+| 4 | Déposer une carte sur son propre jour écrit quand même | low | La comparaison de chaînes échoue entre le format du helper et celui de la base. `Date.parse`, avec un test (patch). |
+| 5 | Une erreur de chargement affiche un calendrier vide | medium | La page ne lit que `isLoading`. Message d'erreur et bouton « Réessayer » (patch). |
+| 6 | Une carte Publié reste glissable sans effet | low | La RPC ne touche pas les déclinaisons publiées. Glisser désactivé (patch). |
+| 7 | Clavier : Espace ignoré, gestionnaire dnd-kit écrasé | medium | `onKeyDown` est placé après `{...listeners}`. Corrigé, capteur clavier activé (patch). |
+| 8 | La pastille de statut n'est pas annoncée par les lecteurs d'écran | low | `aria-label` sans rôle. `role="img"` (patch). |
+| 9 | La plage (début, fin) chargée par le calendrier n'est pas testée | medium | Trou de vérification déjà vérifié par la couche. Test ajouté (patch). |
+| 10 | La mise à jour optimiste de RANGE_KEY n'est pas testée | medium | Trou de vérification déjà vérifié par la couche. Test ajouté (patch). |
+| 11 | `listGroupsInRange` et `listUndatedGroups` n'ont pas de test | medium | Trou de vérification. Il faut un mock du client Supabase que le fichier n'a pas ; le risque principal est couvert par le n° 9. Reporté (defer). |
+| 12 | Requêtes sans limite, et `.in(ids)` qui grossit avec les brouillons | maybe-false | Volumes actuels minimes ; ce n'est vrai qu'au-delà de 1 000 lignes ou d'une URL trop longue. Reporté (defer). |
+| 13 | Glisser fusionne des dates différentes par canal | false | Rien ne crée de dates différentes dans un groupe : la date est commune au groupe (décision du test design). |
+| 14 | On ne peut pas retirer une date depuis le calendrier | false | Non demandé par l'intention, et possible dans le composeur (« Retirer la date »). |
+| 15 | On peut programmer dans le passé | false | Il n'y a pas de publication automatique : le marquage publié est manuel. |
+| 16 | Onglets Liste et Aperçus désactivés | false | Exigés par l'intention (« affichés désactivés »). |
+| 17 | Pas de note de déploiement ni d'impact sécurité | false | Ces notes vont dans la PR de l'epic, pas dans le code. |
+| 18 | Glisser avec un filtre de canal actif déplace aussi les canaux masqués | false | Conforme à l'intention : la date est posée sur tout le groupe. |
+| 19 | Groupe dont tous les canaux sont désactivés | low | Aucun écran ne désactive de canal (réservé aux admins). Rejeté. |
+| 20 | Une heure inexistante au changement d'heure est décalée | low | 02:xx un seul jour par an. Rejeté. |
+| 21 | Deux glissements concurrents dont le premier échoue | low | L'invalidation de `onSettled` rétablit l'état. Rejeté. |
+| 22 | La RPC renvoie 0 ligne modifiée et la carte revient en place | low | Le seul cas réel (tout publié) est bloqué par le n° 6. Rejeté. |
+| 23 | Le jour courant n'est pas recalculé passé minuit | low | Rare, sans effet sur les données. Rejeté. |
+| 24 | Le badge d'abréviation n'est pas focalisable | low | Le nom complet du canal est aussi écrit dans le composeur. Rejeté. |
 
 ## Verification
 
