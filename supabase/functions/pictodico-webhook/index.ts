@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { extractPictoSearchWord, isSafePictoText, isValidPictoWord } from "../_shared/pictodico-validation.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -13,40 +14,11 @@ const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const GLOBAL_RATE_LIMIT_MAX = 60;
 const GLOBAL_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 
-function extractWordFromUrl(rawUrl: string): string | null {
-  try {
-    const parsed = new URL(rawUrl);
-    const word = parsed.searchParams.get("_sf_s");
-    return word ? decodeURIComponent(word).trim() : null;
-  } catch {
-    return null;
-  }
-}
-
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
-  // --- Log full incoming request (before any processing) ---
-  const incomingUrl = req.url;
-  const incomingMethod = req.method;
-  const incomingHeaders: Record<string, string> = {};
-  req.headers.forEach((v, k) => {
-    incomingHeaders[k] = k.toLowerCase() === "authorization" ? "[REDACTED]" : v;
-  });
-  let rawBody = "";
-  try {
-    rawBody = await req.clone().text();
-  } catch (e) {
-    rawBody = `[unable to read body: ${(e as Error).message}]`;
-  }
-  console.log("[pictodico-webhook] INCOMING REQUEST", JSON.stringify({
-    method: incomingMethod,
-    url: incomingUrl,
-    headers: incomingHeaders,
-    body: rawBody,
-    receivedAt: new Date().toISOString(),
-  }));
+  console.log("[pictodico-webhook] request", req.method, new Date().toISOString());
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
@@ -157,15 +129,26 @@ serve(async (req) => {
     });
   }
 
-  const word = extractWordFromUrl(pageUrl);
+  const reject = (reason: string) => {
+    console.warn("[pictodico-webhook] saisie rejetée:", reason);
+    return new Response(JSON.stringify({ error: "Invalid input" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  };
+  if (typeof pageUrl !== "string" || pageUrl.length > 1000) return reject("url");
+  const word = extractPictoSearchWord(pageUrl);
+  if (!word || !isValidPictoWord(word)) return reject("mot");
+  const comment = typeof erreur === "string" && erreur.trim() ? erreur.trim() : null;
+  if (!isSafePictoText(comment)) return reject("commentaire");
 
   // Décodage + dédoublonnage (casse/accents/type) + compteur côté SQL
   const { error: insertError } = await supabase.rpc("pictodico_register_request", {
-    p_word: word || pageUrl,
+    p_word: word,
     p_request_type: type,
     p_source: "webhook",
     p_source_url: pageUrl,
-    p_error_description: erreur || null,
+    p_error_description: comment,
   });
 
   if (insertError) {

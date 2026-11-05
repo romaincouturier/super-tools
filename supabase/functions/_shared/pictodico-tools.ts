@@ -1,5 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 type Supabase = any;
+import { isSafePictoText, isValidPictoWord } from "./pictodico-validation.ts";
 
 export const PICTO_REQUEST_TYPES = ["demande_ajout", "erreur_signalee"] as const;
 type RequestType = (typeof PICTO_REQUEST_TYPES)[number];
@@ -42,6 +43,10 @@ export async function addPictoRequests(supabase: Supabase, items: PictoRequestIn
     const word = (it?.word ?? "").trim().slice(0, 200);
     const type = (it?.request_type ?? "demande_ajout") as RequestType;
     if (!word) { results.push({ word: it?.word ?? "", status: "rejected", reason: "mot vide" }); continue; }
+    if (!isValidPictoWord(word) || !isSafePictoText(it.comment ?? null)) {
+      results.push({ word: word.slice(0, 60), status: "rejected", reason: "saisie invalide (60 caractères max, lettres, chiffres, espaces, apostrophes, tirets)" });
+      continue;
+    }
     if (!PICTO_REQUEST_TYPES.includes(type)) {
       results.push({ word, status: "rejected", reason: `request_type invalide (${PICTO_REQUEST_TYPES.join(", ")})` });
       continue;

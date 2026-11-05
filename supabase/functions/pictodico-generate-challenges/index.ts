@@ -149,7 +149,7 @@ RÈGLES ABSOLUES :
 - N'invente jamais de mot.
 - Un même mot peut être utilisé pour un seul thème (le plus pertinent) : aucun doublon d'un thème à l'autre.
 - Sélectionne au maximum 18 mots par thème, les plus pertinents d'abord.
-- Si un mot est en anglais, donne sa traduction française dans le champ "fr" (sinon "fr" vaut null).
+- Le champ "fr" vaut toujours null.
 - Si un thème n'a aucun mot pertinent, retourne un tableau de mots vide.
 - Retourne UNIQUEMENT du JSON valide, sans texte avant ni après, sans markdown.`;
 
@@ -226,32 +226,18 @@ Retourne un tableau JSON d'objets, un par thème traité, avec l'index exact ind
         for (const item of picked) {
           if (selected.length >= 18) break;
           const rawWord = typeof item === "string" ? item : (item?.w ?? "");
-          const translation =
-            typeof item === "string" ? null : (item?.fr ?? null);
           const clean = String(rawWord).trim().toLowerCase();
           if (allowed.has(clean) && !used.has(clean)) {
             used.add(clean);
-            const fr = translation ? String(translation).trim().toLowerCase() : "";
-            selected.push(fr && fr !== clean ? `${clean} → ${fr}` : clean);
+            // Un seul mot par entrée : jamais de « mot → traduction ».
+            selected.push(clean);
           }
         }
         perTheme.set(th.index, selected);
       });
     }
 
-    // Complément : chaque thème est rempli jusqu'à 18 mots avec des mots
-    // collectés encore non associés (toujours sans doublon entre thèmes).
-    for (let i = 1; i <= cleanThemes.length; i++) {
-      const selected = perTheme.get(i) ?? [];
-      if (selected.length >= 18) continue;
-      for (const w of uniqueWords) {
-        if (selected.length >= 18) break;
-        if (used.has(w)) continue;
-        used.add(w);
-        selected.push(w);
-      }
-      perTheme.set(i, selected);
-    }
+    // Pas de complément hors thème : un thème garde seulement les mots pertinents.
 
     const challenges = cleanThemes.map((t, i) => {
       const { month, year } = schedule[i];
