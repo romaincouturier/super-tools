@@ -2,7 +2,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4
 import { getAppUrls } from "./app-urls.ts";
 
 /** Lien envoyé dans les mails d'accès apprenant (création du mot de passe). */
-export const SETUP_LINK_TTL_HOURS = 7 * 24;
+export const SETUP_LINK_TTL_HOURS = 24;
 /** Lien redemandé (mot de passe oublié, lien expiré). */
 export const RESET_LINK_TTL_HOURS = 24;
 
