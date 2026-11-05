@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { estimateCrmOpportunityValue } from "@/services/crmOpportunityValue";
+import type { ValueEstimate } from "../../../supabase/functions/_shared/opportunity-value";
 import {
   Dialog,
   DialogContent,
@@ -80,7 +82,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail, initialCon
   const [_extraction, setExtraction] = useState<OpportunityExtraction | null>(null);
   const [editedExtraction, setEditedExtraction] = useState<OpportunityExtraction | null>(null);
   const [estimatedValue, setEstimatedValue] = useState("");
-  const [valueEstimation, setValueEstimation] = useState<{ value: number; source: string; count: number } | null>(null);
+  const [valueEstimation, setValueEstimation] = useState<ValueEstimate | null>(null);
   const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource | null>(null);
   const [clientHistory, setClientHistory] = useState<ClientHistoryItem[]>([]);
   const [clientHistoryOpen, setClientHistoryOpen] = useState(true);
@@ -140,56 +142,16 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail, initialCon
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, forceAcquisitionSource]);
 
-  // Estimate value from CRM history
+  // Estimation : catalogue SuperTools pour les formations, historique gagné sinon
   const estimateValueFromHistory = async (extraction: OpportunityExtraction) => {
     try {
-      const { data } = await supabase
-        .from("crm_cards")
-        .select("estimated_value, service_type, company")
-        .eq("sales_status", "WON")
-        .gt("estimated_value", 0);
-
-      if (!data || data.length === 0) return;
-
-      // Priority 1: same company + same service_type
-      let matches = data.filter(
-        (c) =>
-          extraction.company &&
-          c.company?.toLowerCase() === extraction.company.toLowerCase() &&
-          extraction.service_type &&
-          c.service_type === extraction.service_type
-      );
-      let source = "même entreprise & type";
-
-      // Priority 2: same company only
-      if (matches.length === 0 && extraction.company) {
-        matches = data.filter(
-          (c) => c.company?.toLowerCase() === extraction.company?.toLowerCase()
-        );
-        source = "même entreprise";
-      }
-
-      // Priority 3: same service_type
-      if (matches.length === 0 && extraction.service_type) {
-        matches = data.filter((c) => c.service_type === extraction.service_type);
-        source = extraction.service_type === "formation" ? "formations gagnées" : "missions gagnées";
-      }
-
-      // Priority 4: all won deals
-      if (matches.length === 0) {
-        matches = data;
-        source = "toutes les opportunités gagnées";
-      }
-
-      const avg = matches.reduce((sum, c) => sum + (c.estimated_value || 0), 0) / matches.length;
-      const rounded = Math.round(avg / 100) * 100;
-
-      if (rounded > 0) {
-        setValueEstimation({ value: rounded, source, count: matches.length });
-        setEstimatedValue(String(rounded));
+      const estimate = await estimateCrmOpportunityValue(extraction);
+      if (estimate.value > 0) {
+        setValueEstimation(estimate);
+        setEstimatedValue(String(estimate.value));
       }
     } catch {
-      // Silently fail - estimation is optional
+      // Estimation facultative
     }
   };
 
@@ -687,7 +649,7 @@ Tel: 06 12 34 56 78"
               {valueEstimation && (
                 <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3 text-green-600" />
-                  Estimation basée sur {valueEstimation.count} {valueEstimation.source} (moyenne : {valueEstimation.value.toLocaleString("fr-FR")} €)
+                  Estimation {valueEstimation.value.toLocaleString("fr-FR")} € : {valueEstimation.basis}{valueEstimation.count > 0 ? ` (${valueEstimation.count} opportunités)` : ""}
                 </p>
               )}
             </div>

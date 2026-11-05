@@ -31,6 +31,10 @@ export interface OpportunityExtraction {
   suggested_tag_ids: string[];
   /** Recommended next commercial action with date (YYYY-MM-DD), or null if none. */
   suggested_next_action: { text: string; date: string } | null;
+  /** Signaux d'estimation du montant (formation du catalogue, format, effectif). */
+  formation_name?: string | null;
+  format?: "inter" | "intra" | "elearning" | null;
+  participants?: number | null;
 }
 
 export interface CrmColumn {
