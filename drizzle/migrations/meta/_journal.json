@@ -218,6 +218,13 @@
       "when": 1793814602906,
       "tag": "0030_support_ticket_number_atomic",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793873242673,
+      "tag": "0031_password_setup_links",
+      "breakpoints": true
     }
   ]
 }
