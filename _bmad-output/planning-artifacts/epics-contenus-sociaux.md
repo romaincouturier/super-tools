@@ -22,6 +22,10 @@ Ce document découpe en epics et en stories implémentables le module Contenus s
 - chaque écran interne passe le mode démo (`demoMask`, contrôle [065]) ;
 - `npm run typecheck`, `bash scripts/check-rules.sh` et `npm test` passent ; textes UI en français ;
 - une migration de `supabase/migrations/` est jouée explicitement en production ; un changement de `supabase/` explicite son impact sécurité dans la PR.
+- toute date et heure s'interprète en Europe/Paris ; les tests couvrent les changements d'heure (la suite tourne en `TZ=UTC`) ;
+- les tests d'accès utilisent des comptes autres que `romain@supertilt.fr`, que `has_module_access` autorise sans droit ;
+- la règle d'alerte et le calcul du statut affiché sont écrits une fois dans `supabase/functions/_shared/`, avec une copie contrôlée côté front (règle [057]) ;
+- les plans de test par epic sont dans `_bmad-output/test-artifacts/test-design/`.
 
 **Choix de structure** : les epics 1, 2 et 3 touchent les mêmes écrans (calendrier, composeur, détail). La séparation est gardée volontairement : l'epic 1 livre un module utilisable seul, et le circuit de validation (epic 2) est la zone de risque sur laquelle un retour d'usage peut changer la suite.
 
@@ -164,6 +168,9 @@ Romain et Emmanuelle rédigent un contenu une fois, le déclinent sur plusieurs 
 
 **Exigences :** FR4, FR5, FR6, FR32 ; UX-DR3
 
+**Décisions du test design (5 nov.) :**
+- La propagation du texte et du visuel dans un groupe se fait en base (fonction SQL ou trigger), pas dans l'écran : testable sur PGlite et réutilisée par le MCP.
+
 En tant que membre de l'équipe ayant le droit supertilt.fr,
 je veux rédiger un contenu une fois et le décliner sur plusieurs canaux,
 afin de préparer mes publications sans les ressaisir pour chaque réseau.
@@ -197,6 +204,11 @@ afin de préparer mes publications sans les ressaisir pour chaque réseau.
 ### Story 1.2 : Planifier dans le calendrier avec aperçu des contenus
 
 **Exigences :** FR1, FR2, FR3, FR8 (partiel) ; UX-DR1, UX-DR4, UX-DR5, UX-DR7
+
+**Décisions du test design (5 nov.) :**
+- Une carte du calendrier représente un contenu (le groupe) avec les badges de ses canaux, pas une déclinaison.
+- La pose de date sur un groupe se fait en base, en une seule écriture atomique.
+- La barre des canaux et la pastille « réseau » des filtres sont un seul et même filtre.
 
 En tant que membre de l'équipe,
 je veux voir tous les contenus dans un calendrier mensuel et hebdomadaire et y glisser mes brouillons,
@@ -260,6 +272,9 @@ afin de ne jamais publier sans visuel ni avec un texte trop long.
 ### Story 1.4 : Classer les contenus par thèmes et filtrer
 
 **Exigences :** FR22, FR24 (partiel) ; UX-DR2, UX-DR5
+
+**Décisions du test design (5 nov.) :**
+- La barre des canaux et la pastille « réseau » sont le même filtre (voir 1.2).
 
 En tant que membre de l'équipe,
 je veux créer des thèmes éditoriaux colorés, les attribuer aux contenus et filtrer le calendrier,
@@ -331,6 +346,13 @@ Un auteur demande une validation, l'autre personne la reçoit en action quotidie
 
 **Exigences :** FR7, FR8, FR10, FR11
 
+**Décisions du test design (5 nov.) :**
+- Un garde en base (trigger) refuse toute écriture du statut de validation hors de la fonction de transition, y compris avec la clé service role ; testé en pgTAP pour `authenticated` et `service_role`.
+- La fonction de transition reçoit l'acteur : `auth.uid()` pour un appel du navigateur ; un paramètre acteur accepté seulement en service role (MCP), ignoré sinon.
+- Un brouillon peut être approuvé directement, sans demande préalable, comme la coche de Planable.
+- Les approbateurs sont Romain et Emmanuelle, dans une liste réglable du module.
+- Côté serveur (`generate-daily-actions`), les approbateurs sont lus en service role depuis cette liste : `get_staff_directory` refuse un appel sans session et ne s'applique qu'au navigateur. Ce point remplace le dernier critère « la liste des approbateurs passe par la RPC `get_staff_directory` ».
+
 En tant qu'auteur puis approbateur,
 je veux demander la validation d'un contenu et l'approuver d'un clic,
 afin qu'aucun contenu ne parte sans un second regard, comme dans Planable.
@@ -341,6 +363,10 @@ afin qu'aucun contenu ne parte sans un second regard, comme dans Planable.
 **When** elle est jouée
 **Then** chaque post porte un axe validation (non demandée, en attente, approuvé, refusé) indépendant de l'axe publication
 **And** toutes les transitions de validation passent par une seule fonction SQL `SECURITY DEFINER`, testée sur un vrai Postgres ; aucun écran n'écrit le statut en direct (AD-11)
+
+**Given** un contenu en brouillon
+**When** un approbateur clique directement la coche d'approbation
+**Then** le groupe passe « approuvé » sans demande préalable
 
 **Given** un contenu en brouillon
 **When** l'auteur clique « Demander une validation »
@@ -360,11 +386,15 @@ afin qu'aucun contenu ne parte sans un second regard, comme dans Planable.
 **When** `generate-daily-actions` s'exécute
 **Then** une action quotidienne « Contenu à valider », avec lien vers le contenu, est créée pour l'autre approbateur que l'auteur
 **And** l'action disparaît à la génération suivante dès que le contenu n'est plus en attente
-**And** la liste des approbateurs passe par la RPC `get_staff_directory` (règle [076])
+**And** côté serveur, les approbateurs sont lus en service role depuis la liste des approbateurs ; côté navigateur, tout annuaire passe par la RPC `get_staff_directory` (règle [076])
 
 ### Story 2.2 : Refuser un contenu avec motif
 
 **Exigences :** FR12
+
+**Décisions du test design (5 nov.) :**
+- Un contenu approuvé ne peut pas être refusé : on retire d'abord l'approbation.
+- Un motif fait seulement d'espaces est refusé.
 
 En tant qu'approbateur,
 je veux refuser un contenu en donnant un motif obligatoire,
@@ -384,6 +414,11 @@ afin que l'auteur sache exactement quoi corriger.
 ### Story 2.3 : Remettre en attente un contenu modifié et tracer son historique
 
 **Exigences :** FR13, FR15 (correction directe), FR16
+
+**Décisions du test design (5 nov.) :**
+- Un contenu refusé ne peut pas être renvoyé en validation sans avoir été modifié.
+- Changer le thème, le format ou la campagne ne remet pas en attente.
+- Ajouter un canal à un contenu approuvé le remet en attente.
 
 En tant qu'approbateur,
 je veux qu'un contenu validé dont le texte ou le visuel change revienne en validation, et voir tout son historique,
@@ -487,6 +522,10 @@ afin de cadrer une opération (session inter, AI4Product) avant d'en produire le
 
 **Exigences :** FR18, FR19 ; UX-DR6
 
+**Décisions du test design (5 nov.) :**
+- Une campagne avec une seule date affiche son bandeau sur ce seul jour.
+- Une campagne terminée garde son bandeau, grisé.
+
 En tant que membre de l'équipe,
 je veux rattacher mes contenus à une campagne et la voir dans le calendrier,
 afin de suivre une opération de bout en bout.
@@ -566,6 +605,10 @@ afin de retrouver mes vues habituelles (« LinkedIn du mois », « à valider po
 
 **Exigences :** FR30 ; UX-DR9
 
+**Décisions du test design (5 nov.) :**
+- L'échange de dates ne touche que les déclinaisons Instagram, pas le reste du groupe.
+- Un post dont la date est passée mais qui n'est pas marqué publié reste à sa date, signalé « à marquer publié ».
+
 En tant que membre de l'équipe,
 je veux voir les posts Instagram disposés comme sur le profil,
 afin de juger l'harmonie visuelle avant publication.
@@ -611,6 +654,10 @@ afin que Claude rédige toujours avec le bon ton, les bonnes offres et le bon vo
 
 **Exigences :** FR27
 
+**Décisions du test design (5 nov.) :**
+- Classement des validations : dépassées en tête, signalées « en retard », puis par date de sortie la plus proche ; sans date en fin de liste.
+- « Sous 48 h » signifie 48 heures réelles.
+
 En tant que Romain dans Claude,
 je veux lister et lire les contenus planifiés,
 afin que Claude repère les trous, les validations en attente et les contenus incomplets.
@@ -639,6 +686,9 @@ afin que Claude repère les trous, les validations en attente et les contenus in
 
 **Exigences :** FR28
 
+**Décisions du test design (5 nov.) :**
+- Une date sans heure est refusée ; une date avec heure mais sans fuseau est lue en heure de Paris.
+
 En tant que Romain dans Claude,
 je veux que Claude crée des brouillons multi-canaux avec une date proposée,
 afin de produire un lot de contenus à partir d'un brief en une conversation.
@@ -663,6 +713,11 @@ afin de produire un lot de contenus à partir d'un brief en une conversation.
 ### Story 4.4 : Valider, refuser, programmer et commenter depuis Claude
 
 **Exigences :** FR29
+
+**Décisions du test design (5 nov.) :**
+- Le refus de reprogrammer un contenu publié vaut pour le MCP seulement ; l'écran garde la règle de la story 1.5.
+- Si l'écriture dans `agent_query_audit_log` échoue, une approbation ou un refus est bloqué ; une lecture est seulement signalée.
+- La logique des nouveaux outils vit dans un module de `supabase/functions/_shared/`, testable, car le serveur MCP démarre à l'import.
 
 En tant que Romain dans Claude,
 je veux approuver, refuser avec motif, programmer et commenter des contenus,
@@ -691,6 +746,14 @@ Les 6 cartes post deviennent des posts, plus aucune entrée ne crée de post dan
 ### Story 5.1 : Migrer les cartes post et rediriger leurs points d'entrée
 
 **Exigences :** FR25
+
+**Décisions du test design (5 nov.) :**
+- Date des 5 posts publiés : la date de dernière modification de la carte, aucune n'ayant d'échéance.
+- La carte d'origine est masquée du kanban et conservée, liée au contenu ; elle n'est pas supprimée, pour garder commentaires, relectures et sommaires de newsletters.
+- Le canal de chacune des 6 cartes est montré à Romain et confirmé juste avant l'exécution ; une exécution à blanc produit l'inventaire des dépendances.
+- Les redirections couvrent aussi `TranscriptGenerationPanel` et l'outil MCP `prepare_newsletter`.
+- Depuis un événement, « Post LinkedIn » crée un brouillon sur LinkedIn Romain par défaut, modifiable.
+- Une contrainte en base sur `content_cards.card_type` refuse les types post après la migration, pour attraper un chemin oublié.
 
 En tant que Romain,
 je veux que les posts sociaux quittent le kanban newsletter et n'y reviennent plus,
@@ -721,6 +784,10 @@ afin que le kanban ne porte que les articles et que les posts vivent dans le cal
 ### Story 5.2 : Décliner une carte éditoriale en contenus sociaux
 
 **Exigences :** FR26
+
+**Décisions du test design (5 nov.) :**
+- Une recommandation éditoriale acceptée garde un lien vers le contenu créé.
+- Un contenu est lié à une seule carte au plus ; si la carte disparaît, le lien est vidé.
 
 En tant que membre de l'équipe,
 je veux décliner un article du kanban en posts et retrouver le lien des deux côtés,

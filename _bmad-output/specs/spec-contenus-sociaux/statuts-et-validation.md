@@ -45,6 +45,13 @@ Elle est calculée à partir des deux axes, et la première condition vraie l'em
 | Glisser un brouillon sur un jour | Date posée sur tout le groupe ; publication : programmé |
 | Marquer comme publié | Publication : marqué comme publié ; l'approbation est conservée ; le post reste modifiable |
 | Brouillon créé par le MCP | Validation : non demandée, ou en attente si l'appel la demande |
+| Approbation directe d'un brouillon | Permise, sans demande préalable |
+| Refus d'un contenu approuvé | Interdit : retirer d'abord l'approbation |
+| Nouvelle demande pour un contenu refusé non modifié | Interdite |
+| Changement de thème, de format ou de campagne | Sans effet sur la validation |
+| Ajout d'un canal à un contenu approuvé | Validation : en attente |
+
+Garde : seule la fonction de transition écrit le statut de validation. Un trigger refuse toute autre écriture, y compris avec la clé service role. La fonction reçoit l'acteur : `auth.uid()` depuis le navigateur, un paramètre acteur accepté seulement en service role (MCP). Les approbateurs sont Romain et Emmanuelle, dans une liste réglable.
 
 Un post groupé est un post par canal, liés. Le texte est commun tant que la synchro est active ; la couper rend chaque déclinaison indépendante.
 
@@ -54,6 +61,7 @@ Un post groupé est un post par canal, liés. Le texte est commun tant que la sy
 stateDiagram-v2
   [*] --> NonDemandee
   NonDemandee --> EnAttente: demande de validation
+  NonDemandee --> Approuve: approbation directe
   EnAttente --> Approuve: approuver
   EnAttente --> Refuse: refuser (motif)
   Refuse --> EnAttente: modification de l'auteur
