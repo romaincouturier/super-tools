@@ -725,3 +725,18 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 - **Règle** : `client_pearls` est lisible par le staff seul (`is_staff_user()`), son image vit dans le bucket privé `client-pearls`, et le widget du tableau de bord ne s'affiche que si la préférence utilisateur `dashboard_pearl` vaut `enabled: true` (défaut : désactivé). Le tirage au hasard se fait en base (`get_random_client_pearl`) et ne retient que les perles positives non archivées (`is_positive`) ; les autres restent dans la page Perles clients. Une perle `is_anonymous` n'expose jamais son auteur sur le tableau de bord (`pearlAuthorLabel`).
 - **Vérification** : check [078] de `scripts/check-rules.sh`.
 - **Date** : 2026-11-04
+
+### [079] Types Supabase générés — ne jamais les écrire à la main, un doublon casse le typecheck
+- **Constat** : Novembre 2026, `client_pearls` et `get_random_client_pearl` ont été ajoutés à `src/integrations/supabase/types.ts` à la main pendant que Lovable régénérait le même fichier sur `main`. Après le rebase, git a gardé les deux blocs à des endroits différents : `get_random_client_pearl` était défini deux fois et le typecheck échouait (TS2300).
+- **Règle** : `types.ts` est un fichier généré par Lovable à partir de la base. Après une migration, l'appliquer, attendre la régénération sur `main`, puis tirer `main`. Si une édition manuelle est inévitable pour avancer, se limiter aux lignes de la migration et, après tout rebase, reprendre la version de `main` du fichier avant de la retoucher. Jamais deux définitions de la même table ou fonction.
+- **Vérification** : check [079] de `scripts/check-rules.sh` (aucune clé de table ou de fonction en double dans `types.ts`), en plus du typecheck.
+- **Fichiers de référence** : `src/integrations/supabase/types.ts`
+- **Origine** : PR Perles clients, doublon apparu au rebase
+- **Date** : 2026-11-05
+
+### [080] Rebase — aucun marqueur de conflit ne doit entrer dans un commit
+- **Constat** : Novembre 2026, au cours d'un rebase, une résolution automatique de conflit n'a rien remplacé (le motif ne correspondait pas à l'ordre des côtés, inversé en rebase) et `git add -A` suivi de `git rebase --continue` a commité des marqueurs `<<<<<<<` dans deux edge functions de sauvegarde. Rattrapé avant le push, mais rien ne l'aurait signalé : l'échec du script était silencieux dans l'enchaînement de commandes.
+- **Règle** : Après toute résolution de conflit, vérifier l'absence de marqueurs avant `git add`, et ne jamais enchaîner `add` et `rebase --continue` dans la même commande qu'une résolution scriptée. Pendant un rebase, « HEAD » est la base, pas la branche : ne pas supposer l'ordre des deux côtés.
+- **Vérification** : check [080] de `scripts/check-rules.sh` : `git grep -nE '^(<<<<<<< |>>>>>>> )'` sur les fichiers suivis hors Markdown ne doit rien trouver.
+- **Origine** : rebase de la PR Perles clients sur `main`
+- **Date** : 2026-11-05

@@ -358,8 +358,8 @@ RATCHET_LEGACY="017|020|037a|037b"
 check "066" "Toute règle en ratchet dit ce que son contrôle ne voit pas" \
   "for id in \$(grep -oE '^[0-9]+[a-z]?=' scripts/rules-ratchet.txt | tr -d '='); do \
      echo \"\$id\" | grep -qE \"^(\$RATCHET_LEGACY)\\\$\" && continue; \
-     sed -n \"/^### \\[\$id\\]/,/^---\$/p\" IMPROVEMENTS.md \
-       | grep -qiE 'plancher|ne voit pas|angle mort' \
+     [ \"\$(sed -n \"/^### \\[\$id\\]/,/^### \\[[0-9]/p\" IMPROVEMENTS.md \
+       | grep -ciE 'plancher|ne voit pas|angle mort')\" -gt 0 ] \
        || echo \"VIOLATION [066]: la regle [\$id] est en ratchet sans dire ce que son controle ne voit pas\"; \
    done"
 
@@ -760,6 +760,14 @@ check "078" "Perles clients : RLS staff, bucket prive, widget derriere la prefer
    grep -rq 'is_positive = true' supabase/migrations/*client_pearls_positive_flag*.sql || echo 'VIOLATION [078]: le tirage du tableau de bord ne filtre plus sur is_positive'; \
    grep -q 'if (!enabled' src/components/dashboard/PearlWidget.tsx || echo 'VIOLATION [078]: widget non conditionne a la preference'; \
    grep -q 'if (p.is_anonymous) return \"Anonyme\"' src/services/pearls.ts || echo 'VIOLATION [078]: pearlAuthorLabel n masque plus les anonymes'"
+
+# [079] Types Supabase generes : aucune table ni fonction definie deux fois.
+check "079" "types.ts : aucune cle de table ou de fonction en double" \
+  "grep -E '^      [a-z_0-9]+: \\{\$' src/integrations/supabase/types.ts | sort | uniq -d | sed 's/^/VIOLATION [079]: cle en double dans types.ts :/'"
+
+# [080] Aucun marqueur de conflit commite (hors Markdown, ou ils s'ecrivent parfois en exemple).
+check "080" "Aucun marqueur de conflit de merge dans les fichiers suivis" \
+  "git grep -nE '^(<<<<<<< |>>>>>>> )' -- . ':!*.md' | sed 's/^/VIOLATION [080]: marqueur de conflit /'"
 
 # [070] Mode demo — scan dynamique de tous les ecrans internes.
 check "070" "Scan dynamique du mode demo present, routes lues dans App.tsx, hors smoke CI" \

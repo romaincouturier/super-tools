@@ -38,7 +38,8 @@ describe("pearlAuthorLabel", () => {
 const base: Pearl = {
   id: "1", title: null, message: "Merci pour la formation", message_fr: null, author_name: "Odile", author_company: null,
   is_anonymous: false, is_positive: true, pearl_date: "2026-11-02", pearl_time: null, source: "mail", image_path: null,
-  gmail_thread_id: null, legacy_notion_id: null, archived: false, created_at: "", updated_at: "",
+  gmail_thread_id: null, legacy_notion_id: null, archived: false, created_at: "", updated_at: "", created_by: null,
+  mission_id: null, training_id: null, mission: null, training: null,
 };
 const all = { search: "", source: "all", tone: "all", showArchived: false };
 

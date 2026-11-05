@@ -3,6 +3,7 @@ import {
   createPearl,
   deletePearl,
   getRandomPearl,
+  listPearlLinkTargets,
   listPearls,
   updatePearl,
   uploadPearlImage,
@@ -16,13 +17,21 @@ export function usePearls() {
 }
 
 export function useRandomPearl(enabled: boolean) {
-  return useQuery({
+  const qc = useQueryClient();
+  const query = useQuery({
     queryKey: ["client-pearl-random"],
     queryFn: () => getRandomPearl(),
     enabled,
     staleTime: Infinity,
     gcTime: 0,
   });
+  const another = useMutation({
+    mutationFn: (excludeId?: string) => getRandomPearl(excludeId),
+    onSuccess: (pearl) => {
+      if (pearl) qc.setQueryData(["client-pearl-random"], pearl);
+    },
+  });
+  return { pearl: query.data ?? null, next: () => another.mutate(query.data?.id), loading: another.isPending };
 }
 
 export function usePearlMutations() {
@@ -45,4 +54,8 @@ export function usePearlMutations() {
     }),
     remove: useMutation({ mutationFn: deletePearl, onSuccess: refresh }),
   };
+}
+
+export function usePearlLinkTargets(enabled: boolean) {
+  return useQuery({ queryKey: ["client-pearl-link-targets"], queryFn: listPearlLinkTargets, enabled, staleTime: 5 * 60 * 1000 });
 }

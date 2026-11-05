@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import PearlLogo from "@/components/PearlLogo";
 import { Button } from "@/components/ui/button";
@@ -7,32 +5,15 @@ import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskText } from "@/lib/demoMask";
 import { useDashboardPearlPreference } from "@/hooks/useDashboardPearlPreference";
 import { useRandomPearl } from "@/hooks/usePearls";
-import { getRandomPearl, pearlAuthorLabel, type Pearl } from "@/services/pearls";
+import { pearlAuthorLabel } from "@/services/pearls";
 import { formatPearlDate } from "@/lib/pearls";
 
 export default function PearlWidget() {
   const { enabled } = useDashboardPearlPreference();
   const { isDemoMode } = useDemoMode();
-  const qc = useQueryClient();
-  const { data: initial } = useRandomPearl(enabled);
-  const [override, setOverride] = useState<Pearl | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { pearl, next, loading } = useRandomPearl(enabled);
 
-  const pearl = override ?? initial;
   if (!enabled || !pearl) return null;
-
-  const another = async () => {
-    setLoading(true);
-    try {
-      const next = await getRandomPearl(pearl.id);
-      if (next) {
-        setOverride(next);
-        qc.setQueryData(["client-pearl-random"], next);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const author = pearlAuthorLabel(pearl);
   return (
@@ -57,7 +38,7 @@ export default function PearlWidget() {
           {isDemoMode ? maskText(author) : author} · {formatPearlDate(pearl.pearl_date, pearl.pearl_time)}
         </p>
       </div>
-      <Button variant="ghost" size="icon" onClick={another} disabled={loading} aria-label="Une autre perle">
+      <Button variant="ghost" size="icon" onClick={next} disabled={loading} aria-label="Une autre perle">
         <RefreshCw className="h-4 w-4" />
       </Button>
     </section>

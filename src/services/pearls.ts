@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { resolveContentType } from "@/lib/file-utils";
 
 export type PearlSource = "mail" | "oral" | "linkedin" | "evaluation" | "notion" | "autre";
@@ -14,68 +15,80 @@ export const PEARL_SOURCE_LABELS: Record<PearlSource, string> = {
 
 export const PEARL_BUCKET = "client-pearls";
 
-export interface Pearl {
-  id: string;
-  title: string | null;
-  message: string;
-  message_fr: string | null;
-  author_name: string | null;
-  author_company: string | null;
-  is_anonymous: boolean;
-  is_positive: boolean;
-  pearl_date: string;
-  pearl_time: string | null;
+type PearlRow = Database["public"]["Tables"]["client_pearls"]["Row"];
+type PearlInsert = Database["public"]["Tables"]["client_pearls"]["Insert"];
+
+export interface Pearl extends Omit<PearlRow, "source"> {
   source: PearlSource;
-  image_path: string | null;
-  gmail_thread_id: string | null;
-  legacy_notion_id: string | null;
-  archived: boolean;
-  created_at: string;
-  updated_at: string;
+  /** Titre de la mission liée, quand la liste le charge. */
+  mission: { title: string } | null;
+  /** Formation liée, quand la liste la charge. */
+  training: { training_name: string } | null;
 }
 
 export type PearlInput = Partial<
   Pick<
-    Pearl,
+    PearlInsert,
     | "title" | "message_fr" | "author_name" | "author_company" | "is_anonymous" | "is_positive"
-    | "pearl_date" | "pearl_time" | "source" | "image_path" | "archived"
+    | "pearl_date" | "pearl_time" | "image_path" | "archived" | "mission_id" | "training_id"
   >
-> & { message: string };
+> & { message: string; source?: PearlSource };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = () => supabase as any;
+export interface PearlLinkTargets {
+  missions: { id: string; title: string }[];
+  trainings: { id: string; training_name: string; start_date: string | null }[];
+}
+
+const LIST_SELECT = "*, mission:missions(title), training:trainings(training_name)";
+
+/** Ligne brute -> Pearl : la base type `source` en texte, la contrainte CHECK en garantit les valeurs. */
+function toPearl(row: PearlRow & { mission?: Pearl["mission"]; training?: Pearl["training"] }): Pearl {
+  return { ...row, source: row.source as PearlSource, mission: row.mission ?? null, training: row.training ?? null };
+}
 
 export async function listPearls(): Promise<Pearl[]> {
-  const { data, error } = await db()
+  const { data, error } = await supabase
     .from("client_pearls")
-    .select("*")
+    .select(LIST_SELECT)
     .order("pearl_date", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data as Pearl[];
+  return (data ?? []).map(toPearl);
 }
 
 export async function getRandomPearl(excludeId?: string | null): Promise<Pearl | null> {
-  const { data, error } = await db().rpc("get_random_client_pearl", { p_exclude: excludeId ?? null });
+  const { data, error } = await supabase.rpc("get_random_client_pearl", { p_exclude: excludeId ?? undefined });
   if (error) throw error;
-  return ((data as Pearl[] | null) ?? [])[0] ?? null;
+  const row = (data ?? [])[0];
+  return row ? toPearl(row) : null;
 }
 
 export async function createPearl(input: PearlInput): Promise<Pearl> {
-  const { data, error } = await db().from("client_pearls").insert(input).select().single();
+  const { data, error } = await supabase.from("client_pearls").insert(input).select(LIST_SELECT).single();
   if (error) throw error;
-  return data as Pearl;
+  return toPearl(data);
 }
 
 export async function updatePearl(id: string, patch: Partial<PearlInput>): Promise<Pearl> {
-  const { data, error } = await db().from("client_pearls").update(patch).eq("id", id).select().single();
+  const { data, error } = await supabase.from("client_pearls").update(patch).eq("id", id).select(LIST_SELECT).single();
   if (error) throw error;
-  return data as Pearl;
+  return toPearl(data);
 }
 
 export async function deletePearl(id: string): Promise<void> {
-  const { error } = await db().from("client_pearls").delete().eq("id", id);
+  const { error } = await supabase.from("client_pearls").delete().eq("id", id);
   if (error) throw error;
+}
+
+/** Missions et formations proposées au rattachement d'une perle, les plus récentes d'abord. */
+export async function listPearlLinkTargets(): Promise<PearlLinkTargets> {
+  const [missions, trainings] = await Promise.all([
+    supabase.from("missions").select("id, title").order("created_at", { ascending: false }).limit(300),
+    supabase.from("trainings").select("id, training_name, start_date").order("start_date", { ascending: false, nullsFirst: false }).limit(300),
+  ]);
+  if (missions.error) throw missions.error;
+  if (trainings.error) throw trainings.error;
+  return { missions: missions.data ?? [], trainings: trainings.data ?? [] };
 }
 
 export async function uploadPearlImage(file: File): Promise<string> {

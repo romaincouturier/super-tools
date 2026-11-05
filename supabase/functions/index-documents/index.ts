@@ -119,6 +119,7 @@ const BACKFILL_SOURCES: Record<string, { table: string; eq?: [string, string]; n
   support_attachment: { table: "support_ticket_attachments" },
   transcript: { table: "transcripts", eq: ["status", "ready"] },
   testimonial: { table: "testimonials", eq: ["status", "published"] },
+  client_pearl: { table: "client_pearls" },
 };
 
 
@@ -563,6 +564,22 @@ const extractors: Record<string, Extractor> = {
       source_title: `Témoignage — ${r.client_name || "Client"} (${r.company || ""})`,
       source_date: r.created_at,
       metadata: { client_name: r.client_name, company: r.company, service_type: r.service_type },
+    }));
+  },
+  async client_pearl(supabase, sourceId) {
+    const { data } = await buildQuery(
+      supabase,
+      "client_pearls",
+      "id, title, message, message_fr, author_name, author_company, is_anonymous, is_positive, source, pearl_date, created_at",
+      sourceId,
+      "pearl_date",
+    );
+    return (data || []).map((r) => ({
+      source_id: r.id,
+      content: [r.title, r.message, r.message_fr, r.author_name, r.author_company].filter(Boolean).join("\n"),
+      source_title: `Perle client — ${r.title || r.author_name || "message reçu"}`,
+      source_date: r.pearl_date || r.created_at,
+      metadata: { source: r.source, is_positive: r.is_positive, is_anonymous: r.is_anonymous },
     }));
   },
 };
