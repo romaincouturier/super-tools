@@ -68,6 +68,7 @@ import {
   readMissionPage,
   saveMissionActivity,
   saveMissionDocument,
+  saveOpportunityDocument,
   saveMissionNote,
   updateMissionActivity,
   updateMission,
@@ -374,6 +375,7 @@ MÉTHODE ATTENDUE
 ÉCRITURE
 Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou soumises à validation explicite ; aucune ne supprime ni n'écrase silencieusement des données existantes.
 - save_mission_note : crée ou met à jour une page de mission, pour capitaliser un travail long hors de la conversation. HTML simple, <svg> accepté pour incruster un schéma vectoriel.
+- save_opportunity_document : attache un fichier (PDF, image, texte) aux documents d'une opportunité CRM, additif.
 - save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
 - save_mission_activity : ajoute une activité au journal d'une mission (description + date obligatoires, durée en heures/jours/demi-journées, montant facturable facultatif). Une durée de 0 correspond à une action programmée sans temps consommé. Écriture additive.
 - update_mission_activity : corrige une activité existante à partir de son id (listé par get_mission_dossier). Seuls les champs transmis sont modifiés ; aucune activité ne peut être supprimée ni déplacée vers une autre mission.
@@ -599,6 +601,23 @@ const MCP_TOOLS = [
         },
       },
       required: ["mission_id", "file_name", "mime_type", "content_base64"],
+    },
+  },
+  {
+    name: "save_opportunity_document",
+    description:
+      "Attach a FILE (PDF, image, text) to a CRM opportunity (crm_cards) in SuperTools: it appears in the opportunity's Documents tab and an 'attachment added' entry is written to the card history. Pass the file base64-encoded in content_base64. Accepted types: " +
+      `${DOCUMENT_MIME_ALLOWLIST.join(", ")}. Size limit: ${DOCUMENT_MAX_BYTES / (1024 * 1024)} MB once decoded. This write is strictly ADDITIVE: it only creates a new document and never overwrites, modifies or deletes anything; the same file name twice creates two documents.`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        card_id: { type: "string", description: "UUID of the crm_cards row" },
+        file_name: { type: "string", description: "File name with extension, e.g. 'proposition.pdf'" },
+        mime_type: { type: "string", enum: DOCUMENT_MIME_ALLOWLIST, description: "MIME type of the file — must match its actual content" },
+        content_base64: { type: "string", description: "File content, base64-encoded (a data: URL prefix is tolerated)" },
+        description: { type: "string", description: "Optional: what this file is. Kept in the audit log and card history metadata." },
+      },
+      required: ["card_id", "file_name", "mime_type", "content_base64"],
     },
   },
   {
@@ -2082,6 +2101,24 @@ async function callTool(
             (args.content_base64 as string) || "",
             args.is_deliverable !== false,
             (args.description as string) || "",
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Save error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "save_opportunity_document": {
+      try {
+        return textResult(
+          await saveOpportunityDocument(
+            supabase,
+            (args.card_id as string) || "",
+            (args.file_name as string) || "",
+            (args.mime_type as string) || "",
+            (args.content_base64 as string) || "",
+            (args.description as string) || "",
+            ALLOWED_EMAIL,
             log,
           ),
         );
