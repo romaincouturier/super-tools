@@ -1790,14 +1790,16 @@ const MCP_TOOLS = [
   {
     name: "set_logistics_item",
     description:
-      "Check (or uncheck) a logistics item of a mission, training or event: train booked, hotel booked, restaurant, room rental, equipment ready, or any label of its logistics checklist. item is either a field (train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready) or part of a checklist label. The checklist and the entity's alert flags stay in sync.",
+      "Check/uncheck a logistics item of a mission, training or event, and/or reschedule it. item is either a field (train_booked, hotel_booked, restaurant_booked, room_rental_booked, equipment_ready) or part of a checklist label (e.g. 'Confirmer le lieu'). Optional due_date (YYYY-MM-DD, null to clear) and notify_days_before (days before due_date when the daily recap starts alerting, null to clear) move the deadline of a checklist item; when only these are given the item is NOT checked. Setting a due_date on an item without alert delay sets notify_days_before=0 (alert from the due date). The daily recap and reminders read the new deadline. Returns before/after values. The checklist and the entity's alert flags stay in sync.",
     inputSchema: {
       type: "object",
       properties: {
         entity_type: { type: "string", enum: ["mission", "training", "event"] },
         entity_id: { type: "string" },
         item: { type: "string" },
-        done: { type: "boolean", description: "default true" },
+        done: { type: "boolean", description: "default true, unless only due_date/notify_days_before are given (then unchanged)" },
+        due_date: { type: ["string", "null"], description: "YYYY-MM-DD; null clears the deadline" },
+        notify_days_before: { type: ["integer", "null"], minimum: 0, maximum: 365, description: "Alert this many days before due_date; null clears" },
       },
       required: ["entity_type", "entity_id", "item"],
     },
