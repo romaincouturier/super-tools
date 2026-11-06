@@ -25,3 +25,6 @@ get_staff_directory
 social_posts_propagate_text
 save_social_content_group
 set_social_group_date
+set_social_post_published
+update_social_post_content
+social_posts_delete_empty_group

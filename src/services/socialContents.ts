@@ -94,6 +94,35 @@ export function buildGroupPosts(draft: Omit<SocialGroupDraft, "groupId" | "forma
   }));
 }
 
+export interface PublishedPostEdit {
+  postId: string;
+  text: string;
+  mediaId: string | null;
+}
+
+/**
+ * Déclinaisons publiées dont le texte ou le visuel saisi diffère de la base.
+ * Elles s'enregistrent une par une, hors de save_social_content_group, qui ne
+ * réécrit jamais une publiée.
+ */
+export function publishedPostEdits(
+  posts: Pick<SocialPost, "id" | "channel_id" | "text" | "media_id" | "publication_status">[],
+  draft: Pick<SocialGroupDraft, "channelIds" | "texts" | "mediaIds">,
+): PublishedPostEdit[] {
+  return posts
+    .filter((p) => p.publication_status === "published" && draft.channelIds.includes(p.channel_id))
+    .map((p) => ({
+      post: p,
+      edit: {
+        postId: p.id,
+        text: draft.texts[p.channel_id] ?? p.text,
+        mediaId: p.channel_id in draft.mediaIds ? draft.mediaIds[p.channel_id] : p.media_id,
+      },
+    }))
+    .filter(({ post, edit }) => edit.text !== post.text || edit.mediaId !== post.media_id)
+    .map(({ edit }) => edit);
+}
+
 export type { SocialPostAlert };
 
 export interface ChannelAlerts {
@@ -288,6 +317,8 @@ export function parisDayKey(iso: string): string {
 
 export const DROP_DEFAULT_TIME = "09:00";
 
+export const PUBLISHED_NOT_MOVABLE_MESSAGE = "Un contenu publié ne se déplace pas";
+
 /** Nouvelle date d'un contenu déposé sur un jour : l'heure est gardée, 09:00 pour un brouillon sans date. */
 export function moveKeepingTime(currentIso: string | null, dayKey: string): string {
   const time = currentIso ? utcIsoToParisLocal(currentIso).time : DROP_DEFAULT_TIME;
@@ -363,8 +394,8 @@ export interface CalendarCard {
  * Répartit les contenus entre la colonne « Non planifiés » et les jours de
  * Paris. Seules les déclinaisons des canaux visibles comptent ; un contenu
  * sans déclinaison visible disparaît. Une carte va sur un jour dès qu'une
- * déclinaison visible est datée (quel que soit son statut) : la plus tôt dans
- * la plage chargée, à défaut la plus tôt. Le statut affiché reste le moins
+ * déclinaison visible est datée : parmi les non publiées datées s'il y en a,
+ * sinon parmi les publiées, la plus tôt dans la plage chargée, à défaut la plus tôt. Le statut affiché reste le moins
  * avancé. Un groupe présent deux fois est gardé une seule fois (la première).
  * Les alertes sont calculées sur les déclinaisons visibles non publiées, avec la limite
  * de texte des canaux fournis (sans canal connu : pas d'alerte de longueur).
@@ -387,10 +418,14 @@ export function placeGroups(
     if (posts.length === 0) continue;
     const status = groupDisplayStatus(posts);
     const alerts = alertsByChannel(posts, channelsById);
-    const dates = posts
+    // La date de la carte (et donc celle que garde un glisser-déposer) vient des déclinaisons non
+    // publiées ; les publiées ne comptent que si aucune non publiée n'est datée.
+    const datesOf = (list: SocialPost[]) => list
       .filter((p) => p.scheduled_at)
       .map((p) => p.scheduled_at as string)
       .sort((a, b) => Date.parse(a) - Date.parse(b));
+    const pending = datesOf(posts.filter((p) => p.publication_status !== "published"));
+    const dates = pending.length > 0 ? pending : datesOf(posts);
     if (dates.length === 0) {
       undated.push({ group, posts, status, scheduledAt: null, alerts });
       continue;
@@ -471,6 +506,38 @@ export async function listUndatedGroups(): Promise<SocialContentGroup[]> {
 export async function setGroupDate(groupId: string, scheduledAt: string | null): Promise<void> {
   const { error } = await db.rpc("set_social_group_date", { p_group_id: groupId, p_scheduled_at: scheduledAt });
   if (error) throw error;
+}
+
+// ── Marquage publié et suppression ─────────────────────────────
+
+/** Marque une seule déclinaison publiée, ou annule le marquage (programmé si datée, sans date sinon). */
+export async function setPostPublished(postId: string, published: boolean): Promise<SocialPublicationStatus> {
+  const { data, error } = await db.rpc("set_social_post_published", { p_post_id: postId, p_published: published });
+  if (error) throw error;
+  return data as SocialPublicationStatus;
+}
+
+/** Texte et visuel d'une déclinaison publiée, sur cette seule ligne, sans propagation. */
+export async function updatePublishedPost(postId: string, text: string, mediaId: string | null): Promise<void> {
+  const { error } = await db.rpc("update_social_post_content", { p_post_id: postId, p_text: text, p_media_id: mediaId });
+  if (error) throw error;
+}
+
+export const POST_NOT_DELETED_MESSAGE = "Déclinaison introuvable ou suppression non autorisée";
+export const GROUP_NOT_DELETED_MESSAGE = "Contenu introuvable ou suppression non autorisée";
+
+/** Supprime une déclinaison ; la base supprime le contenu s'il n'en a plus. Zéro ligne (RLS) : erreur. */
+export async function deletePost(postId: string): Promise<void> {
+  const { data, error } = await db.from("social_posts").delete().eq("id", postId).select("id");
+  if (error) throw error;
+  if (!data?.length) throw new Error(POST_NOT_DELETED_MESSAGE);
+}
+
+/** Supprime le contenu et toutes ses déclinaisons. Zéro ligne (RLS) : erreur. */
+export async function deleteGroup(groupId: string): Promise<void> {
+  const { data, error } = await db.from("social_content_groups").delete().eq("id", groupId).select("id");
+  if (error) throw error;
+  if (!data?.length) throw new Error(GROUP_NOT_DELETED_MESSAGE);
 }
 
 /** Copie du groupe telle qu'après setGroupDate (mise à jour optimiste). */

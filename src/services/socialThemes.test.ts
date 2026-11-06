@@ -12,10 +12,16 @@ vi.mock("@/integrations/supabase/client", () => {
 });
 
 import {
+  GROUP_NOT_DELETED_MESSAGE,
+  POST_NOT_DELETED_MESSAGE,
   THEME_NAME_EMPTY_MESSAGE,
   THEME_NAME_TAKEN_MESSAGE,
   createTheme,
+  deleteGroup,
+  deletePost,
   saveGroupWithPosts,
+  setPostPublished,
+  updatePublishedPost,
   updateTheme,
 } from "./socialContents";
 
@@ -51,5 +57,39 @@ describe("thèmes : service", () => {
     const [, args] = h.calls.find(([m]) => m === "rpc") as [string, unknown[]];
     expect(args[0]).toBe("save_social_content_group");
     expect(args[1]).toMatchObject({ p_group_id: "g", p_theme_id: "t1" });
+  });
+});
+
+describe("marquage publié et suppression : service", () => {
+  it("appelle les RPC de marquage et d'édition d'une publiée", async () => {
+    h.result = { data: "published", error: null };
+    await expect(setPostPublished("p1", true)).resolves.toBe("published");
+    h.result = { data: null, error: null };
+    await updatePublishedPost("p1", "Corrigé", "m1");
+    expect(h.calls.filter(([m]) => m === "rpc").map(([, a]) => a)).toEqual([
+      ["set_social_post_published", { p_post_id: "p1", p_published: true }],
+      ["update_social_post_content", { p_post_id: "p1", p_text: "Corrigé", p_media_id: "m1" }],
+    ]);
+  });
+
+  it("supprime une déclinaison ou tout le contenu par une suppression ciblée", async () => {
+    h.result = { data: [{ id: "x" }], error: null };
+    await deletePost("p1");
+    await deleteGroup("g1");
+    expect(h.calls.filter(([m]) => ["from", "delete", "eq", "select"].includes(m))).toEqual([
+      ["from", ["social_posts"]], ["delete", []], ["eq", ["id", "p1"]], ["select", ["id"]],
+      ["from", ["social_content_groups"]], ["delete", []], ["eq", ["id", "g1"]], ["select", ["id"]],
+    ]);
+  });
+
+  it("signale une suppression sans ligne supprimée (RLS ou déjà supprimée)", async () => {
+    h.result = { data: [], error: null };
+    await expect(deletePost("p1")).rejects.toThrow(POST_NOT_DELETED_MESSAGE);
+    await expect(deleteGroup("g1")).rejects.toThrow(GROUP_NOT_DELETED_MESSAGE);
+  });
+
+  it("propage l'erreur de la base", async () => {
+    h.result = { data: null, error: { code: "22023", message: "Planifiez une date pour marquer publié" } };
+    await expect(setPostPublished("p1", true)).rejects.toMatchObject({ code: "22023" });
   });
 });

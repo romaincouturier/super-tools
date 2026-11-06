@@ -15,6 +15,7 @@ const MIGRATION = path.resolve(here, "../migrations/20261105120000_social_conten
 const DATE_MIGRATION = path.resolve(here, "../migrations/20261105130000_social_group_date.sql");
 const MEDIA_MIGRATION = path.resolve(here, "../migrations/20261106100000_social_post_media.sql");
 const THEMES_MIGRATION = path.resolve(here, "../migrations/20261106110000_social_themes.sql");
+const PUBLICATION_MIGRATION = path.resolve(here, "../migrations/20261107100000_social_post_publication.sql");
 const UPDATED_AT_MIGRATION = path.resolve(here, "../migrations/20260108203546_738a153d-fdf5-43d3-a2c6-75e98647a71f.sql");
 
 /** update_updated_at_column, telle que livrée (forme `$$ LANGUAGE ...;` hors du motif de readFunctionSql). */
@@ -58,11 +59,13 @@ beforeAll(async () => {
   const dateMigration = fs.readFileSync(DATE_MIGRATION, "utf8");
   const mediaMigration = fs.readFileSync(MEDIA_MIGRATION, "utf8");
   const themesMigration = fs.readFileSync(THEMES_MIGRATION, "utf8");
+  const publicationMigration = fs.readFileSync(PUBLICATION_MIGRATION, "utf8");
   for (let i = 0; i < 2; i++) {
     await db.exec(migration);
     await db.exec(dateMigration);
     await db.exec(mediaMigration);
     await db.exec(themesMigration);
+    await db.exec(publicationMigration);
   }
   await db.exec(`
     GRANT ALL ON public.social_channels, public.social_content_groups, public.social_posts, public.social_themes TO anon, authenticated;
@@ -469,6 +472,180 @@ describe("Thèmes", () => {
     expect((await db.query("UPDATE social_themes SET color = '#8b5cf6' WHERE id = $1", [THEME_A])).affectedRows).toBe(1);
     expect((await db.query("SELECT * FROM social_themes")).rows).toHaveLength(1);
     expect((await db.query("DELETE FROM social_themes WHERE id = $1", [THEME_A])).affectedRows).toBe(1);
+  });
+});
+
+describe("Marquage publié et suppression (story 1.5)", () => {
+  const DATED = "2026-11-20T08:30:00Z";
+  const two = (text: string, scheduled_at: string | null = DATED) =>
+    channels.slice(0, 2).map((channel_id) => ({ channel_id, text, scheduled_at }));
+  const postId = async (groupId: string, channelId: string) =>
+    (await db.query<{ id: string }>("SELECT id FROM social_posts WHERE group_id = $1 AND channel_id = $2", [groupId, channelId])).rows[0].id;
+  const setPublished = (id: string, published: boolean) =>
+    db.query<{ status: string }>("SELECT public.set_social_post_published($1, $2) AS status", [id, published]);
+  const updateContent = (id: string, text: string, mediaId: string | null) =>
+    db.query("SELECT public.update_social_post_content($1, $2, $3)", [id, text, mediaId]);
+  const byChannel = async (groupId: string) =>
+    Object.fromEntries((await db.query<{ channel_id: string; text: string; publication_status: string; scheduled_at: Date | null; media_id: string | null }>(
+      "SELECT channel_id, text, publication_status, scheduled_at, media_id FROM social_posts WHERE group_id = $1", [groupId],
+    )).rows.map((r) => [r.channel_id, r]));
+  const groupCount = async () => (await db.query<{ n: number }>("SELECT count(*)::int AS n FROM social_content_groups")).rows[0].n;
+
+  it("1.5-SQL-001 : marquer une déclinaison ne touche qu'elle", async () => {
+    await actAs(EMMA);
+    await save(GROUP, two("Texte"));
+    const res = await setPublished(await postId(GROUP, channels[0]), true);
+    expect(res.rows[0].status).toBe("published");
+    const rows = await byChannel(GROUP);
+    expect(rows[channels[0]].publication_status).toBe("published");
+    expect(rows[channels[1]].publication_status).toBe("scheduled");
+    await setPublished(await postId(GROUP, channels[1]), true);
+    expect(Object.values(await byChannel(GROUP)).every((r) => r.publication_status === "published")).toBe(true);
+  });
+
+  it("1.5-SQL-002 : annuler repasse en programmé avec la date conservée", async () => {
+    await actAs(EMMA);
+    await save(GROUP, two("Texte"));
+    const id = await postId(GROUP, channels[0]);
+    await setPublished(id, true);
+    const res = await setPublished(id, false);
+    expect(res.rows[0].status).toBe("scheduled");
+    expect((await byChannel(GROUP))[channels[0]]).toMatchObject({ publication_status: "scheduled" });
+    expect((await byChannel(GROUP))[channels[0]].scheduled_at?.toISOString()).toBe("2026-11-20T08:30:00.000Z");
+  });
+
+  it("1.5-SQL-002 : annuler une ligne publiée sans date la repasse sans date", async () => {
+    await actAs(EMMA);
+    await save(GROUP, two("Texte", null));
+    const id = await postId(GROUP, channels[0]);
+    await db.query("UPDATE social_posts SET publication_status = 'published' WHERE id = $1", [id]);
+    const res = await setPublished(id, false);
+    expect(res.rows[0].status).toBe("unscheduled");
+    expect((await byChannel(GROUP))[channels[0]]).toMatchObject({ publication_status: "unscheduled", scheduled_at: null });
+  });
+
+  it("refuse de marquer publiée une déclinaison sans date", async () => {
+    await actAs(EMMA);
+    await save(GROUP, two("Texte", null));
+    await expect(setPublished(await postId(GROUP, channels[0]), true)).rejects.toThrow("Planifiez une date pour marquer publié");
+    expect(Object.values(await byChannel(GROUP)).every((r) => r.publication_status === "unscheduled")).toBe(true);
+  });
+
+  it("1.5-SQL-003 : une déclinaison publiée garde sa date au changement de date du groupe", async () => {
+    await actAs(EMMA);
+    await save(GROUP, two("Texte"));
+    await setPublished(await postId(GROUP, channels[0]), true);
+    await db.query("SELECT public.set_social_group_date($1, $2::timestamptz)", [GROUP, "2026-12-01T10:00:00Z"]);
+    await save(GROUP, two("Texte", "2026-12-02T10:00:00Z"));
+    const rows = await byChannel(GROUP);
+    expect(rows[channels[0]].scheduled_at?.toISOString()).toBe("2026-11-20T08:30:00.000Z");
+    expect(rows[channels[1]].scheduled_at?.toISOString()).toBe("2026-12-02T10:00:00.000Z");
+  });
+
+  it("modifie seule une déclinaison publiée, sans propagation, synchro active", async () => {
+    await actAs(EMMA);
+    await save(GROUP, two("Commun").map((p) => ({ ...p, media_id: MEDIA_A })));
+    const id = await postId(GROUP, channels[0]);
+    await setPublished(id, true);
+    await updateContent(id, "Corrigé après publication", MEDIA_B);
+    const rows = await byChannel(GROUP);
+    expect(rows[channels[0]]).toMatchObject({ text: "Corrigé après publication", media_id: MEDIA_B, publication_status: "published" });
+    expect(rows[channels[1]]).toMatchObject({ text: "Commun", media_id: MEDIA_A });
+  });
+
+  it("ramène à null un visuel inconnu sur une déclinaison publiée", async () => {
+    await actAs(EMMA);
+    await save(GROUP, two("Texte").map((p) => ({ ...p, media_id: MEDIA_A })));
+    const id = await postId(GROUP, channels[0]);
+    await setPublished(id, true);
+    await updateContent(id, "Texte", "99999999-9999-9999-9999-999999999999");
+    expect((await byChannel(GROUP))[channels[0]].media_id).toBeNull();
+  });
+
+  it("refuse l'édition seule d'une déclinaison non publiée", async () => {
+    await actAs(EMMA);
+    await save(GROUP, two("Texte"));
+    await expect(updateContent(await postId(GROUP, channels[0]), "Seul", null)).rejects.toThrow("Seule une déclinaison publiée se modifie seule");
+    expect(Object.values(await byChannel(GROUP)).every((r) => r.text === "Texte")).toBe(true);
+  });
+
+  it("la synchro après marquage change les autres déclinaisons et laisse la publiée intacte", async () => {
+    await actAs(EMMA);
+    await save(GROUP, two("Avant"));
+    await setPublished(await postId(GROUP, channels[0]), true);
+    await save(GROUP, two("Après"));
+    const rows = await byChannel(GROUP);
+    expect(rows[channels[0]].text).toBe("Avant");
+    expect(rows[channels[1]].text).toBe("Après");
+  });
+
+  it("1.5-SQL-004 : supprimer une déclinaison garde le groupe et les autres", async () => {
+    await actAs(EMMA);
+    await save(GROUP, three("Texte"));
+    await db.query("DELETE FROM social_posts WHERE id = $1", [await postId(GROUP, channels[1])]);
+    expect(Object.keys(await byChannel(GROUP)).sort()).toEqual([channels[0], channels[2]].sort());
+    expect(await groupCount()).toBe(1);
+  });
+
+  it("1.5-SQL-004 : supprimer la dernière déclinaison supprime le groupe (social_posts_delete_empty_group)", async () => {
+    await actAs(EMMA);
+    await save(GROUP, three("Texte").slice(0, 1));
+    await db.query("DELETE FROM social_posts WHERE group_id = $1", [GROUP]);
+    expect(await groupCount()).toBe(0);
+  });
+
+  it("1.5-SQL-004 : supprimer le contenu supprime toutes ses déclinaisons, publiée comprise", async () => {
+    await actAs(EMMA);
+    await save(GROUP, three("Texte", DATED));
+    await setPublished(await postId(GROUP, channels[0]), true);
+    expect((await db.query("DELETE FROM social_content_groups WHERE id = $1", [GROUP])).affectedRows).toBe(1);
+    await db.exec("RESET ROLE");
+    expect((await db.query("SELECT * FROM social_posts")).rows).toHaveLength(0);
+    expect(await groupCount()).toBe(0);
+  });
+
+  it("remplacer tous les canaux d'un groupe ne le supprime pas", async () => {
+    await actAs(EMMA);
+    await save(GROUP, [{ channel_id: channels[0], text: "Texte", scheduled_at: null }]);
+    await save(GROUP, [{ channel_id: channels[1], text: "Texte", scheduled_at: null }]);
+    expect(await groupCount()).toBe(1);
+    expect(Object.keys(await byChannel(GROUP))).toEqual([channels[1]]);
+  });
+
+  it("un compte sans droit ne marque, ne modifie ni ne supprime rien", async () => {
+    await actAs(EMMA);
+    await save(GROUP, two("Privé"));
+    const id = await postId(GROUP, channels[0]);
+    await setPublished(id, true);
+    await actAs(OTHER);
+    await expect(setPublished(id, false)).rejects.toThrow("Déclinaison introuvable");
+    await expect(updateContent(id, "Intrus", null)).rejects.toThrow("Déclinaison introuvable");
+    expect((await db.query("DELETE FROM social_posts")).affectedRows).toBe(0);
+    expect((await db.query("DELETE FROM social_content_groups")).affectedRows).toBe(0);
+    await db.exec("RESET ROLE");
+    const rows = await byChannel(GROUP);
+    expect(rows[channels[0]]).toMatchObject({ text: "Privé", publication_status: "published" });
+    expect(Object.keys(rows)).toHaveLength(2);
+  });
+
+  it("anon ne peut appeler ni le marquage ni l'édition seule", async () => {
+    await actAs(EMMA);
+    await save(GROUP, two("Privé"));
+    const id = await postId(GROUP, channels[0]);
+    await actAs(null);
+    await expect(setPublished(id, true)).rejects.toThrow(/permission denied/);
+    await expect(updateContent(id, "Intrus", null)).rejects.toThrow(/permission denied/);
+    await db.exec("RESET ROLE");
+    expect((await byChannel(GROUP))[channels[0]]).toMatchObject({ text: "Privé", publication_status: "scheduled" });
+  });
+
+  it("un admin sans ligne de droit marque et modifie une déclinaison", async () => {
+    await actAs(ADMIN);
+    await save(GROUP, two("Admin"));
+    const id = await postId(GROUP, channels[0]);
+    await setPublished(id, true);
+    await updateContent(id, "Admin corrigé", null);
+    expect((await byChannel(GROUP))[channels[0]]).toMatchObject({ text: "Admin corrigé", publication_status: "published" });
   });
 });
 

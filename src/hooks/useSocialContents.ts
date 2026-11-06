@@ -1,7 +1,11 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import {
   createTheme,
+  deleteGroup,
+  deletePost,
   deleteTheme,
+  setPostPublished,
+  updatePublishedPost,
   getGroup,
   listThemes,
   updateTheme,
@@ -110,6 +114,41 @@ export function useSetSocialGroupDate() {
     onError: (_e, _vars, ctx) => {
       ctx?.snapshot.forEach(([key, data]) => qc.setQueryData(key, data));
     },
+    onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+/** Marquage publié d'une déclinaison (ou annulation) : les contenus sont relus. */
+export function useSetSocialPostPublished() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, published }: { postId: string; published: boolean }) => setPostPublished(postId, published),
+    onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+/** Édition d'une déclinaison publiée, seule. */
+export function useUpdatePublishedSocialPost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, text, mediaId }: { postId: string; text: string; mediaId: string | null }) =>
+      updatePublishedPost(postId, text, mediaId),
+    onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+export function useDeleteSocialPost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deletePost,
+    onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+export function useDeleteSocialGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteGroup,
     onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 }

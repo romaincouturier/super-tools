@@ -29,6 +29,7 @@ import {
   buildWeekGrid,
   emptySocialFilters,
   moveKeepingTime,
+  PUBLISHED_NOT_MOVABLE_MESSAGE,
   parisDayKey,
   parisLocalToUtcIso,
   type CalendarCard,
@@ -85,6 +86,10 @@ export default function SocialContentsPage() {
     const overId = over ? String(over.id) : "";
     const card = active.data.current?.card as CalendarCard | undefined;
     if (!card || !overId.startsWith(DAY_DROP_PREFIX)) return;
+    if (card.group.posts.every((p) => p.publication_status === "published")) {
+      toastError(toast, PUBLISHED_NOT_MOVABLE_MESSAGE);
+      return;
+    }
     const scheduledAt = moveKeepingTime(card.scheduledAt, overId.slice(DAY_DROP_PREFIX.length));
     if (card.scheduledAt && Date.parse(scheduledAt) === Date.parse(card.scheduledAt)) return;
     setDate.mutate(

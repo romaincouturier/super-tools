@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Check, ImageIcon } from "lucide-react";
+import { AlertTriangle, Check, ImageIcon, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,18 +18,32 @@ import { useToast } from "@/hooks/use-toast";
 import { useMediaLibrary, type MediaItem } from "@/hooks/useMedia";
 import { useAutoSaveForm, type AutoSaveFormValues } from "@/hooks/useAutoSaveForm";
 import { useConfirm } from "@/hooks/useConfirm";
-import { useSaveSocialGroup, useSocialChannels, useSocialGroup, useSocialThemes } from "@/hooks/useSocialContents";
+import {
+  useDeleteSocialGroup,
+  useDeleteSocialPost,
+  useSaveSocialGroup,
+  useSetSocialPostPublished,
+  useSocialChannels,
+  useSocialGroup,
+  useSocialThemes,
+  useUpdatePublishedSocialPost,
+} from "@/hooks/useSocialContents";
 import { toastError } from "@/lib/toastError";
 import { formatAlert } from "../../../supabase/functions/_shared/social-post-alerts";
 import {
+  DISPLAY_STATUS_LABELS,
   NO_CHANNEL_MESSAGE,
   alertsByChannel,
   buildGroupPosts,
+  publishedPostEdits,
   SOCIAL_FORMAT_LABELS,
   parisLocalToUtcIso,
   utcIsoToParisLocal,
+  type SocialChannel,
+  type SocialContentGroup,
   type SocialFormat,
   type SocialGroupDraft,
+  type SocialPublicationStatus,
 } from "@/services/socialContents";
 
 interface ComposerValues extends AutoSaveFormValues {
@@ -93,10 +107,32 @@ interface SocialComposerDialogProps {
 export default function SocialComposerDialog({ open, onOpenChange, groupId }: SocialComposerDialogProps) {
   const { toast } = useToast();
   const { data: channels = [], isLoading: channelsLoading } = useSocialChannels();
+  const [currentId, setCurrentId] = useState<string>("");
+  /** Un nouveau contenu est relu dès son premier enregistrement, pour le marquage et la suppression. */
+  const [savedOnce, setSavedOnce] = useState(false);
+  const queryId = groupId ?? (savedOnce && currentId ? currentId : null);
   const {
-    data: group, isFetching: groupFetching, isPending: groupPending, isError: groupError,
-  } = useSocialGroup(open ? groupId : null);
+    data: group, isFetching: groupFetching, isPending: groupPending, isError: groupError, refetch: refetchGroup,
+  } = useSocialGroup(open ? queryId : null);
+  /** Dernier état connu du contenu en base, mis à jour aussi par les relectures explicites. */
+  const groupRef = useRef<SocialContentGroup | null | undefined>(group);
+  groupRef.current = group;
+  const refetchRef = useRef(refetchGroup);
+  refetchRef.current = refetchGroup;
+  /** Lu au moment de l'action : un enregistrement peut aboutir pendant qu'une confirmation est ouverte. */
+  const savedOnceRef = useRef(false);
   const save = useSaveSocialGroup();
+  const { mutateAsync: updatePublished } = useUpdatePublishedSocialPost();
+  const { mutateAsync: setPublished } = useSetSocialPostPublished();
+  const { mutateAsync: removePost } = useDeleteSocialPost();
+  const { mutateAsync: removeGroup } = useDeleteSocialGroup();
+  /** Marquage ou suppression en cours : aucune sauvegarde automatique ne part. */
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const setBusyState = (value: boolean) => {
+    busyRef.current = value;
+    setBusy(value);
+  };
   const { confirm, ConfirmDialog } = useConfirm();
   const mediaQuery = useMediaLibrary({ enabled: open });
   const mediaLibrary = mediaQuery.data;
@@ -107,7 +143,6 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
   /** Tant que les thèmes ne sont pas lus, « Sans thème » serait faux pour un contenu qui en a un. */
   const themesReady = !themesQuery.isPending && !themesQuery.isError;
 
-  const [currentId, setCurrentId] = useState<string>("");
   const [channelIds, setChannelIds] = useState<string[]>([]);
   const [format, setFormat] = useState<SocialFormat>("post");
   const [sync, setSync] = useState(true);
@@ -139,13 +174,38 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     scheduledAt: v.date ? parisLocalToUtcIso(v.date, v.time || DEFAULT_TIME) : null,
   }), [currentId]);
 
+  /** Relit le contenu et met à jour l'état connu de la base sans attendre le rendu. */
+  const reloadGroup = useCallback(async () => {
+    const data = (await refetchRef.current()).data;
+    groupRef.current = data;
+    return data;
+  }, []);
+
+  /** Ajoute une écriture à la chaîne : marquage et suppressions passent après les sauvegardes en cours. */
+  const enqueue = useCallback(<T,>(task: () => Promise<T>): Promise<T> => {
+    const run = saveChain.current.then(task);
+    saveChain.current = run.catch(() => undefined);
+    return run;
+  }, []);
+
   const { mutateAsync } = save;
   const runSave = useCallback((v: ComposerValues): Promise<boolean> => {
     const draft = toDraft(v);
     const run = saveChain.current.then(async () => {
       try {
         await mutateAsync(draft);
+        for (const edit of publishedPostEdits(groupRef.current?.posts ?? [], draft)) {
+          try {
+            await updatePublished(edit);
+          } catch (e) {
+            // La déclinaison n'est plus publiée (marquage annulé ailleurs) : relire plutôt que réessayer.
+            if ((e as { code?: string } | null)?.code !== "22023") throw e;
+            await reloadGroup();
+          }
+        }
         lastSaveFailed.current = false;
+        savedOnceRef.current = true;
+        setSavedOnce(true);
         return true;
       } catch (e) {
         lastSaveFailed.current = true;
@@ -155,11 +215,11 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     });
     saveChain.current = run;
     return run;
-  }, [mutateAsync, toDraft, toast]);
+  }, [mutateAsync, updatePublished, reloadGroup, toDraft, toast]);
 
   const handleAutoSave = useCallback(async (values: AutoSaveFormValues): Promise<boolean> => {
     const v = values as ComposerValues;
-    if (!currentId || v.channelIds.length === 0) return false;
+    if (!currentId || busyRef.current || v.channelIds.length === 0) return false;
     return runSave(v);
   }, [currentId, runSave]);
 
@@ -169,7 +229,7 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
   );
 
   const { autoSaving, lastSaved, resetTracking, flushAndGetPending } = useAutoSaveForm({
-    open: open && !!currentId,
+    open: open && !!currentId && !busy,
     formValues,
     onSave: handleAutoSave,
   });
@@ -178,6 +238,8 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     if (!open) {
       initializedFor.current = null;
       setCurrentId("");
+      setSavedOnce(false);
+      savedOnceRef.current = false;
       return;
     }
     const key = groupId ?? "new";
@@ -196,7 +258,8 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     const ids = posts.map((p) => p.channel_id);
     const reference = posts.find((p) => p.publication_status !== "published") ?? posts[0];
     const firstText = reference?.text ?? "";
-    const scheduled = posts.find((p) => p.scheduled_at)?.scheduled_at ?? null;
+    const scheduled = posts.find((p) => p.publication_status !== "published" && p.scheduled_at)?.scheduled_at
+      ?? posts.find((p) => p.scheduled_at)?.scheduled_at ?? null;
     const local = scheduled ? utcIsoToParisLocal(scheduled) : null;
     setCurrentId(group?.id ?? groupId ?? crypto.randomUUID());
     setChannelIds(ids);
@@ -210,11 +273,31 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     setPickerFor(null);
     setDate(local?.date ?? "");
     setTime(local?.time ?? "");
-    setActiveTab(ids[0] ?? "");
+    setActiveTab(reference?.channel_id ?? "");
     resetTracking();
   }, [open, groupId, group, groupFetching, groupPending, groupError, resetTracking, toast, onOpenChange]);
 
   const orderedSelected = channels.filter((c) => channelIds.includes(c.id));
+  /** Déclinaisons publiées selon la base : modifiables seules, jamais décochables. */
+  const publishedChannelIds = useMemo(
+    () => new Set((group?.posts ?? [])
+      .filter((p) => p.publication_status === "published")
+      .map((p) => p.channel_id)),
+    [group],
+  );
+
+  // Synchro active : le texte et le visuel des non publiées restent ceux du commun, pour qu'aucun
+  // texte périmé ne soit enregistré sur une déclinaison au moment où elle devient publiée.
+  useEffect(() => {
+    if (!sync) return;
+    const editable = channelIds.filter((id) => !publishedChannelIds.has(id));
+    setTexts((prev) => (editable.every((id) => prev[id] === commonText)
+      ? prev
+      : { ...prev, ...Object.fromEntries(editable.map((id) => [id, commonText])) }));
+    setMediaIds((prev) => (editable.every((id) => id in prev && prev[id] === commonMediaId)
+      ? prev
+      : { ...prev, ...Object.fromEntries(editable.map((id) => [id, commonMediaId])) }));
+  }, [sync, commonText, commonMediaId, channelIds, publishedChannelIds]);
 
   const toggleChannel = (id: string, checked: boolean) => {
     setChannelIds((prev) => (checked ? [...prev, id] : prev.filter((c) => c !== id)));
@@ -228,9 +311,12 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
   };
 
   const toggleSync = async (next: boolean) => {
+    const editable = channelIds.filter((id) => !publishedChannelIds.has(id));
     if (next) {
-      const tab = activeTab && channelIds.includes(activeTab) ? activeTab : orderedSelected[0]?.id;
-      const distinct = new Set(channelIds.map((id) => JSON.stringify([
+      const tab = activeTab && editable.includes(activeTab)
+        ? activeTab
+        : orderedSelected.find((c) => !publishedChannelIds.has(c.id))?.id;
+      const distinct = new Set(editable.map((id) => JSON.stringify([
         texts[id] ?? commonText,
         id in mediaIds ? mediaIds[id] : commonMediaId,
       ])));
@@ -248,8 +334,9 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
         setCommonMediaId(tab in mediaIds ? mediaIds[tab] : commonMediaId);
       }
     } else {
-      setTexts(Object.fromEntries(channelIds.map((id) => [id, commonText])));
-      setMediaIds(Object.fromEntries(channelIds.map((id) => [id, commonMediaId])));
+      const own = (id: string) => publishedChannelIds.has(id);
+      setTexts(Object.fromEntries(channelIds.map((id) => [id, own(id) ? (texts[id] ?? "") : commonText])));
+      setMediaIds(Object.fromEntries(channelIds.map((id) => [id, own(id) ? (mediaIds[id] ?? null) : commonMediaId])));
       if (!activeTab || !channelIds.includes(activeTab)) setActiveTab(orderedSelected[0]?.id ?? "");
     }
     setSync(next);
@@ -261,6 +348,8 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
   };
 
   const handleClose = (isOpen: boolean) => {
+    // Une opération (marquage, suppression) est en cours : la fermeture attendrait une saisie périmée.
+    if (!isOpen && busyRef.current) return;
     if (!isOpen) {
       const pending = flushAndGetPending() as ComposerValues | null;
       const values = pending ?? (lastSaveFailed.current ? formValues : null);
@@ -288,12 +377,143 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     else setMediaIds((prev) => ({ ...prev, [target]: mediaId }));
   };
 
-  const publishedChannelIds = useMemo(
-    () => new Set((groupId && group ? group.posts : [])
-      .filter((p) => p.publication_status === "published")
-      .map((p) => p.channel_id)),
-    [groupId, group],
-  );
+  /** Enregistre la saisie en attente (ou celle dont l'enregistrement a échoué), puis attend la fin des écritures. */
+  const flushPending = async (): Promise<boolean> => {
+    const pending = flushAndGetPending() as ComposerValues | null;
+    const values = pending ?? (lastSaveFailed.current ? formValues : null);
+    if (values && values.channelIds.length > 0) return runSave(values);
+    await saveChain.current;
+    return !lastSaveFailed.current;
+  };
+
+  const togglePublished = async (channelId: string) => {
+    setBusyState(true);
+    try {
+      if (!(await flushPending())) return;
+      const post = (await reloadGroup())?.posts.find((p) => p.channel_id === channelId);
+      if (!post) return;
+      const publish = post.publication_status !== "published";
+      if (!publish && sync && (post.text !== commonText || post.media_id !== commonMediaId)) {
+        const ok = await confirm({
+          title: "Reprendre le texte et le visuel communs ?",
+          description: "Les corrections faites après publication seront remplacées.",
+          confirmText: "Reprendre",
+          variant: "destructive",
+        });
+        if (!ok) return;
+      }
+      await enqueue(() => setPublished({ postId: post.id, published: publish }));
+      const fresh = (await reloadGroup())?.posts.find((p) => p.channel_id === channelId);
+      const own = !publish && sync
+        ? { text: commonText, media: commonMediaId }
+        : { text: fresh?.text ?? texts[channelId] ?? "", media: fresh ? fresh.media_id : (mediaIds[channelId] ?? null) };
+      const nextTexts = { ...texts, [channelId]: own.text };
+      const nextMediaIds = { ...mediaIds, [channelId]: own.media };
+      setTexts(nextTexts);
+      setMediaIds(nextMediaIds);
+      // Annulée, la déclinaison rejoint le groupe : sa date (et, synchro active, le texte et le visuel communs).
+      if (!publish) await runSave({ ...formValues, texts: nextTexts, mediaIds: nextMediaIds });
+    } catch (e) {
+      toastError(toast, e);
+    } finally {
+      setBusyState(false);
+    }
+  };
+
+  /** Supprime tout le contenu, sans enregistrer la saisie en attente, puis ferme. */
+  const removeWholeContent = async () => {
+    flushAndGetPending();
+    await saveChain.current;
+    if (groupId || savedOnceRef.current) await enqueue(() => removeGroup(currentId));
+    onOpenChange(false);
+  };
+
+  const deleteDeclination = async (channelId: string) => {
+    const remaining = channelIds.filter((c) => c !== channelId);
+    const name = channelsById.get(channelId)?.name ?? "ce canal";
+    const ok = await confirm({
+      title: "Supprimer cette déclinaison ?",
+      description: remaining.length === 0
+        ? `C'est la dernière déclinaison : supprimer ${name} supprime tout le contenu.`
+        : `La déclinaison ${name} sera supprimée. Les autres canaux du contenu sont conservés.`,
+      confirmText: "Supprimer cette déclinaison",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    setBusyState(true);
+    const previous = { channelIds, activeTab };
+    try {
+      if (remaining.length === 0) {
+        await removeWholeContent();
+        return;
+      }
+      // Le canal quitte la saisie avant la suppression : aucune sauvegarde ne peut le réinsérer.
+      // La saisie en attente est réenregistrée à la fin, sans lui.
+      setChannelIds(remaining);
+      setActiveTab(orderedSelected.find((c) => c.id !== channelId)?.id ?? "");
+      flushAndGetPending();
+      await saveChain.current;
+      if (groupId || savedOnceRef.current) {
+        const post = (await reloadGroup())?.posts.find((p) => p.channel_id === channelId);
+        if (post) await enqueue(() => removePost(post.id));
+      }
+    } catch (e) {
+      setChannelIds(previous.channelIds);
+      setActiveTab(previous.activeTab);
+      toastError(toast, e);
+    } finally {
+      setBusyState(false);
+    }
+  };
+
+  const deleteContent = async () => {
+    const ok = await confirm({
+      title: "Supprimer tout le contenu ?",
+      description: "Toutes les déclinaisons de ce contenu seront supprimées, publiées comprises.",
+      confirmText: "Supprimer tout le contenu",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    setBusyState(true);
+    try {
+      await removeWholeContent();
+    } catch (e) {
+      toastError(toast, e);
+    } finally {
+      setBusyState(false);
+    }
+  };
+
+  /** Statut, marquage publié et suppression de la déclinaison d'un onglet. */
+  const declinationBar = (c: SocialChannel) => {
+    const saved = group?.posts.some((p) => p.channel_id === c.id) ?? false;
+    const published = publishedChannelIds.has(c.id);
+    const status: SocialPublicationStatus = published ? "published" : date ? "scheduled" : "unscheduled";
+    return (
+      <div className="mb-2 flex flex-wrap items-center gap-2 rounded border bg-muted/40 px-3 py-2 text-sm" data-testid="social-declination-bar">
+        <Badge variant={published ? "default" : "outline"}>{DISPLAY_STATUS_LABELS[status]}</Badge>
+        {published && <span className="text-xs text-muted-foreground">Publié, modifié seul</span>}
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {!published && !date && (
+            <span className="text-xs text-muted-foreground">Planifiez une date pour marquer publié</span>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={busy || !saved || (!published && !date)}
+            onClick={() => togglePublished(c.id)}
+          >
+            {published ? "Annuler le marquage" : "Marquer publié"}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => deleteDeclination(c.id)}>
+            <Trash2 className="h-4 w-4 mr-1" /> Supprimer cette déclinaison
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   /** Médiathèque chargée : un visuel absent de la liste (supprimé) compte comme manquant. */
   const libraryReady = !mediaQuery.isPending && !mediaQuery.isError;
 
@@ -339,6 +559,8 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
                     <label key={c.id} className="flex items-center gap-2 rounded border px-3 py-2 cursor-pointer">
                       <Checkbox
                         checked={channelIds.includes(c.id)}
+                        disabled={publishedChannelIds.has(c.id)}
+                        title={publishedChannelIds.has(c.id) ? "Déclinaison publiée : supprimez-la pour la retirer" : undefined}
                         onCheckedChange={(v) => toggleChannel(c.id, v === true)}
                       />
                       <Tooltip>
@@ -395,7 +617,7 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
               </div>
             </div>
 
-            {sync || orderedSelected.length === 0 ? (
+            {orderedSelected.length === 0 ? (
               <div className="space-y-1">
                 <Label htmlFor="social-text">Texte</Label>
                 <Textarea id="social-text" rows={8} value={commonText} onChange={(e) => setCommonText(e.target.value)} />
@@ -418,21 +640,40 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
                 </TabsList>
                 {orderedSelected.map((c) => (
                   <TabsContent key={c.id} value={c.id}>
-                    <Textarea
-                      aria-label={`Texte ${c.name}`}
-                      rows={8}
-                      value={texts[c.id] ?? ""}
-                      onChange={(e) => setTexts((prev) => ({ ...prev, [c.id]: e.target.value }))}
-                    />
-                    <div className="pt-2">
-                      <VisualField
-                        label={`Visuel ${c.name}`}
-                        mediaId={c.id in mediaIds ? mediaIds[c.id] : commonMediaId}
-                        mediaById={mediaById}
-                        onPick={() => setPickerFor(c.id)}
-                        onRemove={() => setVisual(c.id, null)}
-                      />
-                    </div>
+                    {declinationBar(c)}
+                    {sync && !publishedChannelIds.has(c.id) ? (
+                      <div className="space-y-1">
+                        <Label htmlFor="social-text">Texte</Label>
+                        <Textarea id="social-text" rows={8} value={commonText} onChange={(e) => setCommonText(e.target.value)} />
+                        <div className="pt-2">
+                          <VisualField
+                            label="Visuel"
+                            mediaId={commonMediaId}
+                            mediaById={mediaById}
+                            onPick={() => setPickerFor(COMMON_VISUAL)}
+                            onRemove={() => setCommonMediaId(null)}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <Textarea
+                          aria-label={`Texte ${c.name}`}
+                          rows={8}
+                          value={texts[c.id] ?? ""}
+                          onChange={(e) => setTexts((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                        />
+                        <div className="pt-2">
+                          <VisualField
+                            label={`Visuel ${c.name}`}
+                            mediaId={c.id in mediaIds ? mediaIds[c.id] : commonMediaId}
+                            mediaById={mediaById}
+                            onPick={() => setPickerFor(c.id)}
+                            onRemove={() => setVisual(c.id, null)}
+                          />
+                        </div>
+                      </>
+                    )}
                   </TabsContent>
                 ))}
               </Tabs>
@@ -472,6 +713,11 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
         )}
 
         <DialogFooter>
+          {(groupId || savedOnce) && !loading && (
+            <Button variant="ghost" className="text-destructive sm:mr-auto" disabled={busy} onClick={deleteContent}>
+              <Trash2 className="h-4 w-4 mr-1" /> Supprimer tout le contenu
+            </Button>
+          )}
           <Button variant="outline" onClick={() => handleClose(false)}>Fermer</Button>
           <Button onClick={handleSave} disabled={save.isPending || loading}>
             {save.isPending ? <Spinner size="sm" /> : "Enregistrer"}

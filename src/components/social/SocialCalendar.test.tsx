@@ -10,6 +10,7 @@ const h = vi.hoisted(() => ({
   mutate: vi.fn(),
   rangeArgs: vi.fn(),
   refetch: vi.fn(),
+  toast: vi.fn(),
   undatedError: false,
   instagramLimit: null as number | null,
   onDragEnd: null as null | ((e: unknown) => void),
@@ -52,7 +53,7 @@ vi.mock("@/hooks/useSocialContents", () => ({
 vi.mock("@/components/social/SocialSettingsDialog", () => ({
   default: ({ open }: { open: boolean }) => (open ? <div data-testid="settings">Réglages ouverts</div> : null),
 }));
-vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
+vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: h.toast }) }));
 vi.mock("@/components/ModuleLayout", () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
 vi.mock("@/components/social/SocialComposerDialog", () => ({
   default: ({ open, groupId }: { open: boolean; groupId: string | null }) =>
@@ -257,6 +258,32 @@ describe("Calendrier des contenus sociaux", () => {
       over: { id: "day:2026-11-10" },
     });
     expect(h.mutate).toHaveBeenLastCalledWith({ groupId: "insta", scheduledAt: "2026-11-10T17:00:00.000Z" }, expect.anything());
+  });
+
+  it("refuse le dépôt d'un contenu entièrement publié, avec un message", () => {
+    renderPage();
+    const published = group("pub", [{ ...post("pub", "li", "Publié", "2026-11-03T17:00:00.000Z"), publication_status: "published" }]);
+    h.onDragEnd?.({
+      active: { id: "pub", data: { current: { card: { group: published, posts: published.posts, status: "published", scheduledAt: "2026-11-03T17:00:00.000Z" } } } },
+      over: { id: "day:2026-11-10" },
+    });
+    expect(h.mutate).not.toHaveBeenCalled();
+    expect(h.toast).toHaveBeenCalledWith(expect.objectContaining({ description: "Un contenu publié ne se déplace pas" }));
+  });
+
+  it("déplace un contenu partiellement publié depuis la date et l'heure de sa déclinaison non publiée", () => {
+    h.dated = [group("mixte", [
+      { ...post("mixte", "li", "Publié", "2026-11-03T17:00:00.000Z"), publication_status: "published" },
+      post("mixte", "in", "Programmé", "2026-11-12T08:15:00.000Z"),
+    ])];
+    renderPage();
+    expect(within(screen.getByTestId("day-2026-11-12")).getByTestId("social-card-mixte")).toBeInTheDocument();
+    const mixte = h.dated[0] as SocialContentGroup;
+    h.onDragEnd?.({
+      active: { id: "mixte", data: { current: { card: { group: mixte, posts: mixte.posts, status: "scheduled", scheduledAt: "2026-11-12T08:15:00.000Z" } } } },
+      over: { id: "day:2026-11-14" },
+    });
+    expect(h.mutate).toHaveBeenLastCalledWith({ groupId: "mixte", scheduledAt: "2026-11-14T08:15:00.000Z" }, expect.anything());
   });
 
   it("ne réécrit rien quand une carte est déposée sur son propre jour", () => {

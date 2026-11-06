@@ -2,7 +2,7 @@
 title: 'Story 1.5 : ouvrir un contenu, le modifier et le marquer publié'
 type: 'feature'
 created: '2026-11-06'
-status: 'in-review'
+status: 'done'
 baseline_commit: '4a0e0eab07510319d99525c48f35156668475e0d'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -94,10 +94,25 @@ context:
 
 ## Spec Change Log
 
-- Groupe vide : le trigger `AFTER DELETE` est un trigger de contrainte `DEFERRABLE INITIALLY DEFERRED`, avec la garde `pg_trigger_depth() > 1`. Un trigger immédiat supprimait le groupe au milieu de `save_social_content_group` quand tous les canaux étaient remplacés (le `DELETE` des canaux décochés précède l'`INSERT` des nouveaux), puis l'insertion échouait sur la clé étrangère. Testé : « remplacer tous les canaux d'un groupe ne le supprime pas ».
-- Composeur : les onglets par canal s'affichent aussi synchro active (texte et visuel communs dans l'onglet d'une non publiée), pour porter la barre de déclinaison. Annuler le marquage d'une déclinaison, synchro active, la réécrit aussitôt avec le texte et le visuel communs.
+- Groupe vide : le trigger `AFTER DELETE` est un trigger de contrainte `DEFERRABLE INITIALLY DEFERRED`, sans garde `pg_trigger_depth()` (inerte une fois différé : il s'exécute toujours à profondeur 1). Un trigger immédiat supprimait le groupe au milieu de `save_social_content_group` quand tous les canaux étaient remplacés (le `DELETE` des canaux décochés précède l'`INSERT` des nouveaux), puis l'insertion échouait sur la clé étrangère. Le trigger verrouille le groupe (`FOR UPDATE`) avant le test `NOT EXISTS` ; une cascade depuis le groupe ne trouve plus le groupe et ne fait rien. Testé : « remplacer tous les canaux d'un groupe ne le supprime pas ».
+- Composeur : les onglets par canal s'affichent aussi synchro active (texte et visuel communs dans l'onglet d'une non publiée), pour porter la barre de déclinaison. Synchro active, le texte et le visuel des non publiées restent alignés sur le commun.
+- Annuler le marquage : synchro active, si le texte ou le visuel propre de la déclinaison diffère du commun, une confirmation (« Reprendre le texte et le visuel communs ? ») précède l'annulation ; la refuser ne change rien. Après toute annulation, synchro active ou non, le groupe est réenregistré : la déclinaison rejoint la date du groupe. Sa date est donc conservée quand elle est celle du groupe ; sinon elle est réalignée sur la date affichée du contenu.
+- Calendrier : la date et l'heure d'une carte viennent des déclinaisons non publiées datées ; les publiées ne comptent que si aucune non publiée n'est datée. Le dépôt d'un contenu entièrement publié est refusé (« Un contenu publié ne se déplace pas »).
+- Suppressions : `deletePost` et `deleteGroup` lèvent une erreur quand aucune ligne n'est supprimée (RLS). Le composeur ne supprime en base un nouveau contenu que s'il a été enregistré, information relue après la fin des enregistrements en cours.
 
 ## Review Triage Log
+
+- [high] Nouveau contenu supprimé alors que son premier enregistrement était en vol : groupe orphelin en base -- patché : `savedOnceRef` lu après la chaîne de sauvegarde, test.
+- [medium] Annuler le marquage synchro active écrasait sans prévenir les corrections faites après publication -- patché : confirmation si divergence, refus sans effet.
+- [medium] Date périmée après annulation (synchro coupée, groupe déplacé) -- patché : enregistrement du groupe après toute annulation, réalignement documenté.
+- [medium] Texte périmé réécrit sur une déclinaison au moment où elle devient publiée -- patché : textes des non publiées alignés sur le commun, opérations sérialisées.
+- [medium] Autosave en boucle d'erreurs 22023 après un dé-marquage fait ailleurs -- patché : relecture du groupe, invalidations en `onSettled`.
+- [medium] Glisser-déposer d'un contenu partiellement publié : carte immobile, heure de la publiée -- patché : date de la carte issue des non publiées ; contenu entièrement publié non déplaçable, avec message.
+- [medium] Trous de tests du composeur (ordre flush/RPC/refetch, cible de suppression, bouton non enregistré, date initiale) -- patché : tests.
+- [low] Saisie pendant une suppression recréant la déclinaison -- patché : autosave bloqué pendant l'opération, canal retiré avant la suppression, fermeture du dialogue bloquée pendant l'opération.
+- [low] Suppression refusée par la RLS présentée comme réussie -- patché : erreur si aucune ligne supprimée.
+- [low] Garde `pg_trigger_depth()` inerte, course suppression/réinsertion -- patché : garde retirée, verrou `FOR UPDATE` sur le groupe.
+- [low] Verrou concurrent non testé (PGlite mono-connexion) -- non testable ici, accepté.
 
 ## Verification
 

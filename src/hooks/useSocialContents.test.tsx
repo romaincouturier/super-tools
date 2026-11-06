@@ -4,21 +4,32 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import type { SocialContentGroup } from "@/services/socialContents";
 
-const h = vi.hoisted(() => ({ setGroupDate: vi.fn(), createTheme: vi.fn(), updateTheme: vi.fn(), deleteTheme: vi.fn() }));
+const h = vi.hoisted(() => ({
+  setGroupDate: vi.fn(), createTheme: vi.fn(), updateTheme: vi.fn(), deleteTheme: vi.fn(),
+  setPostPublished: vi.fn(), updatePublishedPost: vi.fn(), deletePost: vi.fn(), deleteGroup: vi.fn(),
+}));
 vi.mock("@/services/socialContents", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/services/socialContents")>()),
   setGroupDate: h.setGroupDate,
   createTheme: h.createTheme,
   updateTheme: h.updateTheme,
   deleteTheme: h.deleteTheme,
+  setPostPublished: h.setPostPublished,
+  updatePublishedPost: h.updatePublishedPost,
+  deletePost: h.deletePost,
+  deleteGroup: h.deleteGroup,
   listUndatedGroups: vi.fn(() => new Promise(() => {})),
   listGroupsInRange: vi.fn(() => new Promise(() => {})),
 }));
 
 import {
   useCreateSocialTheme,
+  useDeleteSocialGroup,
+  useDeleteSocialPost,
   useDeleteSocialTheme,
   useSetSocialGroupDate,
+  useSetSocialPostPublished,
+  useUpdatePublishedSocialPost,
   useUpdateSocialTheme,
 } from "./useSocialContents";
 
@@ -111,5 +122,61 @@ describe("mutations des thèmes", () => {
     await act(async () => { await result.current.mutateAsync({ id: "t1", name: "IA" }).catch(() => {}); });
     expect(h.updateTheme).toHaveBeenCalledWith("t1", { name: "IA" });
     expect(keys(invalidate)).toEqual([["social-themes"]]);
+  });
+});
+
+describe("mutations du marquage publié et de la suppression", () => {
+  function setupMutation<T>(hook: () => T) {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+    return { invalidate, ...renderHook(hook, { wrapper }) };
+  }
+  const keys = (invalidate: ReturnType<typeof vi.spyOn>) =>
+    invalidate.mock.calls.map((c) => (c[0] as { queryKey: unknown }).queryKey);
+
+  it("le marquage invalide les contenus, même en cas d'échec", async () => {
+    h.setPostPublished.mockRejectedValue(new Error("refus"));
+    const { invalidate, result } = setupMutation(() => useSetSocialPostPublished());
+    await act(async () => { await result.current.mutateAsync({ postId: "p", published: true }).catch(() => {}); });
+    expect(h.setPostPublished).toHaveBeenCalledWith("p", true);
+    expect(keys(invalidate)).toEqual([["social-contents"]]);
+  });
+
+  it("l'édition et les suppressions invalident les contenus même en cas d'échec", async () => {
+    h.updatePublishedPost.mockRejectedValue(new Error("refus"));
+    h.deletePost.mockRejectedValue(new Error("refus"));
+    h.deleteGroup.mockRejectedValue(new Error("refus"));
+    const edit = setupMutation(() => useUpdatePublishedSocialPost());
+    await act(async () => { await edit.result.current.mutateAsync({ postId: "p", text: "t", mediaId: null }).catch(() => {}); });
+    expect(keys(edit.invalidate)).toEqual([["social-contents"]]);
+    const post = setupMutation(() => useDeleteSocialPost());
+    await act(async () => { await post.result.current.mutateAsync("p").catch(() => {}); });
+    expect(h.deletePost).toHaveBeenCalledWith("p", expect.anything());
+    expect(keys(post.invalidate)).toEqual([["social-contents"]]);
+    const group = setupMutation(() => useDeleteSocialGroup());
+    await act(async () => { await group.result.current.mutateAsync("g").catch(() => {}); });
+    expect(keys(group.invalidate)).toEqual([["social-contents"]]);
+  });
+
+  it("l'édition d'une publiée invalide les contenus", async () => {
+    h.updatePublishedPost.mockResolvedValue(undefined);
+    const { invalidate, result } = setupMutation(() => useUpdatePublishedSocialPost());
+    await act(async () => { await result.current.mutateAsync({ postId: "p", text: "t", mediaId: null }); });
+    expect(h.updatePublishedPost).toHaveBeenCalledWith("p", "t", null);
+    expect(keys(invalidate)).toEqual([["social-contents"]]);
+  });
+
+  it("les suppressions invalident les contenus", async () => {
+    h.deletePost.mockResolvedValue(undefined);
+    h.deleteGroup.mockResolvedValue(undefined);
+    const post = setupMutation(() => useDeleteSocialPost());
+    await act(async () => { await post.result.current.mutateAsync("p"); });
+    expect(h.deletePost).toHaveBeenCalledWith("p", expect.anything());
+    expect(keys(post.invalidate)).toEqual([["social-contents"]]);
+    const group = setupMutation(() => useDeleteSocialGroup());
+    await act(async () => { await group.result.current.mutateAsync("g"); });
+    expect(h.deleteGroup).toHaveBeenCalledWith("g", expect.anything());
+    expect(keys(group.invalidate)).toEqual([["social-contents"]]);
   });
 });

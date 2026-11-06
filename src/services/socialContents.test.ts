@@ -11,6 +11,7 @@ import {
   parisDayKey,
   parisLocalToUtcIso,
   placeGroups,
+  publishedPostEdits,
   utcIsoToParisLocal,
   visibleChannelIdsFor,
   withGroupDate,
@@ -93,6 +94,34 @@ describe("groupDisplayStatus", () => {
     expect(groupDisplayStatus([post("a", "scheduled", "x"), post("b", "unscheduled", null)])).toBe("unscheduled");
     expect(groupDisplayStatus([post("a", "published", "x")])).toBe("published");
     expect(groupDisplayStatus([])).toBe("unscheduled");
+  });
+});
+
+describe("groupDisplayStatus : contenu partiellement publié (story 1.5)", () => {
+  it("affiche Programmé quand une seule déclinaison est publiée, Publié quand toutes le sont", () => {
+    expect(groupDisplayStatus([post("li", "published", "x"), post("in", "scheduled", "x")])).toBe("scheduled");
+    expect(groupDisplayStatus([post("li", "published", "x"), post("in", "published", "x")])).toBe("published");
+  });
+});
+
+describe("publishedPostEdits", () => {
+  const posts = [
+    { id: "p-li", channel_id: "li", text: "Publié", media_id: "m1", publication_status: "published" as const },
+    { id: "p-in", channel_id: "in", text: "Commun", media_id: "m1", publication_status: "scheduled" as const },
+  ];
+
+  it("ne retient que les déclinaisons publiées modifiées", () => {
+    expect(publishedPostEdits(posts, { channelIds: ["li", "in"], texts: { li: "Publié", in: "Autre" }, mediaIds: { li: "m1", in: null } })).toEqual([]);
+    expect(publishedPostEdits(posts, { channelIds: ["li", "in"], texts: { li: "Corrigé", in: "Commun" }, mediaIds: {} })).toEqual([
+      { postId: "p-li", text: "Corrigé", mediaId: "m1" },
+    ]);
+    expect(publishedPostEdits(posts, { channelIds: ["li"], texts: {}, mediaIds: { li: null } })).toEqual([
+      { postId: "p-li", text: "Publié", mediaId: null },
+    ]);
+  });
+
+  it("ignore une déclinaison publiée retirée de la saisie", () => {
+    expect(publishedPostEdits(posts, { channelIds: ["in"], texts: { li: "Corrigé" }, mediaIds: {} })).toEqual([]);
   });
 });
 
@@ -187,12 +216,19 @@ describe("placeGroups", () => {
     expect(byDay.get("2026-11-12")?.map((c) => c.group.id)).toEqual(["early", "late"]);
   });
 
-  it("garde la carte au statut le moins avancé d'un contenu partiellement publié", () => {
+  it("garde la carte au statut le moins avancé d'un contenu partiellement publié, à la date de la non publiée", () => {
     const { byDay } = placeGroups([
       group("g", [post("li", "published", "2026-11-03T17:00:00.000Z"), post("in", "scheduled", "2026-11-10T17:00:00.000Z")]),
     ], all);
-    expect(byDay.get("2026-11-03")?.[0]).toMatchObject({ status: "scheduled", scheduledAt: "2026-11-03T17:00:00.000Z" });
-    expect(byDay.has("2026-11-10")).toBe(false);
+    expect(byDay.get("2026-11-10")?.[0]).toMatchObject({ status: "scheduled", scheduledAt: "2026-11-10T17:00:00.000Z" });
+    expect(byDay.has("2026-11-03")).toBe(false);
+  });
+
+  it("place un contenu entièrement publié à la date de ses publiées", () => {
+    const { byDay } = placeGroups([
+      group("g", [post("li", "published", "2026-11-03T17:00:00.000Z"), post("in", "published", "2026-11-05T17:00:00.000Z")]),
+    ], all);
+    expect(byDay.get("2026-11-03")?.[0]).toMatchObject({ status: "published", scheduledAt: "2026-11-03T17:00:00.000Z" });
   });
 
   it("place sur son jour un contenu publié en partie dont une déclinaison n'a pas de date", () => {
