@@ -287,7 +287,7 @@ async function step(db: Db, run: any) {
     .eq("source_metadata->>import_source", "nocrm").in("source_metadata->>nocrm_id", sliceIds);
   const importedById = new Map(((imported ?? []) as any[]).map((r) => [r.nocrm_id, r.id]));
 
-  // Auteur des notes : l'adresse d'expédition des paramètres (romain@supertilt.fr aujourd'hui).
+  // Auteur des notes : l'adresse d'expédition des paramètres.
   const noteAuthor = await getSenderEmail();
   const counts = { created: 0, updated: 0, merged: 0, skipped: 0, notes: 0, activities: 0 };
   const errors: Array<{ nocrm_id: string; error: string }> = [];
