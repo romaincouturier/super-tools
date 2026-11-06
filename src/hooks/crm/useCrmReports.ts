@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { CrmColumn, CrmCard, CrmTag } from "@/types/crm";
 import { CRM_QUERY_KEY } from "./useCrmMutation";
 import { buildWeeklyTimeSeries } from "@/lib/crmWeeklySeries";
-import { fetchAllCrmCards, isNocrmImported } from "@/services/crmCardsFetch";
+import { fetchAllCardTags, fetchAllCrmCards, isNocrmImported } from "@/services/crmCardsFetch";
 
 export type { WeeklyPoint } from "@/lib/crmWeeklySeries";
 
@@ -26,7 +26,7 @@ export const useCrmReports = (
         supabase.from("crm_columns").select("*").eq("is_archived", false).order("position"),
         fetchAllCrmCards().then((data) => ({ data, error: null })),
         supabase.from("crm_tags").select("*"),
-        supabase.from("crm_card_tags").select("*"),
+        fetchAllCardTags().then((data) => ({ data, error: null })),
       ]);
 
       if (columnsRes.error) throw columnsRes.error;

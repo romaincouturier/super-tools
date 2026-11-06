@@ -39,3 +39,8 @@ export async function fetchAllCrmCards(): Promise<Row[]> {
 
 export const isNocrmImported = (card: { source_metadata?: unknown }) =>
   (card.source_metadata as { import_source?: string } | null | undefined)?.import_source === "nocrm";
+
+/** Tous les liens opportunité-tag, paginés. */
+export async function fetchAllCardTags(): Promise<Row[]> {
+  return fetchPaged((from, to) => supabase.from("crm_card_tags").select("*").order("created_at", { ascending: true }).range(from, to));
+}
