@@ -95,7 +95,7 @@ export default function CreateDevisOrderDialog(props: Props) {
       const res = await create.mutateAsync({
         crmCardId: cardId,
         devisActivityLogId: devis?.activityLogId ?? null,
-        customer: { firstName: billing.first_name, lastName: billing.last_name, email: customerEmail, company: billing.company },
+        customer: { firstName: billing.first_name, lastName: billing.last_name, email: customerEmail, company: billing.company }, // demo-safe: payload envoyé au serveur, non affiché
         billingAddress: { ...billing, email: customerEmail },
         shippingAddress: sameAddress ? billing : shipping,
         lines,
