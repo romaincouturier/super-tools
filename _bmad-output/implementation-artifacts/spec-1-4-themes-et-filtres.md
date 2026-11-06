@@ -2,7 +2,7 @@
 title: 'Story 1.4 : classer les contenus par thèmes et filtrer'
 type: 'feature'
 created: '2026-11-06'
-status: 'in-review'
+status: 'done'
 baseline_commit: '18d872d212e93d4cf6327778f217eec5501c0ec8'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -94,11 +94,29 @@ context:
 - Filtres : `SocialFilters = { themeIds: Set<string>, channelIds: Set<string>, statuses: Set<SocialPublicationStatus> }`. La famille Réseau alimente `visibleChannelIds` de `placeGroups` (vide = tous les canaux) ; `filterCards(cards, filters)` applique ensuite thème (`group.theme_id`) et statut (`card.status`). Tri et placement inchangés.
 - Barre : pastilles `aria-pressed`, aucune sélectionnée au départ, comme la maquette ; thème avec point de couleur. Pas de vue enregistrée.
 - Réglages : bouton « Réglages » dans les actions de l'en-tête de page, dialogue avec une section « Thèmes » (la story 4.1 y ajoutera « Contexte de marque »). Renommage en ligne, enregistrement à la validation (Entrée ou perte du focus), erreur d'unicité en toast.
+- Blancs : la contrainte `social_themes_name_not_blank` refuse un nom fait uniquement de blancs (`[[:space:]]` plus les blancs Unicode, espace insécable compris), et l'index unique compare `lower()` du nom débarrassé de ces mêmes blancs de bord, comme le `trim()` du service. Ce choix remplace le `btrim(name) <> ''` et le `lower(btrim(name))` d'origine, qui ignoraient tabulations et espaces insécables.
+- RPC : le thème est relu `FOR KEY SHARE`, ce qui le verrouille jusqu'à la fin de la transaction. Une suppression concurrente attend, puis remet le contenu à null par `ON DELETE SET NULL`, au lieu d'une violation de clé étrangère.
+- Filtrage : `applySocialFilters(groups, filters, channels, existingThemeIds, range, channelsById)` dans le service fait `placeGroups`, puis `filterCards` sur la grille et sur « Non planifiés », et retire les jours vidés. Une pastille encore sélectionnée dont le thème a été supprimé, ou dont le canal a disparu des canaux actifs, ne filtre plus, faute de pouvoir être désélectionnée. La page n'appelle que cette fonction.
+- Réglages : Échap dans un champ de renommage annule la saisie sans fermer le dialogue (`onEscapeKeyDown` avec `preventDefault` sur ces champs). Fermer le dialogue avec un renommage en cours le valide, par la perte du focus. Renommer et recolorer passent par deux mutations distinctes, portées par le dialogue et non par les lignes, pour qu'une erreur de renommage ne soit jamais perdue.
+- Composeur : tant que les thèmes chargent ou sont en erreur, le champ « Thème » est désactivé avec un libellé neutre (« Chargement des thèmes... », « Thèmes indisponibles »), jamais « Sans thème ». Un thème inconnu une fois les thèmes chargés s'affiche « Sans thème », mais son id est envoyé tel quel : la RPC le ramène à null.
 - Production : jouer `20261106110000_social_themes.sql` après les trois migrations précédentes de l'epic.
 
 ## Spec Change Log
 
 ## Review Triage Log
+
+- [medium] Test 1.4-SQL-002 vidé par le beforeEach, ne prouvait rien -- patché : comptage juste après la double migration.
+- [medium] Câblage du filtre de statut dans la page non vérifié (grille et Non planifiés) -- patché : test.
+- [medium] Pastille d'un thème supprimé restée active -- patché : `applySocialFilters` pure, test unitaire et de page.
+- [low] Pastille d'un canal disparu restée active -- patché : intersection avec les canaux actifs.
+- [low] Course suppression de thème / sauvegarde (23503) -- patché : `FOR KEY SHARE`.
+- [low] Nom fait de blancs Unicode accepté en base -- patché : contrainte et index cohérents avec `trim()`.
+- [low] Échap ferme tout le dialogue, renommage perdu à la fermeture, erreur de renommage écrasée par la recoloration -- patché.
+- [low] Composeur affichant « Sans thème » pendant le chargement des thèmes -- patché : champ désactivé avec libellé d'attente.
+- [low] Invalidations des hooks de thèmes non testées -- patché : tests.
+- [low] Toasts d'erreur recoloration et suppression non testés -- patché : tests.
+- [low] Appel RPC à 4 paramètres efface le thème -- non retenu : seul appelant le service, qui envoie toujours le thème ; à revoir si le MCP (epic 4) appelle la RPC.
+- [false] Tables `social_*` absentes de la restauration (`backup-import`) -- antérieur à 1.4, hors règle [038] (export uniquement).
 
 ## Verification
 

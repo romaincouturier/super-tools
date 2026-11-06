@@ -14,6 +14,7 @@ const h = vi.hoisted(() => ({
   instagramLimit: null as number | null,
   onDragEnd: null as null | ((e: unknown) => void),
   dated: [] as unknown[],
+  themes: [] as unknown[],
   undated: [] as unknown[],
 }));
 
@@ -46,6 +47,10 @@ vi.mock("@/hooks/useSocialContents", () => ({
   },
   useUndatedSocialGroups: () => ({ data: h.undated, isLoading: false, isError: h.undatedError, refetch: h.refetch }),
   useSetSocialGroupDate: () => ({ mutate: h.mutate }),
+  useSocialThemes: () => ({ data: h.themes }),
+}));
+vi.mock("@/components/social/SocialSettingsDialog", () => ({
+  default: ({ open }: { open: boolean }) => (open ? <div data-testid="settings">Réglages ouverts</div> : null),
 }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock("@/components/ModuleLayout", () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
@@ -59,7 +64,7 @@ const post = (group_id: string, channel_id: string, text: string, scheduled_at: 
   publication_status: scheduled_at ? "scheduled" : "unscheduled", media_id: null,
 });
 const group = (id: string, posts: SocialPost[]): SocialContentGroup => ({
-  id, format: "post", sync: true, created_by: null, created_at: "", updated_at: "", posts,
+  id, format: "post", sync: true, theme_id: null, created_by: null, created_at: "", updated_at: "", posts,
 });
 
 const renderPage = () => render(<MemoryRouter><TooltipProvider><SocialContentsPage /></TooltipProvider></MemoryRouter>);
@@ -71,6 +76,7 @@ describe("Calendrier des contenus sociaux", () => {
     vi.clearAllMocks();
     h.undatedError = false;
     h.instagramLimit = null;
+    h.themes = [];
     h.dated = [
       // 23:30 à Paris le 12 novembre (22:30 UTC).
       group("soir", [post("soir", "li", "Post du soir", "2026-11-12T22:30:00.000Z")]),
@@ -92,14 +98,110 @@ describe("Calendrier des contenus sociaux", () => {
     expect(screen.getByTestId("day-2026-11-20").textContent).toBe("20");
   });
 
-  it("masque les contenus d'un canal décoché", () => {
+  it("restreint la grille et Non planifiés aux réseaux sélectionnés, tous sans pastille", () => {
     renderPage();
-    fireEvent.click(screen.getByRole("button", { name: "Instagram" }));
+    const linkedin = within(screen.getByRole("group", { name: "Réseau" })).getByRole("button", { name: "LinkedIn Romain" });
+    expect(linkedin).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(linkedin);
+    expect(linkedin).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByText("Reel Instagram")).toBeNull();
+    expect(screen.getByText("Post du soir")).toBeInTheDocument();
     expect(screen.getByText("Non planifiés · 1")).toBeInTheDocument();
     expect(within(screen.getByTestId("social-card-brouillon")).queryByText("IN")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "LinkedIn Romain" }));
+    fireEvent.click(screen.getByRole("button", { name: "Instagram" }));
+    expect(screen.getByText("Reel Instagram")).toBeInTheDocument();
+    expect(within(screen.getByTestId("social-card-brouillon")).getByText("IN")).toBeInTheDocument();
+    fireEvent.click(linkedin);
+    fireEvent.click(screen.getByRole("button", { name: "Instagram" }));
+    expect(screen.getByText("Post du soir")).toBeInTheDocument();
+    expect(screen.getByText("Reel Instagram")).toBeInTheDocument();
+  });
+
+  it("filtre par thème et statut, dans la grille comme dans Non planifiés", () => {
+    h.themes = [{ id: "ia", name: "IA appliquée", color: "#3b82f6" }, { id: "fac", name: "Facilitation", color: "#22c55e" }];
+    h.dated = [
+      { ...group("soir", [post("soir", "li", "Post du soir", "2026-11-12T22:30:00.000Z")]), theme_id: "ia" },
+      { ...group("insta", [post("insta", "in", "Reel Instagram", "2026-11-03T17:00:00.000Z")]), theme_id: "fac" },
+    ];
+    h.undated = [
+      { ...group("brouillon", [post("brouillon", "li", "Idée", null)]), theme_id: "ia" },
+      group("sans", [post("sans", "li", "Sans thème", null)]),
+    ];
+    renderPage();
+    const themesBar = screen.getByRole("group", { name: "Thème" });
+    fireEvent.click(within(themesBar).getByRole("button", { name: "IA appliquée" }));
+    expect(screen.getByText("Post du soir")).toBeInTheDocument();
+    expect(screen.queryByText("Reel Instagram")).toBeNull();
+    expect(screen.getByText("Non planifiés · 1")).toBeInTheDocument();
+    expect(screen.queryByTestId("social-card-sans")).toBeNull();
+
+    fireEvent.click(within(themesBar).getByRole("button", { name: "Facilitation" }));
+    expect(screen.getByText("Reel Instagram")).toBeInTheDocument();
+
+    fireEvent.click(within(screen.getByRole("group", { name: "Statut" })).getByRole("button", { name: "Programmé" }));
     expect(screen.getByText("Non planifiés · 0")).toBeInTheDocument();
+    expect(screen.getByText("Post du soir")).toBeInTheDocument();
+
+    fireEvent.click(within(themesBar).getByRole("button", { name: "IA appliquée" }));
+    fireEvent.click(within(themesBar).getByRole("button", { name: "Facilitation" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Statut" })).getByRole("button", { name: "Programmé" }));
+    expect(screen.getByText("Non planifiés · 2")).toBeInTheDocument();
+  });
+
+  it("pastille Programmé : le brouillon quitte Non planifiés et une carte publiée datée est masquée", () => {
+    h.dated = [
+      group("prog", [post("prog", "li", "Programmé", "2026-11-12T08:00:00.000Z")]),
+      group("pub", [{ ...post("pub", "li", "Déjà publié", "2026-11-13T08:00:00.000Z"), publication_status: "published" }]),
+    ];
+    renderPage();
+    expect(screen.getByText("Non planifiés · 1")).toBeInTheDocument();
+    expect(screen.getByTestId("social-card-pub")).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole("group", { name: "Statut" })).getByRole("button", { name: "Programmé" }));
+    expect(screen.getByText("Non planifiés · 0")).toBeInTheDocument();
+    expect(screen.queryByTestId("social-card-brouillon")).toBeNull();
+    expect(screen.queryByTestId("social-card-pub")).toBeNull();
+    expect(screen.getByTestId("social-card-prog")).toBeInTheDocument();
+  });
+
+  it("un thème sélectionné puis supprimé ne filtre plus : tous les contenus réapparaissent", () => {
+    h.themes = [{ id: "ia", name: "IA appliquée", color: "#3b82f6" }];
+    h.dated = [
+      { ...group("soir", [post("soir", "li", "Post du soir", "2026-11-12T22:30:00.000Z")]), theme_id: "ia" },
+      group("insta", [post("insta", "in", "Reel Instagram", "2026-11-03T17:00:00.000Z")]),
+    ];
+    const { rerender } = renderPage();
+    fireEvent.click(within(screen.getByRole("group", { name: "Thème" })).getByRole("button", { name: "IA appliquée" }));
+    expect(screen.queryByText("Reel Instagram")).toBeNull();
+    expect(screen.getByText("Non planifiés · 0")).toBeInTheDocument();
+    h.themes = [];
+    rerender(<MemoryRouter><TooltipProvider><SocialContentsPage /></TooltipProvider></MemoryRouter>);
+    expect(screen.queryByRole("group", { name: "Thème" })).toBeNull();
+    expect(screen.getByText("Reel Instagram")).toBeInTheDocument();
+    expect(screen.getByText("Post du soir")).toBeInTheDocument();
+    expect(screen.getByText("Non planifiés · 1")).toBeInTheDocument();
+  });
+
+  it("borde la carte à la couleur de son thème, neutre sans thème", () => {
+    h.themes = [{ id: "ia", name: "IA appliquée", color: "#3b82f6" }];
+    h.dated = [{ ...group("soir", [post("soir", "li", "Post du soir", "2026-11-12T22:30:00.000Z")]), theme_id: "ia" }];
+    h.undated = [
+      { ...group("brouillon", [post("brouillon", "li", "Idée", null)]), theme_id: "ia" },
+      // Thème supprimé entre-temps : liseré neutre.
+      { ...group("orphelin", [post("orphelin", "li", "Orphelin", null)]), theme_id: "disparu" },
+      group("sans", [post("sans", "li", "Sans thème", null)]),
+    ];
+    renderPage();
+    expect(screen.getByTestId("social-card-soir")).toHaveStyle({ borderLeftColor: "#3b82f6" });
+    expect(screen.getByTestId("social-card-brouillon")).toHaveStyle({ borderLeftColor: "#3b82f6" });
+    expect(screen.getByTestId("social-card-orphelin").style.borderLeftColor).toBe("");
+    expect(screen.getByTestId("social-card-sans").style.borderLeftColor).toBe("");
+  });
+
+  it("n'affiche pas la famille Thème tant qu'aucun thème n'existe, et ouvre les réglages", () => {
+    renderPage();
+    expect(screen.queryByRole("group", { name: "Thème" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Réglages" }));
+    expect(screen.getByTestId("settings")).toBeInTheDocument();
   });
 
   it("affiche l'indicateur d'alerte sur une carte sans visuel, pas sur une carte complète", () => {

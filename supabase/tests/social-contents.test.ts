@@ -14,6 +14,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATION = path.resolve(here, "../migrations/20261105120000_social_contents.sql");
 const DATE_MIGRATION = path.resolve(here, "../migrations/20261105130000_social_group_date.sql");
 const MEDIA_MIGRATION = path.resolve(here, "../migrations/20261106100000_social_post_media.sql");
+const THEMES_MIGRATION = path.resolve(here, "../migrations/20261106110000_social_themes.sql");
 const UPDATED_AT_MIGRATION = path.resolve(here, "../migrations/20260108203546_738a153d-fdf5-43d3-a2c6-75e98647a71f.sql");
 
 /** update_updated_at_column, telle que livrée (forme `$$ LANGUAGE ...;` hors du motif de readFunctionSql). */
@@ -32,6 +33,8 @@ const MEDIA_B = "b0000000-0000-0000-0000-00000000000b";
 
 let db: PGlite;
 let channels: string[];
+/** Thèmes présents juste après la double application des migrations, avant tout nettoyage. */
+let themesAfterMigration: number;
 
 beforeAll(async () => {
   db = await PGlite.create();
@@ -54,13 +57,15 @@ beforeAll(async () => {
   const migration = fs.readFileSync(MIGRATION, "utf8");
   const dateMigration = fs.readFileSync(DATE_MIGRATION, "utf8");
   const mediaMigration = fs.readFileSync(MEDIA_MIGRATION, "utf8");
+  const themesMigration = fs.readFileSync(THEMES_MIGRATION, "utf8");
   for (let i = 0; i < 2; i++) {
     await db.exec(migration);
     await db.exec(dateMigration);
     await db.exec(mediaMigration);
+    await db.exec(themesMigration);
   }
   await db.exec(`
-    GRANT ALL ON public.social_channels, public.social_content_groups, public.social_posts TO anon, authenticated;
+    GRANT ALL ON public.social_channels, public.social_content_groups, public.social_posts, public.social_themes TO anon, authenticated;
     GRANT SELECT ON public.media TO authenticated;
     INSERT INTO auth.users VALUES
       ('${ADMIN}', 'admin@exemple.fr'), ('${EMMA}', 'emmanuelle@exemple.fr'), ('${OTHER}', 'autre@exemple.fr');
@@ -69,11 +74,12 @@ beforeAll(async () => {
     INSERT INTO public.media (id, file_name) VALUES ('${MEDIA_A}', 'a.png'), ('${MEDIA_B}', 'b.png');
   `);
   channels = (await db.query<{ id: string }>("SELECT id FROM social_channels ORDER BY sort_order")).rows.map((r) => r.id);
+  themesAfterMigration = (await db.query<{ n: number }>("SELECT count(*)::int AS n FROM social_themes")).rows[0].n;
 }, 60_000);
 afterAll(async () => { await db?.close(); });
 
 beforeEach(async () => {
-  await db.exec("RESET ROLE; DELETE FROM social_content_groups;");
+  await db.exec("RESET ROLE; DELETE FROM social_content_groups; DELETE FROM social_themes;");
 });
 
 async function actAs(uid: string | null) {
@@ -84,9 +90,15 @@ async function actAs(uid: string | null) {
 
 type PostInput = { channel_id: string; text: string; scheduled_at: string | null; media_id?: string | null };
 
-async function save(groupId: string, posts: PostInput[], opts: { format?: string; sync?: boolean } = {}) {
-  await db.query("SELECT public.save_social_content_group($1, $2, $3, $4::jsonb)", [
-    groupId, opts.format ?? "post", opts.sync ?? true, JSON.stringify(posts),
+async function save(groupId: string, posts: PostInput[], opts: { format?: string; sync?: boolean; themeId?: string | null } = {}) {
+  if (opts.themeId === undefined) {
+    await db.query("SELECT public.save_social_content_group($1, $2, $3, $4::jsonb)", [
+      groupId, opts.format ?? "post", opts.sync ?? true, JSON.stringify(posts),
+    ]);
+    return;
+  }
+  await db.query("SELECT public.save_social_content_group($1, $2, $3, $4::jsonb, $5)", [
+    groupId, opts.format ?? "post", opts.sync ?? true, JSON.stringify(posts), opts.themeId,
   ]);
 }
 
@@ -339,6 +351,124 @@ describe("Visuel des déclinaisons", () => {
     await db.query("DELETE FROM public.media WHERE id = $1", [MEDIA_B]);
     expect(Object.values(await media(GROUP))).toEqual([null, null, null]);
     await db.query("INSERT INTO public.media (id, file_name) VALUES ($1, 'b.png')", [MEDIA_B]);
+  });
+});
+
+describe("Thèmes", () => {
+  const THEME_A = "1a000000-0000-0000-0000-00000000001a";
+  const THEME_B = "1b000000-0000-0000-0000-00000000001b";
+  const GROUPS = ["d1000000-0000-0000-0000-0000000000d1", "d2000000-0000-0000-0000-0000000000d2", "d3000000-0000-0000-0000-0000000000d3"];
+  const insertTheme = (id: string, name: string, color = "#3b82f6") =>
+    db.query("INSERT INTO social_themes (id, name, color) VALUES ($1, $2, $3)", [id, name, color]);
+  const themeOf = async (groupId: string) =>
+    (await db.query<{ theme_id: string | null }>("SELECT theme_id FROM social_content_groups WHERE id = $1", [groupId])).rows[0]?.theme_id;
+
+  it("1.4-SQL-002 : aucun thème après deux rejeux de la migration", () => {
+    expect(themesAfterMigration).toBe(0);
+  });
+
+  it("refuse un nom en double, insensible à la casse et aux espaces", async () => {
+    await actAs(EMMA);
+    await insertTheme(THEME_A, "IA");
+    await expect(insertTheme(THEME_B, " ia ")).rejects.toThrow(/duplicate key|social_themes_name_key/);
+    await db.exec("RESET ROLE");
+    expect((await db.query("SELECT * FROM social_themes")).rows).toHaveLength(1);
+  });
+
+  it("refuse un nom fait uniquement de blancs (espace, tabulation, retour ligne, espace insécable)", async () => {
+    await actAs(EMMA);
+    for (const blank of ["", "   ", "\t", " \t\n ", "\u00a0", " \u00a0\t", "\u202f\u3000"]) {
+      await expect(insertTheme(THEME_A, blank)).rejects.toThrow(/social_themes_name_not_blank/);
+    }
+    await db.exec("RESET ROLE");
+    expect((await db.query("SELECT * FROM social_themes")).rows).toHaveLength(0);
+  });
+
+  it("l'unicité ignore aussi les blancs Unicode de bord", async () => {
+    await actAs(EMMA);
+    await insertTheme(THEME_A, "IA");
+    await expect(insertTheme(THEME_B, "\u00a0ia\t")).rejects.toThrow(/duplicate key|social_themes_name_key/);
+    await insertTheme(THEME_B, "I A");
+    await db.exec("RESET ROLE");
+    expect((await db.query("SELECT * FROM social_themes")).rows).toHaveLength(2);
+  });
+
+  it("refuse une couleur hors #rrggbb", async () => {
+    await actAs(EMMA);
+    await expect(insertTheme(THEME_A, "IA", "#FFF")).rejects.toThrow(/check constraint/);
+    await expect(insertTheme(THEME_A, "IA", "#3B82F6")).rejects.toThrow(/check constraint/);
+    await expect(insertTheme(THEME_A, "IA", "bleu")).rejects.toThrow(/check constraint/);
+  });
+
+  it("enregistre le thème du contenu par la RPC, le change et le retire", async () => {
+    await actAs(EMMA);
+    await insertTheme(THEME_A, "IA");
+    await insertTheme(THEME_B, "Facilitation", "#22c55e");
+    await save(GROUP, three("Texte"), { themeId: THEME_A });
+    expect(await themeOf(GROUP)).toBe(THEME_A);
+    await save(GROUP, three("Texte"), { themeId: THEME_B });
+    expect(await themeOf(GROUP)).toBe(THEME_B);
+    await save(GROUP, three("Texte"), { themeId: null });
+    expect(await themeOf(GROUP)).toBeNull();
+  });
+
+  it("ramène à null un thème inconnu, sans erreur", async () => {
+    await actAs(EMMA);
+    await save(GROUP, three("Texte"), { themeId: "99999999-9999-9999-9999-999999999999" });
+    expect(await themeOf(GROUP)).toBeNull();
+    expect(await posts(GROUP)).toHaveLength(3);
+  });
+
+  it("1.4-SQL-001 : supprimer un thème laisse ses contenus intacts, sans thème", async () => {
+    await actAs(EMMA);
+    await insertTheme(THEME_A, "IA");
+    for (const id of GROUPS) await save(id, three(`Contenu ${id}`), { themeId: THEME_A });
+    await db.query("DELETE FROM social_themes WHERE id = $1", [THEME_A]);
+    for (const id of GROUPS) {
+      expect(await themeOf(id)).toBeNull();
+      expect((await posts(id)).map((r) => r.text)).toEqual([`Contenu ${id}`, `Contenu ${id}`, `Contenu ${id}`]);
+    }
+  });
+
+  it("un compte du module, hors Romain, crée, renomme, recolore et supprime un thème", async () => {
+    await actAs(EMMA);
+    await insertTheme(THEME_A, "IA");
+    expect((await db.query("UPDATE social_themes SET name = 'IA appliquée', color = '#ef4444' WHERE id = $1", [THEME_A])).affectedRows).toBe(1);
+    expect((await db.query<{ name: string; color: string }>("SELECT name, color FROM social_themes")).rows)
+      .toEqual([{ name: "IA appliquée", color: "#ef4444" }]);
+    expect((await db.query("DELETE FROM social_themes WHERE id = $1", [THEME_A])).affectedRows).toBe(1);
+  });
+
+  it("un compte sans supertilt_fr ne lit, ne crée, ne modifie ni ne supprime aucun thème", async () => {
+    await actAs(EMMA);
+    await insertTheme(THEME_A, "IA");
+    await actAs(OTHER);
+    expect((await db.query("SELECT * FROM social_themes")).rows).toHaveLength(0);
+    await expect(insertTheme(THEME_B, "Intrus")).rejects.toThrow(/row-level security/);
+    expect((await db.query("UPDATE social_themes SET name = 'Piraté'")).affectedRows).toBe(0);
+    expect((await db.query("DELETE FROM social_themes")).affectedRows).toBe(0);
+    await db.exec("RESET ROLE");
+    expect((await db.query<{ name: string }>("SELECT name FROM social_themes")).rows).toEqual([{ name: "IA" }]);
+  });
+
+  it("anon ne lit ni n'écrit aucun thème", async () => {
+    await actAs(EMMA);
+    await insertTheme(THEME_A, "IA");
+    await actAs(null);
+    expect((await db.query("SELECT * FROM social_themes")).rows).toHaveLength(0);
+    await expect(insertTheme(THEME_B, "Intrus")).rejects.toThrow(/row-level security/);
+    expect((await db.query("UPDATE social_themes SET name = 'Piraté'")).affectedRows).toBe(0);
+    expect((await db.query("DELETE FROM social_themes")).affectedRows).toBe(0);
+    await db.exec("RESET ROLE");
+    expect((await db.query("SELECT * FROM social_themes")).rows).toHaveLength(1);
+  });
+
+  it("un admin sans ligne de droit gère les thèmes", async () => {
+    await actAs(ADMIN);
+    await insertTheme(THEME_A, "IA");
+    expect((await db.query("UPDATE social_themes SET color = '#8b5cf6' WHERE id = $1", [THEME_A])).affectedRows).toBe(1);
+    expect((await db.query("SELECT * FROM social_themes")).rows).toHaveLength(1);
+    expect((await db.query("DELETE FROM social_themes WHERE id = $1", [THEME_A])).affectedRows).toBe(1);
   });
 });
 

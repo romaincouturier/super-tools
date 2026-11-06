@@ -3,14 +3,19 @@ import {
   buildGroupPosts,
   buildMonthGrid,
   buildWeekGrid,
+  applySocialFilters,
+  emptySocialFilters,
+  filterCards,
   groupDisplayStatus,
   moveKeepingTime,
   parisDayKey,
   parisLocalToUtcIso,
   placeGroups,
   utcIsoToParisLocal,
+  visibleChannelIdsFor,
   withGroupDate,
   type SocialContentGroup,
+  type SocialFilters,
   type SocialPost,
   type SocialPublicationStatus,
 } from "./socialContents";
@@ -79,7 +84,7 @@ const post = (channel_id: string, publication_status: SocialPublicationStatus, s
   id: `${group_id}-${channel_id}`, group_id, channel_id, text: "t", scheduled_at, publication_status, media_id: "m",
 });
 const group = (id: string, posts: SocialPost[]): SocialContentGroup => ({
-  id, format: "post", sync: true, created_by: null, created_at: "", updated_at: "", posts,
+  id, format: "post", sync: true, theme_id: null, created_by: null, created_at: "", updated_at: "", posts,
 });
 
 describe("groupDisplayStatus", () => {
@@ -236,5 +241,98 @@ describe("withGroupDate", () => {
       ["published", "2026-11-03T17:00:00.000Z"],
       ["scheduled", "2026-11-12T08:00:00.000Z"],
     ]);
+  });
+});
+
+describe("filtres", () => {
+  const channels = [{ id: "li" }, { id: "in" }];
+  const themed = (id: string, theme_id: string | null, posts: SocialPost[]) => ({ ...group(id, posts), theme_id });
+  const groups = [
+    themed("a-prog", "A", [post("li", "scheduled", "2026-11-12T08:00:00.000Z", "a-prog")]),
+    themed("a-brou", "A", [post("li", "unscheduled", null, "a-brou")]),
+    themed("b-prog", "B", [post("in", "scheduled", "2026-11-13T08:00:00.000Z", "b-prog")]),
+    themed("c-prog", "C", [post("li", "scheduled", "2026-11-14T08:00:00.000Z", "c-prog")]),
+    themed("sans", null, [post("li", "scheduled", "2026-11-15T08:00:00.000Z", "sans")]),
+    // LinkedIn publié, Instagram programmé : statut affiché Programmé, Publié si on ne garde que LinkedIn.
+    themed("mixte", "B", [
+      post("li", "published", "2026-11-16T08:00:00.000Z", "mixte"),
+      post("in", "scheduled", "2026-11-16T09:00:00.000Z", "mixte"),
+    ]),
+  ];
+  const filters = (patch: Partial<SocialFilters>): SocialFilters => ({ ...emptySocialFilters(), ...patch });
+  /** Ce que la page affiche : placement sur les réseaux visibles, puis thème et statut. */
+  const shown = (f: SocialFilters) => {
+    const { undated, byDay } = placeGroups(groups, visibleChannelIdsFor(f, channels));
+    return filterCards([...undated, ...[...byDay.values()].flat()], f).map((c) => c.group.id).sort();
+  };
+
+  it("1.4-UNIT-001 : aucune pastille, tous les contenus", () => {
+    expect(shown(emptySocialFilters())).toEqual(["a-brou", "a-prog", "b-prog", "c-prog", "mixte", "sans"]);
+  });
+
+  it("1.4-UNIT-001 : OU dans une famille, contenus du thème A ou du thème B", () => {
+    expect(shown(filters({ themeIds: new Set(["A", "B"]) }))).toEqual(["a-brou", "a-prog", "b-prog", "mixte"]);
+  });
+
+  it("1.4-UNIT-001 : un contenu sans thème est masqué dès qu'une pastille de thème est active", () => {
+    expect(shown(filters({ themeIds: new Set(["C"]) }))).toEqual(["c-prog"]);
+  });
+
+  it("1.4-UNIT-002 : ET entre familles, thème A et Programmé", () => {
+    expect(shown(filters({ themeIds: new Set(["A"]), statuses: new Set(["scheduled"]) }))).toEqual(["a-prog"]);
+  });
+
+  it("1.4-UNIT-002 : réseau LinkedIn, cartes réduites aux déclinaisons LinkedIn, contenus sans LinkedIn masqués", () => {
+    const f = filters({ channelIds: new Set(["li"]) });
+    expect(shown(f)).toEqual(["a-brou", "a-prog", "c-prog", "mixte", "sans"]);
+    const mixte = [...placeGroups(groups, visibleChannelIdsFor(f, channels)).byDay.values()].flat().find((c) => c.group.id === "mixte");
+    expect(mixte?.posts.map((p) => p.channel_id)).toEqual(["li"]);
+    expect(mixte?.status).toBe("published");
+  });
+
+  it("1.4-UNIT-002 : statut mixte, Publié + LinkedIn affiche la carte, Publié seul la masque", () => {
+    expect(shown(filters({ channelIds: new Set(["li"]), statuses: new Set(["published"]) }))).toEqual(["mixte"]);
+    expect(shown(filters({ statuses: new Set(["published"]) }))).toEqual([]);
+    expect(shown(filters({ statuses: new Set(["published", "scheduled"]) }))).toEqual(["a-prog", "b-prog", "c-prog", "mixte", "sans"]);
+  });
+
+  it("famille Réseau vide : tous les canaux sont visibles", () => {
+    expect(visibleChannelIdsFor(emptySocialFilters(), channels)).toEqual(new Set(["li", "in"]));
+    expect(visibleChannelIdsFor(filters({ channelIds: new Set(["in"]) }), channels)).toEqual(new Set(["in"]));
+  });
+});
+
+describe("applySocialFilters", () => {
+  const channels = [{ id: "li", text_limit: null }, { id: "in", text_limit: null }];
+  const themed = (id: string, theme_id: string | null, posts: SocialPost[]) => ({ ...group(id, posts), theme_id });
+  const groups = [
+    themed("a", "A", [post("li", "scheduled", "2026-11-12T08:00:00.000Z", "a")]),
+    themed("b", "B", [post("in", "scheduled", "2026-11-13T08:00:00.000Z", "b")]),
+    themed("brouillon", "A", [post("li", "unscheduled", null, "brouillon")]),
+    themed("publie", "A", [post("li", "published", "2026-11-14T08:00:00.000Z", "publie")]),
+  ];
+  const ids = (r: ReturnType<typeof applySocialFilters>) =>
+    [...r.undated, ...[...r.byDay.values()].flat()].map((c) => c.group.id).sort();
+  const themes = new Set(["A", "B"]);
+
+  it("filtre grille et non planifiés, et retire les jours vidés", () => {
+    const r = applySocialFilters(groups, { ...emptySocialFilters(), statuses: new Set(["scheduled"]) }, channels, themes);
+    expect(r.undated).toEqual([]);
+    expect([...r.byDay.keys()].sort()).toEqual(["2026-11-12", "2026-11-13"]);
+    expect(ids(r)).toEqual(["a", "b"]);
+  });
+
+  it("un thème supprimé encore sélectionné ne filtre plus", () => {
+    const f = { ...emptySocialFilters(), themeIds: new Set(["disparu"]) };
+    expect(ids(applySocialFilters(groups, f, channels, themes))).toEqual(["a", "b", "brouillon", "publie"]);
+    const mixed = { ...emptySocialFilters(), themeIds: new Set(["disparu", "B"]) };
+    expect(ids(applySocialFilters(groups, mixed, channels, themes))).toEqual(["b"]);
+  });
+
+  it("un canal disparu encore sélectionné ne filtre plus", () => {
+    const f = { ...emptySocialFilters(), channelIds: new Set(["fa"]) };
+    expect(ids(applySocialFilters(groups, f, channels, themes))).toEqual(["a", "b", "brouillon", "publie"]);
+    const mixed = { ...emptySocialFilters(), channelIds: new Set(["fa", "in"]) };
+    expect(ids(applySocialFilters(groups, mixed, channels, themes))).toEqual(["b"]);
   });
 });

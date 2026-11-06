@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { DndContext, type DragEndEvent } from "@dnd-kit/core";
-import { Plus, Share2 } from "lucide-react";
+import { Plus, Settings, Share2 } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
-import ChannelFilterBar from "@/components/social/ChannelFilterBar";
 import SocialCalendar, { DAY_DROP_PREFIX, type CalendarView } from "@/components/social/SocialCalendar";
 import SocialComposerDialog from "@/components/social/SocialComposerDialog";
+import SocialFilterBar from "@/components/social/SocialFilterBar";
+import SocialSettingsDialog from "@/components/social/SocialSettingsDialog";
 import UndatedColumn from "@/components/social/UndatedColumn";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -16,19 +17,22 @@ import {
   useSetSocialGroupDate,
   useSocialChannels,
   useSocialGroupsInRange,
+  useSocialThemes,
   useUndatedSocialGroups,
 } from "@/hooks/useSocialContents";
 import { toastError } from "@/lib/toastError";
 import {
   addDays,
   addMonths,
+  applySocialFilters,
   buildMonthGrid,
   buildWeekGrid,
+  emptySocialFilters,
   moveKeepingTime,
   parisDayKey,
   parisLocalToUtcIso,
-  placeGroups,
   type CalendarCard,
+  type SocialFilters,
 } from "@/services/socialContents";
 
 const keyDate = (key: string) => new Date(`${key}T12:00:00Z`);
@@ -43,7 +47,8 @@ export default function SocialContentsPage() {
   const todayKey = parisDayKey(new Date().toISOString());
   const [view, setView] = useState<CalendarView>("month");
   const [anchor, setAnchor] = useState(todayKey);
-  const [hiddenChannelIds, setHiddenChannelIds] = useState<Set<string>>(new Set());
+  const [filters, setFilters] = useState<SocialFilters>(emptySocialFilters);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [composer, setComposer] = useState<{ open: boolean; groupId: string | null }>({ open: false, groupId: null });
 
   const weeks = useMemo(() => (view === "month" ? buildMonthGrid(anchor) : [buildWeekGrid(anchor)]), [view, anchor]);
@@ -55,30 +60,24 @@ export default function SocialContentsPage() {
   const channelsQuery = useSocialChannels();
   const datedQuery = useSocialGroupsInRange(fromIso, toIso);
   const undatedQuery = useUndatedSocialGroups();
+  const { data: themes = [] } = useSocialThemes();
   const { data: channels = [] } = channelsQuery;
   const { data: dated = [] } = datedQuery;
   const { data: undatedGroups = [] } = undatedQuery;
   const setDate = useSetSocialGroupDate();
 
   const channelsById = useMemo(() => new Map(channels.map((c) => [c.id, c])), [channels]);
-  const visibleChannelIds = useMemo(
-    () => new Set(channels.filter((c) => !hiddenChannelIds.has(c.id)).map((c) => c.id)),
-    [channels, hiddenChannelIds],
-  );
+  const themesById = useMemo(() => new Map(themes.map((t) => [t.id, t])), [themes]);
   const { undated, byDay } = useMemo(
-    () => placeGroups([...dated, ...undatedGroups], visibleChannelIds, { fromIso, toIso }, channelsById),
-    [dated, undatedGroups, visibleChannelIds, fromIso, toIso, channelsById],
+    () => applySocialFilters(
+      [...dated, ...undatedGroups], filters, channels, new Set(themesById.keys()), { fromIso, toIso }, channelsById,
+    ),
+    [dated, undatedGroups, filters, themesById, channels, fromIso, toIso, channelsById],
   );
 
   const title = view === "month"
     ? monthTitle(anchor)
     : `Semaine du ${shortDay(firstDay)} au ${shortDay(lastDay)} ${lastDay.slice(0, 4)}`;
-
-  const toggleChannel = (id: string) => setHiddenChannelIds((prev) => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
 
   const openComposer = (groupId: string | null) => setComposer({ open: true, groupId });
 
@@ -107,7 +106,12 @@ export default function SocialContentsPage() {
           icon={Share2}
           title="Contenus sociaux"
           subtitle="Rédigez un contenu une fois et déclinez-le sur plusieurs canaux."
-          actions={<Button onClick={() => openComposer(null)}><Plus className="h-4 w-4 mr-1" /> Nouveau contenu</Button>}
+          actions={(
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => setSettingsOpen(true)}><Settings className="h-4 w-4 mr-1" /> Réglages</Button>
+              <Button onClick={() => openComposer(null)}><Plus className="h-4 w-4 mr-1" /> Nouveau contenu</Button>
+            </div>
+          )}
         />
         <Tabs value="calendar">
           <TabsList>
@@ -116,7 +120,7 @@ export default function SocialContentsPage() {
             <TabsTrigger value="previews" disabled>Aperçus</TabsTrigger>
           </TabsList>
         </Tabs>
-        <ChannelFilterBar channels={channels} hiddenChannelIds={hiddenChannelIds} onToggle={toggleChannel} />
+        <SocialFilterBar themes={themes} channels={channels} filters={filters} onChange={setFilters} />
         {failed ? (
           <div className="flex flex-col items-center gap-3 py-10 text-sm text-muted-foreground" role="alert">
             <p>Impossible de charger le calendrier.</p>
@@ -127,7 +131,7 @@ export default function SocialContentsPage() {
         ) : (
           <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <div className="flex flex-col lg:flex-row gap-4">
-              <UndatedColumn cards={undated} channelsById={channelsById} onOpen={openComposer} />
+              <UndatedColumn cards={undated} channelsById={channelsById} themesById={themesById} onOpen={openComposer} />
               <SocialCalendar
                 view={view}
                 onViewChange={setView}
@@ -136,6 +140,7 @@ export default function SocialContentsPage() {
                 todayKey={todayKey}
                 cardsByDay={byDay}
                 channelsById={channelsById}
+                themesById={themesById}
                 onPrevious={() => navigate(-1)}
                 onNext={() => navigate(1)}
                 onToday={() => setAnchor(todayKey)}
@@ -150,6 +155,7 @@ export default function SocialContentsPage() {
         onOpenChange={(open) => setComposer((c) => ({ ...c, open }))}
         groupId={composer.groupId}
       />
+      <SocialSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </ModuleLayout>
   );
 }

@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMediaLibrary, type MediaItem } from "@/hooks/useMedia";
 import { useAutoSaveForm, type AutoSaveFormValues } from "@/hooks/useAutoSaveForm";
 import { useConfirm } from "@/hooks/useConfirm";
-import { useSaveSocialGroup, useSocialChannels, useSocialGroup } from "@/hooks/useSocialContents";
+import { useSaveSocialGroup, useSocialChannels, useSocialGroup, useSocialThemes } from "@/hooks/useSocialContents";
 import { toastError } from "@/lib/toastError";
 import { formatAlert } from "../../../supabase/functions/_shared/social-post-alerts";
 import {
@@ -36,6 +36,7 @@ interface ComposerValues extends AutoSaveFormValues {
   channelIds: string[];
   format: SocialFormat;
   sync: boolean;
+  themeId: string | null;
   commonText: string;
   texts: Record<string, string>;
   commonMediaId: string | null;
@@ -80,6 +81,7 @@ function VisualField({ label, mediaId, mediaById, onPick, onRemove }: {
 }
 
 const COMMON_VISUAL = "__common__";
+const NO_THEME = "__none__";
 
 interface SocialComposerDialogProps {
   open: boolean;
@@ -100,11 +102,16 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
   const mediaLibrary = mediaQuery.data;
   const mediaById = useMemo(() => new Map((mediaLibrary ?? []).map((m) => [m.id, m])), [mediaLibrary]);
   const channelsById = useMemo(() => new Map(channels.map((c) => [c.id, c])), [channels]);
+  const themesQuery = useSocialThemes();
+  const themes = useMemo(() => themesQuery.data ?? [], [themesQuery.data]);
+  /** Tant que les thèmes ne sont pas lus, « Sans thème » serait faux pour un contenu qui en a un. */
+  const themesReady = !themesQuery.isPending && !themesQuery.isError;
 
   const [currentId, setCurrentId] = useState<string>("");
   const [channelIds, setChannelIds] = useState<string[]>([]);
   const [format, setFormat] = useState<SocialFormat>("post");
   const [sync, setSync] = useState(true);
+  const [themeId, setThemeId] = useState<string | null>(null);
   const [commonText, setCommonText] = useState("");
   const [texts, setTexts] = useState<Record<string, string>>({});
   const [commonMediaId, setCommonMediaId] = useState<string | null>(null);
@@ -123,6 +130,7 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     groupId: currentId,
     format: v.format,
     sync: v.sync,
+    themeId: v.themeId,
     channelIds: v.channelIds,
     commonText: v.commonText,
     texts: v.texts,
@@ -156,8 +164,8 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
   }, [currentId, runSave]);
 
   const formValues = useMemo<ComposerValues>(
-    () => ({ channelIds, format, sync, commonText, texts, commonMediaId, mediaIds, date, time }),
-    [channelIds, format, sync, commonText, texts, commonMediaId, mediaIds, date, time],
+    () => ({ channelIds, format, sync, themeId, commonText, texts, commonMediaId, mediaIds, date, time }),
+    [channelIds, format, sync, themeId, commonText, texts, commonMediaId, mediaIds, date, time],
   );
 
   const { autoSaving, lastSaved, resetTracking, flushAndGetPending } = useAutoSaveForm({
@@ -194,6 +202,7 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     setChannelIds(ids);
     setFormat(group?.format ?? "post");
     setSync(group?.sync ?? true);
+    setThemeId(group?.theme_id ?? null);
     setCommonText(firstText);
     setTexts(Object.fromEntries(posts.map((p) => [p.channel_id, p.text])));
     setCommonMediaId(reference?.media_id ?? null);
@@ -353,6 +362,29 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
                   <SelectContent>
                     {Object.entries(SOCIAL_FORMAT_LABELS).map(([k, l]) => (
                       <SelectItem key={k} value={k}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Thème</Label>
+                <Select
+                  value={!themesReady ? "" : themeId && themes.some((t) => t.id === themeId) ? themeId : NO_THEME}
+                  onValueChange={(v) => setThemeId(v === NO_THEME ? null : v)}
+                  disabled={!themesReady}
+                >
+                  <SelectTrigger aria-label="Thème">
+                    <SelectValue placeholder={themesQuery.isError ? "Thèmes indisponibles" : "Chargement des thèmes..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_THEME}>Sans thème</SelectItem>
+                    {themes.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        <span className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: t.color }} aria-hidden="true" />
+                          {t.name}
+                        </span>
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

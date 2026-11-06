@@ -195,6 +195,7 @@ const TABLES_TO_BACKUP = [
   "social_channels",
   "social_content_groups",
   "social_posts",
+  "social_themes",
   "sponsor_cold_evaluations",
   "stakeholder_appreciations",
   "subscriptions",

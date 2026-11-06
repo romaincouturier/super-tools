@@ -3,7 +3,14 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import SocialComposerDialog from "./SocialComposerDialog";
 import type { SocialChannel, SocialContentGroup, SocialPost } from "@/services/socialContents";
 
-const h = vi.hoisted(() => ({ mutateAsync: vi.fn(), demo: false, group: null as unknown }));
+const h = vi.hoisted(() => ({
+  mutateAsync: vi.fn(), demo: false, group: null as unknown, themesPending: false, themesError: false,
+}));
+
+// Radix Select en jsdom : défilement et capture de pointeur absents.
+Element.prototype.scrollIntoView ??= () => {};
+Element.prototype.hasPointerCapture ??= () => false;
+Element.prototype.releasePointerCapture ??= () => {};
 
 const channel = (id: string, name: string, abbreviation: string, sort_order: number): SocialChannel => ({
   id, slug: id, name, abbreviation, text_limit: null, sort_order, is_active: true,
@@ -16,6 +23,13 @@ vi.mock("@/hooks/useSocialContents", () => ({
   }),
   useSocialGroup: () => ({ data: h.group, isFetching: false, isPending: false, isError: false }),
   useSaveSocialGroup: () => ({ mutateAsync: h.mutateAsync, isPending: false }),
+  useSocialThemes: () => ({
+    data: h.themesPending || h.themesError
+      ? undefined
+      : [{ id: "t-ia", name: "IA appliquée", color: "#3b82f6" }, { id: "t-fac", name: "Facilitation", color: "#22c55e" }],
+    isPending: h.themesPending,
+    isError: h.themesError,
+  }),
 }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock("@/hooks/useMedia", () => ({
@@ -35,7 +49,7 @@ vi.mock("@/components/media/MediaGrid", () => ({
 vi.mock("@/contexts/DemoModeContext", () => ({ useDemoMode: () => ({ isDemoMode: h.demo }) }));
 
 const existing = (sync: boolean, posts: Partial<SocialPost>[]): SocialContentGroup => ({
-  id: "g1", format: "post", sync, created_by: null, created_at: "", updated_at: "",
+  id: "g1", format: "post", sync, theme_id: null, created_by: null, created_at: "", updated_at: "",
   posts: posts.map((p, i) => ({
     id: `p${i}`, group_id: "g1", channel_id: "li", text: "Texte", scheduled_at: null,
     publication_status: "unscheduled", media_id: null, ...p,
@@ -86,6 +100,86 @@ describe("SocialComposerDialog : sauvegarde continue", () => {
 
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
     expect(h.mutateAsync.mock.calls.at(-1)?.[0]).toMatchObject({ channelIds: ["li"], scheduledAt: "2026-01-15T08:00:00.000Z" });
+  });
+});
+
+describe("SocialComposerDialog : thème", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    h.demo = false;
+    h.group = null;
+    h.themesPending = false;
+    h.themesError = false;
+    h.mutateAsync.mockResolvedValue("id");
+  });
+
+  const chooseTheme = (name: string) => {
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Thème" }), { key: "Enter" });
+    fireEvent.keyDown(screen.getByRole("option", { name }), { key: "Enter" });
+  };
+
+  it("propose « Sans thème » par défaut et l'enregistre à null", async () => {
+    const onOpenChange = vi.fn();
+    render(<SocialComposerDialog open onOpenChange={onOpenChange} groupId={null} />);
+    expect(screen.getByRole("combobox", { name: "Thème" })).toHaveTextContent("Sans thème");
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(h.mutateAsync.mock.calls.at(-1)?.[0]).toMatchObject({ themeId: null });
+  });
+
+  it("envoie le thème choisi avec la sauvegarde, puis le retire", async () => {
+    const onOpenChange = vi.fn();
+    render(<SocialComposerDialog open onOpenChange={onOpenChange} groupId={null} />);
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    chooseTheme("IA appliquée");
+    expect(screen.getByRole("combobox", { name: "Thème" })).toHaveTextContent("IA appliquée");
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(h.mutateAsync.mock.calls.at(-1)?.[0]).toMatchObject({ channelIds: ["li"], themeId: "t-ia" });
+  });
+
+  it("n'affiche pas « Sans thème » tant que les thèmes chargent, et garde le thème du contenu", async () => {
+    h.themesPending = true;
+    h.group = { ...existing(true, [{ channel_id: "li" }]), theme_id: "t-fac" };
+    render(<SocialComposerDialog open onOpenChange={vi.fn()} groupId="g1" />);
+    const select = screen.getByRole("combobox", { name: "Thème" });
+    expect(select).toBeDisabled();
+    expect(select).toHaveTextContent("Chargement des thèmes...");
+    expect(select).not.toHaveTextContent("Sans thème");
+    fireEvent.change(screen.getByLabelText("Texte"), { target: { value: "Modifié" } });
+    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    await waitFor(() => expect(h.mutateAsync).toHaveBeenCalled());
+    expect(h.mutateAsync.mock.calls.at(-1)?.[0]).toMatchObject({ themeId: "t-fac" });
+  });
+
+  it("signale des thèmes indisponibles en cas d'erreur, sans « Sans thème »", () => {
+    h.themesError = true;
+    h.group = { ...existing(true, [{ channel_id: "li" }]), theme_id: "t-fac" };
+    render(<SocialComposerDialog open onOpenChange={vi.fn()} groupId="g1" />);
+    const select = screen.getByRole("combobox", { name: "Thème" });
+    expect(select).toBeDisabled();
+    expect(select).toHaveTextContent("Thèmes indisponibles");
+  });
+
+  it("affiche « Sans thème » pour un thème inconnu et envoie son id, que la RPC ramène à null", async () => {
+    h.group = { ...existing(true, [{ channel_id: "li" }]), theme_id: "t-supprime" };
+    render(<SocialComposerDialog open onOpenChange={vi.fn()} groupId="g1" />);
+    expect(screen.getByRole("combobox", { name: "Thème" })).toHaveTextContent("Sans thème");
+    fireEvent.change(screen.getByLabelText("Texte"), { target: { value: "Modifié" } });
+    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    await waitFor(() => expect(h.mutateAsync).toHaveBeenCalled());
+    expect(h.mutateAsync.mock.calls.at(-1)?.[0]).toMatchObject({ groupId: "g1", themeId: "t-supprime" });
+  });
+
+  it("reprend le thème d'un contenu existant", async () => {
+    h.group = { ...existing(true, [{ channel_id: "li" }]), theme_id: "t-fac" };
+    render(<SocialComposerDialog open onOpenChange={vi.fn()} groupId="g1" />);
+    expect(screen.getByRole("combobox", { name: "Thème" })).toHaveTextContent("Facilitation");
+    chooseTheme("Sans thème");
+    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    await waitFor(() => expect(h.mutateAsync).toHaveBeenCalled());
+    expect(h.mutateAsync.mock.calls.at(-1)?.[0]).toMatchObject({ groupId: "g1", themeId: null });
   });
 });
 

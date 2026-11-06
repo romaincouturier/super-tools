@@ -38,10 +38,19 @@ export interface SocialPost {
   media_id: string | null;
 }
 
+export interface SocialTheme {
+  id: string;
+  name: string;
+  /** Couleur hexadécimale `#rrggbb`, en minuscules. */
+  color: string;
+}
+
 export interface SocialContentGroup {
   id: string;
   format: SocialFormat;
   sync: boolean;
+  /** Thème éditorial du contenu, null sans thème (ou thème supprimé). */
+  theme_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -53,6 +62,7 @@ export interface SocialGroupDraft {
   groupId: string;
   format: SocialFormat;
   sync: boolean;
+  themeId: string | null;
   channelIds: string[];
   /** Texte commun, utilisé tant que la synchro est active. */
   commonText: string;
@@ -73,7 +83,7 @@ export interface SocialPostInput {
 }
 
 /** Un post par canal coché : texte et visuel communs si synchro, propres sinon. */
-export function buildGroupPosts(draft: Omit<SocialGroupDraft, "groupId" | "format">): SocialPostInput[] {
+export function buildGroupPosts(draft: Omit<SocialGroupDraft, "groupId" | "format" | "themeId">): SocialPostInput[] {
   return [...new Set(draft.channelIds)].map((channel_id) => ({
     channel_id,
     text: draft.sync ? draft.commonText : (draft.texts[channel_id] ?? draft.commonText),
@@ -136,7 +146,7 @@ export function utcIsoToParisLocal(iso: string): { date: string; time: string } 
   return { date: `${get("year")}-${get("month")}-${get("day")}`, time: `${get("hour")}:${get("minute")}` };
 }
 
-const GROUP_SELECT = "id, format, sync, created_by, created_at, updated_at, posts:social_posts(id, group_id, channel_id, text, scheduled_at, publication_status, media_id)";
+const GROUP_SELECT = "id, format, sync, theme_id, created_by, created_at, updated_at, posts:social_posts(id, group_id, channel_id, text, scheduled_at, publication_status, media_id)";
 
 export async function listChannels(): Promise<SocialChannel[]> {
   const { data, error } = await db
@@ -167,9 +177,89 @@ export async function saveGroupWithPosts(draft: SocialGroupDraft): Promise<strin
     p_format: draft.format,
     p_sync: draft.sync,
     p_posts: posts,
+    p_theme_id: draft.themeId,
   });
   if (error) throw error;
   return data as string;
+}
+
+// ── Thèmes ─────────────────────────────────────────────────────
+
+export const THEME_NAME_TAKEN_MESSAGE = "Un thème porte déjà ce nom";
+export const THEME_NAME_EMPTY_MESSAGE = "Le nom du thème est obligatoire";
+
+/** Traduit la violation d'unicité du nom (insensible à la casse) en message clair. */
+function themeError<E extends { code?: string }>(error: E): E | Error {
+  return error.code === "23505" ? new Error(THEME_NAME_TAKEN_MESSAGE) : error;
+}
+
+export async function listThemes(): Promise<SocialTheme[]> {
+  const { data, error } = await db
+    .from("social_themes")
+    .select("id, name, color")
+    .order("name");
+  if (error) throw error;
+  return (data ?? []) as SocialTheme[];
+}
+
+export async function createTheme(input: { name: string; color: string }): Promise<SocialTheme> {
+  const name = input.name.trim();
+  if (!name) throw new Error(THEME_NAME_EMPTY_MESSAGE);
+  const { data, error } = await db
+    .from("social_themes")
+    .insert({ name, color: input.color.toLowerCase() })
+    .select("id, name, color")
+    .single();
+  if (error) throw themeError(error);
+  return data as SocialTheme;
+}
+
+export async function updateTheme(id: string, patch: { name?: string; color?: string }): Promise<void> {
+  const values: { name?: string; color?: string } = {};
+  if (patch.name !== undefined) {
+    values.name = patch.name.trim();
+    if (!values.name) throw new Error(THEME_NAME_EMPTY_MESSAGE);
+  }
+  if (patch.color !== undefined) values.color = patch.color.toLowerCase();
+  const { error } = await db.from("social_themes").update(values).eq("id", id);
+  if (error) throw themeError(error);
+}
+
+export async function deleteTheme(id: string): Promise<void> {
+  const { error } = await db.from("social_themes").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ── Filtres ────────────────────────────────────────────────────
+
+/** Pastilles sélectionnées : ET entre familles, OU dans une famille, famille vide = pas de filtre. */
+export interface SocialFilters {
+  themeIds: Set<string>;
+  channelIds: Set<string>;
+  statuses: Set<SocialPublicationStatus>;
+}
+
+export const emptySocialFilters = (): SocialFilters => ({
+  themeIds: new Set(),
+  channelIds: new Set(),
+  statuses: new Set(),
+});
+
+/** Canaux visibles pour placeGroups : ceux de la famille Réseau, tous si elle est vide. */
+export function visibleChannelIdsFor(filters: SocialFilters, channels: Pick<SocialChannel, "id">[]): Set<string> {
+  return filters.channelIds.size > 0 ? new Set(filters.channelIds) : new Set(channels.map((c) => c.id));
+}
+
+/**
+ * Filtre des cartes déjà réduites aux réseaux visibles par placeGroups : thème
+ * du contenu et statut affiché de la carte. Un contenu sans thème est masqué
+ * dès qu'une pastille de thème est active.
+ */
+export function filterCards(cards: CalendarCard[], filters: Pick<SocialFilters, "themeIds" | "statuses">): CalendarCard[] {
+  return cards.filter((card) => (
+    (filters.themeIds.size === 0 || (card.group.theme_id !== null && filters.themeIds.has(card.group.theme_id)))
+    && (filters.statuses.size === 0 || filters.statuses.has(card.status))
+  ));
 }
 
 // ── Calendrier ─────────────────────────────────────────────────
@@ -313,6 +403,36 @@ export function placeGroups(
   }
   for (const day of byDay.values()) day.sort((a, b) => Date.parse(a.scheduledAt as string) - Date.parse(b.scheduledAt as string));
   return { undated, byDay };
+}
+
+/**
+ * Ce que le calendrier affiche, filtres compris : placement sur les réseaux
+ * visibles, puis thème et statut sur la grille comme sur « Non planifiés ».
+ * Une pastille sélectionnée qui n'existe plus (thème supprimé, canal retiré ou
+ * désactivé) ne filtre plus, faute de pouvoir être désélectionnée. Les jours
+ * vidés par le filtre disparaissent de la grille.
+ */
+export function applySocialFilters(
+  groups: SocialContentGroup[],
+  filters: SocialFilters,
+  channels: Pick<SocialChannel, "id" | "text_limit">[],
+  existingThemeIds: ReadonlySet<string>,
+  range?: { fromIso: string; toIso: string },
+  channelsById: ReadonlyMap<string, Pick<SocialChannel, "text_limit">> = new Map(channels.map((c) => [c.id, c])),
+): { undated: CalendarCard[]; byDay: Map<string, CalendarCard[]> } {
+  const channelIds = new Set(channels.map((c) => c.id));
+  const active: SocialFilters = {
+    themeIds: new Set([...filters.themeIds].filter((id) => existingThemeIds.has(id))),
+    channelIds: new Set([...filters.channelIds].filter((id) => channelIds.has(id))),
+    statuses: filters.statuses,
+  };
+  const placed = placeGroups(groups, visibleChannelIdsFor(active, channels), range, channelsById);
+  const byDay = new Map<string, CalendarCard[]>();
+  for (const [day, cards] of placed.byDay) {
+    const kept = filterCards(cards, active);
+    if (kept.length > 0) byDay.set(day, kept);
+  }
+  return { undated: filterCards(placed.undated, active), byDay };
 }
 
 async function listGroupsByIds(ids: string[]): Promise<SocialContentGroup[]> {

@@ -10,6 +10,7 @@ import {
   type CalendarCard,
   type CalendarDay,
   type SocialChannel,
+  type SocialTheme,
 } from "@/services/socialContents";
 
 export type CalendarView = "month" | "week";
@@ -26,17 +27,19 @@ interface SocialCalendarProps {
   todayKey: string;
   cardsByDay: Map<string, CalendarCard[]>;
   channelsById: Map<string, SocialChannel>;
+  themesById: ReadonlyMap<string, SocialTheme>;
   onPrevious: () => void;
   onNext: () => void;
   onToday: () => void;
   onOpen: (groupId: string) => void;
 }
 
-function DayCell({ day, isToday, cards, channelsById, onOpen, tall }: {
+function DayCell({ day, isToday, cards, channelsById, themesById, onOpen, tall }: {
   day: CalendarDay;
   isToday: boolean;
   cards: CalendarCard[];
   channelsById: Map<string, SocialChannel>;
+  themesById: ReadonlyMap<string, SocialTheme>;
   onOpen: (groupId: string) => void;
   tall: boolean;
 }) {
@@ -63,13 +66,13 @@ function DayCell({ day, isToday, cards, channelsById, onOpen, tall }: {
           {Number(day.key.slice(8, 10))}
         </span>
       </div>
-      {cards.map((card) => <ContentCard key={card.group.id} card={card} channelsById={channelsById} onOpen={onOpen} />)}
+      {cards.map((card) => <ContentCard key={card.group.id} card={card} channelsById={channelsById} themesById={themesById} onOpen={onOpen} />)}
     </div>
   );
 }
 
 export default function SocialCalendar({
-  view, onViewChange, title, weeks, todayKey, cardsByDay, channelsById, onPrevious, onNext, onToday, onOpen,
+  view, onViewChange, title, weeks, todayKey, cardsByDay, channelsById, themesById, onPrevious, onNext, onToday, onOpen,
 }: SocialCalendarProps) {
   return (
     <section className="flex-1 min-w-0 space-y-2" aria-label="Calendrier">
@@ -111,6 +114,7 @@ export default function SocialCalendar({
                   isToday={day.key === todayKey}
                   cards={cardsByDay.get(day.key) ?? []}
                   channelsById={channelsById}
+                  themesById={themesById}
                   onOpen={onOpen}
                   tall={view === "week"}
                 />

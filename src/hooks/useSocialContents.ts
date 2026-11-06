@@ -1,6 +1,10 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import {
+  createTheme,
+  deleteTheme,
   getGroup,
+  listThemes,
+  updateTheme,
   listChannels,
   listGroupsInRange,
   listUndatedGroups,
@@ -15,9 +19,42 @@ export const SOCIAL_CONTENTS_KEY = ["social-contents"];
 const KEY = SOCIAL_CONTENTS_KEY;
 const RANGE_KEY = [...KEY, "range"];
 const UNDATED_KEY = [...KEY, "undated"];
+const THEMES_KEY = ["social-themes"];
 
 export function useSocialChannels() {
   return useQuery({ queryKey: ["social-channels"], queryFn: listChannels, staleTime: 5 * 60 * 1000 });
+}
+
+export function useSocialThemes() {
+  return useQuery({ queryKey: THEMES_KEY, queryFn: listThemes });
+}
+
+export function useCreateSocialTheme() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createTheme,
+    onSuccess: () => qc.invalidateQueries({ queryKey: THEMES_KEY }),
+  });
+}
+
+export function useUpdateSocialTheme() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...patch }: { id: string; name?: string; color?: string }) => updateTheme(id, patch),
+    onSettled: () => qc.invalidateQueries({ queryKey: THEMES_KEY }),
+  });
+}
+
+/** Supprimer un thème remet à null le thème de ses contenus : les contenus sont relus. */
+export function useDeleteSocialTheme() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteTheme,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: THEMES_KEY });
+      qc.invalidateQueries({ queryKey: KEY });
+    },
+  });
 }
 
 export function useSocialGroup(id: string | null) {

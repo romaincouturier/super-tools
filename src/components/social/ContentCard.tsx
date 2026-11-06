@@ -11,6 +11,7 @@ import {
   type ChannelAlerts,
   type SocialChannel,
   type SocialPublicationStatus,
+  type SocialTheme,
 } from "@/services/socialContents";
 
 export const STATUS_DOT_CLASSES: Record<SocialPublicationStatus, string> = {
@@ -22,6 +23,8 @@ export const STATUS_DOT_CLASSES: Record<SocialPublicationStatus, string> = {
 interface ContentCardProps {
   card: CalendarCard;
   channelsById: Map<string, SocialChannel>;
+  /** Thèmes connus : le liseré gauche prend la couleur du thème du contenu, neutre sinon. */
+  themesById?: ReadonlyMap<string, SocialTheme>;
   onOpen: (groupId: string) => void;
 }
 
@@ -52,7 +55,8 @@ export function AlertIndicator({ alerts, channelsById }: { alerts: ChannelAlerts
   );
 }
 
-export default function ContentCard({ card, channelsById, onOpen }: ContentCardProps) {
+export default function ContentCard({ card, channelsById, themesById, onOpen }: ContentCardProps) {
+  const theme = card.group.theme_id ? themesById?.get(card.group.theme_id) : undefined;
   const published = card.status === "published";
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: card.group.id, data: { card }, disabled: published });
   const text = (card.posts.find((p) => p.publication_status === card.status) ?? card.posts[0])?.text.trim() ?? "";
@@ -69,6 +73,8 @@ export default function ContentCard({ card, channelsById, onOpen }: ContentCardP
       role="button"
       tabIndex={0}
       data-testid={`social-card-${card.group.id}`}
+      data-theme={theme?.id}
+      style={theme ? { borderLeftColor: theme.color } : undefined}
       onClick={() => onOpen(card.group.id)}
       onKeyDown={(e) => {
         listeners?.onKeyDown?.(e);
@@ -78,7 +84,7 @@ export default function ContentCard({ card, channelsById, onOpen }: ContentCardP
         }
       }}
       className={cn(
-        "rounded border bg-card px-2 py-1 text-xs shadow-sm hover:bg-accent/50 space-y-1",
+        "rounded border border-l-4 bg-card px-2 py-1 text-xs shadow-sm hover:bg-accent/50 space-y-1",
         published ? "cursor-pointer" : "cursor-grab active:cursor-grabbing",
         isDragging && "opacity-50",
       )}
