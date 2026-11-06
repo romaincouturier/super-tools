@@ -85,7 +85,7 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Cold evaluation eligibility is checked by the shared pure helper both before scheduling and before sending (including reminders and forced calls); excluded rows are cancelled, because catch-up and stale queues must not bypass the deployment cutoff.
 - Learner access emails are chosen server-side by a pure helper from `password_set` only (a missing security row means no password; a past sign-in proves nothing unless it was a password sign-in, recorded by `mark_password_proven`): create-password for accounts without a proven password, `learner_course_access` with a direct course link otherwise, because legacy magic-link accounts must never be told to log in with a password they never created.
 - Bulk access emails queue in `learner_access_jobs` (server-side, requester rights): browser sends blocked the page.
-- Password emails use hashed `password_setup_links` redeemed on click, because native recovery tokens expire too soon.
+- Password emails use hashed `password_setup_links`: native tokens expire too soon.
 - Learner community reads use security-definer enrollment/theme helpers; private (intra) course posts default to course scope, because intra feeds must stay private.
 - LMS course pages require a session; `get_learner_email()` reads only the JWT, to prevent impersonation.
 - CRM opportunity values come from `_shared/opportunity-value.ts`.
