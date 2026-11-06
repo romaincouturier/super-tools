@@ -531,6 +531,154 @@ export type Database = {
           },
         ]
       }
+      author_onboarding_files: {
+        Row: {
+          created_at: string
+          id: string
+          invitation_id: string
+          kind: string
+          mime_type: string
+          original_name: string | null
+          sha256: string | null
+          size_bytes: number
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invitation_id: string
+          kind: string
+          mime_type: string
+          original_name?: string | null
+          sha256?: string | null
+          size_bytes: number
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invitation_id?: string
+          kind?: string
+          mime_type?: string
+          original_name?: string | null
+          sha256?: string | null
+          size_bytes?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_onboarding_files_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "author_onboarding_invitations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      author_onboarding_invitations: {
+        Row: {
+          author_id: string
+          commission_rate: number
+          created_at: string
+          expires_at: string
+          game_id: string
+          id: string
+          invitation_sent_at: string | null
+          invited_by: string | null
+          opened_at: string | null
+          recipient_email: string
+          revoked_at: string | null
+          submitted_at: string | null
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          commission_rate?: number
+          created_at?: string
+          expires_at?: string
+          game_id: string
+          id?: string
+          invitation_sent_at?: string | null
+          invited_by?: string | null
+          opened_at?: string | null
+          recipient_email: string
+          revoked_at?: string | null
+          submitted_at?: string | null
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          commission_rate?: number
+          created_at?: string
+          expires_at?: string
+          game_id?: string
+          id?: string
+          invitation_sent_at?: string | null
+          invited_by?: string | null
+          opened_at?: string | null
+          recipient_email?: string
+          revoked_at?: string | null
+          submitted_at?: string | null
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_onboarding_invitations_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "game_authors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_onboarding_invitations_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      author_onboarding_responses: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          invitation_id: string
+          submitted_at: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          invitation_id: string
+          submitted_at?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          invitation_id?: string
+          submitted_at?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_onboarding_responses_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: true
+            referencedRelation: "author_onboarding_invitations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backup_runs: {
         Row: {
           chunks_done: number
@@ -2670,6 +2818,160 @@ export type Database = {
           },
         ]
       }
+      distribution_contract_counters: {
+        Row: {
+          last_value: number
+          year: number
+        }
+        Insert: {
+          last_value?: number
+          year: number
+        }
+        Update: {
+          last_value?: number
+          year?: number
+        }
+        Relationships: []
+      }
+      distribution_contract_signatures: {
+        Row: {
+          audit_metadata: Json | null
+          author_id: string
+          confirmation_email_sent_at: string | null
+          contrat_reference: string
+          created_at: string
+          email_sent_at: string | null
+          expires_at: string
+          game_id: string
+          game_name: string | null
+          id: string
+          invitation_id: string
+          ip_address: string | null
+          journey_events: Json | null
+          last_reminder_at: string | null
+          otp_attempts: number
+          otp_expires_at: string | null
+          otp_hash: string | null
+          otp_last_sent_at: string | null
+          otp_sent_count: number
+          otp_verified_at: string | null
+          payload: Json
+          pdf_document_id: string | null
+          pdf_hash: string | null
+          pdf_url: string | null
+          proof_file_url: string | null
+          proof_hash: string | null
+          recipient_email: string
+          recipient_name: string | null
+          reminder_count: number
+          signature_data: string | null
+          signed_at: string | null
+          signed_pdf_hash: string | null
+          signed_pdf_url: string | null
+          status: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          audit_metadata?: Json | null
+          author_id: string
+          confirmation_email_sent_at?: string | null
+          contrat_reference: string
+          created_at?: string
+          email_sent_at?: string | null
+          expires_at?: string
+          game_id: string
+          game_name?: string | null
+          id?: string
+          invitation_id: string
+          ip_address?: string | null
+          journey_events?: Json | null
+          last_reminder_at?: string | null
+          otp_attempts?: number
+          otp_expires_at?: string | null
+          otp_hash?: string | null
+          otp_last_sent_at?: string | null
+          otp_sent_count?: number
+          otp_verified_at?: string | null
+          payload?: Json
+          pdf_document_id?: string | null
+          pdf_hash?: string | null
+          pdf_url?: string | null
+          proof_file_url?: string | null
+          proof_hash?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          reminder_count?: number
+          signature_data?: string | null
+          signed_at?: string | null
+          signed_pdf_hash?: string | null
+          signed_pdf_url?: string | null
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          audit_metadata?: Json | null
+          author_id?: string
+          confirmation_email_sent_at?: string | null
+          contrat_reference?: string
+          created_at?: string
+          email_sent_at?: string | null
+          expires_at?: string
+          game_id?: string
+          game_name?: string | null
+          id?: string
+          invitation_id?: string
+          ip_address?: string | null
+          journey_events?: Json | null
+          last_reminder_at?: string | null
+          otp_attempts?: number
+          otp_expires_at?: string | null
+          otp_hash?: string | null
+          otp_last_sent_at?: string | null
+          otp_sent_count?: number
+          otp_verified_at?: string | null
+          payload?: Json
+          pdf_document_id?: string | null
+          pdf_hash?: string | null
+          pdf_url?: string | null
+          proof_file_url?: string | null
+          proof_hash?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          reminder_count?: number
+          signature_data?: string | null
+          signed_at?: string | null
+          signed_pdf_hash?: string | null
+          signed_pdf_url?: string | null
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribution_contract_signatures_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "game_authors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_contract_signatures_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_contract_signatures_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "author_onboarding_invitations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_embeddings: {
         Row: {
           chunk_index: number
@@ -3641,36 +3943,57 @@ export type Database = {
           company: string | null
           created_at: string
           email: string | null
+          first_name: string | null
           id: string
+          last_name: string | null
+          legal_name: string | null
+          legal_rep_name: string | null
           name: string
           notes: string | null
+          onboarding_status: string | null
           phone: string | null
+          postal_address: string | null
           royalty_rate: number
           secondary_email: string | null
+          siren: string | null
           updated_at: string
         }
         Insert: {
           company?: string | null
           created_at?: string
           email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
+          legal_name?: string | null
+          legal_rep_name?: string | null
           name: string
           notes?: string | null
+          onboarding_status?: string | null
           phone?: string | null
+          postal_address?: string | null
           royalty_rate?: number
           secondary_email?: string | null
+          siren?: string | null
           updated_at?: string
         }
         Update: {
           company?: string | null
           created_at?: string
           email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
+          legal_name?: string | null
+          legal_rep_name?: string | null
           name?: string
           notes?: string | null
+          onboarding_status?: string | null
           phone?: string | null
+          postal_address?: string | null
           royalty_rate?: number
           secondary_email?: string | null
+          siren?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -4058,6 +4381,7 @@ export type Database = {
           cost_price: number | null
           cover_url: string | null
           created_at: string
+          credits: string | null
           current_stock: number | null
           custom_message: string | null
           description: string | null
@@ -4068,23 +4392,34 @@ export type Database = {
           location_contract_url: string | null
           location_duree_jours: number | null
           location_duree_libelle: string | null
+          location_enabled: boolean
           location_prix_remplacement: number | null
+          location_tarif_ht: number | null
           location_tarif_retard_mois: number | null
           location_variation_id: number | null
+          logo_url: string | null
           min_stock: number | null
+          onboarding_status: string | null
+          package_dimensions: string | null
           partner_email: string | null
           partner_name: string | null
           pdfmonkey_template_id: string | null
+          pitch: string | null
           processing_instructions: string | null
+          proposed_price_ht: number | null
           restock_contact_email: string | null
           restock_items: string | null
           restock_supplier_urls: string | null
           restock_threshold: number | null
           secondary_author_email: string | null
+          shipping_delay: string | null
+          shipping_fee: number | null
           status: string
           stock: number
           title: string
           updated_at: string
+          video_url: string | null
+          weight_g: number | null
           woocommerce_product_id: number | null
           woocommerce_product_url: string | null
         }
@@ -4098,6 +4433,7 @@ export type Database = {
           cost_price?: number | null
           cover_url?: string | null
           created_at?: string
+          credits?: string | null
           current_stock?: number | null
           custom_message?: string | null
           description?: string | null
@@ -4108,23 +4444,34 @@ export type Database = {
           location_contract_url?: string | null
           location_duree_jours?: number | null
           location_duree_libelle?: string | null
+          location_enabled?: boolean
           location_prix_remplacement?: number | null
+          location_tarif_ht?: number | null
           location_tarif_retard_mois?: number | null
           location_variation_id?: number | null
+          logo_url?: string | null
           min_stock?: number | null
+          onboarding_status?: string | null
+          package_dimensions?: string | null
           partner_email?: string | null
           partner_name?: string | null
           pdfmonkey_template_id?: string | null
+          pitch?: string | null
           processing_instructions?: string | null
+          proposed_price_ht?: number | null
           restock_contact_email?: string | null
           restock_items?: string | null
           restock_supplier_urls?: string | null
           restock_threshold?: number | null
           secondary_author_email?: string | null
+          shipping_delay?: string | null
+          shipping_fee?: number | null
           status?: string
           stock?: number
           title: string
           updated_at?: string
+          video_url?: string | null
+          weight_g?: number | null
           woocommerce_product_id?: number | null
           woocommerce_product_url?: string | null
         }
@@ -4138,6 +4485,7 @@ export type Database = {
           cost_price?: number | null
           cover_url?: string | null
           created_at?: string
+          credits?: string | null
           current_stock?: number | null
           custom_message?: string | null
           description?: string | null
@@ -4148,23 +4496,34 @@ export type Database = {
           location_contract_url?: string | null
           location_duree_jours?: number | null
           location_duree_libelle?: string | null
+          location_enabled?: boolean
           location_prix_remplacement?: number | null
+          location_tarif_ht?: number | null
           location_tarif_retard_mois?: number | null
           location_variation_id?: number | null
+          logo_url?: string | null
           min_stock?: number | null
+          onboarding_status?: string | null
+          package_dimensions?: string | null
           partner_email?: string | null
           partner_name?: string | null
           pdfmonkey_template_id?: string | null
+          pitch?: string | null
           processing_instructions?: string | null
+          proposed_price_ht?: number | null
           restock_contact_email?: string | null
           restock_items?: string | null
           restock_supplier_urls?: string | null
           restock_threshold?: number | null
           secondary_author_email?: string | null
+          shipping_delay?: string | null
+          shipping_fee?: number | null
           status?: string
           stock?: number
           title?: string
           updated_at?: string
+          video_url?: string | null
+          weight_g?: number | null
           woocommerce_product_id?: number | null
           woocommerce_product_url?: string | null
         }
@@ -14484,6 +14843,7 @@ export type Database = {
       monitor_cron_failures: { Args: never; Returns: Json }
       monitor_missing_evaluation_reminders: { Args: never; Returns: Json }
       move_stale_tickets_to_boite_a_idees: { Args: never; Returns: undefined }
+      next_distribution_contract_reference: { Args: never; Returns: string }
       next_location_contract_ref: { Args: { p_year: number }; Returns: string }
       normalize_url: { Args: { u: string }; Returns: string }
       normalize_watch_source_url: { Args: { value: string }; Returns: string }
