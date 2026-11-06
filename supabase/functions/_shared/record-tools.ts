@@ -359,16 +359,53 @@ async function syncSchedule(db: Db, trainingId: string, oldStart: string | null,
 
 export async function updateTraining(
   db: Db,
-  input: { training_id: string; start_date?: string; end_date?: string; location?: string; meeting_url?: string },
+  input: {
+    training_id: string; start_date?: string; end_date?: string; location?: string; meeting_url?: string;
+    notes?: string; append?: boolean; objectives?: string[]; prerequisites?: string[];
+    program_file_url?: string; copy_from_catalog?: boolean;
+  },
   log: Log,
 ): Promise<string> {
   if (!UUID_RE.test(input.training_id || "")) throw new Error("training_id invalide");
   const { data: t, error } = await db.from("trainings")
-    .select("id, training_name, start_date, end_date, location").eq("id", input.training_id).maybeSingle();
+    .select("id, training_name, start_date, end_date, location, notes, objectives, prerequisites, program_file_url, catalog_id")
+    .eq("id", input.training_id).maybeSingle();
   if (error) throw new Error(error.message);
   if (!t) throw new Error("Formation introuvable");
 
-  const patch: Record<string, string> = {};
+  // deno-lint-ignore no-explicit-any
+  const patch: Record<string, any> = {};
+  const textList = (v: unknown, k: string): string[] => {
+    if (!Array.isArray(v) || v.some((x) => typeof x !== "string")) throw new Error(`${k} doit être un tableau de textes`);
+    return (v as string[]).map((x) => x.trim()).filter(Boolean);
+  };
+  if (input.notes !== undefined) {
+    if (typeof input.notes !== "string") throw new Error("notes doit être un texte");
+    if (input.append) {
+      const stamp = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short" }).format(new Date());
+      const prev = (t.notes || "").trimEnd();
+      patch.notes = `${prev ? prev + "\n\n" : ""}[${stamp}] ${input.notes.trim()}`;
+    } else patch.notes = input.notes;
+  }
+  if (input.objectives !== undefined) patch.objectives = textList(input.objectives, "objectives");
+  if (input.prerequisites !== undefined) patch.prerequisites = textList(input.prerequisites, "prerequisites");
+  if (input.program_file_url !== undefined) {
+    const u = input.program_file_url.trim();
+    if (u && !/^https:\/\/\S+$/i.test(u)) throw new Error("program_file_url doit commencer par https://");
+    patch.program_file_url = u || null;
+  }
+  const copied: string[] = [];
+  if (input.copy_from_catalog) {
+    if (!t.catalog_id) throw new Error("Session sans formation catalogue (catalog_id)");
+    const { data: c, error: cErr } = await db.from("formation_configs")
+      .select("objectives, prerequisites, programme_url").eq("id", t.catalog_id).maybeSingle();
+    if (cErr) throw new Error(cErr.message);
+    if (!c) throw new Error("Formation catalogue introuvable");
+    const empty = (v: unknown) => v == null || (Array.isArray(v) ? v.length === 0 : String(v).trim() === "");
+    if (!("objectives" in patch) && empty(t.objectives) && !empty(c.objectives)) { patch.objectives = c.objectives; copied.push("objectives"); }
+    if (!("prerequisites" in patch) && empty(t.prerequisites) && !empty(c.prerequisites)) { patch.prerequisites = c.prerequisites; copied.push("prerequisites"); }
+    if (!("program_file_url" in patch) && empty(t.program_file_url) && !empty(c.programme_url)) { patch.program_file_url = c.programme_url; copied.push("program_file_url"); }
+  }
   for (const k of ["start_date", "end_date"] as const) {
     if (input[k] === undefined) continue;
     if (!DATE_RE.test(input[k]!)) throw new Error(`${k} doit être au format YYYY-MM-DD`);
@@ -394,7 +431,10 @@ export async function updateTraining(
     patch.location = loc;
   }
 
-  if (Object.keys(patch).length === 0 && livesUpdated === 0) throw new Error("Aucun champ à modifier");
+  if (Object.keys(patch).length === 0 && livesUpdated === 0) {
+    if (input.copy_from_catalog) return JSON.stringify({ updated: false, training: t.training_name, reason: "Champs déjà renseignés ou catalogue vide : rien à recopier" });
+    throw new Error("Aucun champ à modifier");
+  }
   if (Object.keys(patch).length > 0) {
     const { error: uErr } = await db.from("trainings").update(patch).eq("id", t.id);
     if (uErr) throw new Error(uErr.message);
@@ -403,7 +443,7 @@ export async function updateTraining(
   await log(`update_training ${t.id} ${Object.keys(patch).join(",")}${livesUpdated ? ` lives:${livesUpdated}` : ""}`);
   return JSON.stringify({
     updated: true, training: t.training_name,
-    before: { start_date: t.start_date, end_date: t.end_date, location: t.location },
-    changes: patch, upcoming_lives_meeting_url_updated: livesUpdated, schedule_days: scheduleDays,
+    before: Object.fromEntries(Object.keys(patch).map((k) => [k, (t as Record<string, unknown>)[k] ?? null])),
+    after: patch, copied_from_catalog: copied, upcoming_lives_meeting_url_updated: livesUpdated, schedule_days: scheduleDays,
   });
 }

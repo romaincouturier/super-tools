@@ -1768,7 +1768,7 @@ const MCP_TOOLS = [
   {
     name: "update_training",
     description:
-      "Update a training's start date, end date, place (location) or video-call link (meeting_url, https). meeting_url updates the upcoming live sessions of the training when it has some, otherwise it becomes the training location. Returns the previous values.",
+      "Update a training session: start/end date, place (location), video-call link (meeting_url, https), notes (replace, or append=true to add a dated entry), objectives and prerequisites (arrays of text), program_file_url (https). copy_from_catalog=true copies objectives, prerequisites and program from the catalog training only where empty on the session. Only provided fields change. meeting_url updates upcoming lives when there are some, otherwise it becomes the location. Returns before/after values.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1777,6 +1777,12 @@ const MCP_TOOLS = [
         end_date: { type: "string", description: "YYYY-MM-DD" },
         location: { type: "string" },
         meeting_url: { type: "string" },
+        notes: { type: "string" },
+        append: { type: "boolean", description: "with notes: append a dated entry instead of replacing" },
+        objectives: { type: "array", items: { type: "string" } },
+        prerequisites: { type: "array", items: { type: "string" } },
+        program_file_url: { type: "string", description: "https URL, empty string to clear" },
+        copy_from_catalog: { type: "boolean" },
       },
       required: ["training_id"],
     },
