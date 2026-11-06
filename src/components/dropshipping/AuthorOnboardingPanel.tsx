@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Copy, FileSignature, FileText, Link2, Mail, PenLine, RotateCcw, Send, ShieldCheck, Globe, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -95,8 +95,9 @@ function SignatureDialog({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const { toast } = useToast();
   const { canvasRef, clear, isEmpty, toDataURL } = useSignaturePad({});
-  if (current === undefined) staffOnboarding.distributorSignature().then((r) => setCurrent(r.url)).catch(() => setCurrent(null));
+  useEffect(() => { staffOnboarding.distributorSignature().then((r) => setCurrent(r.url)).catch(() => setCurrent(null)); }, []);
   const save = async () => {
+    if (isEmpty()) { toast({ title: "Dessinez votre signature" }); return; }
     setBusy(true);
     try { const r = await staffOnboarding.distributorSignature(toDataURL()); setCurrent(r.url); clear(); toast({ title: "Signature enregistrée" }); }
     catch (e) { toast({ title: "Échec", description: (e as Error).message, variant: "destructive" }); }
@@ -113,7 +114,7 @@ function SignatureDialog({ onClose }: { onClose: () => void }) {
         <div className="border rounded bg-background"><canvas ref={canvasRef} className="w-full h-40 touch-none" style={{ touchAction: "none" }} /></div>
         <DialogFooter>
           <Button variant="outline" onClick={clear}>Effacer</Button>
-          <Button onClick={save} disabled={busy || isEmpty}>{busy ? <Spinner /> : "Enregistrer"}</Button>
+          <Button onClick={save} disabled={busy}>{busy ? <Spinner /> : "Enregistrer"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
