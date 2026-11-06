@@ -2,7 +2,7 @@
 title: 'Story 1.4 : classer les contenus par thèmes et filtrer'
 type: 'feature'
 created: '2026-11-06'
-status: 'draft'
+status: 'in-progress'
 baseline_commit: '18d872d212e93d4cf6327778f217eec5501c0ec8'
 route: 'dispatch'
 review_loop_iteration: 0
