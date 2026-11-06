@@ -288,6 +288,13 @@
       "when": 1793973983997,
       "tag": "0040_community_themes_intra_publish",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1793974027421,
+      "tag": "0041_drop_inert_anon_learner_policies",
+      "breakpoints": true
     }
   ]
 }
