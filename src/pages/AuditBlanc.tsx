@@ -10,6 +10,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { useAuditFacts, type AuditSample } from "@/hooks/useAuditFacts";
 import { useAuditRuns } from "@/hooks/useAuditRuns";
 import {
@@ -62,6 +64,7 @@ export default function AuditBlanc() {
   const { gather, loading: gathering } = useAuditFacts();
   const { runs, saveRun, loading: loadingRuns } = useAuditRuns();
   const { isDemoMode } = useDemoMode();
+  const { toast } = useToast();
 
   const [facts, setFacts] = useState<AuditFacts | null>(null);
   const [sample, setSample] = useState<AuditSample[]>([]);
@@ -78,10 +81,17 @@ export default function AuditBlanc() {
   const summary = useMemo(() => summarize(findings), [findings]);
 
   const start = async () => {
-    const result = await gather();
-    setFacts(result.facts);
-    setSample(result.sample);
-    setAnswers({});
+    try {
+      const result = await gather();
+      setFacts(result.facts);
+      setSample(result.sample);
+      setAnswers({});
+    } catch (error: unknown) {
+      // Sans ce garde, un échec de lecture laissait l'écran muet : le bouton
+      // s'arrêtait de tourner et rien ne se passait.
+      console.error("Error gathering audit facts:", error);
+      toastError(toast, error instanceof Error ? error.message : "Audit impossible");
+    }
   };
 
   const answer = (id: string, value: AnswerValue) =>

@@ -1409,7 +1409,7 @@ function AideView({
           trainingId: mainTraining?.training_id ?? null,
         });
         if (error) throw error;
-        if (data?.token) await sendAcknowledgement({ token: data.token });
+        if (data?.id) await sendAcknowledgement({ reclamationId: data.id });
 
         toast({
           title: "Message enregistré",

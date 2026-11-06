@@ -6,6 +6,7 @@
 -- réclamations, difficultés et aléas soient traités et tracés.
 --
 -- La fonction ci-dessous est le seul chemin d'écriture ouvert à un apprenant.
+-- Elle ne rend que l'identifiant : le jeton reste côté serveur.
 -- Elle ne prend ni adresse ni nom en paramètre : l'identité vient du compte
 -- connecté. Un apprenant ne peut donc pas déposer une réclamation au nom d'un
 -- autre, ni choisir le statut ou la date.
@@ -73,7 +74,10 @@ BEGIN
   )
   RETURNING id INTO v_id;
 
-  RETURN json_build_object('id', v_id, 'token', v_token);
+  -- Le jeton ne sort pas : il est la clé qu'accepte update_reclamation_by_token,
+  -- et la rendre à l'apprenant lui permettrait de réécrire sa réclamation après
+  -- sa prise en charge, ou de la clôturer lui-même.
+  RETURN json_build_object('id', v_id);
 END;
 $function$;
 

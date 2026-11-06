@@ -41,13 +41,22 @@ export function useAuditFacts() {
       const oneYearAgo = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString();
 
       // Échantillon : sessions terminées les plus récentes.
-      const { data: finished } = await supabase
+      const { data: finished, error: sampleError } = await supabase
         .from("trainings")
         .select("id, training_name, start_date, end_date, objectives, program_file_url, supports_lms_course_id, trainer_id")
         .not("start_date", "is", null)
         .lte("start_date", today)
         .order("start_date", { ascending: false })
         .limit(SAMPLE_SIZE);
+
+      // Un échantillon vide par échec de lecture ferait passer en « sans objet »
+      // les huit contrôles qui s'appuient dessus : le rapport serait propre
+      // faute d'avoir regardé, pas faute de défaut.
+      if (sampleError) {
+        throw new Error(
+          "Lecture des sessions impossible : l'audit ne peut pas tirer d'échantillon.",
+        );
+      }
 
       const sampleRows = finished ?? [];
       const sampleIds = sampleRows.map((t) => t.id);

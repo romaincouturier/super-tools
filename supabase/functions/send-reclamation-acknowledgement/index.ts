@@ -7,14 +7,21 @@ import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-sett
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import { acknowledgementBlocker, blockerMessage } from "../_shared/reclamation-acknowledgement.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 
 /**
  * Accusé de réception d'une réclamation (indicateur 31).
  *
- * La fonction ne reçoit que le jeton. Le destinataire n'est jamais fourni par
- * l'appelant : il est lu sur la réclamation que ce jeton désigne. Une page
- * publique peut donc l'appeler sans permettre d'adresser un message à qui que
- * ce soit d'autre que le réclamant.
+ * Deux appelants, deux preuves d'appartenance, jamais un destinataire :
+ *
+ * - le formulaire public présente le **jeton** de la réclamation, qu'il est
+ *   seul à connaître ;
+ * - l'espace apprenant présente l'**identifiant** et un JWT, et la fonction
+ *   vérifie que l'adresse du compte est bien celle du réclamant. Le jeton ne
+ *   redescend jamais au navigateur : il permettrait de réécrire la réclamation
+ *   après sa prise en charge.
+ *
+ * Dans les deux cas le destinataire est lu sur la réclamation, jamais fourni.
  */
 
 const VERSION = "send-reclamation-acknowledgement@2026-11-05.1";
@@ -24,9 +31,12 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { token } = await req.json().catch(() => ({ token: null }));
-    if (typeof token !== "string" || token.trim() === "") {
-      return createErrorResponse("token is required", 400);
+    const body = await req.json().catch(() => ({}));
+    const token = typeof body?.token === "string" ? body.token.trim() : "";
+    const reclamationId = typeof body?.reclamationId === "string" ? body.reclamationId.trim() : "";
+
+    if (!token && !reclamationId) {
+      return createErrorResponse("token or reclamationId is required", 400);
     }
 
     const supabase = createClient(
@@ -34,14 +44,27 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { data: reclamation, error } = await supabase
-      .from("reclamations")
-      .select("id, client_name, client_email, status, date_reclamation, acknowledgement_sent_at")
-      .eq("token", token)
-      .maybeSingle();
+    const columns = "id, client_name, client_email, status, date_reclamation, acknowledgement_sent_at";
+    const query = token
+      ? supabase.from("reclamations").select(columns).eq("token", token)
+      : supabase.from("reclamations").select(columns).eq("id", reclamationId);
+
+    const { data: reclamation, error } = await query.maybeSingle();
 
     if (error) throw error;
     if (!reclamation) return createErrorResponse("Reclamation not found", 404);
+
+    // Appel par identifiant : seul le réclamant lui-même peut le déclencher.
+    // Sans cette garde, l'identifiant d'une réclamation suffirait à faire
+    // partir un accusé, et à révéler qu'elle existe.
+    if (!token) {
+      const user = await verifyAuth(req);
+      const caller = (user?.email ?? "").trim().toLowerCase();
+      const owner = (reclamation.client_email ?? "").trim().toLowerCase();
+      if (!caller || caller !== owner) {
+        return createErrorResponse("Forbidden", 403);
+      }
+    }
 
     const blocker = acknowledgementBlocker(reclamation);
     if (blocker) {

@@ -464,7 +464,8 @@ export const rpc = {
   // --- Réclamations (espace apprenant) ---
   /**
    * Dépôt par un apprenant connecté. L'identité vient du compte côté base :
-   * ni l'adresse ni le nom ne transitent par l'appelant.
+   * ni l'adresse ni le nom ne transitent par l'appelant, et le jeton de la
+   * réclamation ne redescend pas au navigateur.
    */
   createLearnerReclamation: (input: {
     subject: string;
@@ -473,7 +474,7 @@ export const rpc = {
     problemType: string;
     trainingId?: string | null;
   }) =>
-    call<{ id: string; token: string }>("create_learner_reclamation", {
+    call<{ id: string }>("create_learner_reclamation", {
       p_subject: input.subject,
       p_description: input.description,
       p_nature: input.nature,

@@ -41,13 +41,20 @@ serve(async (req) => {
     const today = new Date().toISOString().split("T")[0];
     const oneYearAgo = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString();
 
-    const { data: sampleTrainings } = await supabase
+    const { data: sampleTrainings, error: sampleError } = await supabase
       .from("trainings")
       .select("id, objectives, program_file_url, supports_lms_course_id, trainer_id")
       .not("start_date", "is", null)
       .lte("start_date", today)
       .order("start_date", { ascending: false })
       .limit(SAMPLE_SIZE);
+
+    // Un échantillon vide par échec de lecture court-circuiterait cinq
+    // requêtes vers des tableaux sans clé d'erreur : le garde plus bas ne
+    // verrait rien et la nuit se conclurait sur un audit propre.
+    if (sampleError) {
+      return createErrorResponse(`Lecture des sessions impossible : ${sampleError.message}`, 500);
+    }
 
     const sample = sampleTrainings ?? [];
     const sampleIds = sample.map((t) => t.id);
@@ -136,7 +143,7 @@ serve(async (req) => {
     const facts = buildFacts(raw);
     const issues = automaticIssues(facts);
 
-    await supabase.from("audit_runs").insert({
+    const { error: runError } = await supabase.from("audit_runs").insert({
       label: `Contrôle automatique du ${new Date().toLocaleDateString("fr-FR")}`,
       finished_at: new Date().toISOString(),
       sample_training_ids: sampleIds,
@@ -145,6 +152,12 @@ serve(async (req) => {
       findings: issues,
       notes: "Passage automatique : contrôles sur les données seulement, sans les questions à l'auditeur.",
     });
+
+    // La trace du passage est la preuve attendue au titre de l'audit interne :
+    // la perdre en silence viderait la tâche de son objet.
+    if (runError) {
+      return createErrorResponse(`Enregistrement du passage impossible : ${runError.message}`, 500);
+    }
 
     // Les constats partent chez les administrateurs : ce sont eux qui portent
     // la conformité, et la table est lue par utilisateur.
@@ -177,7 +190,10 @@ serve(async (req) => {
     if (rows.length > 0) {
       const { error } = await supabase
         .from("daily_actions")
-        .upsert(rows, { onConflict: "user_id,action_date,category,entity_type,entity_id", ignoreDuplicates: true });
+        // Pas d'ignoreDuplicates : un second passage le même jour doit
+        // rafraîchir le compte affiché. is_completed n'est pas dans la charge
+        // utile, donc une action déjà cochée le reste.
+        .upsert(rows, { onConflict: "user_id,action_date,category,entity_type,entity_id" });
       if (error) console.error(`[${VERSION}] insertion des actions`, error);
     }
 
