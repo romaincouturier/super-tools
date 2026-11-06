@@ -2,7 +2,7 @@
 title: 'Story 1.4 : classer les contenus par thèmes et filtrer'
 type: 'feature'
 created: '2026-11-06'
-status: 'in-progress'
+status: 'in-review'
 baseline_commit: '18d872d212e93d4cf6327778f217eec5501c0ec8'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -69,17 +69,17 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `supabase/migrations/20261106110000_social_themes.sql` -- table `social_themes`, `social_content_groups.theme_id`, RLS, RPC `save_social_content_group` avec `p_theme_id`. -- Socle.
-- [ ] `supabase/tests/social-contents.test.ts` -- liste vide après migration (1.4-SQL-002), thème supprimé (1.4-SQL-001), RLS des thèmes par opération (sans droit, avec droit hors Romain, admin, anon), unicité insensible à la casse, RPC avec thème. -- Règles [058], R-01.
-- [ ] Sauvegardes -- `social_themes` dans `scheduled-backup` et `backup-export`. -- Règle [038].
-- [ ] `src/services/socialContents.ts` -- type `SocialTheme`, CRUD des thèmes, `theme_id` dans les lectures et la sauvegarde ; `SocialFilters` et `filterCards` (fonction pure) ; erreur d'unicité traduite. -- Service.
-- [ ] `src/hooks/useSocialContents.ts` -- `useSocialThemes`, `useCreateSocialTheme`, `useUpdateSocialTheme`, `useDeleteSocialTheme`, invalidation des contenus à la suppression. -- Hooks.
-- [ ] `src/components/social/SocialSettingsDialog.tsx` -- réglages du module, section « Thèmes » : liste, création, renommage, couleur, suppression confirmée. -- 1.4-COMP-001.
-- [ ] `src/components/social/SocialFilterBar.tsx` -- remplace `ChannelFilterBar` : familles Thème (point à la couleur), Réseau, Statut. -- 1.4-COMP-002.
-- [ ] `SocialComposerDialog.tsx` -- champ « Thème » (« Sans thème » par défaut), sauvegardé avec le contenu. -- Composeur.
-- [ ] `ContentCard.tsx` -- liseré gauche à la couleur du thème. -- UX-DR5.
-- [ ] `SocialContentsPage.tsx` -- bouton « Réglages », état des filtres, filtrage appliqué à la grille et à « Non planifiés ». -- Page.
-- [ ] Tests : `socialContents.test.ts` (filtres, matrice), `SocialCalendar.test.tsx` ou test de page (liseré, pastilles), test du dialogue de réglages, test du composeur (thème envoyé). -- Couverture.
+- [x] `supabase/migrations/20261106110000_social_themes.sql` -- table `social_themes`, `social_content_groups.theme_id`, RLS, RPC `save_social_content_group` avec `p_theme_id`. -- Socle.
+- [x] `supabase/tests/social-contents.test.ts` -- liste vide après migration (1.4-SQL-002), thème supprimé (1.4-SQL-001), RLS des thèmes par opération (sans droit, avec droit hors Romain, admin, anon), unicité insensible à la casse, RPC avec thème. -- Règles [058], R-01.
+- [x] Sauvegardes -- `social_themes` dans `scheduled-backup` et `backup-export`. -- Règle [038].
+- [x] `src/services/socialContents.ts` -- type `SocialTheme`, CRUD des thèmes, `theme_id` dans les lectures et la sauvegarde ; `SocialFilters` et `filterCards` (fonction pure) ; erreur d'unicité traduite. -- Service.
+- [x] `src/hooks/useSocialContents.ts` -- `useSocialThemes`, `useCreateSocialTheme`, `useUpdateSocialTheme`, `useDeleteSocialTheme`, invalidation des contenus à la suppression. -- Hooks.
+- [x] `src/components/social/SocialSettingsDialog.tsx` -- réglages du module, section « Thèmes » : liste, création, renommage, couleur, suppression confirmée. -- 1.4-COMP-001.
+- [x] `src/components/social/SocialFilterBar.tsx` -- remplace `ChannelFilterBar` : familles Thème (point à la couleur), Réseau, Statut. -- 1.4-COMP-002.
+- [x] `SocialComposerDialog.tsx` -- champ « Thème » (« Sans thème » par défaut), sauvegardé avec le contenu. -- Composeur.
+- [x] `ContentCard.tsx` -- liseré gauche à la couleur du thème. -- UX-DR5.
+- [x] `SocialContentsPage.tsx` -- bouton « Réglages », état des filtres, filtrage appliqué à la grille et à « Non planifiés ». -- Page.
+- [x] Tests : `socialContents.test.ts` (filtres, matrice), `SocialCalendar.test.tsx` ou test de page (liseré, pastilles), test du dialogue de réglages, test du composeur (thème envoyé). -- Couverture.
 
 **Acceptance Criteria:**
 - Given le module migré, when l'utilisateur ouvre les réglages, then la liste des thèmes est vide et il peut créer, renommer, recolorer et supprimer un thème.
