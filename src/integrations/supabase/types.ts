@@ -2404,6 +2404,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          import_key: string | null
           is_deleted: boolean
         }
         Insert: {
@@ -2412,6 +2413,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          import_key?: string | null
           is_deleted?: boolean
         }
         Update: {
@@ -2420,6 +2422,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          import_key?: string | null
           is_deleted?: boolean
         }
         Relationships: [
@@ -8416,6 +8419,81 @@ export type Database = {
           sent_at?: string | null
           status?: string
           title?: string | null
+        }
+        Relationships: []
+      }
+      nocrm_import_runs: {
+        Row: {
+          activities_count: number
+          batches_done: number
+          comments_path: string
+          created_by: string | null
+          created_count: number
+          cursor: number
+          errors: Json
+          finished_at: string | null
+          id: string
+          lead_limit: number | null
+          leads_path: string
+          merged_count: number
+          mode: string
+          notes_count: number
+          reconciliation: Json | null
+          report: Json | null
+          skipped_count: number
+          started_at: string
+          status: string
+          total_leads: number
+          updated_at: string
+          updated_count: number
+        }
+        Insert: {
+          activities_count?: number
+          batches_done?: number
+          comments_path: string
+          created_by?: string | null
+          created_count?: number
+          cursor?: number
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          lead_limit?: number | null
+          leads_path: string
+          merged_count?: number
+          mode: string
+          notes_count?: number
+          reconciliation?: Json | null
+          report?: Json | null
+          skipped_count?: number
+          started_at?: string
+          status?: string
+          total_leads?: number
+          updated_at?: string
+          updated_count?: number
+        }
+        Update: {
+          activities_count?: number
+          batches_done?: number
+          comments_path?: string
+          created_by?: string | null
+          created_count?: number
+          cursor?: number
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          lead_limit?: number | null
+          leads_path?: string
+          merged_count?: number
+          mode?: string
+          notes_count?: number
+          reconciliation?: Json | null
+          report?: Json | null
+          skipped_count?: number
+          started_at?: string
+          status?: string
+          total_leads?: number
+          updated_at?: string
+          updated_count?: number
         }
         Relationships: []
       }
