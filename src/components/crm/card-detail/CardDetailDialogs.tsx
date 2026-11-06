@@ -372,7 +372,7 @@ const CardDetailDialogs = (props: Props) => {
                 <Button
                   variant="outline"
                   className="w-full h-auto flex flex-col items-center gap-1 p-4"
-                  onClick={() => { setShowWinChoiceDialog(false); navigate("/dropshipping"); }}
+                  onClick={() => { setShowWinChoiceDialog(false); navigate("/commandes-jeux"); }}
                 >
                   <PackageCheck className="h-8 w-8 text-primary" />
                   <span className="font-medium">Voir la commande {activeDevisOrder.order_number}</span>
