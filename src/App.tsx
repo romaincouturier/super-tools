@@ -55,6 +55,8 @@ const Emargement = lazy(() => import("./pages/Emargement"));
 const SignatureDevis = lazy(() => import("./pages/SignatureDevis"));
 const SignatureConvention = lazy(() => import("./pages/SignatureConvention"));
 const SignatureLocation = lazy(() => import("./pages/SignatureLocation"));
+const ProposerMonJeu = lazy(() => import("./pages/ProposerMonJeu"));
+const AuthorOnboardingDetail = lazy(() => import("./pages/AuthorOnboardingDetail"));
 const ContentBoard = lazy(() => import("./pages/ContentBoard"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
@@ -246,6 +248,7 @@ const App = () => {
               <Route path="/signature-devis/:token" element={<SignatureDevis />} />
               <Route path="/signature-convention/:token" element={<SignatureConvention />} />
               <Route path="/signature-location/:token" element={<SignatureLocation />} />
+              <Route path="/proposer-mon-jeu/:token" element={<ProposerMonJeu />} />
               <Route path="/reclamation/:token" element={<ReclamationPublic />} />
               <Route path="/partenaire/:token" element={<PartnerPortal />} />
               {/* Public participant pages */}
@@ -340,6 +343,7 @@ const App = () => {
                 <Route path="/temoignages" element={<RedirectKeepQuery to="/supertilt-fr/temoignages" />} />
                 <Route path="/dropshipping" element={<Navigate to="/commandes-jeux" replace />} />
                 <Route path="/commandes-jeux" element={<SupertiltOrders />} />
+                <Route path="/dropshipping/auteurs/:id" element={<AuthorOnboardingDetail />} />
                 <Route path="/commandes/inbox" element={<WoocommerceInbox />} />
                 <Route path="/pictodico" element={<PictoDico />} />
                 <Route path="/time-tracker" element={<TimeTracker />} />

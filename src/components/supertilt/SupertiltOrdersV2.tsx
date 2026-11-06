@@ -4,6 +4,7 @@
  */
 import DOMPurify from "dompurify";
 import { useState, useEffect } from "react";
+import AuthorOnboardingPanel from "@/components/dropshipping/AuthorOnboardingPanel";
 import {
   Euro, TrendingUp, Users, Package, Plus, Pencil, Trash2,
   Download, Send, ExternalLink, CheckCircle, X,
@@ -1062,8 +1063,9 @@ export function AuteursTab() {
 
   return (
     <div className="space-y-4">
+      <AuthorOnboardingPanel />
       <div className="flex justify-end">
-        <Button size="sm" onClick={() => setEditing({})}>
+        <Button size="sm" variant="outline" onClick={() => setEditing({})}>
           <Plus className="h-4 w-4 mr-1" />Ajouter un auteur
         </Button>
       </div>

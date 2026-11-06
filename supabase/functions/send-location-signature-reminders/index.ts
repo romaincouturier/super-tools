@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createJsonResponse, createErrorResponse, handleCorsPreflightIfNeeded, getSupabaseClient, sendEmail, getSigniticSignature, getBccSettings, getAppUrls, formatDateFr } from "../_shared/mod.ts";
 import { renderCatalogEmail, ctaButton, escapeEmailValue } from "../_shared/editable-email.ts";
+import { reminderDue } from "../_shared/author-onboarding.ts";
+import { generateHash } from "../_shared/crypto.ts";
 
 /**
  * Daily: reminds clients who have not signed their rental contract.
@@ -8,7 +10,7 @@ import { renderCatalogEmail, ctaButton, escapeEmailValue } from "../_shared/edit
  * Extension amendments (location_extension_id) are excluded.
  * Each reminder is reserved by a conditional UPDATE so it is sent once.
  */
-const VERSION = "send-location-signature-reminders@1.1.0";
+const VERSION = "send-location-signature-reminders@1.2.0";
 const STEPS = [3, 7];
 const DAY = 86_400_000;
 
@@ -69,6 +71,39 @@ serve(async (req) => {
       }
       await new Promise((ok) => setTimeout(ok, 400));
     }
+    // ── Contrats de distribution auteurs : mêmes paliers J+3 / J+7 ──
+    const { data: dist } = await supabase
+      .from("distribution_contract_signatures" as any)
+      .select("id, invitation_id, recipient_email, recipient_name, game_name, contrat_reference, email_sent_at, expires_at, reminder_count")
+      .eq("status", "pending")
+      .lt("reminder_count", STEPS.length)
+      .gt("expires_at", new Date().toISOString());
+    for (const r of (dist ?? []) as any[]) {
+      if (!reminderDue(r.reminder_count, r.email_sent_at, now)) continue;
+      const { data: claimed } = await supabase
+        .from("distribution_contract_signatures" as any)
+        .update({ reminder_count: r.reminder_count + 1, last_reminder_at: new Date().toISOString() })
+        .eq("id", r.id).eq("status", "pending").eq("reminder_count", r.reminder_count)
+        .select("id");
+      if (!claimed?.length) continue;
+      // Lien permanent impossible (jeton haché) : nouveau jeton, même échéance.
+      const token = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      await supabase.from("author_onboarding_invitations" as any)
+        .update({ token_hash: await generateHash(token) }).eq("id", r.invitation_id);
+      const rendered = await renderCatalogEmail(supabase, "author_signature_reminder", {
+        vars: { signer_name: r.recipient_name || "", game_name: r.game_name || "", contrat_reference: r.contrat_reference, expires_at: formatDateFr(r.expires_at) },
+        blocks: { signature_button: ctaButton("Signer le contrat en ligne", `${appUrl}/proposer-mon-jeu/${escapeEmailValue(token)}`) },
+      });
+      const res = await sendEmail({ to: r.recipient_email, bcc, subject: rendered.subject, html: `${rendered.html}${signature}`, _emailType: "author_signature_reminder" } as any);
+      if (!res.success) {
+        await supabase.from("distribution_contract_signatures" as any).update({ reminder_count: r.reminder_count }).eq("id", r.id);
+        results.push({ id: r.id, status: "dist_send_failed" });
+      } else {
+        results.push({ id: r.id, status: `dist_sent_${r.reminder_count + 1}` });
+      }
+      await new Promise((ok) => setTimeout(ok, 400));
+    }
+
     return createJsonResponse({ success: true, results, _version: VERSION });
   } catch (e) {
     console.error(VERSION, e);

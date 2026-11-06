@@ -42,6 +42,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   lms_communaute: "Communautés LMS — publications à traiter",
   elearning_integration: "🔌 E-learning — intégration supertilt.fr à corriger",
   supertilt_dropshipping: "SuperTilt — Dropshipping en attente",
+  dropshipping_fiche_produit: "🎲 Dropshipping — fiche produit à créer",
   supertilt_dropshipping_relance: "🔴 SuperTilt — Dropshipping relancé sans réponse",
   risques_revue: "🛡️ Risques qualité — revue à faire",
   risques_sans_amelioration: "🛡️ Risques qualité — sans amélioration liée",
