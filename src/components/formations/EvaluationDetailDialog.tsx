@@ -1,4 +1,9 @@
-import { Star } from "lucide-react";
+import { useState } from "react";
+import { Star, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toastError } from "@/lib/toast";
+import { useToast } from "@/hooks/use-toast";
+import { markSiteCommentPublished } from "@/services/evaluationSiteComment";
 import {
   Dialog,
   DialogContent,
@@ -64,7 +69,22 @@ const EvaluationDetailDialog = ({
   trainingName,
 }: EvaluationDetailDialogProps) => {
   const { isDemoMode } = useDemoMode();
+  const { toast } = useToast();
+  const [publishedAt, setPublishedAt] = useState<string | null>(null);
+  const [marking, setMarking] = useState(false);
   if (!evaluation) return null;
+  const sitePublishedAt = publishedAt ?? evaluation.site_comment_published_at ?? null;
+  const markPublished = async () => {
+    setMarking(true);
+    try {
+      setPublishedAt(await markSiteCommentPublished(evaluation.id));
+      toast({ title: "Commentaire marqué comme publié" });
+    } catch (e) {
+      toastError(toast, "Impossible de marquer le commentaire", { cause: e });
+    } finally {
+      setMarking(false);
+    }
+  };
 
   const rawDisplayName = formatEvaluationDisplayName(
     evaluation.first_name,
@@ -239,6 +259,17 @@ const EvaluationDetailDialog = ({
                       ? "Consent à la publication"
                       : "Ne consent pas à la publication"}
                   </p>
+                )}
+                {evaluation.consent_publication && (
+                  <div className="mt-3">
+                    {sitePublishedAt ? (
+                      <Badge variant="outline"><Check className="h-3 w-3 mr-1" />Commentaire publié sur le site le {new Date(sitePublishedAt).toLocaleDateString("fr-FR")}</Badge>
+                    ) : (
+                      <Button size="sm" variant="outline" disabled={marking} onClick={markPublished}>
+                        <Check className="h-4 w-4 mr-1" />Commentaire publié sur le site
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             )}

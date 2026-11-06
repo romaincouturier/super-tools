@@ -165,6 +165,7 @@ const Evaluations = () => {
         qualification_intervenant_adequate,
         appreciations_prises_en_compte,
         consent_publication,
+        site_comment_published_at,
         remarques_libres,
         etat,
         date_soumission,
@@ -177,7 +178,12 @@ const Evaluations = () => {
       toastError(toast, "Impossible de charger les évaluations", { cause: error });
       return;
     }
-    setEvaluations((data || []) as unknown as Evaluation[]);
+    const list = (data || []) as unknown as Evaluation[];
+    setEvaluations(list);
+    // Lien depuis l'action quotidienne : ?evaluation=<id> ouvre directement le détail.
+    const target = new URLSearchParams(window.location.search).get("evaluation");
+    const found = target ? list.find((e) => e.id === target) : null;
+    if (found) { setSelectedEvaluation(found); setShowDetail(true); }
   };
 
   const trainingOptions = Array.from(

@@ -46,6 +46,7 @@ export const CATEGORY_ORDER = [
   "suites_retours",
   "risques_revue",
   "risques_sans_amelioration",
+  "commentaires_site",
 ] as const;
 
 export const CATEGORIES: Record<string, CategoryConfig> = {
@@ -84,6 +85,7 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
   suites_retours: { label: "Suites à donner aux retours de formation", emoji: "💬", color: "text-blue-600" },
   risques_revue: { label: "Risques qualité — revue à faire", emoji: "🛡️", color: "text-red-600" },
   risques_sans_amelioration: { label: "Risques qualité — sans amélioration liée", emoji: "🛡️", color: "text-orange-600" },
+  commentaires_site: { label: "Commentaires à créer sur le site", emoji: "⭐", color: "text-amber-600" },
   supertilt: { label: "Projets", emoji: "\u26a1", color: "text-yellow-600" },
 };
 
