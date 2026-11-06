@@ -106,6 +106,7 @@ const TABLES_TO_BACKUP = [
   "user_preferences", "user_security_metadata",
   "vhd_procedures", "vhd_reports",
   "watch_clusters", "watch_digests", "watch_items", "watch_sources",
+  "community_themes", "course_community_themes",
   "webhook_logs",
   "woocommerce_coupons", "woocommerce_orders", "woocommerce_pending_formations",
   "wp_articles", "wp_traffic_daily",

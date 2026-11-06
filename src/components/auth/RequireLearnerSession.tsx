@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { hasActiveSession } from "@/services/learner-session";
 import { REDIRECT_PARAM } from "@/lib/authRouting";
 import { buildLearnerLoginPath } from "@/lib/learnerLoginRedirect";
 
@@ -14,8 +14,8 @@ export default function RequireLearnerSession({ children }: { children: ReactNod
 
   useEffect(() => {
     let cancelled = false;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!cancelled) setState(session ? "ok" : "login");
+    hasActiveSession().then((ok) => {
+      if (!cancelled) setState(ok ? "ok" : "login");
     });
     return () => { cancelled = true; };
   }, []);
