@@ -86,8 +86,8 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Learner access emails are chosen server-side by a pure helper from `password_set` only (a missing security row means no password; a past sign-in proves nothing unless it was a password sign-in, recorded by `mark_password_proven`): create-password for accounts without a proven password, `learner_course_access` with a direct course link otherwise, because legacy magic-link accounts must never be told to log in with a password they never created.
 - Bulk e-learning access emails queue in `learner_access_jobs`, sent server-side by `queue-learner-access-emails` with requester rights, because browser sends blocked the page.
 - Password emails use hashed `password_setup_links` redeemed on click, because native recovery tokens expire too soon.
-- Learner community reads (posts and children) use security-definer enrollment-scoped helpers extended to thematic spaces (`course_community_themes`, `get_community_spaces`); posts of `community_is_private` courses default to course scope, because intra client feeds must stay private while sharing themes.
-- LMS course pages require a real session (`RequireLearnerSession`) and `get_learner_email()` reads only the JWT, because an email header or `?email=` allowed impersonation.
+- Learner community reads use security-definer enrollment/theme helpers; private (intra) course posts default to course scope, because intra feeds must stay private.
+- LMS course pages require a session; `get_learner_email()` reads only the JWT, to prevent impersonation.
 - CRM opportunity values use the shared pure `_shared/opportunity-value.ts`, so entry points agree.
 - Transcript→Réseau links: `link_transcript_to_network_contact` (UI), `_shared/network-tools.ts` (MCP); unlinking keeps the interaction, preserving history.
 - Picto-Dico input and challenge guards are DB triggers mirrored in `_shared/pictodico-validation.ts`; the linked event drives challenge number/date, because the webhook is public.
