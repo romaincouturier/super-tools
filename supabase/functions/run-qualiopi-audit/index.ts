@@ -177,9 +177,11 @@ serve(async (req) => {
         category: "qualiopi",
         title: `Indicateur ${issue.indicator} : ${issue.label}`,
         description: `${issue.detail}. ${
-          issue.gradation === "majeure_seule"
-            ? "Cet indicateur ne connaît que la non-conformité majeure."
-            : "Non-conformité mineure possible."
+          issue.kind === "sans_matiere"
+            ? "Le contrôle n'a rien trouvé à vérifier : il ne peut pas conclure en l'état."
+            : issue.gradation === "majeure_seule"
+              ? "Cet indicateur ne connaît que la non-conformité majeure."
+              : "Non-conformité mineure possible."
         }`,
         link: issue.fixHref ?? "/audit-blanc",
         entity_type: "qualiopi_check",

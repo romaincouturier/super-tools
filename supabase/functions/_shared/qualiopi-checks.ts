@@ -880,8 +880,8 @@ export function buildFacts(raw: RawAuditData): AuditFacts {
 }
 
 /**
- * Constats automatiques en défaut, indépendamment des questions posées à
- * l'auditeur. C'est ce que la tâche de nuit peut affirmer seule.
+ * Constats automatiques, indépendamment des questions posées à l'auditeur.
+ * C'est ce que la tâche de nuit peut affirmer seule.
  */
 export interface AutomaticIssue {
   indicator: number;
@@ -890,25 +890,64 @@ export interface AutomaticIssue {
   label: string;
   detail: string;
   gradation: Gradation;
+  /** `sans_matiere` : le contrôle n'a rien trouvé à vérifier. */
+  kind: "defaut" | "sans_matiere";
   fixHref?: string;
 }
 
+/**
+ * La nuit passe par la **même** évaluation que l'écran.
+ *
+ * Rejouer `check.run()` à côté d'`evaluateIndicator` revenait à maintenir deux
+ * lectures des mêmes contrôles : la promotion d'un contrôle sans matière en
+ * défaut n'existait que d'un côté, et un organisme sans intervenant ressortait
+ * en non-conformité à l'écran et silencieux la nuit. Un seul chemin rend la
+ * divergence impossible plutôt qu'improbable.
+ *
+ * Les réponses sont vides parce qu'un cron ne répond pas aux questions de
+ * l'auditeur ; seuls les contrôles et leur statut sont exploités, jamais le
+ * verdict, qui serait suspendu par construction.
+ */
 export function automaticIssues(facts: AuditFacts): AutomaticIssue[] {
   const issues: AutomaticIssue[] = [];
+
   for (const plan of auditPlan()) {
-    for (const check of plan.checks) {
-      const outcome = check.run(facts);
-      if (outcome.status !== "ko") continue;
-      issues.push({
-        indicator: plan.indicator.number,
-        indicatorLabel: plan.indicator.label,
-        checkId: check.id,
-        label: check.label,
-        detail: outcome.detail,
-        gradation: plan.indicator.gradation,
-        fixHref: check.fix?.href,
-      });
+    const finding = evaluateIndicator(plan, facts, {});
+    const base = {
+      indicator: plan.indicator.number,
+      indicatorLabel: plan.indicator.label,
+      gradation: plan.indicator.gradation,
+    };
+
+    for (const check of finding.checks) {
+      const def = plan.checks.find((c) => c.id === check.id);
+
+      if (check.status === "ko") {
+        issues.push({
+          ...base,
+          checkId: check.id,
+          label: check.label,
+          detail: check.detail,
+          kind: "defaut",
+          fixHref: def?.fix?.href,
+        });
+        continue;
+      }
+
+      // Un contrôle qui n'a rien pu vérifier est un constat aussi : passer
+      // outre rendrait une nuit vide, qui se lit comme une nuit propre.
+      if (finding.blocked.includes(check.id)) {
+        issues.push({
+          ...base,
+          checkId: check.id,
+          label: check.label,
+          detail: check.detail,
+          kind: "sans_matiere",
+          fixHref: def?.fix?.href,
+        });
+      }
     }
   }
+
   return issues;
 }

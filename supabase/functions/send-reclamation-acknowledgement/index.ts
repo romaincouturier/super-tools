@@ -39,6 +39,15 @@ serve(async (req) => {
       return createErrorResponse("token or reclamationId is required", 400);
     }
 
+    // Un identifiant mal formé est rejeté par Postgres, pas par la requête :
+    // l'erreur 22P02 remonterait en 500 là où tous les autres refus donnent
+    // 403, et distinguerait donc un identifiant inexistant d'un identifiant
+    // valide qui n'appartient pas à l'appelant.
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!token && !UUID.test(reclamationId)) {
+      return createErrorResponse("Forbidden", 403);
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,

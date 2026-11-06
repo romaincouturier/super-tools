@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   auditPlan,
+  automaticIssues,
   buildFacts,
   evaluateIndicator,
   summarize,
@@ -350,5 +351,48 @@ describe("absence de matière", () => {
     const facts = { ...PERFECT, elearningCourses: 0, elearningCoursesWithMandatoryLessons: 0 };
     const f = evaluateIndicator(planFor(19), facts, allYes(19));
     expect(f.verdict).toBe("conforme");
+  });
+});
+
+// La tâche de nuit et l'écran lisent les mêmes contrôles : tout écart entre
+// les deux serait un constat visible d'un côté et muet de l'autre.
+describe("constats automatiques", () => {
+  it("remonte l'absence d'intervenant comme la fait l'écran", () => {
+    const facts = {
+      ...PERFECT,
+      trainers: 0,
+      trainersWithCompetences: 0,
+      trainersWithDocuments: 0,
+      trainersWithContinuingEducation: 0,
+    };
+    const issues = automaticIssues(facts);
+    const ids = issues.filter((i) => i.kind === "defaut").map((i) => i.checkId);
+    expect(ids).toContain("21.competences");
+    expect(ids).toContain("21.justificatifs");
+    expect(ids).toContain("22.formation");
+  });
+
+  it("signale un contrôle qui n'a rien pu vérifier au lieu de le taire", () => {
+    const facts = {
+      ...PERFECT,
+      sampleSize: 0,
+      sampleWithNeedsSurvey: 0,
+      sampleWithObjectives: 0,
+      sampleWithProgramme: 0,
+    };
+    const issues = automaticIssues(facts);
+    const blocked = issues.filter((i) => i.kind === "sans_matiere").map((i) => i.checkId);
+    expect(blocked).toContain("4.recueil");
+    expect(blocked).toContain("5.objectifs");
+  });
+
+  it("ne remonte rien quand les données sont conformes", () => {
+    expect(automaticIssues(PERFECT)).toEqual([]);
+  });
+
+  it("donne à chaque constat la gradation de son indicateur", () => {
+    const facts = { ...PERFECT, trainers: 0, trainersWithCompetences: 0, trainersWithDocuments: 0 };
+    const issue = automaticIssues(facts).find((i) => i.checkId === "21.competences");
+    expect(issue?.gradation).toBe(gradationOf(21));
   });
 });
