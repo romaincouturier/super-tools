@@ -2,7 +2,8 @@
 title: 'Story 1.3 : joindre un visuel de la Médiathèque et être alerté d''un post incomplet'
 type: 'feature'
 created: '2026-11-06'
-status: 'draft'
+status: 'in-progress'
+baseline_commit: '8f8bded56d83e6c023e91a81976b25445a7c31c7'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
