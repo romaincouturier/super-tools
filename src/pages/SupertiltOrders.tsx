@@ -11,6 +11,7 @@ import { GameRestockTab } from "@/components/supertilt/GameRestockTab";
 import LocationExtensionsSection from "@/components/supertilt/LocationExtensionsSection";
 import LocationGameReturnButton from "@/components/supertilt/LocationGameReturnButton";
 import GameDevisTab from "@/components/dropshipping/GameDevisTab";
+import { DevisOrderBadge, DevisOrderPanel } from "@/components/supertilt/DevisOrderBadge";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -179,6 +180,7 @@ function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => v
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 text-sm">
+          <DevisOrderPanel order={item.woocommerce_orders} />
           <div className="grid grid-cols-2 gap-3">
             <div><span className="text-muted-foreground">Produit WC</span><p className="font-medium">{item.product_name} (ID #{item.wc_product_id})</p></div>
             <div><span className="text-muted-foreground">Quantité</span><p className="font-medium">{item.quantity}</p></div>
@@ -685,6 +687,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm truncate">{item.product_name ?? `Produit #${item.wc_product_id}`}</p>
           <p className="text-xs text-muted-foreground truncate">{customerName}</p>
+          <DevisOrderBadge order={order} />
         </div>
         <div className="flex flex-col items-end gap-1">
           {item.game_type && (

@@ -52,14 +52,14 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 
 - Password setup loads and saves learner names through authenticated session-owned profile access, after an explicit recovery confirmation click; it never consumes recovery tokens on page load or exposes anonymous email-based profile lookup, because name prefill must preserve scanner-safe links and identity privacy.
 
-- Bulk participant progress follows awaited stages and per-recipient callbacks, so it reflects real work.
+- Bulk participant progress follows awaited stages and per-recipient callbacks.
 
 - Staff learner-access sends provision missing accounts only after checking an existing participant or LMS enrollment, because bulk additions bypass account provisioning and must not silently skip the email or create arbitrary accounts.
 - Staff learner-access failures keep their stage, return 429 for non-admin quotas (only server-verified is_admin bypasses), and browser batches report failures without undoing enrollment, so admin tests never weaken public protections.
 
 - Training document delivery locks submission before preparation, checks trainer signatures, generates certificates without sending separate emails, and uses provider idempotency per confirmation; only attached documents are marked sent, because an incomplete or repeated preparation must not send invoices alone or claim missing documents were delivered.
 
-- Login submissions read named fields from FormData rather than React state, because browser and password-manager autofill can update inputs without firing change events.
+- Login submissions read FormData, not React state, because autofill may skip change events.
 
 - Participant BPF normalization stays in a pure helper local to add-training-participant and is tested against database CHECK values, because draft and normal inserts must accept legacy shop labels without writing invalid classifications.
 
@@ -82,7 +82,7 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - LMS course audio transcripts live on their `media` row (`transcript`, `transcription_status` pending/transcribed/processed/error, duration); blocks generated from an audio carry `lms_lesson_blocks.source_media_id`, and uploads are de-duplicated per course by `media.content_hash` (legacy rows by name+size), because course audios must stay out of the meetings `transcripts` pipeline while remaining traceable.
 - Micro-devis follow-up sessions are computed by the pure helper `supabase/functions/_shared/micro-devis-followup.ts`, shared by the Micro-devis page and `generate-micro-devis`; the server reads included sessions from the selected catalog formula, descriptions count included plus added sessions, and only additions increase price and catalog duration, because UI and PDF must agree without billing included sessions twice.
 - Cold evaluations are native tokenized questionnaires (`sponsor_cold_evaluations`, `participant_cold_evaluations`) planned by `send-thank-you-email` through the pure helper `_shared/cold-evaluation.ts` (one per distinct sponsor, one per participant), reuse one token per recipient and session, get one reminder scheduled after a successful send, and record failures in `scheduled_emails.error_message` while staying pending, because sends must never fail silently or duplicate.
-- Cold evaluation eligibility is checked by the shared pure helper both before scheduling and before sending (including reminders and forced calls); excluded rows are cancelled, because catch-up and stale queues must not bypass the deployment cutoff.
+- Cold evaluation eligibility is checked by the shared helper before scheduling and sending (reminders, forced calls included); excluded rows are cancelled, so queues cannot bypass the cutoff.
 - Learner access emails are chosen server-side by a pure helper from `password_set` only (a missing security row means no password; a past sign-in proves nothing unless it was a password sign-in, recorded by `mark_password_proven`): create-password for accounts without a proven password, `learner_course_access` with a direct course link otherwise, because legacy magic-link accounts must never be told to log in with a password they never created.
 - Bulk access emails queue in `learner_access_jobs` (server-side, requester rights): browser sends blocked the page.
 - Password emails use hashed `password_setup_links`: native tokens expire too soon.
@@ -92,3 +92,4 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Transcript→Réseau links: `link_transcript_to_network_contact` (UI), `_shared/network-tools.ts` (MCP); unlinking keeps the interaction, preserving history.
 - Picto-Dico input and challenge guards are DB triggers mirrored in `_shared/pictodico-validation.ts`; the linked event drives challenge number/date, because the webhook is public.
 - Live-recording notice = template `live_recording_notice`, shown only when lives exist.
+- Quote game orders: internal `source='devis'` orders via `create-devis-order`, never WooCommerce, to avoid duplicate invoices.

@@ -2706,6 +2706,21 @@ export type Database = {
           },
         ]
       }
+      devis_order_counters: {
+        Row: {
+          last_value: number
+          year: number
+        }
+        Insert: {
+          last_value?: number
+          year: number
+        }
+        Update: {
+          last_value?: number
+          year?: number
+        }
+        Relationships: []
+      }
       devis_signatures: {
         Row: {
           activity_log_id: string
@@ -13902,11 +13917,17 @@ export type Database = {
       woocommerce_orders: {
         Row: {
           billing_address: Json | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string
+          created_by: string | null
+          crm_card_id: string | null
           customer_email: string | null
           customer_first_name: string | null
           customer_last_name: string | null
           date_created: string
+          devis_activity_log_id: string | null
           id: string
           line_items: Json | null
           order_number: string | null
@@ -13917,6 +13938,7 @@ export type Database = {
           shipping_address: Json | null
           shipping_total: number | null
           slack_notified_at: string | null
+          source: string
           total_ht: number | null
           total_tax: number | null
           total_ttc: number | null
@@ -13925,11 +13947,17 @@ export type Database = {
         }
         Insert: {
           billing_address?: Json | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
+          created_by?: string | null
+          crm_card_id?: string | null
           customer_email?: string | null
           customer_first_name?: string | null
           customer_last_name?: string | null
           date_created: string
+          devis_activity_log_id?: string | null
           id?: string
           line_items?: Json | null
           order_number?: string | null
@@ -13940,6 +13968,7 @@ export type Database = {
           shipping_address?: Json | null
           shipping_total?: number | null
           slack_notified_at?: string | null
+          source?: string
           total_ht?: number | null
           total_tax?: number | null
           total_ttc?: number | null
@@ -13948,11 +13977,17 @@ export type Database = {
         }
         Update: {
           billing_address?: Json | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
+          created_by?: string | null
+          crm_card_id?: string | null
           customer_email?: string | null
           customer_first_name?: string | null
           customer_last_name?: string | null
           date_created?: string
+          devis_activity_log_id?: string | null
           id?: string
           line_items?: Json | null
           order_number?: string | null
@@ -13963,6 +13998,7 @@ export type Database = {
           shipping_address?: Json | null
           shipping_total?: number | null
           slack_notified_at?: string | null
+          source?: string
           total_ht?: number | null
           total_tax?: number | null
           total_ttc?: number | null
@@ -14192,6 +14228,10 @@ export type Database = {
       }
       community_theme_mode_on: { Args: never; Returns: boolean }
       connexion_indicators: { Args: { p_days?: number }; Returns: Json }
+      create_devis_order: {
+        Args: { p_items: Json; p_order: Json }
+        Returns: Json
+      }
       create_quote_testimonial: {
         Args: {
           p_author: string
