@@ -59,7 +59,7 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 
 - Training document delivery locks submission before preparation, checks trainer signatures, generates certificates without sending separate emails, and uses provider idempotency per confirmation; only attached documents are marked sent, because an incomplete or repeated preparation must not send invoices alone or claim missing documents were delivered.
 
-- Login submissions read named fields from FormData rather than React state, because browser and password-manager autofill can update inputs without firing change events.
+- Login submissions read FormData, not React state, because autofill may skip change events.
 
 - Participant BPF normalization stays in a pure helper local to add-training-participant and is tested against database CHECK values, because draft and normal inserts must accept legacy shop labels without writing invalid classifications.
 
