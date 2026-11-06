@@ -52,7 +52,7 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 
 - Password setup loads and saves learner names through authenticated session-owned profile access, after an explicit recovery confirmation click; it never consumes recovery tokens on page load or exposes anonymous email-based profile lookup, because name prefill must preserve scanner-safe links and identity privacy.
 
-- Bulk participant progress follows awaited stages and per-recipient callbacks, so it reflects real work.
+- Bulk participant progress follows awaited stages and per-recipient callbacks.
 
 - Staff learner-access sends provision missing accounts only after checking an existing participant or LMS enrollment, because bulk additions bypass account provisioning and must not silently skip the email or create arbitrary accounts.
 - Staff learner-access failures keep their stage, return 429 for non-admin quotas (only server-verified is_admin bypasses), and browser batches report failures without undoing enrollment, so admin tests never weaken public protections.
