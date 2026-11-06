@@ -134,3 +134,4 @@
 - [x] Relance unique à 3 jours ouvrés, annulée si réponse
 - [x] Questionnaire participant natif à 30 jours ouvrés
 - [x] Suivi sur la fiche formation et la page Évaluations, action d'amélioration, analyse IA
+- [x] MCP update_training : notes, objectifs, prérequis, programme, copie catalogue
