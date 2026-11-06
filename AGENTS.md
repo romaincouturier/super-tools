@@ -92,4 +92,5 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Transcript→Réseau links: `link_transcript_to_network_contact` (UI), `_shared/network-tools.ts` (MCP); unlinking keeps the interaction, preserving history.
 - Picto-Dico input and challenge guards are DB triggers mirrored in `_shared/pictodico-validation.ts`; the linked event drives challenge number/date, because the webhook is public.
 - Live-recording notice = template `live_recording_notice`, shown only when lives exist.
-- Quote game orders: internal `source='devis'` orders via `create-devis-order`, never WooCommerce, to avoid duplicate invoices.
+- Quote game orders stay internal (`create-devis-order`), never WooCommerce.
+- CRM card lists load via `crmCardsFetch` (paged; slim noCRM metadata).
