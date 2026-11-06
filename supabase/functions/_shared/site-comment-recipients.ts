@@ -4,7 +4,7 @@ export const SITE_COMMENT_CUTOFF = "2026-09-07T00:00:00Z";
 /** Liste d'adresses séparées par virgule, point-virgule ou retour à la ligne, dédoublonnée. */
 export function parseEmailList(value: unknown): string[] {
   const raw = typeof value === "string" ? value : Array.isArray(value) ? value.join(",") : "";
-  const out = raw.split(/[,;\s]+/).map((e) => e.trim().toLowerCase()).filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+  const out = raw.replace(/["']/g, "").split(/[,;\s]+/).map((e) => e.trim().toLowerCase()).filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
   return [...new Set(out)];
 }
 
