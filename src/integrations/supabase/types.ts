@@ -14180,6 +14180,10 @@ export type Database = {
         Returns: boolean
       }
       cleanup_agent_embedding_cache: { Args: never; Returns: number }
+      community_post_audience: {
+        Args: { _author: string; _course_id: string; _scope: string }
+        Returns: string[]
+      }
       community_theme_mode_on: { Args: never; Returns: boolean }
       connexion_indicators: { Args: { p_days?: number }; Returns: Json }
       create_quote_testimonial: {

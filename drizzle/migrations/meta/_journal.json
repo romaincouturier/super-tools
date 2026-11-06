@@ -302,6 +302,13 @@
       "when": 1793982331840,
       "tag": "0042_author_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1793985167260,
+      "tag": "0043_learner_notify_new_community_posts",
+      "breakpoints": true
     }
   ]
 }
