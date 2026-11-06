@@ -145,6 +145,7 @@ const CrmReports = () => {
   const [preset, setPreset] = useState<PeriodPreset>((prefs.preset as PeriodPreset) || "year");
   const [customStart, setCustomStart] = useState<Date | undefined>();
   const [customEnd, setCustomEnd] = useState<Date | undefined>();
+  const [includeNocrm, setIncludeNocrm] = useState(true);
 
   const handlePresetChange = useCallback((p: PeriodPreset) => {
     setPreset(p);
@@ -156,11 +157,12 @@ const CrmReports = () => {
       return {
         startDate: customStart ? format(customStart, "yyyy-MM-dd") : null,
         endDate: customEnd ? format(customEnd, "yyyy-MM-dd") : null,
+        includeNocrm,
       };
     }
     const dates = getPresetDates(preset, new Date());
-    return { startDate: dates?.start ?? null, endDate: dates?.end ?? null };
-  }, [preset, customStart, customEnd]);
+    return { startDate: dates?.start ?? null, endDate: dates?.end ?? null, includeNocrm };
+  }, [preset, customStart, customEnd, includeNocrm]);
 
   const { data: reports, isLoading } = useCrmReports(filters);
   const [activeChart, setActiveChart] = useState<string | null>(null);
@@ -290,6 +292,8 @@ const CrmReports = () => {
                     customEnd={customEnd}
                     onCustomStartChange={setCustomStart}
                     onCustomEndChange={setCustomEnd}
+                    includeNocrm={includeNocrm}
+                    onIncludeNocrmChange={setIncludeNocrm}
                   />
                 }
               />
@@ -434,6 +438,8 @@ function PeriodSelector({
   customEnd?: Date;
   onCustomStartChange: (d: Date | undefined) => void;
   onCustomEndChange: (d: Date | undefined) => void;
+  includeNocrm?: boolean;
+  onIncludeNocrmChange?: (v: boolean) => void;
 }) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -454,6 +460,12 @@ function PeriodSelector({
           <DatePickerButton label="Début" date={customStart} onChange={onCustomStartChange} />
           <DatePickerButton label="Fin" date={customEnd} onChange={onCustomEndChange} />
         </>
+      )}
+      {onIncludeNocrmChange && (
+        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Checkbox checked={includeNocrm ?? true} onCheckedChange={(v) => onIncludeNocrmChange(v === true)} />
+          Inclure l'historique noCRM
+        </label>
       )}
     </div>
   );
