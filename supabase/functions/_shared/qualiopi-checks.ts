@@ -79,12 +79,29 @@ export interface AuditFacts {
   improvements: number;
 }
 
+/**
+ * Ce que signifie, pour un contrôle donné, l'absence de matière à contrôler.
+ *
+ * Par défaut, rien : zéro réclamation reçue n'est pas un défaut, c'est une
+ * bonne nouvelle. Mais les deux autres cas ne doivent pas se confondre avec
+ * celui-là :
+ *
+ * - `defect` : l'absence est le manque lui-même. Un organisme sans aucun
+ *   intervenant enregistré ne démontre pas l'attendu de l'indicateur 21, il
+ *   n'a simplement rien à montrer ;
+ * - `cannot_conclude` : l'absence empêche de juger. Sans session à
+ *   échantillonner, l'auditeur ne peut rien vérifier, et un audit ne conclut
+ *   pas sur ce qu'il n'a pas pu regarder.
+ */
+export type EmptyMeaning = "defect" | "cannot_conclude";
+
 export interface AuditCheckDef {
   id: string;
   label: string;
   run: (f: AuditFacts) => CheckOutcome;
   /** Où corriger, quand le contrôle échoue faute de donnée saisie. */
   fix?: { label: string; href: string };
+  onEmpty?: EmptyMeaning;
 }
 
 export interface AuditQuestionDef {
@@ -168,6 +185,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "4.recueil",
         label: "Recueil des besoins rempli sur les sessions échantillonnées",
         run: (f) => ratio(f.sampleWithNeedsSurvey, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude",
       },
     ],
     questions: [
@@ -184,11 +202,13 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "5.objectifs",
         label: "Objectifs définis sur les sessions échantillonnées",
         run: (f) => ratio(f.sampleWithObjectives, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude",
       },
       {
         id: "5.evaluables",
         label: "Les objectifs sont notés un à un par les participants",
         run: (f) => ratio(f.sampleWithEvaluations, f.sampleSize, "sessions évaluées"),
+        onEmpty: "cannot_conclude",
       },
     ],
     questions: [],
@@ -199,6 +219,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "6.programme",
         label: "Programme ou parcours rattaché aux sessions échantillonnées",
         run: (f) => ratio(f.sampleWithProgramme, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude",
       },
     ],
     questions: [
@@ -215,6 +236,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "8.prerequis",
         label: "Validation des prérequis recueillie à l'entrée",
         run: (f) => ratio(f.sampleWithPrerequisiteCheck, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude",
       },
     ],
     questions: [
@@ -231,6 +253,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "9.convocation",
         label: "Convocation envoyée sur les sessions échantillonnées",
         run: (f) => ratio(f.sampleWithConvocation, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude",
       },
       {
         id: "9.reglement",
@@ -268,6 +291,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "11.evaluation",
         label: "Évaluation de fin recueillie sur les sessions échantillonnées",
         run: (f) => ratio(f.sampleWithEvaluations, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude",
       },
     ],
     questions: [],
@@ -313,6 +337,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "18.intervenant",
         label: "Intervenant identifié sur les sessions échantillonnées",
         run: (f) => ratio(f.sampleWithTrainer, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude",
       },
     ],
     questions: [],
@@ -345,17 +370,20 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         label: "Compétences définies pour chaque intervenant",
         run: (f) => ratio(f.trainersWithCompetences, f.trainers, "intervenants"),
         fix: { label: "Renseigner les compétences", href: "/parametres#trainers" },
+        onEmpty: "defect",
       },
       {
         id: "21.justificatifs",
         label: "Justificatifs disponibles : CV, diplômes, certifications",
         run: (f) => ratio(f.trainersWithDocuments, f.trainers, "intervenants"),
         fix: { label: "Charger CV et diplômes", href: "/parametres#trainers" },
+        onEmpty: "defect",
       },
       {
         id: "21.adequation",
         label: "Adéquation intervenant/session validée sur l'échantillon",
         run: (f) => ratio(f.sampleWithTrainerAdequacy, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude",
       },
     ],
     questions: [],
@@ -367,6 +395,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         label: "Formation continue renseignée pour chaque intervenant",
         run: (f) => ratio(f.trainersWithContinuingEducation, f.trainers, "intervenants"),
         fix: { label: "Renseigner les formations suivies", href: "/parametres#trainers" },
+        onEmpty: "defect",
       },
     ],
     questions: [
@@ -471,6 +500,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "30.beneficiaires",
         label: "Appréciations des bénéficiaires recueillies",
         run: (f) => ratio(f.sampleWithEvaluations, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude",
       },
       {
         id: "30.froid",
@@ -593,6 +623,8 @@ export interface IndicatorFinding {
   checks: Array<{ id: string; label: string } & CheckOutcome>;
   /** Questions restées sans réponse. */
   pending: string[];
+  /** Contrôles qui n'ont rien trouvé à mesurer et empêchent de conclure. */
+  blocked: string[];
   /** Ce qui fonde le verdict, en une phrase. */
   rationale: string;
 }
@@ -609,7 +641,22 @@ export function evaluateIndicator(
   facts: AuditFacts,
   answers: Record<string, AnswerValue>,
 ): IndicatorFinding {
-  const checks = plan.checks.map((c) => ({ id: c.id, label: c.label, ...c.run(facts) }));
+  // Un contrôle sans matière ne dit pas la même chose partout : pour
+  // certains c'est le manque lui-même, pour d'autres l'impossibilité de
+  // juger. Les deux sont déclarés sur le contrôle, pas devinés ici.
+  const checks = plan.checks.map((c) => {
+    const outcome = c.run(facts);
+    if (outcome.status === "unknown" && c.onEmpty === "defect") {
+      return { id: c.id, label: c.label, status: "ko" as CheckStatus, detail: outcome.detail };
+    }
+    return { id: c.id, label: c.label, ...outcome };
+  });
+
+  const blocked = plan.checks
+    .filter((c) => c.onEmpty === "cannot_conclude")
+    .filter((c) => checks.find((x) => x.id === c.id)?.status === "unknown")
+    .map((c) => c.id);
+
   const pending = plan.questions.filter((q) => !answers[q.id]).map((q) => q.id);
 
   const failed = checks.filter((c) => c.status === "ko").length;
@@ -617,12 +664,24 @@ export function evaluateIndicator(
   const answeredNo = plan.questions.filter((q) => answers[q.id] === "non").length;
   const answeredYes = plan.questions.filter((q) => answers[q.id] === "oui").length;
 
+  if (blocked.length > 0) {
+    return {
+      number: plan.indicator.number,
+      verdict: "a_verifier",
+      checks,
+      pending,
+      blocked,
+      rationale: "Rien à échantillonner : l'audit ne peut pas se prononcer",
+    };
+  }
+
   if (pending.length > 0) {
     return {
       number: plan.indicator.number,
       verdict: "a_verifier",
       checks,
       pending,
+      blocked,
       rationale: `${pending.length} question${pending.length > 1 ? "s" : ""} sans réponse`,
     };
   }
@@ -634,6 +693,7 @@ export function evaluateIndicator(
       verdict: "conforme",
       checks,
       pending,
+      blocked,
       rationale: "Attendu respecté",
     };
   }
@@ -649,6 +709,7 @@ export function evaluateIndicator(
     verdict,
     checks,
     pending,
+    blocked,
     rationale:
       verdict === "mineure"
         ? `Respect partiel : ${problems} point${problems > 1 ? "s" : ""} en défaut sur ${problems + satisfied}`

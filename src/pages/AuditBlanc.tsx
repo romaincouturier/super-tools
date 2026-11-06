@@ -79,6 +79,9 @@ export default function AuditBlanc() {
     [plans, facts, answers],
   );
   const summary = useMemo(() => summarize(findings), [findings]);
+  // Un verdict suspendu faute de matière ne se corrige pas en répondant à une
+  // question : il se distingue de celui qui attend l'auditeur.
+  const blockedCount = useMemo(() => findings.filter((f) => f.blocked.length > 0).length, [findings]);
 
   const start = async () => {
     try {
@@ -178,8 +181,11 @@ export default function AuditBlanc() {
                 </div>
                 {summary.aVerifier > 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    {summary.aVerifier} indicateur{summary.aVerifier > 1 ? "s" : ""} attend
-                    {summary.aVerifier > 1 ? "ent" : ""} encore vos réponses.
+                    {summary.aVerifier} indicateur{summary.aVerifier > 1 ? "s" : ""} sans verdict
+                    {blockedCount > 0
+                      ? `, dont ${blockedCount} faute de matière à contrôler`
+                      : ""}
+                    .
                   </p>
                 ) : summary.blocking ? (
                   <p className="text-sm text-destructive">

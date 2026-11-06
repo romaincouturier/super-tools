@@ -199,10 +199,10 @@ describe("contrôles réels par indicateur", () => {
 describe("summarize", () => {
   it("compte les verdicts et signale une majeure comme bloquante", () => {
     const findings = [
-      { number: 1, verdict: "conforme" as const, checks: [], pending: [], rationale: "" },
-      { number: 4, verdict: "majeure" as const, checks: [], pending: [], rationale: "" },
-      { number: 9, verdict: "mineure" as const, checks: [], pending: [], rationale: "" },
-      { number: 17, verdict: "a_verifier" as const, checks: [], pending: [], rationale: "" },
+      { number: 1, verdict: "conforme" as const, checks: [], pending: [], blocked: [], rationale: "" },
+      { number: 4, verdict: "majeure" as const, checks: [], pending: [], blocked: [], rationale: "" },
+      { number: 9, verdict: "mineure" as const, checks: [], pending: [], blocked: [], rationale: "" },
+      { number: 17, verdict: "a_verifier" as const, checks: [], pending: [], blocked: [], rationale: "" },
     ];
     expect(summarize(findings)).toEqual({
       conforme: 1,
@@ -215,7 +215,7 @@ describe("summarize", () => {
   });
 
   it("ne bloque pas sans majeure", () => {
-    expect(summarize([{ number: 1, verdict: "mineure", checks: [], pending: [], rationale: "" }]).blocking).toBe(
+    expect(summarize([{ number: 1, verdict: "mineure", checks: [], pending: [], blocked: [], rationale: "" }]).blocking).toBe(
       false,
     );
   });
@@ -310,5 +310,45 @@ describe("buildFacts", () => {
       ],
     });
     expect(facts.highRisksWithoutMeasure).toBe(1);
+  });
+});
+
+describe("absence de matière", () => {
+  // Zéro intervenant n'est pas « rien à contrôler » : c'est l'attendu qui
+  // n'est pas démontré. L'indicateur 21 ne connaît que la majeure.
+  it("traite l'absence d'intervenant comme un manque, pas comme un hors-sujet", () => {
+    const facts = { ...PERFECT, trainers: 0, trainersWithCompetences: 0, trainersWithDocuments: 0 };
+    const f = evaluateIndicator(planFor(21), facts, allYes(21));
+    expect(f.verdict).toBe("majeure");
+    expect(f.checks.find((c) => c.id === "21.competences")?.status).toBe("ko");
+  });
+
+  it("traite de même l'absence de formation continue", () => {
+    const facts = { ...PERFECT, trainers: 0, trainersWithContinuingEducation: 0 };
+    const f = evaluateIndicator(planFor(22), facts, allYes(22));
+    expect(f.verdict).toBe("majeure");
+  });
+
+  // Sans session à échantillonner, l'auditeur ne peut rien vérifier : le
+  // verdict se suspend au lieu de se prononcer dans le vide.
+  it("suspend le verdict quand il n'y a rien à échantillonner", () => {
+    const facts = { ...PERFECT, sampleSize: 0, sampleWithNeedsSurvey: 0 };
+    const f = evaluateIndicator(planFor(4), facts, allYes(4));
+    expect(f.verdict).toBe("a_verifier");
+    expect(f.blocked).toContain("4.recueil");
+    expect(f.rationale).toContain("échantillonner");
+  });
+
+  it("ne bloque pas sur une absence qui est une bonne nouvelle", () => {
+    const facts = { ...PERFECT, reclamations: 0, reclamationsAcknowledged: 0, reclamationsAnswered: 0 };
+    const f = evaluateIndicator(planFor(31), facts, allYes(31));
+    expect(f.verdict).toBe("conforme");
+    expect(f.blocked).toEqual([]);
+  });
+
+  it("ne bloque pas un organisme sans parcours à distance", () => {
+    const facts = { ...PERFECT, elearningCourses: 0, elearningCoursesWithMandatoryLessons: 0 };
+    const f = evaluateIndicator(planFor(19), facts, allYes(19));
+    expect(f.verdict).toBe("conforme");
   });
 });
