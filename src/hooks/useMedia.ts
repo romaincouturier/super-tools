@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient, QueryClient } from "@tanstack/re
 import { supabase } from "@/integrations/supabase/client";
 import { invokeEdge } from "@/lib/invokeEdge";
 import { resolveContentType, assertMediaFileSupported } from "@/lib/file-utils";
+import { SOCIAL_CONTENTS_KEY } from "@/hooks/useSocialContents";
 
 export type MediaSourceType = "mission" | "event" | "training" | "crm" | "content" | "lms";
 
@@ -34,9 +35,10 @@ const MEDIA_LIBRARY_KEY = "media-library";
 const ENTITY_MEDIA_KEY = "entity-media";
 
 // ── Fetch all media for the central gallery ──────────────────────────
-export const useMediaLibrary = () => {
+export const useMediaLibrary = (options: { enabled?: boolean } = {}) => {
   return useQuery({
     queryKey: [MEDIA_LIBRARY_KEY],
+    enabled: options.enabled ?? true,
     queryFn: async () => {
       // Fetch all media
       const { data: mediaRows, error } = await supabase
@@ -323,6 +325,8 @@ export const useDeleteMedia = () => {
     },
     onSuccess: ({ sourceType, sourceId }) => {
       invalidateMediaCaches(queryClient, sourceType, sourceId);
+      // Les visuels des contenus sociaux repassent à null (ON DELETE SET NULL).
+      queryClient.invalidateQueries({ queryKey: SOCIAL_CONTENTS_KEY });
     },
   });
 };

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { computePostAlerts, type SocialPostAlert } from "../../supabase/functions/_shared/social-post-alerts";
 
 // Tables absentes des types générés tant que Lovable ne les a pas régénérés
 // (règle [079]) : client non typé, types locaux.
@@ -33,6 +34,8 @@ export interface SocialPost {
   text: string;
   scheduled_at: string | null;
   publication_status: SocialPublicationStatus;
+  /** Visuel choisi dans la Médiathèque, null si absent ou supprimé. */
+  media_id: string | null;
 }
 
 export interface SocialContentGroup {
@@ -55,6 +58,10 @@ export interface SocialGroupDraft {
   commonText: string;
   /** Texte propre à chaque canal, utilisé quand la synchro est coupée. */
   texts: Record<string, string>;
+  /** Visuel commun, utilisé tant que la synchro est active. */
+  commonMediaId: string | null;
+  /** Visuel propre à chaque canal, utilisé quand la synchro est coupée. */
+  mediaIds: Record<string, string | null>;
   scheduledAt: string | null;
 }
 
@@ -62,15 +69,40 @@ export interface SocialPostInput {
   channel_id: string;
   text: string;
   scheduled_at: string | null;
+  media_id: string | null;
 }
 
-/** Un post par canal coché : texte commun si synchro, texte propre sinon. */
+/** Un post par canal coché : texte et visuel communs si synchro, propres sinon. */
 export function buildGroupPosts(draft: Omit<SocialGroupDraft, "groupId" | "format">): SocialPostInput[] {
   return [...new Set(draft.channelIds)].map((channel_id) => ({
     channel_id,
     text: draft.sync ? draft.commonText : (draft.texts[channel_id] ?? draft.commonText),
     scheduled_at: draft.scheduledAt,
+    media_id: draft.sync
+      ? draft.commonMediaId
+      : (channel_id in draft.mediaIds ? draft.mediaIds[channel_id] : draft.commonMediaId),
   }));
+}
+
+export type { SocialPostAlert };
+
+export interface ChannelAlerts {
+  channelId: string;
+  alerts: SocialPostAlert[];
+}
+
+/**
+ * Alertes par canal, en ne gardant que les canaux qui en ont. Une déclinaison
+ * publiée ne peut plus être corrigée : elle n'a jamais d'alerte.
+ */
+export function alertsByChannel(
+  posts: (Pick<SocialPostInput, "channel_id" | "text" | "media_id"> & { publication_status?: SocialPublicationStatus })[],
+  channelsById: ReadonlyMap<string, Pick<SocialChannel, "text_limit">>,
+): ChannelAlerts[] {
+  return posts
+    .filter((p) => p.publication_status !== "published")
+    .map((p) => ({ channelId: p.channel_id, alerts: computePostAlerts(p, channelsById.get(p.channel_id)) }))
+    .filter((a) => a.alerts.length > 0);
 }
 
 const PARIS = "Europe/Paris";
@@ -104,6 +136,8 @@ export function utcIsoToParisLocal(iso: string): { date: string; time: string } 
   return { date: `${get("year")}-${get("month")}-${get("day")}`, time: `${get("hour")}:${get("minute")}` };
 }
 
+const GROUP_SELECT = "id, format, sync, created_by, created_at, updated_at, posts:social_posts(id, group_id, channel_id, text, scheduled_at, publication_status, media_id)";
+
 export async function listChannels(): Promise<SocialChannel[]> {
   const { data, error } = await db
     .from("social_channels")
@@ -117,7 +151,7 @@ export async function listChannels(): Promise<SocialChannel[]> {
 export async function getGroup(id: string): Promise<SocialContentGroup | null> {
   const { data, error } = await db
     .from("social_content_groups")
-    .select("id, format, sync, created_by, created_at, updated_at, posts:social_posts(id, group_id, channel_id, text, scheduled_at, publication_status)")
+    .select(GROUP_SELECT)
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
@@ -231,6 +265,8 @@ export interface CalendarCard {
   status: SocialPublicationStatus;
   /** Date de la carte, null pour un brouillon. */
   scheduledAt: string | null;
+  /** Alertes des déclinaisons visibles, par canal ; vide si aucune. */
+  alerts: ChannelAlerts[];
 }
 
 /**
@@ -240,11 +276,14 @@ export interface CalendarCard {
  * déclinaison visible est datée (quel que soit son statut) : la plus tôt dans
  * la plage chargée, à défaut la plus tôt. Le statut affiché reste le moins
  * avancé. Un groupe présent deux fois est gardé une seule fois (la première).
+ * Les alertes sont calculées sur les déclinaisons visibles non publiées, avec la limite
+ * de texte des canaux fournis (sans canal connu : pas d'alerte de longueur).
  */
 export function placeGroups(
   groups: SocialContentGroup[],
   visibleChannelIds: ReadonlySet<string>,
   range?: { fromIso: string; toIso: string },
+  channelsById: ReadonlyMap<string, Pick<SocialChannel, "text_limit">> = new Map(),
 ): { undated: CalendarCard[]; byDay: Map<string, CalendarCard[]> } {
   const undated: CalendarCard[] = [];
   const byDay = new Map<string, CalendarCard[]>();
@@ -257,25 +296,24 @@ export function placeGroups(
     const posts = group.posts.filter((p) => visibleChannelIds.has(p.channel_id));
     if (posts.length === 0) continue;
     const status = groupDisplayStatus(posts);
+    const alerts = alertsByChannel(posts, channelsById);
     const dates = posts
       .filter((p) => p.scheduled_at)
       .map((p) => p.scheduled_at as string)
       .sort((a, b) => Date.parse(a) - Date.parse(b));
     if (dates.length === 0) {
-      undated.push({ group, posts, status, scheduledAt: null });
+      undated.push({ group, posts, status, scheduledAt: null, alerts });
       continue;
     }
     const scheduledAt = dates.find((d) => Date.parse(d) >= from && Date.parse(d) < to) ?? dates[0];
     const key = parisDayKey(scheduledAt);
     const day = byDay.get(key) ?? [];
-    day.push({ group, posts, status, scheduledAt });
+    day.push({ group, posts, status, scheduledAt, alerts });
     byDay.set(key, day);
   }
   for (const day of byDay.values()) day.sort((a, b) => Date.parse(a.scheduledAt as string) - Date.parse(b.scheduledAt as string));
   return { undated, byDay };
 }
-
-const GROUP_SELECT = "id, format, sync, created_by, created_at, updated_at, posts:social_posts(id, group_id, channel_id, text, scheduled_at, publication_status)";
 
 async function listGroupsByIds(ids: string[]): Promise<SocialContentGroup[]> {
   if (ids.length === 0) return [];

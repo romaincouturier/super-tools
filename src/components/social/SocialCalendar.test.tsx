@@ -11,6 +11,7 @@ const h = vi.hoisted(() => ({
   rangeArgs: vi.fn(),
   refetch: vi.fn(),
   undatedError: false,
+  instagramLimit: null as number | null,
   onDragEnd: null as null | ((e: unknown) => void),
   dated: [] as unknown[],
   undated: [] as unknown[],
@@ -34,7 +35,7 @@ const channel = (id: string, name: string, abbreviation: string, sort_order: num
 
 vi.mock("@/hooks/useSocialContents", () => ({
   useSocialChannels: () => ({
-    data: [channel("li", "LinkedIn Romain", "LI", 10), channel("in", "Instagram", "IN", 40)],
+    data: [channel("li", "LinkedIn Romain", "LI", 10), { ...channel("in", "Instagram", "IN", 40), text_limit: h.instagramLimit }],
     isLoading: false,
     isError: false,
     refetch: h.refetch,
@@ -55,7 +56,7 @@ vi.mock("@/components/social/SocialComposerDialog", () => ({
 
 const post = (group_id: string, channel_id: string, text: string, scheduled_at: string | null): SocialPost => ({
   id: `${group_id}-${channel_id}`, group_id, channel_id, text, scheduled_at,
-  publication_status: scheduled_at ? "scheduled" : "unscheduled",
+  publication_status: scheduled_at ? "scheduled" : "unscheduled", media_id: null,
 });
 const group = (id: string, posts: SocialPost[]): SocialContentGroup => ({
   id, format: "post", sync: true, created_by: null, created_at: "", updated_at: "", posts,
@@ -69,6 +70,7 @@ describe("Calendrier des contenus sociaux", () => {
     vi.setSystemTime(new Date("2026-11-05T10:00:00Z"));
     vi.clearAllMocks();
     h.undatedError = false;
+    h.instagramLimit = null;
     h.dated = [
       // 23:30 à Paris le 12 novembre (22:30 UTC).
       group("soir", [post("soir", "li", "Post du soir", "2026-11-12T22:30:00.000Z")]),
@@ -98,6 +100,38 @@ describe("Calendrier des contenus sociaux", () => {
     expect(within(screen.getByTestId("social-card-brouillon")).queryByText("IN")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "LinkedIn Romain" }));
     expect(screen.getByText("Non planifiés · 0")).toBeInTheDocument();
+  });
+
+  it("affiche l'indicateur d'alerte sur une carte sans visuel, pas sur une carte complète", () => {
+    h.dated = [
+      group("sans", [post("sans", "li", "Sans visuel", "2026-11-12T08:00:00.000Z")]),
+      group("avec", [{ ...post("avec", "li", "Avec visuel", "2026-11-13T08:00:00.000Z"), media_id: "m" }]),
+    ];
+    renderPage();
+    expect(within(screen.getByTestId("social-card-sans")).getByRole("img", { name: "1 alerte : LinkedIn Romain : Visuel manquant" })).toBeInTheDocument();
+    expect(within(screen.getByTestId("social-card-avec")).queryByTestId("social-alert-indicator")).toBeNull();
+    expect(within(screen.getByTestId("social-card-brouillon")).getByRole("img", { name: /^2 alertes/ })).toBeInTheDocument();
+  });
+
+  it("applique la limite du canal : texte trop long malgré le visuel, deux alertes cumulées sur une déclinaison", () => {
+    h.instagramLimit = 5;
+    h.dated = [
+      group("long", [{ ...post("long", "in", "Bien trop long", "2026-11-12T08:00:00.000Z"), media_id: "m" }]),
+      group("double", [post("double", "in", "Encore trop long", "2026-11-13T08:00:00.000Z")]),
+    ];
+    renderPage();
+    const long = within(screen.getByTestId("social-card-long")).getByTestId("social-alert-indicator");
+    expect(long).toHaveAttribute("aria-label", "1 alerte : Instagram : Texte trop long : 14 / 5 (+9)");
+    expect(long).toHaveAttribute("tabindex", "0");
+    expect(within(screen.getByTestId("social-card-double")).getByRole("img", {
+      name: "2 alertes : Instagram : Visuel manquant, Texte trop long : 16 / 5 (+11)",
+    })).toBeInTheDocument();
+  });
+
+  it("n'affiche pas d'alerte pour une déclinaison publiée sans visuel", () => {
+    h.dated = [group("pub", [{ ...post("pub", "li", "Publié", "2026-11-12T08:00:00.000Z"), publication_status: "published" }])];
+    renderPage();
+    expect(within(screen.getByTestId("social-card-pub")).queryByTestId("social-alert-indicator")).toBeNull();
   });
 
   it("ouvre le composeur sur le contenu cliqué", () => {

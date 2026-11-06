@@ -7,3 +7,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-2-planifier-dans-le-calendrier.md`
   summary: Remplacer la lecture en deux temps (ids de posts puis `.in(ids)`) par une seule requête filtrée par jointure interne, avec pagination.
   evidence: Non vérifié (maybe-false) ; deviendrait medium au-delà de 1 000 lignes PostgREST ou d'une URL trop longue. À mesurer quand les brouillons s'accumulent.
+
+## Story 1.3 (visuel et alertes)
+
+- La suppression d'un média de la Médiathèque remet `media_id` à null sur une déclinaison publiée (`ON DELETE SET NULL`) : historique du visuel publié perdu. Option : trigger qui protège les publiées ou conservation d'une copie.
+- `socialTextLength` compte les points de code : un emoji composé (famille) vaut plusieurs caractères et X compte les emojis double. À aligner par réseau avec le MCP (epic 4).
+- `useMediaLibrary` n'est pas paginé (plafond PostgREST de 1000 lignes) : au-delà, un ancien visuel n'apparaît plus dans le sélecteur.

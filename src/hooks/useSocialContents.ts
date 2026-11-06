@@ -10,7 +10,9 @@ import {
   type SocialContentGroup,
 } from "@/services/socialContents";
 
-const KEY = ["social-contents"];
+/** Racine des clés de requête des contenus sociaux (invalidée aussi à la suppression d'un média). */
+export const SOCIAL_CONTENTS_KEY = ["social-contents"];
+const KEY = SOCIAL_CONTENTS_KEY;
 const RANGE_KEY = [...KEY, "range"];
 const UNDATED_KEY = [...KEY, "undated"];
 

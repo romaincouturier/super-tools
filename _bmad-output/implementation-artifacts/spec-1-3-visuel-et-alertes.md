@@ -2,7 +2,7 @@
 title: 'Story 1.3 : joindre un visuel de la Médiathèque et être alerté d''un post incomplet'
 type: 'feature'
 created: '2026-11-06'
-status: 'in-review'
+status: 'done'
 baseline_commit: '8f8bded56d83e6c023e91a81976b25445a7c31c7'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -81,7 +81,14 @@ context:
 
 ## Implementation Notes
 
-- Migration `20261106100000_social_post_media.sql` : `media_id` nullable avec `ON DELETE SET NULL` et index ; `social_posts_propagate_text` (nom conservé, déjà inscrit en [058]) recopie texte et visuel ; le trigger écoute `text, media_id`. `save_social_content_group` est rejouée à l'identique avec `media_id` (une clé absente vaut null : un ancien onglet du front resté ouvert après la mise en production pourrait effacer un visuel au prochain enregistrement).
+- Migration `20261106100000_social_post_media.sql` : `media_id` nullable avec `ON DELETE SET NULL` et index ; `social_posts_propagate_text` (nom conservé, déjà inscrit en [058]) recopie texte et visuel ; le trigger écoute `text, media_id`. `save_social_content_group` est rejouée à l'identique avec `media_id` :
+  - clé `media_id` absente d'un élément : le visuel existant est conservé (relu dans la sous-requête, `EXCLUDED` ne voyant que les colonnes de la table) ; à la création, null. Un ancien onglet du front resté ouvert n'efface donc plus les visuels ;
+  - identifiant inconnu de `media` (supprimé entre-temps, ou invisible par la RLS `is_staff_user` de `media`) : ramené à null au lieu d'une violation de clé étrangère.
+- Déclinaisons publiées hors alertes : `alertsByChannel` les ignore (carte, colonne et composeur), car elles ne peuvent plus être corrigées.
+- Composeur : une fois la Médiathèque chargée (ni en attente ni en erreur), un `media_id` absent de la liste compte comme manquant pour les alertes en direct. `useMediaLibrary` accepte `{ enabled }` (rétrocompatible) ; composeur et sélecteur ne la chargent qu'ouverts.
+- Suppression d'un média (`useDeleteMedia`) : invalide aussi `SOCIAL_CONTENTS_KEY`, exportée par `useSocialContents`.
+- Mode démo : la recherche du sélecteur ne porte que sur les valeurs masquées (nom de fichier et source), jamais sur les vrais noms ni les tags.
+- Indicateur d'alerte focalisable (`tabIndex=0`), avec le détail par canal dans son `aria-label`.
 - Règle d'alerte `_shared/social-post-alerts.ts` : `computePostAlerts`, `formatAlert`, `socialTextLength` (points de code). Le formatage groupe les milliers avec une espace insécable (U+00A0), sans dépendre de la locale.
 - Service : `buildGroupPosts` porte `media_id` (commun si synchro, propre sinon) ; `alertsByChannel` ; `placeGroups` prend en 4e argument facultatif les canaux (limites) et renseigne `CalendarCard.alerts` à partir des déclinaisons visibles. `UndatedColumn` réutilise `ContentCard`, qui porte l'indicateur : aucun changement propre à la colonne.
 - Composeur : visuel commun en mode synchro, un par onglet sinon ; couper la synchro recopie le visuel commun sur chaque canal, la réactiver reprend celui de l'onglet affiché (la confirmation compare texte et visuel). Les alertes en direct sont calculées par la même règle sur le brouillon courant et n'empêchent pas Enregistrer.
@@ -91,6 +98,23 @@ context:
 ## Spec Change Log
 
 ## Review Triage Log
+
+- [high] Init du composeur sur un groupe existant non testée (le visuel pouvait être effacé à l'ouverture) -- patché : tests sync on/off.
+- [high] Bascule de synchro avec visuel non testée -- patché : tests recopie, reprise, confirmation sur visuel seul.
+- [medium] Alertes à vie sur les déclinaisons publiées sans visuel -- patché : publiées exclues (service et composeur).
+- [medium] Ancien front sans clé `media_id` efface le visuel -- patché : clé absente conserve le visuel existant.
+- [medium] Média supprimé pendant l'édition : violation FK, enregistrement perdu -- patché : id inconnu ramené à null, alerte en direct.
+- [medium] Limite de texte non vérifiée sur la page, détail de l'infobulle non vérifié -- patché : tests.
+- [medium] Sélecteur ouvert depuis un onglet non testé -- patché : test.
+- [low] Recherche du sélecteur sur les vrais noms en démo ([065]) -- patché.
+- [low] Médiathèque chargée composeur fermé -- patché : `enabled: open`.
+- [low] Carte en retard après suppression d'un média -- patché : invalidation.
+- [low] Indicateur non accessible au clavier -- patché : `tabIndex`, détail dans `aria-label`.
+- [low] Propagation du visuel d'une publiée, clé absente en mise à jour -- patché : tests PGlite.
+- [low] Suppression d'un média réécrit `media_id` d'une publiée -- différé (deferred-work).
+- [low] Graphèmes composés comptés en points de code -- différé (epic 4), conforme à la spec.
+- [low] Plafond de 1000 médias du sélecteur -- différé.
+- [false] Casse de « Texte trop long » contre la matrice -- cosmétique, libellé du code retenu.
 
 ## Verification
 

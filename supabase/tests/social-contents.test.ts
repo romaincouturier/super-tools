@@ -13,6 +13,7 @@ import { readFunctionSql } from "./helpers/db";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATION = path.resolve(here, "../migrations/20261105120000_social_contents.sql");
 const DATE_MIGRATION = path.resolve(here, "../migrations/20261105130000_social_group_date.sql");
+const MEDIA_MIGRATION = path.resolve(here, "../migrations/20261106100000_social_post_media.sql");
 const UPDATED_AT_MIGRATION = path.resolve(here, "../migrations/20260108203546_738a153d-fdf5-43d3-a2c6-75e98647a71f.sql");
 
 /** update_updated_at_column, telle que livrée (forme `$$ LANGUAGE ...;` hors du motif de readFunctionSql). */
@@ -26,6 +27,8 @@ function readUpdatedAtFunction(): string {
 const ADMIN = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const EMMA = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 const OTHER = "cccccccc-cccc-cccc-cccc-cccccccccccc";
+const MEDIA_A = "a0000000-0000-0000-0000-00000000000a";
+const MEDIA_B = "b0000000-0000-0000-0000-00000000000b";
 
 let db: PGlite;
 let channels: string[];
@@ -43,22 +46,27 @@ beforeAll(async () => {
     CREATE TYPE public.app_module AS ENUM ('supertilt_fr', 'crm');
     CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, email text, is_admin boolean NOT NULL DEFAULT false);
     CREATE TABLE public.user_module_access (user_id uuid NOT NULL, module public.app_module NOT NULL);
+    CREATE TABLE public.media (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), file_name text NOT NULL);
   `);
   await db.exec(readFunctionSql("20260220170000_add_email_settings.sql", "is_admin"));
   await db.exec(readFunctionSql("20261103100000_supertilt_fr_module.sql", "has_module_access"));
   await db.exec(readUpdatedAtFunction());
   const migration = fs.readFileSync(MIGRATION, "utf8");
   const dateMigration = fs.readFileSync(DATE_MIGRATION, "utf8");
+  const mediaMigration = fs.readFileSync(MEDIA_MIGRATION, "utf8");
   for (let i = 0; i < 2; i++) {
     await db.exec(migration);
     await db.exec(dateMigration);
+    await db.exec(mediaMigration);
   }
   await db.exec(`
     GRANT ALL ON public.social_channels, public.social_content_groups, public.social_posts TO anon, authenticated;
+    GRANT SELECT ON public.media TO authenticated;
     INSERT INTO auth.users VALUES
       ('${ADMIN}', 'admin@exemple.fr'), ('${EMMA}', 'emmanuelle@exemple.fr'), ('${OTHER}', 'autre@exemple.fr');
     INSERT INTO public.profiles VALUES ('${ADMIN}', 'admin@exemple.fr', true);
     INSERT INTO public.user_module_access VALUES ('${EMMA}', 'supertilt_fr'), ('${OTHER}', 'crm');
+    INSERT INTO public.media (id, file_name) VALUES ('${MEDIA_A}', 'a.png'), ('${MEDIA_B}', 'b.png');
   `);
   channels = (await db.query<{ id: string }>("SELECT id FROM social_channels ORDER BY sort_order")).rows.map((r) => r.id);
 }, 60_000);
@@ -74,7 +82,7 @@ async function actAs(uid: string | null) {
   await db.exec(uid ? "SET ROLE authenticated" : "SET ROLE anon");
 }
 
-type PostInput = { channel_id: string; text: string; scheduled_at: string | null };
+type PostInput = { channel_id: string; text: string; scheduled_at: string | null; media_id?: string | null };
 
 async function save(groupId: string, posts: PostInput[], opts: { format?: string; sync?: boolean } = {}) {
   await db.query("SELECT public.save_social_content_group($1, $2, $3, $4::jsonb)", [
@@ -253,6 +261,84 @@ describe("social_posts_propagate_text", () => {
     await db.query("UPDATE social_posts SET text = 'Corrigé' WHERE group_id = $1 AND channel_id = $2", [GROUP, channels[0]]);
     const byChannel = Object.fromEntries((await posts(GROUP)).map((r) => [r.channel_id, r.text]));
     expect(byChannel).toEqual({ [channels[0]]: "Corrigé", [channels[1]]: "Avant", [channels[2]]: "Avant" });
+  });
+});
+
+describe("Visuel des déclinaisons", () => {
+  async function media(groupId: string) {
+    return Object.fromEntries((await db.query<{ channel_id: string; media_id: string | null }>(
+      "SELECT channel_id, media_id FROM social_posts WHERE group_id = $1", [groupId],
+    )).rows.map((r) => [r.channel_id, r.media_id]));
+  }
+  const withMedia = (media_id: string | null) => three("Texte").map((p) => ({ ...p, media_id }));
+
+  it("enregistre le visuel de chaque post par la RPC", async () => {
+    await actAs(EMMA);
+    await save(GROUP, withMedia(MEDIA_A));
+    expect(Object.values(await media(GROUP))).toEqual([MEDIA_A, MEDIA_A, MEDIA_A]);
+    await save(GROUP, withMedia(null));
+    expect(Object.values(await media(GROUP))).toEqual([null, null, null]);
+  });
+
+  it("recopie le visuel choisi sur une déclinaison vers tout le groupe synchronisé", async () => {
+    await actAs(EMMA);
+    await save(GROUP, three("Texte"));
+    await db.query("UPDATE social_posts SET media_id = $1 WHERE group_id = $2 AND channel_id = $3", [MEDIA_A, GROUP, channels[1]]);
+    expect(await media(GROUP)).toEqual({ [channels[0]]: MEDIA_A, [channels[1]]: MEDIA_A, [channels[2]]: MEDIA_A });
+  });
+
+  it("garde un visuel par déclinaison quand la synchro est coupée", async () => {
+    await actAs(EMMA);
+    const own = channels.slice(0, 3).map((channel_id, i) => ({
+      channel_id, text: "Texte", scheduled_at: null, media_id: [MEDIA_A, MEDIA_B, null][i],
+    }));
+    await save(GROUP, own, { sync: false });
+    expect(await media(GROUP)).toEqual({ [channels[0]]: MEDIA_A, [channels[1]]: MEDIA_B, [channels[2]]: null });
+    await db.query("UPDATE social_posts SET media_id = $1 WHERE group_id = $2 AND channel_id = $3", [MEDIA_A, GROUP, channels[2]]);
+    expect(await media(GROUP)).toEqual({ [channels[0]]: MEDIA_A, [channels[1]]: MEDIA_B, [channels[2]]: MEDIA_A });
+  });
+
+  it("ne réécrit pas le visuel d'une déclinaison publiée", async () => {
+    await actAs(EMMA);
+    await save(GROUP, withMedia(MEDIA_A));
+    await db.query("UPDATE social_posts SET publication_status = 'published' WHERE group_id = $1 AND channel_id = $2", [GROUP, channels[0]]);
+    await db.query("UPDATE social_posts SET media_id = $1 WHERE group_id = $2 AND channel_id = $3", [MEDIA_B, GROUP, channels[1]]);
+    expect(await media(GROUP)).toEqual({ [channels[0]]: MEDIA_A, [channels[1]]: MEDIA_B, [channels[2]]: MEDIA_B });
+    await save(GROUP, withMedia(null));
+    expect(await media(GROUP)).toEqual({ [channels[0]]: MEDIA_A, [channels[1]]: null, [channels[2]]: null });
+  });
+
+  it("conserve le visuel existant quand la clé media_id est absente, null à la création", async () => {
+    await actAs(EMMA);
+    await save(GROUP, withMedia(MEDIA_A));
+    // Synchro coupée : la propagation ne doit pas masquer le cas « null à la création ».
+    await save(GROUP, [...three("Sans clé"), { channel_id: channels[3], text: "Nouveau", scheduled_at: null }], { sync: false });
+    expect(await media(GROUP)).toEqual({
+      [channels[0]]: MEDIA_A, [channels[1]]: MEDIA_A, [channels[2]]: MEDIA_A, [channels[3]]: null,
+    });
+  });
+
+  it("ramène à null un media_id inconnu de la Médiathèque, sans erreur", async () => {
+    await actAs(EMMA);
+    await save(GROUP, withMedia("99999999-9999-9999-9999-999999999999"));
+    expect(Object.values(await media(GROUP))).toEqual([null, null, null]);
+  });
+
+  it("ne propage pas le changement de visuel d'une déclinaison publiée", async () => {
+    await actAs(EMMA);
+    await save(GROUP, withMedia(MEDIA_A));
+    await db.query("UPDATE social_posts SET publication_status = 'published' WHERE group_id = $1 AND channel_id = $2", [GROUP, channels[0]]);
+    await db.query("UPDATE social_posts SET media_id = $1 WHERE group_id = $2 AND channel_id = $3", [MEDIA_B, GROUP, channels[0]]);
+    expect(await media(GROUP)).toEqual({ [channels[0]]: MEDIA_B, [channels[1]]: MEDIA_A, [channels[2]]: MEDIA_A });
+  });
+
+  it("remet le visuel à null quand le média est supprimé de la Médiathèque", async () => {
+    await actAs(EMMA);
+    await save(GROUP, withMedia(MEDIA_B));
+    await db.exec("RESET ROLE");
+    await db.query("DELETE FROM public.media WHERE id = $1", [MEDIA_B]);
+    expect(Object.values(await media(GROUP))).toEqual([null, null, null]);
+    await db.query("INSERT INTO public.media (id, file_name) VALUES ($1, 'b.png')", [MEDIA_B]);
   });
 });
 

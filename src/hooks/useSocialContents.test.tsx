@@ -16,12 +16,12 @@ import { useSetSocialGroupDate } from "./useSocialContents";
 
 const draft: SocialContentGroup = {
   id: "g", format: "post", sync: true, created_by: null, created_at: "", updated_at: "",
-  posts: [{ id: "p", group_id: "g", channel_id: "li", text: "t", scheduled_at: null, publication_status: "unscheduled" }],
+  posts: [{ id: "p", group_id: "g", channel_id: "li", text: "t", scheduled_at: null, publication_status: "unscheduled", media_id: null }],
 };
 
 const dated: SocialContentGroup = {
   ...draft, id: "d",
-  posts: [{ id: "q", group_id: "d", channel_id: "li", text: "t", scheduled_at: "2026-11-03T17:00:00.000Z", publication_status: "scheduled" }],
+  posts: [{ id: "q", group_id: "d", channel_id: "li", text: "t", scheduled_at: "2026-11-03T17:00:00.000Z", publication_status: "scheduled", media_id: null }],
 };
 const RANGE = ["social-contents", "range", "2026-10-25T23:00:00.000Z", "2026-12-06T23:00:00.000Z"];
 

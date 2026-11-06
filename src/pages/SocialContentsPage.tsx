@@ -66,8 +66,8 @@ export default function SocialContentsPage() {
     [channels, hiddenChannelIds],
   );
   const { undated, byDay } = useMemo(
-    () => placeGroups([...dated, ...undatedGroups], visibleChannelIds, { fromIso, toIso }),
-    [dated, undatedGroups, visibleChannelIds, fromIso, toIso],
+    () => placeGroups([...dated, ...undatedGroups], visibleChannelIds, { fromIso, toIso }, channelsById),
+    [dated, undatedGroups, visibleChannelIds, fromIso, toIso, channelsById],
   );
 
   const title = view === "month"

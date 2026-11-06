@@ -1,11 +1,14 @@
 import { useDraggable } from "@dnd-kit/core";
+import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { formatAlert } from "../../../supabase/functions/_shared/social-post-alerts";
 import {
   DISPLAY_STATUS_LABELS,
   utcIsoToParisLocal,
   type CalendarCard,
+  type ChannelAlerts,
   type SocialChannel,
   type SocialPublicationStatus,
 } from "@/services/socialContents";
@@ -20,6 +23,33 @@ interface ContentCardProps {
   card: CalendarCard;
   channelsById: Map<string, SocialChannel>;
   onOpen: (groupId: string) => void;
+}
+
+/** Indicateur d'alerte avec le détail par canal en infobulle (carte et composeur). */
+export function AlertIndicator({ alerts, channelsById }: { alerts: ChannelAlerts[]; channelsById: Map<string, SocialChannel> }) {
+  if (alerts.length === 0) return null;
+  const count = alerts.reduce((n, a) => n + a.alerts.length, 0);
+  const lines = alerts.map((a) => `${channelsById.get(a.channelId)?.name ?? "Canal"} : ${a.alerts.map(formatAlert).join(", ")}`);
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          role="img"
+          tabIndex={0}
+          aria-label={`${count} alerte${count > 1 ? "s" : ""} : ${lines.join(" ; ")}`}
+          data-testid="social-alert-indicator"
+          className="inline-flex shrink-0 text-amber-600"
+        >
+          <AlertTriangle className="h-3.5 w-3.5" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <ul className="space-y-0.5 text-xs">
+          {lines.map((line, i) => <li key={alerts[i].channelId}>{line}</li>)}
+        </ul>
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 export default function ContentCard({ card, channelsById, onOpen }: ContentCardProps) {
@@ -71,6 +101,8 @@ export default function ContentCard({ card, channelsById, onOpen }: ContentCardP
             </Tooltip>
           ))}
         </div>
+        <span className="ml-auto" />
+        <AlertIndicator alerts={card.alerts} channelsById={channelsById} />
       </div>
       <p className="truncate text-muted-foreground">{text || "Sans texte"}</p>
     </div>

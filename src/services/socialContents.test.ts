@@ -16,13 +16,15 @@ import {
 } from "./socialContents";
 
 describe("buildGroupPosts", () => {
-  const base = { channelIds: ["li", "in", "fa"], commonText: "Commun", texts: {}, scheduledAt: null };
+  const base = {
+    channelIds: ["li", "in", "fa"], commonText: "Commun", texts: {}, commonMediaId: null, mediaIds: {}, scheduledAt: null,
+  };
 
   it("crée un post par canal coché avec le texte commun quand la synchro est active", () => {
     expect(buildGroupPosts({ ...base, sync: true, texts: { li: "ignoré" } })).toEqual([
-      { channel_id: "li", text: "Commun", scheduled_at: null },
-      { channel_id: "in", text: "Commun", scheduled_at: null },
-      { channel_id: "fa", text: "Commun", scheduled_at: null },
+      { channel_id: "li", text: "Commun", scheduled_at: null, media_id: null },
+      { channel_id: "in", text: "Commun", scheduled_at: null, media_id: null },
+      { channel_id: "fa", text: "Commun", scheduled_at: null, media_id: null },
     ]);
   });
 
@@ -34,6 +36,13 @@ describe("buildGroupPosts", () => {
   it("ne crée aucun post sans canal et dédoublonne les canaux", () => {
     expect(buildGroupPosts({ ...base, sync: true, channelIds: [] })).toEqual([]);
     expect(buildGroupPosts({ ...base, sync: true, channelIds: ["li", "li"] })).toHaveLength(1);
+  });
+
+  it("porte le visuel commun quand la synchro est active, le visuel propre sinon", () => {
+    expect(buildGroupPosts({ ...base, sync: true, commonMediaId: "m0", mediaIds: { li: "m1" } }).map((p) => p.media_id))
+      .toEqual(["m0", "m0", "m0"]);
+    expect(buildGroupPosts({ ...base, sync: false, commonMediaId: "m0", mediaIds: { li: "m1", in: null } }).map((p) => p.media_id))
+      .toEqual(["m1", null, "m0"]);
   });
 
   it("porte la même date sur toutes les déclinaisons", () => {
@@ -67,7 +76,7 @@ describe("heure de Paris", () => {
 });
 
 const post = (channel_id: string, publication_status: SocialPublicationStatus, scheduled_at: string | null, group_id = "g"): SocialPost => ({
-  id: `${group_id}-${channel_id}`, group_id, channel_id, text: "t", scheduled_at, publication_status,
+  id: `${group_id}-${channel_id}`, group_id, channel_id, text: "t", scheduled_at, publication_status, media_id: "m",
 });
 const group = (id: string, posts: SocialPost[]): SocialContentGroup => ({
   id, format: "post", sync: true, created_by: null, created_at: "", updated_at: "", posts,
@@ -145,6 +154,23 @@ describe("grilles du calendrier", () => {
 
 describe("placeGroups", () => {
   const all = new Set(["li", "in"]);
+
+  it("calcule les alertes des seules déclinaisons visibles, avec la limite du canal", () => {
+    const limits = new Map([["li", { text_limit: 3 }], ["in", { text_limit: null }]]);
+    const g = group("g", [
+      { ...post("li", "unscheduled", null), text: "trop long" },
+      { ...post("in", "unscheduled", null), media_id: null },
+    ]);
+    const [card] = placeGroups([g], all, undefined, limits).undated;
+    expect(card.alerts).toEqual([
+      { channelId: "li", alerts: [{ kind: "text_too_long", length: 9, limit: 3, excess: 6 }] },
+      { channelId: "in", alerts: [{ kind: "missing_visual" }] },
+    ]);
+    expect(placeGroups([g], new Set(["li"]), undefined, limits).undated[0].alerts.map((a) => a.channelId)).toEqual(["li"]);
+    expect(placeGroups([group("ok", [post("li", "unscheduled", null, "ok")])], all, undefined, limits).undated[0].alerts).toEqual([]);
+    const published = group("pub", [{ ...post("li", "published", "2026-11-03T17:00:00.000Z", "pub"), media_id: null, text: "trop long" }]);
+    expect(placeGroups([published], all, undefined, limits).byDay.get("2026-11-03")?.[0].alerts).toEqual([]);
+  });
 
   it("range les brouillons dans la colonne et les datés sur leur jour de Paris, triés par heure", () => {
     const { undated, byDay } = placeGroups([
