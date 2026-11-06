@@ -10,6 +10,9 @@ import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName } from "@/lib/demoMask";
 import { useSignaturePad } from "@/hooks/useSignaturePad";
 import { useAuthorInvitations, useInvalidateOnboarding } from "@/hooks/useAuthorOnboarding";
 import { staffOnboarding, type InvitationDraft } from "@/services/authorOnboarding";
@@ -21,6 +24,7 @@ function InviteDialog({ onClose, onDraft }: { onClose: () => void; onDraft: (d: 
   const [f, setF] = useState({ email: "", first_name: "", last_name: "", game_name: "", commission: "15" });
   const [busy, setBusy] = useState(false);
   const { toast } = useToast();
+  const { copy } = useCopyToClipboard();
   const invalidate = useInvalidateOnboarding();
   const submit = async () => {
     setBusy(true);
@@ -69,14 +73,14 @@ function DraftDialog({ draft, invitationId, onClose }: { draft: InvitationDraft;
   };
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="w-full max-w-2xl">
         <DialogHeader><DialogTitle>Email d'invitation à relire</DialogTitle>
           <DialogDescription>Destinataire : {draft.to}. Le bloc {"{{invitation_button}}"} devient le bouton vers le formulaire.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="flex gap-2">
             <Input readOnly value={draft.link} className="text-xs" />
-            <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(draft.link); toast({ title: "Lien copié" }); }}><Copy className="h-4 w-4" /></Button>
+            <Button variant="outline" size="icon" onClick={() => copy(draft.link)}><Copy className="h-4 w-4" /></Button>
           </div>
           <div><Label>Objet</Label><Input value={subject} onChange={(e) => setSubject(e.target.value)} /></div>
           <div><Label>Message</Label><Textarea rows={12} value={content} onChange={(e) => setContent(e.target.value)} /></div>
@@ -123,6 +127,7 @@ function SignatureDialog({ onClose }: { onClose: () => void }) {
 
 export default function AuthorOnboardingPanel() {
   const { data: rows, isLoading } = useAuthorInvitations();
+  const { isDemoMode } = useDemoMode();
   const [inviting, setInviting] = useState(false);
   const [signing, setSigning] = useState(false);
   const [draft, setDraft] = useState<{ d: InvitationDraft; id: string } | null>(null);
@@ -163,7 +168,7 @@ export default function AuthorOnboardingPanel() {
               const expired = new Date(r.expires_at) < new Date();
               return (
                 <TableRow key={r.id}>
-                  <TableCell className="font-medium"><Link to={`/dropshipping/auteurs/${r.id}`} className="hover:underline">{r.game_authors?.name}</Link><div className="text-xs text-muted-foreground">{r.recipient_email}</div></TableCell>
+                  <TableCell className="font-medium"><Link to={`/dropshipping/auteurs/${r.id}`} className="hover:underline">{isDemoMode ? maskName(r.game_authors?.name) : r.game_authors?.name}</Link><div className="text-xs text-muted-foreground">{isDemoMode ? maskEmail(r.recipient_email) : r.recipient_email}</div></TableCell>
                   <TableCell>{r.games?.title}</TableCell>
                   <TableCell><Badge variant={STATUS_VARIANT[status] ?? "secondary"}>{AUTHOR_STATUS_LABELS[status] ?? status}</Badge></TableCell>
                   <TableCell className="text-xs text-muted-foreground">

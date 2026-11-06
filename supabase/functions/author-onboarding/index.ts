@@ -12,6 +12,7 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { generateHash, hashArrayBuffer, getClientIp } from "../_shared/crypto.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { getSenderEmail } from "../_shared/email-settings.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
@@ -26,7 +27,6 @@ import {
 
 const BUCKET = "author-onboarding";
 const TEMPLATE_ID = "A3FFB90C-6622-41AA-821F-0FB37F685403";
-const OWNER_EMAIL = "romain@supertilt.fr";
 const PRODUCT_SHEET_EMAIL = "emmanuelle@supertilt.fr";
 
 const json = (body: unknown, status = 200) =>
@@ -540,7 +540,7 @@ async function signContract(db: Db, req: Request, inv: Db, c: Db, o: { signature
   try {
     const { data: inviter } = inv.invited_by
       ? await db.from("profiles").select("email").eq("id", inv.invited_by).maybeSingle() : { data: null };
-    const ownerEmail = inviter?.email || OWNER_EMAIL;
+    const ownerEmail = inviter?.email || await getSenderEmail();
     const attachments = signedBytes ? [{ filename: `${c.contrat_reference}-signe.pdf`, content: btoa(Array.from(signedBytes, (b) => String.fromCharCode(b)).join("")) }] : undefined;
     const link = await signedUrl(db, signedPath ?? c.pdf_url, 7 * 86_400);
     const r = await renderCatalogEmail(db, "author_contract_signed", {
