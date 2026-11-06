@@ -11771,6 +11771,8 @@ export type Database = {
           recommandation: string | null
           remarques_libres: string | null
           rythme: string | null
+          site_comment_published_at: string | null
+          site_comment_published_by: string | null
           token: string
           training_id: string | null
           updated_at: string
@@ -11806,6 +11808,8 @@ export type Database = {
           recommandation?: string | null
           remarques_libres?: string | null
           rythme?: string | null
+          site_comment_published_at?: string | null
+          site_comment_published_by?: string | null
           token: string
           training_id?: string | null
           updated_at?: string
@@ -11841,6 +11845,8 @@ export type Database = {
           recommandation?: string | null
           remarques_libres?: string | null
           rythme?: string | null
+          site_comment_published_at?: string | null
+          site_comment_published_by?: string | null
           token?: string
           training_id?: string | null
           updated_at?: string
@@ -14343,6 +14349,8 @@ export type Database = {
           recommandation: string | null
           remarques_libres: string | null
           rythme: string | null
+          site_comment_published_at: string | null
+          site_comment_published_by: string | null
           token: string
           training_id: string | null
           updated_at: string
