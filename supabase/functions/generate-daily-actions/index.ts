@@ -1,3 +1,5 @@
+import { getSenderEmail } from "../_shared/email-settings.ts";
+import { SITE_COMMENT_CUTOFF, siteCommentRecipients } from "../_shared/site-comment-recipients.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import {
   handleCorsPreflightIfNeeded,
@@ -598,6 +600,36 @@ serve(async (req) => {
           entityType: "quality_risk", entityId: r.id,
           scope: "global",
         });
+      }
+    }
+
+    // 17octies. Commentaires à créer sur le site : évaluations publiables non encore traitées
+    {
+      const [{ data: siteEvals }, { data: notifSetting }] = await Promise.all([
+        supabase
+          .from("training_evaluations")
+          .select("id, first_name, last_name, company, appreciation_generale, message_recommandation, date_soumission, trainings(training_name)")
+          .eq("etat", "soumis")
+          .eq("consent_publication", true)
+          .is("site_comment_published_at", null)
+          .gte("date_soumission", SITE_COMMENT_CUTOFF),
+        supabase.from("app_settings").select("setting_value").eq("setting_key", "evaluation_notification_email").maybeSingle(),
+      ]);
+      const wanted = new Set(siteCommentRecipients(notifSetting?.setting_value, await getSenderEmail()));
+      const assignees = recipients.filter((r) => wanted.has((r.email || "").toLowerCase()));
+      for (const ev of siteEvals || []) {
+        const who = [ev.first_name, ev.last_name ? `${ev.last_name.charAt(0)}.` : null].filter(Boolean).join(" ") || "Participant";
+        const verbatim = (ev.message_recommandation || "").replace(/\s+/g, " ").trim();
+        for (const r of assignees) {
+          actions.push({
+            category: "commentaires_site",
+            title: `⭐ ${(ev as any).trainings?.training_name || "Formation"} — ${who}${ev.company ? ` (${ev.company})` : ""}, ${ev.appreciation_generale ?? "?"}/5`,
+            description: verbatim ? `« ${verbatim.slice(0, 280)}${verbatim.length > 280 ? "…" : ""} » — cocher une fois le commentaire publié` : "Aucun verbatim — cocher une fois traité",
+            link: `${appUrl}/evaluations?evaluation=${ev.id}`,
+            entityType: "training_evaluation", entityId: ev.id,
+            assignedTo: r.userId, scope: "strictAssigned",
+          });
+        }
       }
     }
 

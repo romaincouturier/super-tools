@@ -46,6 +46,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   supertilt_dropshipping_relance: "🔴 SuperTilt — Dropshipping relancé sans réponse",
   risques_revue: "🛡️ Risques qualité — revue à faire",
   risques_sans_amelioration: "🛡️ Risques qualité — sans amélioration liée",
+  commentaires_site: "⭐ Commentaires à créer sur le site",
 };
 
 serve(async (req) => {
