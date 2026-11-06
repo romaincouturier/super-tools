@@ -23,6 +23,8 @@ import { celebrateWin } from "@/lib/celebrateWin";
 import { isWonColumnName, isLostColumnName } from "@/lib/crmColumnStatus";
 import { crmStatsItem, STATS_WON_COL_ID, STATS_LOST_COL_ID } from "@/lib/crmStats";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
+import { isNocrmImported } from "@/services/crmCardsFetch";
+import { Switch } from "@/components/ui/switch";
 import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
 import { useCardMoveHistory } from "@/hooks/crm/useCardMoveHistory";
 import KanbanToolbar from "@/components/shared/kanban/KanbanToolbar";
@@ -54,6 +56,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   const [selectedCard, setSelectedCard] = useState<CrmCard | null>(null);
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [includeNocrmStats, setIncludeNocrmStats] = useState(true);
 
   // Training creation dialog state
   const [showCreateTrainingDialog, setShowCreateTrainingDialog] = useState(false);
@@ -91,7 +94,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Filter state: all (default board), en_cours, gagne, perdu, a_venir, a_tagguer
-  type FilterMode = "all" | "en_cours" | "gagne" | "perdu" | "a_venir" | "a_tagguer";
+  type FilterMode = "all" | "en_cours" | "gagne" | "perdu" | "a_venir" | "a_tagguer" | "nocrm";
   const [filterMode, setFilterMode] = useState<FilterMode>("en_cours");
 
   // All distinct tag categories present in the workspace
@@ -185,7 +188,8 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   };
 
   const isLostCard = (card: CrmCard): boolean => {
-    return card.sales_status === "LOST";
+    // Les fiches noCRM annulées (CANCELED) sont rangées en Perdu.
+    return card.sales_status === "LOST" || card.sales_status === "CANCELED";
   };
 
   // Build filtered cards for the board
@@ -204,6 +208,9 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         break;
       case "a_tagguer":
         filtered = boardData.cards.filter((c) => !isFullyTagged(c));
+        break;
+      case "nocrm":
+        filtered = boardData.cards.filter(isNocrmImported);
         break;
       case "en_cours":
         filtered = boardData.cards.filter((c) => !isWonCard(c) && !isLostCard(c) && !isHiddenAsFuture(c));
@@ -267,12 +274,12 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   const statsItems: KanbanStatsItem[] = useMemo(() => {
     if (!boardData?.cards) return [];
     const statsColIds = new Set(statsColumns.map((col) => col.id));
-    return boardData.cards.map((c) => {
+    return boardData.cards.filter((c) => includeNocrmStats || !isNocrmImported(c)).map((c) => {
       return crmStatsItem(c, (moveHistory?.get(c.id) ?? [])
           .filter((m) => statsColIds.has(m.to))
           .map((m) => ({ ...m, from: m.from && statsColIds.has(m.from) ? m.from : null })));
     });
-  }, [boardData?.cards, statsColumns, moveHistory]);
+  }, [boardData?.cards, statsColumns, moveHistory, includeNocrmStats]);
 
   const wonColumnIds = useMemo(() => [STATS_WON_COL_ID], []);
   const lostColumnIds = useMemo(() => [STATS_LOST_COL_ID], []);
@@ -680,6 +687,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
           { key: "perdu", label: "Perdu" },
           { key: "a_venir", label: "À venir" },
           { key: "a_tagguer", label: "À tagguer" },
+          { key: "nocrm", label: "Importé de noCRM" },
         ] as const).map(({ key, label }) => (
           <Button
             key={key}
@@ -708,6 +716,10 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         <BarChart3 className="h-3.5 w-3.5 mr-1" />
         <span className="hidden sm:inline">Statistiques</span>
       </Button>
+      <label className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Inclure les fiches importées de noCRM (2020-2026) dans les statistiques">
+        <Switch checked={includeNocrmStats} onCheckedChange={setIncludeNocrmStats} className="scale-75" />
+        Historique noCRM
+      </label>
       </div>
 
       <GenericKanbanBoard<CrmKanbanCard, CrmKanbanColumn>

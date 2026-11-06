@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { BarChart3, Sparkles, Kanban, BrainCircuit, Settings2, Gavel } from "lucide-react";
+import { BarChart3, Sparkles, Kanban, BrainCircuit, Settings2, Gavel, DatabaseBackup } from "lucide-react";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -16,6 +17,7 @@ const Crm = () => {
   const [showNewOpportunity, setShowNewOpportunity] = useState(false);
   const [showCoachSettings, setShowCoachSettings] = useState(false);
   const { launchCoach, isLoading: isCoachLoading } = useCommercialCoachData();
+  const { isAdmin } = useModuleAccess();
 
   return (
     <ModuleLayout>
@@ -64,6 +66,14 @@ const Crm = () => {
                   <span className="hidden sm:inline">Reporting</span>
                 </Link>
               </Button>
+              {isAdmin && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/crm/import-nocrm">
+                    <DatabaseBackup className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Import noCRM</span>
+                  </Link>
+                </Button>
+              )}
             </div>
           }
         />

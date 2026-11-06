@@ -74,10 +74,11 @@ describe("useCrmBoard", () => {
       data: [{ id: "col1", title: "À faire", position: 0, is_archived: false }],
       error: null,
     });
-    setTableResult("crm_cards", {
-      data: [{ id: "card1", column_id: "col1", title: "Opportunité X", position: 0 }],
-      error: null,
-    });
+    // Deux requêtes : fiches SuperTools, puis fiches importées de noCRM (aucune ici).
+    queueTableResult("crm_cards", [
+      { data: [{ id: "card1", column_id: "col1", title: "Opportunité X", position: 0 }], error: null },
+      { data: [], error: null },
+    ]);
     setTableResult("crm_tags", {
       data: [{ id: "tag1", name: "Chaud", category: "priorité", color: "#f00" }],
       error: null,

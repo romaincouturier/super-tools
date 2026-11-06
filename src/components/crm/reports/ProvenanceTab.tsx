@@ -1,3 +1,4 @@
+import { fetchAllCardTags, fetchAllCrmCards } from "@/services/crmCardsFetch";
 import { useMemo, useState } from "react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskAmount } from "@/lib/demoMask";
@@ -130,15 +131,13 @@ function useProvenanceData() {
     queryKey: ["crm", "provenance"],
     queryFn: async () => {
       const [cardsRes, actsRes, tagsRes, cardTagsRes] = await Promise.all([
-        supabase
-          .from("crm_cards")
-          .select("id, title, sales_status, service_type, estimated_value, created_at, won_at, source_metadata"),
+        fetchAllCrmCards().then((data) => ({ data, error: null })),
         supabase
           .from("crm_activity_log")
           .select("card_id, action_type, created_at")
           .eq("action_type", "email_sent"),
         supabase.from("crm_tags").select("*"),
-        supabase.from("crm_card_tags").select("card_id, tag_id"),
+        fetchAllCardTags().then((data) => ({ data, error: null })),
       ]);
       if (cardsRes.error) throw cardsRes.error;
       if (actsRes.error) throw actsRes.error;

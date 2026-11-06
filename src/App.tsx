@@ -67,6 +67,7 @@ const InboundEmails = lazy(() => import("./pages/InboundEmails"));
 const AvisADemander = lazy(() => import("./pages/AvisADemander"));
 const Crm = lazy(() => import("./pages/Crm"));
 const CrmReports = lazy(() => import("./pages/CrmReports"));
+const CrmNocrmImport = lazy(() => import("./pages/CrmNocrmImport"));
 const CrmTenders = lazy(() => import("./pages/CrmTenders"));
 const Missions = lazy(() => import("./pages/Missions"));
 const MissionSummary = lazy(() => import("./pages/MissionSummary"));
@@ -300,6 +301,7 @@ const App = () => {
                 <Route path="/crm" element={<Crm />} />
                 <Route path="/crm/card/:cardId" element={<Crm />} />
                 <Route path="/crm/reports" element={<CrmReports />} />
+                <Route path="/crm/import-nocrm" element={<CrmNocrmImport />} />
                 <Route path="/crm/marches-publics" element={<CrmTenders />} />
                 <Route path="/missions" element={<Missions />} />
                 <Route path="/missions/:missionId" element={<Missions />} />
