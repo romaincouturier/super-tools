@@ -44,27 +44,31 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // L'appel par identifiant s'authentifie avant toute lecture : vérifier
+    // après, c'est répondre 403 sur une réclamation qui existe et 404 sur une
+    // autre, donc dire à qui sonde les identifiants lesquels sont bons.
+    const caller = token
+      ? null
+      : ((await verifyAuth(req))?.email ?? "").trim().toLowerCase();
+    if (!token && !caller) {
+      return createErrorResponse("Forbidden", 403);
+    }
+
     const columns = "id, client_name, client_email, status, date_reclamation, acknowledgement_sent_at";
     const query = token
       ? supabase.from("reclamations").select(columns).eq("token", token)
       : supabase.from("reclamations").select(columns).eq("id", reclamationId);
 
     const { data: reclamation, error } = await query.maybeSingle();
-
     if (error) throw error;
-    if (!reclamation) return createErrorResponse("Reclamation not found", 404);
 
-    // Appel par identifiant : seul le réclamant lui-même peut le déclencher.
-    // Sans cette garde, l'identifiant d'une réclamation suffirait à faire
-    // partir un accusé, et à révéler qu'elle existe.
-    if (!token) {
-      const user = await verifyAuth(req);
-      const caller = (user?.email ?? "").trim().toLowerCase();
-      const owner = (reclamation.client_email ?? "").trim().toLowerCase();
-      if (!caller || caller !== owner) {
-        return createErrorResponse("Forbidden", 403);
-      }
+    // Un identifiant inconnu et un identifiant qui ne vous appartient pas
+    // donnent la même réponse : l'un ne doit pas se distinguer de l'autre.
+    const owner = (reclamation?.client_email ?? "").trim().toLowerCase();
+    if (!token && (!reclamation || caller !== owner)) {
+      return createErrorResponse("Forbidden", 403);
     }
+    if (!reclamation) return createErrorResponse("Reclamation not found", 404);
 
     const blocker = acknowledgementBlocker(reclamation);
     if (blocker) {
