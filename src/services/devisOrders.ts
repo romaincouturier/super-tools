@@ -123,3 +123,14 @@ export function matchGameByTitle(title: string, games: OrderableGame[]): Orderab
     ?? games.find((g) => t.includes(norm(g.title)) || norm(g.title).includes(t))
     ?? null;
 }
+
+/** Lien signé (1 h) vers le PDF du devis rattaché à une commande. */
+export async function getDevisPdfUrl(activityLogId: string): Promise<string | null> {
+  const { data } = await supabase.from("activity_logs").select("details").eq("id", activityLogId).maybeSingle();
+  const details = (data?.details ?? {}) as Record<string, string | null>;
+  if (details.pdf_storage_path) {
+    const { data: signed } = await supabase.storage.from("devis-pdfs").createSignedUrl(details.pdf_storage_path, 3600);
+    if (signed?.signedUrl) return signed.signedUrl;
+  }
+  return details.pdf_url ?? null;
+}

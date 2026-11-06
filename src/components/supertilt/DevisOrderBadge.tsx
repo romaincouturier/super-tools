@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
-import { openStorageUrl } from "@/lib/storageUrl";
 import { useCancelDevisOrder } from "@/hooks/useDevisOrders";
-import { supabase } from "@/integrations/supabase/client";
+import { getDevisPdfUrl } from "@/services/devisOrders";
 
 export interface DevisOrderInfo {
   id: string;
@@ -37,9 +36,8 @@ export function DevisOrderPanel({ order }: { order: DevisOrderInfo | null | unde
 
   const openPdf = async () => {
     if (!order.devis_activity_log_id) return;
-    const { data } = await supabase.from("activity_logs").select("details").eq("id", order.devis_activity_log_id).maybeSingle();
-    const path = (data?.details as Record<string, string> | null)?.pdf_storage_path;
-    if (path) openStorageUrl("devis-pdfs", path);
+    const url = await getDevisPdfUrl(order.devis_activity_log_id);
+    if (url) window.open(url, "_blank", "noopener");
     else toast({ title: "PDF du devis introuvable" });
   };
 
@@ -61,7 +59,7 @@ export function DevisOrderPanel({ order }: { order: DevisOrderInfo | null | unde
       <div className="flex flex-wrap items-center gap-2">
         <DevisOrderBadge order={order} />
         {order.cancelled_at && <Badge variant="destructive">Annulée</Badge>}
-        {order.crm_card_id && <Link className="text-xs underline" to={`/crm?card=${order.crm_card_id}`}>Voir l'opportunité</Link>}
+        {order.crm_card_id && <Link className="text-xs underline" to={`/crm/card/${order.crm_card_id}`}>Voir l'opportunité</Link>}
         {order.devis_activity_log_id && <button className="text-xs underline" onClick={openPdf}>Voir le devis</button>}
       </div>
       <p className="text-xs text-muted-foreground">Facturée directement au client : aucune commande ni facture sur la boutique.</p>
