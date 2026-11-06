@@ -208,7 +208,7 @@ const handler = async (req: Request): Promise<Response> => {
       .select("setting_value")
       .eq("setting_key", "evaluation_notification_email")
       .maybeSingle();
-    const evaluationNotificationEmails = siteCommentRecipients(evalNotifSetting?.setting_value);
+    const evaluationNotificationEmails = siteCommentRecipients(evalNotifSetting?.setting_value, await getSenderEmail());
     const evaluationNotificationEmail = evaluationNotificationEmails.join(", ");
 
     // Fetch website URLs from settings

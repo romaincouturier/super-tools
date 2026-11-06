@@ -1,3 +1,4 @@
+import { getSenderEmail } from "../_shared/email-settings.ts";
 import { SITE_COMMENT_CUTOFF, siteCommentRecipients } from "../_shared/site-comment-recipients.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import {
@@ -614,7 +615,7 @@ serve(async (req) => {
           .gte("date_soumission", SITE_COMMENT_CUTOFF),
         supabase.from("app_settings").select("setting_value").eq("setting_key", "evaluation_notification_email").maybeSingle(),
       ]);
-      const wanted = new Set(siteCommentRecipients(notifSetting?.setting_value));
+      const wanted = new Set(siteCommentRecipients(notifSetting?.setting_value, await getSenderEmail()));
       const assignees = recipients.filter((r) => wanted.has((r.email || "").toLowerCase()));
       for (const ev of siteEvals || []) {
         const who = [ev.first_name, ev.last_name ? `${ev.last_name.charAt(0)}.` : null].filter(Boolean).join(" ") || "Participant";
