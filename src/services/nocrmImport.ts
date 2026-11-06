@@ -24,15 +24,16 @@ export interface NocrmImportRun {
   finished_at: string | null;
 }
 
+/** Envoie les deux CSV au serveur, qui les range dans un espace privé. */
 export async function uploadNocrmFiles(leads: File, comments: File) {
-  const folder = new Date().toISOString().replace(/[:.]/g, "-");
-  const leadsPath = `${folder}/nocrm_leads.csv`;
-  const commentsPath = `${folder}/nocrm_comments.csv`;
-  for (const [path, file] of [[leadsPath, leads], [commentsPath, comments]] as const) {
-    const { error } = await supabase.storage.from("nocrm-import").upload(path, file, { contentType: "text/csv", upsert: false });
-    if (error) throw new Error(`Envoi de ${file.name} : ${error.message}`);
+  const [leadsCsv, commentsCsv] = await Promise.all([leads.text(), comments.text()]);
+  const { data, error } = await supabase.functions.invoke("nocrm-import", { body: { action: "upload", leadsCsv, commentsCsv } });
+  if (error) {
+    const details = error instanceof FunctionsHttpError ? await error.context.text() : error.message;
+    throw new Error(details);
   }
-  return { leadsPath, commentsPath };
+  if (data?.error) throw new Error(data.error);
+  return data as { leadsPath: string; commentsPath: string };
 }
 
 async function call(body: Record<string, unknown>): Promise<NocrmImportRun> {

@@ -209,6 +209,7 @@ const TABLES_TO_BACKUP = [
   "distribution_contract_signatures",
   "distribution_contract_counters",
   "devis_order_counters",
+  "nocrm_import_runs",
   "testimonial_requests",
   "testimonials",
   "time_entries",

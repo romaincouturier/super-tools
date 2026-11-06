@@ -11,6 +11,7 @@
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
+import { getSenderEmail } from "../_shared/email-settings.ts";
 import {
   buildHistory, findMergeTarget, groupComments, hasActivityLabel, leadTags, mapLeadToCard, mapStep, noteContent,
   parisToIso, parseAmount, parseCsv, tagKey, TAGS_TO_CREATE, type NocrmComment, type Row,
@@ -20,7 +21,6 @@ const BUCKET = "nocrm-import";
 const BATCH = 25;
 const TEST_LIMIT = 50;
 const ACTOR = "import-nocrm";
-const NOTE_AUTHOR = "romain@supertilt.fr";
 const EXPECTED = { leads: 1955, wonCount: 669, wonValue: 1427556.2, notes: 2932, activities: 12645 };
 
 const json = (body: unknown, status = 200) =>
@@ -161,7 +161,7 @@ async function ensureTags(db: Db, tagIds: Map<string, string>) {
   }
 }
 
-async function processLead(db: Db, lead: Row, ctx: Awaited<ReturnType<typeof loadContext>>, comments: NocrmComment[], mergeTarget: string | null, existingImportedId: string | null) {
+async function processLead(db: Db, lead: Row, ctx: Awaited<ReturnType<typeof loadContext>>, comments: NocrmComment[], mergeTarget: string | null, existingImportedId: string | null, noteAuthor: string) {
   const id = lead.ID.trim();
   const m = mapLeadToCard(lead);
   if (!m.createdAt) throw new Error(`Created_at illisible : « ${lead.Created_at} »`);
@@ -210,7 +210,7 @@ async function processLead(db: Db, lead: Row, ctx: Awaited<ReturnType<typeof loa
   const notes = comments.filter((c) => c.isNote).map((c) => ({
     card_id: cardId,
     content: noteContent(c),
-    author_email: NOTE_AUTHOR,
+    author_email: noteAuthor,
     created_at: c.at ?? fallbackAt,
     import_key: `nocrm:${id}:${c.ordinal}`,
   }));
@@ -287,6 +287,8 @@ async function step(db: Db, run: any) {
     .eq("source_metadata->>import_source", "nocrm").in("source_metadata->>nocrm_id", sliceIds);
   const importedById = new Map(((imported ?? []) as any[]).map((r) => [r.nocrm_id, r.id]));
 
+  // Auteur des notes : l'adresse d'expédition des paramètres (romain@supertilt.fr aujourd'hui).
+  const noteAuthor = await getSenderEmail();
   const counts = { created: 0, updated: 0, merged: 0, skipped: 0, notes: 0, activities: 0 };
   const errors: Array<{ nocrm_id: string; error: string }> = [];
   for (const lead of slice) {
@@ -338,6 +340,20 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const action = body?.action;
+
+    if (action === "upload") {
+      const { leadsCsv, commentsCsv } = body;
+      if (typeof leadsCsv !== "string" || typeof commentsCsv !== "string" || !leadsCsv || !commentsCsv) return json({ error: "Deux fichiers CSV requis" }, 400);
+      if (leadsCsv.length + commentsCsv.length > 40_000_000) return json({ error: "Fichiers trop volumineux" }, 413);
+      const folder = new Date().toISOString().replace(/[:.]/g, "-");
+      const leadsPath = `${folder}/nocrm_leads.csv`;
+      const commentsPath = `${folder}/nocrm_comments.csv`;
+      for (const [path, text] of [[leadsPath, leadsCsv], [commentsPath, commentsCsv]]) {
+        const { error } = await db.storage.from(BUCKET).upload(path, new Blob([text], { type: "text/csv" }), { contentType: "text/csv; charset=utf-8", upsert: false });
+        if (error) throw new Error(`Enregistrement de ${path} : ${error.message}`);
+      }
+      return json({ leadsPath, commentsPath });
+    }
 
     if (action === "simulate" || action === "start") {
       const { leadsPath, commentsPath } = body;
