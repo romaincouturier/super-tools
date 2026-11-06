@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Star, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toastError } from "@/lib/toast";
+import { toastError } from "@/lib/toastError";
 import { useToast } from "@/hooks/use-toast";
 import { markSiteCommentPublished } from "@/services/evaluationSiteComment";
 import {
