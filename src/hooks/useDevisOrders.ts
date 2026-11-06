@@ -34,7 +34,8 @@ export function useCreateDevisOrder() {
     mutationFn: (input: CreateDevisOrderInput) => createDevisOrder(input),
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ["active-devis-order", v.crmCardId] });
-      qc.invalidateQueries({ queryKey: ["supertilt-order-items"] });
+      qc.invalidateQueries({ queryKey: ["order-items"] });
+      qc.invalidateQueries({ queryKey: ["order-items-all"] });
     },
   });
 }
@@ -45,7 +46,8 @@ export function useCancelDevisOrder() {
     mutationFn: ({ orderId, reason }: { orderId: string; reason: string }) => cancelDevisOrder(orderId, reason),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["active-devis-order"] });
-      qc.invalidateQueries({ queryKey: ["supertilt-order-items"] });
+      qc.invalidateQueries({ queryKey: ["order-items"] });
+      qc.invalidateQueries({ queryKey: ["order-items-all"] });
     },
   });
 }
