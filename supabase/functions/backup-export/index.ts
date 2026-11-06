@@ -208,6 +208,7 @@ const TABLES_TO_BACKUP = [
   "author_onboarding_files",
   "distribution_contract_signatures",
   "distribution_contract_counters",
+  "devis_order_counters",
   "testimonial_requests",
   "testimonials",
   "time_entries",

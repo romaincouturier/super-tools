@@ -758,3 +758,6 @@ verify_jwt = false
 
 [functions.author-onboarding]
 verify_jwt = false
+
+[functions.create-devis-order]
+verify_jwt = false

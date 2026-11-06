@@ -90,7 +90,7 @@ const TABLES_TO_BACKUP = [
   "supertilt_actions", "supertilt_columns", "supertilt_settings",
   "support_ticket_attachments", "support_tickets",
   "tender_documents", "tender_opportunities",
-  "client_pearls", "author_onboarding_invitations", "author_onboarding_responses", "author_onboarding_files", "distribution_contract_signatures", "distribution_contract_counters", "testimonial_requests", "testimonials", "time_entries",
+  "client_pearls", "author_onboarding_invitations", "author_onboarding_responses", "author_onboarding_files", "distribution_contract_signatures", "distribution_contract_counters", "devis_order_counters", "testimonial_requests", "testimonials", "time_entries",
   "trainer_attendance_signatures", "trainer_documents", "trainer_evaluations",
   "trainer_training_adequacy", "trainers",
   "training_actions", "training_coaching_slots", "training_documents",
