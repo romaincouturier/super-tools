@@ -2,7 +2,7 @@
 title: 'Story 1.5 : ouvrir un contenu, le modifier et le marquer publié'
 type: 'feature'
 created: '2026-11-06'
-status: 'in-progress'
+status: 'in-review'
 baseline_commit: '4a0e0eab07510319d99525c48f35156668475e0d'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -71,11 +71,11 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `supabase/migrations/20261107100000_social_post_publication.sql` -- `set_social_post_published(p_post_id, p_published)`, `update_social_post_content(p_post_id, p_text, p_media_id)`, trigger de suppression du groupe vide. -- Socle.
-- [ ] `supabase/tests/social-contents.test.ts` -- matrice SQL : marquage, annulation datée et non datée, édition d'une publiée sans propagation, synchro après marquage, suppressions, RLS des deux fonctions (sans droit, anon). -- Règle [058].
-- [ ] `src/services/socialContents.ts` et `src/hooks/useSocialContents.ts` -- `setPostPublished`, `updatePublishedPost`, `deletePost`, `deleteGroup` et leurs hooks, invalidation des contenus. -- Service.
-- [ ] `SocialComposerDialog.tsx` -- barre de déclinaison dans chaque onglet : statut, bouton de marquage, suppression ; onglet d'une publiée en édition propre ; canal publié non décochable ; « Supprimer tout le contenu » dans le pied du dialogue. -- Détail.
-- [ ] Tests composant -- détail ouvert avec tous les champs (1.5-COMP-001), marquage et annulation, bouton désactivé sans date, édition d'une publiée, suppression confirmée et annulée avec le bon choix transmis (1.5-COMP-002). -- Couverture.
+- [x] `supabase/migrations/20261107100000_social_post_publication.sql` -- `set_social_post_published(p_post_id, p_published)`, `update_social_post_content(p_post_id, p_text, p_media_id)`, trigger de suppression du groupe vide. -- Socle.
+- [x] `supabase/tests/social-contents.test.ts` -- matrice SQL : marquage, annulation datée et non datée, édition d'une publiée sans propagation, synchro après marquage, suppressions, RLS des deux fonctions (sans droit, anon). -- Règle [058].
+- [x] `src/services/socialContents.ts` et `src/hooks/useSocialContents.ts` -- `setPostPublished`, `updatePublishedPost`, `deletePost`, `deleteGroup` et leurs hooks, invalidation des contenus. -- Service.
+- [x] `SocialComposerDialog.tsx` -- barre de déclinaison dans chaque onglet : statut, bouton de marquage, suppression ; onglet d'une publiée en édition propre ; canal publié non décochable ; « Supprimer tout le contenu » dans le pied du dialogue. -- Détail.
+- [x] Tests composant -- détail ouvert avec tous les champs (1.5-COMP-001), marquage et annulation, bouton désactivé sans date, édition d'une publiée, suppression confirmée et annulée avec le bon choix transmis (1.5-COMP-002). -- Couverture.
 
 **Acceptance Criteria:**
 - Given une carte du calendrier, when l'utilisateur clique dessus, then le détail s'ouvre avec texte, visuel, canaux, thème, format, date et heure, modifiables.
@@ -93,6 +93,9 @@ context:
 - Production : jouer `20261107100000_social_post_publication.sql` après les quatre migrations précédentes de l'epic.
 
 ## Spec Change Log
+
+- Groupe vide : le trigger `AFTER DELETE` est un trigger de contrainte `DEFERRABLE INITIALLY DEFERRED`, avec la garde `pg_trigger_depth() > 1`. Un trigger immédiat supprimait le groupe au milieu de `save_social_content_group` quand tous les canaux étaient remplacés (le `DELETE` des canaux décochés précède l'`INSERT` des nouveaux), puis l'insertion échouait sur la clé étrangère. Testé : « remplacer tous les canaux d'un groupe ne le supprime pas ».
+- Composeur : les onglets par canal s'affichent aussi synchro active (texte et visuel communs dans l'onglet d'une non publiée), pour porter la barre de déclinaison. Annuler le marquage d'une déclinaison, synchro active, la réécrit aussitôt avec le texte et le visuel communs.
 
 ## Review Triage Log
 
