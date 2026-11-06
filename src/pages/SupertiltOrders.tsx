@@ -1834,7 +1834,7 @@ export default function SupertiltOrders() {
           )}
         </div>
       )}
-      <Tabs defaultValue="kanban">
+      <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") || "kanban"}>
         <TabsList className="mb-6 flex-wrap h-auto gap-0.5">
           <TabsTrigger value="dashboard"><LayoutGrid className="h-4 w-4 mr-1.5" />Dashboard</TabsTrigger>
           <TabsTrigger value="kanban" className="relative">
