@@ -24,7 +24,6 @@ function InviteDialog({ onClose, onDraft }: { onClose: () => void; onDraft: (d: 
   const [f, setF] = useState({ email: "", first_name: "", last_name: "", game_name: "", commission: "15" });
   const [busy, setBusy] = useState(false);
   const { toast } = useToast();
-  const { copy } = useCopyToClipboard();
   const invalidate = useInvalidateOnboarding();
   const submit = async () => {
     setBusy(true);
@@ -63,6 +62,7 @@ function DraftDialog({ draft, invitationId, onClose }: { draft: InvitationDraft;
   const [busy, setBusy] = useState(false);
   const { toast } = useToast();
   const invalidate = useInvalidateOnboarding();
+  const { copy } = useCopyToClipboard();
   const send = async () => {
     setBusy(true);
     try {
