@@ -22,6 +22,7 @@ import {
   Rocket,
   UserPlus,
   ChevronDown,
+  PackageCheck,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { format, parseISO } from "date-fns";
@@ -31,6 +32,8 @@ import { supabase } from "@/integrations/supabase/client";
 import LossReasonDialog from "../LossReasonDialog";
 import MacroPricingDialog, { PricingLine } from "../MacroPricingDialog";
 import { CreateTrainingDialog } from "../CreateTrainingDialog";
+import CreateDevisOrderDialog from "../CreateDevisOrderDialog";
+import { useActiveDevisOrder, useLatestGameDevis } from "@/hooks/useDevisOrders";
 import type { LossReason } from "@/types/crm";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskAmount } from "@/lib/demoMask";
@@ -65,6 +68,9 @@ interface Props {
   pendingTrainingParams: URLSearchParams | null;
   handleConfirmCreateTraining: () => void;
   initialSiren?: string | null;
+  address?: string | null;
+  postalCode?: string | null;
+  city?: string | null;
   onSirenResolved?: (overrides: { siren?: string; company?: string; address?: string; postal_code?: string; city?: string }) => void;
 
   // Win choice
@@ -84,12 +90,17 @@ const CardDetailDialogs = (props: Props) => {
     showPricingDialog, setShowPricingDialog, pricingLines, setPricingLines,
     pricingTravelTotal, setPricingTravelTotal, setEstimatedValue,
     showCreateTrainingDialog, setShowCreateTrainingDialog, pendingTrainingParams: _pendingTrainingParams,
-    handleConfirmCreateTraining, initialSiren, onSirenResolved,
+    handleConfirmCreateTraining, initialSiren, onSirenResolved, address, postalCode, city,
     showWinChoiceDialog, setShowWinChoiceDialog, handleConfirmCreateMission,
     onOpenChange,
   } = props;
 
   const [showAttachTraining, setShowAttachTraining] = useState(false);
+  const [showDevisOrder, setShowDevisOrder] = useState(false);
+  const [showMissionAnyway, setShowMissionAnyway] = useState(false);
+  const { data: gameDevis } = useLatestGameDevis(showWinChoiceDialog ? cardId : null);
+  const { data: activeDevisOrder } = useActiveDevisOrder(showWinChoiceDialog ? cardId : null);
+  const isGameDevisDeal = !!gameDevis || serviceType === "jeu";
   const [showFirstAction, setShowFirstAction] = useState(false);
   const [firstActionDate, setFirstActionDate] = useState("");
   const [firstActionText, setFirstActionText] = useState("");
@@ -119,6 +130,7 @@ const CardDetailDialogs = (props: Props) => {
       setFirstActionDate("");
       setFirstActionText("");
       setPendingAttachTrainingId(null);
+      setShowMissionAnyway(false);
       return;
     }
     const fetchInterTrainings = async () => {
@@ -326,6 +338,19 @@ const CardDetailDialogs = (props: Props) => {
         onSirenResolved={onSirenResolved}
       />
 
+      <CreateDevisOrderDialog
+        open={showDevisOrder}
+        onOpenChange={setShowDevisOrder}
+        cardId={cardId}
+        firstName={firstName}
+        lastName={lastName}
+        email={email}
+        company={company}
+        address={address}
+        postalCode={postalCode}
+        city={city}
+      />
+
       <AlertDialog open={showWinChoiceDialog} onOpenChange={setShowWinChoiceDialog}>
         <AlertDialogContent className="w-full sm:max-w-lg max-h-[85vh] flex flex-col">
           <AlertDialogHeader>
@@ -341,6 +366,38 @@ const CardDetailDialogs = (props: Props) => {
               Que souhaitez-vous créer à partir de cette opportunité ?
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {isGameDevisDeal && (
+            <div className="py-2">
+              {activeDevisOrder ? (
+                <Button
+                  variant="outline"
+                  className="w-full h-auto flex flex-col items-center gap-1 p-4"
+                  onClick={() => { setShowWinChoiceDialog(false); navigate("/dropshipping"); }}
+                >
+                  <PackageCheck className="h-8 w-8 text-primary" />
+                  <span className="font-medium">Voir la commande {activeDevisOrder.order_number}</span>
+                  <span className="text-xs text-muted-foreground">Une commande existe déjà pour cette opportunité</span>
+                </Button>
+              ) : (
+                <Button
+                  className="w-full h-auto flex flex-col items-center gap-1 p-4"
+                  onClick={() => { setShowWinChoiceDialog(false); setShowDevisOrder(true); }}
+                >
+                  <PackageCheck className="h-8 w-8" />
+                  <span className="font-medium">Créer une commande</span>
+                  <span className="text-xs opacity-80 text-center">
+                    {gameDevis ? "Pré-remplie depuis le devis de jeux, sans facture boutique" : "Aucun devis enregistré : lignes à saisir"}
+                  </span>
+                </Button>
+              )}
+              {!showMissionAnyway && (
+                <button className="mt-2 w-full text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowMissionAnyway(true)}>
+                  Autres choix (formation, mission)
+                </button>
+              )}
+            </div>
+          )}
+          {(!isGameDevisDeal || showMissionAnyway) && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
             <Button
               variant="outline"
@@ -418,6 +475,8 @@ const CardDetailDialogs = (props: Props) => {
               )}
             </div>
           </div>
+
+          )}
 
           {/* Attach to existing inter-entreprise */}
           <div className="border-t pt-3">
