@@ -42,7 +42,7 @@ describe("import noCRM", () => {
 
   it("pose un tag par valeur selon la table de correspondance", () => {
     const { tags, unknown } = leadTags({ Univers: "Agilité,Misc", Cible: "Public", "Qualiopi déterminant ?": "Ne sait pas", Origine: "Conférence/Evènement,Inconnue" });
-    expect(tags).toEqual([["Univers", "Transformation"], ["Cible", "Consultant/formateur"].slice(0, 0) as never, ["Taille", "Public"], ["Origine", "Evènement"], ["Qualiopi déterminant ?", "Inconnu"]].filter((t) => (t as unknown[]).length));
+    expect(tags).toEqual([["Univers", "Transformation"], ["Taille", "Public"], ["Origine", "Evènement"], ["Qualiopi déterminant ?", "Inconnu"]]);
     expect(unknown).toEqual([{ column: "Origine", value: "Inconnue" }]);
   });
 
