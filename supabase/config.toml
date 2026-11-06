@@ -758,6 +758,3 @@ verify_jwt = false
 
 [functions.author-onboarding]
 verify_jwt = false
-
-[functions.send-author-signature-reminders]
-verify_jwt = false
