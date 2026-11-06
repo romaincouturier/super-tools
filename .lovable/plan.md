@@ -7,12 +7,14 @@ Analyse et plan uniquement. Rien ne sera modifié avant votre validation.
 ### Constat
 - Les publications sont aujourd'hui rattachées à un cours (`practice_posts.course_id`). Les dépôts partagés sont le même fil (`deposit_id`).
 - Volumes : Facilitation graphique 166, Sketchnoter 19, AI4Product 5. Tous les autres cours publiés : 0.
-- Cours intra repérés : Acoss/URSSAF, Agirc-Arrco, FDJ Vitrolles, FDJ Boulogne, CAUE Drôme, Lyon 06/2026 (à confirmer).
+- Cours intra repérés : Acoss/URSSAF, Agirc-Arrco, FDJ Vitrolles, FDJ Boulogne, CAUE Drôme. Lyon 06/2026 est une session inter : traité comme un cours non intra.
 
 ### Modèle proposé
 - 4 thématiques : Facilitation graphique, Intelligence collective, IA, Transformation.
-- Un cours non intra peut être rattaché à plusieurs thématiques. Un cours intra ne peut être rattaché à aucune (bloqué par la base).
-- Un apprenant voit les thématiques de ses cours inscrits, plus la communauté de ses cours intra.
+- Tout cours, intra compris, peut être rattaché à une ou plusieurs thématiques.
+- Un cours intra garde en plus sa communauté privée. Ce qui y est publié reste visible des seuls inscrits de ce client : jamais affiché dans la thématique.
+- Un apprenant intra voit donc sa communauté client et les thématiques de son cours. Depuis la thématique, il publie en public ; depuis sa communauté client, en privé. L'écran indique clairement où il publie.
+- Un apprenant voit les thématiques de ses cours inscrits, plus la communauté privée de ses cours intra.
 - Les admins et formateurs voient tout.
 
 ### Migration : recommandation « fusion douce, sans déplacer les données »
@@ -24,7 +26,8 @@ Analyse et plan uniquement. Rien ne sera modifié avant votre validation.
 - Notifications : on notifie toujours le staff du cours d'origine. Les apprenants abonnés reçoivent aussi les nouveautés de leurs thématiques, via le récapitulatif existant (pas de nouvel email).
 - Dépôts de travaux : inchangés, ils restent rattachés à la leçon et au cours. Leur publication partagée apparaît dans la thématique.
 - Projection des dessins en live : la sélection reste par cours ou session par défaut, avec une option « toute la thématique ».
-- Point de confidentialité : un apprenant Sketchnoter verra les 166 publications Facilitation graphique. Les auteurs n'y ont pas consenti. Proposition : un message d'information la première fois, et la possibilité pour chaque auteur de garder une publication « visible du cours uniquement ».
+- Publications existantes des cours non intra : visibles de toute la thématique (décision validée). Un message d'information s'affiche la première fois, et chaque auteur peut repasser une publication en « visible du cours uniquement ».
+- Publications existantes des cours intra : restent privées au client, sans exception.
 - Retour arrière : simple désactivation d'un réglage (mode thématique activé ou non). Comme rien n'est déplacé, les communautés par cours réapparaissent telles quelles.
 
 ### Rattachement par défaut proposé
@@ -41,13 +44,13 @@ Analyse et plan uniquement. Rien ne sera modifié avant votre validation.
 | AI4Product | IA |
 | Les fondamentaux de l'Agilité | Transformation |
 | Développer sa posture de manager | Transformation |
-| Clean code, sortir de la dette technique | Transformation (ou aucune) |
-| Cours intra (Acoss, Agirc-Arrco, FDJ ×2, CAUE, Lyon ?) | Aucune, communauté isolée |
+| Clean code, sortir de la dette technique | Transformation |
+| Lyon 06/2026 (inter) | Selon son contenu, à confirmer |
+| Cours intra (Acoss, Agirc-Arrco, FDJ ×2, CAUE) | Thématique(s) selon le contenu + communauté client privée |
 
-### Questions
-1. Le cours Lyon 06/2026 est-il intra ?
-2. Clean code : thématique Transformation, ou aucune ?
-3. Les publications existantes deviennent-elles visibles de toute la thématique (avec un message d'information) ? Ou seulement les nouvelles ?
+### Questions restantes
+1. Lyon 06/2026 : quelle thématique (Facilitation graphique ?)
+2. Cours intra : quelles thématiques pour Acoss, Agirc-Arrco, FDJ ×2, CAUE ? Par défaut, je propose la thématique du cours catalogue dont ils sont issus.
 
 ## 2. Accès à l'espace apprenant par simple adresse email
 
@@ -72,5 +75,5 @@ Analyse et plan uniquement. Rien ne sera modifié avant votre validation.
 Recommandation : option A, puisque tous les apprenants ont désormais un compte et un mot de passe ou un lien magique.
 
 ## Détails techniques
-- Thématiques : tables `community_themes` et `course_community_themes`, avec un trigger qui refuse un cours intra. Nouvelle fonction `learner_can_read_theme()` en security definer. `practice_posts` : ajout d'une colonne nullable `visibility_scope` ('theme'/'course'). Les politiques de lecture élargissent `learner_can_read_community` à la thématique. Réglage dans `app_settings` (`community_theme_mode`) pour revenir en arrière. Sauvegarde : ajout des nouvelles tables.
+- Thématiques : tables `community_themes` et `course_community_themes`, sans restriction intra. Les publications d'un cours intra sont forcées en `visibility_scope='course'` par un trigger et exclues des lectures de thématique. Nouvelle fonction `learner_can_read_theme()` en security definer. `practice_posts` : ajout d'une colonne nullable `visibility_scope` ('theme'/'course'). Les politiques de lecture élargissent `learner_can_read_community` à la thématique. Réglage dans `app_settings` (`community_theme_mode`) pour revenir en arrière. Sauvegarde : ajout des nouvelles tables.
 - Accès : supprimer le repli `x-learner-email` de `get_learner_email()`, et retirer ou restreindre les politiques `anon_*` sur practice_posts, lms_work_deposits, lms_progress, lms_quiz_attempts et les tables liées. Garde de route avec redirection vers `/connexion?email=&redirect=`. `useLearnerIdentity` : session seule. Les edge functions d'emails génèrent les liens magiques vers le cours. Tests pgTAP : anonyme refusé, apprenant A sans accès à B.
