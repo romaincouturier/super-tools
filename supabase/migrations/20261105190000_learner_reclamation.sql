@@ -55,7 +55,7 @@ BEGIN
   SELECT coalesce(nullif(trim(concat_ws(' ', first_name, last_name)), ''), v_email)
     INTO v_name
   FROM public.profiles
-  WHERE id = auth.uid();
+  WHERE user_id = auth.uid();
 
   v_token := encode(gen_random_bytes(24), 'hex');
 

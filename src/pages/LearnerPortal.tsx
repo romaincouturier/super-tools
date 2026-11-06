@@ -1391,6 +1391,7 @@ function AideView({
   const [message, setMessage] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
+  const goesToRegister = helpDestination(category) === "reclamation";
 
   const handleSend = async () => {
     if (!subject.trim() || !message.trim()) return;
@@ -1411,8 +1412,8 @@ function AideView({
         if (data?.token) await sendAcknowledgement({ token: data.token });
 
         toast({
-          title: "Message envoyé",
-          description: "Nous accusons réception par email et revenons vers vous.",
+          title: "Message enregistré",
+          description: "Il rejoint notre registre. Vous recevez un accusé de réception par email.",
         });
         setCategory("");
         setIsBug(false);
@@ -1603,24 +1604,34 @@ function AideView({
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>
-                  Captures d'écran {isBug ? "(recommandé pour un bug)" : "(optionnel)"}
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-                  className="w-full text-xs"
-                  style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
-                />
-                {files.length > 0 && (
-                  <p className="text-[11px] mt-1" style={{ color: "var(--st-ink-muted)" }}>
-                    {files.length} fichier{files.length > 1 ? "s" : ""} joint{files.length > 1 ? "s" : ""}
-                  </p>
-                )}
-              </div>
+              {/* Le registre des réclamations ne porte pas de pièce jointe :
+                  proposer le champ sur ce chemin reviendrait à faire croire que
+                  le fichier part, alors qu'il serait silencieusement perdu. */}
+              {goesToRegister ? (
+                <p className="text-[11px]" style={{ color: "var(--st-ink-muted)" }}>
+                  Pour joindre un document, répondez à l'accusé de réception que vous recevrez par
+                  email.
+                </p>
+              ) : (
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>
+                    Captures d'écran {isBug ? "(recommandé pour un bug)" : "(optionnel)"}
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+                    className="w-full text-xs"
+                    style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+                  />
+                  {files.length > 0 && (
+                    <p className="text-[11px] mt-1" style={{ color: "var(--st-ink-muted)" }}>
+                      {files.length} fichier{files.length > 1 ? "s" : ""} joint{files.length > 1 ? "s" : ""}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <button
                 onClick={handleSend}

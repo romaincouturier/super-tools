@@ -42,8 +42,8 @@ ALTER TABLE public.audit_runs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS audit_runs_staff ON public.audit_runs;
 CREATE POLICY audit_runs_staff ON public.audit_runs
   FOR ALL TO authenticated
-  USING (is_admin(auth.uid()) OR has_module_access(auth.uid(), 'formations'))
-  WITH CHECK (is_admin(auth.uid()) OR has_module_access(auth.uid(), 'formations'));
+  USING (is_admin(auth.uid()) OR has_module_access(auth.uid(), 'audit') OR has_module_access(auth.uid(), 'formations'))
+  WITH CHECK (is_admin(auth.uid()) OR has_module_access(auth.uid(), 'audit') OR has_module_access(auth.uid(), 'formations'));
 
 COMMENT ON TABLE public.audit_runs IS
   'Passages d''audit blanc : faits constatés, réponses de l''auditeur et verdicts, figés à la date du passage (indicateur 32).';

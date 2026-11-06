@@ -7,6 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2, AlertTriangle, ExternalLink } from "lucide-react";
 import { HANDICAP_TYPES, handicapTypeLabel } from "@/lib/handicapPartners";
 import { useDemoMode } from "@/contexts/DemoModeContext";
@@ -44,6 +54,7 @@ export default function HandicapPartnerManager() {
   const [editing, setEditing] = useState<HandicapPartner | null>(null);
   const [form, setForm] = useState<HandicapPartnerInput>(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [toRemove, setToRemove] = useState<HandicapPartner | null>(null);
 
   const openNew = () => {
     setEditing(null);
@@ -140,7 +151,7 @@ export default function HandicapPartnerManager() {
                 <Button variant="ghost" size="icon" onClick={() => openEdit(p)} aria-label="Modifier">
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => remove(p.id)} aria-label="Retirer">
+                <Button variant="ghost" size="icon" onClick={() => setToRemove(p)} aria-label="Retirer">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -148,6 +159,32 @@ export default function HandicapPartnerManager() {
           ))}
         </div>
       )}
+
+      {/* Un partenaire retiré par erreur se reconstitue à la main, coordonnées
+          comprises : la suppression se confirme, comme ailleurs dans les
+          réglages. Pour une mise en sommeil, le statut « Inactif » suffit. */}
+      <AlertDialog open={!!toRemove} onOpenChange={(o) => !o && setToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retirer {toRemove?.organisation} du réseau ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ses coordonnées seront perdues. Pour le mettre seulement en sommeil, passez-le en
+              statut « Inactif » : il reste consultable et ne compte plus dans la couverture.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (toRemove) remove(toRemove.id);
+                setToRemove(null);
+              }}
+            >
+              Retirer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="w-full max-w-lg max-h-[85vh] overflow-y-auto">

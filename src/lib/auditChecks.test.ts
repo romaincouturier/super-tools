@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   auditPlan,
+  buildFacts,
   evaluateIndicator,
   summarize,
   type AuditFacts,
@@ -217,5 +218,97 @@ describe("summarize", () => {
     expect(summarize([{ number: 1, verdict: "mineure", checks: [], pending: [], rationale: "" }]).blocking).toBe(
       false,
     );
+  });
+});
+
+describe("buildFacts", () => {
+  const RAW = {
+    sampleIds: [],
+    sampleTrainings: [],
+    activeFormations: [],
+    submittedEvaluations: [],
+    submittedSurveys: [],
+    participants: [],
+    adequacy: [],
+    reglementUrl: null,
+    activeVhdProcedures: 0,
+    lmsModules: [],
+    lmsLessons: [],
+    lmsCourseIds: [],
+    trainers: [],
+    trainerDocumentOwners: [],
+    watchItemsLastYear: 0,
+    watchSourcesFollowed: 0,
+    watchItemsLinkedToAction: 0,
+    referentName: null,
+    referentEmail: null,
+    handicapPartnersActive: 0,
+    coldEvaluationsSubmitted: 0,
+    sponsorEvaluationsSubmitted: 0,
+    funderAppreciations: 0,
+    reclamations: [],
+    risks: [],
+    improvements: 0,
+  };
+
+  // Une seule leçon obligatoire quelque part ne rend pas tous les parcours
+  // contrôlables : le compte est par cours.
+  it("compte les parcours dotés d'une leçon obligatoire, un par un", () => {
+    const facts = buildFacts({
+      ...RAW,
+      lmsCourseIds: ["c1", "c2", "c3"],
+      lmsModules: [
+        { id: "m1", course_id: "c1" },
+        { id: "m2", course_id: "c2" },
+        { id: "m3", course_id: "c3" },
+      ],
+      lmsLessons: [
+        { module_id: "m1", is_mandatory: true },
+        { module_id: "m2", is_mandatory: false },
+        { module_id: "m3", is_mandatory: null },
+      ],
+    });
+    expect(facts.elearningCourses).toBe(3);
+    // c1 obligatoire, c3 nul donc obligatoire par convention, c2 facultatif.
+    expect(facts.elearningCoursesWithMandatoryLessons).toBe(2);
+  });
+
+  it("ne compte aucun parcours quand toutes les leçons sont facultatives", () => {
+    const facts = buildFacts({
+      ...RAW,
+      lmsCourseIds: ["c1"],
+      lmsModules: [{ id: "m1", course_id: "c1" }],
+      lmsLessons: [{ module_id: "m1", is_mandatory: false }],
+    });
+    expect(facts.elearningCoursesWithMandatoryLessons).toBe(0);
+  });
+
+  it("ignore une leçon rattachée à aucun module", () => {
+    const facts = buildFacts({
+      ...RAW,
+      lmsCourseIds: ["c1"],
+      lmsModules: [{ id: "m1", course_id: "c1" }],
+      lmsLessons: [{ module_id: null, is_mandatory: true }],
+    });
+    expect(facts.elearningCoursesWithMandatoryLessons).toBe(0);
+  });
+
+  it("n'accorde la désignation du référent qu'avec un nom et une adresse", () => {
+    expect(buildFacts({ ...RAW, referentName: "Romain", referentEmail: null }).handicapReferentDesignated).toBe(false);
+    expect(buildFacts({ ...RAW, referentName: " ", referentEmail: "r@x.fr" }).handicapReferentDesignated).toBe(false);
+    expect(buildFacts({ ...RAW, referentName: "Romain", referentEmail: "r@x.fr" }).handicapReferentDesignated).toBe(true);
+  });
+
+  it("ne compte un risque élevé sans mesure que s'il est encore ouvert", () => {
+    const facts = buildFacts({
+      ...RAW,
+      risks: [
+        { criticality: 12, preventive_measure: null, status: "open" },
+        { criticality: 12, preventive_measure: null, status: "closed" },
+        { criticality: 12, preventive_measure: "Mesure", status: "open" },
+        { criticality: 4, preventive_measure: null, status: "open" },
+      ],
+    });
+    expect(facts.highRisksWithoutMeasure).toBe(1);
   });
 });

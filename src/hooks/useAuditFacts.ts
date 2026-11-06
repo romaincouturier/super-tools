@@ -66,6 +66,7 @@ export function useAuditFacts() {
         reglement,
         vhd,
         courses,
+        modules,
         lessons,
         trainers,
         trainerDocs,
@@ -97,7 +98,8 @@ export function useAuditFacts() {
         supabase.rpc("get_app_setting_public", { p_key: "reglement_interieur_url" }),
         supabase.from("vhd_procedures").select("id, status").eq("status", "active"),
         supabase.from("lms_courses").select("id"),
-        supabase.from("lms_lessons").select("id, module_id, is_mandatory"),
+        supabase.from("lms_modules").select("id, course_id"),
+        supabase.from("lms_lessons").select("module_id, is_mandatory"),
         supabase.from("trainers").select("id, competences, formations_suivies"),
         supabase.from("trainer_documents").select("trainer_id"),
         supabase.from("watch_items").select("id").gte("created_at", oneYearAgo),
@@ -113,7 +115,26 @@ export function useAuditFacts() {
         supabase.from("improvements").select("id"),
       ]);
 
-      const lessonRows = lessons.data ?? [];
+      // Une lecture en échec ne doit jamais devenir un zéro mesuré : elle
+      // ferait passer un contrôle en défaut et figerait une non-conformité
+      // inventée dans le rapport.
+      const failures = [
+        ["formations", formations], ["évaluations", evaluations], ["recueils", surveys],
+        ["participants", participants], ["adéquation", adequacy], ["règlement", reglement],
+        ["procédure VHD", vhd], ["parcours", courses], ["modules", modules], ["leçons", lessons],
+        ["intervenants", trainers], ["justificatifs", trainerDocs], ["veille", watchItems],
+        ["sources de veille", watchSources], ["référent", referentName], ["référent", referentEmail],
+        ["partenaires", partners], ["évaluations à froid", coldParticipant],
+        ["évaluations commanditaire", coldSponsor], ["financeurs", funder],
+        ["réclamations", reclamations], ["risques", risks], ["améliorations", improvements],
+      ].filter(([, r]) => (r as { error?: unknown }).error);
+
+      if (failures.length > 0) {
+        throw new Error(
+          `Lecture impossible : ${failures.map(([label]) => label).join(", ")}. L'audit ne peut pas conclure sur des données qu'il n'a pas lues.`,
+        );
+      }
+
       const facts = buildFacts({
         sampleIds,
         sampleTrainings: sampleRows,
@@ -124,8 +145,9 @@ export function useAuditFacts() {
         adequacy: adequacy.data ?? [],
         reglementUrl: (reglement.data as string | null) ?? null,
         activeVhdProcedures: count(vhd.data),
-        lmsCourses: count(courses.data),
-        mandatoryLessons: lessonRows.filter((l) => l.is_mandatory !== false).length,
+        lmsCourseIds: (courses.data ?? []).map((c) => c.id),
+        lmsModules: modules.data ?? [],
+        lmsLessons: lessons.data ?? [],
         trainers: trainers.data ?? [],
         trainerDocumentOwners: (trainerDocs.data ?? []).map((d) => d.trainer_id),
         watchItemsLastYear: count(watchItems.data),

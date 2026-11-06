@@ -67,7 +67,9 @@ Deno.serve(async (req) => {
 
     // Compute metrics
     const totalParticipants = participants.length;
-    const surveyCompleted = questionnaires.filter(q => q.etat === "soumis").length;
+    // La contrainte CHECK de questionnaire_besoins ne connaît pas "soumis" :
+    // un recueil rempli est "complete", puis "valide_formateur".
+    const surveyCompleted = questionnaires.filter(q => q.etat === "complete" || q.etat === "valide_formateur").length;
     const surveyTotal = questionnaires.length;
     const evalCompleted = evaluations.filter(e => e.etat === "soumis").length;
     const evalTotal = evaluations.length;

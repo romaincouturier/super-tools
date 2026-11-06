@@ -711,8 +711,10 @@ export interface RawAuditData {
   adequacy: Array<{ training_id: string }>;
   reglementUrl: string | null;
   activeVhdProcedures: number;
-  lmsCourses: number;
-  mandatoryLessons: number;
+  /** Modules des parcours, pour rattacher chaque leçon à son cours. */
+  lmsModules: Array<{ id: string; course_id: string }>;
+  lmsLessons: Array<{ module_id: string | null; is_mandatory: boolean | null }>;
+  lmsCourseIds: string[];
   trainers: Array<{ id: string; competences: string[] | null; formations_suivies: unknown }>;
   trainerDocumentOwners: string[];
   watchItemsLastYear: number;
@@ -730,6 +732,26 @@ export interface RawAuditData {
 }
 
 const filled = (v: unknown): boolean => typeof v === "string" && v.trim().length > 0;
+
+/**
+ * Parcours dotés d'au moins une leçon obligatoire, donc d'un attendu
+ * vérifiable. Le compte est fait **par cours** : une seule leçon obligatoire
+ * quelque part ne rend pas tous les parcours contrôlables.
+ *
+ * Une leçon dont `is_mandatory` est nul compte comme obligatoire, même
+ * convention que le suivi distanciel, pour que les deux écrans comptent
+ * pareil.
+ */
+function coursesWithMandatoryLessons(raw: RawAuditData): number {
+  const courseOfModule = new Map(raw.lmsModules.map((m) => [m.id, m.course_id]));
+  const covered = new Set<string>();
+  for (const lesson of raw.lmsLessons) {
+    if (lesson.is_mandatory === false) continue;
+    const courseId = lesson.module_id ? courseOfModule.get(lesson.module_id) : undefined;
+    if (courseId) covered.add(courseId);
+  }
+  return raw.lmsCourseIds.filter((id) => covered.has(id)).length;
+}
 
 export function buildFacts(raw: RawAuditData): AuditFacts {
   const withEvaluation = new Set(raw.submittedEvaluations.map((e) => e.training_id));
@@ -768,8 +790,8 @@ export function buildFacts(raw: RawAuditData): AuditFacts {
     reglementInterieurPublished: filled(raw.reglementUrl),
     vhdProcedureActive: raw.activeVhdProcedures > 0,
     vhdProcedurePublished: raw.activeVhdProcedures > 0,
-    elearningCourses: raw.lmsCourses,
-    elearningCoursesWithMandatoryLessons: raw.mandatoryLessons > 0 ? raw.lmsCourses : 0,
+    elearningCourses: raw.lmsCourseIds.length,
+    elearningCoursesWithMandatoryLessons: coursesWithMandatoryLessons(raw),
     distanceThresholdConfigured: false,
     trainers: raw.trainers.length,
     trainersWithCompetences: raw.trainers.filter((t) => (t.competences ?? []).length > 0).length,

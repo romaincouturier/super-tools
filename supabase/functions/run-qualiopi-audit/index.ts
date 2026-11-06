@@ -56,7 +56,7 @@ serve(async (req) => {
 
     const [
       formations, evaluations, surveys, participants, adequacy, reglement, vhd,
-      courses, lessons, trainers, trainerDocs, watchItems, watchSources,
+      courses, modules, lessons, trainers, trainerDocs, watchItems, watchSources,
       referentName, referentEmail, partners, coldParticipant, coldSponsor,
       funder, reclamations, risks, improvements,
     ] = await Promise.all([
@@ -68,7 +68,8 @@ serve(async (req) => {
       supabase.from("app_settings").select("setting_value").eq("setting_key", "reglement_interieur_url").maybeSingle(),
       supabase.from("vhd_procedures").select("id").eq("status", "active"),
       supabase.from("lms_courses").select("id"),
-      supabase.from("lms_lessons").select("id, is_mandatory"),
+      supabase.from("lms_modules").select("id, course_id"),
+      supabase.from("lms_lessons").select("module_id, is_mandatory"),
       supabase.from("trainers").select("id, competences, formations_suivies"),
       supabase.from("trainer_documents").select("trainer_id"),
       supabase.from("watch_items").select("id").gte("created_at", oneYearAgo),
@@ -84,6 +85,24 @@ serve(async (req) => {
       supabase.from("improvements").select("id"),
     ]);
 
+    // Une lecture en échec deviendrait un zéro mesuré, donc un constat en
+    // défaut inventé, inscrit le lendemain dans les actions de tout le monde.
+    const reads: Array<[string, { error?: unknown }]> = [
+      ["formation_configs", formations], ["training_evaluations", evaluations],
+      ["questionnaire_besoins", surveys], ["training_participants", participants],
+      ["trainer_training_adequacy", adequacy], ["app_settings", reglement],
+      ["vhd_procedures", vhd], ["lms_courses", courses], ["lms_modules", modules],
+      ["lms_lessons", lessons], ["trainers", trainers], ["trainer_documents", trainerDocs],
+      ["watch_items", watchItems], ["watch_sources", watchSources],
+      ["handicap_partners", partners], ["participant_cold_evaluations", coldParticipant],
+      ["sponsor_cold_evaluations", coldSponsor], ["trainings", funder],
+      ["reclamations", reclamations], ["quality_risks", risks], ["improvements", improvements],
+    ];
+    const failed = reads.filter(([, r]) => r.error).map(([t]) => t);
+    if (failed.length > 0) {
+      return createErrorResponse(`Lectures en échec : ${failed.join(", ")}`, 500);
+    }
+
     const len = (d: unknown[] | null | undefined) => d?.length ?? 0;
     const raw: RawAuditData = {
       sampleIds,
@@ -95,8 +114,9 @@ serve(async (req) => {
       adequacy: adequacy.data ?? [],
       reglementUrl: reglement.data?.setting_value ?? null,
       activeVhdProcedures: len(vhd.data),
-      lmsCourses: len(courses.data),
-      mandatoryLessons: (lessons.data ?? []).filter((l) => l.is_mandatory !== false).length,
+      lmsCourseIds: (courses.data ?? []).map((c) => c.id),
+      lmsModules: modules.data ?? [],
+      lmsLessons: lessons.data ?? [],
       trainers: trainers.data ?? [],
       trainerDocumentOwners: (trainerDocs.data ?? []).map((d) => d.trainer_id),
       watchItemsLastYear: len(watchItems.data),
@@ -128,8 +148,14 @@ serve(async (req) => {
 
     // Les constats partent chez les administrateurs : ce sont eux qui portent
     // la conformité, et la table est lue par utilisateur.
-    const { data: admins } = await supabase.from("profiles").select("id").eq("is_admin", true);
-    const recipients = (admins ?? []).map((a) => a.id);
+    // daily_actions.user_id référence auth.users(id), que profiles porte dans
+    // user_id et non dans id : les deux colonnes diffèrent sur chaque ligne.
+    const { data: admins, error: adminsError } = await supabase
+      .from("profiles")
+      .select("user_id")
+      .eq("is_admin", true);
+    if (adminsError) throw adminsError;
+    const recipients = (admins ?? []).map((a) => a.user_id).filter(Boolean) as string[];
 
     const rows = recipients.flatMap((userId) =>
       issues.map((issue) => ({

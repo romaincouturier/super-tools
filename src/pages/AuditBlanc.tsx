@@ -21,6 +21,23 @@ import {
   type Verdict,
 } from "@/lib/auditChecks";
 import { criterionLabel } from "@/lib/auditReferential";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText } from "@/lib/demoMask";
+
+/**
+ * Un passage manuel stocke des verdicts, un passage automatique des constats
+ * en défaut : la nuit ne répond pas aux questions de l'auditeur et ne conclut
+ * donc pas. Les deux formes se lisent différemment.
+ */
+function describeRun(findings: unknown): string {
+  const rows = Array.isArray(findings) ? findings : [];
+  const withVerdict = rows.filter((r) => r && typeof r === "object" && "verdict" in r);
+  if (withVerdict.length > 0) {
+    const majeures = withVerdict.filter((r) => (r as { verdict: Verdict }).verdict === "majeure").length;
+    return `${majeures} non-conformité${majeures > 1 ? "s" : ""} majeure${majeures > 1 ? "s" : ""}`;
+  }
+  return `${rows.length} constat${rows.length > 1 ? "s" : ""} automatique${rows.length > 1 ? "s" : ""} en défaut`;
+}
 
 /**
  * Audit blanc : dérouler le référentiel comme un auditeur le ferait.
@@ -44,6 +61,7 @@ export default function AuditBlanc() {
   useAuth();
   const { gather, loading: gathering } = useAuditFacts();
   const { runs, saveRun, loading: loadingRuns } = useAuditRuns();
+  const { isDemoMode } = useDemoMode();
 
   const [facts, setFacts] = useState<AuditFacts | null>(null);
   const [sample, setSample] = useState<AuditSample[]>([]);
@@ -121,9 +139,8 @@ export default function AuditBlanc() {
               </p>
               {!loadingRuns && runs.length > 0 && (
                 <p>
-                  Dernier passage : {new Date(runs[0].started_at).toLocaleDateString("fr-FR")}, {" "}
-                  {(runs[0].findings as { verdict: Verdict }[]).filter((f) => f.verdict === "majeure").length}{" "}
-                  non-conformité(s) majeure(s).
+                  Dernier passage : {new Date(runs[0].started_at).toLocaleDateString("fr-FR")},{" "}
+                  {describeRun(runs[0].findings)}.
                 </p>
               )}
             </CardContent>
@@ -169,7 +186,7 @@ export default function AuditBlanc() {
                 {sample.length > 0 && (
                   <div className="text-xs text-muted-foreground">
                     <span className="font-medium">Échantillon audité : </span>
-                    {sample.map((s) => s.trainingName).join(" · ")}
+                    {sample.map((s) => (isDemoMode ? maskText(s.trainingName) : s.trainingName)).join(" · ")}
                   </div>
                 )}
               </CardContent>
