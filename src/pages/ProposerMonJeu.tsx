@@ -139,7 +139,7 @@ function SignStep({ token, data, onSigned }: { token: string; data: PublicOnboar
           <Button variant="outline" asChild><a href={data.contract_pdf_url} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("pdf_consulted")}><FileText className="h-4 w-4 mr-2" />Lire le contrat (PDF)</a></Button>
         )}
         <div className="space-y-2">
-          <p className="text-sm">1. Recevez un code de vérification à l'adresse {data.contract?.recipient_email}.</p>
+          <p className="text-sm">1. Recevez un code de vérification à l'adresse {data.contract?.recipient_email /* demo-safe: page publique de l'auteur, sa propre adresse */}.</p>
           <div className="flex gap-2 items-center flex-wrap">
             <Button variant="secondary" onClick={sendCode} disabled={busy}>{sentTo ? "Renvoyer un code" : "Recevoir mon code"}</Button>
             {sentTo && <span className="text-sm text-muted-foreground">Code envoyé à {sentTo}, valable 10 minutes.</span>}

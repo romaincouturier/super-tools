@@ -1,6 +1,9 @@
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Download, FileText, ShieldCheck } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
+import PageHeader from "@/components/PageHeader";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName } from "@/lib/demoMask";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +17,7 @@ const KIND_LABEL: Record<string, string> = { logo: "Logo", photo: "Photo", pdf: 
 
 export default function AuthorOnboardingDetail() {
   const { id } = useParams();
+  const { isDemoMode } = useDemoMode();
   const { data, isLoading, error } = useAuthorInvitationDetail(id);
   const { toast } = useToast();
   const open = async (path: string | null, download?: string) => {
@@ -23,6 +27,7 @@ export default function AuthorOnboardingDetail() {
 
   return (
     <ModuleLayout>
+      <PageHeader title="Onboarding auteur" />
       <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
         <Button variant="ghost" size="sm" asChild><Link to="/commandes-jeux?tab=auteurs"><ArrowLeft className="h-4 w-4 mr-1" />Auteurs</Link></Button>
         {isLoading && <Spinner size="md" />}
@@ -37,7 +42,7 @@ export default function AuthorOnboardingDetail() {
               <h1 className="text-2xl font-bold">{inv.games?.title}</h1>
               <Badge>{AUTHOR_STATUS_LABELS[status] ?? status}</Badge>
             </div>
-            <p className="text-sm text-muted-foreground">{inv.game_authors?.name} · {inv.recipient_email} · commission {Math.round(Number(inv.commission_rate) * 10000) / 100} %</p>
+            <p className="text-sm text-muted-foreground">{isDemoMode ? maskName(inv.game_authors?.name) : inv.game_authors?.name} · {isDemoMode ? maskEmail(inv.recipient_email) : inv.recipient_email} · commission {Math.round(Number(inv.commission_rate) * 10000) / 100} %</p>
 
             <Card><CardHeader><CardTitle className="text-lg">Contrat</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
