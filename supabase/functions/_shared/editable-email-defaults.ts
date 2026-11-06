@@ -507,6 +507,74 @@ Merci et à bientôt !`),
     variables: ["signer_name", "game_name", "contrat_reference", "expires_at", "signature_button"],
   },
 
+  author_invitation: {
+    name: "Invitation auteur de jeu (dropshipping)",
+    audience: "client",
+    sendingInfo: "📤 Préparé à l'invitation d'un auteur (Dropshipping > Auteurs), relu puis envoyé manuellement",
+    subject: same("Proposer « {{game_name}} » sur la boutique SuperTilt"),
+    content: same(`Bonjour {{first_name}},
+
+Merci pour notre échange ! Pour distribuer « {{game_name}} » sur la boutique supertilt.fr, il vous suffit de remplir ce formulaire. Vous pouvez l'enregistrer et y revenir plus tard.
+
+{{invitation_button}}
+
+À la fin du formulaire, vous pourrez relire et signer en ligne le contrat de distribution (commission SuperTilt : {{commission}}).
+
+Le lien reste valable jusqu'au {{expires_at}}.
+
+À très vite !`),
+    variables: ["first_name", "game_name", "commission", "expires_at", "invitation_button"],
+  },
+
+  author_signature_otp: {
+    name: "Code de vérification signature contrat auteur",
+    audience: "client",
+    sendingInfo: "⚙️ Envoyé automatiquement quand l'auteur demande un code avant de signer son contrat de distribution",
+    subject: same("Votre code de signature : {{code}}"),
+    content: same(`Bonjour {{signer_name}},
+
+Voici votre code pour signer le contrat de distribution {{contrat_reference}} :
+
+**{{code}}**
+
+Ce code est valable 10 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.`),
+    variables: ["signer_name", "contrat_reference", "code"],
+  },
+
+  author_contract_signed: {
+    name: "Contrat de distribution signé (copie aux deux parties)",
+    audience: "client",
+    sendingInfo: "⚙️ Envoyé automatiquement à l'auteur et à SuperTilt dès la signature du contrat de distribution",
+    subject: same("Contrat de distribution {{contrat_reference}} signé"),
+    content: same(`Bonjour {{signer_name}},
+
+Le contrat de distribution de « {{game_name}} » est signé. Vous trouverez ci-dessous votre exemplaire.
+
+{{details_list}}
+
+{{download_button}}
+
+Nous préparons maintenant la fiche produit et revenons vers vous dès qu'elle est en ligne.`),
+    variables: ["signer_name", "game_name", "contrat_reference", "details_list", "download_button"],
+  },
+
+  author_signature_reminder: {
+    name: "Relance signature contrat de distribution",
+    audience: "client",
+    sendingInfo: "⏰ Envoyé automatiquement 3 puis 7 jours après la génération d'un contrat de distribution non signé (2 relances maximum)",
+    subject: same("Rappel : contrat de distribution {{contrat_reference}} à signer"),
+    content: same(`Bonjour {{signer_name}},
+
+Votre contrat de distribution pour « {{game_name}} » (référence {{contrat_reference}}) attend encore votre signature. Elle ne prend qu'une minute :
+
+{{signature_button}}
+
+Le lien reste valable jusqu'au {{expires_at}}.
+
+Merci et à bientôt !`),
+    variables: ["signer_name", "game_name", "contrat_reference", "expires_at", "signature_button"],
+  },
+
   event_reminder: {
     name: "Rappel d'évènement (veille et jour J)",
     audience: "internal",
