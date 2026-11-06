@@ -190,6 +190,7 @@ export interface PracticePostsFilter {
   tag?: string | null;
   /** Only the post mirroring this work deposit. */
   depositId?: string | null;
+  postId?: string | null;
   /** Thematic feed: hide posts restricted to their own course. */
   themeOnly?: boolean;
 }
@@ -242,8 +243,9 @@ export function usePracticePosts(
   const tagFilter = options?.tag ?? null;
   const depositFilter = options?.depositId ?? null;
   const themeOnly = options?.themeOnly ?? false;
+  const postIdFilter = options?.postId ?? null;
   return useQuery({
-    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, courseIdsFilter, authorFilter, likedByFilter, tagFilter, depositFilter, themeOnly, isAdmin],
+    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, courseIdsFilter, authorFilter, likedByFilter, tagFilter, depositFilter, themeOnly, isAdmin, postIdFilter],
     queryFn: async (): Promise<PracticePost[]> => {
       if (!learnerEmail) return [];
       const c = clientDb(learnerEmail, isAdmin);
@@ -269,6 +271,7 @@ export function usePracticePosts(
       if (courseIdsFilter && courseIdsFilter.length > 0) postsQuery = postsQuery.in("course_id", courseIdsFilter);
       if (authorFilter) postsQuery = postsQuery.eq("author_email", authorFilter);
       if (depositFilter) postsQuery = postsQuery.eq("deposit_id", depositFilter);
+      if (postIdFilter) postsQuery = postsQuery.eq("id", postIdFilter);
       if (themeOnly) postsQuery = postsQuery.or("visibility_scope.is.null,visibility_scope.eq.theme");
       if (restrictIds !== null) postsQuery = postsQuery.in("id", restrictIds);
 

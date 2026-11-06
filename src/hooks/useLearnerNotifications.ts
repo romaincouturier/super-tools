@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface LearnerNotification {
   id: string;
   learner_email: string;
-  type: "live_upcoming" | "replay_available" | "community_reply" | "community_pinned";
+  type: "live_upcoming" | "replay_available" | "community_reply" | "community_pinned" | "community_post";
   title: string;
   body: string;
   link: string | null;

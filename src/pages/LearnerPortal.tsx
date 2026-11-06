@@ -745,7 +745,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
 }) {
   const { isAdmin } = useModuleAccess();
   const canManageCommunity = isAdmin;
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedTag, setSelectedTag] = useState<string | null>(searchParams.get("tag"));
   const [allTagsOpen, setAllTagsOpen] = useState(false);
 
@@ -783,7 +783,11 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
   const isThemeSpace = !!activeSpace?.space_key.startsWith("theme:");
   const showCommunitySelector = !fromCourse && (spaces.length > 1 || canManageCommunity);
 
+  // Lien de notification : on affiche la publication visée seule (quel que soit
+  // l'espace ou son ancienneté), avec un retour vers le fil complet.
+  const focusedPostId = searchParams.get("post");
   const postsFilter = useMemo(() => {
+    if (focusedPostId) return { postId: focusedPostId };
     const base: { courseIds?: string[]; themeOnly?: boolean } = {};
     if (activeSpace) {
       base.courseIds = activeSpace.course_ids;
@@ -795,7 +799,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
     if (mode === "mine") return { ...base, authorEmail: email };
     if (mode === "likes") return { ...base, likedBy: email };
     return Object.keys(base).length ? base : undefined;
-  }, [mode, selectedTag, email, activeSpace, isThemeSpace, courseIds, canManageCommunity]);
+  }, [mode, selectedTag, email, activeSpace, isThemeSpace, courseIds, canManageCommunity, focusedPostId]);
 
   const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter, canManageCommunity);
   const { data: popularTopics = [] } = usePracticePopularHashtags(email, 5);
@@ -983,7 +987,24 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
     );
   }
 
-  const communityBanner = (
+  const communityBanner = focusedPostId ? (
+    <div
+      className="rounded-2xl border px-4 py-3 flex items-center justify-between gap-3"
+      style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}
+    >
+      <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>
+        {!isLoading && posts.length === 0 ? "Cette publication n'est plus disponible." : "Publication de votre notification"}
+      </p>
+      <button
+        type="button"
+        className="text-sm font-semibold underline shrink-0"
+        style={{ color: "var(--st-ink)" }}
+        onClick={() => { const next = new URLSearchParams(searchParams); next.delete("post"); setSearchParams(next); }}
+      >
+        Voir toute la communauté
+      </button>
+    </div>
+  ) : (
     <div
       className="rounded-2xl border px-4 py-3 flex items-center justify-between gap-3"
       style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}
