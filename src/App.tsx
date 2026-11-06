@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import RequireLearnerSession from "@/components/auth/RequireLearnerSession";
 import { lazyWithRetry as lazy } from "@/lib/lazyWithRetry";
 import * as Sentry from "@sentry/react";
 import { AppErrorFallback } from "@/components/AppErrorFallback";
@@ -231,8 +232,8 @@ const App = () => {
                 <Route path="/espace-apprenant/:section" element={<LearnerPortal />} />
               </Route>
               {/* LMS course player — accessible by learners and staff */}
-              <Route path="/lms/:courseId/player" element={<LmsCoursePlayer />} />
-              <Route path="/lms/:courseId/home" element={<LmsCourseHomePage />} />
+              <Route path="/lms/:courseId/player" element={<RequireLearnerSession><LmsCoursePlayer /></RequireLearnerSession>} />
+              <Route path="/lms/:courseId/home" element={<RequireLearnerSession><LmsCourseHomePage /></RequireLearnerSession>} />
               {/* Public token-based forms */}
               <Route path="/questionnaire/:token" element={<Questionnaire />} />
               <Route path="/evaluation/:token" element={<Evaluation />} />
@@ -250,7 +251,7 @@ const App = () => {
               {/* Public participant pages */}
               <Route path="/formation-info/:trainingId" element={<TrainingSummary />} />
               <Route path="/formation-support/:trainingId" element={<TrainingSupportPage />} />
-              <Route path="/formation-support/:trainingId/lms/:courseId" element={<LmsCoursePlayer />} />
+              <Route path="/formation-support/:trainingId/lms/:courseId" element={<RequireLearnerSession><LmsCoursePlayer /></RequireLearnerSession>} />
               <Route path="/mission-info/:missionId" element={<MissionSummary />} />
               <Route path="/sondage/:token" element={<SurveyPublic />} />
               <Route path="/sondage-formation/:token" element={<TrainingSurveyResponse />} />

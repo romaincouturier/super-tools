@@ -84,10 +84,11 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Cold evaluations are native tokenized questionnaires (`sponsor_cold_evaluations`, `participant_cold_evaluations`) planned by `send-thank-you-email` through the pure helper `_shared/cold-evaluation.ts` (one per distinct sponsor, one per participant), reuse one token per recipient and session, get one reminder scheduled after a successful send, and record failures in `scheduled_emails.error_message` while staying pending, because sends must never fail silently or duplicate.
 - Cold evaluation eligibility is checked by the shared pure helper both before scheduling and before sending (including reminders and forced calls); excluded rows are cancelled, because catch-up and stale queues must not bypass the deployment cutoff.
 - Learner access emails are chosen server-side by a pure helper from `password_set` only (a missing security row means no password; a past sign-in proves nothing unless it was a password sign-in, recorded by `mark_password_proven`): create-password for accounts without a proven password, `learner_course_access` with a direct course link otherwise, because legacy magic-link accounts must never be told to log in with a password they never created.
-- Bulk e-learning access emails queue in `learner_access_jobs`, sent server-side by `queue-learner-access-emails` with requester rights, because browser sends blocked the page.
-- Password emails use hashed `password_setup_links` redeemed on click, because native recovery tokens expire too soon.
-- Learner community reads (posts and children) use security-definer enrollment-scoped helpers, because intra client feeds must stay private.
-- CRM opportunity values use the shared pure `_shared/opportunity-value.ts`, so entry points agree.
+- Bulk access emails queue in `learner_access_jobs` (server-side, requester rights): browser sends blocked the page.
+- Password emails use hashed `password_setup_links`: native tokens expire too soon.
+- Learner community reads use security-definer enrollment/theme helpers; private (intra) course posts default to course scope, because intra feeds must stay private.
+- LMS course pages require a session; `get_learner_email()` reads only the JWT, to prevent impersonation.
+- CRM opportunity values come from `_shared/opportunity-value.ts`.
 - Transcript→Réseau links: `link_transcript_to_network_contact` (UI), `_shared/network-tools.ts` (MCP); unlinking keeps the interaction, preserving history.
 - Picto-Dico input and challenge guards are DB triggers mirrored in `_shared/pictodico-validation.ts`; the linked event drives challenge number/date, because the webhook is public.
 - Live-recording notice = template `live_recording_notice`, shown only when lives exist.

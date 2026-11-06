@@ -250,6 +250,8 @@ const TABLES_TO_BACKUP = [
   "watch_digests",
   "watch_items",
   "watch_sources",
+  "community_themes",
+  "course_community_themes",
   "webhook_logs",
   "woocommerce_coupons",
   "woocommerce_orders",

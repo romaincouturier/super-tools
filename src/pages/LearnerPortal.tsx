@@ -44,7 +44,7 @@ import { useCreateSupportTicket } from "@/hooks/useSupport";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import {
-  usePracticePosts, useCreatePracticePost, useTogglePracticeReaction,
+  usePracticePosts, useCreatePracticePost, useCommunitySpaces, spaceForCourse, useTogglePracticeReaction,
   usePracticeComments, useCreatePracticeComment, useDeletePracticePost,
   useDeletePracticeComment, useVotePracticePoll, usePracticePopularHashtags,
   useMyPracticeComments, useLessonTitle, useCourseTitle, usePinPracticePost,
@@ -763,32 +763,39 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
 
   const isFeed = mode === "feed";
 
-  // Communauté active: identifie le cours dans lequel on lit/publie.
-  // - Admin: peut choisir une communauté précise ou voir tout ("all").
-  // - Apprenant: choisit parmi ses cours; verrouillé sur fromCourse si présent.
-  const defaultCourseId = fromCourse ?? courses[0]?.id ?? null;
-  const [activeCourseId, setActiveCourseId] = useState<string | null>(defaultCourseId);
+  // Espace actif : une thématique (cours rattachés) ou une communauté privée intra.
+  // L'admin peut aussi tout voir ("all").
+  const { data: spaces = [] } = useCommunitySpaces(!!email);
+  const [activeSpaceKey, setActiveSpaceKey] = useState<string | null>(null);
   useEffect(() => {
-    if (fromCourse) setActiveCourseId(fromCourse);
-  }, [fromCourse]);
-  const activeCourse = courses.find((c) => c.id === activeCourseId) ?? null;
-  const showCommunitySelector = !fromCourse && (courses.length > 1 || canManageCommunity);
+    if (spaces.length === 0) return;
+    if (fromCourse) {
+      setActiveSpaceKey(spaceForCourse(spaces, fromCourse)?.space_key ?? null);
+      return;
+    }
+    setActiveSpaceKey((cur) => {
+      if (cur && spaces.some((sp) => sp.space_key === cur)) return cur;
+      if (canManageCommunity) return null;
+      return spaceForCourse(spaces, courses[0]?.id ?? null)?.space_key ?? spaces[0]?.space_key ?? null;
+    });
+  }, [spaces, fromCourse, canManageCommunity, courses]);
+  const activeSpace = spaces.find((sp) => sp.space_key === activeSpaceKey) ?? null;
+  const isThemeSpace = !!activeSpace?.space_key.startsWith("theme:");
+  const showCommunitySelector = !fromCourse && (spaces.length > 1 || canManageCommunity);
 
   const postsFilter = useMemo(() => {
-    const base: { courseId?: string; courseIds?: string[] } = {};
-    if (canManageCommunity) {
-      // Admin: si une communauté est sélectionnée, on filtre dessus; sinon tout.
-      if (activeCourseId) base.courseId = activeCourseId;
-    } else {
-      // Apprenant: toujours scopé sur la communauté active, fallback sur ses cours.
-      if (activeCourseId) base.courseId = activeCourseId;
-      else if (courseIds.length > 0) base.courseIds = courseIds;
+    const base: { courseIds?: string[]; themeOnly?: boolean } = {};
+    if (activeSpace) {
+      base.courseIds = activeSpace.course_ids;
+      if (isThemeSpace) base.themeOnly = true;
+    } else if (!canManageCommunity && courseIds.length > 0) {
+      base.courseIds = courseIds;
     }
     if (selectedTag) return { ...base, tag: selectedTag };
     if (mode === "mine") return { ...base, authorEmail: email };
     if (mode === "likes") return { ...base, likedBy: email };
     return Object.keys(base).length ? base : undefined;
-  }, [mode, selectedTag, email, activeCourseId, courseIds, canManageCommunity]);
+  }, [mode, selectedTag, email, activeSpace, isThemeSpace, courseIds, canManageCommunity]);
 
   const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter, canManageCommunity);
   const { data: popularTopics = [] } = usePracticePopularHashtags(email, 5);
@@ -834,8 +841,10 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
   }, [targetPostId, isLoading, feed]);
 
   const handleCreate = async (content: string, file: File | null, poll: NewPoll | null, gifUrl?: string | null, matchingGroupSize?: number | null) => {
-    const courseId = activeCourseId ?? fromCourse ?? (courseIds.length === 1 ? courseIds[0] : null);
-    const postId = await createPost.mutateAsync({ content, file, poll, gifUrl, courseId });
+    const courseId = (fromCourse && activeSpace?.course_ids.includes(fromCourse) && courseIds.includes(fromCourse) ? fromCourse : null)
+      ?? activeSpace?.publish_course_id ?? fromCourse ?? (courseIds.length === 1 ? courseIds[0] : null);
+    const visibilityScope = activeSpace ? (isThemeSpace ? "theme" : "course") : null;
+    const postId = await createPost.mutateAsync({ content, file, poll, gifUrl, courseId, visibilityScope });
     if (matchingGroupSize && postId) {
       await createMatchingConfig.mutateAsync({ postId, groupSize: matchingGroupSize });
     }
@@ -984,19 +993,28 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
           Communauté
         </p>
         <p className="text-sm font-semibold truncate" style={{ color: "var(--st-ink)" }}>
-          {activeCourse?.name ?? (canManageCommunity ? "Toutes les communautés" : "—")}
+          {activeSpace?.label ?? (canManageCommunity ? "Toutes les communautés" : "—")}
         </p>
+        {activeSpace && (
+          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+            {activeSpace.is_private
+              ? "Communauté privée : visible uniquement des participants de votre groupe."
+              : isThemeSpace
+                ? "Communauté thématique : vos publications sont visibles des participants de toutes les formations de ce thème."
+                : null}
+          </p>
+        )}
       </div>
       {showCommunitySelector ? (
         <select
-          value={activeCourseId ?? ""}
-          onChange={(e) => setActiveCourseId(e.target.value || null)}
+          value={activeSpaceKey ?? ""}
+          onChange={(e) => setActiveSpaceKey(e.target.value || null)}
           className="text-sm rounded-lg border px-2 py-1.5 bg-white shrink-0 max-w-[55%]"
           style={{ borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink)" }}
         >
           {canManageCommunity && <option value="">Toutes les communautés</option>}
-          {courses.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
+          {spaces.map((sp) => (
+            <option key={sp.space_key} value={sp.space_key}>{sp.is_private ? `${sp.label} (privée)` : sp.label}</option>
           ))}
         </select>
       ) : fromCourse ? (

@@ -1513,6 +1513,30 @@ export type Database = {
         }
         Relationships: []
       }
+      community_themes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       content_cards: {
         Row: {
           card_type: string
@@ -1786,6 +1810,39 @@ export type Database = {
             columns: ["training_id"]
             isOneToOne: false
             referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_community_themes: {
+        Row: {
+          course_id: string
+          created_at: string
+          theme_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          theme_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          theme_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_community_themes_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_community_themes_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "community_themes"
             referencedColumns: ["id"]
           },
         ]
@@ -5237,6 +5294,7 @@ export type Database = {
       lms_courses: {
         Row: {
           access_type: string
+          community_is_private: boolean
           community_preview_count: number
           cover_image_url: string | null
           created_at: string
@@ -5261,6 +5319,7 @@ export type Database = {
         }
         Insert: {
           access_type?: string
+          community_is_private?: boolean
           community_preview_count?: number
           cover_image_url?: string | null
           created_at?: string
@@ -5285,6 +5344,7 @@ export type Database = {
         }
         Update: {
           access_type?: string
+          community_is_private?: boolean
           community_preview_count?: number
           cover_image_url?: string | null
           created_at?: string
@@ -9165,6 +9225,7 @@ export type Database = {
           is_staff_treated: boolean
           lesson_id: string | null
           updated_at: string
+          visibility_scope: string | null
         }
         Insert: {
           author_email: string
@@ -9182,6 +9243,7 @@ export type Database = {
           is_staff_treated?: boolean
           lesson_id?: string | null
           updated_at?: string
+          visibility_scope?: string | null
         }
         Update: {
           author_email?: string
@@ -9199,6 +9261,7 @@ export type Database = {
           is_staff_treated?: boolean
           lesson_id?: string | null
           updated_at?: string
+          visibility_scope?: string | null
         }
         Relationships: [
           {
@@ -13758,6 +13821,7 @@ export type Database = {
         Returns: boolean
       }
       cleanup_agent_embedding_cache: { Args: never; Returns: number }
+      community_theme_mode_on: { Args: never; Returns: boolean }
       connexion_indicators: { Args: { p_days?: number }; Returns: Json }
       create_quote_testimonial: {
         Args: {
@@ -13851,6 +13915,17 @@ export type Database = {
       }
       get_app_setting_public: { Args: { p_key: string }; Returns: string }
       get_attendance_by_token: { Args: { p_token: string }; Returns: Json }
+      get_community_spaces: {
+        Args: never
+        Returns: {
+          course_ids: string[]
+          is_private: boolean
+          label: string
+          publish_course_id: string
+          sort_order: number
+          space_key: string
+        }[]
+      }
       get_convention_signature_by_token: {
         Args: { p_token: string }
         Returns: Json
@@ -14219,6 +14294,11 @@ export type Database = {
         Args: { _post_id: string }
         Returns: boolean
       }
+      learner_can_read_theme_post: {
+        Args: { _course_id: string; _scope: string }
+        Returns: boolean
+      }
+      learner_community_course_ids: { Args: never; Returns: string[] }
       learner_evaluation_course_id: {
         Args: { p_email: string; p_lms_course_id: string }
         Returns: number
