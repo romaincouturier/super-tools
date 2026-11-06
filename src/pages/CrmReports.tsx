@@ -431,6 +431,8 @@ function PeriodSelector({
   customEnd,
   onCustomStartChange,
   onCustomEndChange,
+  includeNocrm,
+  onIncludeNocrmChange,
 }: {
   preset: PeriodPreset;
   onPresetChange: (p: PeriodPreset) => void;
