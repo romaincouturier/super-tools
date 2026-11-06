@@ -2,7 +2,7 @@
 title: 'Story 1.3 : joindre un visuel de la Médiathèque et être alerté d''un post incomplet'
 type: 'feature'
 created: '2026-11-06'
-status: 'in-progress'
+status: 'in-review'
 baseline_commit: '8f8bded56d83e6c023e91a81976b25445a7c31c7'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -65,14 +65,14 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `supabase/migrations/20261106100000_social_post_media.sql` -- colonne `social_posts.media_id` ; le trigger de propagation recopie texte et visuel ; la RPC lit `media_id`. -- Socle.
-- [ ] `supabase/tests/social-contents.test.ts` -- propagation du visuel avec synchro active et coupée, déclinaison publiée intacte, média supprimé remis à null. -- Règle [058].
-- [ ] `supabase/functions/_shared/social-post-alerts.ts` et `social-post-alerts.test.ts` -- `computePostAlerts(post, channel)` et `formatAlert`, avec un test pour chaque ligne du tableau. -- Règle partagée.
-- [ ] `src/services/socialContents.ts` -- `media_id` dans les types, les lectures et `buildGroupPosts` ; alertes calculées pour chaque carte placée. -- Service.
-- [ ] `src/components/social/SocialMediaPicker.tsx` -- sélection d'une image de la Médiathèque, avec recherche et `maskFileName`. -- Sélecteur.
-- [ ] `src/components/social/SocialComposerDialog.tsx` -- visuel commun, ou un par onglet quand la synchro est coupée ; vignette, bouton « Retirer » ; alertes en direct par canal. -- Composeur.
-- [ ] `src/components/social/ContentCard.tsx`, `UndatedColumn.tsx` -- indicateur d'alerte avec infobulle par canal (UX-DR8). -- Affichage.
-- [ ] `src/components/social/SocialComposerDialog.test.tsx`, `SocialCalendar.test.tsx` -- choix d'un visuel envoyé dans la sauvegarde ; alerte visible sur une carte sans visuel. -- Composants.
+- [x] `supabase/migrations/20261106100000_social_post_media.sql` -- colonne `social_posts.media_id` ; le trigger de propagation recopie texte et visuel ; la RPC lit `media_id`. -- Socle.
+- [x] `supabase/tests/social-contents.test.ts` -- propagation du visuel avec synchro active et coupée, déclinaison publiée intacte, média supprimé remis à null. -- Règle [058].
+- [x] `supabase/functions/_shared/social-post-alerts.ts` et `social-post-alerts.test.ts` -- `computePostAlerts(post, channel)` et `formatAlert`, avec un test pour chaque ligne du tableau. -- Règle partagée.
+- [x] `src/services/socialContents.ts` -- `media_id` dans les types, les lectures et `buildGroupPosts` ; alertes calculées pour chaque carte placée. -- Service.
+- [x] `src/components/social/SocialMediaPicker.tsx` -- sélection d'une image de la Médiathèque, avec recherche et `maskFileName`. -- Sélecteur.
+- [x] `src/components/social/SocialComposerDialog.tsx` -- visuel commun, ou un par onglet quand la synchro est coupée ; vignette, bouton « Retirer » ; alertes en direct par canal. -- Composeur.
+- [x] `src/components/social/ContentCard.tsx`, `UndatedColumn.tsx` -- indicateur d'alerte avec infobulle par canal (UX-DR8). -- Affichage.
+- [x] `src/components/social/SocialComposerDialog.test.tsx`, `SocialCalendar.test.tsx` -- choix d'un visuel envoyé dans la sauvegarde ; alerte visible sur une carte sans visuel. -- Composants.
 
 **Acceptance Criteria:**
 - Given une carte dont une déclinaison n'a pas de visuel, when le calendrier s'affiche, then l'indicateur d'alerte est visible sans ouvrir le contenu.
@@ -80,6 +80,13 @@ context:
 - Given le mode démo, when le sélecteur s'ouvre, then les noms de fichiers sont masqués et `check-demo-mask.sh` reste à 0.
 
 ## Implementation Notes
+
+- Migration `20261106100000_social_post_media.sql` : `media_id` nullable avec `ON DELETE SET NULL` et index ; `social_posts_propagate_text` (nom conservé, déjà inscrit en [058]) recopie texte et visuel ; le trigger écoute `text, media_id`. `save_social_content_group` est rejouée à l'identique avec `media_id` (une clé absente vaut null : un ancien onglet du front resté ouvert après la mise en production pourrait effacer un visuel au prochain enregistrement).
+- Règle d'alerte `_shared/social-post-alerts.ts` : `computePostAlerts`, `formatAlert`, `socialTextLength` (points de code). Le formatage groupe les milliers avec une espace insécable (U+00A0), sans dépendre de la locale.
+- Service : `buildGroupPosts` porte `media_id` (commun si synchro, propre sinon) ; `alertsByChannel` ; `placeGroups` prend en 4e argument facultatif les canaux (limites) et renseigne `CalendarCard.alerts` à partir des déclinaisons visibles. `UndatedColumn` réutilise `ContentCard`, qui porte l'indicateur : aucun changement propre à la colonne.
+- Composeur : visuel commun en mode synchro, un par onglet sinon ; couper la synchro recopie le visuel commun sur chaque canal, la réactiver reprend celui de l'onglet affiché (la confirmation compare texte et visuel). Les alertes en direct sont calculées par la même règle sur le brouillon courant et n'empêchent pas Enregistrer.
+- Sélecteur : images seulement (`file_type === "image"`), recherche nom, source, tag ; nom de fichier et texte alternatif de la vignette masqués en mode démo.
+- Production : jouer `20261106100000_social_post_media.sql` explicitement, après les deux migrations précédentes.
 
 ## Spec Change Log
 
