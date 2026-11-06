@@ -2,7 +2,7 @@
 title: 'Story 1.5 : ouvrir un contenu, le modifier et le marquer publié'
 type: 'feature'
 created: '2026-11-06'
-status: 'draft'
+status: 'in-progress'
 baseline_commit: '4a0e0eab07510319d99525c48f35156668475e0d'
 route: 'dispatch'
 review_loop_iteration: 0
