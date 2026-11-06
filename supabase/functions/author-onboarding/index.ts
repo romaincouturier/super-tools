@@ -209,7 +209,11 @@ serve(async (req) => {
           }).select("*").single();
           resp = created;
         }
-        return json(publicView(inv, resp, await listFiles(db, inv.id), await pendingContract(db, inv.id)));
+        const contract = await pendingContract(db, inv.id);
+        return json({
+          ...publicView(inv, resp, await listFiles(db, inv.id), contract),
+          contract_pdf_url: contract ? await signedUrl(db, contract.signed_pdf_url ?? contract.pdf_url, 3600) : null,
+        });
       }
 
       if (action === "save" || action === "submit") {
@@ -239,7 +243,8 @@ serve(async (req) => {
           console.error("contract generation failed", e);
           return json({ submitted: true, contract_error: "Le contrat n'a pas pu être généré. SuperTilt a été prévenu et vous recontactera." });
         }
-        return json(publicView(inv, await loadResponse(db, inv.id), files, await pendingContract(db, inv.id)));
+        const contract = await pendingContract(db, inv.id);
+        return json({ ...publicView(inv, await loadResponse(db, inv.id), files, contract), contract_pdf_url: await signedUrl(db, contract?.pdf_url ?? null, 3600) });
       }
 
       if (action === "delete_file") {
