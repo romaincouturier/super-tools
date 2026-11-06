@@ -246,9 +246,34 @@ export const LOGISTICS_FIELDS = {
   event: ["train_booked", "hotel_booked", "restaurant_booked", "room_rental_booked"],
 } as const;
 
+/** Valide due_date (YYYY-MM-DD ou null pour effacer) et notify_days_before (entier 0..365 ou null). undefined = inchangé. */
+export function parseLogisticsSchedule(input: { due_date?: unknown; notify_days_before?: unknown }): { due_date?: string | null; notify_days_before?: number | null } {
+  const out: { due_date?: string | null; notify_days_before?: number | null } = {};
+  if (input.due_date !== undefined) {
+    if (input.due_date === null || input.due_date === "") out.due_date = null;
+    else {
+      const v = String(input.due_date);
+      const d = new Date(`${v}T00:00:00Z`);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== v) {
+        throw new Error("due_date doit être une date valide au format YYYY-MM-DD (ou null pour effacer)");
+      }
+      out.due_date = v;
+    }
+  }
+  if (input.notify_days_before !== undefined) {
+    if (input.notify_days_before === null) out.notify_days_before = null;
+    else {
+      const n = Number(input.notify_days_before);
+      if (!Number.isInteger(n) || n < 0 || n > 365) throw new Error("notify_days_before doit être un entier entre 0 et 365 (ou null)");
+      out.notify_days_before = n;
+    }
+  }
+  return out;
+}
+
 export async function setLogisticsItem(
   db: Db,
-  input: { entity_type: string; entity_id: string; item: string; done?: boolean },
+  input: { entity_type: string; entity_id: string; item: string; done?: boolean; due_date?: string | null; notify_days_before?: number | null },
   log: Log,
 ): Promise<string> {
   const et = input.entity_type as keyof typeof LOGISTICS_FIELDS;
@@ -256,10 +281,14 @@ export async function setLogisticsItem(
   if (!UUID_RE.test(input.entity_id || "")) throw new Error("entity_id doit être un UUID");
   const item = (input.item || "").trim();
   if (!item) throw new Error("item est requis (ex. train_booked, hotel_booked, ou libellé de la checklist)");
+  const schedule = parseLogisticsSchedule(input);
+  const changesSchedule = schedule.due_date !== undefined || schedule.notify_days_before !== undefined;
+  // Sans done explicite, une modification d'échéance ne coche pas le point.
+  const setsDone = input.done !== undefined || !changesSchedule;
   const done = input.done !== false;
   const isLegacy = (LOGISTICS_FIELDS[et] as readonly string[]).includes(item);
 
-  const q = db.from("logistics_checklist_items").select("id, label, is_done, legacy_field")
+  const q = db.from("logistics_checklist_items").select("id, label, is_done, legacy_field, due_date, notify_days_before")
     .eq("entity_type", et).eq("entity_id", input.entity_id);
   const { data: items, error } = isLegacy ? await q.eq("legacy_field", item) : await q.ilike("label", `%${item}%`);
   if (error) throw new Error(error.message);
@@ -269,11 +298,34 @@ export async function setLogisticsItem(
   }
   if (items?.length === 1) {
     const it = items[0];
-    const { error: upErr } = await db.from("logistics_checklist_items")
-      .update({ is_done: done, done_at: done ? new Date().toISOString() : null }).eq("id", it.id);
+    const patch: Record<string, unknown> = {};
+    if (setsDone) {
+      patch.is_done = done;
+      patch.done_at = done ? new Date().toISOString() : null;
+    }
+    if (schedule.due_date !== undefined) patch.due_date = schedule.due_date;
+    if (schedule.notify_days_before !== undefined) patch.notify_days_before = schedule.notify_days_before;
+    // Une échéance sans délai d'alerte ne déclencherait aucun rappel : alerte le jour même par défaut.
+    if (schedule.due_date && schedule.notify_days_before === undefined && it.notify_days_before == null) {
+      patch.notify_days_before = 0;
+    }
+    const { error: upErr } = await db.from("logistics_checklist_items").update(patch).eq("id", it.id);
     if (upErr) throw new Error(upErr.message);
-    await log(`set_logistics_item ${et} ${input.entity_id} ${it.label}=${done}`);
-    return JSON.stringify({ updated: true, item: it.label, was_done: it.is_done, is_done: done });
+    const after = {
+      is_done: setsDone ? done : it.is_done,
+      due_date: "due_date" in patch ? patch.due_date : it.due_date,
+      notify_days_before: "notify_days_before" in patch ? patch.notify_days_before : it.notify_days_before,
+    };
+    await log(`set_logistics_item ${et} ${input.entity_id} ${it.label} ${JSON.stringify({ before: { is_done: it.is_done, due_date: it.due_date, notify_days_before: it.notify_days_before }, after })}`);
+    return JSON.stringify({
+      updated: true,
+      item: it.label,
+      before: { is_done: it.is_done, due_date: it.due_date, notify_days_before: it.notify_days_before },
+      after,
+    });
+  }
+  if (changesSchedule) {
+    throw new Error(`Aucun point de checklist « ${item} » : due_date et notify_days_before ne s'appliquent qu'aux points de la checklist logistique.`);
   }
   if (!isLegacy) {
     const { data: all } = await db.from("logistics_checklist_items").select("label")
