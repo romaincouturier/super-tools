@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
   try {
     const user = await verifyAuth(req.headers.get("Authorization"));
     if (!user) return json({ error: "Non autorisé" }, 401);
-    const allowed = (await isStaffCaller(user, "dropshipping")) || (await isStaffCaller(user, "crm"));
+    const allowed = (await isStaffCaller(req, "dropshipping")) || (await isStaffCaller(req, "crm"));
     if (!allowed) return json({ error: "Accès refusé" }, 403);
 
     const body = await req.json().catch(() => null);
