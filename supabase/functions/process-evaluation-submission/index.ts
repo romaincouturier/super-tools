@@ -1,3 +1,4 @@
+import { siteCommentRecipients } from "../_shared/site-comment-recipients.ts";
 import { resolveCertificateCompany } from "../_shared/certificate-company.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
@@ -207,7 +208,8 @@ const handler = async (req: Request): Promise<Response> => {
       .select("setting_value")
       .eq("setting_key", "evaluation_notification_email")
       .maybeSingle();
-    const evaluationNotificationEmail = evalNotifSetting?.setting_value || await getSenderEmail();
+    const evaluationNotificationEmails = siteCommentRecipients(evalNotifSetting?.setting_value);
+    const evaluationNotificationEmail = evaluationNotificationEmails.join(", ");
 
     // Fetch website URLs from settings
     const { data: urlSettings } = await supabase
@@ -464,7 +466,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     await sendEmail({
-      to: [evaluationNotificationEmail],
+      to: evaluationNotificationEmails,
       from: senderFrom,
       bcc: bccList,
       subject: `Commentaire à créer sur le site - ${training.training_name}`,
