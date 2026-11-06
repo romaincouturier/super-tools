@@ -1,3 +1,4 @@
+import { fetchAllCrmCards } from "@/services/crmCardsFetch";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -39,10 +40,7 @@ export const useCrmBoard = () => {
           .select("*")
           .eq("is_archived", false)
           .order("position", { ascending: true }),
-        supabase
-          .from("crm_cards")
-          .select("*")
-          .order("position", { ascending: true }),
+        fetchAllCrmCards().then((data) => ({ data, error: null })),
         supabase
           .from("crm_tags")
           .select("*")
