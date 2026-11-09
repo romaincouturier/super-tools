@@ -1,5 +1,15 @@
 # Roadmap
 
+## Dictée CRM et rattachement (2026-11-09)
+- [ ] Diagnostiquer les séparateurs vides, le découpage audio et les échecs silencieux
+- [ ] Corriger la conservation et le rattachement des notes vocales pour les entités concernées, avec tests
+- [ ] Rattacher les quatre transcripts MSP d’Ecully et rechercher les autres cartes affectées
+- [ ] Rechercher l’audio de 12:00 et relancer sa transcription s’il existe
+
+## Modules LMS et transcripts formations (2026-11-09)
+- [ ] Outils MCP modules et cible training : bloqués par l’absence de procédure compatible pour le serveur historique
+- [ ] Liaison training_transcripts et affichage formation : analyse préparée, implémentation à poursuivre sans remplacer implicitement le serveur
+
 ## Règlement intérieur éditable (2026-11-05)
 - [x] Migration initiale publiée : huit articles identiques à l’ancien PDF ; téléchargement réel dans Formation et Documents avec le compte demandeur, 14 tests et 103 contrôles réussis
 - [x] Ancien fichier supprimé du stockage et lien retiré des archives : ancienne URL répond 400 sans PDF, aucun réglage ne le référence
