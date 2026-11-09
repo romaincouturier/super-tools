@@ -486,18 +486,21 @@ export function useCourseForums(courseId: string | undefined) {
   });
 }
 
-export function useForumPosts(forumId: string | undefined) {
+export function useForumPosts(forumId: string | undefined, recentSince?: string) {
   return useQuery({
-    queryKey: ["lms-forum-posts", forumId],
+    queryKey: ["lms-forum-posts", forumId, recentSince ?? null],
     enabled: !!forumId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!forumId) return [];
+      let query = supabase
         .from("lms_forum_posts")
         .select("*")
-        .eq("forum_id", forumId!)
+        .eq("forum_id", forumId)
         .eq("is_deleted", false)
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: true });
+      if (recentSince) query = query.gte("created_at", recentSince);
+      const { data, error } = await query;
       if (error) throw error;
       return data as LmsForumPost[];
     },

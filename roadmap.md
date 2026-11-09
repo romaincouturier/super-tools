@@ -1,5 +1,10 @@
 # Roadmap
 
+## Accueil LMS timeout JAVASCRIPT-REACT-19 (2026-11-09)
+- [x] EXPLAIN ANALYZE sur volumes réels : 183 posts, 104 commentaires, 147 dépôts, 55 inscriptions et 47 leçons ; lecture globale de commentaires avec garde apprenant 3 820 ms avant / 26 ms après indexation. Attribution exacte à l’événement Sentry non confirmée : connecteur sans outils accessibles.
+- [x] Migration 0053 : quatre index ciblés ; enrichissement limité aux publications affichées, lignes liées paginées par 500 et lectures indépendantes parallèles, droits et leçons inchangés
+- [x] Erreurs progression/lives/communauté isolées et récupération Réessayer vérifiées avec le compte demandeur, données réelles et timeouts simulés ; 62 tests et 103 contrôles réussis, compilation OK ; commentaires API 124 ms après, navigateur DuckDuckGo non testé
+
 ## Dictée CRM et rattachement (2026-11-09)
 - [x] Relais automatique par segments de cinq minutes, transcription ordonnée et bouton Arrêter disponible ; 8 tests et 103 contrôles réussis, vrais segments décodés sur navigateur ordinateur/mobile ; transfert audio staff/propriétaire déployé. Rendez-vous réel et verrouillage mobile non vérifiés.
 - [x] Diagnostiquer les séparateurs vides : anciens marqueurs sans injection ; 53 cartes / 85 marqueurs ne prouvent pas tous une perte, certains textes sont présents sous les marqueurs
