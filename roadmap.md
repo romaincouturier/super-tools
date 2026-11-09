@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Dictée CRM et rattachement (2026-11-09)
+- [ ] Remplacer l’arrêt automatique par des segments continus, transcrits dans l’ordre sans bloquer le bouton Arrêter
 - [ ] Diagnostiquer les séparateurs vides, le découpage audio et les échecs silencieux
 - [ ] Corriger la conservation et le rattachement des notes vocales pour les entités concernées, avec tests
 - [ ] Rattacher les quatre transcripts MSP d’Ecully et rechercher les autres cartes affectées
