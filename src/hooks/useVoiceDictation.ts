@@ -59,7 +59,7 @@ export function useVoiceDictation({ onTranscript, maxDurationMs = 300000, contex
         const task = queueRef.current.then(async () => {
           try {
             const transcript = await transcribeDictation(blob, recordingContext);
-            await deliver(transcript);
+            await (mountedRef.current ? onTranscriptRef.current : deliver)(transcript);
           } catch (error) {
             console.error("Transcription error:", error);
             toast.error("Erreur de transcription : " + (error instanceof Error ? error.message : "inconnue"), {
