@@ -110,7 +110,7 @@ export default function PracticePostCard({
   isAdmin: boolean;
   /** Display name stored on the reply when an admin/trainer comments. */
   currentUserName?: string | null;
-  onReact: (postId: string, emoji: string, iReacted: boolean) => void;
+  onReact: (postId: string, emoji: string, iReacted: boolean) => void | Promise<void>;
   onDelete: (postId: string) => void;
   onVote: (pollId: string, optionId: string, currentOptionId: string | null) => void;
   onSelectTag: (tag: string) => void;
@@ -118,7 +118,15 @@ export default function PracticePostCard({
 }) {
   const [showComments, setShowComments] = useState(post.comment_count > 0);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [pendingEmoji, setPendingEmoji] = useState<string | null>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+
+  const handleReact = (emoji: string, already: boolean) => {
+    if (pendingEmoji) return;
+    setPendingEmoji(emoji);
+    setShowEmojiPicker(false);
+    Promise.resolve(onReact(post.id, emoji, already)).finally(() => setPendingEmoji(null));
+  };
 
   useEffect(() => {
     if (!showEmojiPicker) return;
@@ -464,9 +472,10 @@ export default function PracticePostCard({
               return (
                 <button
                   key={e.emoji}
-                  onClick={() => { onReact(post.id, e.emoji, already); setShowEmojiPicker(false); }}
+                  onClick={() => handleReact(e.emoji, already)}
+                  disabled={pendingEmoji !== null}
                   title={e.label}
-                  className="text-xl leading-none transition-transform hover:scale-125 px-1"
+                  className="text-xl leading-none transition-transform hover:scale-125 px-1 disabled:opacity-50 disabled:hover:scale-100"
                   style={{
                     fontFamily: "inherit",
                     background: already ? "rgba(255,209,0,0.2)" : "transparent",
