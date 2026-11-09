@@ -344,6 +344,13 @@
       "when": 1794223748577,
       "tag": "0048_20261105190000_learner_reclamation",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1794223769199,
+      "tag": "0049_20261105200000_referent_handicap",
+      "breakpoints": true
     }
   ]
 }
