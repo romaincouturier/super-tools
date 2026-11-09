@@ -15,7 +15,7 @@ export default function OAuthConsent() {
   useEffect(() => {
     if (!id) { setError("Demande de connexion absente ou expirée."); return; }
     if (status === "loading") return;
-    if (status === "anonymous") {
+    if (status === "anon") {
       navigate(`/connexion?next=${encodeURIComponent(window.location.pathname + window.location.search)}`, { replace: true });
       return;
     }
