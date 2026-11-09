@@ -13,7 +13,7 @@ import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { getSenderEmail } from "../_shared/email-settings.ts";
 import {
-  buildHistory, findMergeTarget, groupComments, hasActivityLabel, leadTags, mapLeadToCard, mapStep, noteContent,
+  activityContent, buildHistory, findMergeTarget, groupComments, leadTags, mapLeadToCard, mapStep, noteContent,
   parisToIso, parseAmount, parseCsv, tagKey, TAGS_TO_CREATE, type NocrmComment, type Row,
 } from "../_shared/nocrm-import.ts";
 
@@ -224,10 +224,10 @@ async function processLead(db: Db, lead: Row, ctx: Awaited<ReturnType<typeof loa
   const logRows: Array<Record<string, unknown>> = comments.filter((c) => !c.isNote).map((c) => ({
     card_id: cardId,
     action_type: "nocrm_activity",
-    new_value: hasActivityLabel(c.activityType) ? c.activityType : null,
+    new_value: activityContent(c),
     actor_email: ACTOR,
     created_at: c.at ?? fallbackAt,
-    metadata: { source: "nocrm", nocrm_id: id, activity_type: c.activityType || null, ordinal: c.ordinal },
+    metadata: { source: "nocrm", nocrm_id: id, activity_type: c.activityType || null, content: c.content.trim() || null, ordinal: c.ordinal },
   }));
   if (kind !== "merged") {
     const history = buildHistory({
