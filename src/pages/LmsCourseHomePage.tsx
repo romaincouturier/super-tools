@@ -57,6 +57,7 @@ import CourseHomeSidebar, { CommunityCtaButton, communityUrlWithContext, type Mo
 import LmsCourseLayout from "@/components/lms/LmsCourseLayout";
 import HomeIntroBox from "@/components/lms/HomeIntroBox";
 import CourseLoadState from "@/components/lms/CourseLoadState";
+import HomeBlockError from "@/components/lms/HomeBlockError";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -443,13 +444,15 @@ function CommunityInfoCard({
   email: string;
   isPreview: boolean;
 }) {
-  const { data: forums = [] } = useCourseForums(courseId);
+  const { data: forums = [], error: forumsError, refetch: refetchForums, isFetching: forumsFetching } = useCourseForums(courseId);
   const mainForum = forums[0] ?? null;
-  const { data: allPosts = [] } = useForumPosts(mainForum?.id);
+  const { data: allPosts = [], error: postsError, refetch: refetchPosts, isFetching: postsFetching } = useForumPosts(mainForum?.id);
 
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const recentPosts = allPosts.filter((p) => new Date(p.created_at) >= weekAgo);
   const recentAuthors = [...new Set(recentPosts.map((p) => p.author_email))].slice(0, 5);
+
+  if (forumsError || postsError) return <HomeBlockError title="Communauté" retrying={forumsFetching || postsFetching} onRetry={() => { void (forumsError ? refetchForums() : refetchPosts()); }} />;
 
   return (
     <div className="rounded-2xl p-5 flex flex-col gap-3" style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}>
@@ -959,11 +962,11 @@ export default function LmsCourseHomePage() {
   const initialLessonId = searchParams.get("lesson");
 
   const { data: course, isLoading: courseLoading, error: courseError, refetch: refetchCourse } = useCourse(courseId);
-  const { data: modules = [] } = useCourseModules(courseId);
-  const { data: allLessons = [] } = useCourseLessons(courseId);
-  const { data: progress = [] } = useLearnerProgress(courseId, email || undefined);
-  const { data: liveData } = useCourseLiveMeetings(courseId);
-  const { data: adminSessions = [] } = useCourseTrainingSessionsAdmin(courseId, isPreview);
+  const { data: modules = [], error: modulesError, refetch: refetchModules, isFetching: modulesFetching } = useCourseModules(courseId);
+  const { data: allLessons = [], error: lessonsError, refetch: refetchLessons, isFetching: lessonsFetching } = useCourseLessons(courseId);
+  const { data: progress = [], error: progressError, refetch: refetchProgress, isFetching: progressFetching } = useLearnerProgress(courseId, email || undefined);
+  const { data: liveData, error: liveError, refetch: refetchLive, isFetching: liveFetching } = useCourseLiveMeetings(courseId);
+  const { data: adminSessions = [], error: sessionsError, refetch: refetchSessions, isFetching: sessionsFetching } = useCourseTrainingSessionsAdmin(courseId, isPreview);
   const meetings = useMemo(() => {
     if (isPreview && adminSessions.length > 0) {
       const all = adminSessions.flatMap((s) => s.meetings);
@@ -1225,9 +1228,11 @@ export default function LmsCourseHomePage() {
                   completionPct={completionPct}
                   onContinue={handleContinue}
                 />
+                {(modulesError || lessonsError) && <HomeBlockError title="Modules" retrying={modulesFetching || lessonsFetching} onRetry={() => { void refetchModules(); void refetchLessons(); }} />}
                 {visibleDashboardBlocks > 0 && (
                 <div className={homeDashboardGridClass(visibleDashboardBlocks)}>
                   {showProgress && (
+                    progressError || modulesError || lessonsError ? <HomeBlockError title="Progression" retrying={progressFetching || modulesFetching || lessonsFetching} onRetry={() => { void refetchProgress(); void refetchModules(); void refetchLessons(); }} /> :
                     <ProgressCard
                       completionPct={completionPct}
                       completedLessons={allLessons.filter((l) => regularModuleIds.has(l.module_id) && completedIds.has(l.id)).length}
@@ -1237,6 +1242,7 @@ export default function LmsCourseHomePage() {
                     />
                   )}
                   {showNextLiveCard && (
+                    liveError || (isPreview && sessionsError) ? <HomeBlockError title="Lives" retrying={liveFetching || sessionsFetching} onRetry={() => { void refetchLive(); if (isPreview) void refetchSessions(); }} /> :
                     <LiveCard
                       meeting={currentOrNextMeeting}
                       onViewCalendar={() => setActiveView("calendar")}

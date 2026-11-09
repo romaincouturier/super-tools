@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { resolveContentType } from "@/lib/file-utils";
 import { todayAsISO } from "@/lib/dateFormatters";
 import { fetchStaffPublicProfiles } from "@/lib/supabase-helpers";
+import { fetchPracticePostDetails } from "@/services/practicePostDetails";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -275,37 +276,28 @@ export function usePracticePosts(
       if (themeOnly) postsQuery = postsQuery.or("visibility_scope.is.null,visibility_scope.eq.theme");
       if (restrictIds !== null) postsQuery = postsQuery.in("id", restrictIds);
 
-      const [postsRes, reactionsRes, commentsRes, profilesRes, staffProfilesRes, hashtagsRes, pollsRes, optionsRes, votesRes] = await Promise.all([
-        postsQuery,
-        c.from("practice_post_reactions").select("post_id, author_email, reaction_type"),
-        c.from("practice_post_comments").select("id, post_id"),
-        db.from("learner_profiles").select("email, first_name, last_name, photo_url"),
-        fetchStaffPublicProfiles(),
-        c.from("practice_post_hashtags").select("post_id, tag"),
-        c.from("practice_polls").select("id, post_id"),
-        c.from("practice_poll_options").select("id, poll_id, label, position"),
-        c.from("practice_poll_votes").select("poll_id, option_id, author_email"),
-      ]);
-
+      const postsRes = await postsQuery;
       if (postsRes.error) throw postsRes.error;
 
       const posts: RawPost[] = postsRes.data || [];
-      const reactions: RawReaction[] = reactionsRes.data || [];
-      const comments: RawCommentCount[] = commentsRes.data || [];
+      if (!posts.length) return [];
+      const details = await fetchPracticePostDetails(posts);
+      const reactions: RawReaction[] = details.reactions;
+      const comments: RawCommentCount[] = details.comments;
       // Merge staff profiles + learner profiles; staff profile takes precedence
       // so a staff member's real name and avatar are used instead of any legacy
       // learner_profile they may also have for testing.
-      const learnerProfiles: RawProfile[] = profilesRes.data || [];
-      const staffProfiles: RawProfile[] = (staffProfilesRes as RawProfile[]) || [];
+      const learnerProfiles: RawProfile[] = details.profiles;
+      const staffProfiles: RawProfile[] = details.staffProfiles;
       const staffEmailSet = new Set(staffProfiles.map((p) => p.email));
       const profiles: RawProfile[] = [
         ...staffProfiles,
         ...learnerProfiles.filter((lp) => !staffEmailSet.has(lp.email)),
       ];
-      const hashtags: RawHashtag[] = hashtagsRes.data || [];
-      const polls: RawPoll[] = pollsRes.data || [];
-      const pollOptions: RawPollOption[] = optionsRes.data || [];
-      const votes: RawPollVote[] = votesRes.data || [];
+      const hashtags: RawHashtag[] = details.hashtags;
+      const polls: RawPoll[] = details.polls;
+      const pollOptions: RawPollOption[] = details.options;
+      const votes: RawPollVote[] = details.votes;
 
       const profileMap = new Map(profiles.map((p) => [p.email, p]));
       const pollByPost = new Map(polls.map((p) => [p.post_id, p]));

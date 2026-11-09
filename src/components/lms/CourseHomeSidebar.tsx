@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { usePracticePosts } from "@/hooks/usePracticeFeed";
 import type { CourseLiveMeeting } from "@/hooks/useLmsQueries";
 import { supabase } from "@/integrations/supabase/client";
+import HomeBlockError from "@/components/lms/HomeBlockError";
 
 export type ModuleStatus = "completed" | "in_progress" | "not_started";
 
@@ -85,7 +86,7 @@ export function CommunityCtaButton({ email, courseId, lessonId, isPreview = fals
 
 function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { email: string; courseId?: string | null; lessonId?: string | null; isPreview: boolean }) {
   const postsFilter = courseId ? { courseId } : undefined;
-  const { data: posts = [] } = usePracticePosts(email || null, 2, postsFilter);
+  const { data: posts = [], error, refetch, isFetching } = usePracticePosts(email || null, 2, postsFilter);
   const goToCommunity = async () => {
     const resolvedEmail = await resolvePreviewEmail(email);
     if (resolvedEmail) sessionStorage.setItem("learner_email", resolvedEmail);
@@ -107,7 +108,9 @@ function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { ema
         </button>
       </div>
 
-      {posts.length === 0 ? (
+      {error ? (
+        <HomeBlockError title="Communauté" onRetry={() => { void refetch(); }} retrying={isFetching} />
+      ) : posts.length === 0 ? (
         <div className="py-2">
           <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Aucun post pour l'instant.</p>
           <button
