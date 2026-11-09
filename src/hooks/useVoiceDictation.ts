@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { transcribeDictation, type DictationContext } from "@/services/voiceDictation";
 import { toast } from "@/lib/toast";
 
@@ -13,6 +14,7 @@ export function useVoiceDictation({
   maxDurationMs,
   context,
 }: UseVoiceDictationOptions) {
+  const queryClient = useQueryClient();
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -20,6 +22,7 @@ export function useVoiceDictation({
   const busyRef = useRef(false);
   const contextRef = useRef(context);
   contextRef.current = context;
+  const recordingContextRef = useRef(context);
   const streamRef = useRef<MediaStream | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -86,7 +89,7 @@ export function useVoiceDictation({
           // "audio/webm;codecs=opus", while the bucket allow-list contains the
           // normalized "audio/webm" value.
           const uploadBlob = blob.type === baseMime ? blob : new Blob([blob], { type: baseMime });
-          const transcript = await transcribeDictation(uploadBlob, contextRef.current);
+          const transcript = await transcribeDictation(uploadBlob, recordingContextRef.current);
           await onTranscriptRef.current(transcript);
         } catch (err: unknown) {
           console.error("Transcription error:", err);
@@ -96,7 +99,7 @@ export function useVoiceDictation({
               const url = URL.createObjectURL(blob);
               const link = document.createElement("a");
               link.href = url;
-              link.download = `dictee-${Date.now()}.${baseExtension(blob.type)}`;
+              link.download = `dictee-${Date.now()}.${blob.type.includes("mp4") ? "mp4" : "webm"}`;
               link.click();
               setTimeout(() => URL.revokeObjectURL(url), 60000);
             } },
@@ -104,6 +107,9 @@ export function useVoiceDictation({
         } finally {
           setIsTranscribing(false);
           busyRef.current = false;
+          queryClient.invalidateQueries({ queryKey: ["entity-transcripts"] });
+          queryClient.invalidateQueries({ queryKey: ["transcript-assignments"] });
+          queryClient.invalidateQueries({ queryKey: ["transcripts"] });
         }
         resolve();
       };
@@ -121,6 +127,8 @@ export function useVoiceDictation({
     }
 
     try {
+      busyRef.current = true;
+      recordingContextRef.current = contextRef.current;
       // CRITICAL: getUserMedia directly in click handler
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -149,6 +157,7 @@ export function useVoiceDictation({
       mediaRecorderRef.current = recorder;
       recorder.start(1000);
       setIsRecording(true);
+      busyRef.current = false;
 
       // Silence detection via Web Audio API
       try {
@@ -200,8 +209,13 @@ export function useVoiceDictation({
         console.error("Recording error:", error);
       }
       setIsRecording(false);
+      busyRef.current = false;
     }
   }, [isRecording, stopAndTranscribe, maxDurationMs]);
+
+  useEffect(() => () => {
+    if (mediaRecorderRef.current?.state === "recording") void stopAndTranscribe();
+  }, [stopAndTranscribe]);
 
   const isSupported =
     typeof navigator !== "undefined" &&
