@@ -393,6 +393,13 @@
       "when": 1794243243282,
       "tag": "0055_mcp_extension_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1794243701828,
+      "tag": "0056_mcp_audit_trigger_record_guard",
+      "breakpoints": true
     }
   ]
 }
