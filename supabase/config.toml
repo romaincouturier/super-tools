@@ -617,7 +617,7 @@ verify_jwt = false
 [functions.supertilt-partner-portal]
 verify_jwt = false
 
-[functions.sendcloud-webhook]
+[functions.sendcloud-sync]
 verify_jwt = false
 
 [functions.supertilt-restock-email]
