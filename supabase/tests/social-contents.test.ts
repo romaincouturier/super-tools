@@ -17,6 +17,7 @@ const MEDIA_MIGRATION = path.resolve(here, "../migrations/20261106100000_social_
 const THEMES_MIGRATION = path.resolve(here, "../migrations/20261106110000_social_themes.sql");
 const PUBLICATION_MIGRATION = path.resolve(here, "../migrations/20261107100000_social_post_publication.sql");
 const NOTES_MIGRATION = path.resolve(here, "../migrations/20261109100000_social_calendar_notes.sql");
+const AUTHORSHIP_MIGRATION = path.resolve(here, "../migrations/20261110100000_social_authorship_and_note_colors.sql");
 const UPDATED_AT_MIGRATION = path.resolve(here, "../migrations/20260108203546_738a153d-fdf5-43d3-a2c6-75e98647a71f.sql");
 
 /** update_updated_at_column, telle que livrée (forme `$$ LANGUAGE ...;` hors du motif de readFunctionSql). */
@@ -62,6 +63,7 @@ beforeAll(async () => {
   const themesMigration = fs.readFileSync(THEMES_MIGRATION, "utf8");
   const publicationMigration = fs.readFileSync(PUBLICATION_MIGRATION, "utf8");
   const notesMigration = fs.readFileSync(NOTES_MIGRATION, "utf8");
+  const authorshipMigration = fs.readFileSync(AUTHORSHIP_MIGRATION, "utf8");
   for (let i = 0; i < 2; i++) {
     await db.exec(migration);
     await db.exec(dateMigration);
@@ -69,6 +71,7 @@ beforeAll(async () => {
     await db.exec(themesMigration);
     await db.exec(publicationMigration);
     await db.exec(notesMigration);
+    await db.exec(authorshipMigration);
   }
   await db.exec(`
     GRANT ALL ON public.social_channels, public.social_content_groups, public.social_posts, public.social_themes, public.social_calendar_notes TO anon, authenticated;
@@ -758,11 +761,30 @@ describe("Notes du calendrier (story 1.6)", () => {
       .rejects.toThrow(/social_calendar_notes_text_length/);
   });
 
-  it("refuse une couleur hors de la palette des thèmes", async () => {
+  it("refuse une couleur qui n'est pas au format #rrggbb minuscule, sans figer la palette", async () => {
     await actAs(EMMA);
-    for (const color of ["#123456", "#F97316", "orange", "#fff"]) {
-      await expect(insertNote("2026-11-12", "Relance", color)).rejects.toThrow(/social_calendar_notes_color_palette/);
+    for (const color of ["#F97316", "orange", "#fff"]) {
+      await expect(insertNote("2026-11-12", "Relance", color)).rejects.toThrow(/social_calendar_notes_color_format/);
     }
+    await insertNote("2026-11-12", "Relance", "#123456");
+  });
+
+  it("social_set_created_by : l'auteur d'un contenu et d'un thème est l'appelant, figé ensuite", async () => {
+    const GROUP = "f1000000-0000-0000-0000-0000000000f1";
+    const THEME = "f2000000-0000-0000-0000-0000000000f2";
+    await actAs(EMMA);
+    await db.query("INSERT INTO social_content_groups (id, created_by) VALUES ($1, $2)", [GROUP, OTHER]);
+    await db.query("INSERT INTO social_themes (id, name, color, created_by) VALUES ($1, 'Forgé', '#f97316', $2)", [THEME, OTHER]);
+    const authors = async () => [
+      (await db.query<{ created_by: string }>("SELECT created_by FROM social_content_groups WHERE id = $1", [GROUP])).rows[0]?.created_by,
+      (await db.query<{ created_by: string }>("SELECT created_by FROM social_themes WHERE id = $1", [THEME])).rows[0]?.created_by,
+    ];
+    expect(await authors()).toEqual([EMMA, EMMA]);
+    await db.query("UPDATE social_content_groups SET created_by = $1, sync = false WHERE id = $2", [OTHER, GROUP]);
+    await db.query("UPDATE social_themes SET created_by = $1 WHERE id = $2", [OTHER, THEME]);
+    expect(await authors()).toEqual([EMMA, EMMA]);
+    await db.query("DELETE FROM social_content_groups WHERE id = $1", [GROUP]);
+    await db.query("DELETE FROM social_themes WHERE id = $1", [THEME]);
   });
 
   it("déplace une note d'un jour à l'autre et met à jour updated_at", async () => {

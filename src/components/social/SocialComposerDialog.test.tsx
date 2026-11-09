@@ -45,17 +45,18 @@ vi.mock("@/hooks/useSocialContents", () => ({
   }),
 }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
-vi.mock("@/hooks/useMedia", () => ({
-  useMediaLibrary: () => ({
-    data: [
-      { id: "img-1", file_name: "atelier-client.png", file_type: "image", file_url: "u1", source_label: "Mission", tags: [] },
-      { id: "vid-1", file_name: "video.mp4", file_type: "video", file_url: "u2", source_label: "Mission", tags: [] },
-    ],
-    isLoading: false,
-    isPending: false,
-    isError: false,
-  }),
-}));
+vi.mock("@/hooks/useMedia", () => {
+  const library = [
+    { id: "img-1", file_name: "atelier-client.png", file_type: "image", file_url: "u1", source_label: "Mission", tags: [] },
+    { id: "vid-1", file_name: "video.mp4", file_type: "video", file_url: "u2", source_label: "Mission", tags: [] },
+  ];
+  return {
+    useMediaLibrary: () => ({ data: library, isLoading: false, isPending: false, isError: false }),
+    useMediaByIds: (ids: string[]) => ({
+      data: library.filter((m) => ids.includes(m.id)), isPending: false, isError: false, isPlaceholderData: false,
+    }),
+  };
+});
 vi.mock("@/components/media/MediaGrid", () => ({
   MediaThumb: ({ item }: { item: { file_name: string } }) => <img alt={item.file_name} />,
 }));

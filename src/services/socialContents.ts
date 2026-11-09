@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { PALETTE_COLORS } from "@/lib/colorPalette";
+import { parisToIso } from "../../supabase/functions/_shared/nocrm-import";
 import { computePostAlerts, type SocialPostAlert } from "../../supabase/functions/_shared/social-post-alerts";
 
 // Tables absentes des types générés tant que Lovable ne les a pas régénérés
@@ -146,23 +148,11 @@ export function alertsByChannel(
 
 const PARIS = "Europe/Paris";
 
-function parisOffsetMs(utcMs: number): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: PARIS, hourCycle: "h23",
-    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
-  }).formatToParts(new Date(utcMs));
-  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
-  const wall = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
-  return wall - utcMs;
-}
-
 /** Jour "YYYY-MM-DD" et heure "HH:MM" à Paris -> instant ISO UTC. */
 export function parisLocalToUtcIso(date: string, time: string): string {
-  const [y, m, d] = date.split("-").map(Number);
-  const [h, min] = time.split(":").map(Number);
-  const wall = Date.UTC(y, m - 1, d, h, min);
-  const first = wall - parisOffsetMs(wall);
-  return new Date(wall - parisOffsetMs(first)).toISOString();
+  const iso = parisToIso(`${date} ${time}`);
+  if (!iso) throw new Error(`Date invalide : ${date} ${time}`);
+  return iso;
 }
 
 /** Instant ISO -> jour et heure à Paris. */
@@ -394,8 +384,9 @@ export interface CalendarCard {
  * Répartit les contenus entre la colonne « Non planifiés » et les jours de
  * Paris. Seules les déclinaisons des canaux visibles comptent ; un contenu
  * sans déclinaison visible disparaît. Une carte va sur un jour dès qu'une
- * déclinaison visible est datée : parmi les non publiées datées s'il y en a,
- * sinon parmi les publiées, la plus tôt dans la plage chargée, à défaut la plus tôt. Le statut affiché reste le moins
+ * déclinaison visible est datée : la plus tôt des non publiées dans la plage
+ * chargée, sinon la plus tôt de toutes dans la plage, à défaut la plus tôt des
+ * non publiées puis de toutes. Le statut affiché reste le moins
  * avancé. Un groupe présent deux fois est gardé une seule fois (la première).
  * Les alertes sont calculées sur les déclinaisons visibles non publiées, avec la limite
  * de texte des canaux fournis (sans canal connu : pas d'alerte de longueur).
@@ -425,12 +416,15 @@ export function placeGroups(
       .map((p) => p.scheduled_at as string)
       .sort((a, b) => Date.parse(a) - Date.parse(b));
     const pending = datesOf(posts.filter((p) => p.publication_status !== "published"));
-    const dates = pending.length > 0 ? pending : datesOf(posts);
-    if (dates.length === 0) {
+    const all = datesOf(posts);
+    if (all.length === 0) {
       undated.push({ group, posts, status, scheduledAt: null, alerts });
       continue;
     }
-    const scheduledAt = dates.find((d) => Date.parse(d) >= from && Date.parse(d) < to) ?? dates[0];
+    // Une date de la plage chargée passe avant une date hors plage : sinon la carte serait rangée
+    // sur un jour absent de la grille et disparaîtrait de la vue.
+    const inRange = (list: string[]) => list.find((d) => Date.parse(d) >= from && Date.parse(d) < to);
+    const scheduledAt = inRange(pending) ?? inRange(all) ?? pending[0] ?? all[0];
     const key = parisDayKey(scheduledAt);
     const day = byDay.get(key) ?? [];
     day.push({ group, posts, status, scheduledAt, alerts });
@@ -470,36 +464,25 @@ export function applySocialFilters(
   return { undated: filterCards(placed.undated, active), byDay };
 }
 
-async function listGroupsByIds(ids: string[]): Promise<SocialContentGroup[]> {
-  if (ids.length === 0) return [];
-  const { data, error } = await db
-    .from("social_content_groups")
-    .select(GROUP_SELECT)
-    .in("id", ids)
-    .order("updated_at", { ascending: false });
+/** Groupes ayant au moins une déclinaison retenue par le filtre, avec tous leurs posts, en une requête. */
+async function listGroupsMatching(
+  filter: (q: ReturnType<ReturnType<typeof db.from>["select"]>) => ReturnType<ReturnType<typeof db.from>["select"]>,
+): Promise<SocialContentGroup[]> {
+  const { data, error } = await filter(
+    db.from("social_content_groups").select(`${GROUP_SELECT}, matched:social_posts!inner(id)`),
+  ).order("updated_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as SocialContentGroup[];
+  return ((data ?? []) as (SocialContentGroup & { matched?: unknown })[]).map(({ matched: _matched, ...group }) => group);
 }
 
 /** Contenus ayant au moins une déclinaison datée dans [fromIso, toIso[, avec tous leurs posts. */
 export async function listGroupsInRange(fromIso: string, toIso: string): Promise<SocialContentGroup[]> {
-  const { data, error } = await db
-    .from("social_posts")
-    .select("group_id")
-    .gte("scheduled_at", fromIso)
-    .lt("scheduled_at", toIso);
-  if (error) throw error;
-  return listGroupsByIds([...new Set((data ?? []).map((r: { group_id: string }) => r.group_id))]);
+  return listGroupsMatching((q) => q.gte("matched.scheduled_at", fromIso).lt("matched.scheduled_at", toIso));
 }
 
 /** Contenus ayant au moins une déclinaison sans date, avec tous leurs posts. */
 export async function listUndatedGroups(): Promise<SocialContentGroup[]> {
-  const { data, error } = await db
-    .from("social_posts")
-    .select("group_id")
-    .eq("publication_status", "unscheduled");
-  if (error) throw error;
-  return listGroupsByIds([...new Set((data ?? []).map((r: { group_id: string }) => r.group_id))]);
+  return listGroupsMatching((q) => q.eq("matched.publication_status", "unscheduled"));
 }
 
 /** Pose (ou retire avec null) la date des déclinaisons non publiées du groupe, en une seule RPC. */
@@ -554,18 +537,8 @@ export function withGroupDate(group: SocialContentGroup, scheduledAt: string | n
 
 // ── Notes du calendrier ────────────────────────────────────────
 
-/** Palette des thèmes et des notes ; la contrainte social_calendar_notes_color_palette la recopie en base. */
-export const THEME_COLORS = [
-  "#6b7280", // gray
-  "#ef4444", // red
-  "#f97316", // orange
-  "#eab308", // yellow
-  "#22c55e", // green
-  "#14b8a6", // teal
-  "#3b82f6", // blue
-  "#8b5cf6", // purple
-  "#ec4899", // pink
-];
+/** Palette des thèmes et des notes, partagée avec les missions. */
+export const THEME_COLORS = PALETTE_COLORS;
 
 export const NOTE_TEXT_MAX = 500;
 export const NOTE_TEXT_EMPTY_MESSAGE = "Le texte de la note est obligatoire";

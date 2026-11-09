@@ -248,6 +248,13 @@ describe("placeGroups", () => {
     expect([...byDay.keys()]).toEqual(["2026-11-10"]);
   });
 
+  it("garde dans la grille un contenu dont seule la publiée est dans la plage", () => {
+    const { byDay } = placeGroups([
+      group("g", [post("li", "published", "2026-11-10T08:00:00.000Z"), post("in", "scheduled", "2026-12-15T08:00:00.000Z")]),
+    ], all, { fromIso: "2026-10-25T23:00:00.000Z", toIso: "2026-12-06T23:00:00.000Z" });
+    expect([...byDay.keys()]).toEqual(["2026-11-10"]);
+  });
+
   it("trie les cartes d'un jour par instant, quel que soit le format ISO", () => {
     const { byDay } = placeGroups([
       group("a", [post("li", "scheduled", "2026-11-12T09:00:00.000Z", "a")]),

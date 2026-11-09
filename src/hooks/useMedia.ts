@@ -34,8 +34,31 @@ export interface MediaItem {
 const MEDIA_LIBRARY_KEY = "media-library";
 const ENTITY_MEDIA_KEY = "entity-media";
 
+// ── Fetch a few media by id (thumbnail of a chosen visual) ───────────
+/** Médias demandés seulement, sans libellé de source : un id absent du résultat a été supprimé. */
+export const useMediaByIds = (ids: string[], options: { enabled?: boolean } = {}) => {
+  const sorted = [...new Set(ids)].sort();
+  return useQuery({
+    queryKey: [MEDIA_LIBRARY_KEY, "by-ids", sorted],
+    enabled: (options.enabled ?? true) && sorted.length > 0,
+    placeholderData: (previous) => previous,
+    queryFn: async (): Promise<MediaItem[]> => {
+      const { data, error } = await supabase.from("media").select("*").in("id", sorted);
+      if (error) throw error;
+      return (data || []).map((row) => ({
+        ...(row as unknown as MediaItem),
+        tags: (row as { tags?: string[] | null }).tags ?? [],
+        source_label: "",
+        source_emoji: null,
+        source_color: null,
+        source_tags: [],
+      }));
+    },
+  });
+};
+
 // ── Fetch all media for the central gallery ──────────────────────────
-export const useMediaLibrary = (options: { enabled?: boolean } = {}) => {
+export const useMediaLibrary =(options: { enabled?: boolean } = {}) => {
   return useQuery({
     queryKey: [MEDIA_LIBRARY_KEY],
     enabled: options.enabled ?? true,
