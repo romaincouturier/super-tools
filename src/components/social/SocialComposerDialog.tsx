@@ -16,7 +16,7 @@ import SocialMediaPicker, { SocialMediaThumb, mediaDisplayName } from "@/compone
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { demoBlur } from "@/lib/demoMask";
 import { useToast } from "@/hooks/use-toast";
-import { useMediaLibrary, type MediaItem } from "@/hooks/useMedia";
+import { useMediaByIds, type MediaItem } from "@/hooks/useMedia";
 import { useAutoSaveForm, type AutoSaveFormValues } from "@/hooks/useAutoSaveForm";
 import { useConfirm } from "@/hooks/useConfirm";
 import {
@@ -136,9 +136,6 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     setBusy(value);
   };
   const { confirm, ConfirmDialog } = useConfirm();
-  const mediaQuery = useMediaLibrary({ enabled: open });
-  const mediaLibrary = mediaQuery.data;
-  const mediaById = useMemo(() => new Map((mediaLibrary ?? []).map((m) => [m.id, m])), [mediaLibrary]);
   const channelsById = useMemo(() => new Map(channels.map((c) => [c.id, c])), [channels]);
   const themesQuery = useSocialThemes();
   const themes = useMemo(() => themesQuery.data ?? [], [themesQuery.data]);
@@ -153,6 +150,13 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
   const [texts, setTexts] = useState<Record<string, string>>({});
   const [commonMediaId, setCommonMediaId] = useState<string | null>(null);
   const [mediaIds, setMediaIds] = useState<Record<string, string | null>>({});
+  /** Seuls les visuels choisis sont lus ; le sélecteur charge la Médiathèque à son ouverture. */
+  const chosenMediaIds = useMemo(
+    () => [commonMediaId, ...Object.values(mediaIds)].filter((id): id is string => !!id),
+    [commonMediaId, mediaIds],
+  );
+  const mediaQuery = useMediaByIds(chosenMediaIds, { enabled: open });
+  const mediaById = useMemo(() => new Map((mediaQuery.data ?? []).map((m) => [m.id, m])), [mediaQuery.data]);
   /** Cible du sélecteur ouvert : visuel commun ou identifiant du canal. */
   const [pickerFor, setPickerFor] = useState<string | null>(null);
   const [date, setDate] = useState("");
@@ -516,8 +520,8 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     );
   };
 
-  /** Médiathèque chargée : un visuel absent de la liste (supprimé) compte comme manquant. */
-  const libraryReady = !mediaQuery.isPending && !mediaQuery.isError;
+  /** Visuels choisis relus : un visuel absent du résultat (supprimé) compte comme manquant. */
+  const libraryReady = !mediaQuery.isPending && !mediaQuery.isError && !mediaQuery.isPlaceholderData;
 
   const liveAlerts = useMemo(
     () => alertsByChannel(

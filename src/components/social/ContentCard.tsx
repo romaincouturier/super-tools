@@ -60,7 +60,8 @@ export function AlertIndicator({ alerts, channelsById }: { alerts: ChannelAlerts
 export default function ContentCard({ card, channelsById, themesById, onOpen }: ContentCardProps) {
   const { isDemoMode } = useDemoMode();
   const theme = card.group.theme_id ? themesById?.get(card.group.theme_id) : undefined;
-  const published = card.status === "published";
+  // Même règle que le dépôt sur la page : toutes les déclinaisons du contenu, filtrées ou non.
+  const published = card.group.posts.length > 0 && card.group.posts.every((p) => p.publication_status === "published");
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: card.group.id, data: { card }, disabled: published });
   const text = (card.posts.find((p) => p.publication_status === card.status) ?? card.posts[0])?.text.trim() ?? "";
   const channels = card.posts
