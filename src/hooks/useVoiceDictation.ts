@@ -1,20 +1,28 @@
-import { useState, useRef, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { transcribeDictation, type DictationContext } from "@/services/voiceDictation";
 import { toast } from "@/lib/toast";
 
 interface UseVoiceDictationOptions {
-  onTranscript: (text: string) => void;
+  onTranscript: (text: string) => void | Promise<void>;
   maxDurationMs?: number;
+  context?: DictationContext;
 }
 
 export function useVoiceDictation({
   onTranscript,
-  maxDurationMs = 300000, // 5 minutes par défaut
+  maxDurationMs,
+  context,
 }: UseVoiceDictationOptions) {
+  const queryClient = useQueryClient();
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const busyRef = useRef(false);
+  const contextRef = useRef(context);
+  contextRef.current = context;
+  const recordingContextRef = useRef(context);
   const streamRef = useRef<MediaStream | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -52,6 +60,7 @@ export function useVoiceDictation({
 
     // Wait for onstop to fire with collected data
     return new Promise<void>((resolve) => {
+      busyRef.current = true;
       recorder.onstop = async () => {
         // Stop media stream tracks
         streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -64,6 +73,7 @@ export function useVoiceDictation({
 
         if (blob.size < 1000) {
           toast.info("Enregistrement trop court");
+          busyRef.current = false;
           resolve();
           return;
         }
@@ -79,30 +89,27 @@ export function useVoiceDictation({
           // "audio/webm;codecs=opus", while the bucket allow-list contains the
           // normalized "audio/webm" value.
           const uploadBlob = blob.type === baseMime ? blob : new Blob([blob], { type: baseMime });
-          const audioBase64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
-            reader.onerror = () => reject(reader.error ?? new Error("Lecture audio impossible"));
-            reader.readAsDataURL(uploadBlob);
-          });
-
-          const { data, error } = await supabase.functions.invoke("transcribe-audio-long", {
-            body: { audio_base64: audioBase64, content_type: baseMime },
-          });
-
-          if (error) throw error;
-
-          const transcript = data?.transcript;
-          if (transcript && transcript !== "[inaudible]") {
-            onTranscriptRef.current(transcript);
-          } else {
-            toast.info("Aucune parole détectée");
-          }
+          const transcript = await transcribeDictation(uploadBlob, recordingContextRef.current);
+          await onTranscriptRef.current(transcript);
         } catch (err: unknown) {
           console.error("Transcription error:", err);
-          toast.error("Erreur de transcription : " + (err instanceof Error ? err.message : "inconnue"));
+          toast.error("Erreur de transcription : " + (err instanceof Error ? err.message : "inconnue"), {
+            duration: Infinity,
+            action: { label: "Sauver l’audio", onClick: () => {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = `dictee-${Date.now()}.${blob.type.includes("mp4") ? "mp4" : "webm"}`;
+              link.click();
+              setTimeout(() => URL.revokeObjectURL(url), 60000);
+            } },
+          });
         } finally {
           setIsTranscribing(false);
+          busyRef.current = false;
+          queryClient.invalidateQueries({ queryKey: ["entity-transcripts"] });
+          queryClient.invalidateQueries({ queryKey: ["transcript-assignments"] });
+          queryClient.invalidateQueries({ queryKey: ["transcripts"] });
         }
         resolve();
       };
@@ -113,12 +120,15 @@ export function useVoiceDictation({
   }, [stopSilenceDetection]);
 
   const startRecording = useCallback(async () => {
+    if (busyRef.current) return;
     if (isRecording) {
       await stopAndTranscribe();
       return;
     }
 
     try {
+      busyRef.current = true;
+      recordingContextRef.current = contextRef.current;
       // CRITICAL: getUserMedia directly in click handler
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -147,6 +157,7 @@ export function useVoiceDictation({
       mediaRecorderRef.current = recorder;
       recorder.start(1000);
       setIsRecording(true);
+      busyRef.current = false;
 
       // Silence detection via Web Audio API
       try {
@@ -184,9 +195,12 @@ export function useVoiceDictation({
       }
 
       // Auto-stop after max duration
-      timeoutRef.current = setTimeout(() => {
-        stopAndTranscribe();
-      }, maxDurationMs);
+      if (maxDurationMs !== undefined) {
+        timeoutRef.current = setTimeout(() => {
+          toast.info("Durée maximale atteinte : enregistrement arrêté et conservé");
+          stopAndTranscribe();
+        }, maxDurationMs);
+      }
     } catch (error) {
       if (error instanceof Error && error.name === "NotAllowedError") {
         toast.error("Accès au micro refusé. Vérifiez les permissions du navigateur.");
@@ -195,8 +209,13 @@ export function useVoiceDictation({
         console.error("Recording error:", error);
       }
       setIsRecording(false);
+      busyRef.current = false;
     }
   }, [isRecording, stopAndTranscribe, maxDurationMs]);
+
+  useEffect(() => () => {
+    if (mediaRecorderRef.current?.state === "recording") void stopAndTranscribe();
+  }, [stopAndTranscribe]);
 
   const isSupported =
     typeof navigator !== "undefined" &&
