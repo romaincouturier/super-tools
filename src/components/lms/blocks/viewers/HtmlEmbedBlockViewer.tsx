@@ -16,7 +16,7 @@ export function safeVideoEmbedUrl(raw: unknown): string | null {
     const yt = ["www.youtube.com", "youtube.com", "www.youtube-nocookie.com", "youtube-nocookie.com"].includes(u.hostname) && /^\/embed\/[\w-]+$/.test(u.pathname);
     const vimeo = u.hostname === "player.vimeo.com" && /^\/video\/\d+$/.test(u.pathname);
     return yt || vimeo ? u.toString() : null;
-  } catch {
+  } catch (_invalidUrl) {
     return null;
   }
 }
