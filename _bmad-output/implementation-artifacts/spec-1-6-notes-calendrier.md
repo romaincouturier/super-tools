@@ -83,7 +83,7 @@ context:
 - Le jour se lit et s'écrit comme une chaîne `YYYY-MM-DD` (pas de `new Date(day)` côté front) : c'est la clé de jour déjà utilisée par la grille.
 - Glisser-déposer : `useDraggable({ id: "note:<id>", data: { note } })` ; `handleDragEnd` distingue `data.note` de `data.card` ; même cible `DAY_DROP_PREFIX`. Un dépôt sur le même jour ne fait rien.
 - Le bouton d'ajout de chaque jour est discret (visible au survol et au focus clavier) et ne doit pas déclencher le dépôt ni ouvrir une carte.
-- Mode démo : le texte d'une note peut citer un client ; passer par `maskText` en mode démo, comme le titre des cartes, et garder `check-demo-mask.sh` à 0.
+- Mode démo : le texte d'une note peut citer un client ; passer par `maskText` en mode démo et garder `check-demo-mask.sh` à 0. Le texte des cartes de contenu n'est pas masqué aujourd'hui : écart noté dans `deferred-work.md`, à traiter par `/anonymisation-demo` avant la PR.
 - Production : jouer `20261109100000_social_calendar_notes.sql` après les cinq migrations précédentes de l'epic.
 
 ## Spec Change Log

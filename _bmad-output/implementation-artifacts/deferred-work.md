@@ -13,3 +13,7 @@
 - La suppression d'un média de la Médiathèque remet `media_id` à null sur une déclinaison publiée (`ON DELETE SET NULL`) : historique du visuel publié perdu. Option : trigger qui protège les publiées ou conservation d'une copie.
 - `socialTextLength` compte les points de code : un emoji composé (famille) vaut plusieurs caractères et X compte les emojis double. À aligner par réseau avec le MCP (epic 4).
 - `useMediaLibrary` n'est pas paginé (plafond PostgREST de 1000 lignes) : au-delà, un ancien visuel n'apparaît plus dans le sélecteur.
+
+## Mode démo (constaté en spec 1.6)
+
+- `ContentCard.tsx` affiche le début du texte des contenus sans `maskText` en mode démo. À traiter par `/anonymisation-demo` avant la PR de l'epic 1 (texte des cartes, composeur, notes).
