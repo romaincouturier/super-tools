@@ -330,6 +330,48 @@
       "when": 1793988715287,
       "tag": "0046_nocrm_import",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1794223725840,
+      "tag": "0047_20261105180000_reclamation_acknowledgement",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1794223748577,
+      "tag": "0048_20261105190000_learner_reclamation",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1794223769199,
+      "tag": "0049_20261105200000_referent_handicap",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1794223796850,
+      "tag": "0050_20261105210000_handicap_partners",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1794223814223,
+      "tag": "0051_20261105220000_training_summary_specific_instructions",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1794223828720,
+      "tag": "0052_20261105230000_audit_runs",
+      "breakpoints": true
     }
   ]
 }

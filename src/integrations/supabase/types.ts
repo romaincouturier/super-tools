@@ -10460,8 +10460,8 @@ export type Database = {
       }
       reclamations: {
         Row: {
-          actions_decided: string | null
           acknowledgement_sent_at: string | null
+          actions_decided: string | null
           ai_analysis: string | null
           ai_response_draft: string | null
           canal: string | null
@@ -10484,8 +10484,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          actions_decided?: string | null
           acknowledgement_sent_at?: string | null
+          actions_decided?: string | null
           ai_analysis?: string | null
           ai_response_draft?: string | null
           canal?: string | null
@@ -10508,8 +10508,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          actions_decided?: string | null
           acknowledgement_sent_at?: string | null
+          actions_decided?: string | null
           ai_analysis?: string | null
           ai_response_draft?: string | null
           canal?: string | null
@@ -14407,6 +14407,16 @@ export type Database = {
       connexion_indicators: { Args: { p_days?: number }; Returns: Json }
       create_devis_order: {
         Args: { p_items: Json; p_order: Json }
+        Returns: Json
+      }
+      create_learner_reclamation: {
+        Args: {
+          p_description: string
+          p_nature: string
+          p_problem_type: string
+          p_subject: string
+          p_training_id?: string
+        }
         Returns: Json
       }
       create_quote_testimonial: {
