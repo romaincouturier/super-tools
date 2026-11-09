@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { renderCatalogEmail, escapeEmailValue as escE } from "../_shared/editable-email.ts";
+import { renderCatalogEmail, ctaButton, escapeEmailValue as escE } from "../_shared/editable-email.ts";
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
@@ -161,9 +161,13 @@ async function sendGroup(
     ).join("");
 
     const firstName = (trainer.first_name || "").trim();
+    const pendingWorksUrl = `${ctx.APP_URL}/lms/communautes/${group.course_id}?filter=pending`;
     const dtRendered = await renderCatalogEmail(supabase, n > 1 ? "deposit_trainer_notification_multi" : "deposit_trainer_notification", {
       vars: { first_name: firstName || null, learner_name: learnerName, course_title: courseTitle, count: String(n) },
-      blocks: { deposits_preview: previews },
+      blocks: {
+        deposits_preview: previews,
+        pending_works_button: ctaButton("Voir tous les travaux en attente", pendingWorksUrl),
+      },
     });
     const html = wrapEmailHtml(dtRendered.html, ctx.signature);
 

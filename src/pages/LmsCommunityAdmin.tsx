@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskEmail } from "@/lib/demoMask";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -89,7 +89,8 @@ function PostsFeed({
   showTreatedToggle?: boolean;
 }) {
   const { toast } = useToast();
-  const [onlyPending, setOnlyPending] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [onlyPending, setOnlyPending] = useState(() => searchParams.get("filter") === "pending");
   const deletePost = useDeletePracticePost(userEmail, true);
   const pinPost = usePinPracticePost();
   const toggleReaction = useTogglePracticeReaction(userEmail);
