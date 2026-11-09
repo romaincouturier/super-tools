@@ -1,0 +1,4 @@
+import { defineTool } from '@lovable.dev/mcp-js';
+import { z } from 'zod';
+import { staffClient,result } from '../supabase';
+export default defineTool({name:'list_watch_sources',title:'Lister les sources de veille',description:'Liste les sources de veille avec filtres expert et statut.',inputSchema:{expert:z.string().max(100).optional(),status:z.enum(['proposed','to_subscribe','followed','dropped']).optional(),limit:z.number().int().min(1).max(100).default(50)},annotations:{readOnlyHint:true},handler:async({expert,status,limit},ctx)=>{const db=await staffClient(ctx);let q=db.from('watch_sources').select('*').order('created_at',{ascending:false}).limit(limit);if(expert)q=q.eq('expert',expert);if(status)q=q.eq('status',status);const {data,error}=await q;if(error)throw error;return result(data);}});

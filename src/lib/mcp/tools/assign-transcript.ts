@@ -1,0 +1,4 @@
+import { defineTool } from '@lovable.dev/mcp-js';
+import { z } from 'zod';
+import { staffClient,result } from '../supabase';
+export default defineTool({name:'assign_transcript',title:'Rattacher un transcript à une formation',description:'Rattache à une formation ; demander confirmation si déjà lié ailleurs. Les autres cibles restent sur le connecteur historique.',inputSchema:{transcript_id:z.string().uuid(),target_type:z.literal('training'),target_id:z.string().uuid(),allow_multiple:z.boolean().optional()},annotations:{idempotentHint:true},handler:async(args,ctx)=>{const db=await staffClient(ctx);const {data,error}=await db.rpc('link_transcript_to_training',{p_training_id:args.target_id,p_transcript_id:args.transcript_id,p_allow_multiple:args.allow_multiple??false});if(error)throw error;return result(data);}});
