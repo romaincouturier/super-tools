@@ -95,7 +95,16 @@ Le moteur vit dans `supabase/functions/_shared/qualiopi-referential.ts` et `qual
 
 ### Mise en service de la tâche de nuit
 
-`run-qualiopi-audit` repasse les contrôles automatiques chaque nuit et inscrit chaque constat en défaut dans les actions quotidiennes des administrateurs. Elle n'est pas planifiée par une migration : la règle [036] l'interdit, `vault.decrypted_secrets` étant vide sur ce projet. Deux étapes, à faire une fois :
+`run-qualiopi-audit` repasse les contrôles automatiques chaque nuit et inscrit chaque constat en défaut dans les actions quotidiennes des administrateurs. Elle n'est pas planifiée par une migration : la règle [036] l'interdit, `vault.decrypted_secrets` étant vide sur ce projet.
+
+**Mise en service, et pourquoi ce secret-là.** Le job a d'abord été posé, le 9 novembre 2026,
+avec un en-tête `Authorization: Bearer` portant le secret géré par Lovable : il passait alors
+par `hasManagedCronCredential`, et `QUALIOPI_CRON_SECRET` ne servait à rien. Une rotation de ce
+secret géré l'aurait cassé en 401 silencieux — le défaut même que la règle [036] cherche à
+éviter, déplacé d'un secret à l'autre. Le cron a donc été recâblé sur un secret dédié, dont la
+rotation est décidée ici et nulle part ailleurs.
+
+Deux étapes :
 
 1. Créer le secret d'edge function `QUALIOPI_CRON_SECRET` avec une valeur aléatoire.
 2. Planifier le cron en base, en recopiant la valeur du secret inline :
@@ -114,6 +123,10 @@ select cron.schedule(
 );
 ```
 
+Ce SQL ne peut pas être exécuté par l'assistant : le rôle qui lit le secret n'a pas de droit sur
+le schéma `cron` (`permission denied for schema cron`), et celui qui a ce droit écrirait la
+valeur en clair dans le journal de la conversation. Il se passe depuis l'éditeur SQL Supabase.
+
 **L'heure n'est pas libre.** `generate-daily-actions` passe à 06:05 et commence par supprimer
 toutes les actions non terminées du jour, pour chaque destinataire et toutes catégories
 confondues, avant de régénérer les siennes (`supabase/functions/generate-daily-actions/index.ts`,
@@ -126,5 +139,24 @@ Toute replanification doit rester après `generate-daily-actions`. 06:30 est dé
 Les deux fonctions datent leurs lignes avec `new Date().toISOString().split("T")[0]`, donc sur
 la même journée UTC : pas de décalage de fuseau entre l'écriture et la purge.
 
-Vérifier `cron.job_run_details` après la première exécution : un cron en échec sur ce projet
-échoue silencieusement.
+**Vérifier sans lire le secret.** `cron.job_run_details` dit si le cron s'est déclenché, pas si
+l'edge function a répondu. Pour la réponse réelle, rejouer la commande du job sans jamais
+l'afficher, puis lire le code HTTP :
+
+```sql
+do $$
+declare c text;
+begin
+  select command into c from cron.job where jobname = 'run-qualiopi-audit';
+  execute c;
+end $$;
+
+select id, status_code, left(content, 200)
+from net._http_response order by id desc limit 1;
+```
+
+Un cron en échec sur ce projet échoue silencieusement : sans ce contrôle, un 401 ressemble à une
+nuit sans constat. Relevé du 9 novembre 2026 : `200`, `{"success":true,"issues":17,"actions":17}`.
+
+Attention, ce rejeu n'est pas une simulation : il écrit un passage dans `audit_runs` et les
+actions du jour correspondantes.
