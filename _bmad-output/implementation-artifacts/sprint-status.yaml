@@ -1,0 +1,74 @@
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when its first story starts (via build's sprint sync)
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates the next story after the previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; the status view surfaces open ones
+generated: 11-05-2026 17:32
+last_updated: 11-06-2026 13:07
+project: super-tools
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+development_status:
+  epic-1: in-progress
+  1-1-rédiger-un-contenu-décliné-sur-plusieurs-canaux: review
+  1-2-planifier-dans-le-calendrier-avec-aperçu-des-contenus: review
+  1-3-joindre-un-visuel-de-la-médiathèque-et-être-alerté-d-un-post: review
+  1-4-classer-les-contenus-par-thèmes-et-filtrer: review
+  1-5-ouvrir-un-contenu-le-modifier-et-le-marquer-publié: review
+  1-6-poser-des-notes-dans-le-calendrier: review
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-demander-une-validation-et-approuver-un-contenu: backlog
+  2-2-refuser-un-contenu-avec-motif: backlog
+  2-3-remettre-en-attente-un-contenu-modifié-et-tracer-son-histori: backlog
+  2-4-échanger-par-commentaires-sur-un-contenu: backlog
+  2-5-traiter-ses-validations-depuis-mes-validations: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-créer-une-campagne-avec-son-brief: backlog
+  3-2-rattacher-les-contenus-à-une-campagne-et-la-voir-dans-le-cal: backlog
+  3-3-piloter-les-contenus-en-liste-avec-des-filtres-combinés: backlog
+  3-4-relire-les-contenus-en-aperçu-réseau: backlog
+  3-5-enregistrer-et-partager-des-vues: backlog
+  3-6-voir-la-grille-instagram: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-définir-le-contexte-de-marque: backlog
+  4-2-consulter-le-calendrier-depuis-claude: backlog
+  4-3-créer-des-brouillons-datés-depuis-claude: backlog
+  4-4-valider-refuser-programmer-et-commenter-depuis-claude: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-migrer-les-cartes-post-et-rediriger-leurs-points-d-entrée: backlog
+  5-2-décliner-une-carte-éditoriale-en-contenus-sociaux: backlog
+  epic-5-retrospective: optional

@@ -37,6 +37,13 @@ describe("demoMask", () => {
     expect(maskName("Romain Couturier")).toBe("R••••n C•••••••r");
   });
 
+  it("maskText decoupe en points de code et ne coupe jamais un emoji", () => {
+    expect(maskText("🚀Lancement🎉")).toBe("🚀•••••••••🎉");
+    expect(maskText("🚀🎉")).toBe("🚀🎉");
+    expect(maskText("a🚀b")).toBe("a•b");
+    expect(maskText("Lancement 🚀")).toBe("L•••••••t 🚀");
+  });
+
   it("maskName preserve les mots de deux lettres ou moins", () => {
     expect(maskName("Jo Li")).toBe("Jo Li");
   });
