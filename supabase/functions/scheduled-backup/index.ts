@@ -102,7 +102,7 @@ const TABLES_TO_BACKUP = [
   "training_support_template_sections", "training_support_templates", "training_supports",
   "training_survey_answers", "training_survey_questions",
   "training_survey_recipients", "training_survey_responses", "training_surveys",
-  "training_venues", "trainings",
+  "training_venues", "trainings", "training_transcripts",
   "transcript_ai_prompts", "transcript_generations", "transcripts",
   "usage_records", "user_module_access", "user_positioning",
   "user_preferences", "user_security_metadata",
