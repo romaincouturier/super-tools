@@ -107,7 +107,8 @@ export interface QualityRiskFormValues {
   review_date: string;
   status: string;
   reclamation_id: string;
-  improvement_id: string;
+  /** Plusieurs améliorations possibles : une mesure se décline en plusieurs actions. */
+  improvement_ids: string[];
 }
 
 export interface QualityRiskRecord {
@@ -122,7 +123,6 @@ export interface QualityRiskRecord {
   review_date: string | null;
   status: string;
   reclamation_id: string | null;
-  improvement_id: string | null;
 }
 
 export const EMPTY_RISK_FORM: QualityRiskFormValues = {
@@ -137,7 +137,7 @@ export const EMPTY_RISK_FORM: QualityRiskFormValues = {
   review_date: "",
   status: "open",
   reclamation_id: "",
-  improvement_id: "",
+  improvement_ids: [],
 };
 
 /**
@@ -161,7 +161,6 @@ export function buildRiskRecord(form: QualityRiskFormValues): QualityRiskRecord 
     review_date: form.review_date || null,
     status: form.status,
     reclamation_id: form.reclamation_id || null,
-    improvement_id: form.improvement_id || null,
   };
 }
 
@@ -209,4 +208,20 @@ export function summarizeRisks(
       return (band === "eleve" || band === "critique") && !r.preventive_measure?.trim();
     }).length,
   };
+}
+
+/** Seuil à partir duquel un risque sans amélioration liée déclenche une alerte. */
+export const IMPROVEMENT_ALERT_CRITICALITY = 8;
+
+/** Revue mensuelle : prochaine revue par défaut un mois après la date donnée (AAAA-MM-JJ). */
+export function nextReviewDate(fromIso: string): string {
+  const [y, m, d] = fromIso.split("-").map(Number);
+  const target = new Date(Date.UTC(y, m, 1));
+  const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(d, lastDay));
+  return target.toISOString().slice(0, 10);
+}
+
+export function needsImprovementAlert(risk: { status: string; criticality: number }, linkedCount: number): boolean {
+  return risk.status !== "closed" && risk.criticality >= IMPROVEMENT_ALERT_CRITICALITY && linkedCount === 0;
 }

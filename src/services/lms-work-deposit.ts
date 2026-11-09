@@ -119,24 +119,51 @@ export async function deleteDeposit(id: string, learnerEmail: string): Promise<v
 
 // ── Storage ─────────────────────────────────────────────────────────
 
-/** Uploads a deposit file to the lms-content bucket and returns the public URL. */
+export const DEPOSIT_NETWORK_ERROR_MESSAGE =
+  "Connexion instable : le fichier n'a pas pu être envoyé. Vérifiez votre connexion (wifi ou réseau mobile) puis réessayez.";
+
+const UPLOAD_RETRY_DELAYS_MS = [1000, 3000];
+
+function isNetworkFailure(error: unknown): boolean {
+  return (error as { name?: string } | null)?.name === "FunctionsFetchError";
+}
+
+/**
+ * Uploads a deposit file to the lms-content bucket and returns the public URL.
+ * Un échec réseau (requête qui n'atteint pas la fonction, fréquent sur mobile)
+ * est réessayé deux fois avec un chemin neuf, puis remonte un message clair.
+ */
 export async function uploadDepositFile(
   file: File,
   lessonId: string | null,
   learnerEmail: string,
+  wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
 ): Promise<{ url: string; name: string; size: number; mime: string }> {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").toLowerCase();
   const folder = lessonId ?? "portfolio";
-  const path = `deposits/${folder}/${learnerEmail}/${Date.now()}_${safeName}`;
   const mime = resolveContentType(file);
-  const formData = new FormData();
-  formData.append("file", file, file.name);
-  formData.append("path", path);
-  const { data, error } = await supabase.functions.invoke("upload-lms-content", { body: formData });
-  if (error) throw error;
-  const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
-  if (!publicUrl) throw new Error("URL introuvable après l'upload");
-  return { url: publicUrl, name: file.name, size: file.size, mime };
+  for (let attempt = 0; ; attempt++) {
+    // Chemin neuf à chaque tentative : un envoi abouti côté serveur mais perdu
+    // en réponse ne bloque pas la suivante (upload sans écrasement).
+    const path = `deposits/${folder}/${learnerEmail}/${Date.now()}_${safeName}`;
+    const formData = new FormData();
+    formData.append("file", file, file.name);
+    formData.append("path", path);
+    const { data, error } = await supabase.functions.invoke("upload-lms-content", { body: formData });
+    if (error) {
+      if (isNetworkFailure(error)) {
+        if (attempt < UPLOAD_RETRY_DELAYS_MS.length) {
+          await wait(UPLOAD_RETRY_DELAYS_MS[attempt]);
+          continue;
+        }
+        throw Object.assign(new Error(DEPOSIT_NETWORK_ERROR_MESSAGE), { cause: error });
+      }
+      throw error;
+    }
+    const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
+    if (!publicUrl) throw new Error("URL introuvable après l'upload");
+    return { url: publicUrl, name: file.name, size: file.size, mime };
+  }
 }
 
 // ── Comments (Stage 2 surface) ──────────────────────────────────────

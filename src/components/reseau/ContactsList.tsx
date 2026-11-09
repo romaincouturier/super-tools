@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { NetworkContact, WarmthLevel } from "@/types/reseau";
+import NetworkContactSheet from "./NetworkContactSheet";
 
 const WARMTH_CONFIG: Record<WarmthLevel, { label: string; color: string }> = {
   hot: { label: "Chaud", color: "bg-red-100 text-red-800" },
@@ -40,6 +41,7 @@ const ContactsList = ({ contacts, onCreate, onDelete }: ContactsListProps) => {
   const [name, setName] = useState("");
   const [context, setContext] = useState("");
   const [warmth, setWarmth] = useState<WarmthLevel>("warm");
+  const [openContact, setOpenContact] = useState<NetworkContact | null>(null);
 
   const handleCreate = () => {
     if (!name.trim()) return;
@@ -108,7 +110,7 @@ const ContactsList = ({ contacts, onCreate, onDelete }: ContactsListProps) => {
                   key={contact.id}
                   className="flex items-center justify-between p-3 rounded-lg border"
                 >
-                  <div className="flex-1 min-w-0">
+                  <button type="button" className="flex-1 min-w-0 text-left" onClick={() => setOpenContact(contact)}>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm truncate">{isDemoMode ? maskName(contact.name) : contact.name}</span>
                       <span className={`text-xs px-1.5 py-0.5 rounded-full ${w.color}`}>
@@ -127,7 +129,7 @@ const ContactsList = ({ contacts, onCreate, onDelete }: ContactsListProps) => {
                         </span>
                       )}
                     </div>
-                  </div>
+                  </button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -142,6 +144,7 @@ const ContactsList = ({ contacts, onCreate, onDelete }: ContactsListProps) => {
           </div>
         )}
       </CardContent>
+      {openContact && <NetworkContactSheet contact={openContact} onClose={() => setOpenContact(null)} />}
     </Card>
   );
 };

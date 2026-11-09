@@ -1,3 +1,4 @@
+import { fetchAllCardTags, fetchAllCrmCards } from "@/services/crmCardsFetch";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -7,25 +8,6 @@ import {
 } from "@/lib/crmDataTransform";
 import { CRM_QUERY_KEY } from "./useCrmMutation";
 
-const CRM_PAGE_SIZE = 1000;
-
-const fetchAllCardTags = async () => {
-  const rows = [];
-
-  for (let from = 0; ; from += CRM_PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from("crm_card_tags")
-      .select("*")
-      .order("created_at", { ascending: true })
-      .range(from, from + CRM_PAGE_SIZE - 1);
-
-    if (error) throw error;
-    rows.push(...(data || []));
-    if (!data || data.length < CRM_PAGE_SIZE) break;
-  }
-
-  return rows;
-};
 
 /** Fetch all board data: columns, cards, tags. */
 export const useCrmBoard = () => {
@@ -39,10 +21,7 @@ export const useCrmBoard = () => {
           .select("*")
           .eq("is_archived", false)
           .order("position", { ascending: true }),
-        supabase
-          .from("crm_cards")
-          .select("*")
-          .order("position", { ascending: true }),
+        fetchAllCrmCards().then((data) => ({ data, error: null })),
         supabase
           .from("crm_tags")
           .select("*")

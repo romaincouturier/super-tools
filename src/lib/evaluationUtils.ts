@@ -9,6 +9,7 @@
 /** Full evaluation data shape used by EvaluationDetailDialog. */
 export interface EvaluationData {
   id: string;
+  site_comment_published_at?: string | null;
   first_name: string | null;
   last_name: string | null;
   company: string | null;

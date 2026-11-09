@@ -10,6 +10,7 @@ import { tuVousSuffix, fetchTemplateOrDefault, logEmailActivity } from "../_shar
 import { learnerHasNotifEnabled } from "../_shared/learner-prefs.ts";
 import { appendEmailParam, personalizeSupportsLinks, resolveSupportsUrlBase } from "../_shared/supports-url.ts";
 import { emailSecondaryLink } from "../_shared/templates.ts";
+import { renderLiveRecordingNotice } from "../_shared/live-recording-notice.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
@@ -137,6 +138,7 @@ serve(async (req) => {
       const suffix = tuVousSuffix(training.participants_formal_address);
       const useFormal = suffix === "vous";
       const templateKey = `live_reminder_${suffix}`;
+      const liveNotice = await renderLiveRecordingNotice(supabase, useFormal);
 
       // Format live date/time in Paris timezone
       const liveDateTime = new Date(live.scheduled_at);
@@ -213,6 +215,7 @@ serve(async (req) => {
             ${meetingUrlSection}
             ${emailButton("Infos & documents de la formation", summaryUrl)}
             ${customBody.includes(supportsUrl) && supportsUrl ? "" : elearningLink}
+            ${liveNotice}
             ${signatureHtml}
           `;
         } else {
@@ -239,6 +242,7 @@ serve(async (req) => {
           htmlContent = templateTextToHtml(body)
             + "\n" + emailButton("Infos & documents de la formation", summaryUrl)
             + (supportsUrl && !body.includes(supportsUrl) ? "\n" + elearningLink : "")
+            + "\n" + liveNotice
             + "\n" + signatureHtml;
         }
 

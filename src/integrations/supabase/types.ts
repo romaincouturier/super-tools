@@ -579,6 +579,154 @@ export type Database = {
         }
         Relationships: []
       }
+      author_onboarding_files: {
+        Row: {
+          created_at: string
+          id: string
+          invitation_id: string
+          kind: string
+          mime_type: string
+          original_name: string | null
+          sha256: string | null
+          size_bytes: number
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invitation_id: string
+          kind: string
+          mime_type: string
+          original_name?: string | null
+          sha256?: string | null
+          size_bytes: number
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invitation_id?: string
+          kind?: string
+          mime_type?: string
+          original_name?: string | null
+          sha256?: string | null
+          size_bytes?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_onboarding_files_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "author_onboarding_invitations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      author_onboarding_invitations: {
+        Row: {
+          author_id: string
+          commission_rate: number
+          created_at: string
+          expires_at: string
+          game_id: string
+          id: string
+          invitation_sent_at: string | null
+          invited_by: string | null
+          opened_at: string | null
+          recipient_email: string
+          revoked_at: string | null
+          submitted_at: string | null
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          commission_rate?: number
+          created_at?: string
+          expires_at?: string
+          game_id: string
+          id?: string
+          invitation_sent_at?: string | null
+          invited_by?: string | null
+          opened_at?: string | null
+          recipient_email: string
+          revoked_at?: string | null
+          submitted_at?: string | null
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          commission_rate?: number
+          created_at?: string
+          expires_at?: string
+          game_id?: string
+          id?: string
+          invitation_sent_at?: string | null
+          invited_by?: string | null
+          opened_at?: string | null
+          recipient_email?: string
+          revoked_at?: string | null
+          submitted_at?: string | null
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_onboarding_invitations_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "game_authors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_onboarding_invitations_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      author_onboarding_responses: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          invitation_id: string
+          submitted_at: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          invitation_id: string
+          submitted_at?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          invitation_id?: string
+          submitted_at?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_onboarding_responses_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: true
+            referencedRelation: "author_onboarding_invitations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backup_runs: {
         Row: {
           chunks_done: number
@@ -1561,6 +1709,30 @@ export type Database = {
         }
         Relationships: []
       }
+      community_themes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       content_cards: {
         Row: {
           card_type: string
@@ -1834,6 +2006,39 @@ export type Database = {
             columns: ["training_id"]
             isOneToOne: false
             referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_community_themes: {
+        Row: {
+          course_id: string
+          created_at: string
+          theme_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          theme_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          theme_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_community_themes_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_community_themes_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "community_themes"
             referencedColumns: ["id"]
           },
         ]
@@ -2247,6 +2452,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          import_key: string | null
           is_deleted: boolean
         }
         Insert: {
@@ -2255,6 +2461,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          import_key?: string | null
           is_deleted?: boolean
         }
         Update: {
@@ -2263,6 +2470,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          import_key?: string | null
           is_deleted?: boolean
         }
         Relationships: [
@@ -2549,6 +2757,21 @@ export type Database = {
           },
         ]
       }
+      devis_order_counters: {
+        Row: {
+          last_value: number
+          year: number
+        }
+        Insert: {
+          last_value?: number
+          year: number
+        }
+        Update: {
+          last_value?: number
+          year?: number
+        }
+        Relationships: []
+      }
       devis_signatures: {
         Row: {
           activity_log_id: string
@@ -2657,6 +2880,160 @@ export type Database = {
             columns: ["training_id"]
             isOneToOne: false
             referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      distribution_contract_counters: {
+        Row: {
+          last_value: number
+          year: number
+        }
+        Insert: {
+          last_value?: number
+          year: number
+        }
+        Update: {
+          last_value?: number
+          year?: number
+        }
+        Relationships: []
+      }
+      distribution_contract_signatures: {
+        Row: {
+          audit_metadata: Json | null
+          author_id: string
+          confirmation_email_sent_at: string | null
+          contrat_reference: string
+          created_at: string
+          email_sent_at: string | null
+          expires_at: string
+          game_id: string
+          game_name: string | null
+          id: string
+          invitation_id: string
+          ip_address: string | null
+          journey_events: Json | null
+          last_reminder_at: string | null
+          otp_attempts: number
+          otp_expires_at: string | null
+          otp_hash: string | null
+          otp_last_sent_at: string | null
+          otp_sent_count: number
+          otp_verified_at: string | null
+          payload: Json
+          pdf_document_id: string | null
+          pdf_hash: string | null
+          pdf_url: string | null
+          proof_file_url: string | null
+          proof_hash: string | null
+          recipient_email: string
+          recipient_name: string | null
+          reminder_count: number
+          signature_data: string | null
+          signed_at: string | null
+          signed_pdf_hash: string | null
+          signed_pdf_url: string | null
+          status: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          audit_metadata?: Json | null
+          author_id: string
+          confirmation_email_sent_at?: string | null
+          contrat_reference: string
+          created_at?: string
+          email_sent_at?: string | null
+          expires_at?: string
+          game_id: string
+          game_name?: string | null
+          id?: string
+          invitation_id: string
+          ip_address?: string | null
+          journey_events?: Json | null
+          last_reminder_at?: string | null
+          otp_attempts?: number
+          otp_expires_at?: string | null
+          otp_hash?: string | null
+          otp_last_sent_at?: string | null
+          otp_sent_count?: number
+          otp_verified_at?: string | null
+          payload?: Json
+          pdf_document_id?: string | null
+          pdf_hash?: string | null
+          pdf_url?: string | null
+          proof_file_url?: string | null
+          proof_hash?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          reminder_count?: number
+          signature_data?: string | null
+          signed_at?: string | null
+          signed_pdf_hash?: string | null
+          signed_pdf_url?: string | null
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          audit_metadata?: Json | null
+          author_id?: string
+          confirmation_email_sent_at?: string | null
+          contrat_reference?: string
+          created_at?: string
+          email_sent_at?: string | null
+          expires_at?: string
+          game_id?: string
+          game_name?: string | null
+          id?: string
+          invitation_id?: string
+          ip_address?: string | null
+          journey_events?: Json | null
+          last_reminder_at?: string | null
+          otp_attempts?: number
+          otp_expires_at?: string | null
+          otp_hash?: string | null
+          otp_last_sent_at?: string | null
+          otp_sent_count?: number
+          otp_verified_at?: string | null
+          payload?: Json
+          pdf_document_id?: string | null
+          pdf_hash?: string | null
+          pdf_url?: string | null
+          proof_file_url?: string | null
+          proof_hash?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          reminder_count?: number
+          signature_data?: string | null
+          signed_at?: string | null
+          signed_pdf_hash?: string | null
+          signed_pdf_url?: string | null
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribution_contract_signatures_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "game_authors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_contract_signatures_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_contract_signatures_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "author_onboarding_invitations"
             referencedColumns: ["id"]
           },
         ]
@@ -3632,36 +4009,57 @@ export type Database = {
           company: string | null
           created_at: string
           email: string | null
+          first_name: string | null
           id: string
+          last_name: string | null
+          legal_name: string | null
+          legal_rep_name: string | null
           name: string
           notes: string | null
+          onboarding_status: string | null
           phone: string | null
+          postal_address: string | null
           royalty_rate: number
           secondary_email: string | null
+          siren: string | null
           updated_at: string
         }
         Insert: {
           company?: string | null
           created_at?: string
           email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
+          legal_name?: string | null
+          legal_rep_name?: string | null
           name: string
           notes?: string | null
+          onboarding_status?: string | null
           phone?: string | null
+          postal_address?: string | null
           royalty_rate?: number
           secondary_email?: string | null
+          siren?: string | null
           updated_at?: string
         }
         Update: {
           company?: string | null
           created_at?: string
           email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
+          legal_name?: string | null
+          legal_rep_name?: string | null
           name?: string
           notes?: string | null
+          onboarding_status?: string | null
           phone?: string | null
+          postal_address?: string | null
           royalty_rate?: number
           secondary_email?: string | null
+          siren?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -4049,6 +4447,7 @@ export type Database = {
           cost_price: number | null
           cover_url: string | null
           created_at: string
+          credits: string | null
           current_stock: number | null
           custom_message: string | null
           description: string | null
@@ -4059,23 +4458,34 @@ export type Database = {
           location_contract_url: string | null
           location_duree_jours: number | null
           location_duree_libelle: string | null
+          location_enabled: boolean
           location_prix_remplacement: number | null
+          location_tarif_ht: number | null
           location_tarif_retard_mois: number | null
           location_variation_id: number | null
+          logo_url: string | null
           min_stock: number | null
+          onboarding_status: string | null
+          package_dimensions: string | null
           partner_email: string | null
           partner_name: string | null
           pdfmonkey_template_id: string | null
+          pitch: string | null
           processing_instructions: string | null
+          proposed_price_ht: number | null
           restock_contact_email: string | null
           restock_items: string | null
           restock_supplier_urls: string | null
           restock_threshold: number | null
           secondary_author_email: string | null
+          shipping_delay: string | null
+          shipping_fee: number | null
           status: string
           stock: number
           title: string
           updated_at: string
+          video_url: string | null
+          weight_g: number | null
           woocommerce_product_id: number | null
           woocommerce_product_url: string | null
         }
@@ -4089,6 +4499,7 @@ export type Database = {
           cost_price?: number | null
           cover_url?: string | null
           created_at?: string
+          credits?: string | null
           current_stock?: number | null
           custom_message?: string | null
           description?: string | null
@@ -4099,23 +4510,34 @@ export type Database = {
           location_contract_url?: string | null
           location_duree_jours?: number | null
           location_duree_libelle?: string | null
+          location_enabled?: boolean
           location_prix_remplacement?: number | null
+          location_tarif_ht?: number | null
           location_tarif_retard_mois?: number | null
           location_variation_id?: number | null
+          logo_url?: string | null
           min_stock?: number | null
+          onboarding_status?: string | null
+          package_dimensions?: string | null
           partner_email?: string | null
           partner_name?: string | null
           pdfmonkey_template_id?: string | null
+          pitch?: string | null
           processing_instructions?: string | null
+          proposed_price_ht?: number | null
           restock_contact_email?: string | null
           restock_items?: string | null
           restock_supplier_urls?: string | null
           restock_threshold?: number | null
           secondary_author_email?: string | null
+          shipping_delay?: string | null
+          shipping_fee?: number | null
           status?: string
           stock?: number
           title: string
           updated_at?: string
+          video_url?: string | null
+          weight_g?: number | null
           woocommerce_product_id?: number | null
           woocommerce_product_url?: string | null
         }
@@ -4129,6 +4551,7 @@ export type Database = {
           cost_price?: number | null
           cover_url?: string | null
           created_at?: string
+          credits?: string | null
           current_stock?: number | null
           custom_message?: string | null
           description?: string | null
@@ -4139,23 +4562,34 @@ export type Database = {
           location_contract_url?: string | null
           location_duree_jours?: number | null
           location_duree_libelle?: string | null
+          location_enabled?: boolean
           location_prix_remplacement?: number | null
+          location_tarif_ht?: number | null
           location_tarif_retard_mois?: number | null
           location_variation_id?: number | null
+          logo_url?: string | null
           min_stock?: number | null
+          onboarding_status?: string | null
+          package_dimensions?: string | null
           partner_email?: string | null
           partner_name?: string | null
           pdfmonkey_template_id?: string | null
+          pitch?: string | null
           processing_instructions?: string | null
+          proposed_price_ht?: number | null
           restock_contact_email?: string | null
           restock_items?: string | null
           restock_supplier_urls?: string | null
           restock_threshold?: number | null
           secondary_author_email?: string | null
+          shipping_delay?: string | null
+          shipping_fee?: number | null
           status?: string
           stock?: number
           title?: string
           updated_at?: string
+          video_url?: string | null
+          weight_g?: number | null
           woocommerce_product_id?: number | null
           woocommerce_product_url?: string | null
         }
@@ -5333,6 +5767,7 @@ export type Database = {
       lms_courses: {
         Row: {
           access_type: string
+          community_is_private: boolean
           community_preview_count: number
           cover_image_url: string | null
           created_at: string
@@ -5357,6 +5792,7 @@ export type Database = {
         }
         Insert: {
           access_type?: string
+          community_is_private?: boolean
           community_preview_count?: number
           cover_image_url?: string | null
           created_at?: string
@@ -5381,6 +5817,7 @@ export type Database = {
         }
         Update: {
           access_type?: string
+          community_is_private?: boolean
           community_preview_count?: number
           cover_image_url?: string | null
           created_at?: string
@@ -7830,6 +8267,55 @@ export type Database = {
           },
         ]
       }
+      network_contact_transcripts: {
+        Row: {
+          contact_id: string
+          created_at: string
+          id: string
+          interaction_id: string | null
+          transcript_id: string
+          user_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          id?: string
+          interaction_id?: string | null
+          transcript_id: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          id?: string
+          interaction_id?: string | null
+          transcript_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "network_contact_transcripts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "network_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "network_contact_transcripts_interaction_id_fkey"
+            columns: ["interaction_id"]
+            isOneToOne: false
+            referencedRelation: "network_interactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "network_contact_transcripts_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       network_contacts: {
         Row: {
           context: string | null
@@ -8029,6 +8515,81 @@ export type Database = {
           sent_at?: string | null
           status?: string
           title?: string | null
+        }
+        Relationships: []
+      }
+      nocrm_import_runs: {
+        Row: {
+          activities_count: number
+          batches_done: number
+          comments_path: string
+          created_by: string | null
+          created_count: number
+          cursor: number
+          errors: Json
+          finished_at: string | null
+          id: string
+          lead_limit: number | null
+          leads_path: string
+          merged_count: number
+          mode: string
+          notes_count: number
+          reconciliation: Json | null
+          report: Json | null
+          skipped_count: number
+          started_at: string
+          status: string
+          total_leads: number
+          updated_at: string
+          updated_count: number
+        }
+        Insert: {
+          activities_count?: number
+          batches_done?: number
+          comments_path: string
+          created_by?: string | null
+          created_count?: number
+          cursor?: number
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          lead_limit?: number | null
+          leads_path: string
+          merged_count?: number
+          mode: string
+          notes_count?: number
+          reconciliation?: Json | null
+          report?: Json | null
+          skipped_count?: number
+          started_at?: string
+          status?: string
+          total_leads?: number
+          updated_at?: string
+          updated_count?: number
+        }
+        Update: {
+          activities_count?: number
+          batches_done?: number
+          comments_path?: string
+          created_by?: string | null
+          created_count?: number
+          cursor?: number
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          lead_limit?: number | null
+          leads_path?: string
+          merged_count?: number
+          mode?: string
+          notes_count?: number
+          reconciliation?: Json | null
+          report?: Json | null
+          skipped_count?: number
+          started_at?: string
+          status?: string
+          total_leads?: number
+          updated_at?: string
+          updated_count?: number
         }
         Relationships: []
       }
@@ -9212,6 +9773,7 @@ export type Database = {
           is_staff_treated: boolean
           lesson_id: string | null
           updated_at: string
+          visibility_scope: string | null
         }
         Insert: {
           author_email: string
@@ -9229,6 +9791,7 @@ export type Database = {
           is_staff_treated?: boolean
           lesson_id?: string | null
           updated_at?: string
+          visibility_scope?: string | null
         }
         Update: {
           author_email?: string
@@ -9246,6 +9809,7 @@ export type Database = {
           is_staff_treated?: boolean
           lesson_id?: string | null
           updated_at?: string
+          visibility_scope?: string | null
         }
         Relationships: [
           {
@@ -9339,6 +9903,42 @@ export type Database = {
           uploaded_by?: string
         }
         Relationships: []
+      }
+      quality_risk_improvements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          improvement_id: string
+          risk_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          improvement_id: string
+          risk_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          improvement_id?: string
+          risk_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_risk_improvements_improvement_id_fkey"
+            columns: ["improvement_id"]
+            isOneToOne: false
+            referencedRelation: "improvements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_risk_improvements_risk_id_fkey"
+            columns: ["risk_id"]
+            isOneToOne: false
+            referencedRelation: "quality_risks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quality_risks: {
         Row: {
@@ -11363,6 +11963,8 @@ export type Database = {
           recommandation: string | null
           remarques_libres: string | null
           rythme: string | null
+          site_comment_published_at: string | null
+          site_comment_published_by: string | null
           token: string
           training_id: string | null
           updated_at: string
@@ -11398,6 +12000,8 @@ export type Database = {
           recommandation?: string | null
           remarques_libres?: string | null
           rythme?: string | null
+          site_comment_published_at?: string | null
+          site_comment_published_by?: string | null
           token: string
           training_id?: string | null
           updated_at?: string
@@ -11433,6 +12037,8 @@ export type Database = {
           recommandation?: string | null
           remarques_libres?: string | null
           rythme?: string | null
+          site_comment_published_at?: string | null
+          site_comment_published_by?: string | null
           token?: string
           training_id?: string | null
           updated_at?: string
@@ -13488,11 +14094,17 @@ export type Database = {
       woocommerce_orders: {
         Row: {
           billing_address: Json | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string
+          created_by: string | null
+          crm_card_id: string | null
           customer_email: string | null
           customer_first_name: string | null
           customer_last_name: string | null
           date_created: string
+          devis_activity_log_id: string | null
           id: string
           line_items: Json | null
           order_number: string | null
@@ -13503,6 +14115,7 @@ export type Database = {
           shipping_address: Json | null
           shipping_total: number | null
           slack_notified_at: string | null
+          source: string
           total_ht: number | null
           total_tax: number | null
           total_ttc: number | null
@@ -13511,11 +14124,17 @@ export type Database = {
         }
         Insert: {
           billing_address?: Json | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
+          created_by?: string | null
+          crm_card_id?: string | null
           customer_email?: string | null
           customer_first_name?: string | null
           customer_last_name?: string | null
           date_created: string
+          devis_activity_log_id?: string | null
           id?: string
           line_items?: Json | null
           order_number?: string | null
@@ -13526,6 +14145,7 @@ export type Database = {
           shipping_address?: Json | null
           shipping_total?: number | null
           slack_notified_at?: string | null
+          source?: string
           total_ht?: number | null
           total_tax?: number | null
           total_ttc?: number | null
@@ -13534,11 +14154,17 @@ export type Database = {
         }
         Update: {
           billing_address?: Json | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
+          created_by?: string | null
+          crm_card_id?: string | null
           customer_email?: string | null
           customer_first_name?: string | null
           customer_last_name?: string | null
           date_created?: string
+          devis_activity_log_id?: string | null
           id?: string
           line_items?: Json | null
           order_number?: string | null
@@ -13549,6 +14175,7 @@ export type Database = {
           shipping_address?: Json | null
           shipping_total?: number | null
           slack_notified_at?: string | null
+          source?: string
           total_ht?: number | null
           total_tax?: number | null
           total_ttc?: number | null
@@ -13772,7 +14399,16 @@ export type Database = {
         Returns: boolean
       }
       cleanup_agent_embedding_cache: { Args: never; Returns: number }
+      community_post_audience: {
+        Args: { _author: string; _course_id: string; _scope: string }
+        Returns: string[]
+      }
+      community_theme_mode_on: { Args: never; Returns: boolean }
       connexion_indicators: { Args: { p_days?: number }; Returns: Json }
+      create_devis_order: {
+        Args: { p_items: Json; p_order: Json }
+        Returns: Json
+      }
       create_quote_testimonial: {
         Args: {
           p_author: string
@@ -13865,6 +14501,17 @@ export type Database = {
       }
       get_app_setting_public: { Args: { p_key: string }; Returns: string }
       get_attendance_by_token: { Args: { p_token: string }; Returns: Json }
+      get_community_spaces: {
+        Args: never
+        Returns: {
+          course_ids: string[]
+          is_private: boolean
+          label: string
+          publish_course_id: string
+          sort_order: number
+          space_key: string
+        }[]
+      }
       get_convention_signature_by_token: {
         Args: { p_token: string }
         Returns: Json
@@ -13919,6 +14566,8 @@ export type Database = {
           recommandation: string | null
           remarques_libres: string | null
           rythme: string | null
+          site_comment_published_at: string | null
+          site_comment_published_by: string | null
           token: string
           training_id: string | null
           updated_at: string
@@ -14233,12 +14882,25 @@ export type Database = {
         Args: { _post_id: string }
         Returns: boolean
       }
+      learner_can_read_theme_post: {
+        Args: { _course_id: string; _scope: string }
+        Returns: boolean
+      }
+      learner_community_course_ids: { Args: never; Returns: string[] }
       learner_evaluation_course_id: {
         Args: { p_email: string; p_lms_course_id: string }
         Returns: number
       }
       learner_password_set: { Args: { p_email: string }; Returns: boolean }
       link_tender_duplicates: { Args: never; Returns: number }
+      link_transcript_to_network_contact: {
+        Args: {
+          p_contact_id: string
+          p_transcript_id: string
+          p_transcript_url: string
+        }
+        Returns: Json
+      }
       list_dormant_learner_accounts: {
         Args: { p_years?: number }
         Returns: {
@@ -14410,6 +15072,7 @@ export type Database = {
       monitor_cron_failures: { Args: never; Returns: Json }
       monitor_missing_evaluation_reminders: { Args: never; Returns: Json }
       move_stale_tickets_to_boite_a_idees: { Args: never; Returns: undefined }
+      next_distribution_contract_reference: { Args: never; Returns: string }
       next_location_contract_ref: { Args: { p_year: number }; Returns: string }
       normalize_url: { Args: { u: string }; Returns: string }
       normalize_watch_source_url: { Args: { value: string }; Returns: string }
@@ -14431,7 +15094,9 @@ export type Database = {
           word: string
         }[]
       }
+      pictodico_text_is_safe: { Args: { p_text: string }; Returns: boolean }
       pictodico_url_decode: { Args: { t: string }; Returns: string }
+      pictodico_word_is_valid: { Args: { p_word: string }; Returns: boolean }
       practice_popular_hashtags: {
         Args: { p_limit?: number }
         Returns: {
@@ -14549,6 +15214,10 @@ export type Database = {
       sync_training_schedules_from_lives: {
         Args: { p_training_id: string }
         Returns: undefined
+      }
+      transcript_meeting_date: {
+        Args: { p_created_at: string; p_metadata: Json }
+        Returns: string
       }
       update_api_key_last_used: { Args: { key_id: string }; Returns: undefined }
       update_evaluation_by_token: {

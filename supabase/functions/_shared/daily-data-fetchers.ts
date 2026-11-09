@@ -542,7 +542,9 @@ export async function fetchCrmAlerts(supabase: SupabaseClient, today: string): P
     .from("crm_cards")
     .select("id, title, company, first_name, last_name, email, phone, column_id, estimated_value, emoji, assigned_to, waiting_next_action_date, next_action_done")
     .eq("sales_status", "OPEN")
-    .in("column_id", [...targetColumnIds]);
+    .in("column_id", [...targetColumnIds])
+    // Fiches importées de noCRM : aucune action quotidienne.
+    .or("source_metadata->>import_source.is.null,source_metadata->>import_source.neq.nocrm");
 
   const filteredCards = (cards || []).filter((c: any) => {
     if (c.next_action_done === true) return false;

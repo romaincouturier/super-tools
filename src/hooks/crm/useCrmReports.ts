@@ -3,12 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import type { CrmColumn, CrmCard, CrmTag } from "@/types/crm";
 import { CRM_QUERY_KEY } from "./useCrmMutation";
 import { buildWeeklyTimeSeries } from "@/lib/crmWeeklySeries";
+import { fetchAllCardTags, fetchAllCrmCards, isNocrmImported } from "@/services/crmCardsFetch";
 
 export type { WeeklyPoint } from "@/lib/crmWeeklySeries";
 
 export interface CrmReportFilters {
   startDate: string | null; // ISO date
   endDate: string | null;
+  /** Inclure les fiches importées de noCRM (historique 2020-2026). */
+  includeNocrm?: boolean;
 }
 
 export const useCrmReports = (
@@ -16,14 +19,14 @@ export const useCrmReports = (
   options?: { enabled?: boolean },
 ) => {
   return useQuery({
-    queryKey: [CRM_QUERY_KEY, "reports", filters?.startDate, filters?.endDate],
+    queryKey: [CRM_QUERY_KEY, "reports", filters?.startDate, filters?.endDate, filters?.includeNocrm ?? true],
     enabled: options?.enabled ?? true,
     queryFn: async () => {
       const [columnsRes, cardsRes, tagsRes, cardTagsRes] = await Promise.all([
         supabase.from("crm_columns").select("*").eq("is_archived", false).order("position"),
-        supabase.from("crm_cards").select("*"),
+        fetchAllCrmCards().then((data) => ({ data, error: null })),
         supabase.from("crm_tags").select("*"),
-        supabase.from("crm_card_tags").select("*"),
+        fetchAllCardTags().then((data) => ({ data, error: null })),
       ]);
 
       if (columnsRes.error) throw columnsRes.error;
@@ -32,7 +35,8 @@ export const useCrmReports = (
       if (cardTagsRes.error) throw cardTagsRes.error;
 
       const columns = (columnsRes.data || []) as unknown as CrmColumn[];
-      const allCards = (cardsRes.data || []) as unknown as CrmCard[];
+      const allCards = ((cardsRes.data || []) as unknown as CrmCard[])
+        .filter((c) => (filters?.includeNocrm ?? true) || !isNocrmImported(c));
       const tags = (tagsRes.data || []) as unknown as CrmTag[];
       const cardTags = cardTagsRes.data || [];
 

@@ -7,6 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Users, MessageSquare, FileText, AlertTriangle, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import CommunityThemesManager from "@/components/lms/CommunityThemesManager";
 
 interface CommunityRow {
   courseId: string;
@@ -124,6 +125,8 @@ export default function LmsCommunities() {
           subtitle="Vue d'ensemble de toutes les communautés liées à vos cours"
           backTo="/lms"
         />
+
+        <CommunityThemesManager />
 
         {isLoading ? (
           <div className="flex items-center justify-center py-16">

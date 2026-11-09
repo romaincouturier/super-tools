@@ -107,6 +107,10 @@ export interface WooOrder {
   payment_method_title: string | null;
   raw_order: Record<string, unknown>;
   created_at: string;
+  source?: string | null;
+  crm_card_id?: string | null;
+  devis_activity_log_id?: string | null;
+  cancelled_at?: string | null;
 }
 
 export interface OrderItem {

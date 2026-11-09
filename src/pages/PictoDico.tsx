@@ -706,10 +706,10 @@ function ChallengesTab() {
     try {
       const { data, error } = await supabase.functions.invoke("pictodico-generate-challenges", {
         body: {
+          // Seules les demandes d'ajout non encore retenues entrent dans un défi.
           words: words
-            .map((w) => decodeWord(w.word))
-            // Les signalements d'erreur ne sont pas des mots à proposer.
-            .filter((w) => !/^erreur\s*signal/i.test(w.trim())),
+            .filter((w) => w.request_type === "demande_ajout" && !w.is_chosen)
+            .map((w) => decodeWord(w.word)),
 
           startYear,
           themes: parsedThemes,
@@ -720,11 +720,19 @@ function ChallengesTab() {
 
       const challenges: GeneratedChallenge[] = data?.challenges ?? [];
       if (challenges.length === 0) throw new Error("Aucun évènement préparé");
+      // La numérotation continue celle des PictoChallenges existants.
+      const { data: last } = await supabase
+        .from("pictodico_challenges")
+        .select("challenge_number")
+        .not("challenge_number", "is", null)
+        .order("challenge_number", { ascending: false })
+        .limit(1);
+      const base = ((last?.[0] as { challenge_number?: number } | undefined)?.challenge_number ?? 0) + 1;
 
       setGeneratedChallenges(
         challenges.map((c, i) => ({
           id: `temp-${i}`,
-          title: c.title,
+          title: `PictoChallenge #${base + i} — ${c.theme}`,
           theme: c.theme,
           theme_description: c.theme_description ?? null,
           warmup_picto: null,
@@ -732,7 +740,7 @@ function ChallengesTab() {
           challenge_date: c.challenge_date,
           challenge_time: c.challenge_time ?? "12:30",
           challenge_end_time: c.challenge_end_time ?? "13:00",
-          challenge_number: c.challenge_number ?? i + 1,
+          challenge_number: base + i,
 
           school_year: schoolYearLabel(startYear),
           event_id: null,

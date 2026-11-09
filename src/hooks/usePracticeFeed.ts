@@ -190,6 +190,42 @@ export interface PracticePostsFilter {
   tag?: string | null;
   /** Only the post mirroring this work deposit. */
   depositId?: string | null;
+  postId?: string | null;
+  /** Thematic feed: hide posts restricted to their own course. */
+  themeOnly?: boolean;
+}
+
+export interface CommunitySpace {
+  space_key: string;
+  label: string;
+  is_private: boolean;
+  course_ids: string[];
+  publish_course_id: string | null;
+  sort_order: number;
+}
+
+/** Espaces de communauté (thématiques + communautés privées intra) de l'utilisateur connecté. */
+export function useCommunitySpaces(enabled = true) {
+  return useQuery({
+    queryKey: ["community_spaces"],
+    enabled,
+    queryFn: async (): Promise<CommunitySpace[]> => {
+      const { data, error } = await db.rpc("get_community_spaces");
+      if (error) throw error;
+      return ((data || []) as CommunitySpace[]).sort(
+        (a, b) => a.sort_order - b.sort_order || a.label.localeCompare(b.label, "fr"),
+      );
+    },
+  });
+}
+
+/** Espace correspondant à un cours : privé s'il est intra, sinon sa thématique. */
+export function spaceForCourse(spaces: CommunitySpace[], courseId: string | null): CommunitySpace | null {
+  if (!courseId) return null;
+  return spaces.find((s) => s.is_private && s.course_ids.includes(courseId))
+    ?? spaces.find((s) => s.space_key.startsWith("theme:") && s.course_ids.includes(courseId))
+    ?? spaces.find((s) => s.course_ids.includes(courseId))
+    ?? null;
 }
 
 
@@ -206,8 +242,10 @@ export function usePracticePosts(
   const likedByFilter = options?.likedBy ?? null;
   const tagFilter = options?.tag ?? null;
   const depositFilter = options?.depositId ?? null;
+  const themeOnly = options?.themeOnly ?? false;
+  const postIdFilter = options?.postId ?? null;
   return useQuery({
-    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, courseIdsFilter, authorFilter, likedByFilter, tagFilter, depositFilter, isAdmin],
+    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, courseIdsFilter, authorFilter, likedByFilter, tagFilter, depositFilter, themeOnly, isAdmin, postIdFilter],
     queryFn: async (): Promise<PracticePost[]> => {
       if (!learnerEmail) return [];
       const c = clientDb(learnerEmail, isAdmin);
@@ -233,6 +271,8 @@ export function usePracticePosts(
       if (courseIdsFilter && courseIdsFilter.length > 0) postsQuery = postsQuery.in("course_id", courseIdsFilter);
       if (authorFilter) postsQuery = postsQuery.eq("author_email", authorFilter);
       if (depositFilter) postsQuery = postsQuery.eq("deposit_id", depositFilter);
+      if (postIdFilter) postsQuery = postsQuery.eq("id", postIdFilter);
+      if (themeOnly) postsQuery = postsQuery.or("visibility_scope.is.null,visibility_scope.eq.theme");
       if (restrictIds !== null) postsQuery = postsQuery.in("id", restrictIds);
 
       const [postsRes, reactionsRes, commentsRes, profilesRes, staffProfilesRes, hashtagsRes, pollsRes, optionsRes, votesRes] = await Promise.all([
@@ -501,7 +541,8 @@ async function generateHashtags(content: string): Promise<string[]> {
 export function useCreatePracticePost(learnerEmail: string | null, isAdmin = false) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ content, file, courseId, lessonId, poll, gifUrl }: {
+    mutationFn: async ({ content, file, courseId, lessonId, poll, gifUrl, visibilityScope }: {
+      visibilityScope?: "theme" | "course" | null;
       content: string;
       file: File | null;
       courseId?: string | null;
@@ -530,6 +571,7 @@ export function useCreatePracticePost(learnerEmail: string | null, isAdmin = fal
         file_size: fileData?.size ?? null,
         course_id: courseId ?? null,
         lesson_id: lessonId ?? null,
+        ...(visibilityScope ? { visibility_scope: visibilityScope } : {}),
       }).select("id").single();
       if (error) throw error;
       const postId = (inserted as { id: string }).id;
