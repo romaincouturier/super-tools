@@ -17,7 +17,7 @@ vi.stubGlobal("Deno", { env: { get: () => undefined } });
 vi.mock("./mod.ts", () => ({ getSupabaseClient: () => ({}) }));
 vi.mock("./document-extract.ts", () => ({ extractDocument: vi.fn() }));
 
-const { getMissionDossier, saveMissionDocument, DOCUMENT_MAX_BYTES, DOCUMENT_MIME_ALLOWLIST } =
+const { getMissionDossier, getClientDossier, saveMissionDocument, DOCUMENT_MAX_BYTES, DOCUMENT_MIME_ALLOWLIST } =
   await import("./mission-tools.ts");
 
 // ── Faux client Supabase ──────────────────────────────────────────────────
@@ -88,6 +88,25 @@ function dossierClient(rows: {
 
 const MISSION_ID = "11111111-2222-3333-4444-555555555555";
 const audit = vi.fn(async () => {});
+
+it("le dossier client retrouve une dictée par sa carte même si son titre ne contient pas le nom du client", async () => {
+  const filters: string[] = [];
+  const transcript = { id: "voice-1", title: "Message vocal laissé le 9 novembre", raw_text: "Verbatim de rendez-vous", source: "dictation", status: "ready" };
+  const client = {
+    from: (table: string) => {
+      const data = table === "crm_cards" ? [{ id: "card-1", title: "Séminaire de cohésion" }]
+        : table === "crm_card_transcripts" ? [{ card_id: "card-1", transcript_id: "voice-1", transcript }]
+        : table === "transcripts" ? [{ id: "voice-1", title: transcript.title }] : [];
+      const chain: Record<string, unknown> = { then: (resolve: (value: unknown) => unknown) => Promise.resolve({ data }).then(resolve) };
+      for (const method of ["select", "ilike", "eq", "order", "limit", "in"]) chain[method] = () => chain;
+      chain.or = (filter: string) => { filters.push(filter); return chain; };
+      return chain;
+    },
+  };
+  const result = JSON.parse(await getClientDossier(client as any, "MSP d'Ecully", audit));
+  expect(result.transcripts).toEqual([{ ...transcript, card_id: "card-1" }]);
+  expect(filters[0]).toContain("description_html.ilike");
+});
 
 /** PNG 1x1 valide, suffisant pour vérifier le chemin nominal. */
 const PNG_1PX_BASE64 =

@@ -1305,7 +1305,7 @@ export async function getClientDossier(
     supabase
       .from("crm_cards")
       .select("id, title, sales_status, estimated_value, email, waiting_next_action_text, created_at")
-      .ilike("title", pattern)
+      .or(`title.ilike.${JSON.stringify(pattern)},description_html.ilike.${JSON.stringify(pattern)}`)
       .limit(20),
     supabase
       .from("transcripts")
@@ -1326,6 +1326,19 @@ export async function getClientDossier(
         .limit(30)
     : { data: [] };
 
+  const linkedTranscripts = cardIds.length
+    ? await supabase.from("crm_card_transcripts")
+        .select("card_id,transcript_id,transcript:transcripts(id,title,summary,raw_text,source,status,error_message,created_at,duration_seconds)")
+        .in("card_id", cardIds)
+    : { data: [] };
+  if (linkedTranscripts.error) throw linkedTranscripts.error;
+  const allTranscripts = new Map<string, Record<string, unknown>>();
+  for (const transcript of transcripts.data || []) allTranscripts.set(transcript.id, transcript);
+  for (const link of linkedTranscripts.data || []) {
+    const transcript = Array.isArray(link.transcript) ? link.transcript[0] : link.transcript;
+    if (transcript) allTranscripts.set(transcript.id, { ...transcript, card_id: link.card_id });
+  }
+
   return JSON.stringify({
     client_query: client,
     missions: missions.data || [],
@@ -1333,7 +1346,7 @@ export async function getClientDossier(
     quotes: quotes.data || [],
     crm_cards: cards.data || [],
     crm_comments: comments.data || [],
-    transcripts: transcripts.data || [],
+    transcripts: [...allTranscripts.values()],
     hint: "Pour le contenu détaillé d'une mission, utiliser get_mission_dossier. Pour chercher dans le texte des transcripts et notes, utiliser search_content.",
   });
 }

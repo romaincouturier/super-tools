@@ -2,10 +2,10 @@
 
 ## Dictée CRM et rattachement (2026-11-09)
 - [x] Relais automatique par segments de cinq minutes, transcription ordonnée et bouton Arrêter disponible ; 8 tests et 103 contrôles réussis, vrais segments décodés sur navigateur ordinateur/mobile ; transfert audio staff/propriétaire déployé. Rendez-vous réel et verrouillage mobile non vérifiés.
-- [ ] Diagnostiquer les séparateurs vides, le découpage audio et les échecs silencieux
-- [ ] Corriger la conservation et le rattachement des notes vocales pour les entités concernées, avec tests
-- [ ] Rattacher les quatre transcripts MSP d’Ecully et rechercher les autres cartes affectées
-- [ ] Rechercher l’audio de 12:00 et relancer sa transcription s’il existe
+- [x] Diagnostiquer les séparateurs vides : anciens marqueurs sans injection ; 53 cartes / 85 marqueurs ne prouvent pas tous une perte, certains textes sont présents sous les marqueurs
+- [x] Conservation audio et rattachement avant transcription, erreurs visibles ; dossier MCP retrouve les dictées liées et leur verbatim même si seul le descriptif de la carte nomme le client ; 19 tests ciblés réussis, MCP déployé
+- [x] Les quatre dictées MSP d’Ecully sont déjà liées, avec un cinquième transcript Fireflies ; 38 dictées CRM / zéro orpheline, aucune écriture rétroactive nécessaire. Carte ouverte avec le compte demandeur, cinq transcripts visibles et texte consultable
+- [x] Aucun audio trouvé dans le stockage entre 09:30 et 11:10 UTC le 09/11 ; note 12:00 Paris et début manquant non récupérables depuis les éléments retrouvés, aucune retranscription lancée
 
 ## Modules LMS et transcripts formations (2026-11-09)
 - [ ] Outils MCP modules et cible training : bloqués par l’absence de procédure compatible pour le serveur historique
