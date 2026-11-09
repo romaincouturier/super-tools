@@ -288,7 +288,12 @@ export function usePracticePosts(
       // so a staff member's real name and avatar are used instead of any legacy
       // learner_profile they may also have for testing.
       const learnerProfiles: RawProfile[] = details.profiles;
-      const staffProfiles: RawProfile[] = details.staffProfiles;
+      const staffProfiles: RawProfile[] = details.staffProfiles.map((profile) => ({
+        email: profile.email,
+        first_name: profile.first_name ?? null,
+        last_name: profile.last_name ?? null,
+        photo_url: profile.photo_url ?? null,
+      }));
       const staffEmailSet = new Set(staffProfiles.map((p) => p.email));
       const profiles: RawProfile[] = [
         ...staffProfiles,
