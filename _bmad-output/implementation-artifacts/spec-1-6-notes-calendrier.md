@@ -2,7 +2,7 @@
 title: 'Story 1.6 : poser des notes dans le calendrier'
 type: 'feature'
 created: '2026-11-09'
-status: 'draft'
+status: 'in-progress'
 baseline_commit: '83baa6421fc6b18d1781ab72a4e7fd502b31185a'
 route: 'dispatch'
 review_loop_iteration: 0
