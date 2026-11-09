@@ -68,7 +68,6 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Course covers upload via authenticated Storage to the public LMS bucket only on save, because cancelling must not change the course.
 
 - HTML/embed and exercise interactive HTML render in a srcdoc iframe sandboxed with allow-scripts but never allow-same-origin, with a bootstrap that replays late DOMContentLoaded/load listeners and posts its height to the parent, because imported author widgets need their scripts while the opaque origin keeps them away from the learner session and app styles.
-- YouTube/Vimeo iframes inside author embeds are never loaded in the sandbox: the bootstrap reports their URL and position and the parent overlays allowlisted player iframes, because players refuse opaque origins.
 - Interactive LMS blocks use the same viewers in learner pages and builder previews; drag words use dnd-kit with uniquely identified word instances, because touch accessibility and repeated words must behave consistently.
 
 - Preparation-questionnaire reminder templates use `{{questionnaire_link}}` as a protected CTA placeholder, rendered server-side as an email-safe button plus fallback link, because editable templates must not inject arbitrary HTML.
