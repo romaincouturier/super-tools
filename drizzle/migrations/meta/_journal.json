@@ -351,6 +351,13 @@
       "when": 1794223769199,
       "tag": "0049_20261105200000_referent_handicap",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1794223796850,
+      "tag": "0050_20261105210000_handicap_partners",
+      "breakpoints": true
     }
   ]
 }
