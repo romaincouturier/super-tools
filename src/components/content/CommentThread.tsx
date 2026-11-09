@@ -978,10 +978,10 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                   variant={isRecording ? "destructive" : "ghost"}
                   className="h-7 w-7"
                   onClick={() => isRecording ? stopRecording() : startRecording()}
-                  disabled={isTranscribing}
+                  disabled={isTranscribing && !isRecording}
                   title={isRecording ? "Arrêter la dictée" : "Dicter"}
                 >
-                  {isTranscribing ? (
+                  {isTranscribing && !isRecording ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : isRecording ? (
                     <MicOff className="h-3.5 w-3.5" />

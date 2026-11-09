@@ -151,14 +151,14 @@ const CrmDescriptionEditor = ({
           variant="ghost"
           size="sm"
           onClick={handleVoiceClick}
-          disabled={!cardId || dictation.isTranscribing}
+          disabled={!cardId || (dictation.isTranscribing && !dictation.isRecording)}
           title={dictation.isRecording ? "Arrêter la dictée du message vocal" : "Horodater et dicter le message vocal laissé"}
           className={cn(
             "h-7 px-1.5 text-muted-foreground hover:text-foreground",
             dictation.isRecording && "text-destructive animate-pulse",
           )}
         >
-          {dictation.isTranscribing ? (
+          {dictation.isTranscribing && !dictation.isRecording ? (
             <Spinner className="h-3.5 w-3.5" />
           ) : dictation.isRecording ? (
             <Square className="h-3.5 w-3.5 fill-current" />
