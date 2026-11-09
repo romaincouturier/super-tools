@@ -1,7 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { normalizeEmail } from "@/lib/stringUtils";
 import DOMPurify from "dompurify";
-import { HandDrawnUnderline } from "@/components/lms/HandDrawnUnderline";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -526,7 +525,16 @@ function HeroSection({
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold leading-tight mb-3 pb-1" style={{ letterSpacing: "-0.02em" }}>
             <span style={{ color: "var(--st-ink)" }}>{course.home_config?.welcome_title_1 ?? "Bienvenue dans"} </span>
-            <span style={{ color: "var(--st-ink)" }}><HandDrawnUnderline>{course.home_config?.welcome_title_2 ?? "votre formation"}</HandDrawnUnderline></span>
+            <span
+              style={{
+                color: "var(--st-ink)",
+                backgroundImage: "linear-gradient(transparent 45%, var(--st-yellow) 45%)",
+                padding: "0 0.1em",
+                borderRadius: "0.15em",
+                boxDecorationBreak: "clone",
+                WebkitBoxDecorationBreak: "clone",
+              }}
+            >{course.home_config?.welcome_title_2 ?? "votre formation"}</span>
           </h1>
         </div>
 
