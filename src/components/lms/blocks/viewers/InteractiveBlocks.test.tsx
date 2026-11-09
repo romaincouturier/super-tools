@@ -51,19 +51,13 @@ describe("interactive LMS viewers", () => {
     fireEvent.click(screen.getByRole("button", { name: "Recommencer" }));
     expect(screen.getAllByRole("button", { name: "Choisir chat" })).toHaveLength(2);
   });
-  // L'iframe hôte autorise les scripts pour que les lecteurs tiers (YouTube,
-  // Vimeo...) fonctionnent. Les scripts d'auteur restent bloqués par deux
-  // barrières indépendantes : le nettoyage du HTML et la CSP script-src 'none'.
-  it("blocks author scripts in embedded HTML (sanitizer + CSP)", () => {
-    render(<HtmlEmbedBlockViewer previewMode content={{ html: '<style>p{color:red}</style><p>OK</p><script>bad()</script><img src="x.png" onerror="bad()">' }} />);
+  it("runs author scripts in an opaque-origin sandbox without leaking styles", () => {
+    render(<HtmlEmbedBlockViewer previewMode content={{ html: '<style>p{color:red}</style><p>OK</p><script>go()</script>' }} />);
     const frame = screen.getByTitle("Contenu intégré");
-    const srcdoc = frame.getAttribute("srcdoc") ?? "";
-    expect(frame).toHaveAttribute("sandbox", EMBED_HOST_SANDBOX);
-    expect(EMBED_CSP).toContain("script-src 'none'");
-    expect(srcdoc).toContain(`<meta http-equiv="Content-Security-Policy" content="${EMBED_CSP}">`);
-    expect(srcdoc).toContain("<style>p{color:red}</style>");
-    expect(srcdoc).not.toContain("<script");
-    expect(srcdoc).not.toContain("onerror");
-    expect(srcdoc).not.toContain("bad()");
+    const sandbox = frame.getAttribute("sandbox") ?? "";
+    expect(sandbox).toContain("allow-scripts");
+    expect(sandbox).not.toContain("allow-same-origin");
+    expect(frame.getAttribute("srcdoc")).toContain("<script>go()</script>");
+    expect(document.head.innerHTML).not.toContain("p{color:red}");
   });
 });
