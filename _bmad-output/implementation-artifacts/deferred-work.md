@@ -16,5 +16,6 @@
 
 ## Mode démo (constaté en spec 1.6)
 
-- `ContentCard.tsx` affiche le début du texte des contenus sans `maskText` en mode démo. À traiter par `/anonymisation-demo` avant la PR de l'epic 1 (texte des cartes, composeur, notes).
+- [résolu] `ContentCard.tsx` masque le texte en démo (`maskText`), les champs texte du composeur sont floutés (`demoBlur`), notes masquées (story 1.6).
+- Scan dynamique `npm run scan:demo` sur `/supertilt-fr/contenus-sociaux` : à lancer après régénération de `types.ts` par Lovable (le faux backend lit son schéma dans ce fichier, les tables `social_*` y sont absentes).
 - `social_themes.created_by` falsifiable par un utilisateur du module (même correctif que les notes : trigger).

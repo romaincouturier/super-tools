@@ -242,6 +242,12 @@ describe("SocialComposerDialog : visuel et alertes", () => {
     expect(h.mutateAsync.mock.calls.at(-1)?.[0]).toMatchObject({ channelIds: ["in"], commonText: "Bien trop long" });
   });
 
+  it("floute le texte du composeur en mode démo, sans altérer la valeur enregistrée", () => {
+    h.demo = true;
+    render(<SocialComposerDialog open onOpenChange={vi.fn()} groupId={null} />);
+    expect(screen.getByLabelText("Texte")).toHaveStyle({ filter: "blur(4px)" });
+  });
+
   it("masque les noms de fichiers du sélecteur en mode démo", () => {
     h.demo = true;
     render(<SocialComposerDialog open onOpenChange={vi.fn()} groupId={null} />);

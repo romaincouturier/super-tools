@@ -1,4 +1,6 @@
 import { useDraggable } from "@dnd-kit/core";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText } from "@/lib/demoMask";
 import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -56,6 +58,7 @@ export function AlertIndicator({ alerts, channelsById }: { alerts: ChannelAlerts
 }
 
 export default function ContentCard({ card, channelsById, themesById, onOpen }: ContentCardProps) {
+  const { isDemoMode } = useDemoMode();
   const theme = card.group.theme_id ? themesById?.get(card.group.theme_id) : undefined;
   const published = card.status === "published";
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: card.group.id, data: { card }, disabled: published });
@@ -110,7 +113,7 @@ export default function ContentCard({ card, channelsById, themesById, onOpen }: 
         <span className="ml-auto" />
         <AlertIndicator alerts={card.alerts} channelsById={channelsById} />
       </div>
-      <p className="truncate text-muted-foreground">{text || "Sans texte"}</p>
+      <p className="truncate text-muted-foreground">{text ? (isDemoMode ? maskText(text) : text) : "Sans texte"}</p>
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import SocialMediaPicker, { SocialMediaThumb, mediaDisplayName } from "@/components/social/SocialMediaPicker";
 import { useDemoMode } from "@/contexts/DemoModeContext";
+import { demoBlur } from "@/lib/demoMask";
 import { useToast } from "@/hooks/use-toast";
 import { useMediaLibrary, type MediaItem } from "@/hooks/useMedia";
 import { useAutoSaveForm, type AutoSaveFormValues } from "@/hooks/useAutoSaveForm";
@@ -106,6 +107,7 @@ interface SocialComposerDialogProps {
 
 export default function SocialComposerDialog({ open, onOpenChange, groupId }: SocialComposerDialogProps) {
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const { data: channels = [], isLoading: channelsLoading } = useSocialChannels();
   const [currentId, setCurrentId] = useState<string>("");
   /** Un nouveau contenu est relu dès son premier enregistrement, pour le marquage et la suppression. */
@@ -620,7 +622,7 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
             {orderedSelected.length === 0 ? (
               <div className="space-y-1">
                 <Label htmlFor="social-text">Texte</Label>
-                <Textarea id="social-text" rows={8} value={commonText} onChange={(e) => setCommonText(e.target.value)} />
+                <Textarea id="social-text" rows={8} style={demoBlur(isDemoMode)} value={commonText} onChange={(e) => setCommonText(e.target.value)} />
                 <div className="pt-2">
                   <VisualField
                     label="Visuel"
@@ -644,7 +646,7 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
                     {sync && !publishedChannelIds.has(c.id) ? (
                       <div className="space-y-1">
                         <Label htmlFor="social-text">Texte</Label>
-                        <Textarea id="social-text" rows={8} value={commonText} onChange={(e) => setCommonText(e.target.value)} />
+                        <Textarea id="social-text" rows={8} style={demoBlur(isDemoMode)} value={commonText} onChange={(e) => setCommonText(e.target.value)} />
                         <div className="pt-2">
                           <VisualField
                             label="Visuel"
@@ -660,6 +662,7 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
                         <Textarea
                           aria-label={`Texte ${c.name}`}
                           rows={8}
+                          style={demoBlur(isDemoMode)}
                           value={texts[c.id] ?? ""}
                           onChange={(e) => setTexts((prev) => ({ ...prev, [c.id]: e.target.value }))}
                         />
