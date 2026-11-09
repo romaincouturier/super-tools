@@ -1,5 +1,10 @@
 # Roadmap
 
+## Couvertures fournies (09/11/2026)
+- [x] 14 PNG distincts, 21 uploads dans lms-content aux chemins images/course_id/cover-uuid.png ; 21 cover_image_url renseignées et écritures tracées.
+- [x] 21 URLs HTTP 200 et octets identiques aux fichiers fournis ; trois couvertures préexistantes intactes, empreinte des autres champs identique (hors updated_at géré par trigger).
+- [x] Cadrage 16:9 comparé pour les 14 visuels, sujets principaux conservés ; accueil Facilitation graphique vérifié connecté en 1280 et 375 px, aucun code ni contenu de leçon modifié ; liste CSV livrée.
+
 ## Décisions du 09/11/2026
 - [x] Script validé appliqué : 22 lignes manquantes ajoutées (8 true, 14 false), 7 existantes préservées ; 22 écritures tracées, aucun email ni changement de mot de passe.
 - [x] Workflow présentiel/mixte et post-formation conservé ; rappel financeur à 10 jours ouvrés validé le 09/11, ancienne consigne J+45 remplacée sans changement du code.
