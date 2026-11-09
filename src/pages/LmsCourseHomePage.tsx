@@ -1,6 +1,7 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { normalizeEmail } from "@/lib/stringUtils";
 import DOMPurify from "dompurify";
+import { HandDrawnUnderline } from "@/components/lms/HandDrawnUnderline";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -523,9 +524,9 @@ function HeroSection({
       {/* Welcome text — LEFT */}
       <div className="flex flex-col gap-5">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold leading-tight mb-3" style={{ letterSpacing: "-0.02em" }}>
+          <h1 className="text-2xl lg:text-3xl font-bold leading-tight mb-3 pb-1" style={{ letterSpacing: "-0.02em" }}>
             <span style={{ color: "var(--st-ink)" }}>{course.home_config?.welcome_title_1 ?? "Bienvenue dans"} </span>
-            <span style={{ color: "var(--st-yellow)" }}>{course.home_config?.welcome_title_2 ?? "votre formation"}</span>
+            <span style={{ color: "var(--st-ink)" }}><HandDrawnUnderline>{course.home_config?.welcome_title_2 ?? "votre formation"}</HandDrawnUnderline></span>
           </h1>
         </div>
 
