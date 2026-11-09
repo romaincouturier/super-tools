@@ -14313,6 +14313,16 @@ export type Database = {
         Args: { p_items: Json; p_order: Json }
         Returns: Json
       }
+      create_learner_reclamation: {
+        Args: {
+          p_description: string
+          p_nature: string
+          p_problem_type: string
+          p_subject: string
+          p_training_id?: string
+        }
+        Returns: Json
+      }
       create_quote_testimonial: {
         Args: {
           p_author: string
