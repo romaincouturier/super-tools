@@ -1,7 +1,8 @@
 # Roadmap
 
 ## Simulation noCRM (09/11/2026)
-- [ ] Réduire le coût des conversions Europe/Paris et vérifier la simulation réelle sans importer de fiches.
+- [x] Convertisseur Europe/Paris partagé : 74 000 créations supprimées, mesure locale 5 418 → 468 ms ; 14 tests réussis.
+- [x] Colonnes historiques Gagné/Perdu reconnues sans les désarchiver ; nocrm-import déployée, simulation réelle terminée et rapport affiché : 1 955 fiches, 15 577 commentaires/activités, aucune fiche importée.
 
 ## Couvertures fournies (09/11/2026)
 - [x] 14 PNG distincts, 21 uploads dans lms-content aux chemins images/course_id/cover-uuid.png ; 21 cover_image_url renseignées et écritures tracées.
