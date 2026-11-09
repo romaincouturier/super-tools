@@ -248,6 +248,7 @@ const TABLES_TO_BACKUP = [
   "training_survey_recipients",
   "training_survey_responses",
   "training_surveys",
+  "training_transcripts",
   "training_venues",
   "trainings",
   "transcript_ai_prompts",

@@ -372,6 +372,34 @@
       "when": 1794223828720,
       "tag": "0052_20261105230000_audit_runs",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1794243054178,
+      "tag": "0053_training_transcripts",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1794243076704,
+      "tag": "0054_mcp_lms_modules",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1794243243282,
+      "tag": "0055_mcp_extension_audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1794243701828,
+      "tag": "0056_mcp_audit_trigger_record_guard",
+      "breakpoints": true
     }
   ]
 }

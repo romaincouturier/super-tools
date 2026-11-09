@@ -1,0 +1,12 @@
+import { auth,defineMcp } from '@lovable.dev/mcp-js';
+import listModules from './tools/list-lms-modules';
+import createModule from './tools/create-lms-module';
+import updateModule from './tools/update-lms-module';
+import assignTranscript from './tools/assign-transcript';
+import listTranscripts from './tools/list-unassigned-transcripts';
+import listSources from './tools/list-watch-sources';
+import proposeSource from './tools/propose-watch-source';
+import updateSource from './tools/update-watch-source';
+import updateCourse from './tools/update-lms-course';
+const ref=import.meta.env['VITE_SUPABASE_PROJECT_ID']??'project-ref-unset';
+export default defineMcp({name:'supertools',title:'SuperTools',version:'1.0.0',auth:auth.oauth.issuer({issuer:`https://${ref}.supabase.co/auth/v1`,acceptedAudiences:'authenticated'}),instructions:'Extensions réservées au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille et couvertures. Aucun outil de suppression ni envoi d’email. Ne jamais modifier les leçons. Confirmer allow_multiple avec l’utilisateur. Les outils historiques restent sur leur connecteur existant.',tools:[listModules,createModule,updateModule,assignTranscript,listTranscripts,listSources,proposeSource,updateSource,updateCourse]});

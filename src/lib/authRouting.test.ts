@@ -2,6 +2,10 @@ import { describe, it, expect } from "vitest";
 import { sanitizeRedirect, buildLoginPath, resolvePostLoginPath, LEARNER_HOME, STAFF_HOME } from "./authRouting";
 
 describe("sanitizeRedirect", () => {
+  it("refuse les antislashs et caractères de contrôle", () => {
+    expect(sanitizeRedirect("/\\outside.invalid")).toBeNull();
+    expect(sanitizeRedirect("/foo\nbar")).toBeNull();
+  });
   it("accepte une destination interne", () => {
     expect(sanitizeRedirect("/espace-apprenant/pratique?post=42")).toBe("/espace-apprenant/pratique?post=42");
   });
@@ -32,6 +36,9 @@ describe("buildLoginPath", () => {
 });
 
 describe("resolvePostLoginPath", () => {
+  it("conserve le consentement OAuth même pour un compte sans rattachement", () => {
+    expect(resolvePostLoginPath({ isStaff: false, mustChangePassword: false, hasAccess: false, next: "/.lovable/oauth/consent?authorization_id=123" })).toBe("/.lovable/oauth/consent?authorization_id=123");
+  });
   it("envoie l'apprenant sur son tableau de bord par défaut", () => {
     expect(resolvePostLoginPath({ isStaff: false, mustChangePassword: false })).toBe(LEARNER_HOME);
   });

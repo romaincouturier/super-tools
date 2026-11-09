@@ -20,6 +20,7 @@ import FormationDetailParticipants from "@/components/formations/FormationDetail
 import FormationDetailSections from "@/components/formations/FormationDetailSections";
 import TrainingFormulasManager from "@/components/formations/TrainingFormulasManager";
 import TrainingSurveyResults from "@/components/formations/TrainingSurveyResults";
+import TrainingTranscriptsSection from "@/components/formations/TrainingTranscriptsSection";
 
 import { useFormationDetail } from "@/hooks/useFormationDetail";
 import { sendVenueBookingRequest } from "@/services/training-venues";
@@ -166,6 +167,7 @@ const FormationDetail = () => {
         </div>
 
         <TrainingSurveyResults trainingId={fd.id!} />
+        <TrainingTranscriptsSection trainingId={fd.training.id} />
 
         {fd.isElearningSession && (
           <TrainingFormulasManager
