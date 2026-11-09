@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import RequireLearnerSession from "@/components/auth/RequireLearnerSession";
 import { lazyWithRetry as lazy } from "@/lib/lazyWithRetry";
 import * as Sentry from "@sentry/react";
 import { AppErrorFallback } from "@/components/AppErrorFallback";
@@ -54,6 +55,8 @@ const Emargement = lazy(() => import("./pages/Emargement"));
 const SignatureDevis = lazy(() => import("./pages/SignatureDevis"));
 const SignatureConvention = lazy(() => import("./pages/SignatureConvention"));
 const SignatureLocation = lazy(() => import("./pages/SignatureLocation"));
+const ProposerMonJeu = lazy(() => import("./pages/ProposerMonJeu"));
+const AuthorOnboardingDetail = lazy(() => import("./pages/AuthorOnboardingDetail"));
 const ContentBoard = lazy(() => import("./pages/ContentBoard"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
@@ -64,6 +67,7 @@ const InboundEmails = lazy(() => import("./pages/InboundEmails"));
 const AvisADemander = lazy(() => import("./pages/AvisADemander"));
 const Crm = lazy(() => import("./pages/Crm"));
 const CrmReports = lazy(() => import("./pages/CrmReports"));
+const CrmNocrmImport = lazy(() => import("./pages/CrmNocrmImport"));
 const CrmTenders = lazy(() => import("./pages/CrmTenders"));
 const Missions = lazy(() => import("./pages/Missions"));
 const MissionSummary = lazy(() => import("./pages/MissionSummary"));
@@ -232,8 +236,8 @@ const App = () => {
                 <Route path="/espace-apprenant/:section" element={<LearnerPortal />} />
               </Route>
               {/* LMS course player — accessible by learners and staff */}
-              <Route path="/lms/:courseId/player" element={<LmsCoursePlayer />} />
-              <Route path="/lms/:courseId/home" element={<LmsCourseHomePage />} />
+              <Route path="/lms/:courseId/player" element={<RequireLearnerSession><LmsCoursePlayer /></RequireLearnerSession>} />
+              <Route path="/lms/:courseId/home" element={<RequireLearnerSession><LmsCourseHomePage /></RequireLearnerSession>} />
               {/* Public token-based forms */}
               <Route path="/questionnaire/:token" element={<Questionnaire />} />
               <Route path="/evaluation/:token" element={<Evaluation />} />
@@ -246,12 +250,13 @@ const App = () => {
               <Route path="/signature-devis/:token" element={<SignatureDevis />} />
               <Route path="/signature-convention/:token" element={<SignatureConvention />} />
               <Route path="/signature-location/:token" element={<SignatureLocation />} />
+              <Route path="/proposer-mon-jeu/:token" element={<ProposerMonJeu />} />
               <Route path="/reclamation/:token" element={<ReclamationPublic />} />
               <Route path="/partenaire/:token" element={<PartnerPortal />} />
               {/* Public participant pages */}
               <Route path="/formation-info/:trainingId" element={<TrainingSummary />} />
               <Route path="/formation-support/:trainingId" element={<TrainingSupportPage />} />
-              <Route path="/formation-support/:trainingId/lms/:courseId" element={<LmsCoursePlayer />} />
+              <Route path="/formation-support/:trainingId/lms/:courseId" element={<RequireLearnerSession><LmsCoursePlayer /></RequireLearnerSession>} />
               <Route path="/mission-info/:missionId" element={<MissionSummary />} />
               <Route path="/sondage/:token" element={<SurveyPublic />} />
               <Route path="/sondage-formation/:token" element={<TrainingSurveyResponse />} />
@@ -298,6 +303,7 @@ const App = () => {
                 <Route path="/crm" element={<Crm />} />
                 <Route path="/crm/card/:cardId" element={<Crm />} />
                 <Route path="/crm/reports" element={<CrmReports />} />
+                <Route path="/crm/import-nocrm" element={<CrmNocrmImport />} />
                 <Route path="/crm/marches-publics" element={<CrmTenders />} />
                 <Route path="/missions" element={<Missions />} />
                 <Route path="/missions/:missionId" element={<Missions />} />
@@ -341,6 +347,7 @@ const App = () => {
                 <Route path="/temoignages" element={<RedirectKeepQuery to="/supertilt-fr/temoignages" />} />
                 <Route path="/dropshipping" element={<Navigate to="/commandes-jeux" replace />} />
                 <Route path="/commandes-jeux" element={<SupertiltOrders />} />
+                <Route path="/dropshipping/auteurs/:id" element={<AuthorOnboardingDetail />} />
                 <Route path="/commandes/inbox" element={<WoocommerceInbox />} />
                 <Route path="/pictodico" element={<PictoDico />} />
                 <Route path="/time-tracker" element={<TimeTracker />} />

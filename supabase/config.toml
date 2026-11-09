@@ -755,3 +755,12 @@ verify_jwt = false
 
 [functions.redeem-password-link]
 verify_jwt = false
+
+[functions.author-onboarding]
+verify_jwt = false
+
+[functions.create-devis-order]
+verify_jwt = false
+
+[functions.nocrm-import]
+verify_jwt = false

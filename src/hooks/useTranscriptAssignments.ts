@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type TranscriptAssignmentKind = "opportunity" | "event" | "mission" | "lesson";
+export type TranscriptAssignmentKind = "opportunity" | "event" | "mission" | "lesson" | "network_contact";
 
 export interface TranscriptAssignment {
   transcript_id: string;
@@ -15,6 +15,7 @@ export const ASSIGNMENT_KIND_LABELS: Record<TranscriptAssignmentKind, string> = 
   event: "Événement",
   mission: "Mission",
   lesson: "Leçon",
+  network_contact: "Contact Réseau",
 };
 
 export const TRANSCRIPT_ASSIGNMENTS_KEY = ["transcript-assignments"];
@@ -58,6 +59,9 @@ export function useUnassignTranscript() {
         res = await db.from("event_transcripts").delete().eq("event_id", a.entity_id).eq("transcript_id", a.transcript_id);
       } else if (a.kind === "mission") {
         res = await db.from("mission_pages").update({ source_transcript_id: null }).eq("mission_id", a.entity_id).eq("source_transcript_id", a.transcript_id);
+      } else if (a.kind === "network_contact") {
+        // L'interaction « réunion » déjà journalisée est conservée.
+        res = await db.from("network_contact_transcripts").delete().eq("contact_id", a.entity_id).eq("transcript_id", a.transcript_id);
       } else {
         res = await db.from("lms_lessons").update({ source_transcript_id: null }).eq("id", a.entity_id).eq("source_transcript_id", a.transcript_id);
       }
@@ -66,6 +70,7 @@ export function useUnassignTranscript() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: TRANSCRIPT_ASSIGNMENTS_KEY });
       qc.invalidateQueries({ queryKey: ["entity-transcripts"] });
+      qc.invalidateQueries({ queryKey: ["network-contact-transcripts"] });
     },
   });
 }

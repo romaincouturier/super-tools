@@ -1,5 +1,6 @@
 import { FileText } from "lucide-react";
 import { formatFileSize } from "@/lib/file-utils";
+import PdfInlinePreview from "@/components/lms/PdfInlinePreview";
 
 interface DepositLike {
   file_url: string | null;
@@ -24,7 +25,7 @@ export default function DepositFilePreview({ deposit }: Props) {
   const mime = deposit.file_mime || "";
   const isImage = mime.startsWith("image/");
   const isVideo = mime.startsWith("video/");
-  const isPdf = mime === "application/pdf";
+  const isPdf = mime === "application/pdf" || /\.pdf($|\?)/i.test(deposit.file_name || deposit.file_url);
   // Redressement persistant : on applique la rotation enregistree sur le depot
   // (meme valeur cote admin et cote apprenant).
   const rotation = (((deposit.file_rotation ?? 0) % 360) + 360) % 360;
@@ -40,6 +41,20 @@ export default function DepositFilePreview({ deposit }: Props) {
         />
       ) : isVideo ? (
         <video src={deposit.file_url} controls className="w-full h-auto max-h-[420px]" />
+      ) : isPdf ? (
+        <div>
+          <PdfInlinePreview url={deposit.file_url} title={deposit.file_name} />
+          <a
+            href={deposit.file_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 p-2 text-sm border-t hover:bg-muted transition-colors"
+          >
+            <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="flex-1 min-w-0 truncate">{deposit.file_name || "Fichier PDF"}</span>
+            <span className="text-xs text-muted-foreground shrink-0">Ouvrir en plein écran</span>
+          </a>
+        </div>
       ) : (
         <a
           href={deposit.file_url}

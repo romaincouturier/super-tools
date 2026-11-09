@@ -1,3 +1,4 @@
+import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 import { AlertTriangle, Plus, ShieldQuestion } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -42,6 +43,7 @@ import {
   RISK_STATUSES,
   criticalityBand,
   isReviewOverdue,
+  needsImprovementAlert,
   modalityLabel,
   riskStatusLabel,
   scaleLabel,
@@ -84,6 +86,7 @@ const RegistreRisques = () => {
     saveRisk,
     deleteRisk,
     changeStatus,
+    markReviewed,
   } = useQualityRisks();
   const { confirm, ConfirmDialog } = useConfirm();
 
@@ -114,7 +117,7 @@ const RegistreRisques = () => {
       review_date: risk.review_date || "",
       status: risk.status,
       reclamation_id: risk.reclamation_id || "",
-      improvement_id: risk.improvement_id || "",
+      improvement_ids: (risk.quality_risk_improvements || []).map((l) => l.improvement_id),
     });
     setDialogOpen(true);
   };
@@ -225,7 +228,12 @@ const RegistreRisques = () => {
                         className="cursor-pointer"
                         onClick={() => openEdit(risk)}
                       >
-                        <TableCell className="font-medium">{risk.label}</TableCell>
+                        <TableCell className="font-medium">
+                          {risk.label}
+                          {needsImprovementAlert(risk, risk.quality_risk_improvements?.length ?? 0) && (
+                            <Badge variant="destructive" className="ml-2">Sans amélioration</Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-muted-foreground">
                           {risk.formation_configs?.formation_name || "Transverse"}
                         </TableCell>
@@ -250,6 +258,16 @@ const RegistreRisques = () => {
                               {new Date(risk.review_date).toLocaleDateString("fr-FR")}
                             </span>
                           ) : "—"}
+                          {risk.status !== "closed" && risk.review_date && risk.review_date <= today && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="mt-1 h-7"
+                              onClick={(e) => { e.stopPropagation(); markReviewed(risk.id); }}
+                            >
+                              Revu
+                            </Button>
+                          )}
                         </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <Select
@@ -409,7 +427,7 @@ const RegistreRisques = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="risk-review">Prochaine revue</Label>
+                  <Label htmlFor="risk-review">Prochaine revue (vide : dans un mois)</Label>
                   <Input
                     id="risk-review"
                     type="date"
@@ -446,20 +464,29 @@ const RegistreRisques = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Action d'amélioration engagée</Label>
-                  <Select
-                    value={form.improvement_id || "none"}
-                    onValueChange={(v) => set("improvement_id", v === "none" ? "" : v)}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Aucune</SelectItem>
-                      {improvements.map((i) => (
-                        <SelectItem key={i.id} value={i.id}>{i.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Améliorations liées</Label>
+                  <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1">
+                    {improvements.length === 0 && (
+                      <p className="text-sm text-muted-foreground">Aucune amélioration enregistrée</p>
+                    )}
+                    {improvements.map((i) => (
+                      <label key={i.id} className="flex items-start gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={form.improvement_ids.includes(i.id)}
+                          onCheckedChange={(checked) =>
+                            set(
+                              "improvement_ids",
+                              checked
+                                ? [...form.improvement_ids, i.id]
+                                : form.improvement_ids.filter((x) => x !== i.id),
+                            )
+                          }
+                        />
+                        <span>{i.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

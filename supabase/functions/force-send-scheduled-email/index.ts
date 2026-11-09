@@ -17,6 +17,7 @@ import { logLovableUsage } from "../_shared/api-usage.ts";
 import { resolveSessionDate } from "../_shared/training-date.ts";
 import { isEvaluationSubmitted, isNeedsSurveySubmitted } from "../_shared/reminder-filters.ts";
 import { isColdEvaluationEligible, isColdEvaluationType, MISSING_SPONSOR_EMAIL_MESSAGE, resolveSponsorRecipient } from "../_shared/cold-evaluation.ts";
+import { renderLiveRecordingNotice } from "../_shared/live-recording-notice.ts";
 import { addWorkingDays, fetchWorkingDays } from "../_shared/working-days.ts";
 
 interface ForceSendRequest {
@@ -1185,6 +1186,14 @@ Règles :
               <p>À tout à l'heure !</p>
               ${signatureHtml}
             `;
+          }
+        }
+        {
+          const liveNotice = await renderLiveRecordingNotice(supabase, formalAddress);
+          if (liveNotice) {
+            htmlContent = signatureHtml && htmlContent.includes(signatureHtml)
+              ? htmlContent.replace(signatureHtml, liveNotice + signatureHtml)
+              : htmlContent + liveNotice;
           }
         }
         break;

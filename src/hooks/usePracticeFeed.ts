@@ -190,6 +190,42 @@ export interface PracticePostsFilter {
   tag?: string | null;
   /** Only the post mirroring this work deposit. */
   depositId?: string | null;
+  postId?: string | null;
+  /** Thematic feed: hide posts restricted to their own course. */
+  themeOnly?: boolean;
+}
+
+export interface CommunitySpace {
+  space_key: string;
+  label: string;
+  is_private: boolean;
+  course_ids: string[];
+  publish_course_id: string | null;
+  sort_order: number;
+}
+
+/** Espaces de communauté (thématiques + communautés privées intra) de l'utilisateur connecté. */
+export function useCommunitySpaces(enabled = true) {
+  return useQuery({
+    queryKey: ["community_spaces"],
+    enabled,
+    queryFn: async (): Promise<CommunitySpace[]> => {
+      const { data, error } = await db.rpc("get_community_spaces");
+      if (error) throw error;
+      return ((data || []) as CommunitySpace[]).sort(
+        (a, b) => a.sort_order - b.sort_order || a.label.localeCompare(b.label, "fr"),
+      );
+    },
+  });
+}
+
+/** Espace correspondant à un cours : privé s'il est intra, sinon sa thématique. */
+export function spaceForCourse(spaces: CommunitySpace[], courseId: string | null): CommunitySpace | null {
+  if (!courseId) return null;
+  return spaces.find((s) => s.is_private && s.course_ids.includes(courseId))
+    ?? spaces.find((s) => s.space_key.startsWith("theme:") && s.course_ids.includes(courseId))
+    ?? spaces.find((s) => s.course_ids.includes(courseId))
+    ?? null;
 }
 
 
@@ -206,8 +242,10 @@ export function usePracticePosts(
   const likedByFilter = options?.likedBy ?? null;
   const tagFilter = options?.tag ?? null;
   const depositFilter = options?.depositId ?? null;
+  const themeOnly = options?.themeOnly ?? false;
+  const postIdFilter = options?.postId ?? null;
   return useQuery({
-    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, courseIdsFilter, authorFilter, likedByFilter, tagFilter, depositFilter, isAdmin],
+    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, courseIdsFilter, authorFilter, likedByFilter, tagFilter, depositFilter, themeOnly, isAdmin, postIdFilter],
     queryFn: async (): Promise<PracticePost[]> => {
       if (!learnerEmail) return [];
       const c = clientDb(learnerEmail, isAdmin);
@@ -233,6 +271,8 @@ export function usePracticePosts(
       if (courseIdsFilter && courseIdsFilter.length > 0) postsQuery = postsQuery.in("course_id", courseIdsFilter);
       if (authorFilter) postsQuery = postsQuery.eq("author_email", authorFilter);
       if (depositFilter) postsQuery = postsQuery.eq("deposit_id", depositFilter);
+      if (postIdFilter) postsQuery = postsQuery.eq("id", postIdFilter);
+      if (themeOnly) postsQuery = postsQuery.or("visibility_scope.is.null,visibility_scope.eq.theme");
       if (restrictIds !== null) postsQuery = postsQuery.in("id", restrictIds);
 
       const [postsRes, reactionsRes, commentsRes, profilesRes, staffProfilesRes, hashtagsRes, pollsRes, optionsRes, votesRes] = await Promise.all([
@@ -501,7 +541,8 @@ async function generateHashtags(content: string): Promise<string[]> {
 export function useCreatePracticePost(learnerEmail: string | null, isAdmin = false) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ content, file, courseId, lessonId, poll, gifUrl }: {
+    mutationFn: async ({ content, file, courseId, lessonId, poll, gifUrl, visibilityScope }: {
+      visibilityScope?: "theme" | "course" | null;
       content: string;
       file: File | null;
       courseId?: string | null;
@@ -530,6 +571,7 @@ export function useCreatePracticePost(learnerEmail: string | null, isAdmin = fal
         file_size: fileData?.size ?? null,
         course_id: courseId ?? null,
         lesson_id: lessonId ?? null,
+        ...(visibilityScope ? { visibility_scope: visibilityScope } : {}),
       }).select("id").single();
       if (error) throw error;
       const postId = (inserted as { id: string }).id;
@@ -603,6 +645,36 @@ export function usePracticePopularHashtags(learnerEmail: string | null, limit = 
 
 // ── Reaction toggle ───────────────────────────────────────────────────────────
 
+export function applyReactionToggle(post: PracticePost, emoji: string, email: string, add: boolean): PracticePost {
+  const byType = { ...(post.reactions_by_type ?? {}) };
+  const byTypeUsers = { ...(post.reactions_by_type_users ?? {}) };
+  const myTypes = [...(post.my_reaction_types ?? [])];
+  if (add) {
+    if (myTypes.includes(emoji)) return post;
+    myTypes.push(emoji);
+    byType[emoji] = (byType[emoji] ?? 0) + 1;
+    byTypeUsers[emoji] = [...(byTypeUsers[emoji] ?? []), email];
+  } else {
+    if (!myTypes.includes(emoji)) return post;
+    const idx = myTypes.indexOf(emoji);
+    myTypes.splice(idx, 1);
+    byType[emoji] = Math.max(0, (byType[emoji] ?? 1) - 1);
+    if (byType[emoji] === 0) delete byType[emoji];
+    const users = (byTypeUsers[emoji] ?? []).filter((u) => u.toLowerCase() !== email.toLowerCase());
+    if (users.length > 0) byTypeUsers[emoji] = users;
+    else delete byTypeUsers[emoji];
+  }
+  const reactionCount = Object.values(byType).reduce((sum, n) => sum + n, 0);
+  return {
+    ...post,
+    reactions_by_type: byType,
+    reactions_by_type_users: byTypeUsers,
+    my_reaction_types: myTypes,
+    reaction_count: reactionCount,
+    i_reacted: myTypes.length > 0,
+  };
+}
+
 export function useTogglePracticeReaction(learnerEmail: string | null) {
   const qc = useQueryClient();
   return useMutation({
@@ -614,12 +686,33 @@ export function useTogglePracticeReaction(learnerEmail: string | null) {
           .delete().eq("post_id", postId).eq("author_email", learnerEmail).eq("reaction_type", emoji);
         if (error) throw error;
       } else {
+        // Upsert + ignoreDuplicates: a double tap (mobile) or a stale UI state
+        // must never violate the (post_id, author_email, reaction_type) unique
+        // constraint — the second insert becomes a no-op.
         const { error } = await c.from("practice_post_reactions")
-          .insert({ post_id: postId, author_email: learnerEmail, reaction_type: emoji });
+          .upsert(
+            { post_id: postId, author_email: learnerEmail, reaction_type: emoji },
+            { onConflict: "post_id,author_email,reaction_type", ignoreDuplicates: true },
+          );
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: POSTS_KEY }),
+    onMutate: async ({ postId, emoji, iReacted }) => {
+      await qc.cancelQueries({ queryKey: POSTS_KEY });
+      const previous = qc.getQueriesData<PracticePost[]>({ queryKey: POSTS_KEY });
+      if (learnerEmail) {
+        qc.setQueriesData<PracticePost[]>({ queryKey: POSTS_KEY }, (old) =>
+          Array.isArray(old)
+            ? old.map((p) => (p.id === postId ? applyReactionToggle(p, emoji, learnerEmail, !iReacted) : p))
+            : old,
+        );
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      context?.previous?.forEach(([key, data]) => qc.setQueryData(key, data));
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: POSTS_KEY }),
   });
 }
 

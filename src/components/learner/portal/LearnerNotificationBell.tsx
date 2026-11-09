@@ -17,7 +17,7 @@ interface LearnerNotificationBellProps {
 
 const typeIcon = (type: LearnerNotification["type"]) => {
   if (type === "replay_available") return PlayCircle;
-  if (type === "community_reply" || type === "community_pinned") return MessageSquare;
+  if (type === "community_reply" || type === "community_pinned" || type === "community_post") return MessageSquare;
   return CalendarDays;
 };
 
@@ -35,6 +35,7 @@ const LearnerNotificationBell = ({ email, open, onOpenChange }: LearnerNotificat
     switch (type) {
       case "community_reply":
       case "community_pinned":
+      case "community_post":
         return "/espace-apprenant/pratique";
       case "replay_available":
       case "live_upcoming":

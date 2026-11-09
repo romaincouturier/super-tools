@@ -9,11 +9,12 @@
  * conserve la page et ne retire que le lien.
  */
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { linkTranscriptToNetworkContact } from "./network-tools.ts";
 
 type Supabase = SupabaseClient;
 type Assignment = { transcript_id: string; kind: string; entity_id: string; label: string };
 
-export const TRANSCRIPT_TARGETS = ["opportunity", "mission", "event"] as const;
+export const TRANSCRIPT_TARGETS = ["opportunity", "mission", "event", "network_contact"] as const;
 export type TranscriptTarget = typeof TRANSCRIPT_TARGETS[number];
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -102,6 +103,7 @@ export function transcriptToPageHtml(t: { summary?: string | null; raw_text?: st
 export async function assignTranscript(
   supabase: Supabase,
   args: { transcript_id?: unknown; target_type?: unknown; target_id?: unknown; allow_multiple?: unknown },
+  ctx: { ownerId?: string | null; appUrl?: string } = {},
 ) {
   const transcriptId = requireUuid(args.transcript_id, "transcript_id");
   const target = requireTarget(args.target_type);
@@ -109,7 +111,7 @@ export async function assignTranscript(
 
   const { data: t, error: tErr } = await supabase
     .from("transcripts")
-    .select("id, title, ai_title, summary, raw_text, status")
+    .select("id, title, ai_title, summary, raw_text, status, metadata, created_at")
     .eq("id", transcriptId)
     .maybeSingle();
   if (tErr) throw new Error(tErr.message);
@@ -140,6 +142,18 @@ export async function assignTranscript(
       .upsert({ card_id: targetId, transcript_id: transcriptId }, { onConflict: "card_id,transcript_id", ignoreDuplicates: true });
     if (error) throw new Error(error.message);
     return { status: "assigned", transcript: title, opportunity: card, previous_assignments: elsewhere };
+  }
+
+  if (target === "network_contact") {
+    const url = `${(ctx.appUrl ?? "https://academy.supertilt.fr").replace(/\/+$/, "")}/supertilt-fr/transcripts?transcript=${transcriptId}`;
+    const res = await linkTranscriptToNetworkContact(
+      supabase,
+      ctx.ownerId ?? null,
+      { id: transcriptId, title, summary: t.summary as string | null, metadata: t.metadata, created_at: t.created_at as string },
+      targetId,
+      url,
+    );
+    return { status: "assigned", transcript: title, network_contact: res.contact, interaction_id: res.interaction_id, meeting_date: res.meeting_date, previous_assignments: elsewhere };
   }
 
   if (target === "event") {
@@ -190,6 +204,8 @@ export async function unassignTranscript(
   const targetId = requireUuid(args.target_id, "target_id");
   const res = target === "opportunity"
     ? await supabase.from("crm_card_transcripts").delete().eq("card_id", targetId).eq("transcript_id", transcriptId).select("id")
+    : target === "network_contact"
+    ? await supabase.from("network_contact_transcripts").delete().eq("contact_id", targetId).eq("transcript_id", transcriptId).select("id")
     : target === "event"
     ? await supabase.from("event_transcripts").delete().eq("event_id", targetId).eq("transcript_id", transcriptId).select("id")
     : await supabase.from("mission_pages").update({ source_transcript_id: null }).eq("mission_id", targetId).eq("source_transcript_id", transcriptId).select("id");

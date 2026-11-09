@@ -221,6 +221,18 @@ Votre espace apprenant{{#training_name}} pour la formation « {{training_name}} 
     variables: ["training_name", "password_set", "no_password", "platform_changed", "access_button"],
   },
 
+  live_recording_notice: {
+    name: "Mention enregistrement des lives",
+    audience: "client",
+    sendingInfo: "🎥 Petit texte ajouté en fin des emails d'accès, des rappels de live et de la page infos, pour les formations avec lives (l'objet n'est pas utilisé)",
+    subject: same("Mention enregistrement des lives"),
+    content: {
+      tu: "Les lives sont enregistrés pour que chacun puisse les revoir : les replays sont partagés uniquement avec les participants de la formation. Les échanges et le partage des dessins font toute la richesse du groupe, dans un esprit de bienveillance. Si tu préfères ne pas apparaître à l'image, tu peux simplement garder ta caméra coupée, et seuls les dessins que tu publies dans la communauté sont partagés en live.",
+      vous: "Les lives sont enregistrés pour que chacun puisse les revoir : les replays sont partagés uniquement avec les participants de la formation. Les échanges et le partage des dessins font toute la richesse du groupe, dans un esprit de bienveillance. Si vous préférez ne pas apparaître à l'image, vous pouvez simplement garder votre caméra coupée, et seuls les dessins que vous publiez dans la communauté sont partagés en live.",
+    },
+    variables: [],
+  },
+
   learner_course_access: {
     name: "Accès à une nouvelle formation ouvert",
     audience: "client",
@@ -490,6 +502,74 @@ Le jeu vous sera expédié dès la signature du contrat. Elle ne prend qu'une mi
 {{signature_button}}
 
 Le lien de signature reste valable jusqu'au {{expires_at}}.
+
+Merci et à bientôt !`),
+    variables: ["signer_name", "game_name", "contrat_reference", "expires_at", "signature_button"],
+  },
+
+  author_invitation: {
+    name: "Invitation auteur de jeu (dropshipping)",
+    audience: "client",
+    sendingInfo: "📤 Préparé à l'invitation d'un auteur (Dropshipping > Auteurs), relu puis envoyé manuellement",
+    subject: same("Proposer « {{game_name}} » sur la boutique SuperTilt"),
+    content: same(`Bonjour {{first_name}},
+
+Merci pour notre échange ! Pour distribuer « {{game_name}} » sur la boutique supertilt.fr, il vous suffit de remplir ce formulaire. Vous pouvez l'enregistrer et y revenir plus tard.
+
+{{invitation_button}}
+
+À la fin du formulaire, vous pourrez relire et signer en ligne le contrat de distribution (commission SuperTilt : {{commission}}).
+
+Le lien reste valable jusqu'au {{expires_at}}.
+
+À très vite !`),
+    variables: ["first_name", "game_name", "commission", "expires_at", "invitation_button"],
+  },
+
+  author_signature_otp: {
+    name: "Code de vérification signature contrat auteur",
+    audience: "client",
+    sendingInfo: "⚙️ Envoyé automatiquement quand l'auteur demande un code avant de signer son contrat de distribution",
+    subject: same("Votre code de signature : {{code}}"),
+    content: same(`Bonjour {{signer_name}},
+
+Voici votre code pour signer le contrat de distribution {{contrat_reference}} :
+
+**{{code}}**
+
+Ce code est valable 10 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.`),
+    variables: ["signer_name", "contrat_reference", "code"],
+  },
+
+  author_contract_signed: {
+    name: "Contrat de distribution signé (copie aux deux parties)",
+    audience: "client",
+    sendingInfo: "⚙️ Envoyé automatiquement à l'auteur et à SuperTilt dès la signature du contrat de distribution",
+    subject: same("Contrat de distribution {{contrat_reference}} signé"),
+    content: same(`Bonjour {{signer_name}},
+
+Le contrat de distribution de « {{game_name}} » est signé. Vous trouverez ci-dessous votre exemplaire.
+
+{{details_list}}
+
+{{download_button}}
+
+Nous préparons maintenant la fiche produit et revenons vers vous dès qu'elle est en ligne.`),
+    variables: ["signer_name", "game_name", "contrat_reference", "details_list", "download_button"],
+  },
+
+  author_signature_reminder: {
+    name: "Relance signature contrat de distribution",
+    audience: "client",
+    sendingInfo: "⏰ Envoyé automatiquement 3 puis 7 jours après la génération d'un contrat de distribution non signé (2 relances maximum)",
+    subject: same("Rappel : contrat de distribution {{contrat_reference}} à signer"),
+    content: same(`Bonjour {{signer_name}},
+
+Votre contrat de distribution pour « {{game_name}} » (référence {{contrat_reference}}) attend encore votre signature. Elle ne prend qu'une minute :
+
+{{signature_button}}
+
+Le lien reste valable jusqu'au {{expires_at}}.
 
 Merci et à bientôt !`),
     variables: ["signer_name", "game_name", "contrat_reference", "expires_at", "signature_button"],
@@ -967,9 +1047,11 @@ Un nouveau travail de l'apprenant **{{learner_name}}** est à traiter dans la co
 
 « J'aime » enregistre votre réaction directement, sans vous reconnecter.
 
+{{pending_works_button}}
+
 Bonne lecture,
 L'équipe SuperTilt`),
-    variables: ["first_name", "learner_name", "course_title", "deposits_preview"],
+    variables: ["first_name", "learner_name", "course_title", "deposits_preview", "pending_works_button"],
   },
 
   deposit_trainer_notification_multi: {
@@ -985,9 +1067,11 @@ L'équipe SuperTilt`),
 
 « J'aime » enregistre votre réaction directement, sans vous reconnecter.
 
+{{pending_works_button}}
+
 Bonne lecture,
 L'équipe SuperTilt`),
-    variables: ["first_name", "learner_name", "course_title", "count", "deposits_preview"],
+    variables: ["first_name", "learner_name", "course_title", "count", "deposits_preview", "pending_works_button"],
   },
 
   onboard_collaborator: {

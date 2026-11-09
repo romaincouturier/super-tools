@@ -152,17 +152,29 @@ export function ElearningDatesFields({
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="privateGroupUrl">URL du groupe privé</Label>
-        <Input
-          id="privateGroupUrl"
-          type="url"
-          placeholder="https://facebook.com/groups/... ou https://circle.so/..."
-          value={form.privateGroupUrl}
-          onChange={(e) => form.setPrivateGroupUrl(e.target.value)}
-        />
-        <p className="text-xs text-muted-foreground">
-          Lien vers le groupe privé de la communauté d'apprenants (Facebook, Circle, etc.)
+        <Label>Communauté des apprenants</Label>
+        <p className="text-sm">
+          {form.privateGroupUrl.trim() ? (
+            <>Lien personnalisé : <a href={form.privateGroupUrl} target="_blank" rel="noopener noreferrer" className="underline break-all">{form.privateGroupUrl}</a></>
+          ) : form.lmsCourseId ? (
+            <>Communauté SuperTools du cours (<a href={`/lms/communautes/${form.lmsCourseId}`} target="_blank" rel="noopener noreferrer" className="underline">ouvrir</a>)</>
+          ) : (
+            <>Communauté SuperTools du cours associé</>
+          )}
         </p>
+        <details className="text-xs text-muted-foreground" open={!!form.privateGroupUrl.trim() || undefined}>
+          <summary className="cursor-pointer select-none">Remplacer par un lien externe</summary>
+          <div className="mt-2 space-y-1">
+            <Input
+              id="privateGroupUrl"
+              type="url"
+              className="h-8 text-xs"
+              placeholder="https://... (laisser vide pour la communauté SuperTools)"
+              value={form.privateGroupUrl}
+              onChange={(e) => form.setPrivateGroupUrl(e.target.value)}
+            />
+          </div>
+        </details>
       </div>
       <p className="text-xs text-muted-foreground">
         Le contenu de l'email d'accès e-learning est géré dans{" "}

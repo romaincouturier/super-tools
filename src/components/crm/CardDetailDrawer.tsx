@@ -952,6 +952,9 @@ const CardDetailDrawer = ({
         pendingTrainingParams={pendingTrainingParams}
         handleConfirmCreateTraining={handleConfirmCreateTraining}
         initialSiren={siren}
+        address={address}
+        postalCode={postalCode}
+        city={city}
         onSirenResolved={(o) => {
           if (o.siren) setSiren(o.siren);
           if (o.company) setCompany(o.company);

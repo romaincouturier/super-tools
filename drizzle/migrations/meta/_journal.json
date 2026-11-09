@@ -246,6 +246,90 @@
       "when": 1793895233737,
       "tag": "0034_editable_training_regulation",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793899739836,
+      "tag": "0035_network_contact_transcripts",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793900848361,
+      "tag": "0036_pictodico_guards_and_event_sync",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793902075207,
+      "tag": "0037_training_summary_live_recording_notice",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793902981098,
+      "tag": "0038_quality_risk_improvements_and_review_default",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1793973960578,
+      "tag": "0039_community_themes",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1793973983997,
+      "tag": "0040_community_themes_intra_publish",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1793974027421,
+      "tag": "0041_drop_inert_anon_learner_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1793982331840,
+      "tag": "0042_author_onboarding",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1793985167260,
+      "tag": "0043_learner_notify_new_community_posts",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1793985361088,
+      "tag": "0044_evaluation_site_comment_tracking",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1793986677057,
+      "tag": "0045_devis_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1793988715287,
+      "tag": "0046_nocrm_import",
+      "breakpoints": true
     }
   ]
 }
