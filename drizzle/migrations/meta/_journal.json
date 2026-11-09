@@ -386,6 +386,13 @@
       "when": 1794243076704,
       "tag": "0054_mcp_lms_modules",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1794243243282,
+      "tag": "0055_mcp_extension_audit",
+      "breakpoints": true
     }
   ]
 }
