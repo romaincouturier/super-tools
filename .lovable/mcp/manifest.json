@@ -159,7 +159,7 @@
       {
         "name": "list_unassigned_transcripts",
         "title": "Lister les transcripts non affectés",
-        "description": "Liste les transcripts prêts sans rattachement, formations comprises.",
+        "description": "Liste une page de transcripts prêts sans rattachement, formations comprises ; suivre next_offset pour continuer.",
         "annotations": {
           "readOnlyHint": true
         },
@@ -171,6 +171,11 @@
               "minimum": 1,
               "maximum": 100,
               "default": 30
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
             },
             "search": {
               "type": "string",
