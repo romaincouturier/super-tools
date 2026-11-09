@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
-import { Sparkles, BookOpen, ClipboardCheck, Activity, CheckCircle2, AlertTriangle, TrendingUp, Target, ArrowRight, Download, Copy, Brain, Zap, MessageSquare } from "lucide-react";
+import { Sparkles, BookOpen, ClipboardCheck, Activity, CheckCircle2, TrendingUp, Target, ArrowRight, Download, Copy, Brain, Zap, MessageSquare } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import PageHeader from "@/components/PageHeader";
@@ -50,10 +50,10 @@ interface HealthReport {
   health_score: number;
   health_label: string;
   summary: string;
-  dropout_risks: { description: string; severity: string; action: string }[];
   recommendations: { title: string; description: string; priority: string; category: string }[];
   strengths: string[];
-  kpis: { completion_rate: number; satisfaction_score: number; conversion_rate: number; pipeline_value: number };
+  /** Calculés côté serveur à partir des données, jamais produits par le modèle. */
+  kpis: { survey_rate: number; evaluation_rate: number; satisfaction_score: number; conversion_rate: number; pipeline_value: number };
 }
 
 export default function AiTools() {
@@ -541,9 +541,10 @@ export default function AiTools() {
               </Card>
 
               {/* KPIs */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 {[
-                  { label: "Taux complétion", value: `${healthReport.kpis.completion_rate}%`, icon: CheckCircle2 },
+                  { label: "Recueils besoins", value: `${healthReport.kpis.survey_rate}%`, icon: CheckCircle2 },
+                  { label: "Retour évaluations", value: `${healthReport.kpis.evaluation_rate}%`, icon: CheckCircle2 },
                   { label: "Satisfaction", value: `${healthReport.kpis.satisfaction_score}/5`, icon: TrendingUp },
                   { label: "Conversion CRM", value: `${healthReport.kpis.conversion_rate}%`, icon: Target },
                   { label: "Pipeline", value: `${healthReport.kpis.pipeline_value}€`, icon: Activity },
@@ -557,25 +558,6 @@ export default function AiTools() {
                   </Card>
                 ))}
               </div>
-
-              {/* Risks */}
-              {healthReport.dropout_risks.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-500" /> Risques de décrochage
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {healthReport.dropout_risks.map((risk, i) => (
-                      <div key={i} className={cn("p-3 rounded-lg border", priorityColor(risk.severity))}>
-                        <p className="font-medium text-sm">{risk.description}</p>
-                        <p className="text-xs text-muted-foreground mt-1">→ {risk.action}</p>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
 
               {/* Recommendations */}
               <Card>

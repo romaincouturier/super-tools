@@ -35,9 +35,14 @@ vi.mock("@/components/ui/scroll-area", () => ({
   ScrollArea: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
+// Le mock remplace tout le module : une icône ajoutée au composant et absente
+// d'ici fait échouer le rendu, pas seulement l'assertion qui la concerne.
 vi.mock("lucide-react", () => ({
   Star: ({ className }: { className?: string }) => (
     <span data-testid="star" className={className}>★</span>
+  ),
+  Check: ({ className }: { className?: string }) => (
+    <span data-testid="check" className={className}>✓</span>
   ),
 }));
 

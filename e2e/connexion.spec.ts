@@ -171,18 +171,18 @@ test("le bandeau d'information s'affiche sur la connexion quand il est activé",
     maintenance_banner_message: "Quelques difficultés d'accès sont possibles.",
   });
   await page.goto("/connexion");
-  await expect(page.getByText("On fait quelques travaux sur SuperTools")).toBeVisible();
+  await expect(page.getByText("On fait quelques travaux sur SuperTilt Academy")).toBeVisible();
   await expect(page.getByText("Quelques difficultés d'accès sont possibles.")).toBeVisible();
 });
 
 test("le bandeau reste absent quand il n'est pas activé", async ({ page }) => {
   await stubSetting(page, { maintenance_banner_enabled: "false" });
   await page.goto("/connexion");
-  await expect(page.getByText("On fait quelques travaux sur SuperTools")).toHaveCount(0);
+  await expect(page.getByText("On fait quelques travaux sur SuperTilt Academy")).toHaveCount(0);
 });
 
 test("le bandeau accompagne aussi le mot de passe oublié", async ({ page }) => {
   await stubSetting(page, { maintenance_banner_enabled: "true" });
   await page.goto("/connexion/mot-de-passe-oublie");
-  await expect(page.getByText("On fait quelques travaux sur SuperTools")).toBeVisible();
+  await expect(page.getByText("On fait quelques travaux sur SuperTilt Academy")).toBeVisible();
 });

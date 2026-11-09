@@ -67,7 +67,9 @@ Deno.serve(async (req) => {
 
     // Compute metrics
     const totalParticipants = participants.length;
-    const surveyCompleted = questionnaires.filter(q => q.etat === "soumis").length;
+    // La contrainte CHECK de questionnaire_besoins ne connaît pas "soumis" :
+    // un recueil rempli est "complete", puis "valide_formateur".
+    const surveyCompleted = questionnaires.filter(q => q.etat === "complete" || q.etat === "valide_formateur").length;
     const surveyTotal = questionnaires.length;
     const evalCompleted = evaluations.filter(e => e.etat === "soumis").length;
     const evalTotal = evaluations.length;
@@ -123,20 +125,16 @@ Retourne un JSON :
   "health_score": number (0-100),
   "health_label": "critique" | "attention" | "bon" | "excellent",
   "summary": "string (2-3 phrases)",
-  "dropout_risks": [
-    { "description": "string", "severity": "high" | "medium" | "low", "action": "string" }
-  ],
   "recommendations": [
     { "title": "string", "description": "string", "priority": "high" | "medium" | "low", "category": "commercial" | "pedagogique" | "qualite" | "operationnel" }
   ],
-  "strengths": ["string"],
-  "kpis": {
-    "completion_rate": number,
-    "satisfaction_score": number,
-    "conversion_rate": number,
-    "pipeline_value": number
-  }
-}`,
+  "strengths": ["string"]
+}
+
+Ne renvoie aucun chiffre en dehors de health_score : les indicateurs sont
+calculés à partir des données et te sont fournis ci-dessus. N'invente ni taux
+de complétion ni risque de décrochage, aucune donnée de progression ne t'est
+transmise.`,
           },
         ],
       }),
@@ -173,6 +171,18 @@ Retourne un JSON :
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Les indicateurs chiffrés sont calculés ici, à partir des données lues.
+    // Les faire produire par le modèle revenait à publier des nombres
+    // inventés : le contexte ci-dessus ne porte aucune donnée de complétion
+    // ni d'abandon.
+    report.kpis = {
+      survey_rate: surveyTotal > 0 ? Math.round((surveyCompleted / surveyTotal) * 100) : 0,
+      evaluation_rate: evalTotal > 0 ? Math.round((evalCompleted / evalTotal) * 100) : 0,
+      satisfaction_score: Number(avgSatisfaction.toFixed(1)),
+      conversion_rate: wonDeals + lostDeals > 0 ? Math.round((wonDeals / (wonDeals + lostDeals)) * 100) : 0,
+      pipeline_value: pipeline,
+    };
 
     return new Response(JSON.stringify({ report, metrics: { trainings: trainings.length, participants: totalParticipants, surveyRate: surveyTotal > 0 ? Math.round(surveyCompleted/surveyTotal*100) : 0, evalRate: evalTotal > 0 ? Math.round(evalCompleted/evalTotal*100) : 0, pipeline } }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

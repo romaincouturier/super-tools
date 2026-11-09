@@ -24,6 +24,9 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { demoBlur, maskEmail, maskName, maskText } from "@/lib/demoMask";
+import { validateNeedsSurvey } from "@/services/needsSurveyValidation";
+import { todayAsISO } from "@/lib/dateFormatters";
+import { toastError } from "@/lib/toastError";
 
 interface QuestionnaireData {
   id: string;
@@ -48,6 +51,9 @@ interface QuestionnaireData {
   commentaires_libres: string | null;
   date_soumission: string | null;
   necessite_amenagement: boolean | null;
+  etat: string | null;
+  date_validation_formateur: string | null;
+  necessite_validation_formateur: boolean | null;
 }
 
 interface ViewQuestionnaireDialogProps {
@@ -113,6 +119,27 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
   const [questionnaire, setQuestionnaire] = useState<QuestionnaireData | null>(null);
   const { toast } = useToast();
   const { isDemoMode } = useDemoMode();
+  const [validating, setValidating] = useState(false);
+
+  const handleValidate = async () => {
+    if (!questionnaire) return;
+    setValidating(true);
+    try {
+      await validateNeedsSurvey(questionnaire.id);
+      setQuestionnaire({
+        ...questionnaire,
+        etat: "valide_formateur",
+        date_validation_formateur: todayAsISO(),
+        necessite_validation_formateur: false,
+      });
+      toast({ title: "Dossier validé" });
+    } catch (error: unknown) {
+      console.error("Error validating needs survey:", error);
+      toastError(toast, "Validation impossible");
+    } finally {
+      setValidating(false);
+    }
+  };
 
   const fetchQuestionnaire = async () => {
     setLoading(true);
@@ -529,6 +556,35 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
         ) : (
           <div className="text-center py-12 text-muted-foreground">
             Aucune donnée disponible
+          </div>
+        )}
+
+        {/* Validation formateur (indicateur 8). L'étape était décrite par la
+            machine à états mais aucune écriture ne la franchissait : un dossier
+            dont les prérequis ne sont pas validés restait sans trace de la
+            décision. */}
+        {questionnaire && (
+          <div className="border-t pt-3 flex items-center justify-between gap-3">
+            {questionnaire.etat === "valide_formateur" ? (
+              <p className="text-sm text-muted-foreground">
+                Dossier validé par le formateur
+                {questionnaire.date_validation_formateur
+                  ? ` le ${new Date(questionnaire.date_validation_formateur).toLocaleDateString("fr-FR")}`
+                  : ""}
+                .
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  {questionnaire.necessite_validation_formateur
+                    ? "Prérequis non validés : ce dossier attend votre arbitrage."
+                    : "Dossier complet, non encore validé."}
+                </p>
+                <Button size="sm" onClick={handleValidate} disabled={validating}>
+                  {validating ? <Spinner className="h-4 w-4" /> : "Valider le dossier"}
+                </Button>
+              </>
+            )}
           </div>
         )}
       </DialogContent>

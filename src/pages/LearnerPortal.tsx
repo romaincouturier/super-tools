@@ -5,6 +5,13 @@ import { useSearchParams, Link, useNavigate, useParams } from "react-router-dom"
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { rpc } from "@/lib/supabase-rpc";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
+import {
+  LEARNER_HELP_CATEGORIES,
+  helpDestination,
+  reclamationFieldsFor,
+} from "@/lib/learnerHelpRouting";
 import { setSentryUser, reportHandledError } from "@/lib/sentry";
 import {
   GraduationCap, FileText, Calendar,
@@ -1390,12 +1397,7 @@ function CompteView({
 
 // ── Aide view ────────────────────────────────────────────────────────────────
 
-const LEARNER_CATEGORIES = [
-  { value: "acces_connexion", label: "Accès / Connexion" },
-  { value: "technique", label: "Problème technique" },
-  { value: "pedagogique", label: "Question pédagogique" },
-  { value: "administratif", label: "Administratif" },
-];
+const LEARNER_CATEGORIES = LEARNER_HELP_CATEGORIES;
 
 const USEFUL_LINKS: { label: string; icon: React.ElementType; section: NavSection }[] = [
   { label: "Mon compte", icon: User2, section: "dashboard" },
@@ -1415,6 +1417,11 @@ function AideView({
   const { data: faqItems = [] } = useFaqItems(true);
   const createTicket = useCreateSupportTicket();
   const { toast } = useToast();
+  // L'accusé de réception ne doit pas faire échouer le dépôt : la réclamation
+  // est déjà au registre quand il part.
+  const { invoke: sendAcknowledgement } = useEdgeFunction("send-reclamation-acknowledgement", {
+    silentOnError: true,
+  });
 
   const [openFaq, setOpenFaq] = useState<string | null>(null);
   const [category, setCategory] = useState("");
@@ -1423,11 +1430,38 @@ function AideView({
   const [message, setMessage] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
+  const goesToRegister = helpDestination(category) === "reclamation";
 
   const handleSend = async () => {
     if (!subject.trim() || !message.trim()) return;
     setSending(true);
     try {
+      // Ce qui relève de la prestation va au registre des réclamations, pas
+      // au kanban produit où il se perdait entre les bugs (indicateur 31).
+      const reclamationFields = reclamationFieldsFor(category);
+      if (helpDestination(category) === "reclamation" && reclamationFields) {
+        const { data, error } = await rpc.createLearnerReclamation({
+          subject: subject.trim(),
+          description: message.trim(),
+          nature: reclamationFields.nature,
+          problemType: reclamationFields.problemType,
+          trainingId: mainTraining?.training_id ?? null,
+        });
+        if (error) throw error;
+        if (data?.id) await sendAcknowledgement({ reclamationId: data.id });
+
+        toast({
+          title: "Message enregistré",
+          description: "Il rejoint notre registre. Vous recevez un accusé de réception par email.",
+        });
+        setCategory("");
+        setIsBug(false);
+        setSubject("");
+        setMessage("");
+        setFiles([]);
+        return;
+      }
+
       await createTicket.mutateAsync({
         // Un problème technique est traité comme un bug (comme côté staff),
         // sinon comme une demande/évolution.
@@ -1609,24 +1643,34 @@ function AideView({
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>
-                  Captures d'écran {isBug ? "(recommandé pour un bug)" : "(optionnel)"}
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-                  className="w-full text-xs"
-                  style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
-                />
-                {files.length > 0 && (
-                  <p className="text-[11px] mt-1" style={{ color: "var(--st-ink-muted)" }}>
-                    {files.length} fichier{files.length > 1 ? "s" : ""} joint{files.length > 1 ? "s" : ""}
-                  </p>
-                )}
-              </div>
+              {/* Le registre des réclamations ne porte pas de pièce jointe :
+                  proposer le champ sur ce chemin reviendrait à faire croire que
+                  le fichier part, alors qu'il serait silencieusement perdu. */}
+              {goesToRegister ? (
+                <p className="text-[11px]" style={{ color: "var(--st-ink-muted)" }}>
+                  Pour joindre un document, répondez à l'accusé de réception que vous recevrez par
+                  email.
+                </p>
+              ) : (
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>
+                    Captures d'écran {isBug ? "(recommandé pour un bug)" : "(optionnel)"}
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+                    className="w-full text-xs"
+                    style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+                  />
+                  {files.length > 0 && (
+                    <p className="text-[11px] mt-1" style={{ color: "var(--st-ink-muted)" }}>
+                      {files.length} fichier{files.length > 1 ? "s" : ""} joint{files.length > 1 ? "s" : ""}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <button
                 onClick={handleSend}
