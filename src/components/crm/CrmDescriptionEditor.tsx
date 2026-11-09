@@ -7,7 +7,6 @@ import { useTiptapImagePaste } from "@/hooks/useTiptapImagePaste";
 import { transformEmojiImageTags } from "@/lib/tiptapPasteUtils";
 import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, List, ListOrdered, Undo, Redo, ImageIcon, Mic, Mail, Square, Table as TableIcon } from "lucide-react";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
-import { useCreateDictatedTranscript } from "@/hooks/useEntityTranscripts";
 import { toast } from "@/lib/toast";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -38,17 +37,10 @@ const CrmDescriptionEditor = ({
   const [imageUploading, setImageUploading] = useState(false);
   const timestampInsertedRef = useRef(false);
   const stampLabelRef = useRef("");
-  const createDictated = useCreateDictatedTranscript("crm_card");
   const dictation = useVoiceDictation({
-    onTranscript: (text) => {
-      if (!cardId) return;
-      createDictated.mutate(
-        { entityId: cardId, text, title: `Message vocal laissé le ${stampLabelRef.current}` },
-        {
-          onSuccess: () => toast.success("Message vocal enregistré dans les transcripts"),
-          onError: (e) => toast.error("Enregistrement du transcript impossible : " + (e instanceof Error ? e.message : "inconnue")),
-        },
-      );
+    context: cardId ? { entity: "crm_card", entityId: cardId, title: `Message vocal laissé le ${stampLabelRef.current}` } : undefined,
+    onTranscript: () => {
+      toast.success("Message vocal enregistré dans les transcripts");
     },
   });
 
@@ -143,7 +135,6 @@ const CrmDescriptionEditor = ({
 
   const handleVoiceClick = () => {
     if (dictation.isRecording) { dictation.stopRecording(); return; }
-    insertStamp("Message vocal laissé");
     if (cardId && dictation.isSupported) {
       stampLabelRef.current = format(new Date(), "d MMMM yyyy 'à' HH:mm", { locale: fr });
       dictation.startRecording();
@@ -160,14 +151,14 @@ const CrmDescriptionEditor = ({
           variant="ghost"
           size="sm"
           onClick={handleVoiceClick}
-          disabled={dictation.isTranscribing || createDictated.isPending}
+          disabled={!cardId || dictation.isTranscribing}
           title={dictation.isRecording ? "Arrêter la dictée du message vocal" : "Horodater et dicter le message vocal laissé"}
           className={cn(
             "h-7 px-1.5 text-muted-foreground hover:text-foreground",
             dictation.isRecording && "text-destructive animate-pulse",
           )}
         >
-          {dictation.isTranscribing || createDictated.isPending ? (
+          {dictation.isTranscribing ? (
             <Spinner className="h-3.5 w-3.5" />
           ) : dictation.isRecording ? (
             <Square className="h-3.5 w-3.5 fill-current" />
