@@ -10364,6 +10364,7 @@ export type Database = {
       }
       reclamations: {
         Row: {
+          acknowledgement_sent_at: string | null
           actions_decided: string | null
           ai_analysis: string | null
           ai_response_draft: string | null
@@ -10387,6 +10388,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acknowledgement_sent_at?: string | null
           actions_decided?: string | null
           ai_analysis?: string | null
           ai_response_draft?: string | null
@@ -10410,6 +10412,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acknowledgement_sent_at?: string | null
           actions_decided?: string | null
           ai_analysis?: string | null
           ai_response_draft?: string | null
