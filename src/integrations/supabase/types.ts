@@ -13135,6 +13135,45 @@ export type Database = {
           },
         ]
       }
+      training_transcripts: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          training_id: string
+          transcript_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          training_id: string
+          transcript_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          training_id?: string
+          transcript_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_transcripts_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_transcripts_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_venues: {
         Row: {
           address: string
@@ -15094,6 +15133,14 @@ export type Database = {
           p_contact_id: string
           p_transcript_id: string
           p_transcript_url: string
+        }
+        Returns: Json
+      }
+      link_transcript_to_training: {
+        Args: {
+          p_allow_multiple?: boolean
+          p_training_id: string
+          p_transcript_id: string
         }
         Returns: Json
       }
