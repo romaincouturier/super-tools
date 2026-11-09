@@ -37,8 +37,8 @@ export function useNocrmImportRunner() {
     busy,
     current,
     stop: () => { stopRef.current = true; },
-    upload: wrap(async (leads: File, comments: File) => {
-      const paths = await uploadNocrmFiles(leads, comments);
+    upload: wrap(async (leads: File) => {
+      const paths = await uploadNocrmFiles(leads);
       return { leads_path: paths.leadsPath, comments_path: paths.commentsPath } as NocrmImportRun;
     }),
     simulate: wrap(async (leadsPath: string, commentsPath: string) => { const r = await simulateNocrmImport(leadsPath, commentsPath); setCurrent(r); return r; }),
