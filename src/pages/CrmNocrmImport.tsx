@@ -138,7 +138,6 @@ export default function CrmNocrmImport() {
   const { data: runs = [] } = useNocrmImportRuns();
   const runner = useNocrmImportRunner();
   const [leadsFile, setLeadsFile] = useState<File | null>(null);
-  const [commentsFile, setCommentsFile] = useState<File | null>(null);
   const [paths, setPaths] = useState<{ leads: string; comments: string } | null>(null);
 
   const lastSimulation = runs.find((r) => r.mode === "simulation" && r.status === "done");
@@ -160,18 +159,18 @@ export default function CrmNocrmImport() {
         <PageHeader icon={DatabaseBackup} title="Import noCRM" subtitle="Historique 2020-2026 de l'ancien CRM : fiches, notes et activités" backTo="/crm" />
 
         <Card>
-          <CardHeader><CardTitle className="text-base">1. Fichiers</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">1. Fichier</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1"><Label>nocrm_leads.csv</Label><Input type="file" accept=".csv,text/csv" onChange={(e) => setLeadsFile(e.target.files?.[0] ?? null)} /></div>
-              <div className="space-y-1"><Label>nocrm_comments.csv</Label><Input type="file" accept=".csv,text/csv" onChange={(e) => setCommentsFile(e.target.files?.[0] ?? null)} /></div>
+            <div className="space-y-1">
+              <Label htmlFor="nocrm-file">Export noCRM (.csv)</Label><Input id="nocrm-file" type="file" accept=".csv,text/csv" onChange={(e) => setLeadsFile(e.target.files?.[0] ?? null)} />
             </div>
-            <Button disabled={!leadsFile || !commentsFile || runner.busy} onClick={() => guard(async () => {
-              const r = await runner.upload(leadsFile!, commentsFile!);
+            <Button disabled={!leadsFile || runner.busy} onClick={() => guard(async () => {
+              if (!leadsFile) return;
+              const r = await runner.upload(leadsFile);
               setPaths({ leads: r.leads_path, comments: r.comments_path });
-              toast({ title: "Fichiers envoyés" });
-            }, "Échec de l'envoi")}>Envoyer les fichiers</Button>
-            {activePaths && <p className="text-xs text-muted-foreground">Fichiers utilisés : {activePaths.leads} et {activePaths.comments}</p>}
+              toast({ title: "Fichier envoyé" });
+            }, "Échec de l'envoi")}>Envoyer le fichier</Button>
+            {activePaths && <p className="text-xs text-muted-foreground">Fichier chargé.</p>}
           </CardContent>
         </Card>
 

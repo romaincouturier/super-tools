@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
+import { prepareNocrmFile } from "@/lib/nocrmSingleFile";
 
 export interface NocrmImportRun {
   id: string;
@@ -24,9 +25,9 @@ export interface NocrmImportRun {
   finished_at: string | null;
 }
 
-/** Envoie les deux CSV au serveur, qui les range dans un espace privé. */
-export async function uploadNocrmFiles(leads: File, comments: File) {
-  const [leadsCsv, commentsCsv] = await Promise.all([leads.text(), comments.text()]);
+/** Convertit l'export unique vers les deux jeux de données du serveur existant. */
+export async function uploadNocrmFiles(leads: File) {
+  const { leadsCsv, commentsCsv } = await prepareNocrmFile(leads);
   const { data, error } = await supabase.functions.invoke("nocrm-import", { body: { action: "upload", leadsCsv, commentsCsv } });
   if (error) {
     const details = error instanceof FunctionsHttpError ? await error.context.text() : error.message;
