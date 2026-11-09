@@ -22,7 +22,7 @@ class Recorder {
 describe("enregistrement continu", () => {
   beforeEach(() => { vi.useFakeTimers(); Recorder.instances = []; Recorder.events = []; vi.stubGlobal("MediaRecorder", Recorder); });
   afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
-  const setup = (onSegment = vi.fn(async () => {})) => {
+  const setup = (onSegment = vi.fn(async (_blob: Blob) => {})) => {
     const track = { stop: vi.fn() };
     const stream = { getTracks: () => [track] } as unknown as MediaStream;
     const error = vi.fn();
