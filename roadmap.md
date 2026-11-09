@@ -1,10 +1,10 @@
 # Roadmap
 
 ## Décisions du 09/11/2026
-- [ ] Appliquer le script validé des comptes sans ligne de sécurité, sans écraser les lignes existantes ni envoyer d’email ; vérifier et tracer.
-- [ ] Redonner le workflow actuel présentiel/mixte et post-formation, sans changement.
-- [ ] Vérifier AI4Product du 15/09 au 07/10, quatre participants APICIL, sans rejouer d’envoi.
-- [ ] Expliquer la migration MCP annoncée et confronter le blocage ancien au code actuel.
+- [x] Script validé appliqué : 22 lignes manquantes ajoutées (8 true, 14 false), 7 existantes préservées ; 22 écritures tracées, aucun email ni changement de mot de passe.
+- [x] Workflow présentiel/mixte et post-formation vérifié dans le code et les réglages, mécanisme conservé ; rappel financeur actuellement à 10 jours ouvrés, différence avec règle J+45 à arbitrer sans modification.
+- [x] AI4Product identifiée : 15/09–07/10, quatre participants APICIL ; factures/conventions présentes, email commanditaire manquant pour Jean-Michel ; émargements envoyés le 11/10, aucune nouvelle tentative.
+- [x] Migration MCP expliquée : SDK/endpoint/auth, distincte du schéma training_transcripts ; couverture déjà implémentée dans le code actuel, disponibilité hébergée non vérifiée.
 
 ## Dictée CRM et rattachement (2026-11-09)
 - [x] Relais automatique par segments de cinq minutes, transcription ordonnée et bouton Arrêter disponible ; 8 tests et 103 contrôles réussis, vrais segments décodés sur navigateur ordinateur/mobile ; transfert audio staff/propriétaire déployé. Rendez-vous réel et verrouillage mobile non vérifiés.
@@ -59,7 +59,7 @@
 - [x] Modèle learner_course_access, nom de formation à l'ajout unitaire, bilan de l'import en lot, MCP aligné
 - [x] Cause racine : inscription Academy et connexions par mot de passe enregistrent le mot de passe
 - [x] Ancienne fonction send-elearning-access retirée
-- [ ] Correction des 29 comptes : SQL prêt dans docs/sql, en attente d'accord de Romain
+- [x] Correction des 29 comptes validée et appliquée le 09/11 : 22 ajouts (8 true, 14 false), 7 lignes existantes préservées ; journalisation par compte, aucun email
 - [x] Rattrapage : quatre emails envoyés après accord et vérification ; Delphine exclue, mot de passe désormais défini
 - [x] Présentiel/mixte : mécanisme actuel conservé selon décision du 09/11 ; workflow à rappeler, pas de refonte
 
@@ -96,7 +96,7 @@
 - [x] Diagnostiquer les erreurs récentes : convention globale expirée sur AI4Product, session inter, régénération refusée sans participant
 - [x] Contrôler la disponibilité de toutes les fonctions sans déclencher leurs actions : 246/246 répondent aux pré-vérifications OPTIONS
 - [x] Bloquer le téléchargement de convention globale obsolète en inter : contrôle authentifié sur AI4Product et 27 tests ciblés réussis ; aucun email envoyé
-- [ ] Envoi « Envoyer les documents » APICIL : aucune formation APICIL trouvée, aucune réponse HTTP d’erreur sur les envois sur 7 jours ; lien exact requis pour reproduire, ne pas rejouer un envoi à l’aveugle
+- [x] APICIL identifiée le 09/11 : AI4Product 724bba99-48af-46b5-b359-23db722e12d6, quatre participants ; envoi émargements enregistré le 11/10, email commanditaire absent pour Jean-Michel ; erreur générale non reproduite, aucun envoi rejoué
 
 ## Registre des sources de veille (2026-10-27)
 - [x] Données, URL canonique unique et rattachement des fiches
@@ -111,7 +111,7 @@
 
 ## Couverture des cours LMS (2026-10-14)
 - [x] Import PNG/JPG/WebP, maximum 5 Mo, aperçu 16:9, remplacement et suppression
-- [ ] Mise à jour partielle de cover_image_url depuis le MCP : bloquée, le serveur existant utilise une ancienne intégration et l’outil requis d’extraction du manifeste n’est pas disponible dans cette session ; aucune modification du serveur ni de son authentification
+- [x] Mise à jour partielle de cover_image_url : update_lms_course et validation déjà présents dans le code vérifié le 09/11 ; ancien blocage périmé pour ce champ, révision hébergée non vérifiée
 - [x] 38 tests ciblés réussis ; parcours authentifié import/enregistrement/rechargement/suppression vérifié sur un cours temporaire, aperçu desktop/mobile vérifié, données de test nettoyées
 
 ## Blocs LMS (2026-10-09)
