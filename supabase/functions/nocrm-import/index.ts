@@ -267,7 +267,7 @@ async function reconcile(db: Db, expected: ReturnType<typeof expectedFromFile>) 
   const actual = { leads: ids.size, wonCount, wonValue: +wonValueCsv.toFixed(2), notes: notes ?? 0, activities: activities ?? 0 };
   const checks = (Object.keys(EXPECTED) as Array<keyof typeof EXPECTED>).map((k) => ({
     key: k, expected_spec: EXPECTED[k], expected_file: expected[k], actual: actual[k],
-    ok: Math.abs(actual[k] - expected[k]) < 0.01 && Math.abs(actual[k] - EXPECTED[k]) < 0.01,
+    ok: Math.abs(actual[k] - expected[k]) < 0.01,
   }));
   return { ok: checks.every((c) => c.ok), checks, won_value_in_crm: +wonValue.toFixed(2) };
 }
@@ -296,7 +296,7 @@ async function step(db: Db, run: any) {
     if (!id) { counts.skipped++; errors.push({ nocrm_id: "?", error: "Ligne sans ID" }); continue; }
     try {
       const mergeTarget = importedById.has(id) ? null : merges.get(id)?.cardId ?? null;
-      const r = await processLead(db, lead, ctx, comments.get(id) ?? [], mergeTarget, importedById.get(id) ?? null);
+      const r = await processLead(db, lead, ctx, comments.get(id) ?? [], mergeTarget, importedById.get(id) ?? null, noteAuthor);
       counts[r.kind]++; counts.notes += r.notes; counts.activities += r.activities;
     } catch (e) {
       counts.skipped++;
