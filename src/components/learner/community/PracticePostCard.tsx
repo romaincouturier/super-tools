@@ -110,7 +110,7 @@ export default function PracticePostCard({
   isAdmin: boolean;
   /** Display name stored on the reply when an admin/trainer comments. */
   currentUserName?: string | null;
-  onReact: (postId: string, emoji: string, iReacted: boolean) => void;
+  onReact: (postId: string, emoji: string, iReacted: boolean) => void | Promise<void>;
   onDelete: (postId: string) => void;
   onVote: (pollId: string, optionId: string, currentOptionId: string | null) => void;
   onSelectTag: (tag: string) => void;
