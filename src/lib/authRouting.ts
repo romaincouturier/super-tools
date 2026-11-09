@@ -17,6 +17,7 @@ export function sanitizeRedirect(value: string | null | undefined): string | nul
   if (!value) return null;
   if (!value.startsWith("/")) return null;
   if (value.startsWith("//")) return null;
+  if (/[\\\u0000-\u001f\u007f]/.test(value)) return null;
   if (value.startsWith("/connexion") || value === "/auth") return null;
   return value;
 }
@@ -40,6 +41,8 @@ export function resolvePostLoginPath(params: {
   hasAccess?: boolean;
 }): string {
   const { isStaff, mustChangePassword } = params;
+  const consent = sanitizeRedirect(params.next);
+  if (consent?.split("?")[0] === "/.lovable/oauth/consent" && !mustChangePassword) return consent;
   if (mustChangePassword) {
     // La destination survit à l'écran de changement obligatoire (chapitre 7).
     const kept = sanitizeRedirect(params.next);

@@ -150,7 +150,7 @@ export default function Connexion() {
             </form>
             <p className="mt-5 text-[15px] text-muted-foreground">
               Vous n'avez pas encore de compte&nbsp;?{" "}
-              <Link to="/academy/inscription" className="font-bold text-foreground underline underline-offset-[3px]">
+              <Link to={next?.startsWith("/.lovable/oauth/consent?") ? `/academy/inscription?next=${encodeURIComponent(next)}` : "/academy/inscription"} className="font-bold text-foreground underline underline-offset-[3px]">
                 Créer un compte gratuitement
               </Link>
             </p>
@@ -215,7 +215,7 @@ export default function Connexion() {
             </Subtitle>
             <div className="flex flex-col gap-3">
               <Link
-                to="/academy/inscription"
+                to={next?.startsWith("/.lovable/oauth/consent?") ? `/academy/inscription?next=${encodeURIComponent(next)}` : "/academy/inscription"}
                 className="flex h-14 w-full items-center justify-center rounded-[11px] bg-primary text-base font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:translate-y-px"
               >
                 Créer un compte gratuitement

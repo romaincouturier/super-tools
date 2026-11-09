@@ -19,7 +19,7 @@
 - [x] Aucun audio trouvé dans le stockage entre 09:30 et 11:10 UTC le 09/11 ; note 12:00 Paris et début manquant non récupérables depuis les éléments retrouvés, aucune retranscription lancée
 
 ## Modules LMS et transcripts formations (2026-11-09)
-- [ ] Évolutions MCP demandées le 09/11 : modules LMS, transcripts formation, sources de veille et couverture ; compatibilité du nouveau serveur avec l’authentification existante à établir avant toute migration du connecteur.
+- [ ] Accord « go » du 09/11 : implémenter modules LMS, transcripts formation, sources de veille et couverture sur un connecteur parallèle ; ancien serveur conservé. OAuth géré activé, découverte publique vérifiée 200 ; consentement et publication à terminer.
 - [ ] Liaison training_transcripts et affichage formation : à implémenter avec droits staff et traçabilité, sans toucher les leçons ni remplacer implicitement le serveur existant.
 
 ## Règlement intérieur éditable (2026-11-05)

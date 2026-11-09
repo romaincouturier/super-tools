@@ -13,6 +13,7 @@ import { useAcademyEnrollment } from "@/hooks/useAcademyEnrollment";
 import { useSession } from "@/hooks/useSession";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { sanitizeRedirect } from "@/lib/authRouting";
 
 function isStrongPassword(password: string) {
   return password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password);
@@ -32,6 +33,8 @@ export default function AcademySignup() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const courseId = searchParams.get("course") ?? "";
+  const redirect = sanitizeRedirect(searchParams.get("next"));
+  const consentReturn = redirect?.split("?")[0] === "/.lovable/oauth/consent" ? redirect : null;
   const { data, isLoading } = useAcademyCatalog();
   const preselectedCourse = useMemo(() => data?.courses.find((item) => item.id === courseId), [courseId, data?.courses]);
   const createAccount = useAcademyAccount();
@@ -51,8 +54,8 @@ export default function AcademySignup() {
   const signingUp = useRef(false);
 
   useEffect(() => {
-    if (user && !authLoading && !signingUp.current) navigate("/espace-apprenant");
-  }, [authLoading, navigate, user]);
+    if (user && !authLoading && !signingUp.current) navigate(consentReturn ?? "/espace-apprenant");
+  }, [authLoading, navigate, user, consentReturn]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -62,6 +65,7 @@ export default function AcademySignup() {
     try {
       await createAccount.mutateAsync({ firstName: firstName.trim(), lastName: lastName.trim(), email: normalizedEmail, password });
       await signIn(normalizedEmail, password);
+      if (consentReturn) { navigate(consentReturn); return; }
       if (courseId) {
         try {
           await enroll.mutateAsync([courseId]);
