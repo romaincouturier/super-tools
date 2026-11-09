@@ -2,7 +2,7 @@
 title: 'Story 1.6 : poser des notes dans le calendrier'
 type: 'feature'
 created: '2026-11-09'
-status: 'in-progress'
+status: 'in-review'
 baseline_commit: '83baa6421fc6b18d1781ab72a4e7fd502b31185a'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -65,14 +65,14 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `supabase/migrations/20261109100000_social_calendar_notes.sql` -- table, contraintes, index sur `day`, RLS. -- Socle.
-- [ ] `supabase/tests/social-contents.test.ts` -- jour sans heure (1.6-SQL-001), texte vide ou blanc refusé, couleur invalide refusée, RLS par opération (sans droit, hors Romain, admin, anon), rejeu. -- Règle [058] et R-01.
-- [ ] Sauvegardes -- `social_calendar_notes` dans les deux listes. -- Règle [038].
-- [ ] `src/services/socialContents.ts` -- `SocialCalendarNote`, `listNotesInRange(fromDay, toDay)`, `createNote`, `updateNote`, `deleteNote` (erreur si 0 ligne), `notesByDay` (fonction pure) ; palette partagée. -- Service.
-- [ ] `src/hooks/useSocialContents.ts` -- hooks de lecture et d'écriture des notes, invalidation en `onSettled`. -- Hooks.
-- [ ] `src/components/social/CalendarNote.tsx` et `CalendarNoteForm.tsx` -- note glissable et formulaire (texte, couleur, jour en édition, Supprimer confirmé). -- 1.6-COMP-001, 002.
-- [ ] `SocialCalendar.tsx` et `SocialContentsPage.tsx` -- notes par jour, bouton d'ajout, dépôt d'une note sur un jour. -- Câblage.
-- [ ] Tests : notes hors filtres et compteurs (1.6-UNIT-001), ajout, édition, déplacement, suppression confirmée et annulée (1.6-COMP-001, 002). -- Couverture.
+- [x] `supabase/migrations/20261109100000_social_calendar_notes.sql` -- table, contraintes, index sur `day`, RLS. -- Socle.
+- [x] `supabase/tests/social-contents.test.ts` -- jour sans heure (1.6-SQL-001), texte vide ou blanc refusé, couleur invalide refusée, RLS par opération (sans droit, hors Romain, admin, anon), rejeu. -- Règle [058] et R-01.
+- [x] Sauvegardes -- `social_calendar_notes` dans les deux listes. -- Règle [038].
+- [x] `src/services/socialContents.ts` -- `SocialCalendarNote`, `listNotesInRange(fromDay, toDay)`, `createNote`, `updateNote`, `deleteNote` (erreur si 0 ligne), `notesByDay` (fonction pure) ; palette partagée. -- Service.
+- [x] `src/hooks/useSocialContents.ts` -- hooks de lecture et d'écriture des notes, invalidation en `onSettled`. -- Hooks.
+- [x] `src/components/social/CalendarNote.tsx` et `CalendarNoteForm.tsx` -- note glissable et formulaire (texte, couleur, jour en édition, Supprimer confirmé). -- 1.6-COMP-001, 002.
+- [x] `SocialCalendar.tsx` et `SocialContentsPage.tsx` -- notes par jour, bouton d'ajout, dépôt d'une note sur un jour. -- Câblage.
+- [x] Tests : notes hors filtres et compteurs (1.6-UNIT-001), ajout, édition, déplacement, suppression confirmée et annulée (1.6-COMP-001, 002). -- Couverture.
 
 **Acceptance Criteria:**
 - Given un jour du calendrier, when l'utilisateur ajoute une note avec un texte et une couleur, then elle s'affiche sur ce jour, distincte des cartes de contenu, hors de tout statut, filtre et compteur.
