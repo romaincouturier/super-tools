@@ -36,11 +36,13 @@ export function parseCsv(text: string): Row[] {
 export const splitMulti = (v: string | undefined): string[] =>
   (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 
+const parisDateFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Europe/Paris", hourCycle: "h23",
+  year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
+});
+
 function parisOffsetMinutes(utcMs: number): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Europe/Paris", hourCycle: "h23",
-    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
-  }).formatToParts(new Date(utcMs));
+  const parts = parisDateFormatter.formatToParts(new Date(utcMs));
   const g = (t: string) => Number(parts.find((p) => p.type === t)?.value);
   const asUtc = Date.UTC(g("year"), g("month") - 1, g("day"), g("hour"), g("minute"), g("second"));
   return Math.round((asUtc - utcMs) / 60000);

@@ -41,7 +41,7 @@ async function loadFiles(db: Db, leadsPath: string, commentsPath: string) {
 
 async function loadContext(db: Db) {
   const [{ data: cols }, { data: tags }] = await Promise.all([
-    db.from("crm_columns").select("id, name").eq("is_archived", false),
+    db.from("crm_columns").select("id, name"),
     db.from("crm_tags").select("id, name, category"),
   ]);
   const byName = (n: string) => (cols ?? []).find((c: any) => c.name.trim().toLowerCase() === n.toLowerCase())?.id as string | undefined;

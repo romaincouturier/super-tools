@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { buildHistory, findMergeTarget, groupComments, leadTags, mapLeadToCard, noteContent, parisToIso, parseAmount, parseCsv, textToHtml } from "./nocrm-import";
 
 const COLS = { "Entrant": "E", "Contacté": "C", "Devis envoyé": "D", "Gagné": "G", "Perdu": "P" };
@@ -13,6 +13,17 @@ describe("import noCRM", () => {
     expect(parisToIso("2020-01-21 10:34")).toBe("2020-01-21T09:34:00.000Z");
     expect(parisToIso("2024-07-01 10:00")).toBe("2024-07-01T08:00:00.000Z");
     expect(parisToIso("")).toBeNull();
+  });
+
+  it("réutilise le convertisseur Paris pour les 15 577 commentaires", () => {
+    const spy = vi.spyOn(Intl, "DateTimeFormat");
+    try {
+      const rows = Array.from({ length: 15577 }, (_, i) => ({ nocrm_id: String(i % 1955), commented_at: "2024-07-01 10:00" }));
+      const comments = [...groupComments(rows).values()].flat();
+      expect(comments).toHaveLength(15577);
+      expect(comments.every(c => c.at === "2024-07-01T08:00:00.000Z")).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
+    } finally { spy.mockRestore(); }
   });
 
   it("lit les montants", () => {
