@@ -531,6 +531,54 @@ export type Database = {
           },
         ]
       }
+      audit_runs: {
+        Row: {
+          answers: Json
+          created_at: string
+          created_by: string | null
+          facts: Json
+          findings: Json
+          finished_at: string | null
+          framework_version: string
+          id: string
+          label: string | null
+          notes: string | null
+          sample_training_ids: string[]
+          started_at: string
+          updated_at: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          created_by?: string | null
+          facts?: Json
+          findings?: Json
+          finished_at?: string | null
+          framework_version?: string
+          id?: string
+          label?: string | null
+          notes?: string | null
+          sample_training_ids?: string[]
+          started_at?: string
+          updated_at?: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          created_by?: string | null
+          facts?: Json
+          findings?: Json
+          finished_at?: string | null
+          framework_version?: string
+          id?: string
+          label?: string | null
+          notes?: string | null
+          sample_training_ids?: string[]
+          started_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       author_onboarding_files: {
         Row: {
           created_at: string
