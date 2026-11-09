@@ -15,6 +15,11 @@ import {
   saveGroupWithPosts,
   setGroupDate,
   withGroupDate,
+  createNote,
+  deleteNote,
+  listNotesInRange,
+  updateNote,
+  type SocialCalendarNote,
   type SocialContentGroup,
 } from "@/services/socialContents";
 
@@ -150,5 +155,90 @@ export function useDeleteSocialGroup() {
   return useMutation({
     mutationFn: deleteGroup,
     onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+// ── Notes du calendrier ────────────────────────────────────────
+
+const NOTES_KEY = ["social-calendar-notes"];
+
+export function useSocialCalendarNotes(fromDay: string, toDay: string) {
+  return useQuery({
+    queryKey: [...NOTES_KEY, fromDay, toDay],
+    queryFn: () => listNotesInRange(fromDay, toDay),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useCreateSocialNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createNote,
+    onSettled: () => qc.invalidateQueries({ queryKey: NOTES_KEY }),
+  });
+}
+
+interface UpdateNoteVars {
+  id: string;
+  day?: string;
+  text?: string;
+  color?: string;
+}
+
+type NotePatch = Partial<Pick<SocialCalendarNote, "day" | "text" | "color">>;
+
+const UPDATE_NOTE_KEY = [...NOTES_KEY, "update"];
+
+/**
+ * Modification ou déplacement d'une note : mise à jour optimiste. En cas
+ * d'erreur, seule la note concernée revient à ses valeurs précédentes, et
+ * seulement sur les champs qu'aucune autre modification n'a réécrits depuis.
+ * Les notes sont relues une fois la dernière modification en vol terminée.
+ */
+export function useUpdateSocialNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationKey: UPDATE_NOTE_KEY,
+    mutationFn: ({ id, ...patch }: UpdateNoteVars) => updateNote(id, patch),
+    onMutate: async ({ id, ...patch }: UpdateNoteVars) => {
+      await qc.cancelQueries({ queryKey: NOTES_KEY });
+      const current = qc.getQueriesData<SocialCalendarNote[]>({ queryKey: NOTES_KEY })
+        .flatMap(([, list]) => list ?? [])
+        .find((n) => n.id === id);
+      const previous: NotePatch = {};
+      if (current) {
+        for (const field of Object.keys(patch) as (keyof NotePatch)[]) previous[field] = current[field];
+      }
+      qc.setQueriesData<SocialCalendarNote[]>({ queryKey: NOTES_KEY }, (list) =>
+        list?.map((n) => (n.id === id ? { ...n, ...patch } : n)));
+      return { id, patch: patch as NotePatch, previous };
+    },
+    onError: (_e, _vars, ctx) => {
+      if (!ctx) return;
+      qc.setQueriesData<SocialCalendarNote[]>({ queryKey: NOTES_KEY }, (list) =>
+        list?.map((n) => {
+          if (n.id !== ctx.id) return n;
+          const restored = { ...n };
+          for (const field of Object.keys(ctx.previous) as (keyof NotePatch)[]) {
+            const value = ctx.previous[field];
+            if (value !== undefined && n[field] === ctx.patch[field]) restored[field] = value;
+          }
+          return restored;
+        }));
+    },
+    onSettled: () => {
+      // La mutation qui se termine compte encore parmi celles en vol.
+      if (qc.isMutating({ mutationKey: UPDATE_NOTE_KEY }) <= 1) {
+        return qc.invalidateQueries({ queryKey: NOTES_KEY });
+      }
+    },
+  });
+}
+
+export function useDeleteSocialNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteNote,
+    onSettled: () => qc.invalidateQueries({ queryKey: NOTES_KEY }),
   });
 }

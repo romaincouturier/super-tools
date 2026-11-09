@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
-import SocialSettingsDialog, { nextThemeColor, THEME_COLORS } from "./SocialSettingsDialog";
+import SocialSettingsDialog, { nextThemeColor } from "./SocialSettingsDialog";
+import { THEME_COLORS } from "@/services/socialContents";
 import type { SocialTheme } from "@/services/socialContents";
 
 type Callbacks = { onSuccess?: () => void; onError?: (e: unknown) => void };

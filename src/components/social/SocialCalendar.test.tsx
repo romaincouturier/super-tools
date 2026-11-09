@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import SocialContentsPage from "@/pages/SocialContentsPage";
-import type { SocialChannel, SocialContentGroup, SocialPost } from "@/services/socialContents";
+import type { SocialCalendarNote, SocialChannel, SocialContentGroup, SocialPost } from "@/services/socialContents";
 
 const h = vi.hoisted(() => ({
   mutate: vi.fn(),
@@ -17,6 +17,11 @@ const h = vi.hoisted(() => ({
   dated: [] as unknown[],
   themes: [] as unknown[],
   undated: [] as unknown[],
+  notes: [] as SocialCalendarNote[],
+  noteArgs: vi.fn(),
+  noteMutate: vi.fn(),
+  notesError: false,
+  notesRefetch: vi.fn(),
 }));
 
 vi.mock("@dnd-kit/core", async (importOriginal) => {
@@ -49,6 +54,14 @@ vi.mock("@/hooks/useSocialContents", () => ({
   useUndatedSocialGroups: () => ({ data: h.undated, isLoading: false, isError: h.undatedError, refetch: h.refetch }),
   useSetSocialGroupDate: () => ({ mutate: h.mutate }),
   useSocialThemes: () => ({ data: h.themes }),
+  useSocialCalendarNotes: (fromDay: string, toDay: string) => {
+    h.noteArgs(fromDay, toDay);
+    if (h.notesError) return { data: undefined, isLoading: false, isError: true, refetch: h.notesRefetch };
+    return { data: h.notes.filter((n) => n.day >= fromDay && n.day <= toDay), isLoading: false, isError: false, refetch: h.notesRefetch };
+  },
+  useUpdateSocialNote: () => ({ mutate: h.noteMutate, isPending: false }),
+  useCreateSocialNote: () => ({ mutate: vi.fn(), isPending: false }),
+  useDeleteSocialNote: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 vi.mock("@/components/social/SocialSettingsDialog", () => ({
   default: ({ open }: { open: boolean }) => (open ? <div data-testid="settings">Réglages ouverts</div> : null),
@@ -78,6 +91,8 @@ describe("Calendrier des contenus sociaux", () => {
     h.undatedError = false;
     h.instagramLimit = null;
     h.themes = [];
+    h.notes = [];
+    h.notesError = false;
     h.dated = [
       // 23:30 à Paris le 12 novembre (22:30 UTC).
       group("soir", [post("soir", "li", "Post du soir", "2026-11-12T22:30:00.000Z")]),
@@ -320,5 +335,122 @@ describe("Calendrier des contenus sociaux", () => {
     expect(screen.queryByText(/Non planifiés/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Réessayer" }));
     expect(h.refetch).toHaveBeenCalledTimes(1);
+  });
+
+  describe("notes du calendrier (story 1.6)", () => {
+    const note = (id: string, day: string, text: string, color = "#f97316"): SocialCalendarNote => ({
+      id, day, text, color, created_at: "2026-11-01T00:00:00Z",
+    });
+
+    it("affiche la note sur son jour, au-dessus des cartes, sans statut ni canal", () => {
+      h.notes = [note("n1", "2026-11-12", "Lancement AI4Product")];
+      renderPage();
+      const day = screen.getByTestId("day-2026-11-12");
+      const noteEl = within(day).getByTestId("social-note-n1");
+      expect(noteEl).toHaveTextContent("Lancement AI4Product");
+      expect(noteEl.compareDocumentPosition(within(day).getByTestId("social-card-soir")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      const card = within(day).getByTestId("social-card-soir");
+      // Mêmes sélecteurs que la carte, qui elle porte pastille de statut et badge canal.
+      expect(within(card).getByRole("img", { name: "Programmé" })).toBeInTheDocument();
+      expect(within(card).getByText("LI")).toBeInTheDocument();
+      expect(within(noteEl).queryByRole("img", { name: /Brouillon|Programmé|Publié/ })).toBeNull();
+      expect(within(noteEl).queryByText("LI")).toBeNull();
+      expect(noteEl.querySelector(".rounded-full")).toBeNull();
+      expect(noteEl.style.backgroundColor).not.toBe("");
+    });
+
+    it("lit les notes de la plage de la grille et n'affiche pas celles hors plage", () => {
+      h.notes = [note("n1", "2026-11-12", "Dans le mois"), note("n2", "2026-12-15", "Mois suivant")];
+      renderPage();
+      expect(h.noteArgs).toHaveBeenLastCalledWith("2026-10-26", "2026-12-06");
+      expect(screen.getByText("Dans le mois")).toBeInTheDocument();
+      expect(screen.queryByText("Mois suivant")).toBeNull();
+    });
+
+    it("1.6-UNIT-001 : les notes restent visibles quels que soient les filtres et ne comptent pas dans Non planifiés", () => {
+      h.themes = [{ id: "ia", name: "IA appliquée", color: "#3b82f6" }];
+      h.notes = [note("n1", "2026-11-12", "Lancement"), note("n2", "2026-11-20", "Relance")];
+      renderPage();
+      expect(screen.getByText("Non planifiés · 1")).toBeInTheDocument();
+      fireEvent.click(within(screen.getByRole("group", { name: "Statut" })).getByRole("button", { name: "Programmé" }));
+      fireEvent.click(within(screen.getByRole("group", { name: "Thème" })).getByRole("button", { name: "IA appliquée" }));
+      fireEvent.click(within(screen.getByRole("group", { name: "Réseau" })).getByRole("button", { name: "Instagram" }));
+      expect(screen.queryByText("Post du soir")).toBeNull();
+      expect(screen.getByTestId("social-note-n1")).toBeInTheDocument();
+      expect(screen.getByTestId("social-note-n2")).toBeInTheDocument();
+      expect(screen.getByText("Non planifiés · 0")).toBeInTheDocument();
+    });
+
+    it("ouvre le formulaire d'ajout depuis un jour, et d'édition au clic sur une note", () => {
+      h.notes = [note("n1", "2026-11-12", "Lancement")];
+      renderPage();
+      fireEvent.click(within(screen.getByTestId("day-2026-11-14")).getByRole("button", { name: /Ajouter une note/ }));
+      expect(screen.getByRole("dialog", { name: "Ajouter une note" })).toBeInTheDocument();
+      expect(screen.queryByTestId("composer")).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
+      fireEvent.click(screen.getByTestId("social-note-n1"));
+      expect(screen.getByRole("dialog", { name: "Modifier la note" })).toBeInTheDocument();
+      expect(screen.getByLabelText("Jour")).toHaveValue("2026-11-12");
+      expect(screen.queryByTestId("composer")).toBeNull();
+    });
+
+    it("1.6-SQL-001 côté front : en TZ=UTC, les notes du 29 et du 30 mars 2026 restent chacune dans leur cellule", () => {
+      vi.setSystemTime(new Date("2026-03-15T10:00:00Z"));
+      h.dated = [];
+      h.notes = [note("dst", "2026-03-29", "Changement d'heure"), note("lendemain", "2026-03-30", "Lendemain")];
+      renderPage();
+      expect(within(screen.getByTestId("day-2026-03-29")).getByTestId("social-note-dst")).toBeInTheDocument();
+      expect(within(screen.getByTestId("day-2026-03-29")).queryByTestId("social-note-lendemain")).toBeNull();
+      expect(within(screen.getByTestId("day-2026-03-30")).getByTestId("social-note-lendemain")).toBeInTheDocument();
+      expect(within(screen.getByTestId("day-2026-03-30")).queryByTestId("social-note-dst")).toBeNull();
+    });
+
+    it("une erreur de lecture des notes laisse le calendrier utilisable, avec un bandeau et Réessayer", () => {
+      h.notesError = true;
+      renderPage();
+      expect(screen.getByText("Post du soir")).toBeInTheDocument();
+      expect(screen.getByText("Non planifiés · 1")).toBeInTheDocument();
+      expect(screen.getByText("Notes indisponibles")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+      expect(h.notesRefetch).toHaveBeenCalledTimes(1);
+      expect(h.refetch).not.toHaveBeenCalled();
+    });
+
+    it("affiche l'erreur d'un déplacement de note en toast", () => {
+      const n1 = note("n1", "2026-11-12", "Lancement");
+      h.notes = [n1];
+      h.noteMutate.mockImplementation((_v: unknown, cb: { onError?: (e: unknown) => void }) => cb.onError?.(new Error("Note introuvable")));
+      renderPage();
+      h.onDragEnd?.({ active: { id: "note:n1", data: { current: { note: n1 } } }, over: { id: "day:2026-11-14" } });
+      expect(h.toast).toHaveBeenCalledWith(expect.objectContaining({ description: "Note introuvable", variant: "destructive" }));
+    });
+
+    it("signale une note déplacée hors de la grille par le champ Jour, pas une note restée visible", () => {
+      h.notes = [note("n1", "2026-11-12", "Lancement")];
+      h.noteMutate.mockImplementation((_v: unknown, cb: { onSuccess?: () => void }) => cb.onSuccess?.());
+      renderPage();
+      fireEvent.click(screen.getByTestId("social-note-n1"));
+      fireEvent.change(screen.getByLabelText("Jour"), { target: { value: "2026-11-20" } });
+      fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+      expect(h.toast).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByTestId("social-note-n1"));
+      fireEvent.change(screen.getByLabelText("Jour"), { target: { value: "2026-12-15" } });
+      fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+      expect(h.noteMutate).toHaveBeenLastCalledWith(expect.objectContaining({ id: "n1", day: "2026-12-15" }), expect.anything());
+      expect(h.toast).toHaveBeenCalledWith(expect.objectContaining({ title: "Note déplacée au 15/12" }));
+    });
+
+    it("déplace une note glissée sur un autre jour, sans toucher aux contenus, et ignore un dépôt sur son jour", () => {
+      const n1 = note("n1", "2026-11-12", "Lancement");
+      h.notes = [n1];
+      renderPage();
+      h.onDragEnd?.({ active: { id: "note:n1", data: { current: { note: n1 } } }, over: { id: "day:2026-11-14" } });
+      expect(h.noteMutate).toHaveBeenCalledWith({ id: "n1", day: "2026-11-14" }, expect.anything());
+      expect(h.mutate).not.toHaveBeenCalled();
+      h.noteMutate.mockClear();
+      h.onDragEnd?.({ active: { id: "note:n1", data: { current: { note: n1 } } }, over: { id: "day:2026-11-12" } });
+      h.onDragEnd?.({ active: { id: "note:n1", data: { current: { note: n1 } } }, over: null });
+      expect(h.noteMutate).not.toHaveBeenCalled();
+    });
   });
 });

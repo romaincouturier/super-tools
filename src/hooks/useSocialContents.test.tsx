@@ -2,11 +2,12 @@ import { describe, it, expect, vi } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import type { SocialContentGroup } from "@/services/socialContents";
+import type { SocialCalendarNote, SocialContentGroup } from "@/services/socialContents";
 
 const h = vi.hoisted(() => ({
   setGroupDate: vi.fn(), createTheme: vi.fn(), updateTheme: vi.fn(), deleteTheme: vi.fn(),
   setPostPublished: vi.fn(), updatePublishedPost: vi.fn(), deletePost: vi.fn(), deleteGroup: vi.fn(),
+  createNote: vi.fn(), updateNote: vi.fn(), deleteNote: vi.fn(), listNotesInRange: vi.fn(),
 }));
 vi.mock("@/services/socialContents", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/services/socialContents")>()),
@@ -18,12 +19,20 @@ vi.mock("@/services/socialContents", async (importOriginal) => ({
   updatePublishedPost: h.updatePublishedPost,
   deletePost: h.deletePost,
   deleteGroup: h.deleteGroup,
+  createNote: h.createNote,
+  updateNote: h.updateNote,
+  deleteNote: h.deleteNote,
+  listNotesInRange: h.listNotesInRange,
   listUndatedGroups: vi.fn(() => new Promise(() => {})),
   listGroupsInRange: vi.fn(() => new Promise(() => {})),
 }));
 
 import {
+  useCreateSocialNote,
   useCreateSocialTheme,
+  useDeleteSocialNote,
+  useSocialCalendarNotes,
+  useUpdateSocialNote,
   useDeleteSocialGroup,
   useDeleteSocialPost,
   useDeleteSocialTheme,
@@ -178,5 +187,108 @@ describe("mutations du marquage publié et de la suppression", () => {
     await act(async () => { await group.result.current.mutateAsync("g"); });
     expect(h.deleteGroup).toHaveBeenCalledWith("g", expect.anything());
     expect(keys(group.invalidate)).toEqual([["social-contents"]]);
+  });
+});
+
+describe("mutations des notes du calendrier", () => {
+  const NOTES = ["social-calendar-notes", "2026-10-26", "2026-12-06"];
+  const n1: SocialCalendarNote = { id: "n1", day: "2026-11-12", text: "Lancement", color: "#f97316", created_at: "" };
+  function setupNote<T>(hook: () => T) {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    qc.setQueryData(NOTES, [n1]);
+    const invalidate = vi.spyOn(qc, "invalidateQueries");
+    const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+    return { qc, invalidate, ...renderHook(hook, { wrapper }) };
+  }
+  const keys = (invalidate: ReturnType<typeof vi.spyOn>) =>
+    invalidate.mock.calls.map((c) => (c[0] as { queryKey: unknown }).queryKey);
+
+  it("déplace la note en cache avant la réponse du serveur", async () => {
+    let resolve: () => void = () => {};
+    h.updateNote.mockReturnValue(new Promise<void>((r) => { resolve = r; }));
+    const { qc, result } = setupNote(() => useUpdateSocialNote());
+    act(() => { result.current.mutate({ id: "n1", day: "2026-11-14" }); });
+    await waitFor(() => expect(qc.getQueryData<SocialCalendarNote[]>(NOTES)?.[0].day).toBe("2026-11-14"));
+    expect(h.updateNote).toHaveBeenCalledWith("n1", { day: "2026-11-14" });
+    resolve();
+  });
+
+  it("revient au jour précédent si le déplacement échoue, et relit les notes", async () => {
+    h.updateNote.mockRejectedValue(new Error("refus"));
+    const { qc, invalidate, result } = setupNote(() => useUpdateSocialNote());
+    act(() => { result.current.mutate({ id: "n1", day: "2026-11-14" }); });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(qc.getQueryData<SocialCalendarNote[]>(NOTES)?.[0].day).toBe("2026-11-12");
+    expect(keys(invalidate)).toEqual([["social-calendar-notes"]]);
+  });
+
+  it("deux déplacements concurrents : l'échec du premier ne restaure que sa note, relecture après le dernier", async () => {
+    const n2: SocialCalendarNote = { ...n1, id: "n2", day: "2026-11-13" };
+    let rejectFirst: (e: Error) => void = () => {};
+    let resolveSecond: () => void = () => {};
+    h.updateNote
+      .mockReturnValueOnce(new Promise<void>((_r, reject) => { rejectFirst = reject; }))
+      .mockReturnValueOnce(new Promise<void>((r) => { resolveSecond = r; }));
+    const { qc, invalidate, result } = setupNote(() => ({ a: useUpdateSocialNote(), b: useUpdateSocialNote() }));
+    qc.setQueryData(NOTES, [n1, n2]);
+    act(() => { result.current.a.mutate({ id: "n1", day: "2026-11-14" }); });
+    await waitFor(() => expect(qc.getQueryData<SocialCalendarNote[]>(NOTES)?.[0].day).toBe("2026-11-14"));
+    act(() => { result.current.b.mutate({ id: "n2", day: "2026-11-20" }); });
+    await waitFor(() => expect(qc.getQueryData<SocialCalendarNote[]>(NOTES)?.[1].day).toBe("2026-11-20"));
+    await act(async () => { rejectFirst(new Error("refus")); });
+    await waitFor(() => expect(result.current.a.isError).toBe(true));
+    expect(qc.getQueryData<SocialCalendarNote[]>(NOTES)?.map((n) => n.day)).toEqual(["2026-11-12", "2026-11-20"]);
+    expect(invalidate).not.toHaveBeenCalled();
+    await act(async () => { resolveSecond(); });
+    await waitFor(() => expect(result.current.b.isSuccess).toBe(true));
+    expect(keys(invalidate)).toEqual([["social-calendar-notes"]]);
+  });
+
+  it("l'échec d'un déplacement ne défait pas un déplacement plus récent de la même note", async () => {
+    let rejectFirst: (e: Error) => void = () => {};
+    h.updateNote
+      .mockReturnValueOnce(new Promise<void>((_r, reject) => { rejectFirst = reject; }))
+      .mockReturnValueOnce(new Promise<void>(() => {}));
+    const { qc, result } = setupNote(() => ({ a: useUpdateSocialNote(), b: useUpdateSocialNote() }));
+    act(() => { result.current.a.mutate({ id: "n1", day: "2026-11-14" }); });
+    await waitFor(() => expect(qc.getQueryData<SocialCalendarNote[]>(NOTES)?.[0].day).toBe("2026-11-14"));
+    act(() => { result.current.b.mutate({ id: "n1", day: "2026-11-16" }); });
+    await waitFor(() => expect(qc.getQueryData<SocialCalendarNote[]>(NOTES)?.[0].day).toBe("2026-11-16"));
+    await act(async () => { rejectFirst(new Error("refus")); });
+    await waitFor(() => expect(result.current.a.isError).toBe(true));
+    expect(qc.getQueryData<SocialCalendarNote[]>(NOTES)?.[0].day).toBe("2026-11-16");
+  });
+
+  it("la création et la suppression invalident les notes, même en cas d'échec", async () => {
+    h.createNote.mockRejectedValue(new Error("refus"));
+    h.deleteNote.mockRejectedValue(new Error("refus"));
+    const create = setupNote(() => useCreateSocialNote());
+    await act(async () => { await create.result.current.mutateAsync({ day: "2026-11-12", text: "x", color: "#f97316" }).catch(() => {}); });
+    expect(keys(create.invalidate)).toEqual([["social-calendar-notes"]]);
+    const remove = setupNote(() => useDeleteSocialNote());
+    await act(async () => { await remove.result.current.mutateAsync("n1").catch(() => {}); });
+    expect(h.deleteNote).toHaveBeenCalledWith("n1", expect.anything());
+    expect(keys(remove.invalidate)).toEqual([["social-calendar-notes"]]);
+  });
+});
+
+describe("useSocialCalendarNotes", () => {
+  it("lit la plage demandée, relit à chaque nouvelle plage et après une création", async () => {
+    h.listNotesInRange.mockResolvedValue([]);
+    h.createNote.mockResolvedValue({ id: "n", day: "2026-11-12", text: "x", color: "#f97316", created_at: "" });
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+    const { result, rerender } = renderHook(
+      ({ from, to }: { from: string; to: string }) => ({ notes: useSocialCalendarNotes(from, to), create: useCreateSocialNote() }),
+      { wrapper, initialProps: { from: "2026-10-26", to: "2026-12-06" } },
+    );
+    await waitFor(() => expect(result.current.notes.isSuccess).toBe(true));
+    expect(h.listNotesInRange).toHaveBeenLastCalledWith("2026-10-26", "2026-12-06");
+    rerender({ from: "2026-11-30", to: "2027-01-03" });
+    await waitFor(() => expect(h.listNotesInRange).toHaveBeenLastCalledWith("2026-11-30", "2027-01-03"));
+    const calls = h.listNotesInRange.mock.calls.length;
+    await act(async () => { await result.current.create.mutateAsync({ day: "2026-12-02", text: "x", color: "#f97316" }); });
+    await waitFor(() => expect(h.listNotesInRange.mock.calls.length).toBeGreaterThan(calls));
+    expect(h.listNotesInRange).toHaveBeenLastCalledWith("2026-11-30", "2027-01-03");
   });
 });

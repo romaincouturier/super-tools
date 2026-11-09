@@ -8,6 +8,7 @@ import {
   filterCards,
   groupDisplayStatus,
   moveKeepingTime,
+  notesByDay,
   parisDayKey,
   parisLocalToUtcIso,
   placeGroups,
@@ -15,6 +16,7 @@ import {
   utcIsoToParisLocal,
   visibleChannelIdsFor,
   withGroupDate,
+  type SocialCalendarNote,
   type SocialContentGroup,
   type SocialFilters,
   type SocialPost,
@@ -370,5 +372,27 @@ describe("applySocialFilters", () => {
     expect(ids(applySocialFilters(groups, f, channels, themes))).toEqual(["a", "b", "brouillon", "publie"]);
     const mixed = { ...emptySocialFilters(), channelIds: new Set(["fa", "in"]) };
     expect(ids(applySocialFilters(groups, mixed, channels, themes))).toEqual(["b"]);
+  });
+});
+
+describe("notes du calendrier (story 1.6)", () => {
+  const note = (id: string, day: string, created_at: string): SocialCalendarNote => ({
+    id, day, text: `Note ${id}`, color: "#f97316", created_at,
+  });
+
+  it("regroupe les notes par jour, dans l'ordre de création", () => {
+    const byDay = notesByDay([
+      note("b", "2026-11-12", "2026-11-02T10:00:00Z"),
+      note("c", "2026-11-14", "2026-11-01T10:00:00Z"),
+      note("a", "2026-11-12", "2026-11-01T09:00:00Z"),
+    ]);
+    expect([...byDay.keys()].sort()).toEqual(["2026-11-12", "2026-11-14"]);
+    expect(byDay.get("2026-11-12")?.map((n) => n.id)).toEqual(["a", "b"]);
+  });
+
+  it("1.6-SQL-001 côté front : un jour de changement d'heure reste sa propre clé, en TZ=UTC", () => {
+    const byDay = notesByDay([note("dst", "2026-03-29", "2026-03-01T00:00:00Z"), note("lendemain", "2026-03-30", "2026-03-01T00:00:00Z")]);
+    expect(byDay.get("2026-03-29")?.map((n) => n.id)).toEqual(["dst"]);
+    expect(byDay.get("2026-03-30")?.map((n) => n.id)).toEqual(["lendemain"]);
   });
 });

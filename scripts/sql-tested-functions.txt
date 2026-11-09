@@ -28,3 +28,4 @@ set_social_group_date
 set_social_post_published
 update_social_post_content
 social_posts_delete_empty_group
+social_calendar_notes_set_created_by

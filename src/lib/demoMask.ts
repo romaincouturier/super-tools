@@ -10,8 +10,10 @@ export function maskEmail(value: string | null | undefined): string {
 
 /** Keep first and last letter of each word: "Romain Couturier" → "R••••n C•••••••r" */
 function maskWord(word: string): string {
-  if (word.length <= 2) return word;
-  return word[0] + "•".repeat(word.length - 2) + word[word.length - 1];
+  // Points de code, pas unités UTF-16 : un emoji n'est jamais coupé en deux.
+  const chars = Array.from(word);
+  if (chars.length <= 2) return word;
+  return chars[0] + "•".repeat(chars.length - 2) + chars[chars.length - 1];
 }
 
 export function maskName(value: string | null | undefined): string {

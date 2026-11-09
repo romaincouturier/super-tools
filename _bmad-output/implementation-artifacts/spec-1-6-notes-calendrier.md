@@ -2,7 +2,7 @@
 title: 'Story 1.6 : poser des notes dans le calendrier'
 type: 'feature'
 created: '2026-11-09'
-status: 'in-review'
+status: 'done'
 baseline_commit: '83baa6421fc6b18d1781ab72a4e7fd502b31185a'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -84,11 +84,34 @@ context:
 - Glisser-déposer : `useDraggable({ id: "note:<id>", data: { note } })` ; `handleDragEnd` distingue `data.note` de `data.card` ; même cible `DAY_DROP_PREFIX`. Un dépôt sur le même jour ne fait rien.
 - Le bouton d'ajout de chaque jour est discret (visible au survol et au focus clavier) et ne doit pas déclencher le dépôt ni ouvrir une carte.
 - Mode démo : le texte d'une note peut citer un client ; passer par `maskText` en mode démo et garder `check-demo-mask.sh` à 0. Le texte des cartes de contenu n'est pas masqué aujourd'hui : écart noté dans `deferred-work.md`, à traiter par `/anonymisation-demo` avant la PR.
+- Auteur : `created_by` est posé à `auth.uid()` par le trigger `social_calendar_notes_created_by` (fonction `social_calendar_notes_set_created_by`, listée dans `scripts/sql-tested-functions.txt`) et figé à la modification ; ni l'insertion ni l'update ne peuvent l'attribuer à un autre compte.
+- Palette : `THEME_COLORS` vit dans `src/services/socialContents.ts`, importée par les réglages des thèmes et par le formulaire de note ; la contrainte `social_calendar_notes_color_palette` en recopie les neuf valeurs (à modifier ensemble).
+- Longueur : 500 points de code (`noteTextLength`, `[...text].length`), comme `char_length` en base ; pas de `maxLength` UTF-16. Le formulaire affiche un compteur et désactive Enregistrer au-delà ; le service refuse aussi.
+- Formulaire : le corps est monté avec une `key` par cible (`note:<id>` ou `day:<jour>`) et initialise son état depuis la cible. Pendant l'envoi, Annuler, Supprimer et la fermeture du dialogue sont désactivés. Jour vide ou invalide : Enregistrer désactivé. Erreur d'enregistrement ou de suppression : toast, formulaire ouvert.
+- Mode démo : `CalendarNote` affiche le texte et l'aria-label masqués (`maskText`, découpé en points de code pour ne jamais couper un emoji). Le formulaire d'une note existante montre le texte masqué en lecture seule et n'enregistre rien ; suppression et glisser-déposer restent possibles.
+- Lecture des notes : son erreur n'entre pas dans le chargement ni l'erreur du calendrier ; notes vides et bandeau « Notes indisponibles » avec Réessayer.
+- Déplacement : `useUpdateSocialNote` (clé de mutation dédiée) met à jour le cache de façon optimiste ; en erreur, seule la note concernée revient à ses valeurs précédentes, sur les champs qu'aucune modification plus récente n'a réécrits ; la relecture n'a lieu qu'une fois la dernière modification en vol terminée (`isMutating`).
+- Une note enregistrée par le champ Jour hors de la grille affichée donne un toast « Note déplacée au JJ/MM ».
+- Le bouton d'ajout est toujours visible sur écran tactile (`[@media(hover:none)]:opacity-100`).
 - Production : jouer `20261109100000_social_calendar_notes.sql` après les cinq migrations précédentes de l'epic.
 
 ## Spec Change Log
 
 ## Review Triage Log
+
+- [high] Masquage démo de `CalendarNote` non testé (le ratchet [065] ne voit pas `.text`) -- patché : test dédié.
+- [medium] Texte réel affiché dans le formulaire d'édition en démo -- patché : texte masqué en lecture seule, enregistrement désactivé.
+- [medium] Une erreur de lecture des notes masquait tout le calendrier (migration non jouée par exemple) -- patché : bandeau « Notes indisponibles » isolé.
+- [medium] Retour arrière optimiste écrasant un déplacement concurrent -- patché : restauration par note, relecture quand plus rien n'est en vol.
+- [medium] Clé de requête des notes non vérifiée -- patché : test de hook sans clé en dur.
+- [low] Emojis coupés par `maskWord` -- patché : découpe en points de code.
+- [low] Longueur comptée en UTF-16 côté front -- patché : points de code, compteur, refus au-delà de 500.
+- [low] Formulaire : flash de l'état précédent, fermeture pendant l'envoi, jour vide -- patché : formulaire monté par cible, fermeture bloquée, jour validé.
+- [low] Note déplacée hors de la vue sans retour -- patché : toast.
+- [low] Bouton d'ajout invisible au toucher -- patché.
+- [low] `created_by` falsifiable sur les notes -- patché : trigger ; même écart sur `social_themes` différé.
+- [low] Tests sans valeur de preuve (1.6-UNIT-001 de service, « sans statut ni canal », jour sans heure côté front) -- remplacés.
+- [low] `updateNote` (trim, minuscules), erreurs Supabase non relayées, erreurs de création et suppression -- patché : tests.
 
 ## Verification
 

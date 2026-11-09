@@ -551,3 +551,100 @@ export function withGroupDate(group: SocialContentGroup, scheduledAt: string | n
     })),
   };
 }
+
+// ── Notes du calendrier ────────────────────────────────────────
+
+/** Palette des thèmes et des notes ; la contrainte social_calendar_notes_color_palette la recopie en base. */
+export const THEME_COLORS = [
+  "#6b7280", // gray
+  "#ef4444", // red
+  "#f97316", // orange
+  "#eab308", // yellow
+  "#22c55e", // green
+  "#14b8a6", // teal
+  "#3b82f6", // blue
+  "#8b5cf6", // purple
+  "#ec4899", // pink
+];
+
+export const NOTE_TEXT_MAX = 500;
+export const NOTE_TEXT_EMPTY_MESSAGE = "Le texte de la note est obligatoire";
+export const NOTE_TEXT_TOO_LONG_MESSAGE = `Le texte de la note ne dépasse pas ${NOTE_TEXT_MAX} caractères`;
+export const NOTE_NOT_FOUND_MESSAGE = "Note introuvable ou modification non autorisée";
+
+/** Longueur d'un texte de note en points de code, comme char_length en base (un emoji compte pour un). */
+export function noteTextLength(text: string): number {
+  return [...text].length;
+}
+
+/** Texte de note débarrassé des blancs de bord, refusé vide ou trop long. */
+function cleanNoteText(raw: string): string {
+  const text = raw.trim();
+  if (!text) throw new Error(NOTE_TEXT_EMPTY_MESSAGE);
+  if (noteTextLength(text) > NOTE_TEXT_MAX) throw new Error(NOTE_TEXT_TOO_LONG_MESSAGE);
+  return text;
+}
+
+/** Repère du calendrier : un jour sans heure ("YYYY-MM-DD"), un texte, une couleur. Hors statuts, filtres et compteurs. */
+export interface SocialCalendarNote {
+  id: string;
+  day: string;
+  text: string;
+  color: string;
+  created_at: string;
+}
+
+const NOTE_SELECT = "id, day, text, color, created_at";
+
+/** Notes des jours fromDay à toDay inclus (clés "YYYY-MM-DD"). */
+export async function listNotesInRange(fromDay: string, toDay: string): Promise<SocialCalendarNote[]> {
+  const { data, error } = await db
+    .from("social_calendar_notes")
+    .select(NOTE_SELECT)
+    .gte("day", fromDay)
+    .lte("day", toDay)
+    .order("day")
+    .order("created_at");
+  if (error) throw error;
+  return (data ?? []) as SocialCalendarNote[];
+}
+
+export async function createNote(input: { day: string; text: string; color: string }): Promise<SocialCalendarNote> {
+  const text = cleanNoteText(input.text);
+  const { data, error } = await db
+    .from("social_calendar_notes")
+    .insert({ day: input.day, text, color: input.color.toLowerCase() })
+    .select(NOTE_SELECT)
+    .single();
+  if (error) throw error;
+  return data as SocialCalendarNote;
+}
+
+export async function updateNote(id: string, patch: { day?: string; text?: string; color?: string }): Promise<void> {
+  const values: { day?: string; text?: string; color?: string } = {};
+  if (patch.day !== undefined) values.day = patch.day;
+  if (patch.text !== undefined) values.text = cleanNoteText(patch.text);
+  if (patch.color !== undefined) values.color = patch.color.toLowerCase();
+  const { data, error } = await db.from("social_calendar_notes").update(values).eq("id", id).select("id");
+  if (error) throw error;
+  if (!data?.length) throw new Error(NOTE_NOT_FOUND_MESSAGE);
+}
+
+/** Zéro ligne supprimée (note disparue ou RLS) : erreur. */
+export async function deleteNote(id: string): Promise<void> {
+  const { data, error } = await db.from("social_calendar_notes").delete().eq("id", id).select("id");
+  if (error) throw error;
+  if (!data?.length) throw new Error(NOTE_NOT_FOUND_MESSAGE);
+}
+
+/** Notes groupées par jour, dans l'ordre de création. Aucun filtre ne s'y applique. */
+export function notesByDay(notes: SocialCalendarNote[]): Map<string, SocialCalendarNote[]> {
+  const byDay = new Map<string, SocialCalendarNote[]>();
+  const sorted = [...notes].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  for (const note of sorted) {
+    const day = byDay.get(note.day) ?? [];
+    day.push(note);
+    byDay.set(note.day, day);
+  }
+  return byDay;
+}

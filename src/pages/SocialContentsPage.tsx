@@ -3,6 +3,7 @@ import { DndContext, type DragEndEvent } from "@dnd-kit/core";
 import { Plus, Settings, Share2 } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
+import CalendarNoteForm, { type NoteFormTarget } from "@/components/social/CalendarNoteForm";
 import SocialCalendar, { DAY_DROP_PREFIX, type CalendarView } from "@/components/social/SocialCalendar";
 import SocialComposerDialog from "@/components/social/SocialComposerDialog";
 import SocialFilterBar from "@/components/social/SocialFilterBar";
@@ -15,10 +16,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useKanbanDnd } from "@/hooks/useKanbanDnd";
 import {
   useSetSocialGroupDate,
+  useSocialCalendarNotes,
   useSocialChannels,
   useSocialGroupsInRange,
   useSocialThemes,
   useUndatedSocialGroups,
+  useUpdateSocialNote,
 } from "@/hooks/useSocialContents";
 import { toastError } from "@/lib/toastError";
 import {
@@ -29,10 +32,12 @@ import {
   buildWeekGrid,
   emptySocialFilters,
   moveKeepingTime,
+  notesByDay,
   PUBLISHED_NOT_MOVABLE_MESSAGE,
   parisDayKey,
   parisLocalToUtcIso,
   type CalendarCard,
+  type SocialCalendarNote,
   type SocialFilters,
 } from "@/services/socialContents";
 
@@ -50,6 +55,7 @@ export default function SocialContentsPage() {
   const [anchor, setAnchor] = useState(todayKey);
   const [filters, setFilters] = useState<SocialFilters>(emptySocialFilters);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [noteForm, setNoteForm] = useState<NoteFormTarget | null>(null);
   const [composer, setComposer] = useState<{ open: boolean; groupId: string | null }>({ open: false, groupId: null });
 
   const weeks = useMemo(() => (view === "month" ? buildMonthGrid(anchor) : [buildWeekGrid(anchor)]), [view, anchor]);
@@ -61,11 +67,15 @@ export default function SocialContentsPage() {
   const channelsQuery = useSocialChannels();
   const datedQuery = useSocialGroupsInRange(fromIso, toIso);
   const undatedQuery = useUndatedSocialGroups();
+  const notesQuery = useSocialCalendarNotes(firstDay, lastDay);
   const { data: themes = [] } = useSocialThemes();
   const { data: channels = [] } = channelsQuery;
   const { data: dated = [] } = datedQuery;
   const { data: undatedGroups = [] } = undatedQuery;
+  const notes = notesQuery.isError ? [] : (notesQuery.data ?? []);
   const setDate = useSetSocialGroupDate();
+  const moveNote = useUpdateSocialNote();
+  const notesOfDay = useMemo(() => notesByDay(notes), [notes]);
 
   const channelsById = useMemo(() => new Map(channels.map((c) => [c.id, c])), [channels]);
   const themesById = useMemo(() => new Map(themes.map((t) => [t.id, t])), [themes]);
@@ -84,6 +94,14 @@ export default function SocialContentsPage() {
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     const overId = over ? String(over.id) : "";
+    const note = active.data.current?.note as SocialCalendarNote | undefined;
+    if (note) {
+      if (!overId.startsWith(DAY_DROP_PREFIX)) return;
+      const day = overId.slice(DAY_DROP_PREFIX.length);
+      if (day === note.day) return;
+      moveNote.mutate({ id: note.id, day }, { onError: (e) => toastError(toast, e) });
+      return;
+    }
     const card = active.data.current?.card as CalendarCard | undefined;
     if (!card || !overId.startsWith(DAY_DROP_PREFIX)) return;
     if (card.group.posts.every((p) => p.publication_status === "published")) {
@@ -96,6 +114,12 @@ export default function SocialContentsPage() {
       { groupId: card.group.id, scheduledAt },
       { onError: (e) => toastError(toast, e) },
     );
+  };
+
+  /** Une note enregistrée hors de la grille affichée disparaît : on dit où elle est partie. */
+  const handleNoteSaved = (day: string) => {
+    if (day >= firstDay && day <= lastDay) return;
+    toast({ title: `Note déplacée au ${day.slice(8, 10)}/${day.slice(5, 7)}` });
   };
 
   const navigate = (step: number) => setAnchor((a) => (view === "month" ? addMonths(a, step) : addDays(a, 7 * step)));
@@ -135,6 +159,12 @@ export default function SocialContentsPage() {
           <div className="flex justify-center py-10"><Spinner /></div>
         ) : (
           <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+            {notesQuery.isError && (
+              <div className="mb-2 flex items-center gap-2 rounded border border-dashed px-3 py-1.5 text-xs text-muted-foreground" role="status">
+                <span>Notes indisponibles</span>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => notesQuery.refetch()}>Réessayer</Button>
+              </div>
+            )}
             <div className="flex flex-col lg:flex-row gap-4">
               <UndatedColumn cards={undated} channelsById={channelsById} themesById={themesById} onOpen={openComposer} />
               <SocialCalendar
@@ -144,12 +174,15 @@ export default function SocialContentsPage() {
                 weeks={weeks}
                 todayKey={todayKey}
                 cardsByDay={byDay}
+                notesByDay={notesOfDay}
                 channelsById={channelsById}
                 themesById={themesById}
                 onPrevious={() => navigate(-1)}
                 onNext={() => navigate(1)}
                 onToday={() => setAnchor(todayKey)}
                 onOpen={openComposer}
+                onAddNote={(day) => setNoteForm({ day, note: null })}
+                onOpenNote={(note) => setNoteForm({ day: note.day, note })}
               />
             </div>
           </DndContext>
@@ -161,6 +194,7 @@ export default function SocialContentsPage() {
         groupId={composer.groupId}
       />
       <SocialSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <CalendarNoteForm target={noteForm} onClose={() => setNoteForm(null)} onSaved={handleNoteSaved} />
     </ModuleLayout>
   );
 }

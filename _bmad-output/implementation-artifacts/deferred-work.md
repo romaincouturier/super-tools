@@ -17,3 +17,4 @@
 ## Mode démo (constaté en spec 1.6)
 
 - `ContentCard.tsx` affiche le début du texte des contenus sans `maskText` en mode démo. À traiter par `/anonymisation-demo` avant la PR de l'epic 1 (texte des cartes, composeur, notes).
+- `social_themes.created_by` falsifiable par un utilisateur du module (même correctif que les notes : trigger).

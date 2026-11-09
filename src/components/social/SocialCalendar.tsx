@@ -1,5 +1,6 @@
 import { useDroppable } from "@dnd-kit/core";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, StickyNote } from "lucide-react";
+import CalendarNote from "@/components/social/CalendarNote";
 import ContentCard, { STATUS_DOT_CLASSES } from "@/components/social/ContentCard";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -9,6 +10,7 @@ import {
   DISPLAY_STATUS_ORDER,
   type CalendarCard,
   type CalendarDay,
+  type SocialCalendarNote,
   type SocialChannel,
   type SocialTheme,
 } from "@/services/socialContents";
@@ -26,21 +28,28 @@ interface SocialCalendarProps {
   weeks: CalendarDay[][];
   todayKey: string;
   cardsByDay: Map<string, CalendarCard[]>;
+  /** Notes par jour : jamais filtrées. */
+  notesByDay: Map<string, SocialCalendarNote[]>;
   channelsById: Map<string, SocialChannel>;
   themesById: ReadonlyMap<string, SocialTheme>;
   onPrevious: () => void;
   onNext: () => void;
   onToday: () => void;
   onOpen: (groupId: string) => void;
+  onAddNote: (dayKey: string) => void;
+  onOpenNote: (note: SocialCalendarNote) => void;
 }
 
-function DayCell({ day, isToday, cards, channelsById, themesById, onOpen, tall }: {
+function DayCell({ day, isToday, cards, notes, channelsById, themesById, onOpen, onAddNote, onOpenNote, tall }: {
   day: CalendarDay;
   isToday: boolean;
   cards: CalendarCard[];
+  notes: SocialCalendarNote[];
   channelsById: Map<string, SocialChannel>;
   themesById: ReadonlyMap<string, SocialTheme>;
   onOpen: (groupId: string) => void;
+  onAddNote: (dayKey: string) => void;
+  onOpenNote: (note: SocialCalendarNote) => void;
   tall: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `${DAY_DROP_PREFIX}${day.key}` });
@@ -49,13 +58,22 @@ function DayCell({ day, isToday, cards, channelsById, themesById, onOpen, tall }
       ref={setNodeRef}
       data-testid={`day-${day.key}`}
       className={cn(
-        "border-t border-l p-1 space-y-1 min-w-0",
+        "group border-t border-l p-1 space-y-1 min-w-0",
         tall ? "min-h-[16rem]" : "min-h-[6.5rem]",
         !day.inMonth && "bg-muted/40 text-muted-foreground",
         isOver && "bg-primary/10",
       )}
     >
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-1">
+        <button
+          type="button"
+          aria-label={`Ajouter une note le ${day.key}`}
+          title="Ajouter une note"
+          onClick={() => onAddNote(day.key)}
+          className="mr-auto inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground opacity-0 hover:bg-accent group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+        >
+          <StickyNote className="h-3 w-3" />
+        </button>
         <span
           className={cn(
             "text-xs tabular-nums h-5 min-w-5 px-1 rounded-full inline-flex items-center justify-center",
@@ -66,13 +84,15 @@ function DayCell({ day, isToday, cards, channelsById, themesById, onOpen, tall }
           {Number(day.key.slice(8, 10))}
         </span>
       </div>
+      {notes.map((note) => <CalendarNote key={note.id} note={note} onOpen={onOpenNote} />)}
       {cards.map((card) => <ContentCard key={card.group.id} card={card} channelsById={channelsById} themesById={themesById} onOpen={onOpen} />)}
     </div>
   );
 }
 
 export default function SocialCalendar({
-  view, onViewChange, title, weeks, todayKey, cardsByDay, channelsById, themesById, onPrevious, onNext, onToday, onOpen,
+  view, onViewChange, title, weeks, todayKey, cardsByDay, notesByDay, channelsById, themesById, onPrevious, onNext, onToday, onOpen,
+  onAddNote, onOpenNote,
 }: SocialCalendarProps) {
   return (
     <section className="flex-1 min-w-0 space-y-2" aria-label="Calendrier">
@@ -113,9 +133,12 @@ export default function SocialCalendar({
                   day={day}
                   isToday={day.key === todayKey}
                   cards={cardsByDay.get(day.key) ?? []}
+                  notes={notesByDay.get(day.key) ?? []}
                   channelsById={channelsById}
                   themesById={themesById}
                   onOpen={onOpen}
+                  onAddNote={onAddNote}
+                  onOpenNote={onOpenNote}
                   tall={view === "week"}
                 />
               ))}

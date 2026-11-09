@@ -16,6 +16,7 @@ const DATE_MIGRATION = path.resolve(here, "../migrations/20261105130000_social_g
 const MEDIA_MIGRATION = path.resolve(here, "../migrations/20261106100000_social_post_media.sql");
 const THEMES_MIGRATION = path.resolve(here, "../migrations/20261106110000_social_themes.sql");
 const PUBLICATION_MIGRATION = path.resolve(here, "../migrations/20261107100000_social_post_publication.sql");
+const NOTES_MIGRATION = path.resolve(here, "../migrations/20261109100000_social_calendar_notes.sql");
 const UPDATED_AT_MIGRATION = path.resolve(here, "../migrations/20260108203546_738a153d-fdf5-43d3-a2c6-75e98647a71f.sql");
 
 /** update_updated_at_column, telle que livrée (forme `$$ LANGUAGE ...;` hors du motif de readFunctionSql). */
@@ -60,15 +61,17 @@ beforeAll(async () => {
   const mediaMigration = fs.readFileSync(MEDIA_MIGRATION, "utf8");
   const themesMigration = fs.readFileSync(THEMES_MIGRATION, "utf8");
   const publicationMigration = fs.readFileSync(PUBLICATION_MIGRATION, "utf8");
+  const notesMigration = fs.readFileSync(NOTES_MIGRATION, "utf8");
   for (let i = 0; i < 2; i++) {
     await db.exec(migration);
     await db.exec(dateMigration);
     await db.exec(mediaMigration);
     await db.exec(themesMigration);
     await db.exec(publicationMigration);
+    await db.exec(notesMigration);
   }
   await db.exec(`
-    GRANT ALL ON public.social_channels, public.social_content_groups, public.social_posts, public.social_themes TO anon, authenticated;
+    GRANT ALL ON public.social_channels, public.social_content_groups, public.social_posts, public.social_themes, public.social_calendar_notes TO anon, authenticated;
     GRANT SELECT ON public.media TO authenticated;
     INSERT INTO auth.users VALUES
       ('${ADMIN}', 'admin@exemple.fr'), ('${EMMA}', 'emmanuelle@exemple.fr'), ('${OTHER}', 'autre@exemple.fr');
@@ -82,7 +85,7 @@ beforeAll(async () => {
 afterAll(async () => { await db?.close(); });
 
 beforeEach(async () => {
-  await db.exec("RESET ROLE; DELETE FROM social_content_groups; DELETE FROM social_themes;");
+  await db.exec("RESET ROLE; RESET TIME ZONE; DELETE FROM social_content_groups; DELETE FROM social_themes; DELETE FROM social_calendar_notes;");
 });
 
 async function actAs(uid: string | null) {
@@ -687,5 +690,137 @@ describe("RLS", () => {
     await save(GROUP, three("Admin"));
     expect((await db.query("SELECT * FROM social_channels")).rows).toHaveLength(8);
     expect(await posts(GROUP)).toHaveLength(3);
+  });
+});
+
+describe("Notes du calendrier (story 1.6)", () => {
+  const NOTE = "e1000000-0000-0000-0000-0000000000e1";
+  const insertNote = (day: string, text: string, color = "#f97316", id = NOTE) =>
+    db.query("INSERT INTO social_calendar_notes (id, day, text, color) VALUES ($1, $2, $3, $4)", [id, day, text, color]);
+  const dayOf = async (id = NOTE) =>
+    (await db.query<{ day: string }>("SELECT day::text AS day FROM social_calendar_notes WHERE id = $1", [id])).rows[0]?.day;
+
+  it("1.6-SQL-001 : un jour sans heure reste le même jour, quel que soit le fuseau de session", async () => {
+    await actAs(EMMA);
+    await insertNote("2026-03-29", "Changement d'heure");
+    for (const tz of ["UTC", "Europe/Paris", "Pacific/Kiritimati", "America/Los_Angeles"]) {
+      await db.exec(`SET TIME ZONE '${tz}'`);
+      expect(await dayOf()).toBe("2026-03-29");
+    }
+    const type = await db.query<{ t: string }>(
+      "SELECT data_type AS t FROM information_schema.columns WHERE table_name = 'social_calendar_notes' AND column_name = 'day'",
+    );
+    expect(type.rows[0].t).toBe("date");
+  });
+
+  it("enregistre l'auteur et refuse une note sans jour", async () => {
+    await actAs(EMMA);
+    await insertNote("2026-11-12", "Lancement AI4Product");
+    const row = (await db.query<{ created_by: string; text: string; color: string }>(
+      "SELECT created_by, text, color FROM social_calendar_notes",
+    )).rows[0];
+    expect(row).toEqual({ created_by: EMMA, text: "Lancement AI4Product", color: "#f97316" });
+    await expect(db.query("INSERT INTO social_calendar_notes (text, color) VALUES ('x', '#f97316')")).rejects.toThrow(/null value/);
+  });
+
+  it("social_calendar_notes_set_created_by : l'auteur est l'appelant à la création et ne change plus ensuite", async () => {
+    const authorOf = async () =>
+      (await db.query<{ created_by: string | null }>("SELECT created_by FROM social_calendar_notes WHERE id = $1", [NOTE])).rows[0]?.created_by;
+    await actAs(EMMA);
+    await db.query(
+      "INSERT INTO social_calendar_notes (id, day, text, color, created_by) VALUES ($1, '2026-11-12', 'Idée', '#f97316', $2)",
+      [NOTE, OTHER],
+    );
+    expect(await authorOf()).toBe(EMMA);
+    expect((await db.query("UPDATE social_calendar_notes SET created_by = $1 WHERE id = $2", [OTHER, NOTE])).affectedRows).toBe(1);
+    expect(await authorOf()).toBe(EMMA);
+    await db.query("UPDATE social_calendar_notes SET created_by = NULL, text = 'Idée revue' WHERE id = $1", [NOTE]);
+    expect(await authorOf()).toBe(EMMA);
+    await actAs(ADMIN);
+    await db.query("UPDATE social_calendar_notes SET created_by = $1 WHERE id = $2", [ADMIN, NOTE]);
+    expect(await authorOf()).toBe(EMMA);
+  });
+
+  it("refuse un texte vide ou fait uniquement de blancs", async () => {
+    await actAs(EMMA);
+    for (const blank of ["", "   ", "\t\n", "\u00a0", "\u202f\u3000"]) {
+      await expect(insertNote("2026-11-12", blank)).rejects.toThrow(/social_calendar_notes_text_not_blank/);
+    }
+    await db.exec("RESET ROLE");
+    expect((await db.query("SELECT * FROM social_calendar_notes")).rows).toHaveLength(0);
+  });
+
+  it("refuse un texte de plus de 500 caractères", async () => {
+    await actAs(EMMA);
+    await insertNote("2026-11-12", "a".repeat(500));
+    await insertNote("2026-11-14", "🚀".repeat(500), "#f97316", "e3000000-0000-0000-0000-0000000000e3");
+    await expect(insertNote("2026-11-13", "a".repeat(501), "#f97316", "e2000000-0000-0000-0000-0000000000e2"))
+      .rejects.toThrow(/social_calendar_notes_text_length/);
+  });
+
+  it("refuse une couleur hors de la palette des thèmes", async () => {
+    await actAs(EMMA);
+    for (const color of ["#123456", "#F97316", "orange", "#fff"]) {
+      await expect(insertNote("2026-11-12", "Relance", color)).rejects.toThrow(/social_calendar_notes_color_palette/);
+    }
+  });
+
+  it("déplace une note d'un jour à l'autre et met à jour updated_at", async () => {
+    await actAs(EMMA);
+    await insertNote("2026-11-12", "Relance");
+    await db.exec("RESET ROLE");
+    await db.query("UPDATE social_calendar_notes SET updated_at = '2020-01-01' WHERE id = $1", [NOTE]);
+    await actAs(EMMA);
+    expect((await db.query("UPDATE social_calendar_notes SET day = '2026-11-14' WHERE id = $1", [NOTE])).affectedRows).toBe(1);
+    expect(await dayOf()).toBe("2026-11-14");
+    const updated = await db.query<{ recent: boolean }>("SELECT updated_at > '2021-01-01' AS recent FROM social_calendar_notes");
+    expect(updated.rows[0].recent).toBe(true);
+  });
+
+  it("un compte du module, hors Romain, crée, modifie et supprime une note", async () => {
+    await actAs(EMMA);
+    await insertNote("2026-11-12", "Idée");
+    expect((await db.query("UPDATE social_calendar_notes SET text = 'Idée revue', color = '#3b82f6' WHERE id = $1", [NOTE])).affectedRows).toBe(1);
+    expect((await db.query("SELECT * FROM social_calendar_notes")).rows).toHaveLength(1);
+    expect((await db.query("DELETE FROM social_calendar_notes WHERE id = $1", [NOTE])).affectedRows).toBe(1);
+  });
+
+  it("un compte sans supertilt_fr ne lit, ne crée, ne modifie ni ne supprime aucune note", async () => {
+    await actAs(EMMA);
+    await insertNote("2026-11-12", "Idée");
+    await actAs(OTHER);
+    expect((await db.query("SELECT * FROM social_calendar_notes")).rows).toHaveLength(0);
+    await expect(insertNote("2026-11-13", "Intrus", "#f97316", "e2000000-0000-0000-0000-0000000000e2")).rejects.toThrow(/row-level security/);
+    expect((await db.query("UPDATE social_calendar_notes SET text = 'Piraté'")).affectedRows).toBe(0);
+    expect((await db.query("DELETE FROM social_calendar_notes")).affectedRows).toBe(0);
+    await db.exec("RESET ROLE");
+    expect((await db.query<{ text: string }>("SELECT text FROM social_calendar_notes")).rows).toEqual([{ text: "Idée" }]);
+  });
+
+  it("les contraintes valent aussi à la modification", async () => {
+    await actAs(EMMA);
+    await insertNote("2026-11-12", "Idée");
+    await expect(db.query("UPDATE social_calendar_notes SET text = '  ' WHERE id = $1", [NOTE])).rejects.toThrow(/text_not_blank/);
+    await expect(db.query("UPDATE social_calendar_notes SET day = NULL WHERE id = $1", [NOTE])).rejects.toThrow(/null value/);
+  });
+
+  it("anon ne lit ni n'écrit aucune note", async () => {
+    await actAs(EMMA);
+    await insertNote("2026-11-12", "Idée");
+    await actAs(null);
+    expect((await db.query("SELECT * FROM social_calendar_notes")).rows).toHaveLength(0);
+    await expect(insertNote("2026-11-13", "Intrus", "#f97316", "e2000000-0000-0000-0000-0000000000e2")).rejects.toThrow(/row-level security/);
+    expect((await db.query("UPDATE social_calendar_notes SET text = 'Piraté'")).affectedRows).toBe(0);
+    expect((await db.query("DELETE FROM social_calendar_notes")).affectedRows).toBe(0);
+    await db.exec("RESET ROLE");
+    expect((await db.query("SELECT * FROM social_calendar_notes")).rows).toHaveLength(1);
+  });
+
+  it("un admin sans ligne de droit gère les notes", async () => {
+    await actAs(ADMIN);
+    await insertNote("2026-11-12", "Idée");
+    expect((await db.query("UPDATE social_calendar_notes SET day = '2026-11-20' WHERE id = $1", [NOTE])).affectedRows).toBe(1);
+    expect((await db.query("SELECT * FROM social_calendar_notes")).rows).toHaveLength(1);
+    expect((await db.query("DELETE FROM social_calendar_notes WHERE id = $1", [NOTE])).affectedRows).toBe(1);
   });
 });
