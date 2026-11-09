@@ -645,7 +645,7 @@ export function usePracticePopularHashtags(learnerEmail: string | null, limit = 
 
 // ── Reaction toggle ───────────────────────────────────────────────────────────
 
-function applyReactionToggle(post: PracticePost, emoji: string, email: string, add: boolean): PracticePost {
+export function applyReactionToggle(post: PracticePost, emoji: string, email: string, add: boolean): PracticePost {
   const byType = { ...(post.reactions_by_type ?? {}) };
   const byTypeUsers = { ...(post.reactions_by_type_users ?? {}) };
   const myTypes = [...(post.my_reaction_types ?? [])];
