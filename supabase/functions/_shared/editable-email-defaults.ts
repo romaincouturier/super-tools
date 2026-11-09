@@ -1064,9 +1064,11 @@ Un nouveau travail de l'apprenant **{{learner_name}}** est à traiter dans la co
 
 « J'aime » enregistre votre réaction directement, sans vous reconnecter.
 
+{{pending_works_button}}
+
 Bonne lecture,
 L'équipe SuperTilt`),
-    variables: ["first_name", "learner_name", "course_title", "deposits_preview"],
+    variables: ["first_name", "learner_name", "course_title", "deposits_preview", "pending_works_button"],
   },
 
   deposit_trainer_notification_multi: {
@@ -1082,9 +1084,11 @@ L'équipe SuperTilt`),
 
 « J'aime » enregistre votre réaction directement, sans vous reconnecter.
 
+{{pending_works_button}}
+
 Bonne lecture,
 L'équipe SuperTilt`),
-    variables: ["first_name", "learner_name", "course_title", "count", "deposits_preview"],
+    variables: ["first_name", "learner_name", "course_title", "count", "deposits_preview", "pending_works_button"],
   },
 
   onboard_collaborator: {

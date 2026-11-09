@@ -19,6 +19,7 @@ import {
 } from "@/hooks/usePracticeFeed";
 import { authorDisplayName, authorInitialsFromPost } from "@/components/learner/community/authorDisplay";
 import ImageLightbox from "@/components/ui/image-lightbox";
+import PdfInlinePreview from "@/components/lms/PdfInlinePreview";
 import { asciiToEmoji } from "@/lib/asciiEmoji";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskEmail, maskFileName, maskName } from "@/lib/demoMask";
@@ -110,7 +111,7 @@ export default function PracticePostCard({
   isAdmin: boolean;
   /** Display name stored on the reply when an admin/trainer comments. */
   currentUserName?: string | null;
-  onReact: (postId: string, emoji: string, iReacted: boolean) => void;
+  onReact: (postId: string, emoji: string, iReacted: boolean) => void | Promise<void>;
   onDelete: (postId: string) => void;
   onVote: (pollId: string, optionId: string, currentOptionId: string | null) => void;
   onSelectTag: (tag: string) => void;
@@ -118,7 +119,15 @@ export default function PracticePostCard({
 }) {
   const [showComments, setShowComments] = useState(post.comment_count > 0);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [pendingEmoji, setPendingEmoji] = useState<string | null>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+
+  const handleReact = (emoji: string, already: boolean) => {
+    if (pendingEmoji) return;
+    setPendingEmoji(emoji);
+    setShowEmojiPicker(false);
+    Promise.resolve(onReact(post.id, emoji, already)).finally(() => setPendingEmoji(null));
+  };
 
   useEffect(() => {
     if (!showEmojiPicker) return;
@@ -369,6 +378,20 @@ export default function PracticePostCard({
           </div>
         ) : post.file_mime?.startsWith("video/") ? (
           <video src={fileHref} controls className="w-full" style={{ maxHeight: 480 }} />
+        ) : (post.file_mime === "application/pdf" || /\.pdf\s*($|\?)/i.test(post.file_name || post.file_url)) ? (
+          <div style={{ background: "rgba(16,24,32,0.04)" }}>
+            <PdfInlinePreview url={fileHref} title={shownFileName} />
+            <button
+              type="button"
+              onClick={() => handleFileDownload(fileHref)}
+              disabled={downloadingFile}
+              className="flex items-center justify-center gap-1.5 w-full py-2 text-xs font-semibold hover:bg-black/5 transition-colors"
+              style={{ color: "var(--st-ink-muted)" }}
+            >
+              <Download size={14} />
+              {downloadingFile ? "Préparation..." : `Télécharger ${shownFileName ?? "le PDF"}`}
+            </button>
+          </div>
         ) : (
           <button
             type="button"
@@ -464,9 +487,10 @@ export default function PracticePostCard({
               return (
                 <button
                   key={e.emoji}
-                  onClick={() => { onReact(post.id, e.emoji, already); setShowEmojiPicker(false); }}
+                  onClick={() => handleReact(e.emoji, already)}
+                  disabled={pendingEmoji !== null}
                   title={e.label}
-                  className="text-xl leading-none transition-transform hover:scale-125 px-1"
+                  className="text-xl leading-none transition-transform hover:scale-125 px-1 disabled:opacity-50 disabled:hover:scale-100"
                   style={{
                     fontFamily: "inherit",
                     background: already ? "rgba(255,209,0,0.2)" : "transparent",
