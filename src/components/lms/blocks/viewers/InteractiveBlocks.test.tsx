@@ -4,7 +4,6 @@ import DragWordsBlockViewer from "./DragWordsBlockViewer";
 import TimelineBlockViewer from "./TimelineBlockViewer";
 import FlipCardsBlockViewer from "./FlipCardsBlockViewer";
 import HtmlEmbedBlockViewer from "./HtmlEmbedBlockViewer";
-import { EMBED_CSP, EMBED_HOST_SANDBOX } from "../../../../../supabase/functions/_shared/lms-embed-policy";
 
 afterEach(cleanup);
 beforeAll(() => vi.stubGlobal("ResizeObserver", class {
