@@ -10756,6 +10756,192 @@ export type Database = {
         }
         Relationships: []
       }
+      social_calendar_notes: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string | null
+          day: string
+          id: string
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          created_by?: string | null
+          day: string
+          id?: string
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          day?: string
+          id?: string
+          text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      social_channels: {
+        Row: {
+          abbreviation: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          text_limit: number | null
+        }
+        Insert: {
+          abbreviation: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          text_limit?: number | null
+        }
+        Update: {
+          abbreviation?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          text_limit?: number | null
+        }
+        Relationships: []
+      }
+      social_content_groups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          format: string
+          id: string
+          sync: boolean
+          theme_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          format?: string
+          id?: string
+          sync?: boolean
+          theme_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          format?: string
+          id?: string
+          sync?: boolean
+          theme_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_content_groups_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "social_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_posts: {
+        Row: {
+          channel_id: string
+          created_at: string
+          group_id: string
+          id: string
+          media_id: string | null
+          publication_status: string
+          scheduled_at: string | null
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          group_id: string
+          id?: string
+          media_id?: string | null
+          publication_status?: string
+          scheduled_at?: string | null
+          text?: string
+          updated_at?: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          media_id?: string | null
+          publication_status?: string
+          scheduled_at?: string | null
+          text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "social_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "social_content_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_themes: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sponsor_cold_evaluations: {
         Row: {
           attentes_satisfaites: string | null
@@ -15156,6 +15342,16 @@ export type Database = {
         Returns: undefined
       }
       revoke_other_sessions: { Args: never; Returns: number }
+      save_social_content_group: {
+        Args: {
+          p_format: string
+          p_group_id: string
+          p_posts: Json
+          p_sync: boolean
+          p_theme_id?: string
+        }
+        Returns: string
+      }
       save_training_regulation_draft: {
         Args: { p_content: string; p_expected: string }
         Returns: undefined
@@ -15213,6 +15409,14 @@ export type Database = {
           query: string
         }[]
       }
+      set_social_group_date: {
+        Args: { p_group_id: string; p_scheduled_at: string }
+        Returns: number
+      }
+      set_social_post_published: {
+        Args: { p_post_id: string; p_published: boolean }
+        Returns: string
+      }
       submit_participant_cold_evaluation: {
         Args: { p_data: Json; p_token: string }
         Returns: undefined
@@ -15244,6 +15448,10 @@ export type Database = {
       }
       update_reclamation_by_token: {
         Args: { p_data: Json; p_token: string }
+        Returns: undefined
+      }
+      update_social_post_content: {
+        Args: { p_media_id: string; p_post_id: string; p_text: string }
         Returns: undefined
       }
       update_sponsor_evaluation_by_token: {
