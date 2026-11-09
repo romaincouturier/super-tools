@@ -49,6 +49,7 @@ const Ameliorations = lazy(() => import("./pages/Ameliorations"));
 const Ideas = lazy(() => import("./pages/Ideas"));
 const PolitiqueConfidentialite = lazy(() => import("./pages/PolitiqueConfidentialite"));
 const Auth = lazy(() => import("./pages/Auth"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
 const Emargement = lazy(() => import("./pages/Emargement"));
@@ -213,6 +214,7 @@ const App = () => {
               <Route path="/academy/inscription" element={<AcademySignup />} />
               <Route path="/academy/choisir-mes-formations" element={<AcademyCourseSelection />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/reset-password" element={<ResetPassword />} />
