@@ -176,6 +176,7 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   modules_list: { label: "Liste des modules", description: "Modules SuperTools ouverts au collaborateur.", sample: "<p><a href=\\\"#\\\">Ouvrir</a></p>", isBlock: true },
   open_button: { label: "Bouton d'ouverture", description: "Bouton qui ouvre l'élément concerné.", sample: "<p><a href=\\\"#\\\">Ouvrir</a></p>", isBlock: true },
   opportunity_block: { label: "Bloc opportunité", description: "Encadré de l'opportunité CRM liée au devis.", sample: "<p><a href=\\\"#\\\">Ouvrir</a></p>", isBlock: true },
+  pending_works_button: { label: "Bouton des travaux en attente", description: "Bouton qui ouvre la communauté du cours filtrée sur les travaux à corriger.", sample: "<p><a href=\\\"#\\\">Ouvrir</a></p>", isBlock: true },
   post_quote: { label: "Citation de la publication", description: "Texte de la publication, mis en citation.", sample: "<p><a href=\\\"#\\\">Ouvrir</a></p>", isBlock: true },
   purge_summary: { label: "Résumé de la purge", description: "Résumé chiffré de la purge des tickets.", sample: "<p><a href=\\\"#\\\">Ouvrir</a></p>", isBlock: true },
   reply_button: { label: "Bouton répondre", description: "Bouton pour répondre au commentaire.", sample: "<p><a href=\\\"#\\\">Ouvrir</a></p>", isBlock: true },
