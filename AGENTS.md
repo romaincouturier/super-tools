@@ -94,4 +94,3 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Live-recording notice = template `live_recording_notice`, shown only when lives exist.
 - Quote game orders stay internal (`create-devis-order`), never WooCommerce.
 - CRM card lists load via `crmCardsFetch` (paged; slim noCRM metadata).
-- `run-qualiopi-audit` is scheduled as a Lovable-managed HTTP schedule authenticated by `hasManagedCronCredential` (LOVABLE_CRON_SECRET, any header, constant-time), opt-in per function, because inline cron secrets cannot be written without exposing them.
