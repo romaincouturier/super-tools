@@ -1,5 +1,6 @@
 import { FileText } from "lucide-react";
 import { formatFileSize } from "@/lib/file-utils";
+import PdfInlinePreview from "@/components/lms/PdfInlinePreview";
 
 interface DepositLike {
   file_url: string | null;
@@ -42,11 +43,7 @@ export default function DepositFilePreview({ deposit }: Props) {
         <video src={deposit.file_url} controls className="w-full h-auto max-h-[420px]" />
       ) : isPdf ? (
         <div>
-          <iframe
-            src={`${deposit.file_url}#view=FitH`}
-            title={deposit.file_name || "Aperçu PDF"}
-            className="w-full h-[480px] bg-background"
-          />
+          <PdfInlinePreview url={deposit.file_url} title={deposit.file_name} />
           <a
             href={deposit.file_url}
             target="_blank"
