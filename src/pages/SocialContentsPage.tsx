@@ -72,10 +72,12 @@ export default function SocialContentsPage() {
   const { data: channels = [] } = channelsQuery;
   const { data: dated = [] } = datedQuery;
   const { data: undatedGroups = [] } = undatedQuery;
-  const notes = notesQuery.isError ? [] : (notesQuery.data ?? []);
   const setDate = useSetSocialGroupDate();
   const moveNote = useUpdateSocialNote();
-  const notesOfDay = useMemo(() => notesByDay(notes), [notes]);
+  const notesOfDay = useMemo(
+    () => notesByDay(notesQuery.isError ? [] : (notesQuery.data ?? [])),
+    [notesQuery.isError, notesQuery.data],
+  );
 
   const channelsById = useMemo(() => new Map(channels.map((c) => [c.id, c])), [channels]);
   const themesById = useMemo(() => new Map(themes.map((t) => [t.id, t])), [themes]);
