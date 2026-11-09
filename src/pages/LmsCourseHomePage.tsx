@@ -446,9 +446,8 @@ function CommunityInfoCard({
 }) {
   const { data: forums = [], error: forumsError, refetch: refetchForums, isFetching: forumsFetching } = useCourseForums(courseId);
   const mainForum = forums[0] ?? null;
-  const { data: allPosts = [], error: postsError, refetch: refetchPosts, isFetching: postsFetching } = useForumPosts(mainForum?.id);
-
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const [weekAgo] = useState(() => new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+  const { data: allPosts = [], error: postsError, refetch: refetchPosts, isFetching: postsFetching } = useForumPosts(mainForum?.id, weekAgo.toISOString());
   const recentPosts = allPosts.filter((p) => new Date(p.created_at) >= weekAgo);
   const recentAuthors = [...new Set(recentPosts.map((p) => p.author_email))].slice(0, 5);
 
