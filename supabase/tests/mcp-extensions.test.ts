@@ -9,6 +9,7 @@ describe('MCP : modules et rattachements',()=>{
  it('trace les couvertures et sources sans tracer une couverture inchangée',async()=>{
   await db.exec("SET test.staff='true'; ALTER TABLE lms_courses ADD cover_image_url text; CREATE TABLE watch_sources(id uuid PRIMARY KEY,name text); INSERT INTO watch_sources VALUES('55555555-5555-4555-8555-555555555555','Source');");
   await db.exec(readFileSync('drizzle/migrations/0055_mcp_extension_audit.sql','utf8'));
+  await db.exec(readFileSync('drizzle/migrations/0056_mcp_audit_trigger_record_guard.sql','utf8'));
   await db.exec("UPDATE watch_sources SET name='Nouvelle source';");
   await db.query("UPDATE lms_courses SET cover_image_url='https://example.invalid/cover.png' WHERE id=$1",[course]);
   await db.query("UPDATE lms_courses SET cover_image_url=cover_image_url WHERE id=$1",[course]);
