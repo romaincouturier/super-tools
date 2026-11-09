@@ -103,7 +103,7 @@ Le moteur vit dans `supabase/functions/_shared/qualiopi-referential.ts` et `qual
 ```sql
 select cron.schedule(
   'run-qualiopi-audit',
-  '30 6 * * *',
+  '40 6 * * *',
   $$
   select net.http_post(
     url := 'https://<projet>.supabase.co/functions/v1/run-qualiopi-audit',
@@ -114,4 +114,17 @@ select cron.schedule(
 );
 ```
 
-Vérifier `cron.job_run_details` après la première exécution : un cron en échec sur ce projet échoue silencieusement.
+**L'heure n'est pas libre.** `generate-daily-actions` passe à 06:05 et commence par supprimer
+toutes les actions non terminées du jour, pour chaque destinataire et toutes catégories
+confondues, avant de régénérer les siennes (`supabase/functions/generate-daily-actions/index.ts`,
+la boucle `for (const recipient of recipients)` qui précède les insertions). Un audit planifié
+avant 06:05 écrirait donc ses constats pour les voir effacés une demi-heure plus tard, sans
+erreur ni trace : l'administrateur ne verrait jamais rien, et le cron se déclarerait en succès.
+Toute replanification doit rester après `generate-daily-actions`. 06:30 est déjà occupé par
+`backfill-practice-hashtags-nightly`, d'où 06:40.
+
+Les deux fonctions datent leurs lignes avec `new Date().toISOString().split("T")[0]`, donc sur
+la même journée UTC : pas de décalage de fuseau entre l'écriture et la purge.
+
+Vérifier `cron.job_run_details` après la première exécution : un cron en échec sur ce projet
+échoue silencieusement.

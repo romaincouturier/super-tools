@@ -11,7 +11,12 @@ on:
 jobs:
   scan:
     name: Anonymisation du mode démo
-    runs-on: ubuntu-latest
+    # Version figée, pour la même raison que le job smoke de ci.yml : l'image
+    # ubuntu-latest est passée à Ubuntu 26.04, que Playwright 1.58.2 refuse
+    # (« does not support chromium on ubuntu26.04-x64 »), et l'installation du
+    # navigateur échoue avant le premier test. À relever avec celle de ci.yml,
+    # une fois Playwright monté à une version qui connaît cette image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
