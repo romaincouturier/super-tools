@@ -3,12 +3,13 @@
 ## Périmètre demandé
 - Ajouter la création, la modification et la liste des modules LMS, y compris les modules vides.
 - Rattacher les transcripts aux formations et les afficher dans leur fiche.
+- Inclure les extensions de sources de veille et la mise à jour des couvertures déjà demandées ; vérifier les outils existants avant tout ajout.
 - Ne modifier aucun contenu de leçon, aucune automatisation ni aucun autre parcours.
 
 ## Point à débloquer avant les outils MCP
 Le serveur existant `mcp-server` utilise une intégration historique et une authentification personnalisée. La procédure de maintenance disponible impose désormais le SDK `defineMcp`, un endpoint `mcp` et une publication. Elle ne fournit pas de voie autorisée pour étendre directement ce serveur historique.
 
-Ne pas remplacer le serveur, son endpoint ou son authentification implicitement. Les changements MCP restent bloqués tant qu’une voie de maintenance compatible n’est pas établie ; une migration vers le nouveau format serait un chantier distinct, à valider explicitement.
+Romain confirme le 09/11 qu’il souhaite ces évolutions. Conserver le serveur historique et les connexions existantes. Préparer les outils demandés sur le format supporté en parallèle seulement après vérification de la compatibilité de l’authentification existante avec OAuth géré ; si cette compatibilité ne peut pas être établie, suspendre cette partie et indiquer le blocage exact. Ne pas basculer les utilisateurs ni retirer le serveur historique sans validation explicite et essai complet. Ne pas migrer l’ensemble des anciens outils pour ce périmètre limité.
 
 ## Livrables
 ### 1. Modules LMS
@@ -37,4 +38,4 @@ Ne pas remplacer le serveur, son endpoint ou son authentification implicitement.
 - Vérification connectée de la section formation et de son lien vers le transcript ; aucun cours réel ni contenu de leçon modifié pour les essais.
 
 ## État
-Analyse uniquement : aucune modification du serveur, du code applicatif ou de la base effectuée.
+Évolutions demandées ; plan révisé pour préserver les connexions existantes. Aucune modification du serveur, de l’authentification ou du schéma liée à ces extensions effectuée. La publication du nouveau connecteur restera nécessaire après les essais et la génération du manifeste ; une génération seule ne prouve pas sa disponibilité.

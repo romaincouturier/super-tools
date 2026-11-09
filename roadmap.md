@@ -2,8 +2,8 @@
 
 ## Décisions du 09/11/2026
 - [x] Script validé appliqué : 22 lignes manquantes ajoutées (8 true, 14 false), 7 existantes préservées ; 22 écritures tracées, aucun email ni changement de mot de passe.
-- [x] Workflow présentiel/mixte et post-formation vérifié dans le code et les réglages, mécanisme conservé ; rappel financeur actuellement à 10 jours ouvrés, différence avec règle J+45 à arbitrer sans modification.
-- [x] AI4Product identifiée : 15/09–07/10, quatre participants APICIL ; factures/conventions présentes, email commanditaire manquant pour Jean-Michel ; émargements envoyés le 11/10, aucune nouvelle tentative.
+- [x] Workflow présentiel/mixte et post-formation conservé ; rappel financeur à 10 jours ouvrés validé le 09/11, ancienne consigne J+45 remplacée sans changement du code.
+- [x] APICIL : sujet clos par Romain le 09/11, aucune action ni nouvel envoi.
 - [x] Migration MCP expliquée : SDK/endpoint/auth, distincte du schéma training_transcripts ; couverture déjà implémentée dans le code actuel, disponibilité hébergée non vérifiée.
 
 ## Dictée CRM et rattachement (2026-11-09)
@@ -14,8 +14,8 @@
 - [x] Aucun audio trouvé dans le stockage entre 09:30 et 11:10 UTC le 09/11 ; note 12:00 Paris et début manquant non récupérables depuis les éléments retrouvés, aucune retranscription lancée
 
 ## Modules LMS et transcripts formations (2026-11-09)
-- [ ] Outils MCP modules et cible training : bloqués par l’absence de procédure compatible pour le serveur historique
-- [ ] Liaison training_transcripts et affichage formation : analyse préparée, implémentation à poursuivre sans remplacer implicitement le serveur
+- [ ] Évolutions MCP demandées le 09/11 : modules LMS, transcripts formation, sources de veille et couverture ; compatibilité du nouveau serveur avec l’authentification existante à établir avant toute migration du connecteur.
+- [ ] Liaison training_transcripts et affichage formation : à implémenter avec droits staff et traçabilité, sans toucher les leçons ni remplacer implicitement le serveur existant.
 
 ## Règlement intérieur éditable (2026-11-05)
 - [x] Migration initiale publiée : huit articles identiques à l’ancien PDF ; téléchargement réel dans Formation et Documents avec le compte demandeur, 14 tests et 103 contrôles réussis
