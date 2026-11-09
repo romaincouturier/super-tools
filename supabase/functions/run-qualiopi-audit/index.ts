@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
-import { isCronOrServiceRole } from "../_shared/cron-auth.ts";
+import { hasManagedCronCredential, isCronOrServiceRole } from "../_shared/cron-auth.ts";
 import { buildFacts, automaticIssues, type RawAuditData } from "../_shared/qualiopi-checks.ts";
 
 /**
@@ -27,9 +27,11 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    // Règle [036] : secret dédié au domaine, jamais le vault, qui est vide
-    // sur ce projet. Le cron est planifié en base avec ce secret inline.
-    if (!(await isCronOrServiceRole(req, "QUALIOPI_CRON_SECRET"))) {
+    // Planification gérée Lovable Cloud (LOVABLE_CRON_SECRET), ou secret dédié
+    // QUALIOPI_CRON_SECRET (règle [036]) pour un appel manuel interne.
+    const authorized = (await hasManagedCronCredential(req)) ||
+      (await isCronOrServiceRole(req, "QUALIOPI_CRON_SECRET"));
+    if (!authorized) {
       return createErrorResponse("Unauthorized", 401);
     }
 

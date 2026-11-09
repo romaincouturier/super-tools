@@ -47,6 +47,23 @@ export async function isCronOrServiceRole(
 }
 
 /**
+ * Crédential des planifications HTTP gérées par Lovable Cloud
+ * (`LOVABLE_CRON_SECRET`, jamais lisible ni recopié en SQL). L'en-tête qui le
+ * porte n'est pas documenté : on accepte toute valeur d'en-tête égale au
+ * secret, nue ou en `Bearer`, comparée en temps constant. Secret absent :
+ * voie fermée. À activer fonction par fonction, pas dans isCronOrServiceRole.
+ */
+export async function hasManagedCronCredential(req: Request): Promise<boolean> {
+  const secret = Deno.env.get("LOVABLE_CRON_SECRET") ?? "";
+  if (secret === "") return false;
+  for (const [, value] of req.headers) {
+    if (await timingSafeEqualSecret(value, secret)) return true;
+    if (await timingSafeEqualSecret(value, `Bearer ${secret}`)) return true;
+  }
+  return false;
+}
+
+/**
  * Garde pour une fonction verify_jwt=false appelée à la fois par le frontend
  * staff (JWT utilisateur) ET par un cron / une délégation fonction-à-fonction
  * (les deux envoient `Authorization: Bearer <service_role>` ou un secret
