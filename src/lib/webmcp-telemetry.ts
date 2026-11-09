@@ -14,7 +14,8 @@ function track(toolName: string, outcome: "ok" | "error", durationMs: number) {
       outcome,
       duration_ms: durationMs,
     });
-  } catch {
+  } catch (telemetryError) {
+    void telemetryError;
     // Telemetry must not change the tool's result or error.
   }
 }
@@ -23,7 +24,8 @@ export async function runWebMCPTool<T>(staticToolName: string, operation: () => 
   let started: number | undefined;
   try {
     started = performance.now();
-  } catch {
+  } catch (clockError) {
+    void clockError;
     // An unavailable clock leaves duration at zero.
   }
   let outcome: "ok" | "error" = "error";
@@ -37,7 +39,8 @@ export async function runWebMCPTool<T>(staticToolName: string, operation: () => 
       try {
         const elapsed = performance.now() - started;
         if (Number.isFinite(elapsed)) durationMs = Math.min(MAX_DURATION_MS, Math.max(0, elapsed));
-      } catch {
+      } catch (clockError) {
+        void clockError;
         // An unavailable clock leaves duration at zero.
       }
     }
