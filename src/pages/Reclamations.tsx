@@ -54,6 +54,7 @@ type Reclamation = {
   actions_decided: string | null;
   response_sent: string | null;
   response_date: string | null;
+  acknowledgement_sent_at: string | null;
   ai_analysis: string | null;
   ai_response_draft: string | null;
   qualiopi_summary: string | null;
@@ -500,6 +501,13 @@ const Reclamations = () => {
                   <div><span className="text-muted-foreground">Canal :</span> {selectedRec.canal || "—"}</div>
                   <div><span className="text-muted-foreground">Type :</span> {selectedRec.problem_type || "—"}</div>
                   <div><span className="text-muted-foreground">Gravité :</span> {selectedRec.severity || "—"}</div>
+                  {/* Preuve attendue par l'indicateur 31 : la prise en compte, pas seulement le traitement. */}
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Accusé de réception :</span>{" "}
+                    {selectedRec.acknowledgement_sent_at
+                      ? `envoyé le ${new Date(selectedRec.acknowledgement_sent_at).toLocaleDateString("fr-FR")}`
+                      : "non envoyé"}
+                  </div>
                 </div>
 
                 <Separator />

@@ -61,7 +61,7 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
         <TabsTrigger value="comments"><MessageSquare className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="attachments" title="Documents" aria-label="Documents"><Paperclip className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="quotes"><FileText className="h-4 w-4" /></TabsTrigger>
-        <TabsTrigger value="transcripts"><FileAudio className="h-4 w-4" /></TabsTrigger>
+        <TabsTrigger value="transcripts" title="Transcripts et notes vocales" aria-label="Transcripts et notes vocales"><FileAudio className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="media"><ImageIcon className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="activity"><History className="h-4 w-4" /></TabsTrigger>
       </TabsList>

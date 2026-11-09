@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import HandicapReferentLine from "@/components/questionnaire/HandicapReferentLine";
 
 const PolitiqueConfidentialite = () => {
   const [contactEmail, setContactEmail] = useState("");
@@ -167,12 +168,7 @@ const PolitiqueConfidentialite = () => {
                 Pour toute question relative à l'accessibilité de nos formations, vous pouvez contacter notre
                 référent handicap :
               </p>
-              <p className="text-muted-foreground">
-                <strong>{contactName}</strong> -{" "}
-                <a href={`mailto:${contactEmail}`} className="text-primary hover:underline">
-                  {contactEmail}
-                </a>
-              </p>
+              <HandicapReferentLine fallbackName={contactName} fallbackEmail={contactEmail} />
             </section>
 
             <section>

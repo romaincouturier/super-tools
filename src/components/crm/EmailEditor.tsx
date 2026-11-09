@@ -436,7 +436,7 @@ const EmailEditor = ({
                 "h-7 px-2 text-xs gap-1",
                 isRecording && "bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700",
               )}
-              disabled={isTranscribing || isCleaningUp}
+              disabled={(isTranscribing && !isRecording) || isCleaningUp}
               onClick={handleToggleDictation}
               title={
                 isRecording
@@ -448,14 +448,14 @@ const EmailEditor = ({
                       : "Dicter le message"
               }
             >
-              {isTranscribing || isCleaningUp ? (
+              {(isTranscribing && !isRecording) || isCleaningUp ? (
                 <Spinner className="h-3.5 w-3.5" />
               ) : isRecording ? (
                 <MicOff className="h-3.5 w-3.5" />
               ) : (
                 <Mic className="h-3.5 w-3.5" />
               )}
-              {isTranscribing
+              {isTranscribing && !isRecording
                 ? "Transcription..."
                 : isCleaningUp
                   ? "Mise en forme..."

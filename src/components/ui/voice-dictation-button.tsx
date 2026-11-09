@@ -9,7 +9,7 @@ export interface VoiceDictationButtonProps
   extends Omit<ButtonProps, "onClick" | "variant" | "children"> {
   /** Called once with the transcribed text after the user stops recording. */
   onTranscript: (text: string) => void;
-  /** Max recording duration before auto-stop (ms). Default 5 min. */
+  /** Duration of each automatically relayed recording segment (ms). Default 5 min. */
   maxDurationMs?: number;
   /** Variant used when the button is idle (default: "outline"). Recording always uses "destructive". */
   idleVariant?: ButtonProps["variant"];
@@ -69,12 +69,12 @@ const VoiceDictationButton = React.forwardRef<HTMLButtonElement, VoiceDictationB
         size={size}
         className={cn(isRecording && "animate-pulse", className)}
         onClick={handleClick}
-        disabled={disabled || isTranscribing}
+        disabled={disabled || (isTranscribing && !isRecording)}
         title={title}
         aria-label={title}
         {...props}
       >
-        {isTranscribing ? (
+        {isTranscribing && !isRecording ? (
           <Spinner />
         ) : isRecording ? (
           <MicOff className="w-4 h-4" />

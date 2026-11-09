@@ -26,6 +26,7 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   financeur_name: { label: "Nom du financeur", description: "Organisme qui finance la formation (OPCO, entreprise, particulier).", sample: "OPCO Atlas" },
   sender_email: { label: "Email de l'expéditeur", description: "Adresse d'envoi configurée dans les paramètres.", sample: "contact@supertilt.fr" },
   greeting: { label: "Formule d'appel", description: "Salutation calculée automatiquement selon le tutoiement/vouvoiement et le prénom.", sample: "Bonjour Sophie" },
+  date_reclamation: { label: "Date de la réclamation", description: "Date à laquelle la réclamation a été enregistrée, en toutes lettres.", sample: "5 novembre 2026" },
 
   // Formation
   training_name: { label: "Nom de la formation", description: "Intitulé de la session de formation.", sample: "Facilitation graphique - niveau 1" },
@@ -175,6 +176,7 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   modules_list: { label: "Liste des modules", description: "Modules SuperTools ouverts au collaborateur.", sample: "<p><a href=\\\"#\\\">Ouvrir</a></p>", isBlock: true },
   open_button: { label: "Bouton d'ouverture", description: "Bouton qui ouvre l'élément concerné.", sample: "<p><a href=\\\"#\\\">Ouvrir</a></p>", isBlock: true },
   opportunity_block: { label: "Bloc opportunité", description: "Encadré de l'opportunité CRM liée au devis.", sample: "<p><a href=\\\"#\\\">Ouvrir</a></p>", isBlock: true },
+  pending_works_button: { label: "Bouton des travaux en attente", description: "Bouton qui ouvre la communauté du cours filtrée sur les travaux à corriger.", sample: "<p><a href=\\\"#\\\">Ouvrir</a></p>", isBlock: true },
   post_quote: { label: "Citation de la publication", description: "Texte de la publication, mis en citation.", sample: "<p><a href=\\\"#\\\">Ouvrir</a></p>", isBlock: true },
   purge_summary: { label: "Résumé de la purge", description: "Résumé chiffré de la purge des tickets.", sample: "<p><a href=\\\"#\\\">Ouvrir</a></p>", isBlock: true },
   reply_button: { label: "Bouton répondre", description: "Bouton pour répondre au commentaire.", sample: "<p><a href=\\\"#\\\">Ouvrir</a></p>", isBlock: true },

@@ -95,6 +95,12 @@ const EntityTranscriptsSection = ({ entity, entityId }: Props) => {
                       ? ` • ${Math.round(link.transcript.duration_seconds / 60)} min`
                       : ""}
                   </p>
+                  {link.transcript.status === "error" && (
+                    <p className="text-xs text-destructive">Transcription en erreur : {link.transcript.error_message || "Erreur non précisée"}</p>
+                  )}
+                  {["pending", "processing"].includes(link.transcript.status) && (
+                    <p className="text-xs text-muted-foreground">Transcription en cours…</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">

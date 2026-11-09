@@ -1,5 +1,16 @@
 # Roadmap
 
+## Dictée CRM et rattachement (2026-11-09)
+- [x] Relais automatique par segments de cinq minutes, transcription ordonnée et bouton Arrêter disponible ; 8 tests et 103 contrôles réussis, vrais segments décodés sur navigateur ordinateur/mobile ; transfert audio staff/propriétaire déployé. Rendez-vous réel et verrouillage mobile non vérifiés.
+- [x] Diagnostiquer les séparateurs vides : anciens marqueurs sans injection ; 53 cartes / 85 marqueurs ne prouvent pas tous une perte, certains textes sont présents sous les marqueurs
+- [x] Conservation audio et rattachement avant transcription, erreurs visibles ; dossier MCP retrouve les dictées liées et leur verbatim même si seul le descriptif de la carte nomme le client ; 19 tests ciblés réussis, MCP déployé
+- [x] Les quatre dictées MSP d’Ecully sont déjà liées, avec un cinquième transcript Fireflies ; 38 dictées CRM / zéro orpheline, aucune écriture rétroactive nécessaire. Carte ouverte avec le compte demandeur, cinq transcripts visibles et texte consultable
+- [x] Aucun audio trouvé dans le stockage entre 09:30 et 11:10 UTC le 09/11 ; note 12:00 Paris et début manquant non récupérables depuis les éléments retrouvés, aucune retranscription lancée
+
+## Modules LMS et transcripts formations (2026-11-09)
+- [ ] Outils MCP modules et cible training : bloqués par l’absence de procédure compatible pour le serveur historique
+- [ ] Liaison training_transcripts et affichage formation : analyse préparée, implémentation à poursuivre sans remplacer implicitement le serveur
+
 ## Règlement intérieur éditable (2026-11-05)
 - [x] Migration initiale publiée : huit articles identiques à l’ancien PDF ; téléchargement réel dans Formation et Documents avec le compte demandeur, 14 tests et 103 contrôles réussis
 - [x] Ancien fichier supprimé du stockage et lien retiré des archives : ancienne URL répond 400 sans PDF, aucun réglage ne le référence

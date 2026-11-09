@@ -78,6 +78,7 @@ export const MODULE_ICONS: Record<string, ModuleIconInfo> = {
   reclamations: { icon: MessageSquareWarning, label: "Réclamations", path: "/reclamations" },
   signalements: { icon: ShieldAlert, label: "Signalements", path: "/signalements" },
   risques: { icon: ShieldQuestion, label: "Risques qualité", path: "/risques" },
+  audit: { icon: Gavel, label: "Audit blanc", path: "/audit-blanc" },
   support: { icon: LifeBuoy, label: "Support", path: "/support" },
   reseau: { icon: Users, label: "Réseau professionnel", path: "/reseau" },
   lms: { icon: GraduationCap, label: "E-learning", path: "/lms" },

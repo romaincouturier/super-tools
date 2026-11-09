@@ -10,6 +10,7 @@ import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { QuestionnaireRecord, TrainingRecord } from "@/hooks/useQuestionnaire";
 import { openStorageUrl } from "@/lib/storageUrl";
+import HandicapReferentLine from "@/components/questionnaire/HandicapReferentLine";
 
 interface Props {
   questionnaire: QuestionnaireRecord;
@@ -226,9 +227,7 @@ const QuestionnaireFormSections = ({
               </div>
             )}
           </div>
-          <p className="text-sm text-muted-foreground border-l-2 border-primary pl-3">
-            Notre référent handicap : <strong>{contactName}</strong> – <a href={`mailto:${contactEmail}`} className="text-primary hover:underline">{contactEmail}</a>
-          </p>
+          <HandicapReferentLine fallbackName={contactName} fallbackEmail={contactEmail} />
         </CardContent>
       </Card>
 

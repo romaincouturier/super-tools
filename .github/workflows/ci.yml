@@ -35,7 +35,12 @@ jobs:
 
   smoke:
     name: Smoke tests navigateur
-    runs-on: ubuntu-latest
+    # Version figée, pas ubuntu-latest : l'image des runners est passée à
+    # Ubuntu 26.04 le 9 novembre 2026, que Playwright 1.58.2 refuse
+    # (« does not support chromium on ubuntu26.04-x64 »), et l'installation du
+    # navigateur échoue avant le premier test. À relever une fois Playwright
+    # monté à une version qui connaît cette image.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
