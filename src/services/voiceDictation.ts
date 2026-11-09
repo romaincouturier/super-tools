@@ -54,12 +54,13 @@ export async function transcribeDictation(blob: Blob, context?: DictationContext
         [fk]: context.entityId, transcript_id: recordId, created_by: auth.user.id,
       }, { onConflict: `${fk},transcript_id`, ignoreDuplicates: true });
       if (linkError) throw linkError;
-      const path = `dictation/${auth.user.id}/${recordId}.${blob.type === "audio/mp4" ? "mp4" : "webm"}`;
-      const { error: uploadError } = await supabase.storage.from("meeting-recordings").upload(path, blob, { contentType: blob.type });
+      const form = new FormData();
+      form.append("transcriptId", recordId ?? "");
+      form.append("file", new File([blob], "dictee.webm", { type: blob.type }));
+      const { data: uploaded, error: uploadError } = await supabase.functions.invoke("upload-meeting-recording", { body: form });
       if (uploadError) throw uploadError;
-      metadata = { ...metadata, audio_bucket: "meeting-recordings", audio_path: path, audio_bytes: blob.size };
-      const { error: metadataError } = await db.from("transcripts").update({ metadata }).eq("id", recordId);
-      if (metadataError) throw metadataError;
+      if (!uploaded?.path) throw new Error("L’audio n’a pas été sauvegardé");
+      metadata = uploaded.metadata;
     }
     const base64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();

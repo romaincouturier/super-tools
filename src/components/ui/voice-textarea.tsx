@@ -51,10 +51,10 @@ const VoiceTextarea = React.forwardRef<HTMLTextAreaElement, VoiceTextareaProps>(
               size="icon"
               className="absolute top-3 right-3 h-8 w-8"
               onClick={handleToggleMic}
-              disabled={isTranscribing}
+              disabled={isTranscribing && !isRecording}
               title={isRecording ? "Arrêter la dictée" : "Dicter"}
             >
-              {isTranscribing ? (
+              {isTranscribing && !isRecording ? (
                 <Spinner />
               ) : isRecording ? (
                 <MicOff className="w-4 h-4" />

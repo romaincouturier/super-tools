@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Dictée CRM et rattachement (2026-11-09)
+- [x] Relais automatique par segments de cinq minutes, transcription ordonnée et bouton Arrêter disponible ; 8 tests et 103 contrôles réussis, vrais segments décodés sur navigateur ordinateur/mobile ; transfert audio staff/propriétaire déployé. Rendez-vous réel et verrouillage mobile non vérifiés.
 - [ ] Diagnostiquer les séparateurs vides, le découpage audio et les échecs silencieux
 - [ ] Corriger la conservation et le rattachement des notes vocales pour les entités concernées, avec tests
 - [ ] Rattacher les quatre transcripts MSP d’Ecully et rechercher les autres cartes affectées
