@@ -97,22 +97,14 @@ Le moteur vit dans `supabase/functions/_shared/qualiopi-referential.ts` et `qual
 
 `run-qualiopi-audit` repasse les contrôles automatiques chaque nuit et inscrit chaque constat en défaut dans les actions quotidiennes des administrateurs. Elle n'est pas planifiée par une migration : la règle [036] l'interdit, `vault.decrypted_secrets` étant vide sur ce projet.
 
-**Ce qui est en place depuis le 9 novembre 2026.** Le job `run-qualiopi-audit` est planifié à
-`40 6 * * *` et porte un en-tête `Authorization: Bearer`, pas `x-cron-secret`. Il est donc
-authentifié par `hasManagedCronCredential`, qui compare n'importe quel en-tête à
-`LOVABLE_CRON_SECRET`, et non par `QUALIOPI_CRON_SECRET`, qui existe mais ne sert à rien dans
-ce montage. Déduction par élimination : la valeur portée n'est ni un JWT ni une clé
-`sb_secret_`, donc ce n'est pas la `service_role` qu'attend l'autre branche du garde.
+**Mise en service, et pourquoi ce secret-là.** Le job a d'abord été posé, le 9 novembre 2026,
+avec un en-tête `Authorization: Bearer` portant le secret géré par Lovable : il passait alors
+par `hasManagedCronCredential`, et `QUALIOPI_CRON_SECRET` ne servait à rien. Une rotation de ce
+secret géré l'aurait cassé en 401 silencieux — le défaut même que la règle [036] cherche à
+éviter, déplacé d'un secret à l'autre. Le cron a donc été recâblé sur un secret dédié, dont la
+rotation est décidée ici et nulle part ailleurs.
 
-Deux conséquences à garder en tête :
-
-- une rotation de `LOVABLE_CRON_SECRET` casse ce cron en 401, sans bruit. C'est le même défaut
-  que celui que la règle [036] cherche à éviter, déplacé d'un secret à l'autre ;
-- le SQL ci-dessous, qui reste la voie documentée, n'est pas celui qui tourne. Le reprendre
-  tel quel remplacerait le câblage actuel par un câblage équivalent mais indépendant de
-  Lovable.
-
-**La voie `QUALIOPI_CRON_SECRET`**, si l'on veut s'affranchir du secret géré. Deux étapes :
+Deux étapes :
 
 1. Créer le secret d'edge function `QUALIOPI_CRON_SECRET` avec une valeur aléatoire.
 2. Planifier le cron en base, en recopiant la valeur du secret inline :
