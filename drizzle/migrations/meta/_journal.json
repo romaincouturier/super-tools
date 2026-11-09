@@ -379,6 +379,13 @@
       "when": 1794243054178,
       "tag": "0053_training_transcripts",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1794243076704,
+      "tag": "0054_mcp_lms_modules",
+      "breakpoints": true
     }
   ]
 }

@@ -15312,6 +15312,10 @@ export type Database = {
           views: number
         }[]
       }
+      mcp_save_lms_module: {
+        Args: { p_course_id: string; p_module_id: string; p_patch: Json }
+        Returns: Json
+      }
       monitor_cron_failures: { Args: never; Returns: Json }
       monitor_missing_evaluation_reminders: { Args: never; Returns: Json }
       move_stale_tickets_to_boite_a_idees: { Args: never; Returns: undefined }
