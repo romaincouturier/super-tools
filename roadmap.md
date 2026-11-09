@@ -1,5 +1,10 @@
 # Roadmap
 
+## Accueil LMS timeout JAVASCRIPT-REACT-19 (2026-11-09)
+- [ ] Reproduire et mesurer les lectures de l’accueil Facilitation graphique avec les volumes réels
+- [ ] Borner les lectures communautaires et ajouter les index justifiés sans changer les droits
+- [ ] Isoler les erreurs des blocs avec Réessayer et vérifier les temps avant/après
+
 ## Dictée CRM et rattachement (2026-11-09)
 - [x] Relais automatique par segments de cinq minutes, transcription ordonnée et bouton Arrêter disponible ; 8 tests et 103 contrôles réussis, vrais segments décodés sur navigateur ordinateur/mobile ; transfert audio staff/propriétaire déployé. Rendez-vous réel et verrouillage mobile non vérifiés.
 - [x] Diagnostiquer les séparateurs vides : anciens marqueurs sans injection ; 53 cartes / 85 marqueurs ne prouvent pas tous une perte, certains textes sont présents sous les marqueurs
