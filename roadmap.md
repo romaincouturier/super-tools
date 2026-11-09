@@ -19,8 +19,9 @@
 - [x] Aucun audio trouvé dans le stockage entre 09:30 et 11:10 UTC le 09/11 ; note 12:00 Paris et début manquant non récupérables depuis les éléments retrouvés, aucune retranscription lancée
 
 ## Modules LMS et transcripts formations (2026-11-09)
-- [ ] Accord « go » du 09/11 : implémenter modules LMS, transcripts formation, sources de veille et couverture sur un connecteur parallèle ; ancien serveur conservé. OAuth géré activé, découverte publique vérifiée 200 ; consentement et publication à terminer.
-- [ ] Liaison training_transcripts et affichage formation : à implémenter avec droits staff et traçabilité, sans toucher les leçons ni remplacer implicitement le serveur existant.
+- [x] Neuf outils sur un endpoint parallèle, manifeste extrait ; OAuth activé, ancien serveur conservé, aucune leçon modifiée ni email envoyé.
+- [x] Liaison training_transcripts et affichage formation, droits staff et traçabilité ; modules atomiques, couvertures/sources tracées ; tests SQL et navigateur connectés réussis.
+- [ ] Publication puis nouvelle connexion OAuth nécessaires pour vérifier un appel externe complet ; endpoint géré non déployé avant publication.
 
 ## Règlement intérieur éditable (2026-11-05)
 - [x] Migration initiale publiée : huit articles identiques à l’ancien PDF ; téléchargement réel dans Formation et Documents avec le compte demandeur, 14 tests et 103 contrôles réussis
@@ -106,7 +107,7 @@
 ## Registre des sources de veille (2026-10-27)
 - [x] Données, URL canonique unique et rattachement des fiches
 - [x] Onglet Sources, filtres, validation, utilité et ajout manuel
-- [ ] Trois outils MCP, descriptions et nouvelle version : bloqués, aucune procédure compatible confirmée pour étendre le serveur historique sans migration implicite ; serveur inchangé (1.15.0)
+- [x] Trois outils de veille ajoutés au connecteur parallèle ; serveur historique inchangé, publication requise pour les utiliser.
 - [x] 8 tests SQL/métier ; ajout, changements de statut, note persistée après rechargement, doublon et recherche vérifiés avec le compte demandeur ; vues ordinateur/mobile contrôlées ; source temporaire supprimée
 
 ## Récap quotidien (2026-10-15)

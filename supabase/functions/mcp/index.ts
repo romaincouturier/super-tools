@@ -89,21 +89,18 @@ var assign_transcript_default = defineTool4({ name: "assign_transcript", title: 
 // src/lib/mcp/tools/list-unassigned-transcripts.ts
 import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@3.4.0";
 import { z as z6 } from "npm:zod@^3.25.76";
-var list_unassigned_transcripts_default = defineTool5({ name: "list_unassigned_transcripts", title: "Lister les transcripts non affect\xE9s", description: "Liste les transcripts pr\xEAts sans rattachement, formations comprises.", inputSchema: { limit: z6.number().int().min(1).max(100).default(30), search: z6.string().max(200).optional() }, annotations: { readOnlyHint: true }, handler: async ({ limit, search }, ctx) => {
+var list_unassigned_transcripts_default = defineTool5({ name: "list_unassigned_transcripts", title: "Lister les transcripts non affect\xE9s", description: "Liste une page de transcripts pr\xEAts sans rattachement, formations comprises ; suivre next_offset pour continuer.", inputSchema: { limit: z6.number().int().min(1).max(100).default(30), offset: z6.number().int().min(0).default(0), search: z6.string().max(200).optional() }, annotations: { readOnlyHint: true }, handler: async ({ limit, offset, search }, ctx) => {
   const db = await staffClient(ctx);
-  const a = await db.rpc("get_transcript_assignments");
+  let q = db.from("transcripts").select("id,title,ai_title,summary,created_at").eq("status", "ready").order("created_at", { ascending: false }).order("id").range(offset, offset + limit - 1);
+  if (search) q = q.ilike("title", `%${search.replace(/[%_]/g, "")}%`);
+  const { data, error } = await q;
+  if (error) throw error;
+  const ids = (data ?? []).map((r) => r.id);
+  if (!ids.length) return result({ transcripts: [], next_offset: null });
+  const a = await db.rpc("get_transcript_assignments").in("transcript_id", ids);
   if (a.error) throw a.error;
   const assigned = new Set((a.data ?? []).map((r) => r.transcript_id));
-  const found = [];
-  for (let offset = 0; found.length < limit; offset += 500) {
-    let q = db.from("transcripts").select("id,title,ai_title,summary,created_at").eq("status", "ready").order("created_at", { ascending: false }).order("id").range(offset, offset + 499);
-    if (search) q = q.ilike("title", `%${search.replace(/[%_]/g, "")}%`);
-    const { data, error } = await q;
-    if (error) throw error;
-    found.push(...(data ?? []).filter((r) => !assigned.has(r.id)));
-    if ((data ?? []).length < 500) break;
-  }
-  return result(found.slice(0, limit));
+  return result({ transcripts: (data ?? []).filter((r) => !assigned.has(r.id)), next_offset: data?.length === limit ? offset + limit : null });
 } });
 
 // src/lib/mcp/tools/list-watch-sources.ts
