@@ -645,6 +645,36 @@ export function usePracticePopularHashtags(learnerEmail: string | null, limit = 
 
 // ── Reaction toggle ───────────────────────────────────────────────────────────
 
+function applyReactionToggle(post: PracticePost, emoji: string, email: string, add: boolean): PracticePost {
+  const byType = { ...(post.reactions_by_type ?? {}) };
+  const byTypeUsers = { ...(post.reactions_by_type_users ?? {}) };
+  const myTypes = [...(post.my_reaction_types ?? [])];
+  if (add) {
+    if (myTypes.includes(emoji)) return post;
+    myTypes.push(emoji);
+    byType[emoji] = (byType[emoji] ?? 0) + 1;
+    byTypeUsers[emoji] = [...(byTypeUsers[emoji] ?? []), email];
+  } else {
+    if (!myTypes.includes(emoji)) return post;
+    const idx = myTypes.indexOf(emoji);
+    myTypes.splice(idx, 1);
+    byType[emoji] = Math.max(0, (byType[emoji] ?? 1) - 1);
+    if (byType[emoji] === 0) delete byType[emoji];
+    const users = (byTypeUsers[emoji] ?? []).filter((u) => u.toLowerCase() !== email.toLowerCase());
+    if (users.length > 0) byTypeUsers[emoji] = users;
+    else delete byTypeUsers[emoji];
+  }
+  const reactionCount = Object.values(byType).reduce((sum, n) => sum + n, 0);
+  return {
+    ...post,
+    reactions_by_type: byType,
+    reactions_by_type_users: byTypeUsers,
+    my_reaction_types: myTypes,
+    reaction_count: reactionCount,
+    i_reacted: myTypes.length > 0,
+  };
+}
+
 export function useTogglePracticeReaction(learnerEmail: string | null) {
   const qc = useQueryClient();
   return useMutation({
@@ -656,12 +686,33 @@ export function useTogglePracticeReaction(learnerEmail: string | null) {
           .delete().eq("post_id", postId).eq("author_email", learnerEmail).eq("reaction_type", emoji);
         if (error) throw error;
       } else {
+        // Upsert + ignoreDuplicates: a double tap (mobile) or a stale UI state
+        // must never violate the (post_id, author_email, reaction_type) unique
+        // constraint — the second insert becomes a no-op.
         const { error } = await c.from("practice_post_reactions")
-          .insert({ post_id: postId, author_email: learnerEmail, reaction_type: emoji });
+          .upsert(
+            { post_id: postId, author_email: learnerEmail, reaction_type: emoji },
+            { onConflict: "post_id,author_email,reaction_type", ignoreDuplicates: true },
+          );
         if (error) throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: POSTS_KEY }),
+    onMutate: async ({ postId, emoji, iReacted }) => {
+      await qc.cancelQueries({ queryKey: POSTS_KEY });
+      const previous = qc.getQueriesData<PracticePost[]>({ queryKey: POSTS_KEY });
+      if (learnerEmail) {
+        qc.setQueriesData<PracticePost[]>({ queryKey: POSTS_KEY }, (old) =>
+          Array.isArray(old)
+            ? old.map((p) => (p.id === postId ? applyReactionToggle(p, emoji, learnerEmail, !iReacted) : p))
+            : old,
+        );
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      context?.previous?.forEach(([key, data]) => qc.setQueryData(key, data));
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: POSTS_KEY }),
   });
 }
 
