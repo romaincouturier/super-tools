@@ -1,5 +1,8 @@
 # Roadmap
 
+## Simulation noCRM (09/11/2026)
+- [ ] Réduire le coût des conversions Europe/Paris et vérifier la simulation réelle sans importer de fiches.
+
 ## Couvertures fournies (09/11/2026)
 - [x] 14 PNG distincts, 21 uploads dans lms-content aux chemins images/course_id/cover-uuid.png ; 21 cover_image_url renseignées et écritures tracées.
 - [x] 21 URLs HTTP 200 et octets identiques aux fichiers fournis ; trois couvertures préexistantes intactes, empreinte des autres champs identique (hors updated_at géré par trigger).
