@@ -531,54 +531,6 @@ export type Database = {
           },
         ]
       }
-      audit_runs: {
-        Row: {
-          answers: Json
-          created_at: string
-          created_by: string | null
-          facts: Json
-          findings: Json
-          finished_at: string | null
-          framework_version: string
-          id: string
-          label: string | null
-          notes: string | null
-          sample_training_ids: string[]
-          started_at: string
-          updated_at: string
-        }
-        Insert: {
-          answers?: Json
-          created_at?: string
-          created_by?: string | null
-          facts?: Json
-          findings?: Json
-          finished_at?: string | null
-          framework_version?: string
-          id?: string
-          label?: string | null
-          notes?: string | null
-          sample_training_ids?: string[]
-          started_at?: string
-          updated_at?: string
-        }
-        Update: {
-          answers?: Json
-          created_at?: string
-          created_by?: string | null
-          facts?: Json
-          findings?: Json
-          finished_at?: string | null
-          framework_version?: string
-          id?: string
-          label?: string | null
-          notes?: string | null
-          sample_training_ids?: string[]
-          started_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       author_onboarding_files: {
         Row: {
           created_at: string
@@ -4984,54 +4936,6 @@ export type Database = {
           url?: string
           user_canonical?: string | null
           verdict?: string | null
-        }
-        Relationships: []
-      }
-      handicap_partners: {
-        Row: {
-          address: string | null
-          created_at: string
-          created_by: string | null
-          email: string | null
-          handicap_type: string
-          id: string
-          is_active: boolean
-          last_contact_date: string | null
-          notes: string | null
-          organisation: string
-          phone: string | null
-          updated_at: string
-          url: string | null
-        }
-        Insert: {
-          address?: string | null
-          created_at?: string
-          created_by?: string | null
-          email?: string | null
-          handicap_type?: string
-          id?: string
-          is_active?: boolean
-          last_contact_date?: string | null
-          notes?: string | null
-          organisation: string
-          phone?: string | null
-          updated_at?: string
-          url?: string | null
-        }
-        Update: {
-          address?: string | null
-          created_at?: string
-          created_by?: string | null
-          email?: string | null
-          handicap_type?: string
-          id?: string
-          is_active?: boolean
-          last_contact_date?: string | null
-          notes?: string | null
-          organisation?: string
-          phone?: string | null
-          updated_at?: string
-          url?: string | null
         }
         Relationships: []
       }
@@ -10461,7 +10365,6 @@ export type Database = {
       reclamations: {
         Row: {
           actions_decided: string | null
-          acknowledgement_sent_at: string | null
           ai_analysis: string | null
           ai_response_draft: string | null
           canal: string | null
@@ -10485,7 +10388,6 @@ export type Database = {
         }
         Insert: {
           actions_decided?: string | null
-          acknowledgement_sent_at?: string | null
           ai_analysis?: string | null
           ai_response_draft?: string | null
           canal?: string | null
@@ -10509,7 +10411,6 @@ export type Database = {
         }
         Update: {
           actions_decided?: string | null
-          acknowledgement_sent_at?: string | null
           ai_analysis?: string | null
           ai_response_draft?: string | null
           canal?: string | null
