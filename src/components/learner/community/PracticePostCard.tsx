@@ -19,6 +19,7 @@ import {
 } from "@/hooks/usePracticeFeed";
 import { authorDisplayName, authorInitialsFromPost } from "@/components/learner/community/authorDisplay";
 import ImageLightbox from "@/components/ui/image-lightbox";
+import PdfInlinePreview from "@/components/lms/PdfInlinePreview";
 import { asciiToEmoji } from "@/lib/asciiEmoji";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskEmail, maskFileName, maskName } from "@/lib/demoMask";
@@ -377,6 +378,20 @@ export default function PracticePostCard({
           </div>
         ) : post.file_mime?.startsWith("video/") ? (
           <video src={fileHref} controls className="w-full" style={{ maxHeight: 480 }} />
+        ) : (post.file_mime === "application/pdf" || /\.pdf\s*($|\?)/i.test(post.file_name || post.file_url)) ? (
+          <div style={{ background: "rgba(16,24,32,0.04)" }}>
+            <PdfInlinePreview url={fileHref} title={shownFileName} />
+            <button
+              type="button"
+              onClick={() => handleFileDownload(fileHref)}
+              disabled={downloadingFile}
+              className="flex items-center justify-center gap-1.5 w-full py-2 text-xs font-semibold hover:bg-black/5 transition-colors"
+              style={{ color: "var(--st-ink-muted)" }}
+            >
+              <Download size={14} />
+              {downloadingFile ? "Préparation..." : `Télécharger ${shownFileName ?? "le PDF"}`}
+            </button>
+          </div>
         ) : (
           <button
             type="button"
