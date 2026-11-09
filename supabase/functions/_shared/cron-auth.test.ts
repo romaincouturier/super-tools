@@ -36,7 +36,7 @@ function fakeAdmin() {
 const env: Record<string, string> = {};
 vi.stubGlobal("Deno", { env: { get: (k: string) => env[k] } });
 
-const { isInternalCall, isInternalOrAuthenticated, isCronOrServiceRole, requireStaff, isStaffCaller, isInternalOrAdmin } =
+const { isInternalCall, isInternalOrAuthenticated, isCronOrServiceRole, requireStaff, isStaffCaller, isInternalOrAdmin, hasManagedCronCredential } =
   await import("./cron-auth.ts");
 
 function request(headers: Record<string, string> = {}): Request {
@@ -255,5 +255,23 @@ describe("isCronOrServiceRole", () => {
 
   it("refuse un appel anonyme quand rien n'est configuré", async () => {
     expect(await isCronOrServiceRole(request({ Authorization: "Bearer " }))).toBe(false);
+  });
+});
+
+describe("hasManagedCronCredential", () => {
+  it("accepte le secret géré, nu ou en Bearer", async () => {
+    env.LOVABLE_CRON_SECRET = "managed";
+    expect(await hasManagedCronCredential(request({ "x-cron-secret": "managed" }))).toBe(true);
+    expect(await hasManagedCronCredential(request({ Authorization: "Bearer managed" }))).toBe(true);
+  });
+
+  it("refuse une mauvaise valeur", async () => {
+    env.LOVABLE_CRON_SECRET = "managed";
+    expect(await hasManagedCronCredential(request({ Authorization: "Bearer autre" }))).toBe(false);
+  });
+
+  it("reste fermé sans secret configuré", async () => {
+    expect(await hasManagedCronCredential(request({ "x-cron-secret": "" }))).toBe(false);
+    expect(await hasManagedCronCredential(request({ Authorization: "Bearer " }))).toBe(false);
   });
 });
