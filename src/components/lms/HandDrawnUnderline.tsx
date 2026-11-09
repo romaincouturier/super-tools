@@ -45,7 +45,7 @@ export function HandDrawnUnderline({ children, color = "#FFD100" }: { children: 
           viewBox="0 0 200 12"
           preserveAspectRatio="none"
           className="pointer-events-none absolute"
-          style={{ left: l.left - 2, top: l.top - 6, width: l.width + 4, height: 12, zIndex: 0, overflow: "visible" }}
+          style={{ left: l.left - 2, top: l.top - 8, width: l.width + 4, height: 12, zIndex: 0, overflow: "visible" }}
         >
           <path
             d="M3 7.5 C 30 4.5, 55 9, 85 6.2 S 140 4, 165 7 S 190 6.5, 197 5"
