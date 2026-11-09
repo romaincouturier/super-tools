@@ -1,5 +1,11 @@
 # Roadmap
 
+## Décisions du 09/11/2026
+- [ ] Appliquer le script validé des comptes sans ligne de sécurité, sans écraser les lignes existantes ni envoyer d’email ; vérifier et tracer.
+- [ ] Redonner le workflow actuel présentiel/mixte et post-formation, sans changement.
+- [ ] Vérifier AI4Product du 15/09 au 07/10, quatre participants APICIL, sans rejouer d’envoi.
+- [ ] Expliquer la migration MCP annoncée et confronter le blocage ancien au code actuel.
+
 ## Dictée CRM et rattachement (2026-11-09)
 - [x] Relais automatique par segments de cinq minutes, transcription ordonnée et bouton Arrêter disponible ; 8 tests et 103 contrôles réussis, vrais segments décodés sur navigateur ordinateur/mobile ; transfert audio staff/propriétaire déployé. Rendez-vous réel et verrouillage mobile non vérifiés.
 - [x] Diagnostiquer les séparateurs vides : anciens marqueurs sans injection ; 53 cartes / 85 marqueurs ne prouvent pas tous une perte, certains textes sont présents sous les marqueurs
@@ -14,7 +20,7 @@
 ## Règlement intérieur éditable (2026-11-05)
 - [x] Migration initiale publiée : huit articles identiques à l’ancien PDF ; téléchargement réel dans Formation et Documents avec le compte demandeur, 14 tests et 103 contrôles réussis
 - [x] Ancien fichier supprimé du stockage et lien retiré des archives : ancienne URL répond 400 sans PDF, aucun réglage ne le référence
-- [ ] Copie de sauvegarde privée Google Drive de l’ancien PDF : identifiée dans le manifeste, suppression bloquée faute d’accès Drive disponible ; aucune sauvegarde modifiée
+- [x] Copie de sauvegarde privée Google Drive de l’ancien PDF : hors suite selon décision de Romain du 09/11 ; aucune sauvegarde modifiée, règlement diffusé depuis les paramètres
 - [x] Édition Markdown avec titres/gras/listes, brouillon sauvegardé et aperçu PDF SuperTilt
 - [x] Publication explicite, archivage atomique des PDF précédents et protection contre les éditions concurrentes ; droits administrateur conservés
 - [x] Texte du PDF actuel repris en brouillon ; sauvegarde/rechargement réels vérifiés, confirmation annulée, PDF diffusé inchangé ; 12 tests et 103 contrôles réussis, aucune publication réelle ni email
@@ -55,7 +61,7 @@
 - [x] Ancienne fonction send-elearning-access retirée
 - [ ] Correction des 29 comptes : SQL prêt dans docs/sql, en attente d'accord de Romain
 - [x] Rattrapage : quatre emails envoyés après accord et vérification ; Delphine exclue, mot de passe désormais défini
-- [ ] Présentiel/mixte : décision de Romain à venir
+- [x] Présentiel/mixte : mécanisme actuel conservé selon décision du 09/11 ; workflow à rappeler, pas de refonte
 
 ## Identité à la création du mot de passe (2026-11-03)
 - [x] Préremplir et enregistrer prénom et nom obligatoires après confirmation explicite du lien, sans consommation à l’ouverture
@@ -78,7 +84,7 @@
 - [x] Diagnostiquer l'ajout groupé sans compte de connexion ni email
 - [x] Corriger et tester le provisionnement réservé aux apprenants inscrits : 39 tests et 99 contrôles réussis
 - [x] Déployer uniquement send-learner-access-email ; refus d'adresse non inscrite vérifié en réel
-- [ ] Envoyer une fois à Colette : inscription désormais présente, quota de trois demandes atteint jusqu’au 03/11 14h57m45 Paris au plus tôt ; renvoi non effectué dans ce diagnostic pour éviter un email supplémentaire sans validation
+- [x] Colette : sujet clos par Romain le 09/11 ; aucun renvoi à effectuer
 
 ## Envoi des documents Agirc-Arrco (2026-10-29)
 - [x] Empêcher les doubles soumissions pendant la préparation et l’envoi
@@ -101,7 +107,7 @@
 ## Récap quotidien (2026-10-15)
 - [x] Rubrique « Missions sans prochaine action » après « Missions — Actions à traiter »
 - [x] Avis missions : signaux au lieu d’emails, file des 21 convertie, écran « Avis à demander », outils MCP
-- [ ] Avis formations (emails automatiques par participant) : en attente de décision
+- [x] Avis formations : mécanisme actuel conservé selon décision du 09/11, aucune refonte ni envoi déclenché
 
 ## Couverture des cours LMS (2026-10-14)
 - [x] Import PNG/JPG/WebP, maximum 5 Mo, aperçu 16:9, remplacement et suppression
@@ -131,7 +137,7 @@
 - [x] Location : relances signature J+3/J+7, badge À expédier, bouton Jeu expédié
 - [x] Relance questionnaire : prénom, bouton, apostrophes corrigés
 
-- [ ] Avis/témoignages formations : google_review, evaluation_reminder et video_testimonial à 1 jour d intervalle saturent les participants (cas Abobkar Benabdellaoui, refus explicite). A intégrer à la refonte en signaux.
+- [x] Avis/témoignages formations : mécanisme actuel conservé selon décision du 09/11, aucune refonte en signaux.
 - [x] CRM Corse 829e60ef : créer mission liée
 - [x] MCP mark_opportunity_won : create_mission par défaut pour missions + création si déjà WON sans mission
 - [x] Audit cartes WON mission sans mission liée
