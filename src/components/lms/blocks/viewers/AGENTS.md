@@ -1,0 +1,1 @@
+- YouTube/Vimeo iframes inside author embeds are never loaded in the sandbox: the bootstrap reports their URL and position and the parent overlays allowlisted player iframes, because players refuse opaque origins.

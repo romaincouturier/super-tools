@@ -523,9 +523,18 @@ function HeroSection({
       {/* Welcome text — LEFT */}
       <div className="flex flex-col gap-5">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold leading-tight mb-3" style={{ letterSpacing: "-0.02em" }}>
+          <h1 className="text-2xl lg:text-3xl font-bold leading-tight mb-3 pb-1" style={{ letterSpacing: "-0.02em" }}>
             <span style={{ color: "var(--st-ink)" }}>{course.home_config?.welcome_title_1 ?? "Bienvenue dans"} </span>
-            <span style={{ color: "var(--st-yellow)" }}>{course.home_config?.welcome_title_2 ?? "votre formation"}</span>
+            <span
+              style={{
+                color: "var(--st-ink)",
+                backgroundImage: "linear-gradient(transparent 45%, var(--st-yellow) 45%)",
+                padding: "0 0.1em",
+                borderRadius: "0.15em",
+                boxDecorationBreak: "clone",
+                WebkitBoxDecorationBreak: "clone",
+              }}
+            >{course.home_config?.welcome_title_2 ?? "votre formation"}</span>
           </h1>
         </div>
 
