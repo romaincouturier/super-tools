@@ -5,9 +5,9 @@ import type { HtmlEmbedBlockContent } from "@/types/lms-blocks";
  * Les lecteurs YouTube/Vimeo refusent de fonctionner dans l'origine opaque du
  * bac à sable. Leurs iframes ne sont donc jamais chargées dedans : le bac à
  * sable remonte l'adresse et la position de chaque vidéo, et la page les
- * affiche par-dessus (idem Google Forms, dont les images ne se chargent pas en origine opaque), hors bac à sable, après validation stricte de l'adresse.
+ * affiche par-dessus (idem Google Forms, Google Agenda, Tally et CrosswordLabs, qui échouent en origine opaque), hors bac à sable, après validation stricte de l'adresse.
  */
-const VIDEO_SRC_RE = String.raw`^https://(?:www\.)?(?:youtube\.com/embed/|youtube-nocookie\.com/embed/|player\.vimeo\.com/video/|docs\.google\.com/forms/d/)`;
+const VIDEO_SRC_RE = String.raw`^https://(?:www\.)?(?:youtube\.com/embed/|youtube-nocookie\.com/embed/|player\.vimeo\.com/video/|docs\.google\.com/forms/d/|calendar\.google\.com/calendar/appointments/schedules/|tally\.so/embed/|crosswordlabs\.com/embed/)`;
 export function safeVideoEmbedUrl(raw: unknown): string | null {
   if (typeof raw !== "string" || raw.length > 2000) return null;
   try {
@@ -16,7 +16,10 @@ export function safeVideoEmbedUrl(raw: unknown): string | null {
     const yt = ["www.youtube.com", "youtube.com", "www.youtube-nocookie.com", "youtube-nocookie.com"].includes(u.hostname) && /^\/embed\/[\w-]+$/.test(u.pathname);
     const vimeo = u.hostname === "player.vimeo.com" && /^\/video\/\d+$/.test(u.pathname);
     const gform = u.hostname === "docs.google.com" && /^\/forms\/d\/(?:e\/)?[\w-]+\/viewform$/.test(u.pathname);
-    return yt || vimeo || gform ? u.toString() : null;
+    const gcal = u.hostname === "calendar.google.com" && /^\/calendar\/appointments\/schedules\/[\w-]+$/.test(u.pathname);
+    const tally = u.hostname === "tally.so" && /^\/embed\/\w+$/.test(u.pathname);
+    const crossword = ["crosswordlabs.com", "www.crosswordlabs.com"].includes(u.hostname) && /^\/embed\/[\w-]+$/.test(u.pathname);
+    return yt || vimeo || gform || gcal || tally || crossword ? u.toString() : null;
   } catch (_invalidUrl) {
     return null;
   }
@@ -26,6 +29,17 @@ export function safeVideoEmbedUrl(raw: unknown): string | null {
 export function deferVideoIframes(html: string): string {
   return html.replace(/(<iframe\b[^>]*?\s)src=(["'])(https:\/\/[^"']*)\2/gi, (m, pre, q, url) =>
     new RegExp(VIDEO_SRC_RE, "i").test(url) ? `${pre}data-st-video=${q}${url}${q}` : m);
+}
+
+/** Tally (dynamicHeight) annonce sa hauteur via le protocole iframe-resizer, comme avec son embed.js. */
+export const TALLY_RESIZER_INIT = "[iFrameSizer]st-tally:8:false:false:32:true:true:null:bodyOffset:null:null:0:false:parent:scroll:true";
+export function tallyHeight(data: unknown): number | null {
+  if (typeof data === "string") {
+    const m = /^\[iFrameSizer\]st-tally:(\d+(?:\.\d+)?):/.exec(data);
+    const h = m ? Number(m[1]) : NaN;
+    return Number.isFinite(h) && h > 0 && h < 20000 ? Math.ceil(h) : null;
+  }
+  return null;
 }
 
 type EmbedVideo = { k: number; src: string; x: number; y: number; w: number; h: number; r: string };
@@ -62,7 +76,7 @@ var d=Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype,'src');
 Object.defineProperty(HTMLIFrameElement.prototype,'src',{configurable:true,get:function(){return this.hasAttribute('data-st-video')?ga.call(this,'data-st-video'):d.get.call(this)},set:function(v){this.setAttribute('src',v)}});
 var vk=0,lv='';function vs(){var out=[];document.querySelectorAll('iframe[data-st-video]').forEach(function(f){if(!f.__stk)f.__stk=++vk;var r=f.getBoundingClientRect(),cs=getComputedStyle(f);if(r.width<2||r.height<2||cs.visibility==='hidden')return;var p=f.parentElement,rad=cs.borderRadius;if(p&&(!rad||rad==='0px')){var pc=getComputedStyle(p);if(pc.overflow!=='visible')rad=pc.borderRadius;}out.push({k:f.__stk,src:ga.call(f,'data-st-video'),x:r.left,y:r.top,w:r.width,h:r.height,r:rad});});var j=JSON.stringify(out);if(j!==lv){lv=j;parent.postMessage({lmsEmbed:${JSON.stringify(id)},videos:out},'*');}}
 document.addEventListener('DOMContentLoaded',function(){vs();new ResizeObserver(vs).observe(document.body);new MutationObserver(vs).observe(document.body,{subtree:true,childList:true,attributes:true});});
-window.addEventListener('resize',vs);window.addEventListener('load',vs);setInterval(vs,400);
+window.addEventListener('message',function(e){var m=e.data;if(e.source!==parent||!m||m.lmsEmbed!==${JSON.stringify(id)}||typeof m.resize!=='number')return;document.querySelectorAll('iframe[data-st-video]').forEach(function(f){if(f.__stk===m.resize&&m.height>0&&m.height<20000){f.style.height=m.height+'px';f.setAttribute('height',String(m.height));}});});window.addEventListener('resize',vs);window.addEventListener('load',vs);setInterval(vs,400);
 })();</script>`;
 
 export function buildEmbedSrcDoc(html: string, id: string): string {
@@ -74,10 +88,18 @@ export default function HtmlEmbedBlockViewer({ content, previewMode = false }: {
   const id = useId();
   const [height, setHeight] = useState(previewMode ? 240 : 320);
   const [videos, setVideos] = useState<EmbedVideo[]>([]);
+  const overlayKeys = useRef(new Map<Window, number>());
   const srcDoc = useMemo(() => buildEmbedSrcDoc(content.html || "", id), [content.html, id]);
 
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
+      if (e.origin === "https://tally.so") {
+        if (e.data === "[iFrameResizerChild]Ready" && overlayKeys.current.has(e.source as Window)) (e.source as Window).postMessage(TALLY_RESIZER_INIT, "https://tally.so");
+        const h = tallyHeight(e.data);
+        const k = h ? overlayKeys.current.get(e.source as Window) : undefined;
+        if (h && k !== undefined) iframeRef.current?.contentWindow?.postMessage({ lmsEmbed: id, resize: k, height: h }, "*");
+        return;
+      }
       if (e.source !== iframeRef.current?.contentWindow) return;
       const d = e.data as { lmsEmbed?: string; height?: number; videos?: unknown };
       if (d?.lmsEmbed !== id) return;
@@ -108,7 +130,8 @@ export default function HtmlEmbedBlockViewer({ content, previewMode = false }: {
       allowFullScreen
       title={content.title || "Contenu intégré"} className={previewMode ? "block w-full rounded-lg border border-border" : "block w-full border-0"}
       style={{ height }} />
-    {videos.map((v) => <iframe key={v.k} src={v.src} title="Contenu intégré"
+    {videos.map((v) => <iframe key={v.k} src={v.src}
+      ref={(el) => { if (el?.contentWindow) overlayKeys.current.set(el.contentWindow, v.k); }} title="Contenu intégré"
       allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write"
       allowFullScreen referrerPolicy="strict-origin-when-cross-origin"
       className="absolute border-0" style={{ left: v.x, top: v.y, width: v.w, height: v.h, borderRadius: v.r, maxHeight: Math.max(0, height - v.y), maxWidth: "100%" }} />)}

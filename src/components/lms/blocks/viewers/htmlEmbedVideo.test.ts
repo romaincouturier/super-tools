@@ -12,7 +12,7 @@ describe("vidéos des blocs HTML", () => {
   });
   it("ne charge pas les vidéos écrites en dur dans le bac à sable", () => {
     expect(deferVideoIframes('<iframe width="560" src="https://player.vimeo.com/video/1"></iframe>')).toBe('<iframe width="560" data-st-video="https://player.vimeo.com/video/1"></iframe>');
-    expect(deferVideoIframes('<iframe src="https://tally.so/embed/x"></iframe>')).toBe('<iframe src="https://tally.so/embed/x"></iframe>');
+    expect(deferVideoIframes('<iframe src="https://example.com/embed/x"></iframe>')).toBe('<iframe src="https://example.com/embed/x"></iframe>');
   });
 });
 
@@ -23,5 +23,24 @@ describe("Google Forms embeds", () => {
     expect(safeVideoEmbedUrl(u)).toBe(u);
     expect(deferVideoIframes(`<iframe src="${u}"></iframe>`)).toContain("data-st-video=");
     expect(safeVideoEmbedUrl("https://docs.google.com/document/d/abc/edit")).toBeNull();
+  });
+});
+
+describe("Google Agenda, Tally et CrosswordLabs", () => {
+  it("sort ces intégrations du bac à sable avec des adresses strictes", async () => {
+    const { safeVideoEmbedUrl, deferVideoIframes, tallyHeight } = await import("./HtmlEmbedBlockViewer");
+    const cal = "https://calendar.google.com/calendar/appointments/schedules/AcZssZ2tZuM_-My3?gv=true";
+    const tally = "https://tally.so/embed/3q857d?alignLeft=1&dynamicHeight=1";
+    const cw = "https://crosswordlabs.com/embed/2025-06-13-134";
+    for (const u of [cal, tally, cw]) {
+      expect(safeVideoEmbedUrl(u)).toBe(new URL(u).toString());
+      expect(deferVideoIframes(`<iframe src="${u}"></iframe>`)).toContain("data-st-video=");
+    }
+    expect(safeVideoEmbedUrl("https://calendar.google.com/calendar/u/0/r")).toBeNull();
+    expect(safeVideoEmbedUrl("https://tally.so/r/3q857d")).toBeNull();
+    expect(safeVideoEmbedUrl("https://crosswordlabs.com.evil.com/embed/x")).toBeNull();
+    expect(tallyHeight("[iFrameSizer]st-tally:612.4:900:init")).toBe(613);
+    expect(tallyHeight("[iFrameSizer]other:612:900:init")).toBeNull();
+    expect(tallyHeight({ height: 612 })).toBeNull();
   });
 });
