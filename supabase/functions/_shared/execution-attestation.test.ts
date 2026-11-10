@@ -4,9 +4,9 @@ import { attestationSections, effectiveStatus, missingForLink, PUBLIC_ENTITY_MEN
 describe("attestations de bonne exécution", () => {
   const base = { subject: "Atelier", client_name: "Ville de Lyon" };
 
-  it("collectivité cochée sans collectivité, nom ou fonction : lien refusé", () => {
-    expect(missingForLink({ ...base, is_public_entity: true })).toEqual(["Nom de la collectivité", "Nom du signataire", "Fonction du signataire"]);
-    expect(missingForLink({ ...base, is_public_entity: true, public_entity_name: "Ville de Lyon", signer_name: "A B", signer_function: "DGS" })).toEqual([]);
+  it("collectivité cochée sans collectivité ou nom : lien refusé ; la fonction est complétée par le signataire", () => {
+    expect(missingForLink({ ...base, is_public_entity: true })).toEqual(["Nom de la collectivité", "Nom du signataire"]);
+    expect(missingForLink({ ...base, is_public_entity: true, public_entity_name: "Ville de Lyon", signer_name: "A B" })).toEqual([]);
   });
 
   it("sans collectivité, objet et client suffisent", () => {
