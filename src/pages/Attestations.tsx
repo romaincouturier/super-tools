@@ -17,7 +17,7 @@ export default function Attestations() {
   const rows = useMemo(() => (data ?? []).filter((a) =>
     (status === "all" || effectiveStatus(a) === status) &&
     (source === "all" || (source === "public" ? a.is_public_entity : a.source_type === source)) &&
-    (!client || `${a.client_name ?? ""} ${a.public_entity_name ?? ""}`.toLowerCase().includes(client.toLowerCase()))), [data, status, source, client]);
+    (!client || [a.client_name, a.public_entity_name].join(" ").toLowerCase().includes(client.toLowerCase()))), [data, status, source, client]);
   return (
     <ModuleLayout>
       <PageHeader icon={FileSignature} title="Attestations de bonne exécution" subtitle="Missions et formations" />
