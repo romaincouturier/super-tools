@@ -94,4 +94,4 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Live-recording notice = template `live_recording_notice`, shown only when lives exist.
 - Quote game orders stay internal (`create-devis-order`), never WooCommerce.
 - CRM card lists load via `crmCardsFetch` (paged; slim noCRM metadata).
-- Social content fields go through `save_social_content_group` `p_details` (missing key kept) and `validate_social_content`; expertises are multi `social_themes` links; `origin` flags AI content, so MCP writes match the UI.
+- Social content fields: `save_social_content_group` `p_details` + `validate_social_content`, so MCP matches the UI.
