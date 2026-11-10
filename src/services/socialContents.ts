@@ -143,6 +143,86 @@ export interface SocialContentDetails {
   sources?: Pick<SocialSource, "url" | "label" | "content_card_id">[];
 }
 
+/** État du formulaire pour les champs communs (lot 1). */
+export interface SocialDetailsForm {
+  title: string;
+  editorial_category: SocialEditorialCategory | null;
+  visual_type: SocialVisualType | null;
+  visual_message: string;
+  visual_elements: string;
+  visual_texts: string;
+  visual_composition: string;
+  visual_slides: string[];
+  internal_notes: string;
+  check_text_ready: boolean;
+  check_visual_ready: boolean;
+  check_links_checked: boolean;
+  check_proofread: boolean;
+  theme_ids: string[];
+  sources: { url: string; label: string; content_card_id: string | null; content_card_title: string | null }[];
+}
+
+export function detailsFromGroup(group: SocialContentGroup | null | undefined): SocialDetailsForm {
+  return {
+    title: group?.title ?? "",
+    editorial_category: group?.editorial_category ?? null,
+    visual_type: group?.visual_type ?? null,
+    visual_message: group?.visual_message ?? "",
+    visual_elements: group?.visual_elements ?? "",
+    visual_texts: group?.visual_texts ?? "",
+    visual_composition: group?.visual_composition ?? "",
+    visual_slides: (group?.visual_slides ?? []).map((s) => s.content),
+    internal_notes: group?.internal_notes ?? "",
+    check_text_ready: group?.check_text_ready ?? false,
+    check_visual_ready: group?.check_visual_ready ?? false,
+    check_links_checked: group?.check_links_checked ?? false,
+    check_proofread: group?.check_proofread ?? false,
+    theme_ids: group ? groupThemeIds(group) : [],
+    sources: [...(group?.sources ?? [])]
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      .map((src) => ({
+        url: src.url ?? "",
+        label: src.label ?? "",
+        content_card_id: src.content_card_id,
+        content_card_title: src.content_card?.title ?? null,
+      })),
+  };
+}
+
+/** Champs envoyés à l'enregistrement ; un titre vide prend le début du texte, les lignes de source vides sont ignorées. */
+export function detailsPayload(form: SocialDetailsForm, text: string): SocialContentDetails {
+  const title = form.title.trim() || defaultTitle(text);
+  const orNull = (v: string) => (v.trim() ? v : null);
+  return {
+    title: title ? title.slice(0, TITLE_MAX) : null,
+    editorial_category: form.editorial_category,
+    visual_type: form.visual_type,
+    visual_message: orNull(form.visual_message),
+    visual_elements: orNull(form.visual_elements),
+    visual_texts: orNull(form.visual_texts),
+    visual_composition: orNull(form.visual_composition),
+    visual_slides: form.visual_slides.map((content) => ({ content })),
+    internal_notes: orNull(form.internal_notes),
+    check_text_ready: form.check_text_ready,
+    check_visual_ready: form.check_visual_ready,
+    check_links_checked: form.check_links_checked,
+    check_proofread: form.check_proofread,
+    theme_ids: form.theme_ids,
+    sources: form.sources
+      .filter((src) => src.url.trim() || src.content_card_id)
+      .map((src) => ({ url: src.url.trim() || null, label: src.label.trim() || null, content_card_id: src.content_card_id })),
+  };
+}
+
+/** Déplace un élément d'une liste (diapositives) ; hors bornes : liste inchangée. */
+export function moveItem<T>(list: T[], from: number, to: number): T[] {
+  if (from < 0 || from >= list.length || to < 0 || to >= list.length) return list;
+  const next = [...list];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
+
 export const TITLE_MAX = 120;
 const DEFAULT_TITLE_LENGTH = 80;
 
