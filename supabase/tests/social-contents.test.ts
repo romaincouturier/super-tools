@@ -44,7 +44,7 @@ let themesAfterMigration: number;
 beforeAll(async () => {
   db = await PGlite.create();
   await db.exec(`
-    CREATE ROLE anon; CREATE ROLE authenticated;
+    CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
     CREATE SCHEMA auth;
     CREATE TABLE auth.users (id uuid PRIMARY KEY, email text);
     CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $stub$
@@ -889,5 +889,99 @@ describe("Notes du calendrier (story 1.6)", () => {
     expect((await db.query("UPDATE social_calendar_notes SET day = '2026-11-20' WHERE id = $1", [NOTE])).affectedRows).toBe(1);
     expect((await db.query("SELECT * FROM social_calendar_notes")).rows).toHaveLength(1);
     expect((await db.query("DELETE FROM social_calendar_notes WHERE id = $1", [NOTE])).affectedRows).toBe(1);
+  });
+});
+
+describe("Enrichissement d'un contenu (lot 1)", () => {
+  const details = (d: Record<string, unknown>) => d;
+  async function saveWith(groupId: string, d: Record<string, unknown>, postsInput = three("Texte")) {
+    await db.query("SELECT public.save_social_content_group($1, 'post', true, $2::jsonb, NULL, $3::jsonb)", [
+      groupId, JSON.stringify(postsInput), JSON.stringify(d),
+    ]);
+  }
+  const groupRow = async (groupId: string) => (await db.query<Record<string, unknown>>(
+    "SELECT * FROM social_content_groups WHERE id = $1", [groupId])).rows[0];
+  const validate = (groupId: string, v: boolean) => db.query("SELECT public.validate_social_content($1, $2)", [groupId, v]);
+  const allChecks = { check_text_ready: true, check_visual_ready: true, check_links_checked: true, check_proofread: true };
+
+  it("sans détails, l'enregistrement fonctionne comme avant et les nouveaux champs restent vides", async () => {
+    await actAs(EMMA);
+    await save(GROUP, three("Ancien"));
+    const g = await groupRow(GROUP);
+    expect(g).toMatchObject({ title: null, editorial_category: null, visual_type: null, internal_notes: null, origin: "app", validated_at: null });
+    expect(g.visual_slides).toEqual([]);
+  });
+
+  it("enregistre puis relit tous les nouveaux champs, expertises et sources comprises", async () => {
+    await db.exec("RESET ROLE");
+    const theme = (await db.query<{ id: string }>("INSERT INTO social_themes (name, color) VALUES ('IA', '#3b82f6') RETURNING id")).rows[0].id;
+    const card = (await db.query<{ id: string }>("INSERT INTO content_cards (title) VALUES ('Newsletter 12') RETURNING id")).rows[0].id;
+    await actAs(EMMA);
+    await saveWith(GROUP, details({
+      title: "  Atelier IA  ", editorial_category: "tutorial", visual_type: "carousel",
+      visual_message: "M", visual_elements: "E", visual_texts: "T", visual_composition: "C",
+      visual_slides: [{ content: "Un" }, { content: "Deux" }], internal_notes: "À vérifier",
+      check_text_ready: true, theme_ids: [theme],
+      sources: [{ url: "https://exemple.fr/a", label: "Article" }, { content_card_id: card }, { url: "", label: "vide" }],
+    }));
+    const g = await groupRow(GROUP);
+    expect(g).toMatchObject({ title: "Atelier IA", editorial_category: "tutorial", visual_type: "carousel", internal_notes: "À vérifier", check_text_ready: true, check_proofread: false });
+    expect(g.visual_slides).toEqual([{ content: "Un" }, { content: "Deux" }]);
+    const themes = await db.query<{ theme_id: string }>("SELECT theme_id FROM social_content_group_themes WHERE group_id = $1", [GROUP]);
+    expect(themes.rows.map((r) => r.theme_id)).toEqual([theme]);
+    const sources = await db.query<{ position: number; url: string | null; label: string | null; content_card_id: string | null }>(
+      "SELECT position, url, label, content_card_id FROM social_content_sources WHERE group_id = $1 ORDER BY position", [GROUP]);
+    expect(sources.rows).toEqual([
+      { position: 0, url: "https://exemple.fr/a", label: "Article", content_card_id: null },
+      { position: 1, url: null, label: null, content_card_id: card },
+    ]);
+  });
+
+  it("une clé absente conserve la valeur enregistrée", async () => {
+    await actAs(EMMA);
+    await saveWith(GROUP, { title: "Gardé", internal_notes: "Note" });
+    await saveWith(GROUP, { internal_notes: "Autre" });
+    expect(await groupRow(GROUP)).toMatchObject({ title: "Gardé", internal_notes: "Autre" });
+  });
+
+  it("refuse une catégorie, un type de visuel ou une adresse invalides, sans rien créer", async () => {
+    await actAs(EMMA);
+    await expect(saveWith(GROUP, { editorial_category: "pub" })).rejects.toThrow("Catégorie éditoriale inconnue");
+    await expect(saveWith(GROUP, { visual_type: "gif" })).rejects.toThrow("Type de visuel inconnu");
+    await expect(saveWith(GROUP, { sources: [{ url: "exemple.fr" }] })).rejects.toThrow("Adresse de source invalide");
+    expect(await groupRow(GROUP)).toBeUndefined();
+  });
+
+  it("un brouillon incomplet s'enregistre, sans titre ni case cochée, et reste Brouillon même daté", async () => {
+    await actAs(EMMA);
+    await saveWith(GROUP, {}, three("", "2026-11-20T08:30:00Z"));
+    expect((await posts(GROUP)).every((p) => p.publication_status === "unscheduled")).toBe(true);
+  });
+
+  it("refuse la validation tant qu'une case n'est pas cochée", async () => {
+    await actAs(EMMA);
+    await saveWith(GROUP, { ...allChecks, check_proofread: false });
+    await expect(validate(GROUP, true)).rejects.toThrow("Cochez toutes les étapes de préparation avant de valider");
+    expect((await groupRow(GROUP)).validated_at).toBeNull();
+  });
+
+  it("valide avec l'auteur et la date, puis décocher une case annule la validation", async () => {
+    await actAs(EMMA);
+    await saveWith(GROUP, allChecks);
+    await validate(GROUP, true);
+    const g = await groupRow(GROUP);
+    expect(g.validated_by).toBe(EMMA);
+    expect(g.validated_at).not.toBeNull();
+    await saveWith(GROUP, { check_links_checked: false });
+    expect(await groupRow(GROUP)).toMatchObject({ validated_at: null, validated_by: null });
+  });
+
+  it("un compte sans droit ne lit ni n'écrit expertises et sources", async () => {
+    await actAs(EMMA);
+    await saveWith(GROUP, { sources: [{ url: "https://exemple.fr" }] });
+    await actAs(OTHER);
+    expect((await db.query("SELECT * FROM social_content_sources")).rows).toEqual([]);
+    expect((await db.query("SELECT * FROM social_content_group_themes")).rows).toEqual([]);
+    await expect(db.query("INSERT INTO social_content_sources (group_id, url) VALUES ($1, 'https://x.fr')", [GROUP])).rejects.toThrow();
   });
 });
