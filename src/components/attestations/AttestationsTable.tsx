@@ -4,6 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/useConfirm";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName, maskText } from "@/lib/demoMask";
 import { useExecutionAttestationMutations } from "@/hooks/useExecutionAttestations";
 import { getSignedAttestationPdfUrl, type ExecutionAttestation } from "@/services/executionAttestations";
 import AttestationEditDialog from "./AttestationEditDialog";
@@ -14,6 +17,8 @@ export default function AttestationsTable({ rows, showSource = false }: { rows: 
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
   const { link, cancel } = useExecutionAttestationMutations();
+  const { copy } = useCopyToClipboard({ defaultToastTitle: "Lien de signature copié" });
+  const { isDemoMode } = useDemoMode();
   const [editing, setEditing] = useState<ExecutionAttestation | null>(null);
   const fail = (title: string) => (e: unknown) => toast({ title, description: (e as Error).message, variant: "destructive" });
 
@@ -21,8 +26,7 @@ export default function AttestationsTable({ rows, showSource = false }: { rows: 
     if (a.status === "sent" && !(await confirm({ title: "Régénérer le lien ?", description: "L'ancien lien ne fonctionnera plus." }))) return;
     try {
       const { url } = await link.mutateAsync(a.id);
-      await navigator.clipboard.writeText(url).catch(() => undefined);
-      toast({ title: "Lien de signature copié", description: url });
+      copy(url);
     } catch (e) { fail("Lien impossible")(e); }
   };
   const openPdf = async (a: ExecutionAttestation) => {
@@ -45,7 +49,7 @@ export default function AttestationsTable({ rows, showSource = false }: { rows: 
               <div className="flex-1 min-w-[12rem]">
                 <p className="font-medium">{a.subject || "Sans objet"}</p>
                 <p className="text-muted-foreground">
-                  {[a.public_entity_name || a.client_name, a.signed_signer_name || a.signer_name].filter(Boolean).join(" · ")}
+                  {[isDemoMode ? maskText(a.public_entity_name || a.client_name) : a.public_entity_name || a.client_name, isDemoMode ? maskName(a.signed_signer_name || a.signer_name) : a.signed_signer_name || a.signer_name].filter(Boolean).join(" · ")}
                   {a.is_public_entity && " · Collectivité"}
                   {" · "}
                   {a.signed_at ? `signée le ${format(new Date(a.signed_at), "dd/MM/yyyy")}` : a.sent_at ? `lien du ${format(new Date(a.sent_at), "dd/MM/yyyy")}` : `créée le ${format(new Date(a.created_at), "dd/MM/yyyy")}`}

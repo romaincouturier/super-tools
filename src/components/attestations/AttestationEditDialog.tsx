@@ -41,7 +41,7 @@ export default function AttestationEditDialog({ attestation, onClose }: { attest
   };
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Attestation de bonne exécution</DialogTitle></DialogHeader>
         <div className="grid md:grid-cols-2 gap-6">
           <div className="space-y-4">
