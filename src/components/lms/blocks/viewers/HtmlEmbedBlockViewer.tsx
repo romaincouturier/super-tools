@@ -5,9 +5,9 @@ import type { HtmlEmbedBlockContent } from "@/types/lms-blocks";
  * Les lecteurs YouTube/Vimeo refusent de fonctionner dans l'origine opaque du
  * bac à sable. Leurs iframes ne sont donc jamais chargées dedans : le bac à
  * sable remonte l'adresse et la position de chaque vidéo, et la page les
- * affiche par-dessus, hors bac à sable, après validation stricte de l'adresse.
+ * affiche par-dessus (idem Google Forms, dont les images ne se chargent pas en origine opaque), hors bac à sable, après validation stricte de l'adresse.
  */
-const VIDEO_SRC_RE = String.raw`^https://(?:www\.)?(?:youtube\.com/embed/|youtube-nocookie\.com/embed/|player\.vimeo\.com/video/)`;
+const VIDEO_SRC_RE = String.raw`^https://(?:www\.)?(?:youtube\.com/embed/|youtube-nocookie\.com/embed/|player\.vimeo\.com/video/|docs\.google\.com/forms/d/)`;
 export function safeVideoEmbedUrl(raw: unknown): string | null {
   if (typeof raw !== "string" || raw.length > 2000) return null;
   try {
@@ -15,7 +15,8 @@ export function safeVideoEmbedUrl(raw: unknown): string | null {
     if (u.protocol !== "https:") return null;
     const yt = ["www.youtube.com", "youtube.com", "www.youtube-nocookie.com", "youtube-nocookie.com"].includes(u.hostname) && /^\/embed\/[\w-]+$/.test(u.pathname);
     const vimeo = u.hostname === "player.vimeo.com" && /^\/video\/\d+$/.test(u.pathname);
-    return yt || vimeo ? u.toString() : null;
+    const gform = u.hostname === "docs.google.com" && /^\/forms\/d\/(?:e\/)?[\w-]+\/viewform$/.test(u.pathname);
+    return yt || vimeo || gform ? u.toString() : null;
   } catch (_invalidUrl) {
     return null;
   }
@@ -107,7 +108,7 @@ export default function HtmlEmbedBlockViewer({ content, previewMode = false }: {
       allowFullScreen
       title={content.title || "Contenu intégré"} className={previewMode ? "block w-full rounded-lg border border-border" : "block w-full border-0"}
       style={{ height }} />
-    {videos.map((v) => <iframe key={v.k} src={v.src} title="Vidéo"
+    {videos.map((v) => <iframe key={v.k} src={v.src} title="Contenu intégré"
       allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write"
       allowFullScreen referrerPolicy="strict-origin-when-cross-origin"
       className="absolute border-0" style={{ left: v.x, top: v.y, width: v.w, height: v.h, borderRadius: v.r, maxHeight: Math.max(0, height - v.y), maxWidth: "100%" }} />)}
