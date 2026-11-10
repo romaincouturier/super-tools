@@ -36,7 +36,6 @@ export function missingForLink(a: AttestationContent): string[] {
   if (a.is_public_entity) {
     if (blank(a.public_entity_name)) missing.push("Nom de la collectivité");
     if (blank(a.signer_name)) missing.push("Nom du signataire");
-    if (blank(a.signer_function)) missing.push("Fonction du signataire");
   }
   return missing;
 }
