@@ -1,17 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  applySocialFilters,
   cardLabel,
   defaultTitle,
   detailsFromGroup,
   detailsPayload,
-  emptySocialFilters,
   groupThemeIds,
   hasMissingVisual,
   moveItem,
   preparationState,
-  type SocialContentGroup,
-  type SocialFilters,
   validateDateRemoval,
   validateStatusChange,
   buildGroupPosts,
