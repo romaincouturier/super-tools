@@ -55,6 +55,8 @@ const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
 const Emargement = lazy(() => import("./pages/Emargement"));
 const SignatureDevis = lazy(() => import("./pages/SignatureDevis"));
 const SignatureConvention = lazy(() => import("./pages/SignatureConvention"));
+const SignatureAttestation = lazy(() => import("./pages/SignatureAttestation"));
+const Attestations = lazy(() => import("./pages/Attestations"));
 const SignatureLocation = lazy(() => import("./pages/SignatureLocation"));
 const ProposerMonJeu = lazy(() => import("./pages/ProposerMonJeu"));
 const AuthorOnboardingDetail = lazy(() => import("./pages/AuthorOnboardingDetail"));
@@ -253,6 +255,7 @@ const App = () => {
               <Route path="/signature-devis/:token" element={<SignatureDevis />} />
               <Route path="/signature-convention/:token" element={<SignatureConvention />} />
               <Route path="/signature-location/:token" element={<SignatureLocation />} />
+              <Route path="/attestation/:token" element={<SignatureAttestation />} />
               <Route path="/proposer-mon-jeu/:token" element={<ProposerMonJeu />} />
               <Route path="/reclamation/:token" element={<ReclamationPublic />} />
               <Route path="/partenaire/:token" element={<PartnerPortal />} />
@@ -308,6 +311,7 @@ const App = () => {
                 <Route path="/crm/reports" element={<CrmReports />} />
                 <Route path="/crm/import-nocrm" element={<CrmNocrmImport />} />
                 <Route path="/crm/marches-publics" element={<CrmTenders />} />
+                <Route path="/attestations" element={<Attestations />} />
                 <Route path="/missions" element={<Missions />} />
                 <Route path="/missions/:missionId" element={<Missions />} />
                 <Route path="/okr" element={<OKR />} />

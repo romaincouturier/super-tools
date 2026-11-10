@@ -33,7 +33,7 @@ export default function SignatureAttestation() {
   const [busy, setBusy] = useState(false);
   const [refusing, setRefusing] = useState(false);
   const [reason, setReason] = useState("");
-  const { trackEvent, trackPageLoaded, getDeviceInfo, getEvents } = useJourneyTracking() as ReturnType<typeof useJourneyTracking> & { getEvents: () => unknown[] };
+  const { trackEvent, trackPageLoaded, getDeviceInfo, journeyEvents } = useJourneyTracking();
   const { canvasRef, clear, isEmpty, toDataURL } = useSignaturePad({ onFirstStroke: () => trackEvent("signature_drawing_started") });
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function SignatureAttestation() {
     trackEvent("submit_button_clicked");
     setBusy(true);
     try {
-      await submitAttestationSignature({ token, signatureData: toDataURL(), signerName: name, signerFunction: fn, consent, userAgent: navigator.userAgent, deviceInfo: getDeviceInfo(), journeyEvents: getEvents?.() ?? [] });
+      await submitAttestationSignature({ token, signatureData: toDataURL(), signerName: name, signerFunction: fn, consent, userAgent: navigator.userAgent, deviceInfo: getDeviceInfo(), journeyEvents: journeyEvents.current });
       setData((d) => d && { ...d, status: "signed" });
     } catch (e) {
       toast({ title: "Signature impossible", description: (e as Error).message, variant: "destructive" });
