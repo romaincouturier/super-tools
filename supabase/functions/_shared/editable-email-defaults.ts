@@ -505,6 +505,19 @@ Nous confirmons la bonne réception de votre signature électronique pour le con
     variables: ["signer_name", "contrat_reference", "details_list", "download_button"],
   },
 
+  execution_attestation_signed: {
+    name: "Attestation de bonne exécution signée",
+    audience: "client",
+    sendingInfo: "📤 Envoyé à l'adresse d'envoi SuperTilt, avec copie au signataire, juste après la signature d'une attestation de bonne exécution",
+    subject: same("Attestation de bonne exécution signée : {{subject}}"),
+    content: same(`Bonjour,
+
+L'attestation de bonne exécution « {{subject}} » a été signée par {{signer}} le {{signed_at}}.
+
+Le document signé est joint à cet email.`),
+    variables: ["subject", "signer", "signed_at"],
+  },
+
   location_signature_reminder: {
     name: "Relance signature de contrat de location",
     audience: "client",

@@ -9,10 +9,12 @@ import { sendEmail } from "../_shared/resend.ts";
 import { wrapEmailHtml } from "../_shared/templates.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
+import { getSenderEmail } from "../_shared/email-settings.ts";
+import { renderEditableEmail } from "../_shared/editable-email.ts";
+import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
 import { formatDateTime } from "../_shared/date-utils.ts";
 import { attestationSections, canonicalContent, effectiveStatus, type AttestationContent } from "../_shared/execution-attestation.ts";
 
-const INTERNAL_RECIPIENT = "romain@supertilt.fr";
 const CONSENT_TEXT = "Je certifie l'exactitude des informations de cette attestation et j'accepte de la signer électroniquement (règlement eIDAS UE n° 910/2014, articles 1366 et 1367 du Code civil).";
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -60,8 +62,6 @@ async function buildAttestationPdf(a: AttestationContent, signer: { name: string
   const bytes = await doc.save();
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
-
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 
 serve(async (req) => {
   const pre = handleCorsPreflightIfNeeded(req);
@@ -115,16 +115,22 @@ serve(async (req) => {
 
     // Seul email automatique : confirmation après signature, à Romain avec copie au signataire.
     try {
-      const [sig, bcc] = await Promise.all([getSigniticSignature(), getBccSettings(supabase)]);
-      const who = `${esc(signerName)}${signerFunction ? `, ${esc(signerFunction)}` : ""}`;
-      const html = `<p>Bonjour,</p><p>L'attestation de bonne exécution « ${esc(a.subject ?? "")} » a été signée par ${who}${a.public_entity_name ? ` (${esc(a.public_entity_name)})` : ` pour ${esc(a.client_name ?? "")}`} le ${esc(formatDateTime(signedAt))}.</p><p>Vous trouverez le document signé en pièce jointe.</p>`;
+      const [sig, bcc, internal] = await Promise.all([getSigniticSignature(), getBccSettings(supabase), getSenderEmail()]);
+      const who = `${signerName}${signerFunction ? `, ${signerFunction}` : ""} (${a.public_entity_name || a.client_name || ""})`;
+      const tpl = EDITABLE_EMAIL_DEFAULTS.execution_attestation_signed;
+      const rendered = await renderEditableEmail(supabase, {
+        type: "execution_attestation_signed",
+        defaultSubject: tpl.subject.vous,
+        defaultContent: tpl.content.vous,
+        vars: { subject: a.subject ?? "", signer: who, signed_at: formatDateTime(signedAt) },
+      });
       let b64 = ""; for (let i = 0; i < pdf.length; i += 0x8000) b64 += String.fromCharCode(...pdf.subarray(i, i + 0x8000));
       const result = await sendEmail({
-        to: INTERNAL_RECIPIENT,
+        to: internal,
         cc: a.signer_email ? [a.signer_email] : undefined,
-        bcc: bcc.filter((x: string) => x !== INTERNAL_RECIPIENT),
-        subject: `Attestation de bonne exécution signée : ${a.subject ?? ""}`,
-        html: wrapEmailHtml(html, sig),
+        bcc: bcc.filter((x: string) => x !== internal),
+        subject: rendered.subject,
+        html: wrapEmailHtml(rendered.html, sig),
         attachments: [{ filename: "attestation-bonne-execution-signee.pdf", content: btoa(b64) }],
         idempotencyKey: `attestation-signed-${a.id}`,
         _emailType: "execution_attestation_signed",
