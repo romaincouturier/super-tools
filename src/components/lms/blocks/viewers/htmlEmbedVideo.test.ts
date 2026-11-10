@@ -25,3 +25,21 @@ describe("Google Forms embeds", () => {
     expect(safeVideoEmbedUrl("https://docs.google.com/document/d/abc/edit")).toBeNull();
   });
 });
+
+describe("Google Agenda, Tally et CrosswordLabs", () => {
+  it("sort ces intégrations du bac à sable avec des adresses strictes", async () => {
+    const { safeVideoEmbedUrl, deferVideoIframes, tallyHeight } = await import("./HtmlEmbedBlockViewer");
+    const cal = "https://calendar.google.com/calendar/appointments/schedules/AcZssZ2tZuM_-My3?gv=true";
+    const tally = "https://tally.so/embed/3q857d?alignLeft=1&dynamicHeight=1";
+    const cw = "https://crosswordlabs.com/embed/2025-06-13-134";
+    for (const u of [cal, tally, cw]) {
+      expect(safeVideoEmbedUrl(u)).toBe(new URL(u).toString());
+      expect(deferVideoIframes(`<iframe src="${u}"></iframe>`)).toContain("data-st-video=");
+    }
+    expect(safeVideoEmbedUrl("https://calendar.google.com/calendar/u/0/r")).toBeNull();
+    expect(safeVideoEmbedUrl("https://tally.so/r/3q857d")).toBeNull();
+    expect(safeVideoEmbedUrl("https://crosswordlabs.com.evil.com/embed/x")).toBeNull();
+    expect(tallyHeight('{"event":"Tally.FormResized","payload":{"height":612.4}}')).toBe(613);
+    expect(tallyHeight('{"event":"Other","payload":{"height":5}}')).toBeNull();
+  });
+});
