@@ -144,7 +144,7 @@ describe("Calendrier des contenus sociaux", () => {
       group("sans", [post("sans", "li", "Sans thème", null)]),
     ];
     renderPage();
-    const themesBar = screen.getByRole("group", { name: "Thème" });
+    const themesBar = screen.getByRole("group", { name: "Expertise" });
     fireEvent.click(within(themesBar).getByRole("button", { name: "IA appliquée" }));
     expect(screen.getByText("Post du soir")).toBeInTheDocument();
     expect(screen.queryByText("Reel Instagram")).toBeNull();
@@ -186,12 +186,12 @@ describe("Calendrier des contenus sociaux", () => {
       group("insta", [post("insta", "in", "Reel Instagram", "2026-11-03T17:00:00.000Z")]),
     ];
     const { rerender } = renderPage();
-    fireEvent.click(within(screen.getByRole("group", { name: "Thème" })).getByRole("button", { name: "IA appliquée" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Expertise" })).getByRole("button", { name: "IA appliquée" }));
     expect(screen.queryByText("Reel Instagram")).toBeNull();
     expect(screen.getByText("Non planifiés · 0")).toBeInTheDocument();
     h.themes = [];
     rerender(<MemoryRouter><TooltipProvider><SocialContentsPage /></TooltipProvider></MemoryRouter>);
-    expect(screen.queryByRole("group", { name: "Thème" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Expertise" })).toBeNull();
     expect(screen.getByText("Reel Instagram")).toBeInTheDocument();
     expect(screen.getByText("Post du soir")).toBeInTheDocument();
     expect(screen.getByText("Non planifiés · 1")).toBeInTheDocument();
@@ -215,7 +215,7 @@ describe("Calendrier des contenus sociaux", () => {
 
   it("n'affiche pas la famille Thème tant qu'aucun thème n'existe, et ouvre les réglages", () => {
     renderPage();
-    expect(screen.queryByRole("group", { name: "Thème" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Expertise" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Réglages" }));
     expect(screen.getByTestId("settings")).toBeInTheDocument();
   });
@@ -373,7 +373,7 @@ describe("Calendrier des contenus sociaux", () => {
       renderPage();
       expect(screen.getByText("Non planifiés · 1")).toBeInTheDocument();
       fireEvent.click(within(screen.getByRole("group", { name: "Statut" })).getByRole("button", { name: "Programmé" }));
-      fireEvent.click(within(screen.getByRole("group", { name: "Thème" })).getByRole("button", { name: "IA appliquée" }));
+      fireEvent.click(within(screen.getByRole("group", { name: "Expertise" })).getByRole("button", { name: "IA appliquée" }));
       fireEvent.click(within(screen.getByRole("group", { name: "Réseau" })).getByRole("button", { name: "Instagram" }));
       expect(screen.queryByText("Post du soir")).toBeNull();
       expect(screen.getByTestId("social-note-n1")).toBeInTheDocument();
