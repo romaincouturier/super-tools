@@ -95,3 +95,4 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Quote game orders stay internal (`create-devis-order`), never WooCommerce.
 - CRM card lists load via `crmCardsFetch` (paged; slim noCRM metadata).
 - Social fields: `save_social_content_group` `p_details` + `validate_social_content`, so MCP matches UI.
+- Execution attestations: content rules live in `_shared/execution-attestation.ts` (UI, edge functions, tests); a DB trigger resets edited sent attestations to draft and freezes signed ones, and only token hashes are stored, because the signed content must stay provable.
