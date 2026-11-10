@@ -428,6 +428,13 @@
       "when": 1794319055498,
       "tag": "0060_book_shared_module_access",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1794333174923,
+      "tag": "0061_execution_attestations",
+      "breakpoints": true
     }
   ]
 }

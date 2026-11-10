@@ -3670,6 +3670,174 @@ export type Database = {
           },
         ]
       }
+      execution_attestations: {
+        Row: {
+          amount_ht: number | null
+          certification_text: string
+          client_address: string | null
+          client_name: string | null
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          days_count: number | null
+          device_info: Json | null
+          email_sent_at: string | null
+          end_date: string | null
+          expires_at: string | null
+          free_text: string | null
+          id: string
+          ip_address: string | null
+          is_public_entity: boolean
+          journey_events: Json
+          link_validity_days: number
+          location: string | null
+          mission_id: string | null
+          participants_count: number | null
+          provider_address: string | null
+          provider_name: string | null
+          provider_nda: string | null
+          provider_siren: string | null
+          public_contract_reference: string | null
+          public_entity_name: string | null
+          refusal_reason: string | null
+          refused_at: string | null
+          sent_at: string | null
+          signature_image: string | null
+          signed_at: string | null
+          signed_pdf_hash: string | null
+          signed_pdf_path: string | null
+          signed_signer_function: string | null
+          signed_signer_name: string | null
+          signer_email: string | null
+          signer_function: string | null
+          signer_name: string | null
+          source_type: string
+          start_date: string | null
+          status: string
+          subject: string | null
+          token_hash: string | null
+          training_id: string | null
+          updated_at: string
+          updated_by: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          amount_ht?: number | null
+          certification_text?: string
+          client_address?: string | null
+          client_name?: string | null
+          content_hash?: string | null
+          created_at?: string
+          created_by?: string | null
+          days_count?: number | null
+          device_info?: Json | null
+          email_sent_at?: string | null
+          end_date?: string | null
+          expires_at?: string | null
+          free_text?: string | null
+          id?: string
+          ip_address?: string | null
+          is_public_entity?: boolean
+          journey_events?: Json
+          link_validity_days?: number
+          location?: string | null
+          mission_id?: string | null
+          participants_count?: number | null
+          provider_address?: string | null
+          provider_name?: string | null
+          provider_nda?: string | null
+          provider_siren?: string | null
+          public_contract_reference?: string | null
+          public_entity_name?: string | null
+          refusal_reason?: string | null
+          refused_at?: string | null
+          sent_at?: string | null
+          signature_image?: string | null
+          signed_at?: string | null
+          signed_pdf_hash?: string | null
+          signed_pdf_path?: string | null
+          signed_signer_function?: string | null
+          signed_signer_name?: string | null
+          signer_email?: string | null
+          signer_function?: string | null
+          signer_name?: string | null
+          source_type: string
+          start_date?: string | null
+          status?: string
+          subject?: string | null
+          token_hash?: string | null
+          training_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          amount_ht?: number | null
+          certification_text?: string
+          client_address?: string | null
+          client_name?: string | null
+          content_hash?: string | null
+          created_at?: string
+          created_by?: string | null
+          days_count?: number | null
+          device_info?: Json | null
+          email_sent_at?: string | null
+          end_date?: string | null
+          expires_at?: string | null
+          free_text?: string | null
+          id?: string
+          ip_address?: string | null
+          is_public_entity?: boolean
+          journey_events?: Json
+          link_validity_days?: number
+          location?: string | null
+          mission_id?: string | null
+          participants_count?: number | null
+          provider_address?: string | null
+          provider_name?: string | null
+          provider_nda?: string | null
+          provider_siren?: string | null
+          public_contract_reference?: string | null
+          public_entity_name?: string | null
+          refusal_reason?: string | null
+          refused_at?: string | null
+          sent_at?: string | null
+          signature_image?: string | null
+          signed_at?: string | null
+          signed_pdf_hash?: string | null
+          signed_pdf_path?: string | null
+          signed_signer_function?: string | null
+          signed_signer_name?: string | null
+          signer_email?: string | null
+          signer_function?: string | null
+          signer_name?: string | null
+          source_type?: string
+          start_date?: string | null
+          status?: string
+          subject?: string | null
+          token_hash?: string | null
+          training_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "execution_attestations_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "execution_attestations_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       failed_emails: {
         Row: {
           created_at: string | null
@@ -14726,6 +14894,10 @@ export type Database = {
         Returns: Json
       }
       backup_schema_inventory: { Args: never; Returns: Json }
+      can_access_attestation_source: {
+        Args: { _source_type: string }
+        Returns: boolean
+      }
       can_access_project_board: {
         Args: { _board: string; _user_id: string }
         Returns: boolean
@@ -14756,6 +14928,69 @@ export type Database = {
       create_devis_order: {
         Args: { p_items: Json; p_order: Json }
         Returns: Json
+      }
+      create_execution_attestation: {
+        Args: {
+          p_mission_id?: string
+          p_overrides?: Json
+          p_training_id?: string
+        }
+        Returns: {
+          amount_ht: number | null
+          certification_text: string
+          client_address: string | null
+          client_name: string | null
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          days_count: number | null
+          device_info: Json | null
+          email_sent_at: string | null
+          end_date: string | null
+          expires_at: string | null
+          free_text: string | null
+          id: string
+          ip_address: string | null
+          is_public_entity: boolean
+          journey_events: Json
+          link_validity_days: number
+          location: string | null
+          mission_id: string | null
+          participants_count: number | null
+          provider_address: string | null
+          provider_name: string | null
+          provider_nda: string | null
+          provider_siren: string | null
+          public_contract_reference: string | null
+          public_entity_name: string | null
+          refusal_reason: string | null
+          refused_at: string | null
+          sent_at: string | null
+          signature_image: string | null
+          signed_at: string | null
+          signed_pdf_hash: string | null
+          signed_pdf_path: string | null
+          signed_signer_function: string | null
+          signed_signer_name: string | null
+          signer_email: string | null
+          signer_function: string | null
+          signer_name: string | null
+          source_type: string
+          start_date: string | null
+          status: string
+          subject: string | null
+          token_hash: string | null
+          training_id: string | null
+          updated_at: string
+          updated_by: string | null
+          user_agent: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "execution_attestations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_learner_reclamation: {
         Args: {
@@ -14798,6 +15033,10 @@ export type Database = {
         Returns: string
       }
       expire_tender_opportunities: { Args: never; Returns: number }
+      generate_execution_attestation_link: {
+        Args: { p_id: string }
+        Returns: Json
+      }
       get_active_vhd_procedure: { Args: never; Returns: Json }
       get_agent_allowed_tables: { Args: never; Returns: string[] }
       get_agent_schema_prompt: { Args: never; Returns: string }
