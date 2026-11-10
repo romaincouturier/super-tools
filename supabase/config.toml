@@ -773,3 +773,9 @@ verify_jwt = false
 
 [functions.nocrm-import]
 verify_jwt = false
+
+[functions.attestation-public]
+verify_jwt = false
+
+[functions.submit-attestation-signature]
+verify_jwt = false

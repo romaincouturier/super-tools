@@ -184,9 +184,98 @@ var update_lms_course_default = defineTool9({ name: "update_lms_course", title: 
   return result({ before: before.data, after: data });
 } });
 
+// src/lib/mcp/tools/create-execution-attestation.ts
+import { defineTool as defineTool10 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z12 } from "npm:zod@^3.25.76";
+
+// src/lib/mcp/attestation-shared.ts
+import { z as z11 } from "npm:zod@^3.25.76";
+var attestationFields = {
+  client_name: z11.string().max(300).optional(),
+  client_address: z11.string().max(500).optional(),
+  signer_name: z11.string().max(200).optional(),
+  signer_function: z11.string().max(200).optional(),
+  signer_email: z11.string().email().optional(),
+  is_public_entity: z11.boolean().optional().describe("Intervention aupr\xE8s d'une collectivit\xE9 territoriale"),
+  public_entity_name: z11.string().max(300).optional(),
+  public_contract_reference: z11.string().max(200).optional(),
+  subject: z11.string().max(300).optional(),
+  start_date: z11.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  end_date: z11.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  location: z11.string().max(300).optional(),
+  participants_count: z11.number().int().min(0).optional(),
+  days_count: z11.number().min(0).optional(),
+  amount_ht: z11.number().min(0).optional(),
+  free_text: z11.string().max(1e4).optional().describe("Texte libre de description de la prestation"),
+  certification_text: z11.string().max(2e3).optional(),
+  link_validity_days: z11.number().int().min(1).max(365).optional()
+};
+var SUMMARY = "id,source_type,mission_id,training_id,status,subject,client_name,signer_name,signer_function,is_public_entity,public_entity_name,sent_at,expires_at,signed_at,refused_at,refusal_reason,created_at";
+function attestationUrl(token) {
+  return `https://academy.supertilt.fr/attestation/${token}`;
+}
+
+// src/lib/mcp/tools/create-execution-attestation.ts
+var create_execution_attestation_default = defineTool10({ name: "create_execution_attestation", title: "Cr\xE9er une attestation de bonne ex\xE9cution", description: "Cr\xE9e un brouillon pr\xE9-rempli depuis une mission OU une formation ; les champs fournis remplacent le pr\xE9-remplissage. Aucun email envoy\xE9.", inputSchema: { mission_id: z12.string().uuid().optional(), training_id: z12.string().uuid().optional(), ...attestationFields }, handler: async ({ mission_id, training_id, ...overrides }, ctx) => {
+  if (!mission_id === !training_id) throw new Error("Indiquer mission_id ou training_id, pas les deux");
+  const db = await staffClient(ctx);
+  const { data, error } = await db.rpc("create_execution_attestation", { p_mission_id: mission_id ?? null, p_training_id: training_id ?? null, p_overrides: overrides });
+  if (error) throw error;
+  return result(data);
+} });
+
+// src/lib/mcp/tools/update-execution-attestation.ts
+import { defineTool as defineTool11 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z13 } from "npm:zod@^3.25.76";
+var update_execution_attestation_default = defineTool11({ name: "update_execution_attestation", title: "Modifier une attestation de bonne ex\xE9cution", description: "Modifie les champs fournis. Une attestation envoy\xE9e repasse en brouillon et son lien est invalid\xE9. Impossible apr\xE8s signature.", inputSchema: { attestation_id: z13.string().uuid(), ...attestationFields }, handler: async ({ attestation_id, ...patch }, ctx) => {
+  const db = await staffClient(ctx);
+  const { data, error } = await db.from("execution_attestations").update(patch).eq("id", attestation_id).select("*").single();
+  if (error) throw error;
+  return result(data);
+} });
+
+// src/lib/mcp/tools/list-execution-attestations.ts
+import { defineTool as defineTool12 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z14 } from "npm:zod@^3.25.76";
+var list_execution_attestations_default = defineTool12({ name: "list_execution_attestations", title: "Lister les attestations de bonne ex\xE9cution", description: "Liste avec statut, signataire et dates ; filtres facultatifs.", inputSchema: { status: z14.enum(["draft", "sent", "signed", "refused", "expired", "cancelled"]).optional(), mission_id: z14.string().uuid().optional(), training_id: z14.string().uuid().optional(), limit: z14.number().int().min(1).max(200).default(50) }, handler: async ({ status, mission_id, training_id, limit }, ctx) => {
+  const db = await staffClient(ctx);
+  let q = db.from("execution_attestations").select(SUMMARY).order("created_at", { ascending: false }).limit(limit);
+  if (mission_id) q = q.eq("mission_id", mission_id);
+  if (training_id) q = q.eq("training_id", training_id);
+  const { data, error } = await q;
+  if (error) throw error;
+  const now = Date.now();
+  const rows = (data ?? []).map((r) => ({ ...r, status: r.status === "sent" && r.expires_at && Date.parse(String(r.expires_at)) < now ? "expired" : r.status }));
+  return result(status ? rows.filter((r) => r.status === status) : rows);
+} });
+
+// src/lib/mcp/tools/get-execution-attestation-link.ts
+import { defineTool as defineTool13 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z15 } from "npm:zod@^3.25.76";
+var get_execution_attestation_link_default = defineTool13({ name: "get_execution_attestation_link", title: "G\xE9n\xE9rer le lien de signature d\u2019une attestation", description: "G\xE9n\xE8re (ou r\xE9g\xE9n\xE8re, ce qui invalide l\u2019ancien) le lien public de signature et passe l\u2019attestation en Envoy\xE9e. N\u2019envoie aucun email : le lien est \xE0 transmettre manuellement.", inputSchema: { attestation_id: z15.string().uuid() }, handler: async ({ attestation_id }, ctx) => {
+  const db = await staffClient(ctx);
+  const { data, error } = await db.rpc("generate_execution_attestation_link", { p_id: attestation_id });
+  if (error) throw error;
+  const d = data;
+  return result({ url: attestationUrl(d.token), expires_at: d.expires_at });
+} });
+
+// src/lib/mcp/tools/get-execution-attestation-pdf.ts
+import { defineTool as defineTool14 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z16 } from "npm:zod@^3.25.76";
+var get_execution_attestation_pdf_default = defineTool14({ name: "get_execution_attestation_pdf", title: "T\xE9l\xE9charger le PDF sign\xE9 d\u2019une attestation", description: "Retourne un lien temporaire (10 minutes) vers le PDF sign\xE9.", inputSchema: { attestation_id: z16.string().uuid() }, handler: async ({ attestation_id }, ctx) => {
+  const db = await staffClient(ctx);
+  const { data: a, error } = await db.from("execution_attestations").select("status,signed_pdf_path").eq("id", attestation_id).single();
+  if (error) throw error;
+  if (a.status !== "signed" || !a.signed_pdf_path) throw new Error("Attestation non sign\xE9e");
+  const s = await db.storage.from("attestations").createSignedUrl(a.signed_pdf_path, 600);
+  if (s.error) throw s.error;
+  return result({ url: s.data.signedUrl, expires_in_seconds: 600 });
+} });
+
 // src/lib/mcp/index.ts
 var ref = "yewffntzgrdgztrwtava";
-var mcp_default = defineMcp({ name: "supertools", title: "SuperTools", version: "1.0.0", auth: auth.oauth.issuer({ issuer: `https://${ref}.supabase.co/auth/v1`, acceptedAudiences: "authenticated" }), instructions: "Extensions r\xE9serv\xE9es au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille et couvertures. Aucun outil de suppression ni envoi d\u2019email. Ne jamais modifier les le\xE7ons. Confirmer allow_multiple avec l\u2019utilisateur. Les outils historiques restent sur leur connecteur existant.", tools: [list_lms_modules_default, create_lms_module_default, update_lms_module_default, assign_transcript_default, list_unassigned_transcripts_default, list_watch_sources_default, propose_watch_source_default, update_watch_source_default, update_lms_course_default] });
+var mcp_default = defineMcp({ name: "supertools", title: "SuperTools", version: "1.0.0", auth: auth.oauth.issuer({ issuer: `https://${ref}.supabase.co/auth/v1`, acceptedAudiences: "authenticated" }), instructions: "Extensions r\xE9serv\xE9es au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille, couvertures et attestations de bonne ex\xE9cution (cr\xE9ation, modification, liste, lien de signature, PDF sign\xE9). Aucun outil de suppression ni envoi d\u2019email. Ne jamais modifier les le\xE7ons. Confirmer allow_multiple avec l\u2019utilisateur. Les outils historiques restent sur leur connecteur existant.", tools: [list_lms_modules_default, create_lms_module_default, update_lms_module_default, assign_transcript_default, list_unassigned_transcripts_default, list_watch_sources_default, propose_watch_source_default, update_watch_source_default, update_lms_course_default, create_execution_attestation_default, update_execution_attestation_default, list_execution_attestations_default, get_execution_attestation_link_default, get_execution_attestation_pdf_default] });
 
 // lovable-mcp-supabase-entry.ts
 import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@3.4.0/stacks/supabase";

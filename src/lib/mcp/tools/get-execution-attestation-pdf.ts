@@ -1,0 +1,4 @@
+import { defineTool } from '@lovable.dev/mcp-js';
+import { z } from 'zod';
+import { staffClient,result } from '../supabase';
+export default defineTool({name:'get_execution_attestation_pdf',title:'Télécharger le PDF signé d’une attestation',description:'Retourne un lien temporaire (10 minutes) vers le PDF signé.',inputSchema:{attestation_id:z.string().uuid()},handler:async({attestation_id},ctx)=>{const db=await staffClient(ctx);const {data:a,error}=await db.from('execution_attestations').select('status,signed_pdf_path').eq('id',attestation_id).single();if(error)throw error;if(a.status!=='signed'||!a.signed_pdf_path)throw new Error('Attestation non signée');const s=await db.storage.from('attestations').createSignedUrl(a.signed_pdf_path,600);if(s.error)throw s.error;return result({url:s.data.signedUrl,expires_in_seconds:600});}});
