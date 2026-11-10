@@ -15,3 +15,13 @@ describe("vidéos des blocs HTML", () => {
     expect(deferVideoIframes('<iframe src="https://tally.so/embed/x"></iframe>')).toBe('<iframe src="https://tally.so/embed/x"></iframe>');
   });
 });
+
+describe("Google Forms embeds", () => {
+  it("accepts a Google Forms viewform URL and defers it out of the sandbox", async () => {
+    const { safeVideoEmbedUrl, deferVideoIframes } = await import("./HtmlEmbedBlockViewer");
+    const u = "https://docs.google.com/forms/d/e/1FAIpQLScUzvvTKg/viewform?embedded=true";
+    expect(safeVideoEmbedUrl(u)).toBe(u);
+    expect(deferVideoIframes(`<iframe src="${u}"></iframe>`)).toContain("data-st-video=");
+    expect(safeVideoEmbedUrl("https://docs.google.com/document/d/abc/edit")).toBeNull();
+  });
+});
