@@ -33,6 +33,7 @@ import CreateCalendarEventDialog from "@/components/crm/CreateCalendarEventDialo
 import type { ContactSuggestion } from "./MissionContacts";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskText, demoBlur } from "@/lib/demoMask";
+import AttestationsSection from "@/components/attestations/AttestationsSection";
 
 interface MissionDetailDrawerProps {
   mission: Mission | null;
@@ -463,13 +464,14 @@ const MissionDetailDrawer = ({
           </TabsContent>
 
           {/* Documents Tab */}
-          <TabsContent value="documents" className="mt-4">
+          <TabsContent value="documents" className="mt-4 space-y-6">
             <EntityDocumentsManager
               entityType="mission"
               entityId={mission.id}
               variant="bare"
               title="Documents contractuels"
             />
+            <AttestationsSection missionId={mission.id} />
           </TabsContent>
 
           {/* Gallery Tab */}
