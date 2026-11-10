@@ -120,6 +120,7 @@ const STORAGE_BUCKETS = [
   "client-pearls",
   "training-programs",
   "training-documents",
+  "attestations",
   "training-media",
   "content-images",
   "review-images",
