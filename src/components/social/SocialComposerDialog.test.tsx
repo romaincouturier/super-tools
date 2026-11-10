@@ -6,7 +6,7 @@ import type { SocialChannel, SocialContentGroup, SocialPost } from "@/services/s
 const h = vi.hoisted(() => {
   const state = {
     mutateAsync: vi.fn(), demo: false, group: null as unknown, themesPending: false, themesError: false,
-    setPublished: vi.fn(), updatePublished: vi.fn(), deletePost: vi.fn(), deleteGroup: vi.fn(),
+    setPublished: vi.fn(), updatePublished: vi.fn(), deletePost: vi.fn(), deleteGroup: vi.fn(), validate: vi.fn(),
     refetch: vi.fn(),
   };
   state.refetch.mockImplementation(async () => ({ data: state.group }));
