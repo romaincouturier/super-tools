@@ -12,7 +12,7 @@ import { format } from "date-fns";
 
 export default function AttestationsTable({ rows, showSource = false }: { rows: ExecutionAttestation[]; showSource?: boolean }) {
   const { toast } = useToast();
-  const confirm = useConfirm();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { link, cancel } = useExecutionAttestationMutations();
   const [editing, setEditing] = useState<ExecutionAttestation | null>(null);
   const fail = (title: string) => (e: unknown) => toast({ title, description: (e as Error).message, variant: "destructive" });
@@ -68,6 +68,7 @@ export default function AttestationsTable({ rows, showSource = false }: { rows: 
         })}
       </div>
       <AttestationEditDialog attestation={editing} onClose={() => setEditing(null)} />
+      <ConfirmDialog />
     </>
   );
 }
