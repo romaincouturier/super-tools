@@ -36,6 +36,9 @@ vi.mock("@/hooks/useSocialContents", () => ({
   useUpdatePublishedSocialPost: () => ({ mutateAsync: h.updatePublished }),
   useDeleteSocialPost: () => ({ mutateAsync: h.deletePost }),
   useDeleteSocialGroup: () => ({ mutateAsync: h.deleteGroup }),
+  useValidateSocialContent: () => ({ mutateAsync: h.validate }),
+  useProfileLabel: () => ({ data: "Romain" }),
+  useNewsletterCards: () => ({ data: [{ id: "nl-1", title: "Newsletter de novembre" }], isError: false }),
   useSocialThemes: () => ({
     data: h.themesPending || h.themesError
       ? undefined
