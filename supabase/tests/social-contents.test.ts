@@ -19,6 +19,7 @@ const PUBLICATION_MIGRATION = path.resolve(here, "../migrations/20261107100000_s
 const NOTES_MIGRATION = path.resolve(here, "../migrations/20261109100000_social_calendar_notes.sql");
 const AUTHORSHIP_MIGRATION = path.resolve(here, "../migrations/20261110100000_social_authorship_and_note_colors.sql");
 const STATUS_MIGRATION = path.resolve(here, "../migrations/20261110120000_social_status_independent_of_date.sql");
+const ENRICHMENT_MIGRATION = path.resolve(here, "../migrations/20261110140000_social_content_enrichment.sql");
 const UPDATED_AT_MIGRATION = path.resolve(here, "../migrations/20260108203546_738a153d-fdf5-43d3-a2c6-75e98647a71f.sql");
 
 /** update_updated_at_column, telle que livrée (forme `$$ LANGUAGE ...;` hors du motif de readFunctionSql). */
@@ -54,6 +55,7 @@ beforeAll(async () => {
     CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, email text, is_admin boolean NOT NULL DEFAULT false);
     CREATE TABLE public.user_module_access (user_id uuid NOT NULL, module public.app_module NOT NULL);
     CREATE TABLE public.media (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), file_name text NOT NULL);
+    CREATE TABLE public.content_cards (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text NOT NULL);
   `);
   await db.exec(readFunctionSql("20260220170000_add_email_settings.sql", "is_admin"));
   await db.exec(readFunctionSql("20261103100000_supertilt_fr_module.sql", "has_module_access"));
@@ -66,6 +68,7 @@ beforeAll(async () => {
   const notesMigration = fs.readFileSync(NOTES_MIGRATION, "utf8");
   const authorshipMigration = fs.readFileSync(AUTHORSHIP_MIGRATION, "utf8");
   const statusMigration = fs.readFileSync(STATUS_MIGRATION, "utf8");
+  const enrichmentMigration = fs.readFileSync(ENRICHMENT_MIGRATION, "utf8");
   for (let i = 0; i < 2; i++) {
     await db.exec(migration);
     await db.exec(dateMigration);
@@ -75,9 +78,11 @@ beforeAll(async () => {
     await db.exec(notesMigration);
     await db.exec(authorshipMigration);
     await db.exec(statusMigration);
+    await db.exec(enrichmentMigration);
   }
   await db.exec(`
     GRANT ALL ON public.social_channels, public.social_content_groups, public.social_posts, public.social_themes, public.social_calendar_notes TO anon, authenticated;
+    GRANT SELECT ON public.content_cards TO authenticated;
     GRANT SELECT ON public.media TO authenticated;
     INSERT INTO auth.users VALUES
       ('${ADMIN}', 'admin@exemple.fr'), ('${EMMA}', 'emmanuelle@exemple.fr'), ('${OTHER}', 'autre@exemple.fr');
