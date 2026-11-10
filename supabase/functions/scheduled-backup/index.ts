@@ -72,7 +72,7 @@ const TABLES_TO_BACKUP = [
   "mission_documents", "mission_email_drafts", "mission_media",
   "mission_page_comments", "mission_page_templates", "mission_pages",
   "mission_survey_answers", "mission_survey_questions", "mission_survey_responses", "mission_surveys",
-  "missions", "monthly_reports",
+  "missions", "execution_attestations", "monthly_reports",
   "network_actions", "network_contacts", "network_conversation", "network_interactions",
   "newsletter_cards", "newsletter_comments", "newsletters",
   "okr_check_ins", "okr_initiatives", "okr_key_results", "okr_objectives", "okr_participants",

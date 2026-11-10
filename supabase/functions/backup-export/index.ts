@@ -150,6 +150,7 @@ const TABLES_TO_BACKUP = [
   "mission_survey_responses",
   "mission_surveys",
   "missions",
+  "execution_attestations",
   "monthly_reports",
   "network_actions",
   "network_contacts",
