@@ -10819,33 +10819,111 @@ export type Database = {
         }
         Relationships: []
       }
-      social_content_groups: {
+      social_content_group_themes: {
         Row: {
-          created_at: string
-          created_by: string | null
-          format: string
-          id: string
-          sync: boolean
-          theme_id: string | null
-          updated_at: string
+          group_id: string
+          theme_id: string
         }
         Insert: {
-          created_at?: string
-          created_by?: string | null
-          format?: string
-          id?: string
-          sync?: boolean
-          theme_id?: string | null
-          updated_at?: string
+          group_id: string
+          theme_id: string
         }
         Update: {
+          group_id?: string
+          theme_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_content_group_themes_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "social_content_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_content_group_themes_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "social_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_content_groups: {
+        Row: {
+          check_links_checked: boolean
+          check_proofread: boolean
+          check_text_ready: boolean
+          check_visual_ready: boolean
+          created_at: string
+          created_by: string | null
+          editorial_category: string | null
+          format: string
+          id: string
+          internal_notes: string | null
+          origin: string
+          sync: boolean
+          theme_id: string | null
+          title: string | null
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          visual_composition: string | null
+          visual_elements: string | null
+          visual_message: string | null
+          visual_slides: Json
+          visual_texts: string | null
+          visual_type: string | null
+        }
+        Insert: {
+          check_links_checked?: boolean
+          check_proofread?: boolean
+          check_text_ready?: boolean
+          check_visual_ready?: boolean
           created_at?: string
           created_by?: string | null
+          editorial_category?: string | null
           format?: string
           id?: string
+          internal_notes?: string | null
+          origin?: string
           sync?: boolean
           theme_id?: string | null
+          title?: string | null
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          visual_composition?: string | null
+          visual_elements?: string | null
+          visual_message?: string | null
+          visual_slides?: Json
+          visual_texts?: string | null
+          visual_type?: string | null
+        }
+        Update: {
+          check_links_checked?: boolean
+          check_proofread?: boolean
+          check_text_ready?: boolean
+          check_visual_ready?: boolean
+          created_at?: string
+          created_by?: string | null
+          editorial_category?: string | null
+          format?: string
+          id?: string
+          internal_notes?: string | null
+          origin?: string
+          sync?: boolean
+          theme_id?: string | null
+          title?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          visual_composition?: string | null
+          visual_elements?: string | null
+          visual_message?: string | null
+          visual_slides?: Json
+          visual_texts?: string | null
+          visual_type?: string | null
         }
         Relationships: [
           {
@@ -10853,6 +10931,51 @@ export type Database = {
             columns: ["theme_id"]
             isOneToOne: false
             referencedRelation: "social_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_content_sources: {
+        Row: {
+          content_card_id: string | null
+          created_at: string
+          group_id: string
+          id: string
+          label: string | null
+          position: number
+          url: string | null
+        }
+        Insert: {
+          content_card_id?: string | null
+          created_at?: string
+          group_id: string
+          id?: string
+          label?: string | null
+          position?: number
+          url?: string | null
+        }
+        Update: {
+          content_card_id?: string | null
+          created_at?: string
+          group_id?: string
+          id?: string
+          label?: string | null
+          position?: number
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_content_sources_content_card_id_fkey"
+            columns: ["content_card_id"]
+            isOneToOne: false
+            referencedRelation: "content_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_content_sources_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "social_content_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -15395,6 +15518,7 @@ export type Database = {
       revoke_other_sessions: { Args: never; Returns: number }
       save_social_content_group: {
         Args: {
+          p_details?: Json
           p_format: string
           p_group_id: string
           p_posts: Json
@@ -15531,6 +15655,10 @@ export type Database = {
         Returns: string
       }
       url_path: { Args: { u: string }; Returns: string }
+      validate_social_content: {
+        Args: { p_group_id: string; p_validated: boolean }
+        Returns: string
+      }
     }
     Enums: {
       app_module:
