@@ -128,6 +128,13 @@ function PostsFeed({
 
   const pendingCount = posts.filter((p) => !p.is_staff_treated).length;
   const visiblePosts = onlyPending ? posts.filter((p) => !p.is_staff_treated) : posts;
+  const targetPostId = searchParams.get("post");
+
+  useEffect(() => {
+    if (!targetPostId || isLoading) return;
+    const el = document.getElementById(`post-${targetPostId}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [targetPostId, isLoading, posts.length]);
 
   if (isLoading) {
     return (
@@ -167,7 +174,11 @@ function PostsFeed({
         </div>
       ) : (
         visiblePosts.map((post) => (
-          <div key={post.id} className="relative">
+          <div
+            key={post.id}
+            id={`post-${post.id}`}
+            className={`relative scroll-mt-24 rounded-2xl ${targetPostId === post.id ? "ring-2 ring-primary" : ""}`}
+          >
             {post.is_staff_treated && (
               <div className="absolute top-2 right-2 z-10">
                 <Badge variant="outline" className="text-xs text-green-600 border-green-200 bg-green-50">Traité</Badge>

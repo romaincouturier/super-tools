@@ -86,6 +86,9 @@ serve(async (req) => {
     const { getAppUrls } = await import("../_shared/app-urls.ts");
     const urls = await getAppUrls();
     const link = `${urls.app_url}/espace-apprenant/pratique?post=${encodeURIComponent(postId)}#post-${encodeURIComponent(postId)}`;
+    const staffLink = courseId
+      ? `${urls.app_url}/lms/communautes/${encodeURIComponent(courseId)}?post=${encodeURIComponent(postId)}#post-${encodeURIComponent(postId)}`
+      : `${urls.app_url}/lms/communautes`;
     const relativeLink = `/espace-apprenant/pratique?post=${encodeURIComponent(postId)}#post-${encodeURIComponent(postId)}`;
     const commentExcerpt = (comment?.content || "").slice(0, 280);
     const excerptHtml = commentExcerpt.replace(/\n/g, "<br>");
@@ -108,7 +111,7 @@ serve(async (req) => {
         vars: { commenter_name: commenterName, course_title: courseTitle },
         blocks: {
           comment_quote: `<blockquote style="border-left:3px solid #e5e7eb;padding:8px 16px;margin:16px 0;color:#374151;background:#f9fafb;border-radius:4px">${excerptHtml}</blockquote>`,
-          discussion_button: ctaButton("Voir la discussion", link),
+          discussion_button: ctaButton("Voir la discussion", staffLink),
         },
       });
       const adminResult = await sendEmail({
