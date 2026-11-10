@@ -435,6 +435,13 @@
       "when": 1794333174923,
       "tag": "0061_execution_attestations",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1794333190591,
+      "tag": "0062_attestations_storage_policy",
+      "breakpoints": true
     }
   ]
 }
