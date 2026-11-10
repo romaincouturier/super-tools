@@ -107,7 +107,6 @@ function VisualField({ label, mediaId, mediaById, onPick, onRemove }: {
 }
 
 const COMMON_VISUAL = "__common__";
-const NO_THEME = "__none__";
 
 interface SocialComposerDialogProps {
   open: boolean;
