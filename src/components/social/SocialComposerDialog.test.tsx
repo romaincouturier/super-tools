@@ -115,6 +115,25 @@ describe("SocialComposerDialog : sauvegarde continue", () => {
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
     expect(h.mutateAsync.mock.calls.at(-1)?.[0]).toMatchObject({ channelIds: ["li"], scheduledAt: "2026-01-15T08:00:00.000Z" });
   });
+
+  it("une date saisie laisse la déclinaison en Brouillon, enregistrée comme telle", async () => {
+    const onOpenChange = vi.fn();
+    render(<SocialComposerDialog open onOpenChange={onOpenChange} groupId={null} />);
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    fireEvent.change(screen.getByLabelText("Date (heure de Paris, facultative)"), { target: { value: "2026-01-15" } });
+    expect(screen.getByRole("combobox", { name: /^Statut/ })).toHaveTextContent("Brouillon");
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(h.mutateAsync.mock.calls.at(-1)?.[0]).toMatchObject({ statuses: { li: "unscheduled" }, scheduledAt: "2026-01-15T08:00:00.000Z" });
+  });
+
+  it("refuse Programmé sans date et garde Brouillon", async () => {
+    render(<SocialComposerDialog open onOpenChange={vi.fn()} groupId={null} />);
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    fireEvent.keyDown(screen.getByRole("combobox", { name: /^Statut/ }), { key: "Enter" });
+    fireEvent.keyDown(screen.getByRole("option", { name: "Programmé" }), { key: "Enter" });
+    expect(screen.getByRole("combobox", { name: /^Statut/ })).toHaveTextContent("Brouillon");
+  });
 });
 
 describe("SocialComposerDialog : thème", () => {
