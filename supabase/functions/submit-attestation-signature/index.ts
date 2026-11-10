@@ -115,7 +115,7 @@ serve(async (req) => {
 
     // Seul email automatique : confirmation après signature, à Romain avec copie au signataire.
     try {
-      const [sig, bcc] = await Promise.all([getSigniticSignature(), getBccSettings(supabase as never)]);
+      const [sig, bcc] = await Promise.all([getSigniticSignature(), getBccSettings(supabase)]);
       const who = `${esc(signerName)}${signerFunction ? `, ${esc(signerFunction)}` : ""}`;
       const html = `<p>Bonjour,</p><p>L'attestation de bonne exécution « ${esc(a.subject ?? "")} » a été signée par ${who}${a.public_entity_name ? ` (${esc(a.public_entity_name)})` : ` pour ${esc(a.client_name ?? "")}`} le ${esc(formatDateTime(signedAt))}.</p><p>Vous trouverez le document signé en pièce jointe.</p>`;
       let b64 = ""; for (let i = 0; i < pdf.length; i += 0x8000) b64 += String.fromCharCode(...pdf.subarray(i, i + 0x8000));
@@ -126,7 +126,9 @@ serve(async (req) => {
         subject: `Attestation de bonne exécution signée : ${a.subject ?? ""}`,
         html: wrapEmailHtml(html, sig),
         attachments: [{ filename: "attestation-bonne-execution-signee.pdf", content: btoa(b64) }],
-      } as never);
+        idempotencyKey: `attestation-signed-${a.id}`,
+        _emailType: "execution_attestation_signed",
+      });
       if ((result as { success?: boolean }).success) await supabase.from("execution_attestations").update({ email_sent_at: new Date().toISOString() }).eq("id", a.id);
     } catch (e) { console.error("attestation email", e); }
 
