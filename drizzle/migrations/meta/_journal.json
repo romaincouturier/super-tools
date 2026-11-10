@@ -407,6 +407,13 @@
       "when": 1794306090336,
       "tag": "0057_social_status_independent_of_date",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1794306113521,
+      "tag": "0058_social_status_independent_of_date_apply",
+      "breakpoints": true
     }
   ]
 }
