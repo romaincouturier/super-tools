@@ -1,41 +1,54 @@
-# Modules LMS et transcripts de formation
+# Contenus sociaux : statut indépendant de la date
 
-## Périmètre demandé
-- Ajouter la création, la modification et la liste des modules LMS, y compris les modules vides.
-- Rattacher les transcripts aux formations et les afficher dans leur fiche.
-- Inclure les extensions de sources de veille et la mise à jour des couvertures déjà demandées ; vérifier les outils existants avant tout ajout.
-- Ne modifier aucun contenu de leçon, aucune automatisation ni aucun autre parcours.
+## Où la règle « date ⇒ programmé » est appliquée aujourd'hui
 
-## Point à débloquer avant les outils MCP
-Le serveur existant `mcp-server` utilise une intégration historique et une authentification personnalisée. La procédure de maintenance disponible impose désormais le SDK `defineMcp`, un endpoint `mcp` et une publication. Elle ne fournit pas de voie autorisée pour étendre directement ce serveur historique.
+Base (la source de la règle) :
+- Contrainte `social_posts_status_matches_date` (`20261105120000_social_contents.sql`, l. 52-54) : interdit un « Brouillon » (`unscheduled`) daté. C'est le verrou principal.
+- `save_social_content_group` (dernière version `20261106110000_social_themes.sql`, l. 116-139) : le statut est calculé à l'enregistrement, `CASE WHEN scheduled_at IS NULL THEN 'unscheduled' ELSE 'scheduled'`, et écrasé à chaque mise à jour.
+- `set_social_group_date` (`20261105130000_social_group_date.sql`, l. 23-24) : glisser-déposer dans le calendrier, même calcul.
+- `set_social_post_published` (`20261107100000_social_post_publication.sql`, l. 41-45) : « Annuler le marquage » remet Programmé si daté, Brouillon sinon (comportement conservé).
 
-Romain confirme le 09/11 qu’il souhaite ces évolutions. Conserver le serveur historique et les connexions existantes. Préparer les outils demandés sur le format supporté en parallèle seulement après vérification de la compatibilité de l’authentification existante avec OAuth géré ; si cette compatibilité ne peut pas être établie, suspendre cette partie et indiquer le blocage exact. Ne pas basculer les utilisateurs ni retirer le serveur historique sans validation explicite et essai complet. Ne pas migrer l’ensemble des anciens outils pour ce périmètre limité.
+Application :
+- `SocialComposerDialog.tsx` l. 497-500 : badge en lecture seule, statut affiché = `date ? "scheduled" : "unscheduled"`.
+- `socialContents.ts` l. 527-535 `withGroupDate` : mise à jour optimiste avec le même calcul.
+- `socialContents.ts` l. 484-486 `listUndatedGroups` : « Non planifiés » charge les contenus au statut Brouillon (et non sans date), donc un brouillon daté y resterait.
+- `placeGroups` place déjà par date : un brouillon daté ira sur son jour, en gris, une fois la contrainte levée.
 
-## Livrables
-### 1. Modules LMS
-- `create_lms_module(course_id, title, description?, position?)` : création additive, en fin par défaut ; insertion à une position explicite avec décalage des suivants.
-- `update_lms_module(module_id, patch)` : seuls titre, description et position sont autorisés ; réordonnancement limité aux frères du même cours ; retour avant/après.
-- `list_lms_modules(course_id)` : identifiant, titre, description, position et nombre de leçons, même pour les modules vides.
-- Vérification des droits staff sur le cours et journalisation des écritures. Aucune suppression.
-- Réordonnancement transactionnel pour éviter un décalage partiellement enregistré ou une collision en concurrence.
+MCP / API : aucun outil MCP ni fonction serveur ne crée de contenus sociaux aujourd'hui (seules les sauvegardes lisent ces tables). La logique sera donc garantie en base, ce qui couvrira tout futur outil MCP ; aucun outil MCP n'est créé dans ce lot (à demander séparément si souhaité).
 
-### 2. Transcripts liés aux formations
-- Créer `training_transcripts`, avec formation, transcript, date et auteur du rattachement ; unicité du couple formation/transcript, index et droits explicites.
-- Réserver la lecture et l’écriture aux personnels autorisés ; ne pas ouvrir les transcripts aux apprenants par cette liaison.
-- Étendre la liste partagée des affectations : une liaison formation rend le transcript affecté et participe à la confirmation `allow_multiple`.
-- Ajouter la cible `training` à `assign_transcript`, avec création idempotente du lien et attribution au demandeur vérifié.
-- Afficher une section « Transcripts » dans la fiche formation : titre, date, durée et lien ciblé vers le transcript.
+## Comportement cible
 
-## Détails techniques
-- Réutiliser les règles de sécurité des outils LMS et le modèle de liaison événement, avec les politiques staff actuelles plutôt que les anciennes politiques publiques.
-- Étendre `get_transcript_assignments()` sans perdre les cibles existantes, notamment les contacts Réseau.
-- Respecter le flux écran → hook → service pour la nouvelle section formation.
-- Appliquer les changements de schéma par l’outil de migration et conserver les droits/RLS.
+- Date et statut indépendants : saisir, modifier ou effacer une date ne touche jamais le statut.
+- Sélecteur par déclinaison Brouillon / Programmé à la place du badge ; « Publié » reste piloté par le bouton « Marquer publié » (sélecteur désactivé sur une déclinaison publiée).
+- Nouvelle déclinaison : Brouillon par défaut, datée ou non.
+- Programmé sans date et heure : message « Indiquez une date et une heure pour programmer », le statut ne change pas.
+- Effacer la date d'une déclinaison Programmé : refusé avec un message « Repassez en Brouillon avant de retirer la date » (hypothèse, puisque le statut ne doit pas changer et que Programmé exige une date ; à corriger si tu préfères un autre comportement). Même règle au glisser vers « Non planifiés ».
+- Glisser-déposer d'un brouillon sur un jour : il devient daté, reste Brouillon.
+- Calendrier : brouillon daté sur son jour, couleur grise Brouillon ; « Non planifiés » = contenus ayant une déclinaison sans date. Filtres de statut inchangés (ils lisent le statut enregistré).
+- Données existantes intactes : aucune mise à jour de lignes, les Programmé restent Programmé.
 
-## Vérifications
-- Tests : ajout en fin, insertion et déplacement dans les deux sens, isolation des cours, refus d’accès non autorisé, champs interdits.
-- Tests : doublon de liaison, confirmation multi-cibles, exclusion des transcripts liés de la liste non affectée, permissions.
-- Vérification connectée de la section formation et de son lien vers le transcript ; aucun cours réel ni contenu de leçon modifié pour les essais.
+## Étapes
 
-## État
-Évolutions demandées ; plan révisé pour préserver les connexions existantes. Aucune modification du serveur, de l’authentification ou du schéma liée à ces extensions effectuée. La publication du nouveau connecteur restera nécessaire après les essais et la génération du manifeste ; une génération seule ne prouve pas sa disponibilité.
+1. Migration (additive, aucune donnée modifiée) :
+   - remplacer la contrainte par `publication_status <> 'scheduled' OR scheduled_at IS NOT NULL` (seul Brouillon daté devient permis ; toutes les lignes existantes la respectent déjà) ;
+   - `save_social_content_group` : lit `publication_status` optionnel par déclinaison (`unscheduled` / `scheduled`, défaut `unscheduled` à la création, statut existant conservé si absent en mise à jour), n'en déduit plus jamais depuis la date ; refuse `scheduled` sans date avec un message clair ; `published` ne passe que par `set_social_post_published` ;
+   - `set_social_group_date` : ne modifie plus le statut ; refuse de retirer la date si une déclinaison non publiée est Programmé ;
+   - nouvelle RPC `set_social_post_status(post_id, status)` (SECURITY INVOKER, RLS de l'appelant, Brouillon/Programmé uniquement, refus sans date).
+2. Service `socialContents.ts` : brouillon de formulaire porte le statut par canal ; `setPostStatus` ; `withGroupDate` garde le statut ; `listUndatedGroups` filtre `scheduled_at IS NULL` ; helper pur `validateStatusChange` partagé formulaire/messages.
+3. Formulaire `SocialComposerDialog.tsx` : sélecteur shadcn par onglet, état statut par canal, message toast quand Programmé est refusé ; badge Publié + bouton conservés.
+4. Tests (lancés avant livraison avec `npm test`, `npm run typecheck`, `bash scripts/check-rules.sh`).
+
+## Tests ajoutés
+
+- `supabase/tests/social-contents.test.ts` (base) :
+  - brouillon daté enregistré : statut reste `unscheduled`, date conservée ;
+  - passage à Programmé sans date refusé (RPC et enregistrement), statut inchangé ;
+  - effacement de la date sur un contenu Programmé refusé, statut et date inchangés ;
+  - changer la date d'un Programmé ne change pas son statut.
+- `src/services/socialContents.test.ts` : `withGroupDate` ne change pas le statut ; `placeGroups` met un brouillon daté sur son jour avec le statut Brouillon et pas dans « Non planifiés » ; `validateStatusChange`.
+- `SocialComposerDialog.test.tsx` : saisir une date laisse « Brouillon » ; choisir Programmé sans date affiche le message et garde Brouillon ; nouvelle déclinaison créée en Brouillon avec date.
+- Tests existants qui supposent « datée ⇒ Programmé » mis à jour.
+
+## Impact sécurité (PR)
+
+Nouvelle RPC en SECURITY INVOKER, exécution `authenticated` seulement, révoquée pour `anon` : la RLS existante (admin ou module supertilt_fr) s'applique. Aucune donnée existante modifiée, aucun email ni automatisation.
