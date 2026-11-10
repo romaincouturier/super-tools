@@ -274,10 +274,11 @@ export async function validateContent(groupId: string, validated: boolean): Prom
 
 /** Nom affichable d'un compte (validation), null s'il n'est pas lisible. */
 export async function getProfileLabel(userId: string): Promise<string | null> {
-  const { data } = await db.from("profiles").select("display_name, first_name, last_name, email").eq("user_id", userId).maybeSingle();
-  if (!data) return null;
-  const d = data as { display_name: string | null; first_name: string | null; last_name: string | null; email: string | null };
-  return d.display_name || [d.first_name, d.last_name].filter(Boolean).join(" ") || d.email;
+  const { data } = await db.rpc("get_staff_directory");
+  const d = ((data ?? []) as { user_id: string; first_name: string | null; last_name: string | null; email: string | null }[])
+    .find((p) => p.user_id === userId);
+  if (!d) return null;
+  return [d.first_name, d.last_name].filter(Boolean).join(" ") || d.email;
 }
 
 /** Cartes du kanban Newsletter liables comme source, par titre. */
