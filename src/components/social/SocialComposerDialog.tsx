@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import SocialContentDetailsSections from "@/components/social/SocialContentDetailsSections";
 import SocialMediaPicker, { SocialMediaThumb, mediaDisplayName } from "@/components/social/SocialMediaPicker";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { demoBlur } from "@/lib/demoMask";
@@ -26,6 +27,8 @@ import {
   useSetSocialPostPublished,
   useSocialChannels,
   useSocialGroup,
+  useProfileLabel,
+  useValidateSocialContent,
   useSocialThemes,
   useUpdatePublishedSocialPost,
 } from "@/hooks/useSocialContents";
@@ -34,6 +37,10 @@ import { formatAlert } from "../../../supabase/functions/_shared/social-post-ale
 import {
   DISPLAY_STATUS_LABELS,
   validateDateRemoval,
+  detailsFromGroup,
+  detailsPayload,
+  TITLE_MAX,
+  type SocialDetailsForm,
   validateStatusChange,
   type SocialDraftStatus,
   NO_CHANNEL_MESSAGE,
@@ -61,6 +68,7 @@ interface ComposerValues extends AutoSaveFormValues {
   date: string;
   time: string;
   statuses: Record<string, SocialDraftStatus>;
+  details: SocialDetailsForm;
 }
 
 const DEFAULT_TIME = "09:00";
@@ -139,6 +147,8 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     setBusy(value);
   };
   const { confirm, ConfirmDialog } = useConfirm();
+  const validateMutation = useValidateSocialContent();
+  const { data: validatorLabel } = useProfileLabel(group?.validated_by ?? null);
   const channelsById = useMemo(() => new Map(channels.map((c) => [c.id, c])), [channels]);
   const themesQuery = useSocialThemes();
   const themes = useMemo(() => themesQuery.data ?? [], [themesQuery.data]);
@@ -165,6 +175,8 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
   const [date, setDate] = useState("");
   /** Statut choisi par déclinaison non publiée, indépendant de la date. */
   const [statuses, setStatuses] = useState<Record<string, SocialDraftStatus>>({});
+  /** Champs communs du contenu (titre, brief, classement, sources, notes, préparation). */
+  const [details, setDetails] = useState<SocialDetailsForm>(() => detailsFromGroup(null));
   const [time, setTime] = useState("");
   const [activeTab, setActiveTab] = useState("");
   const initializedFor = useRef<string | null>(null);
@@ -184,6 +196,7 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     mediaIds: v.mediaIds,
     scheduledAt: v.date ? parisLocalToUtcIso(v.date, v.time || DEFAULT_TIME) : null,
     statuses: Object.fromEntries(v.channelIds.map((id) => [id, v.statuses[id] ?? "unscheduled"])),
+    details: detailsPayload(v.details, v.commonText || Object.values(v.texts).find((t) => t.trim()) || ""),
   }), [currentId]);
 
   /** Relit le contenu et met à jour l'état connu de la base sans attendre le rendu. */
@@ -236,8 +249,8 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
   }, [currentId, runSave]);
 
   const formValues = useMemo<ComposerValues>(
-    () => ({ channelIds, format, sync, themeId, commonText, texts, commonMediaId, mediaIds, date, time, statuses }),
-    [channelIds, format, sync, themeId, commonText, texts, commonMediaId, mediaIds, date, time, statuses],
+    () => ({ channelIds, format, sync, themeId, commonText, texts, commonMediaId, mediaIds, date, time, statuses, details }),
+    [channelIds, format, sync, themeId, commonText, texts, commonMediaId, mediaIds, date, time, statuses, details],
   );
 
   const { autoSaving, lastSaved, resetTracking, flushAndGetPending } = useAutoSaveForm({
@@ -285,6 +298,7 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     setPickerFor(null);
     setDate(local?.date ?? "");
     setTime(local?.time ?? "");
+    setDetails(detailsFromGroup(group));
     setStatuses(Object.fromEntries(posts
       .filter((p) => p.publication_status !== "published")
       .map((p) => [p.channel_id, p.publication_status as SocialDraftStatus])));
@@ -381,6 +395,20 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     }
     setDate("");
     setTime("");
+  };
+
+  const handleValidate = async (validated: boolean) => {
+    setBusyState(true);
+    try {
+      flushAndGetPending();
+      if (!(await runSave(formValues))) return;
+      await enqueue(() => validateMutation.mutateAsync({ groupId: currentId, validated }));
+      await reloadGroup();
+    } catch (e) {
+      toastError(toast, e);
+    } finally {
+      setBusyState(false);
+    }
   };
 
   const handleClose = (isOpen: boolean) => {
@@ -603,6 +631,17 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
           <div className="flex justify-center py-10"><Spinner /></div>
         ) : (
           <div className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="social-title">Titre interne</Label>
+              <Input
+                id="social-title"
+                maxLength={TITLE_MAX}
+                placeholder="Par défaut : début du texte"
+                style={demoBlur(isDemoMode)}
+                value={details.title}
+                onChange={(e) => setDetails((d) => ({ ...d, title: e.target.value }))}
+              />
+            </div>
             <div className="space-y-2">
               <Label>Canaux</Label>
               <TooltipProvider>
@@ -636,29 +675,6 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
                   <SelectContent>
                     {Object.entries(SOCIAL_FORMAT_LABELS).map(([k, l]) => (
                       <SelectItem key={k} value={k}>{l}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>Thème</Label>
-                <Select
-                  value={!themesReady ? "" : themeId && themes.some((t) => t.id === themeId) ? themeId : NO_THEME}
-                  onValueChange={(v) => setThemeId(v === NO_THEME ? null : v)}
-                  disabled={!themesReady}
-                >
-                  <SelectTrigger aria-label="Thème">
-                    <SelectValue placeholder={themesQuery.isError ? "Thèmes indisponibles" : "Chargement des thèmes..."} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_THEME}>Sans thème</SelectItem>
-                    {themes.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        <span className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: t.color }} aria-hidden="true" />
-                          {t.name}
-                        </span>
-                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -747,6 +763,17 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
                 Retirer la date
               </Button>
             )}
+
+            <SocialContentDetailsSections
+              value={details}
+              onChange={setDetails}
+              themes={themesReady ? themes : []}
+              validatedAt={group?.validated_at ?? null}
+              validatedByLabel={validatorLabel ?? null}
+              canValidate={!!groupId || savedOnce}
+              busy={busy}
+              onValidate={handleValidate}
+            />
 
             {liveAlerts.length > 0 && (
               <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite" data-testid="social-composer-alerts">
