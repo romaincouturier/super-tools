@@ -8,6 +8,11 @@ import { cn } from "@/lib/utils";
 import { formatAlert } from "../../../supabase/functions/_shared/social-post-alerts";
 import {
   DISPLAY_STATUS_LABELS,
+  PREPARATION_LABELS,
+  cardLabel,
+  groupThemeIds,
+  preparationState,
+  type SocialPreparationState,
   utcIsoToParisLocal,
   type CalendarCard,
   type ChannelAlerts,
@@ -20,6 +25,12 @@ export const STATUS_DOT_CLASSES: Record<SocialPublicationStatus, string> = {
   unscheduled: "bg-muted-foreground/60",
   scheduled: "bg-blue-500",
   published: "bg-green-600",
+};
+
+const PREPARATION_CLASSES: Record<SocialPreparationState, string> = {
+  to_complete: "text-muted-foreground",
+  to_validate: "text-amber-700 dark:text-amber-400",
+  validated: "text-green-700 dark:text-green-500",
 };
 
 interface ContentCardProps {
@@ -59,11 +70,12 @@ export function AlertIndicator({ alerts, channelsById }: { alerts: ChannelAlerts
 
 export default function ContentCard({ card, channelsById, themesById, onOpen }: ContentCardProps) {
   const { isDemoMode } = useDemoMode();
-  const theme = card.group.theme_id ? themesById?.get(card.group.theme_id) : undefined;
+  const theme = groupThemeIds(card.group).map((id) => themesById?.get(id)).find((t) => !!t);
+  const preparation = preparationState(card.group);
   // Même règle que le dépôt sur la page : toutes les déclinaisons du contenu, filtrées ou non.
   const published = card.group.posts.length > 0 && card.group.posts.every((p) => p.publication_status === "published");
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: card.group.id, data: { card }, disabled: published });
-  const text = (card.posts.find((p) => p.publication_status === card.status) ?? card.posts[0])?.text.trim() ?? "";
+  const text = cardLabel(card.group, (card.posts.find((p) => p.publication_status === card.status) ?? card.posts[0])?.text ?? "");
   const channels = card.posts
     .map((p) => channelsById.get(p.channel_id))
     .filter((c): c is SocialChannel => !!c)
@@ -112,6 +124,12 @@ export default function ContentCard({ card, channelsById, themesById, onOpen }: 
           ))}
         </div>
         <span className="ml-auto" />
+        <span
+          className={cn("shrink-0 text-[10px] leading-4", PREPARATION_CLASSES[preparation])}
+          data-testid="social-preparation-indicator"
+        >
+          {PREPARATION_LABELS[preparation]}
+        </span>
         <AlertIndicator alerts={card.alerts} channelsById={channelsById} />
       </div>
       <p className="truncate text-muted-foreground">{text ? (isDemoMode ? maskText(text) : text) : "Sans texte"}</p>

@@ -3,6 +3,10 @@ import { cn } from "@/lib/utils";
 import {
   DISPLAY_STATUS_LABELS,
   DISPLAY_STATUS_ORDER,
+  EDITORIAL_CATEGORY_LABELS,
+  PRACTICAL_FILTER_LABELS,
+  type SocialEditorialCategory,
+  type SocialPracticalFilter,
   type SocialChannel,
   type SocialFilters,
   type SocialPublicationStatus,
@@ -50,10 +54,12 @@ function toggled<T>(set: Set<T>, value: T): Set<T> {
 
 /** Pastilles de filtre : aucune sélectionnée au départ, OU dans une famille, ET entre familles. */
 export default function SocialFilterBar({ themes, channels, filters, onChange }: SocialFilterBarProps) {
+  const categories = filters.categories ?? new Set<SocialEditorialCategory>();
+  const practical = filters.practical ?? new Set<SocialPracticalFilter>();
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2" data-testid="social-filter-bar">
       {themes.length > 0 && (
-        <Family label="Thème">
+        <Family label="Expertise">
           {themes.map((t) => (
             <Chip
               key={t.id}
@@ -86,6 +92,28 @@ export default function SocialFilterBar({ themes, channels, filters, onChange }:
           >
             <span className={cn("h-2 w-2 rounded-full shrink-0", STATUS_DOT_CLASSES[s])} aria-hidden="true" />
             {DISPLAY_STATUS_LABELS[s]}
+          </Chip>
+        ))}
+      </Family>
+      <Family label="Catégorie">
+        {(Object.keys(EDITORIAL_CATEGORY_LABELS) as SocialEditorialCategory[]).map((c) => (
+          <Chip
+            key={c}
+            pressed={categories.has(c)}
+            onClick={() => onChange({ ...filters, categories: toggled(categories, c) })}
+          >
+            {EDITORIAL_CATEGORY_LABELS[c]}
+          </Chip>
+        ))}
+      </Family>
+      <Family label="Préparation">
+        {(Object.keys(PRACTICAL_FILTER_LABELS) as SocialPracticalFilter[]).map((f) => (
+          <Chip
+            key={f}
+            pressed={practical.has(f)}
+            onClick={() => onChange({ ...filters, practical: toggled(practical, f) })}
+          >
+            {PRACTICAL_FILTER_LABELS[f]}
           </Chip>
         ))}
       </Family>
