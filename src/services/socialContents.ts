@@ -441,7 +441,7 @@ export async function getGroup(id: string): Promise<SocialContentGroup | null> {
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
-  return (data as SocialContentGroup | null) ?? null;
+  return (data as unknown as SocialContentGroup | null) ?? null;
 }
 
 /** Crée ou réécrit le groupe et ses posts en une seule transaction. */
