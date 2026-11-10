@@ -94,4 +94,4 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Live-recording notice = template `live_recording_notice`, shown only when lives exist.
 - Quote game orders stay internal (`create-devis-order`), never WooCommerce.
 - CRM card lists load via `crmCardsFetch` (paged; slim noCRM metadata).
-- Social content shared fields (title, visual brief, category, notes, checklist, expertises, sources) are written only through `save_social_content_group`'s optional `p_details`, where each missing key is kept; validation goes through `validate_social_content`, and a DB trigger clears validation when a checklist item is unchecked. Expertises are multi-valued `social_themes` links (`theme_id` deprecated); `origin` marks AI creations, because a future MCP tool must write the same fields and keep AI-created content in Brouillon at the database level.
+- Social content fields go through `save_social_content_group` `p_details` (missing key kept) and `validate_social_content`; expertises are multi `social_themes` links; `origin` flags AI content, so MCP writes match the UI.
