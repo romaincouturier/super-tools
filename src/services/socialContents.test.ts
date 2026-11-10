@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  cardLabel,
+  defaultTitle,
+  detailsFromGroup,
+  detailsPayload,
+  groupThemeIds,
+  hasMissingVisual,
+  moveItem,
+  preparationState,
   validateDateRemoval,
   validateStatusChange,
   buildGroupPosts,
@@ -435,5 +443,75 @@ describe("notes du calendrier (story 1.6)", () => {
     const byDay = notesByDay([note("dst", "2026-03-29", "2026-03-01T00:00:00Z"), note("lendemain", "2026-03-30", "2026-03-01T00:00:00Z")]);
     expect(byDay.get("2026-03-29")?.map((n) => n.id)).toEqual(["dst"]);
     expect(byDay.get("2026-03-30")?.map((n) => n.id)).toEqual(["lendemain"]);
+  });
+});
+
+describe("enrichissement d'un contenu (lot 1)", () => {
+  const allChecks = { check_text_ready: true, check_visual_ready: true, check_links_checked: true, check_proofread: true };
+
+  it("titre vide : la carte affiche le début du texte, sinon le titre interne", () => {
+    expect(cardLabel({ title: null }, "  Bonjour à tous ")).toBe("Bonjour à tous");
+    expect(cardLabel({ title: "  " }, "Texte")).toBe("Texte");
+    expect(cardLabel({ title: "Atelier IA" }, "Texte")).toBe("Atelier IA");
+  });
+
+  it("titre par défaut : début du texte sur une ligne, coupé au mot avant 80 caractères", () => {
+    expect(defaultTitle("Un\nsimple   texte")).toBe("Un simple texte");
+    const long = "mot ".repeat(40);
+    const t = defaultTitle(long);
+    expect(t.endsWith("…")).toBe(true);
+    expect(t.length).toBeLessThanOrEqual(81);
+  });
+
+  it("indicateur : à compléter, puis à valider, puis validé", () => {
+    expect(preparationState({ ...allChecks, check_proofread: false })).toBe("to_complete");
+    expect(preparationState({})).toBe("to_complete");
+    expect(preparationState({ ...allChecks, validated_at: null })).toBe("to_validate");
+    expect(preparationState({ ...allChecks, validated_at: "2026-11-10T10:00:00Z" })).toBe("validated");
+  });
+
+  it("sans visuel : une déclinaison non publiée sans visuel, jamais une publiée", () => {
+    expect(hasMissingVisual([{ media_id: null, publication_status: "unscheduled" }])).toBe(true);
+    expect(hasMissingVisual([{ media_id: null, publication_status: "published" }, { media_id: "m", publication_status: "scheduled" }])).toBe(false);
+  });
+
+  it("expertises : la liaison multi-valeurs, l'ancien thème unique à défaut", () => {
+    expect(groupThemeIds({ theme_links: [{ theme_id: "a" }, { theme_id: "b" }], theme_id: "old" })).toEqual(["a", "b"]);
+    expect(groupThemeIds({ theme_links: [], theme_id: "old" })).toEqual(["old"]);
+    expect(groupThemeIds({ theme_id: null })).toEqual([]);
+  });
+
+  it("filtres expertise, catégorie, sans visuel, à compléter et à valider", () => {
+    const g = (id: string, extra: Partial<SocialContentGroup>, media: string | null = "m") =>
+      ({ ...group(id, [{ ...post("li", "unscheduled", null, id), media_id: media }]), ...extra });
+    const groups = [
+      g("ia", { theme_links: [{ theme_id: "IA" }, { theme_id: "FG" }], editorial_category: "tutorial", ...allChecks }),
+      g("fg", { theme_links: [{ theme_id: "FG" }], editorial_category: "humor" }, null),
+      g("ok", { ...allChecks, validated_at: "2026-11-10T10:00:00Z" }),
+    ];
+    const ids = (f: Partial<SocialFilters>) => applySocialFilters(groups, { ...emptySocialFilters(), ...f }, [{ id: "li", text_limit: null }], new Set(["IA", "FG"]))
+      .undated.map((c) => c.group.id);
+    expect(ids({ themeIds: new Set(["FG"]) })).toEqual(["ia", "fg"]);
+    expect(ids({ categories: new Set(["humor"]) })).toEqual(["fg"]);
+    expect(ids({ practical: new Set(["no_visual"]) })).toEqual(["fg"]);
+    expect(ids({ practical: new Set(["to_complete"]) })).toEqual(["fg"]);
+    expect(ids({ practical: new Set(["to_validate"]) })).toEqual(["ia"]);
+  });
+
+  it("enregistrement : titre par défaut, lignes de source vides ignorées, diapositives ordonnées", () => {
+    const form = { ...detailsFromGroup(null), visual_slides: ["Un", "Deux"],
+      sources: [{ url: " https://exemple.fr ", label: "", content_card_id: null, content_card_title: null },
+        { url: "", label: "vide", content_card_id: null, content_card_title: null },
+        { url: "", label: "", content_card_id: "nl", content_card_title: "NL" }] };
+    expect(detailsPayload(form, "Texte du post")).toMatchObject({
+      title: "Texte du post",
+      visual_slides: [{ content: "Un" }, { content: "Deux" }],
+      sources: [{ url: "https://exemple.fr", label: null, content_card_id: null }, { url: null, label: null, content_card_id: "nl" }],
+    });
+  });
+
+  it("déplace une diapositive, sans effet hors bornes", () => {
+    expect(moveItem(["a", "b", "c"], 0, 1)).toEqual(["b", "a", "c"]);
+    expect(moveItem(["a", "b"], 1, 2)).toEqual(["a", "b"]);
   });
 });

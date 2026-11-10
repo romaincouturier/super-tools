@@ -187,7 +187,7 @@ export default function SocialSettingsDialog({ open, onOpenChange }: SocialSetti
           <DialogDescription>Paramètres communs du module.</DialogDescription>
         </DialogHeader>
         <section className="space-y-3" aria-labelledby="social-settings-themes">
-          <h3 id="social-settings-themes" className="text-sm font-semibold">Thèmes</h3>
+          <h3 id="social-settings-themes" className="text-sm font-semibold">Expertises</h3>
           {isError ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground" role="alert">
               <p>Impossible de charger les thèmes.</p>

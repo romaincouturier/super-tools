@@ -19,6 +19,9 @@ import {
   deleteNote,
   listNotesInRange,
   updateNote,
+  getProfileLabel,
+  searchNewsletterCards,
+  validateContent,
   type SocialCalendarNote,
   type SocialContentGroup,
 } from "@/services/socialContents";
@@ -240,5 +243,32 @@ export function useDeleteSocialNote() {
   return useMutation({
     mutationFn: deleteNote,
     onSettled: () => qc.invalidateQueries({ queryKey: NOTES_KEY }),
+  });
+}
+
+/** Validation éditoriale d'un contenu (ou son annulation). */
+export function useValidateSocialContent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, validated }: { groupId: string; validated: boolean }) => validateContent(groupId, validated),
+    onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+export function useProfileLabel(userId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["profile-label", userId],
+    queryFn: () => getProfileLabel(userId as string),
+    enabled: !!userId,
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+/** Cartes du kanban Newsletter, chargées seulement quand le sélecteur de source est ouvert. */
+export function useNewsletterCards(query: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["newsletter-cards-search", query],
+    queryFn: () => searchNewsletterCards(query),
+    enabled,
   });
 }

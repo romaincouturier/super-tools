@@ -57,6 +57,237 @@ export interface SocialContentGroup {
   created_at: string;
   updated_at: string;
   posts: SocialPost[];
+  // Enrichissement (lot 1) : facultatifs, absents des contenus anciens ou des lectures partielles.
+  title?: string | null;
+  editorial_category?: SocialEditorialCategory | null;
+  visual_type?: SocialVisualType | null;
+  visual_message?: string | null;
+  visual_elements?: string | null;
+  visual_texts?: string | null;
+  visual_composition?: string | null;
+  visual_slides?: SocialVisualSlide[];
+  internal_notes?: string | null;
+  check_text_ready?: boolean;
+  check_visual_ready?: boolean;
+  check_links_checked?: boolean;
+  check_proofread?: boolean;
+  validated_at?: string | null;
+  validated_by?: string | null;
+  origin?: "app" | "ai";
+  /** Expertises (thèmes multi-valeurs). */
+  theme_links?: { theme_id: string }[];
+  sources?: SocialSource[];
+}
+
+// ── Enrichissement d'un contenu ────────────────────────────────
+
+export type SocialEditorialCategory = "tutorial" | "reflection" | "resource" | "behind_the_scenes" | "humor" | "community" | "offer";
+export type SocialVisualType = "illustration" | "sketchnote" | "carousel" | "photo" | "video" | "diagram" | "other";
+
+export const EDITORIAL_CATEGORY_LABELS: Record<SocialEditorialCategory, string> = {
+  tutorial: "Conseil pratique / tutoriel",
+  reflection: "Réflexion / prise de recul",
+  resource: "Ressource / outil",
+  behind_the_scenes: "Coulisses / retour d'expérience",
+  humor: "Humour / contenu léger",
+  community: "Participatif / communautaire",
+  offer: "Offre / actualité SuperTilt",
+};
+
+export const VISUAL_TYPE_LABELS: Record<SocialVisualType, string> = {
+  illustration: "Illustration",
+  sketchnote: "Sketchnote",
+  carousel: "Carrousel",
+  photo: "Photo",
+  video: "Vidéo",
+  diagram: "Schéma",
+  other: "Autre",
+};
+
+export interface SocialVisualSlide { content: string }
+
+export interface SocialSource {
+  id?: string;
+  position?: number;
+  url: string | null;
+  label: string | null;
+  content_card_id: string | null;
+  content_card?: { id: string; title: string } | null;
+}
+
+export type SocialChecklistKey = "check_text_ready" | "check_visual_ready" | "check_links_checked" | "check_proofread";
+
+export const CHECKLIST_ITEMS: { key: SocialChecklistKey; label: string }[] = [
+  { key: "check_text_ready", label: "Texte finalisé" },
+  { key: "check_visual_ready", label: "Visuel prêt" },
+  { key: "check_links_checked", label: "Liens vérifiés" },
+  { key: "check_proofread", label: "Relu" },
+];
+
+/** Champs communs du contenu enregistrés avec lui ; chaque clé absente est conservée en base. */
+export interface SocialContentDetails {
+  title?: string | null;
+  editorial_category?: SocialEditorialCategory | null;
+  visual_type?: SocialVisualType | null;
+  visual_message?: string | null;
+  visual_elements?: string | null;
+  visual_texts?: string | null;
+  visual_composition?: string | null;
+  visual_slides?: SocialVisualSlide[];
+  internal_notes?: string | null;
+  check_text_ready?: boolean;
+  check_visual_ready?: boolean;
+  check_links_checked?: boolean;
+  check_proofread?: boolean;
+  theme_ids?: string[];
+  sources?: Pick<SocialSource, "url" | "label" | "content_card_id">[];
+}
+
+/** État du formulaire pour les champs communs (lot 1). */
+export interface SocialDetailsForm {
+  title: string;
+  editorial_category: SocialEditorialCategory | null;
+  visual_type: SocialVisualType | null;
+  visual_message: string;
+  visual_elements: string;
+  visual_texts: string;
+  visual_composition: string;
+  visual_slides: string[];
+  internal_notes: string;
+  check_text_ready: boolean;
+  check_visual_ready: boolean;
+  check_links_checked: boolean;
+  check_proofread: boolean;
+  theme_ids: string[];
+  sources: { url: string; label: string; content_card_id: string | null; content_card_title: string | null }[];
+}
+
+export function detailsFromGroup(group: SocialContentGroup | null | undefined): SocialDetailsForm {
+  return {
+    title: group?.title ?? "",
+    editorial_category: group?.editorial_category ?? null,
+    visual_type: group?.visual_type ?? null,
+    visual_message: group?.visual_message ?? "",
+    visual_elements: group?.visual_elements ?? "",
+    visual_texts: group?.visual_texts ?? "",
+    visual_composition: group?.visual_composition ?? "",
+    visual_slides: (group?.visual_slides ?? []).map((s) => s.content),
+    internal_notes: group?.internal_notes ?? "",
+    check_text_ready: group?.check_text_ready ?? false,
+    check_visual_ready: group?.check_visual_ready ?? false,
+    check_links_checked: group?.check_links_checked ?? false,
+    check_proofread: group?.check_proofread ?? false,
+    theme_ids: group ? groupThemeIds(group) : [],
+    sources: [...(group?.sources ?? [])]
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      .map((src) => ({
+        url: src.url ?? "",
+        label: src.label ?? "",
+        content_card_id: src.content_card_id,
+        content_card_title: src.content_card?.title ?? null,
+      })),
+  };
+}
+
+/** Champs envoyés à l'enregistrement ; un titre vide prend le début du texte, les lignes de source vides sont ignorées. */
+export function detailsPayload(form: SocialDetailsForm, text: string): SocialContentDetails {
+  const title = form.title.trim() || defaultTitle(text);
+  const orNull = (v: string) => (v.trim() ? v : null);
+  return {
+    title: title ? title.slice(0, TITLE_MAX) : null,
+    editorial_category: form.editorial_category,
+    visual_type: form.visual_type,
+    visual_message: orNull(form.visual_message),
+    visual_elements: orNull(form.visual_elements),
+    visual_texts: orNull(form.visual_texts),
+    visual_composition: orNull(form.visual_composition),
+    visual_slides: form.visual_slides.map((content) => ({ content })),
+    internal_notes: orNull(form.internal_notes),
+    check_text_ready: form.check_text_ready,
+    check_visual_ready: form.check_visual_ready,
+    check_links_checked: form.check_links_checked,
+    check_proofread: form.check_proofread,
+    theme_ids: form.theme_ids,
+    sources: form.sources
+      .filter((src) => src.url.trim() || src.content_card_id)
+      .map((src) => ({ url: src.url.trim() || null, label: src.label.trim() || null, content_card_id: src.content_card_id })),
+  };
+}
+
+/** Déplace un élément d'une liste (diapositives) ; hors bornes : liste inchangée. */
+export function moveItem<T>(list: T[], from: number, to: number): T[] {
+  if (from < 0 || from >= list.length || to < 0 || to >= list.length) return list;
+  const next = [...list];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
+
+export const TITLE_MAX = 120;
+const DEFAULT_TITLE_LENGTH = 80;
+
+/** Titre par défaut : début du texte, sur une ligne, coupé au dernier mot avant 80 caractères. */
+export function defaultTitle(text: string): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  if (flat.length <= DEFAULT_TITLE_LENGTH) return flat;
+  const cut = flat.slice(0, DEFAULT_TITLE_LENGTH);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > 40 ? cut.slice(0, space) : cut).trimEnd()}…`;
+}
+
+/** Libellé d'une carte : titre interne, à défaut le début du texte (comme avant le lot 1). */
+export function cardLabel(group: Pick<SocialContentGroup, "title">, text: string): string {
+  return group.title?.trim() || text.trim();
+}
+
+/** Expertises du contenu ; l'ancien thème unique compte tant qu'aucune expertise n'est posée. */
+export function groupThemeIds(group: Pick<SocialContentGroup, "theme_links" | "theme_id">): string[] {
+  const links = group.theme_links?.map((l) => l.theme_id) ?? [];
+  if (links.length > 0) return links;
+  return group.theme_id ? [group.theme_id] : [];
+}
+
+export type SocialPreparationState = "to_complete" | "to_validate" | "validated";
+
+export const PREPARATION_LABELS: Record<SocialPreparationState, string> = {
+  to_complete: "À compléter",
+  to_validate: "À valider",
+  validated: "Validé",
+};
+
+/** Indicateur dérivé : à compléter tant qu'une case manque, à valider ensuite, validé une fois validé. */
+export function preparationState(group: Partial<Pick<SocialContentGroup, SocialChecklistKey | "validated_at">>): SocialPreparationState {
+  if (!CHECKLIST_ITEMS.every((i) => group[i.key] === true)) return "to_complete";
+  return group.validated_at ? "validated" : "to_validate";
+}
+
+/** Sans visuel : une déclinaison non publiée n'a pas de visuel. */
+export function hasMissingVisual(posts: Pick<SocialPost, "media_id" | "publication_status">[]): boolean {
+  return posts.some((p) => p.publication_status !== "published" && !p.media_id);
+}
+
+export async function validateContent(groupId: string, validated: boolean): Promise<string | null> {
+  const { data, error } = await db.rpc("validate_social_content", { p_group_id: groupId, p_validated: validated });
+  if (error) throw error;
+  return (data as string | null) ?? null;
+}
+
+/** Nom affichable d'un compte (validation), null s'il n'est pas lisible. */
+export async function getProfileLabel(userId: string): Promise<string | null> {
+  const { data } = await db.rpc("get_staff_directory");
+  const d = ((data ?? []) as { user_id: string; first_name: string | null; last_name: string | null; email: string | null }[])
+    .find((p) => p.user_id === userId);
+  if (!d) return null;
+  return [d.first_name, d.last_name].filter(Boolean).join(" ") || d.email;
+}
+
+/** Cartes du kanban Newsletter liables comme source, par titre. */
+export async function searchNewsletterCards(query: string): Promise<{ id: string; title: string }[]> {
+  let q = db.from("content_cards").select("id, title").order("updated_at", { ascending: false }).limit(20);
+  if (query.trim()) q = q.ilike("title", `%${query.trim()}%`);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as { id: string; title: string }[];
 }
 
 /** État du composeur, tel qu'il est enregistré. */
@@ -77,6 +308,8 @@ export interface SocialGroupDraft {
   scheduledAt: string | null;
   /** Statut choisi par canal ; absent : statut enregistré conservé, Brouillon à la création. */
   statuses?: Record<string, SocialDraftStatus>;
+  /** Champs communs (lot 1) ; absent : seuls le contenu et ses déclinaisons sont réécrits. */
+  details?: SocialContentDetails;
 }
 
 /** Statuts choisis à la main ; « Publié » passe par le bouton « Marquer publié ». */
@@ -185,7 +418,12 @@ export function utcIsoToParisLocal(iso: string): { date: string; time: string } 
   return { date: `${get("year")}-${get("month")}-${get("day")}`, time: `${get("hour")}:${get("minute")}` };
 }
 
-const GROUP_SELECT = "id, format, sync, theme_id, created_by, created_at, updated_at, posts:social_posts(id, group_id, channel_id, text, scheduled_at, publication_status, media_id)";
+const GROUP_SELECT = "id, format, sync, theme_id, created_by, created_at, updated_at, "
+  + "title, editorial_category, visual_type, visual_message, visual_elements, visual_texts, visual_composition, visual_slides, "
+  + "internal_notes, check_text_ready, check_visual_ready, check_links_checked, check_proofread, validated_at, validated_by, origin, "
+  + "theme_links:social_content_group_themes(theme_id), "
+  + "sources:social_content_sources(id, position, url, label, content_card_id, content_card:content_cards(id, title)), "
+  + "posts:social_posts(id, group_id, channel_id, text, scheduled_at, publication_status, media_id)";
 
 export async function listChannels(): Promise<SocialChannel[]> {
   const { data, error } = await db
@@ -204,7 +442,7 @@ export async function getGroup(id: string): Promise<SocialContentGroup | null> {
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
-  return (data as SocialContentGroup | null) ?? null;
+  return (data as unknown as SocialContentGroup | null) ?? null;
 }
 
 /** Crée ou réécrit le groupe et ses posts en une seule transaction. */
@@ -217,6 +455,7 @@ export async function saveGroupWithPosts(draft: SocialGroupDraft): Promise<strin
     p_sync: draft.sync,
     p_posts: posts,
     p_theme_id: draft.themeId,
+    ...(draft.details ? { p_details: draft.details } : {}),
   });
   if (error) throw error;
   return data as string;
@@ -272,16 +511,28 @@ export async function deleteTheme(id: string): Promise<void> {
 // ── Filtres ────────────────────────────────────────────────────
 
 /** Pastilles sélectionnées : ET entre familles, OU dans une famille, famille vide = pas de filtre. */
+export type SocialPracticalFilter = "no_visual" | "to_complete" | "to_validate";
+
+export const PRACTICAL_FILTER_LABELS: Record<SocialPracticalFilter, string> = {
+  no_visual: "Sans visuel",
+  to_complete: "À compléter",
+  to_validate: "À valider",
+};
+
 export interface SocialFilters {
   themeIds: Set<string>;
   channelIds: Set<string>;
   statuses: Set<SocialPublicationStatus>;
+  categories?: Set<SocialEditorialCategory>;
+  practical?: Set<SocialPracticalFilter>;
 }
 
 export const emptySocialFilters = (): SocialFilters => ({
   themeIds: new Set(),
   channelIds: new Set(),
   statuses: new Set(),
+  categories: new Set(),
+  practical: new Set(),
 });
 
 /** Canaux visibles pour placeGroups : ceux de la famille Réseau, tous si elle est vide. */
@@ -294,11 +545,22 @@ export function visibleChannelIdsFor(filters: SocialFilters, channels: Pick<Soci
  * du contenu et statut affiché de la carte. Un contenu sans thème est masqué
  * dès qu'une pastille de thème est active.
  */
-export function filterCards(cards: CalendarCard[], filters: Pick<SocialFilters, "themeIds" | "statuses">): CalendarCard[] {
-  return cards.filter((card) => (
-    (filters.themeIds.size === 0 || (card.group.theme_id !== null && filters.themeIds.has(card.group.theme_id)))
-    && (filters.statuses.size === 0 || filters.statuses.has(card.status))
-  ));
+export function filterCards(
+  cards: CalendarCard[],
+  filters: Pick<SocialFilters, "themeIds" | "statuses" | "categories" | "practical">,
+): CalendarCard[] {
+  const categories = filters.categories ?? new Set();
+  const practical = filters.practical ?? new Set();
+  return cards.filter((card) => {
+    const prep = preparationState(card.group);
+    const matchesPractical = (f: SocialPracticalFilter) => (
+      f === "no_visual" ? hasMissingVisual(card.posts) : prep === f
+    );
+    return (filters.themeIds.size === 0 || groupThemeIds(card.group).some((id) => filters.themeIds.has(id)))
+      && (filters.statuses.size === 0 || filters.statuses.has(card.status))
+      && (categories.size === 0 || (!!card.group.editorial_category && categories.has(card.group.editorial_category)))
+      && (practical.size === 0 || [...practical].some(matchesPractical));
+  });
 }
 
 // ── Calendrier ─────────────────────────────────────────────────
@@ -474,6 +736,8 @@ export function applySocialFilters(
     themeIds: new Set([...filters.themeIds].filter((id) => existingThemeIds.has(id))),
     channelIds: new Set([...filters.channelIds].filter((id) => channelIds.has(id))),
     statuses: filters.statuses,
+    categories: filters.categories,
+    practical: filters.practical,
   };
   const placed = placeGroups(groups, visibleChannelIdsFor(active, channels), range, channelsById);
   const byDay = new Map<string, CalendarCard[]>();

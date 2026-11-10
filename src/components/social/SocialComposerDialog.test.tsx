@@ -6,7 +6,7 @@ import type { SocialChannel, SocialContentGroup, SocialPost } from "@/services/s
 const h = vi.hoisted(() => {
   const state = {
     mutateAsync: vi.fn(), demo: false, group: null as unknown, themesPending: false, themesError: false,
-    setPublished: vi.fn(), updatePublished: vi.fn(), deletePost: vi.fn(), deleteGroup: vi.fn(),
+    setPublished: vi.fn(), updatePublished: vi.fn(), deletePost: vi.fn(), deleteGroup: vi.fn(), validate: vi.fn(),
     refetch: vi.fn(),
   };
   state.refetch.mockImplementation(async () => ({ data: state.group }));
@@ -36,6 +36,9 @@ vi.mock("@/hooks/useSocialContents", () => ({
   useUpdatePublishedSocialPost: () => ({ mutateAsync: h.updatePublished }),
   useDeleteSocialPost: () => ({ mutateAsync: h.deletePost }),
   useDeleteSocialGroup: () => ({ mutateAsync: h.deleteGroup }),
+  useValidateSocialContent: () => ({ mutateAsync: h.validate }),
+  useProfileLabel: () => ({ data: "Romain" }),
+  useNewsletterCards: () => ({ data: [{ id: "nl-1", title: "Newsletter de novembre" }], isError: false }),
   useSocialThemes: () => ({
     data: h.themesPending || h.themesError
       ? undefined
@@ -136,7 +139,7 @@ describe("SocialComposerDialog : sauvegarde continue", () => {
   });
 });
 
-describe("SocialComposerDialog : thème", () => {
+describe("SocialComposerDialog : enrichissement (lot 1)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     h.demo = false;
@@ -146,73 +149,65 @@ describe("SocialComposerDialog : thème", () => {
     h.mutateAsync.mockResolvedValue("id");
   });
 
-  const chooseTheme = (name: string) => {
-    fireEvent.keyDown(screen.getByRole("combobox", { name: "Thème" }), { key: "Enter" });
-    fireEvent.keyDown(screen.getByRole("option", { name }), { key: "Enter" });
-  };
+  const lastDraft = () => h.mutateAsync.mock.calls.at(-1)?.[0];
+  const typeText = (value: string) => fireEvent.change(screen.getByLabelText("Texte"), { target: { value } });
 
-  it("propose « Sans thème » par défaut et l'enregistre à null", async () => {
-    const onOpenChange = vi.fn();
-    render(<SocialComposerDialog open onOpenChange={onOpenChange} groupId={null} />);
-    expect(screen.getByRole("combobox", { name: "Thème" })).toHaveTextContent("Sans thème");
-    fireEvent.click(screen.getAllByRole("checkbox")[0]);
-    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
-    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
-    expect(h.mutateAsync.mock.calls.at(-1)?.[0]).toMatchObject({ themeId: null });
-  });
-
-  it("envoie le thème choisi avec la sauvegarde, puis le retire", async () => {
+  it("titre vide : prérempli avec le début du texte à l'enregistrement", async () => {
     const onOpenChange = vi.fn();
     render(<SocialComposerDialog open onOpenChange={onOpenChange} groupId={null} />);
     fireEvent.click(screen.getAllByRole("checkbox")[0]);
-    chooseTheme("IA appliquée");
-    expect(screen.getByRole("combobox", { name: "Thème" })).toHaveTextContent("IA appliquée");
+    typeText("Trois astuces pour animer un atelier");
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
-    expect(h.mutateAsync.mock.calls.at(-1)?.[0]).toMatchObject({ channelIds: ["li"], themeId: "t-ia" });
+    expect(lastDraft().details.title).toBe("Trois astuces pour animer un atelier");
   });
 
-  it("n'affiche pas « Sans thème » tant que les thèmes chargent, et garde le thème du contenu", async () => {
-    h.themesPending = true;
-    h.group = { ...existing(true, [{ channel_id: "li" }]), theme_id: "t-fac" };
-    render(<SocialComposerDialog open onOpenChange={vi.fn()} groupId="g1" />);
-    const select = screen.getByRole("combobox", { name: "Thème" });
-    expect(select).toBeDisabled();
-    expect(select).toHaveTextContent("Chargement des thèmes...");
-    expect(select).not.toHaveTextContent("Sans thème");
-    fireEvent.change(screen.getByLabelText("Texte"), { target: { value: "Modifié" } });
-    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
-    await waitFor(() => expect(h.mutateAsync).toHaveBeenCalled());
-    expect(h.mutateAsync.mock.calls.at(-1)?.[0]).toMatchObject({ themeId: "t-fac" });
+  it("garde le titre saisi, envoie expertises multiples et catégorie", async () => {
+    const onOpenChange = vi.fn();
+    render(<SocialComposerDialog open onOpenChange={onOpenChange} groupId={null} />);
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    fireEvent.change(screen.getByLabelText("Titre interne"), { target: { value: "Atelier IA" } });
+    fireEvent.click(screen.getByRole("button", { name: /Classement/ }));
+    fireEvent.click(screen.getByRole("button", { name: "IA appliquée" }));
+    fireEvent.click(screen.getByRole("button", { name: "Facilitation" }));
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Catégorie éditoriale" }), { key: "Enter" });
+    fireEvent.keyDown(screen.getByRole("option", { name: "Ressource / outil" }), { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(lastDraft().details).toMatchObject({ title: "Atelier IA", theme_ids: ["t-ia", "t-fac"], editorial_category: "resource" });
   });
 
-  it("signale des thèmes indisponibles en cas d'erreur, sans « Sans thème »", () => {
-    h.themesError = true;
-    h.group = { ...existing(true, [{ channel_id: "li" }]), theme_id: "t-fac" };
-    render(<SocialComposerDialog open onOpenChange={vi.fn()} groupId="g1" />);
-    const select = screen.getByRole("combobox", { name: "Thème" });
-    expect(select).toBeDisabled();
-    expect(select).toHaveTextContent("Thèmes indisponibles");
+  it("ajoute, réordonne et supprime les diapositives d'un carrousel", async () => {
+    const onOpenChange = vi.fn();
+    render(<SocialComposerDialog open onOpenChange={onOpenChange} groupId={null} />);
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Brief visuel/ }));
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Type de visuel" }), { key: "Enter" });
+    fireEvent.keyDown(screen.getByRole("option", { name: "Carrousel" }), { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "Ajouter une diapositive" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ajouter une diapositive" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ajouter une diapositive" }));
+    fireEvent.change(screen.getByLabelText("Diapositive 1"), { target: { value: "A" } });
+    fireEvent.change(screen.getByLabelText("Diapositive 2"), { target: { value: "B" } });
+    fireEvent.change(screen.getByLabelText("Diapositive 3"), { target: { value: "C" } });
+    fireEvent.click(screen.getByRole("button", { name: "Descendre la diapositive 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Supprimer la diapositive 3" }));
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(lastDraft().details).toMatchObject({ visual_type: "carousel", visual_slides: [{ content: "B" }, { content: "A" }] });
   });
 
-  it("affiche « Sans thème » pour un thème inconnu et envoie son id, que la RPC ramène à null", async () => {
-    h.group = { ...existing(true, [{ channel_id: "li" }]), theme_id: "t-supprime" };
+  it("valide un contenu enregistré dont toutes les cases sont cochées", async () => {
+    h.group = {
+      id: "g1", format: "post", sync: true, theme_id: null, created_by: null, created_at: "", updated_at: "",
+      check_text_ready: true, check_visual_ready: true, check_links_checked: true, check_proofread: true, validated_at: null,
+      posts: [{ id: "p-li", group_id: "g1", channel_id: "li", text: "Bonjour", scheduled_at: null, publication_status: "unscheduled", media_id: null }],
+    };
     render(<SocialComposerDialog open onOpenChange={vi.fn()} groupId="g1" />);
-    expect(screen.getByRole("combobox", { name: "Thème" })).toHaveTextContent("Sans thème");
-    fireEvent.change(screen.getByLabelText("Texte"), { target: { value: "Modifié" } });
-    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
-    await waitFor(() => expect(h.mutateAsync).toHaveBeenCalled());
-    expect(h.mutateAsync.mock.calls.at(-1)?.[0]).toMatchObject({ groupId: "g1", themeId: "t-supprime" });
-  });
-
-  it("reprend le thème d'un contenu existant", async () => {
-    h.group = { ...existing(true, [{ channel_id: "li" }]), theme_id: "t-fac" };
-    render(<SocialComposerDialog open onOpenChange={vi.fn()} groupId="g1" />);
-    expect(screen.getByRole("combobox", { name: "Thème" })).toHaveTextContent("Facilitation");
-    chooseTheme("Sans thème");
-    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
-    await waitFor(() => expect(h.mutateAsync).toHaveBeenCalled());
-    expect(h.mutateAsync.mock.calls.at(-1)?.[0]).toMatchObject({ groupId: "g1", themeId: null });
+    fireEvent.click(screen.getByRole("button", { name: /Préparation/ }));
+    expect(screen.getByRole("button", { name: /Préparation/ })).toHaveTextContent("À valider (4/4)");
+    fireEvent.click(screen.getByRole("button", { name: "Valider" }));
+    await waitFor(() => expect(h.validate).toHaveBeenCalledWith({ groupId: "g1", validated: true }));
   });
 });
 
@@ -390,7 +385,8 @@ describe("SocialComposerDialog : détail, marquage publié et suppression (story
     expect(screen.getAllByRole("checkbox").map((c) => c.getAttribute("data-state"))).toEqual(["checked", "checked"]);
     expect(screen.getByLabelText("Texte")).toHaveValue("Bonjour");
     expect(screen.getByTestId("social-visual-thumb")).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Thème" })).toHaveTextContent("Facilitation");
+    fireEvent.click(screen.getByRole("button", { name: /Classement/ }));
+    expect(screen.getByRole("button", { name: "Facilitation" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getAllByRole("combobox")[0]).toHaveTextContent("Story");
     expect(screen.getByLabelText("Date (heure de Paris, facultative)")).toHaveValue("2026-11-20");
     expect(screen.getByLabelText("Heure")).toHaveValue("09:30");

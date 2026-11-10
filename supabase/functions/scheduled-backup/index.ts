@@ -87,7 +87,7 @@ const TABLES_TO_BACKUP = [
   "questionnaire_besoins", "questionnaire_events",
   "quality_risks", "quality_risk_improvements", "quote_settings", "quotes", "reclamations", "review_comments",
   "scheduled_emails", "sent_emails_log", "session_start_notifications",
-  "social_channels", "social_content_groups", "social_posts", "social_themes", "social_calendar_notes",
+  "social_channels", "social_content_groups", "social_posts", "social_themes", "social_calendar_notes", "social_content_group_themes", "social_content_sources",
   "sponsor_cold_evaluations", "stakeholder_appreciations", "subscriptions",
   "supertilt_actions", "supertilt_columns", "supertilt_settings",
   "support_ticket_attachments", "support_tickets",
