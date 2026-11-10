@@ -100,7 +100,7 @@ function Files({ kind, label, files, token, onChange, disabled, multiple, accept
   );
 }
 
-function SignStep({ token, data, onSigned }: { token: string; data: PublicOnboarding; onSigned: (url: string | null) => void }) {
+function SignStep({ token, data, onSigned, onEdit }: { token: string; data: PublicOnboarding; onSigned: (url: string | null) => void; onEdit: () => void }) {
   const [code, setCode] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [name, setName] = useState([data.form.legal_rep_first_name, data.form.legal_rep_last_name].filter(Boolean).join(" "));
@@ -157,6 +157,16 @@ function SignStep({ token, data, onSigned }: { token: string; data: PublicOnboar
           <span>J'ai lu le contrat de distribution, j'en accepte les conditions et je reconnais que cette signature électronique a valeur légale.</span>
         </label>
         <Button onClick={sign} disabled={busy || code.length !== 6 || !name.trim() || !consent}>{busy ? <Spinner /> : "Signer le contrat"}</Button>
+        <div className="border-t pt-4 space-y-2">
+          <p className="text-sm text-muted-foreground">Une information à corriger ou à compléter ? Vous pouvez modifier vos réponses tant que le contrat n'est pas signé : un nouveau contrat sera généré. Après signature, elles ne seront plus modifiables.</p>
+          <Button variant="outline" disabled={busy} onClick={async () => {
+            if (!confirm("Modifier vos réponses ? Ce contrat sera annulé et un nouveau sera généré à la prochaine validation.")) return;
+            setBusy(true);
+            try { await publicOnboarding.edit(token); onEdit(); }
+            catch (e) { toast({ title: "Modification impossible", description: (e as Error).message, variant: "destructive" }); }
+            finally { setBusy(false); }
+          }}>Modifier mes réponses</Button>
+        </div>
       </CardContent>
     </Card>
   );
@@ -199,9 +209,16 @@ export default function ProposerMonJeu() {
   }, [editable, save]);
 
   const submit = async () => {
-    if (!confirm("Soumettre le formulaire ? Vous ne pourrez plus le modifier ensuite.")) return;
     setSubmitting(true); setMissing([]);
     try {
+      const check = await publicOnboarding.check(token, formRef.current);
+      dirty.current = false; setSavedAt(check.saved_at);
+      if (check.missing.length) {
+        setMissing(check.missing);
+        toast({ title: "Formulaire incomplet", description: "Complétez les éléments listés en bas du formulaire.", variant: "destructive" });
+        return;
+      }
+      if (!confirm("Générer le contrat à partir de vos réponses ? Vous pourrez encore les modifier tant que le contrat n'est pas signé ; un nouveau contrat sera alors généré.")) return;
       const r = await publicOnboarding.submit(token, formRef.current);
       dirty.current = false;
       if (r.contract_error) { toast({ title: "Formulaire envoyé", description: r.contract_error }); await load(); }
@@ -234,7 +251,7 @@ export default function ProposerMonJeu() {
             {(signedUrl ?? data.contract_pdf_url) && <Button variant="outline" asChild><a href={(signedUrl ?? data.contract_pdf_url)!} target="_blank" rel="noopener noreferrer">Télécharger le contrat signé</a></Button>}
           </CardContent></Card>
         ) : data.status === "contract" ? (
-          <SignStep token={token} data={data} onSigned={setSignedUrl} />
+          <SignStep token={token} data={data} onSigned={setSignedUrl} onEdit={() => { setData(null); void load(); }} />
         ) : data.status === "submitted" ? (
           <Card><CardContent className="p-6 text-center">Formulaire reçu. Le contrat est en préparation : SuperTilt revient vers vous rapidement.</CardContent></Card>
         ) : (

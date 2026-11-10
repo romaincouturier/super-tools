@@ -37,6 +37,8 @@ export interface InvitationDraft { invitation_id?: string; link: string; subject
 export const publicOnboarding = {
   get: (token: string) => call<PublicOnboarding>({ action: "get", token }),
   save: (token: string, form: Record<string, unknown>) => call<{ saved_at: string }>({ action: "save", token, form }),
+  check: (token: string, form: Record<string, unknown>) => call<{ saved_at: string; missing: string[] }>({ action: "save", token, form, check: true }),
+  edit: (token: string) => call<{ reopened: boolean }>({ action: "edit", token }),
   submit: (token: string, form: Record<string, unknown>) => call<PublicOnboarding & { submitted?: boolean }>({ action: "submit", token, form }),
   upload: (token: string, kind: string, file: File) => {
     const fd = new FormData(); fd.append("token", token); fd.append("kind", kind); fd.append("file", file);

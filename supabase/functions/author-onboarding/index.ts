@@ -189,7 +189,7 @@ serve(async (req) => {
     const action = String(body.action || "");
 
     // ── Actions publiques ─────────────────────────────────────────
-    if (["get", "save", "delete_file", "submit", "send_otp", "sign"].includes(action)) {
+    if (["get", "save", "delete_file", "submit", "edit", "send_otp", "sign"].includes(action)) {
       const inv = await invitationByToken(db, body.token);
       if (!inv) return fail("Ce lien n'est plus valable. Contactez SuperTilt pour en recevoir un nouveau.", 404);
       let resp = await loadResponse(db, inv.id);
@@ -223,7 +223,10 @@ serve(async (req) => {
         await db.from("author_onboarding_responses").update({ data, updated_at: now, version: (resp?.version ?? 0) + 1 }).eq("invitation_id", inv.id);
         const { data: author } = await db.from("game_authors").select("onboarding_status").eq("id", inv.author_id).single();
         if (author?.onboarding_status === "invited") await setStatus(db, inv.author_id, inv.game_id, "form_in_progress");
-        if (action === "save") return json({ saved_at: now });
+        if (action === "save") {
+          if (body.check === true) return json({ saved_at: now, missing: missingForSubmit(data, await listFiles(db, inv.id)) });
+          return json({ saved_at: now });
+        }
 
         const files = await listFiles(db, inv.id);
         const missing = missingForSubmit(data, files);
@@ -255,6 +258,19 @@ serve(async (req) => {
           await db.from("author_onboarding_files").delete().eq("id", row.id);
         }
         return json({ files: await listFiles(db, inv.id) });
+      }
+
+      // Modification par l'auteur : possible tant que le contrat n'est pas signé.
+      // Le contrat en attente est annulé ; une nouvelle soumission en régénère un.
+      if (action === "edit") {
+        const { data: signed } = await db.from("distribution_contract_signatures").select("id").eq("invitation_id", inv.id).eq("status", "signed").limit(1);
+        if (signed?.length) return fail("Contrat déjà signé : les réponses ne sont plus modifiables");
+        await db.from("distribution_contract_signatures").update({ status: "cancelled" }).eq("invitation_id", inv.id).eq("status", "pending");
+        await db.from("author_onboarding_invitations").update({ submitted_at: null }).eq("id", inv.id);
+        await db.from("author_onboarding_responses").update({ submitted_at: null }).eq("invitation_id", inv.id);
+        await setStatus(db, inv.author_id, inv.game_id, "form_in_progress");
+        await db.from("activity_logs").insert({ action_type: "author_form_reopened_by_author", recipient_email: inv.recipient_email, details: { invitation_id: inv.id } } as Db);
+        return json({ reopened: true });
       }
 
       const contract = await pendingContract(db, inv.id);
