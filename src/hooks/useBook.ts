@@ -178,9 +178,14 @@ export function useDeleteAlbum() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (albumId: string) => {
-      const userId = await getCurrentUserId();
+      const { data: album } = await supabase
+        .from("book_albums")
+        .select("user_id")
+        .eq("id", albumId)
+        .maybeSingle();
+      const userId = album?.user_id ?? (await getCurrentUserId());
 
-      // Remove all files in storage under {userId}/{albumId}/
+      // Remove all files in storage under {ownerId}/{albumId}/
       const { data: fileList } = await supabase.storage
         .from("book-productions")
         .list(`${userId}/${albumId}`);
@@ -848,14 +853,13 @@ export function useBackfillBookThumbnails(albumId: string) {
       if (backfillRunning.has(albumId)) return 0;
       backfillRunning.add(albumId);
       try {
-        const userId = await getCurrentUserId();
         const { data } = await supabase
           .from("book_productions")
           .select("id, file_url, thumbnail_url, original_filename, user_id")
           .eq("album_id", albumId)
           .eq("file_type", "image");
         const todo = (data ?? []).filter(
-          (r) => r.user_id === userId && (!r.thumbnail_url || r.thumbnail_url === r.file_url),
+          (r) => (!r.thumbnail_url || r.thumbnail_url === r.file_url),
         );
         if (todo.length === 0) return 0;
         const { createThumbnailFromUrl } = await import("@/lib/bookThumbnail");
