@@ -188,7 +188,7 @@ var update_lms_course_default = defineTool9({ name: "update_lms_course", title: 
 import { defineTool as defineTool10 } from "npm:@lovable.dev/mcp-js@3.4.0";
 import { z as z12 } from "npm:zod@^3.25.76";
 
-// src/lib/mcp/tools/attestation-shared.ts
+// src/lib/mcp/attestation-shared.ts
 import { z as z11 } from "npm:zod@^3.25.76";
 var attestationFields = {
   client_name: z11.string().max(300).optional(),
