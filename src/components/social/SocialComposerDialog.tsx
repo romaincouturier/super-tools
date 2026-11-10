@@ -33,6 +33,9 @@ import { toastError } from "@/lib/toastError";
 import { formatAlert } from "../../../supabase/functions/_shared/social-post-alerts";
 import {
   DISPLAY_STATUS_LABELS,
+  validateDateRemoval,
+  validateStatusChange,
+  type SocialDraftStatus,
   NO_CHANNEL_MESSAGE,
   alertsByChannel,
   buildGroupPosts,
@@ -58,6 +61,7 @@ interface ComposerValues extends AutoSaveFormValues {
   mediaIds: Record<string, string | null>;
   date: string;
   time: string;
+  statuses: Record<string, SocialDraftStatus>;
 }
 
 const DEFAULT_TIME = "09:00";
@@ -160,6 +164,8 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
   /** Cible du sélecteur ouvert : visuel commun ou identifiant du canal. */
   const [pickerFor, setPickerFor] = useState<string | null>(null);
   const [date, setDate] = useState("");
+  /** Statut choisi par déclinaison non publiée, indépendant de la date. */
+  const [statuses, setStatuses] = useState<Record<string, SocialDraftStatus>>({});
   const [time, setTime] = useState("");
   const [activeTab, setActiveTab] = useState("");
   const initializedFor = useRef<string | null>(null);
@@ -178,6 +184,7 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     commonMediaId: v.commonMediaId,
     mediaIds: v.mediaIds,
     scheduledAt: v.date ? parisLocalToUtcIso(v.date, v.time || DEFAULT_TIME) : null,
+    statuses: Object.fromEntries(v.channelIds.map((id) => [id, v.statuses[id] ?? "unscheduled"])),
   }), [currentId]);
 
   /** Relit le contenu et met à jour l'état connu de la base sans attendre le rendu. */
@@ -230,8 +237,8 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
   }, [currentId, runSave]);
 
   const formValues = useMemo<ComposerValues>(
-    () => ({ channelIds, format, sync, themeId, commonText, texts, commonMediaId, mediaIds, date, time }),
-    [channelIds, format, sync, themeId, commonText, texts, commonMediaId, mediaIds, date, time],
+    () => ({ channelIds, format, sync, themeId, commonText, texts, commonMediaId, mediaIds, date, time, statuses }),
+    [channelIds, format, sync, themeId, commonText, texts, commonMediaId, mediaIds, date, time, statuses],
   );
 
   const { autoSaving, lastSaved, resetTracking, flushAndGetPending } = useAutoSaveForm({
@@ -279,6 +286,9 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     setPickerFor(null);
     setDate(local?.date ?? "");
     setTime(local?.time ?? "");
+    setStatuses(Object.fromEntries(posts
+      .filter((p) => p.publication_status !== "published")
+      .map((p) => [p.channel_id, p.publication_status as SocialDraftStatus])));
     setActiveTab(reference?.channel_id ?? "");
     resetTracking();
   }, [open, groupId, group, groupFetching, groupPending, groupError, resetTracking, toast, onOpenChange]);
@@ -351,6 +361,27 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
   const changeDate = (value: string) => {
     setDate(value);
     if (value && !time) setTime(DEFAULT_TIME);
+  };
+
+  const changeStatus = (channelId: string, next: SocialDraftStatus) => {
+    const refusal = validateStatusChange(next, date ? "x" : null);
+    if (refusal) {
+      toast({ title: refusal, variant: "destructive" });
+      return;
+    }
+    setStatuses((prev) => ({ ...prev, [channelId]: next }));
+  };
+
+  const clearDate = () => {
+    const refusal = validateDateRemoval(channelIds
+      .filter((id) => !publishedChannelIds.has(id))
+      .map((id) => statuses[id] ?? "unscheduled"));
+    if (refusal) {
+      toast({ title: refusal, variant: "destructive" });
+      return;
+    }
+    setDate("");
+    setTime("");
   };
 
   const handleClose = (isOpen: boolean) => {
@@ -494,10 +525,22 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
   const declinationBar = (c: SocialChannel) => {
     const saved = group?.posts.some((p) => p.channel_id === c.id) ?? false;
     const published = publishedChannelIds.has(c.id);
-    const status: SocialPublicationStatus = published ? "published" : date ? "scheduled" : "unscheduled";
+    const status: SocialDraftStatus = statuses[c.id] ?? "unscheduled";
     return (
       <div className="mb-2 flex flex-wrap items-center gap-2 rounded border bg-muted/40 px-3 py-2 text-sm" data-testid="social-declination-bar">
-        <Badge variant={published ? "default" : "outline"}>{DISPLAY_STATUS_LABELS[status]}</Badge>
+        {published ? (
+          <Badge variant="default">{DISPLAY_STATUS_LABELS.published}</Badge>
+        ) : (
+          <Select value={status} onValueChange={(v) => changeStatus(c.id, v as SocialDraftStatus)} disabled={busy}>
+            <SelectTrigger className="h-8 w-36" aria-label={`Statut ${c.name}`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unscheduled">{DISPLAY_STATUS_LABELS.unscheduled}</SelectItem>
+              <SelectItem value="scheduled">{DISPLAY_STATUS_LABELS.scheduled}</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
         {published && <span className="text-xs text-muted-foreground">Publié, modifié seul</span>}
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {!published && !date && (
@@ -697,7 +740,7 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
               </div>
             </div>
             {date && (
-              <Button variant="ghost" size="sm" onClick={() => { setDate(""); setTime(""); }}>
+              <Button variant="ghost" size="sm" onClick={clearDate}>
                 Retirer la date
               </Button>
             )}

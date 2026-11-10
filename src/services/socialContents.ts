@@ -75,6 +75,24 @@ export interface SocialGroupDraft {
   /** Visuel propre à chaque canal, utilisé quand la synchro est coupée. */
   mediaIds: Record<string, string | null>;
   scheduledAt: string | null;
+  /** Statut choisi par canal ; absent : statut enregistré conservé, Brouillon à la création. */
+  statuses?: Record<string, SocialDraftStatus>;
+}
+
+/** Statuts choisis à la main ; « Publié » passe par le bouton « Marquer publié ». */
+export type SocialDraftStatus = Exclude<SocialPublicationStatus, "published">;
+
+export const SCHEDULE_NEEDS_DATE_MESSAGE = "Indiquez une date et une heure pour programmer";
+export const UNSCHEDULE_BEFORE_CLEARING_DATE_MESSAGE = "Repassez en Brouillon avant de retirer la date";
+
+/** Message de refus d'un changement de statut, null s'il est permis. Programmé exige une date. */
+export function validateStatusChange(next: SocialDraftStatus, scheduledAt: string | null): string | null {
+  return next === "scheduled" && !scheduledAt ? SCHEDULE_NEEDS_DATE_MESSAGE : null;
+}
+
+/** Message de refus du retrait de la date, null s'il est permis : aucune déclinaison ne doit rester Programmé. */
+export function validateDateRemoval(statuses: SocialPublicationStatus[]): string | null {
+  return statuses.includes("scheduled") ? UNSCHEDULE_BEFORE_CLEARING_DATE_MESSAGE : null;
 }
 
 export interface SocialPostInput {
@@ -82,6 +100,7 @@ export interface SocialPostInput {
   text: string;
   scheduled_at: string | null;
   media_id: string | null;
+  publication_status?: SocialDraftStatus;
 }
 
 /** Un post par canal coché : texte et visuel communs si synchro, propres sinon. */
@@ -93,6 +112,7 @@ export function buildGroupPosts(draft: Omit<SocialGroupDraft, "groupId" | "forma
     media_id: draft.sync
       ? draft.commonMediaId
       : (channel_id in draft.mediaIds ? draft.mediaIds[channel_id] : draft.commonMediaId),
+    ...(draft.statuses?.[channel_id] ? { publication_status: draft.statuses[channel_id] } : {}),
   }));
 }
 
@@ -480,9 +500,9 @@ export async function listGroupsInRange(fromIso: string, toIso: string): Promise
   return listGroupsMatching((q) => q.gte("matched.scheduled_at", fromIso).lt("matched.scheduled_at", toIso));
 }
 
-/** Contenus ayant au moins une déclinaison sans date, avec tous leurs posts. */
+/** Contenus ayant au moins une déclinaison sans date, avec tous leurs posts (un brouillon daté n'y figure pas). */
 export async function listUndatedGroups(): Promise<SocialContentGroup[]> {
-  return listGroupsMatching((q) => q.eq("matched.publication_status", "unscheduled"));
+  return listGroupsMatching((q) => q.is("matched.scheduled_at", null));
 }
 
 /** Pose (ou retire avec null) la date des déclinaisons non publiées du groupe, en une seule RPC. */
@@ -523,14 +543,13 @@ export async function deleteGroup(groupId: string): Promise<void> {
   if (!data?.length) throw new Error(GROUP_NOT_DELETED_MESSAGE);
 }
 
-/** Copie du groupe telle qu'après setGroupDate (mise à jour optimiste). */
+/** Copie du groupe telle qu'après setGroupDate (mise à jour optimiste) : la date change, jamais le statut. */
 export function withGroupDate(group: SocialContentGroup, scheduledAt: string | null): SocialContentGroup {
   return {
     ...group,
     posts: group.posts.map((p) => (p.publication_status === "published" ? p : {
       ...p,
       scheduled_at: scheduledAt,
-      publication_status: scheduledAt ? "scheduled" : "unscheduled",
     })),
   };
 }
