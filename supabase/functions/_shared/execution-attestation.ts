@@ -66,8 +66,8 @@ export function attestationSections(a: AttestationContent, signer?: { name?: str
     ? `Du ${frDate(a.start_date)} au ${frDate(a.end_date)}`
     : a.start_date ? `Le ${frDate(a.start_date)}` : "";
   const sections: AttestationSection[] = [
-    { title: "Prestataire", lines: [a.provider_name ?? "", a.provider_address ?? "", a.provider_siren ? `SIREN : ${a.provider_siren}` : "", a.provider_nda ? `N° de déclaration d'activité : ${a.provider_nda}` : ""].filter(Boolean) },
-    { title: "Client", lines: [a.client_name ?? "", a.client_address ?? ""].filter(Boolean) },
+    { title: "Prestataire", lines: [a.provider_name ?? "", a.provider_address ?? "", a.provider_siren ? `SIREN : ${a.provider_siren}` : "", a.provider_nda ? `N° de déclaration d'activité : ${a.provider_nda}` : ""].filter((l) => l.trim()) },
+    { title: "Client", lines: [a.client_name ?? "", a.client_address ?? ""].filter((l) => l.trim()) },
   ];
   if (a.is_public_entity) {
     sections.push({ title: PUBLIC_ENTITY_MENTION, lines: [
