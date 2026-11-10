@@ -1,113 +1,95 @@
-# Attestations de bonne exécution signées en ligne
+# Contenus sociaux, lot 1 : enrichir un contenu
 
-## Objectif
+## Analyse de l'existant
 
-Produire, depuis une mission ou une formation, une attestation pré-remplie et modifiable. SuperTools fournit un lien de signature : le client signe en ligne sans compte, puis le PDF signé est archivé et envoyé par email à romain@supertilt.fr, avec une copie au signataire. Aucun email n'est envoyé au client avant la signature : la demande de signature est rédigée à part, en brouillon Gmail.
+- **Contenu :** il a aujourd'hui un format, une synchro, un thème unique et un auteur. Les 13 contenus actuels n'ont aucun thème.
+- **Déclinaisons :** chacune porte un texte, un visuel de la Médiathèque, une date et un statut. Le statut est indépendant de la date depuis hier, et rien ne change à ce sujet.
+- **Thème :** un seul thème par contenu, géré dans Réglages (nom et couleur), qui colore le liseré des cartes et sert de filtre. La liste des thèmes est vide.
+- **Cartes du calendrier et de « Non planifiés » :** elles affichent le début du texte, les pastilles des canaux, le statut et les alertes.
+- **Liste :** l'onglet « Liste » existe mais il est désactivé, il n'y a pas encore de vue liste.
+- **Kanban Newsletter :** chaque carte a un titre, une description et des tags. On peut la lier simplement par son identifiant.
+- **Enregistrement :** il passe par une seule fonction de la base (`save_social_content_group`), en enregistrement automatique.
 
-## Ce qui existe déjà et sera réutilisé
+## Recommandations
 
-- Le parcours de signature des devis, conventions et contrats de location : page publique `/signature-…/:token`, tracé de la signature, journal du parcours, adresse IP, appareil, empreinte du document et page de preuve ajoutée au PDF (`_shared/generate-signed-pdf.ts`, `_shared/signature-helpers.ts`, `_shared/crypto.ts`).
-- L'envoi d'emails avec copie cachée systématique, signature Signitic et journalisation de 100 % des envois.
-- Le serveur MCP récent : outils dans `src/lib/mcp/tools`, accès par connexion OAuth, droits de l'appelant respectés. L'ancien serveur MCP n'est pas modifié.
+1. **Expertises = le Thème existant, rendu multi-valeurs.** Je propose de créer les 4 thèmes (Facilitation graphique, Intelligence collective, Transformation, Intelligence artificielle) dans Réglages et de remplacer le thème unique par une liaison plusieurs-à-plusieurs. Le filtre et les couleurs restent ; le liseré prend la couleur de la première expertise. C'est plus simple qu'un second champ qui ferait doublon. L'ancien thème unique est conservé en base, marqué comme retiré, et il est vide partout.
+2. **Brief visuel commun uniquement.** Une surcharge par déclinaison doublerait le formulaire pour un besoin rare, puisqu'un carrousel est en général le même partout. On pourra l'ajouter plus tard sans casser le modèle.
+3. **Sources :** liens (adresse et libellé facultatif) et lien vers une carte Newsletter, l'un ou l'autre. C'est simple, donc inclus.
+4. **Préparation :** 4 cases à cocher, plus « Valider » qui enregistre qui a validé et quand. Décocher une case annule la validation. Un texte modifié après validation ne l'annule pas : aucune règle cachée.
+5. **Vue « Liste » :** elle n'existe pas encore. Le lot couvre le calendrier et « Non planifiés » ; je propose de faire la vue Liste dans un lot à part pour ne pas alourdir celui-ci.
 
-## Parcours
+## Schéma proposé (ajouts uniquement, aucune donnée modifiée)
 
-```text
-Mission / Formation -> "Nouvelle attestation" (pré-remplie) -> Brouillon (modifiable)
-  -> "Générer le lien" -> Envoyée (lien copiable, aucun email)
-  -> Client : relit, complète nom/fonction, signe, coche le consentement, valide
-  -> Signée : PDF signé + page de preuve, figé ; email à Romain + copie au signataire
-  -> Refusée (bouton "Je refuse" + motif) ou Expirée (date dépassée)
-```
+Contenu (`social_content_groups`), nouvelles colonnes toutes facultatives :
+- `title` : texte court, 120 caractères maximum. Vide signifie qu'on affiche le début du texte, comme aujourd'hui. À l'enregistrement depuis le formulaire, s'il est vide, il est rempli avec le début du texte, ce qui le rend obligatoire sans bloquer un brouillon.
+- `editorial_category` : une valeur parmi `tutorial`, `reflection`, `resource`, `behind_the_scenes`, `humor`, `community`, `offer`, ou vide.
+- Brief visuel :
+  - `visual_type` : `illustration`, `sketchnote`, `carousel`, `photo`, `video`, `diagram` ou `other` ;
+  - `visual_message`, `visual_elements`, `visual_texts`, `visual_composition` : textes ;
+  - `visual_slides` : liste ordonnée de `{ content }`, le numéro étant la position. Elle est utilisée seulement pour un carrousel et conservée si le type change.
+- `internal_notes` : texte, jamais publié.
+- Préparation :
+  - `check_text_ready`, `check_visual_ready`, `check_links_checked`, `check_proofread` : cases, non cochées par défaut ;
+  - `validated_at`, `validated_by` : date et auteur de la validation.
+- `origin` : `app` par défaut, `ai` prévu pour le lot 2. Il permettra d'imposer en base qu'une création par l'IA reste en Brouillon, jamais Programmé ni Publié.
 
-## Modèle de données
+Nouvelles tables (droits : administrateur ou module supertilt_fr, comme les contenus) :
+- **`social_content_group_themes` :** liaison entre un contenu et un thème (expertise), une ligne par paire, supprimée avec le contenu ou le thème.
+- **`social_content_sources` :** contenu, position, adresse, libellé, carte Newsletter liée. Une adresse ou une carte est obligatoire, et l'adresse doit commencer par http(s). La carte est mise à vide si elle est supprimée.
 
-Table `execution_attestations` :
-- **Source :** `mission_id` ou `training_id`, exactement l'un des deux (contrainte).
-- **Statut :** `draft` / `sent` / `signed` / `refused` / `expired`, avec `sent_at`, `signed_at`, `refused_at`, `refusal_reason`, `expires_at` (30 jours par défaut, modifiable).
-- **Prestataire, copié à la création pour figer le document :** raison sociale, SIRET, n° de déclaration d'activité et adresse, lus depuis un réglage central à créer s'il n'existe pas.
-- **Client :** organisme, adresse, nom, fonction et email du signataire.
-- **Prestation :** objet, date de début, date de fin, lieu, nombre de participants, nombre de jours, montant HT, texte libre et mention de certification (texte par défaut modifiable).
-- **Signature :** empreinte (hash) du token et non le token en clair, tracé de la signature, nom et fonction saisis, adresse IP, appareil, journal du parcours, empreinte du contenu signé, chemin du PDF signé, empreinte du PDF.
-- **Traçabilité :** `created_by`, `updated_by`, horodatages, et chaque changement de statut tracé dans le journal d'activité existant.
+Indicateurs calculés, sans saisie :
+- **À compléter :** une case n'est pas cochée.
+- **À valider :** toutes les cases sont cochées, mais le contenu n'est pas validé.
+- **Validé :** le contenu a été validé.
+- **Sans visuel :** au moins une déclinaison non publiée n'a pas de visuel.
 
-Accès (RLS) : administrateurs et comptes ayant accès au module missions ou formations, selon la source. Aucun accès anonyme à la table : la page publique passe par une fonction serveur.
+Ces indicateurs sont calculés par une fonction partagée, réutilisable par le futur outil MCP.
 
-Stockage : fichiers privés `attestations/<id>/signed.pdf`, ouverts par des liens signés de courte durée.
+## Fonctions de la base
 
-## Pré-remplissage
+- **`save_social_content_group` :** elle reçoit un nouveau paramètre facultatif `p_details` (titre, catégorie, brief, notes, cases, expertises, sources) et enregistre tout en une seule opération. Sans ce paramètre, rien d'autre ne change, donc l'application en ligne continue de fonctionner. La logique de statut d'hier est reprise à l'identique.
+- **`validate_social_content(group_id, validated)` :** valide, ou annule la validation, si toutes les cases sont cochées. Elle est tracée avec l'auteur et la date.
+- Les valeurs reçues sont contrôlées (catégorie, type de visuel, longueurs, adresses), avec des messages clairs pour une future API.
 
-- **Depuis une mission :** organisme et contact client, titre, dates, lieu, nombre de jours, montant HT (montant facturé, sinon initial).
-- **Depuis une formation :** client, commanditaire comme signataire, intitulé, dates, lieu, nombre d'inscrits, prix HT.
+## Écrans modifiés
 
-Tout reste modifiable tant que l'attestation est en brouillon. Après génération du lien, une modification remet l'attestation en brouillon et invalide le lien.
+- **Formulaire :** le texte par canal reste en tête et ouvert. En dessous, des sections repliables, fermées par défaut, avec un résumé sur une ligne (ex. « Carrousel, 4 diapositives ») :
+  - Brief visuel : type, 4 champs, diapositives (ajout, suppression, monter et descendre) visibles seulement pour un carrousel ;
+  - Classement : expertises en pastilles à choix multiples, catégorie en liste ;
+  - Sources : lignes adresse et libellé, plus « Lier une carte Newsletter » (recherche par titre) ;
+  - Notes internes ;
+  - Préparation : 4 cases, bouton « Valider » et mention « Validé par X le … ».
 
-## Écrans
+  Le champ « Titre interne » est placé au-dessus des canaux.
+- **Cartes du calendrier et de « Non planifiés » :** le titre interne remplace le début du texte (le texte reste affiché si le titre est vide). Les pastilles des canaux et le statut sont conservés. S'ajoutent un petit indicateur À compléter, À valider ou Validé, et une icône « sans visuel » qui reprend l'alerte existante.
+- **Filtres :** Expertise (les pastilles Thème renommées), Catégorie, et des filtres pratiques Sans visuel, À compléter et À valider, à côté des filtres Réseau et Statut.
+- **Réglages :** la rubrique « Thèmes » est renommée « Expertises ».
 
-- **Fiche mission et fiche formation :** section « Attestations » listant statut, signataire et dates, avec les actions Nouvelle, Modifier, Générer ou copier le lien, Télécharger le PDF signé et Annuler.
-- **Formulaire d'édition :** tous les champs, plus un aperçu du rendu.
-- **Liste globale « Attestations » :** filtres par statut, type de source et client ; lien vers la source.
-- **Page publique `/attestation/:token`,** aux couleurs SuperTilt, sans mention SuperTools : lecture de l'attestation, nom et fonction modifiables, tracé à la souris ou au doigt avec un bouton Effacer, case « Je certifie… et j'accepte la signature électronique », boutons Signer et Refuser. Les cas déjà signée, expirée ou lien invalide ont chacun un message clair.
+## Tests ajoutés
 
-## Fonctions serveur
+Base :
+- La modification de la base appliquée deux fois ne modifie ni ne vide aucun contenu existant.
+- L'enregistrement sans les nouveaux champs fonctionne comme avant.
+- L'enregistrement complet relit à l'identique tous les nouveaux champs.
+- Une catégorie, un type de visuel ou une adresse invalides sont refusés.
+- La validation est refusée avec une case non cochée, et décocher une case annule la validation.
+- Un compte sans droit ne lit ni n'écrit les sources et les expertises.
+- Un brouillon incomplet s'enregistre.
+- Le statut reste indépendant de la date.
 
-1. **`attestation-public` :** lecture par token pour la page publique, renvoyant uniquement les champs affichés, et enregistrement des étapes du parcours.
-2. **`submit-attestation-signature` :**
-   - vérifie le token, le statut et l'expiration, puis enregistre la signature et les preuves en une seule fois, avec verrou contre la double signature ;
-   - génère le PDF avec pdf-lib : en-tête et couleurs SuperTilt, blocs prestataire, client et prestation, texte libre, mention, date, nom et fonction, signature incrustée, page de preuve ;
-   - stocke le PDF, calcule son empreinte, passe l'attestation en Signée ;
-   - envoie l'email à romain@supertilt.fr avec copie au signataire et PDF joint. C'est le seul email automatique, il est journalisé.
-3. **`refuse-attestation` :** refus par token avec un motif ; aucun email au client, notification interne seulement si tu la demandes.
-4. **Expiration :** passage en Expirée calculé au moment de la lecture, sans nouvelle tâche planifiée.
-5. **Génération du lien :** côté staff, le token est tiré au hasard (256 bits) et seule son empreinte est stockée. Le lien est affiché une fois puis peut être régénéré, ce qui invalide l'ancien.
+Écran :
+- Le titre vide affiche le début du texte.
+- Le titre vide est prérempli à l'enregistrement.
+- Les indicateurs À compléter, À valider et Validé sont corrects.
+- Les filtres expertise, catégorie, sans visuel, à compléter et à valider fonctionnent.
+- Les diapositives d'un carrousel s'ajoutent, se suppriment et se réordonnent.
 
-## Outils MCP (serveur récent, OAuth, droits de l'appelant)
+## Hors lot
 
-- **`create_execution_attestation` :** depuis `mission_id` ou `training_id`, avec le texte libre et des champs optionnels qui remplacent le pré-remplissage. Crée un brouillon et le trace.
-- **`update_execution_attestation` :** modifie un brouillon.
-- **`list_execution_attestations` :** filtres par statut et par source ; renvoie statut, signataire et dates.
-- **`get_execution_attestation_link` :** génère ou régénère le lien de signature (passage en Envoyée), sans email.
-- **`get_execution_attestation_pdf` :** lien de téléchargement temporaire du PDF signé.
-
-Aucun outil d'envoi au client ni de suppression. Après ces ajouts, il faudra republier l'application pour que les outils MCP soient disponibles.
-
-## Points de vigilance
-
-- **Sécurité du token :** aléatoire et long, stocké uniquement en empreinte, expiration, utilisable une seule fois après signature, régénération qui invalide l'ancien, limitation des tentatives sur la page publique, aucune donnée hors attestation renvoyée.
-- **Valeur probante :** c'est une signature électronique simple au sens du règlement eIDAS, recevable comme commencement de preuve, comme pour les devis actuels. Elle est renforcée par le contenu figé et son empreinte au moment de la signature, l'horodatage serveur, l'IP, l'appareil, le journal du parcours, la case de consentement, la page de preuve dans le PDF et l'empreinte du PDF. En option, on peut ajouter une vérification par code envoyé par email au signataire, comme pour le contrat auteur. Ce serait un second email automatique, donc seulement si tu le demandes.
-- **RGPD :** les données sont limitées au signataire (nom, fonction, email, IP, tracé), avec une mention d'information sur la page de signature. L'accès reste réservé au staff concerné, le PDF est privé et les liens sont temporaires. Conservation proposée : 10 ans pour les preuves contractuelles (à valider), avec purge de l'IP et de l'appareil des attestations refusées ou expirées après 1 an.
-- **Sauvegardes :** la nouvelle table et les fichiers sont ajoutés à la sauvegarde quotidienne.
-- **Marque :** « SuperTilt » uniquement sur la page publique, le PDF et les emails.
-
-## Étapes de réalisation
-
-1. Modification de la base (table, droits, stockage, réglage des informations légales SuperTilt) et tests d'isolation des droits.
-2. Fonctions serveur : lecture publique, signature avec PDF et email, refus.
-3. Écrans : sections sur les fiches mission et formation, formulaire, liste globale, page publique.
-4. Outils MCP, puis génération du manifeste.
-5. Ajout aux sauvegardes.
-
-## Tests prévus
-
-- Une attestation exige exactement une source.
-- Pré-remplissage depuis une mission et depuis une formation.
-- Token invalide, expiré ou déjà utilisé : refusé.
-- Une double signature n'en garde qu'une.
-- Modifier une attestation envoyée la remet en brouillon et invalide le lien.
-- Un compte sans droit ne voit pas les attestations.
-- Le PDF contient la signature, et son empreinte correspond.
-- L'email part uniquement à Romain et au signataire, et seulement à la signature.
-
-## Questions ouvertes
-
-- Où trouver le SIRET et le n° de déclaration d'activité : réglage existant, ou valeurs à me fournir ?
-- Faut-il le code de vérification par email au signataire ? Proposé désactivé.
-- Durée de validité du lien : 30 jours proposés.
-- Durée de conservation : 10 ans proposés.
+- Outils MCP (lot 2).
+- Vue Liste.
+- Surcharge du brief par déclinaison.
 
 ## Impact sécurité (PR)
 
-- Nouvelle table accessible seulement aux comptes connectés concernés, sans accès anonyme.
-- Fonctions publiques limitées au token, avec limitation des tentatives.
-- Fichiers privés.
-- Outils MCP soumis aux droits de l'appelant.
+Deux nouvelles tables avec les mêmes droits que les contenus (administrateur ou module), sans accès anonyme. Les fonctions s'exécutent avec les droits de l'appelant. Ajout aux sauvegardes quotidiennes.
