@@ -544,7 +544,7 @@ describe("Marquage publié et suppression (story 1.5)", () => {
     expect(res.rows[0].status).toBe("published");
     const rows = await byChannel(GROUP);
     expect(rows[channels[0]].publication_status).toBe("published");
-    expect(rows[channels[1]].publication_status).toBe("scheduled");
+    expect(rows[channels[1]].publication_status).toBe("unscheduled");
     await setPublished(await postId(GROUP, channels[1]), true);
     expect(Object.values(await byChannel(GROUP)).every((r) => r.publication_status === "published")).toBe(true);
   });
@@ -682,7 +682,7 @@ describe("Marquage publié et suppression (story 1.5)", () => {
     await expect(setPublished(id, true)).rejects.toThrow(/permission denied/);
     await expect(updateContent(id, "Intrus", null)).rejects.toThrow(/permission denied/);
     await db.exec("RESET ROLE");
-    expect((await byChannel(GROUP))[channels[0]]).toMatchObject({ text: "Privé", publication_status: "scheduled" });
+    expect((await byChannel(GROUP))[channels[0]]).toMatchObject({ text: "Privé", publication_status: "unscheduled" });
   });
 
   it("un admin sans ligne de droit marque et modifie une déclinaison", async () => {
