@@ -12,7 +12,7 @@ describe("vidéos des blocs HTML", () => {
   });
   it("ne charge pas les vidéos écrites en dur dans le bac à sable", () => {
     expect(deferVideoIframes('<iframe width="560" src="https://player.vimeo.com/video/1"></iframe>')).toBe('<iframe width="560" data-st-video="https://player.vimeo.com/video/1"></iframe>');
-    expect(deferVideoIframes('<iframe src="https://tally.so/embed/x"></iframe>')).toBe('<iframe src="https://tally.so/embed/x"></iframe>');
+    expect(deferVideoIframes('<iframe src="https://example.com/embed/x"></iframe>')).toBe('<iframe src="https://example.com/embed/x"></iframe>');
   });
 });
 

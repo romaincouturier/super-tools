@@ -1,1 +1,2 @@
+- Google Calendar appointments, Tally and CrosswordLabs embeds follow the same overlay rule; Tally dynamicHeight is relayed from the overlay to its sandbox placeholder.
 - YouTube/Vimeo and Google Forms iframes inside author embeds are never loaded in the sandbox: the bootstrap reports their URL and position and the parent overlays allowlisted player iframes, because players and Forms images fail in opaque origins.
