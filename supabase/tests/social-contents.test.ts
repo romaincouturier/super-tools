@@ -18,6 +18,7 @@ const THEMES_MIGRATION = path.resolve(here, "../migrations/20261106110000_social
 const PUBLICATION_MIGRATION = path.resolve(here, "../migrations/20261107100000_social_post_publication.sql");
 const NOTES_MIGRATION = path.resolve(here, "../migrations/20261109100000_social_calendar_notes.sql");
 const AUTHORSHIP_MIGRATION = path.resolve(here, "../migrations/20261110100000_social_authorship_and_note_colors.sql");
+const STATUS_MIGRATION = path.resolve(here, "../migrations/20261110120000_social_status_independent_of_date.sql");
 const UPDATED_AT_MIGRATION = path.resolve(here, "../migrations/20260108203546_738a153d-fdf5-43d3-a2c6-75e98647a71f.sql");
 
 /** update_updated_at_column, telle que livrée (forme `$$ LANGUAGE ...;` hors du motif de readFunctionSql). */
@@ -64,6 +65,7 @@ beforeAll(async () => {
   const publicationMigration = fs.readFileSync(PUBLICATION_MIGRATION, "utf8");
   const notesMigration = fs.readFileSync(NOTES_MIGRATION, "utf8");
   const authorshipMigration = fs.readFileSync(AUTHORSHIP_MIGRATION, "utf8");
+  const statusMigration = fs.readFileSync(STATUS_MIGRATION, "utf8");
   for (let i = 0; i < 2; i++) {
     await db.exec(migration);
     await db.exec(dateMigration);
@@ -72,6 +74,7 @@ beforeAll(async () => {
     await db.exec(publicationMigration);
     await db.exec(notesMigration);
     await db.exec(authorshipMigration);
+    await db.exec(statusMigration);
   }
   await db.exec(`
     GRANT ALL ON public.social_channels, public.social_content_groups, public.social_posts, public.social_themes, public.social_calendar_notes TO anon, authenticated;
@@ -97,7 +100,7 @@ async function actAs(uid: string | null) {
   await db.exec(uid ? "SET ROLE authenticated" : "SET ROLE anon");
 }
 
-type PostInput = { channel_id: string; text: string; scheduled_at: string | null; media_id?: string | null };
+type PostInput = { channel_id: string; text: string; scheduled_at: string | null; media_id?: string | null; publication_status?: string };
 
 async function save(groupId: string, posts: PostInput[], opts: { format?: string; sync?: boolean; themeId?: string | null } = {}) {
   if (opts.themeId === undefined) {
@@ -149,12 +152,41 @@ describe("save_social_content_group", () => {
     expect(rows.map((r) => r.text)).toEqual(["v2", "v2"]);
   });
 
-  it("passe en programmé quand une date est posée", async () => {
+  it("brouillon daté : la date est enregistrée, le statut reste Brouillon", async () => {
     await actAs(EMMA);
     await save(GROUP, three("Daté", "2026-11-20T08:30:00Z"));
     const rows = await posts(GROUP);
-    expect(rows.every((r) => r.publication_status === "scheduled")).toBe(true);
+    expect(rows.every((r) => r.publication_status === "unscheduled")).toBe(true);
     expect(rows[0].scheduled_at?.toISOString()).toBe("2026-11-20T08:30:00.000Z");
+  });
+
+  it("programme explicitement une déclinaison datée, et changer la date garde Programmé", async () => {
+    await actAs(EMMA);
+    await save(GROUP, three("Daté", "2026-11-20T08:30:00Z").map((p) => ({ ...p, publication_status: "scheduled" })));
+    await save(GROUP, three("Daté", "2026-11-21T10:00:00Z"));
+    const rows = await posts(GROUP);
+    expect(rows.every((r) => r.publication_status === "scheduled" && r.scheduled_at?.toISOString() === "2026-11-21T10:00:00.000Z")).toBe(true);
+  });
+
+  it("refuse Programmé sans date, sans rien créer", async () => {
+    await actAs(EMMA);
+    await expect(save(GROUP, three("Sans date").map((p) => ({ ...p, publication_status: "scheduled" }))))
+      .rejects.toThrow("Indiquez une date et une heure pour programmer");
+    expect(await posts(GROUP)).toEqual([]);
+  });
+
+  it("refuse d'effacer la date d'un contenu Programmé, statut et date inchangés", async () => {
+    await actAs(EMMA);
+    await save(GROUP, three("Daté", "2026-11-20T08:30:00Z").map((p) => ({ ...p, publication_status: "scheduled" })));
+    await expect(save(GROUP, three("Daté", null))).rejects.toThrow("Repassez en Brouillon avant de retirer la date");
+    const rows = await posts(GROUP);
+    expect(rows.every((r) => r.publication_status === "scheduled" && r.scheduled_at?.toISOString() === "2026-11-20T08:30:00.000Z")).toBe(true);
+  });
+
+  it("refuse le statut Publié par l'enregistrement", async () => {
+    await actAs(EMMA);
+    await expect(save(GROUP, three("x", "2026-11-20T08:30:00Z").map((p) => ({ ...p, publication_status: "published" }))))
+      .rejects.toThrow("Statut invalide");
   });
 
   it("refuse un groupe sans canal et ne crée rien", async () => {
@@ -201,18 +233,18 @@ describe("set_social_group_date", () => {
   const setDate = (groupId: string, at: string | null) =>
     db.query<{ n: number }>("SELECT public.set_social_group_date($1, $2::timestamptz) AS n", [groupId, at]);
 
-  it("date toutes les déclinaisons du groupe et les passe en programmé", async () => {
+  it("date toutes les déclinaisons du groupe sans changer leur statut", async () => {
     await actAs(EMMA);
     await save(GROUP, three("Brouillon"));
     const res = await setDate(GROUP, "2026-11-12T08:00:00Z");
     expect(res.rows[0].n).toBe(3);
     const rows = await posts(GROUP);
-    expect(rows.every((r) => r.publication_status === "scheduled" && r.scheduled_at?.toISOString() === "2026-11-12T08:00:00.000Z")).toBe(true);
+    expect(rows.every((r) => r.publication_status === "unscheduled" && r.scheduled_at?.toISOString() === "2026-11-12T08:00:00.000Z")).toBe(true);
   });
 
   it("laisse intacte une déclinaison publiée", async () => {
     await actAs(EMMA);
-    await save(GROUP, three("Mixte", "2026-11-03T17:00:00Z"));
+    await save(GROUP, three("Mixte", "2026-11-03T17:00:00Z").map((p) => ({ ...p, publication_status: "scheduled" })));
     await db.query("UPDATE social_posts SET publication_status = 'published' WHERE group_id = $1 AND channel_id = $2", [GROUP, channels[0]]);
     const res = await setDate(GROUP, "2026-11-10T17:00:00Z");
     expect(res.rows[0].n).toBe(2);
@@ -224,12 +256,20 @@ describe("set_social_group_date", () => {
     });
   });
 
-  it("retire la date avec null et repasse en sans date", async () => {
+  it("retire la date d'un brouillon daté avec null, qui reste Brouillon", async () => {
     await actAs(EMMA);
     await save(GROUP, three("Daté", "2026-11-20T08:30:00Z"));
     await setDate(GROUP, null);
     const rows = await posts(GROUP);
     expect(rows.every((r) => r.publication_status === "unscheduled" && r.scheduled_at === null)).toBe(true);
+  });
+
+  it("refuse de retirer la date d'un contenu Programmé, rien ne change", async () => {
+    await actAs(EMMA);
+    await save(GROUP, three("Daté", "2026-11-20T08:30:00Z").map((p) => ({ ...p, publication_status: "scheduled" })));
+    await expect(setDate(GROUP, null)).rejects.toThrow("Repassez en Brouillon avant de retirer la date");
+    const rows = await posts(GROUP);
+    expect(rows.every((r) => r.publication_status === "scheduled" && r.scheduled_at?.toISOString() === "2026-11-20T08:30:00.000Z")).toBe(true);
   });
 
   it("refuse un compte sans droit et anon, sans rien modifier", async () => {
@@ -504,7 +544,7 @@ describe("Marquage publié et suppression (story 1.5)", () => {
     expect(res.rows[0].status).toBe("published");
     const rows = await byChannel(GROUP);
     expect(rows[channels[0]].publication_status).toBe("published");
-    expect(rows[channels[1]].publication_status).toBe("scheduled");
+    expect(rows[channels[1]].publication_status).toBe("unscheduled");
     await setPublished(await postId(GROUP, channels[1]), true);
     expect(Object.values(await byChannel(GROUP)).every((r) => r.publication_status === "published")).toBe(true);
   });
@@ -642,7 +682,7 @@ describe("Marquage publié et suppression (story 1.5)", () => {
     await expect(setPublished(id, true)).rejects.toThrow(/permission denied/);
     await expect(updateContent(id, "Intrus", null)).rejects.toThrow(/permission denied/);
     await db.exec("RESET ROLE");
-    expect((await byChannel(GROUP))[channels[0]]).toMatchObject({ text: "Privé", publication_status: "scheduled" });
+    expect((await byChannel(GROUP))[channels[0]]).toMatchObject({ text: "Privé", publication_status: "unscheduled" });
   });
 
   it("un admin sans ligne de droit marque et modifie une déclinaison", async () => {

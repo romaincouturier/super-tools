@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  validateDateRemoval,
+  validateStatusChange,
   buildGroupPosts,
   buildMonthGrid,
   buildWeekGrid,
@@ -284,8 +286,40 @@ describe("withGroupDate", () => {
     const g = withGroupDate(group("g", [post("li", "published", "2026-11-03T17:00:00.000Z"), post("in", "unscheduled", null)]), "2026-11-12T08:00:00.000Z");
     expect(g.posts.map((p) => [p.publication_status, p.scheduled_at])).toEqual([
       ["published", "2026-11-03T17:00:00.000Z"],
-      ["scheduled", "2026-11-12T08:00:00.000Z"],
+      ["unscheduled", "2026-11-12T08:00:00.000Z"],
     ]);
+  });
+
+  it("garde Programmé quand la date d'un contenu programmé change", () => {
+    const g = withGroupDate(group("g", [post("li", "scheduled", "2026-11-03T17:00:00.000Z")]), "2026-11-12T08:00:00.000Z");
+    expect(g.posts[0].publication_status).toBe("scheduled");
+  });
+});
+
+describe("statut indépendant de la date", () => {
+  it("brouillon daté : placé sur son jour, en Brouillon, absent de Non planifiés", () => {
+    const { undated, byDay } = placeGroups([group("d", [post("li", "unscheduled", "2026-11-12T08:00:00.000Z", "d")])], new Set(["li"]));
+    expect(undated).toEqual([]);
+    expect(byDay.get("2026-11-12")?.[0].status).toBe("unscheduled");
+  });
+
+  it("refuse Programmé sans date, accepte Programmé daté et Brouillon sans date", () => {
+    expect(validateStatusChange("scheduled", null)).toBe("Indiquez une date et une heure pour programmer");
+    expect(validateStatusChange("scheduled", "2026-11-12T08:00:00.000Z")).toBeNull();
+    expect(validateStatusChange("unscheduled", null)).toBeNull();
+  });
+
+  it("refuse d'effacer la date tant qu'une déclinaison est Programmé", () => {
+    expect(validateDateRemoval(["unscheduled", "scheduled"])).toBe("Repassez en Brouillon avant de retirer la date");
+    expect(validateDateRemoval(["unscheduled"])).toBeNull();
+  });
+
+  it("transmet le statut choisi à l'enregistrement, Brouillon par défaut pour une nouvelle déclinaison", () => {
+    const posts = buildGroupPosts({
+      sync: true, channelIds: ["li", "in"], commonText: "x", texts: {}, commonMediaId: null, mediaIds: {},
+      scheduledAt: "2026-11-12T08:00:00.000Z", statuses: { li: "scheduled", in: "unscheduled" },
+    });
+    expect(posts.map((p) => p.publication_status)).toEqual(["scheduled", "unscheduled"]);
   });
 });
 

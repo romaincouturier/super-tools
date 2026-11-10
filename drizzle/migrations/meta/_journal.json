@@ -400,6 +400,20 @@
       "when": 1794243701828,
       "tag": "0056_mcp_audit_trigger_record_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1794306090336,
+      "tag": "0057_social_status_independent_of_date",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1794306113521,
+      "tag": "0058_social_status_independent_of_date_apply",
+      "breakpoints": true
     }
   ]
 }
