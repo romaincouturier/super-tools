@@ -31,15 +31,15 @@ export function deferVideoIframes(html: string): string {
     new RegExp(VIDEO_SRC_RE, "i").test(url) ? `${pre}data-st-video=${q}${url}${q}` : m);
 }
 
-/** Hauteur annoncée par un formulaire Tally (dynamicHeight), sinon null. */
+/** Tally (dynamicHeight) annonce sa hauteur via le protocole iframe-resizer, comme avec son embed.js. */
+export const TALLY_RESIZER_INIT = "[iFrameSizer]st-tally:8:false:false:32:true:true:null:bodyOffset:null:null:0:false:parent:scroll:true";
 export function tallyHeight(data: unknown): number | null {
-  try {
-    const m = typeof data === "string" ? JSON.parse(data) : data;
-    const h = m?.event === "Tally.FormResized" ? Number(m?.payload?.height) : NaN;
+  if (typeof data === "string") {
+    const m = /^\[iFrameSizer\]st-tally:(\d+(?:\.\d+)?):/.exec(data);
+    const h = m ? Number(m[1]) : NaN;
     return Number.isFinite(h) && h > 0 && h < 20000 ? Math.ceil(h) : null;
-  } catch (_notJson) {
-    return null;
   }
+  return null;
 }
 
 type EmbedVideo = { k: number; src: string; x: number; y: number; w: number; h: number; r: string };
@@ -94,6 +94,7 @@ export default function HtmlEmbedBlockViewer({ content, previewMode = false }: {
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.origin === "https://tally.so") {
+        if (e.data === "[iFrameResizerChild]Ready" && overlayKeys.current.has(e.source as Window)) (e.source as Window).postMessage(TALLY_RESIZER_INIT, "https://tally.so");
         const h = tallyHeight(e.data);
         const k = h ? overlayKeys.current.get(e.source as Window) : undefined;
         if (h && k !== undefined) iframeRef.current?.contentWindow?.postMessage({ lmsEmbed: id, resize: k, height: h }, "*");

@@ -39,7 +39,8 @@ describe("Google Agenda, Tally et CrosswordLabs", () => {
     expect(safeVideoEmbedUrl("https://calendar.google.com/calendar/u/0/r")).toBeNull();
     expect(safeVideoEmbedUrl("https://tally.so/r/3q857d")).toBeNull();
     expect(safeVideoEmbedUrl("https://crosswordlabs.com.evil.com/embed/x")).toBeNull();
-    expect(tallyHeight('{"event":"Tally.FormResized","payload":{"height":612.4}}')).toBe(613);
-    expect(tallyHeight('{"event":"Other","payload":{"height":5}}')).toBeNull();
+    expect(tallyHeight("[iFrameSizer]st-tally:612.4:900:init")).toBe(613);
+    expect(tallyHeight("[iFrameSizer]other:612:900:init")).toBeNull();
+    expect(tallyHeight({ height: 612 })).toBeNull();
   });
 });
