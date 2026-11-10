@@ -47,7 +47,6 @@ import {
   type SocialContentGroup,
   type SocialFormat,
   type SocialGroupDraft,
-  type SocialPublicationStatus,
 } from "@/services/socialContents";
 
 interface ComposerValues extends AutoSaveFormValues {
