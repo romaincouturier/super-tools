@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildHistory, findMergeTarget, groupComments, leadTags, mapLeadToCard, noteContent, parisToIso, parseAmount, parseCsv, textToHtml } from "./nocrm-import";
+import { activityContent, buildHistory, findMergeTarget, groupComments, leadTags, mapLeadToCard, noteContent, parisToIso, parseAmount, parseCsv, textToHtml } from "./nocrm-import";
 
 const COLS = { "Entrant": "E", "Contacté": "C", "Devis envoyé": "D", "Gagné": "G", "Perdu": "P" };
 
@@ -60,6 +60,11 @@ describe("import noCRM", () => {
   it("préfixe les notes par leur type d'activité", () => {
     const [n] = groupComments([{ nocrm_id: "1", commented_at: "2021-01-01 10:00", activity_type: "Non abouti", content: "À rappeler jeudi", is_note: "True" }]).get("1")!;
     expect(noteContent(n)).toBe("[Non abouti] À rappeler jeudi");
+  });
+
+  it("conserve le texte complet des activités", () => {
+    const [a] = groupComments([{ nocrm_id: "1", commented_at: "2021-01-01 10:00", activity_type: "E-mail reçu", content: "Accord pour 5 jeux\nMerci", is_note: "False" }]).get("1")!;
+    expect(activityContent(a)).toBe("[E-mail reçu] Accord pour 5 jeux\nMerci");
   });
 
   it("reconstitue un historique chronologique, Devis envoyé à la date de la proposition", () => {

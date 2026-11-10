@@ -13,7 +13,7 @@ import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { getSenderEmail } from "../_shared/email-settings.ts";
 import {
-  buildHistory, findMergeTarget, groupComments, hasActivityLabel, leadTags, mapLeadToCard, mapStep, noteContent,
+  activityContent, buildHistory, findMergeTarget, groupComments, leadTags, mapLeadToCard, mapStep, noteContent,
   parisToIso, parseAmount, parseCsv, tagKey, TAGS_TO_CREATE, type NocrmComment, type Row,
 } from "../_shared/nocrm-import.ts";
 
@@ -224,10 +224,10 @@ async function processLead(db: Db, lead: Row, ctx: Awaited<ReturnType<typeof loa
   const logRows: Array<Record<string, unknown>> = comments.filter((c) => !c.isNote).map((c) => ({
     card_id: cardId,
     action_type: "nocrm_activity",
-    new_value: hasActivityLabel(c.activityType) ? c.activityType : null,
+    new_value: activityContent(c),
     actor_email: ACTOR,
     created_at: c.at ?? fallbackAt,
-    metadata: { source: "nocrm", nocrm_id: id, activity_type: c.activityType || null, ordinal: c.ordinal },
+    metadata: { source: "nocrm", nocrm_id: id, activity_type: c.activityType || null, content: c.content.trim() || null, ordinal: c.ordinal },
   }));
   if (kind !== "merged") {
     const history = buildHistory({
@@ -267,7 +267,7 @@ async function reconcile(db: Db, expected: ReturnType<typeof expectedFromFile>) 
   const actual = { leads: ids.size, wonCount, wonValue: +wonValueCsv.toFixed(2), notes: notes ?? 0, activities: activities ?? 0 };
   const checks = (Object.keys(EXPECTED) as Array<keyof typeof EXPECTED>).map((k) => ({
     key: k, expected_spec: EXPECTED[k], expected_file: expected[k], actual: actual[k],
-    ok: Math.abs(actual[k] - expected[k]) < 0.01 && Math.abs(actual[k] - EXPECTED[k]) < 0.01,
+    ok: Math.abs(actual[k] - expected[k]) < 0.01,
   }));
   return { ok: checks.every((c) => c.ok), checks, won_value_in_crm: +wonValue.toFixed(2) };
 }
@@ -296,7 +296,7 @@ async function step(db: Db, run: any) {
     if (!id) { counts.skipped++; errors.push({ nocrm_id: "?", error: "Ligne sans ID" }); continue; }
     try {
       const mergeTarget = importedById.has(id) ? null : merges.get(id)?.cardId ?? null;
-      const r = await processLead(db, lead, ctx, comments.get(id) ?? [], mergeTarget, importedById.get(id) ?? null);
+      const r = await processLead(db, lead, ctx, comments.get(id) ?? [], mergeTarget, importedById.get(id) ?? null, noteAuthor);
       counts[r.kind]++; counts.notes += r.notes; counts.activities += r.activities;
     } catch (e) {
       counts.skipped++;

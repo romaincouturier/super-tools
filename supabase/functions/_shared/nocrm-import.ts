@@ -226,6 +226,9 @@ export function groupComments(rows: Row[]): Map<string, NocrmComment[]> {
 export const hasActivityLabel = (t: string) => !!t && t !== "Pas dispo ou vide";
 export const noteContent = (c: NocrmComment) => (hasActivityLabel(c.activityType) ? `[${c.activityType}] ${c.content.trim()}` : c.content.trim());
 
+/** Texte complet d'une activité noCRM pour l'historique : type et contenu. */
+export const activityContent = (c: NocrmComment) => noteContent(c) || c.activityType.trim() || null;
+
 const clamp = (iso: string, min: string, max: string | null) => {
   if (iso < min) return min;
   if (max && iso > max) return max;

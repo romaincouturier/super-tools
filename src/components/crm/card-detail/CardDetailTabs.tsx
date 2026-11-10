@@ -32,6 +32,7 @@ function formatActivityType(type: string): string {
     attachment_removed: "Pièce jointe supprimée",
     email_sent: "Email envoyé",
     action_scheduled: "Action programmée",
+    nocrm_activity: "Activité noCRM",
   };
   return labels[type] || type;
 }
@@ -173,7 +174,7 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
                 <span className="text-muted-foreground"> : {log.old_value} → {log.new_value}</span>
               )}
               {!log.old_value && log.new_value && (
-                <span className="text-muted-foreground"> : {log.new_value}</span>
+                <span className="text-muted-foreground whitespace-pre-wrap"> : {log.new_value}</span>
               )}
             </p>
             <p className="text-xs text-muted-foreground">
