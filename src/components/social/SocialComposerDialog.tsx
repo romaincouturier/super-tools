@@ -448,7 +448,11 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
       setTexts(nextTexts);
       setMediaIds(nextMediaIds);
       // Annulée, la déclinaison rejoint le groupe : sa date (et, synchro active, le texte et le visuel communs).
-      if (!publish) await runSave({ ...formValues, texts: nextTexts, mediaIds: nextMediaIds });
+      // Statut retrouvé : celui de la base, Brouillon si le contenu n'a plus de date.
+      const restored: SocialDraftStatus = date && fresh?.publication_status === "scheduled" ? "scheduled" : "unscheduled";
+      const nextStatuses = { ...statuses, [channelId]: restored };
+      if (!publish) setStatuses(nextStatuses);
+      if (!publish) await runSave({ ...formValues, texts: nextTexts, mediaIds: nextMediaIds, statuses: nextStatuses });
     } catch (e) {
       toastError(toast, e);
     } finally {
