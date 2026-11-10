@@ -273,9 +273,85 @@ var get_execution_attestation_pdf_default = defineTool14({ name: "get_execution_
   return result({ url: s.data.signedUrl, expires_in_seconds: 600 });
 } });
 
+// src/lib/mcp/tools/list-live-meetings.ts
+import { defineTool as defineTool15 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z17 } from "npm:zod@^3.25.76";
+
+// src/lib/mcp/live-meeting-shared.ts
+var LIVE_STATUSES = ["scheduled", "completed"];
+var LIVE_FIELDS = "id,training_id,title,scheduled_at,duration_minutes,meeting_url,replay_url,status,meeting_type,trainings(training_name)";
+function flattenLive(r) {
+  const { trainings, ...rest } = r;
+  const t = trainings;
+  return { ...rest, training_name: t?.training_name ?? null };
+}
+function replayPostContent(title, calendarUrl) {
+  return `\u{1F3AC} Le replay du live \xAB ${title} \xBB est disponible ! \u{1F389}
+
+Vous pouvez le retrouver d\xE8s maintenant dans le [calendrier des lives](${calendarUrl}).
+
+Bon visionnage \u{1F440}`;
+}
+
+// src/lib/mcp/tools/list-live-meetings.ts
+var list_live_meetings_default = defineTool15({ name: "list_live_meetings", title: "List training live meetings", description: "Lists live sessions of trainings with optional training, date range and status filters, ordered by scheduled date.", inputSchema: { training_id: z17.string().uuid().optional(), from: z17.string().datetime({ offset: true }).or(z17.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional().describe("ISO date or datetime, inclusive lower bound on scheduled_at"), to: z17.string().datetime({ offset: true }).or(z17.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional().describe("ISO date or datetime, inclusive upper bound on scheduled_at (a date covers the whole day)"), status: z17.enum(LIVE_STATUSES).optional(), limit: z17.number().int().min(1).max(200).default(100) }, annotations: { readOnlyHint: true }, handler: async ({ training_id, from, to, status, limit }, ctx) => {
+  const db = await staffClient(ctx);
+  let q = db.from("training_live_meetings").select(LIVE_FIELDS).order("scheduled_at", { ascending: true }).limit(limit);
+  if (training_id) q = q.eq("training_id", training_id);
+  if (from) q = q.gte("scheduled_at", from);
+  if (to) q = q.lte("scheduled_at", /^\d{4}-\d{2}-\d{2}$/.test(to) ? `${to}T23:59:59.999Z` : to);
+  if (status) q = q.eq("status", status);
+  const { data, error } = await q;
+  if (error) throw error;
+  return result((data ?? []).map((r) => flattenLive(r)));
+} });
+
+// src/lib/mcp/tools/update-live-meeting.ts
+import { defineTool as defineTool16 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z18 } from "npm:zod@^3.25.76";
+var FULL = "id,training_id,title,description,scheduled_at,duration_minutes,meeting_url,replay_url,run_notes,status,meeting_type,updated_at";
+var update_live_meeting_default = defineTool16({ name: "update_live_meeting", title: "Update a training live meeting", description: 'Updates only the provided fields of a live session and returns before/after. Adding a first replay_url behaves like the app screen: learners get the in-app "replay available" notification and a replay post is published in the course community. If the live stays "scheduled" with a replay, the response proposes setting status to "completed" (call again to apply). Changing scheduled_at reschedules the 6-hour reminder emails like the app. No other email is sent.', inputSchema: { live_meeting_id: z18.string().uuid(), replay_url: z18.string().url().nullable().optional(), status: z18.enum(LIVE_STATUSES).optional(), title: z18.string().trim().min(1).max(255).optional(), scheduled_at: z18.string().datetime({ offset: true }).optional(), duration_minutes: z18.number().int().min(1).max(1440).optional(), meeting_url: z18.string().url().nullable().optional(), description: z18.string().max(1e4).nullable().optional(), run_notes: z18.string().max(2e4).nullable().optional() }, annotations: { idempotentHint: false }, handler: async ({ live_meeting_id, ...patch }, ctx) => {
+  if (Object.keys(patch).length === 0) throw new Error("No field to update");
+  const db = await staffClient(ctx);
+  const before = await db.from("training_live_meetings").select(FULL).eq("id", live_meeting_id).single();
+  if (before.error) throw before.error;
+  const { data: after, error } = await db.from("training_live_meetings").update(patch).eq("id", live_meeting_id).select(FULL).single();
+  if (error) throw error;
+  const side = {};
+  const prevReplay = before.data.replay_url?.trim() || null;
+  const newReplay = after.replay_url?.trim() || null;
+  if (!prevReplay && newReplay) {
+    const t = await db.from("trainings").select("supports_lms_course_id").eq("id", after.training_id).maybeSingle();
+    const courseId = t.data?.supports_lms_course_id;
+    const email = ctx.getUserEmail();
+    if (courseId && email) {
+      const p = await db.from("practice_posts").insert({ course_id: courseId, author_email: email, content: replayPostContent(after.title, `https://academy.supertilt.fr/lms/${courseId}/home?view=calendar`), is_pinned: false }).select("id").single();
+      side.community_post = p.error ? { error: p.error.message } : { id: p.data.id };
+    } else side.community_post = { skipped: courseId ? "no caller email" : "training has no LMS course" };
+  }
+  if (patch.scheduled_at && patch.scheduled_at !== before.data.scheduled_at) {
+    const del = await db.from("scheduled_emails").delete().eq("training_id", after.training_id).eq("email_type", "live_reminder").eq("status", "pending").like("error_message", `%live:${live_meeting_id}%`);
+    const reminder = new Date(Date.parse(after.scheduled_at) - 6 * 3600 * 1e3);
+    let scheduled = 0;
+    if (!del.error && reminder > /* @__PURE__ */ new Date()) {
+      const ps = await db.from("training_participants").select("id").eq("training_id", after.training_id);
+      if (ps.error) throw ps.error;
+      const rows = (ps.data ?? []).map((p) => ({ training_id: after.training_id, participant_id: p.id, email_type: "live_reminder", scheduled_for: reminder.toISOString(), error_message: `live:${live_meeting_id}` }));
+      if (rows.length) {
+        const ins = await db.from("scheduled_emails").insert(rows);
+        if (ins.error) throw ins.error;
+        scheduled = rows.length;
+      }
+    }
+    side.reminders = del.error ? { error: del.error.message } : { rescheduled: scheduled };
+  }
+  const proposal = newReplay && after.status === "scheduled" ? { suggested_status: "completed", message: 'A replay is set but the live is still "scheduled". Call update_live_meeting with status "completed" to mark it as done, as the app does.' } : void 0;
+  return result({ before: before.data, after, side_effects: side, ...proposal ? { proposal } : {} });
+} });
+
 // src/lib/mcp/index.ts
 var ref = "yewffntzgrdgztrwtava";
-var mcp_default = defineMcp({ name: "supertools", title: "SuperTools", version: "1.0.0", auth: auth.oauth.issuer({ issuer: `https://${ref}.supabase.co/auth/v1`, acceptedAudiences: "authenticated" }), instructions: "Extensions r\xE9serv\xE9es au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille, couvertures et attestations de bonne ex\xE9cution (cr\xE9ation, modification, liste, lien de signature, PDF sign\xE9). Aucun outil de suppression ni envoi d\u2019email. Ne jamais modifier les le\xE7ons. Confirmer allow_multiple avec l\u2019utilisateur. Les outils historiques restent sur leur connecteur existant.", tools: [list_lms_modules_default, create_lms_module_default, update_lms_module_default, assign_transcript_default, list_unassigned_transcripts_default, list_watch_sources_default, propose_watch_source_default, update_watch_source_default, update_lms_course_default, create_execution_attestation_default, update_execution_attestation_default, list_execution_attestations_default, get_execution_attestation_link_default, get_execution_attestation_pdf_default] });
+var mcp_default = defineMcp({ name: "supertools", title: "SuperTools", version: "1.0.0", auth: auth.oauth.issuer({ issuer: `https://${ref}.supabase.co/auth/v1`, acceptedAudiences: "authenticated" }), instructions: "Extensions r\xE9serv\xE9es au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille, couvertures et attestations de bonne ex\xE9cution (cr\xE9ation, modification, liste, lien de signature, PDF sign\xE9), sessions live des formations (liste, mise \xE0 jour, replay). Aucun outil de suppression ni envoi d\u2019email hors rappels live reprogramm\xE9s comme dans l\u2019application. Ne jamais modifier les le\xE7ons. Confirmer allow_multiple avec l\u2019utilisateur. Les outils historiques restent sur leur connecteur existant.", tools: [list_lms_modules_default, create_lms_module_default, update_lms_module_default, assign_transcript_default, list_unassigned_transcripts_default, list_watch_sources_default, propose_watch_source_default, update_watch_source_default, update_lms_course_default, create_execution_attestation_default, update_execution_attestation_default, list_execution_attestations_default, get_execution_attestation_link_default, get_execution_attestation_pdf_default, list_live_meetings_default, update_live_meeting_default] });
 
 // lovable-mcp-supabase-entry.ts
 import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@3.4.0/stacks/supabase";
