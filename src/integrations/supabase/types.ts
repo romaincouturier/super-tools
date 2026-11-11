@@ -15251,6 +15251,16 @@ export type Database = {
         Args: { p_exclude_id: string; p_trainer_email: string }
         Returns: Json
       }
+      get_project_assignees: {
+        Args: never
+        Returns: {
+          display_name: string
+          email: string
+          first_name: string
+          last_name: string
+          user_id: string
+        }[]
+      }
       get_public_contact: {
         Args: never
         Returns: {

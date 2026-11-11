@@ -449,6 +449,13 @@
       "when": 1794334766020,
       "tag": "0063_attestation_link_function_optional",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1794396192656,
+      "tag": "0064_project_assignees_directory",
+      "breakpoints": true
     }
   ]
 }

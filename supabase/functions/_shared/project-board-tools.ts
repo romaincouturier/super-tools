@@ -3,6 +3,7 @@
  * lecture du board, création et mise à jour des actions (supertilt_actions).
  */
 import type { AuditFn, Supabase } from "./mission-tools.ts";
+import { requireCanonicalAssignee } from "./project-assignee.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -99,6 +100,7 @@ export async function createProjectAction(
     .order("position", { ascending: false })
     .limit(1);
   const position = ((last?.[0]?.position as number | undefined) ?? -1) + 1;
+  const assignedTo = await requireCanonicalAssignee(supabase, input.assigned_to);
 
   await audit(`create_project_action [${board}] « ${title} » → ${column.name}`);
   const { data: created, error } = await (supabase as any)
@@ -107,7 +109,7 @@ export async function createProjectAction(
       board,
       title,
       description: input.description ? String(input.description).trim() : null,
-      assigned_to: input.assigned_to ? String(input.assigned_to).trim() : null,
+      assigned_to: assignedTo,
       deadline: input.deadline ?? null,
       column_id: column.id,
       position,
@@ -140,9 +142,12 @@ export async function updateProjectAction(
     if (!t) throw new Error("title ne peut pas être vide");
     patch.title = t;
   }
-  for (const k of ["description", "assigned_to"] as const) {
+  for (const k of ["description"] as const) {
     if (input[k] === undefined) continue;
     patch[k] = input[k] === null ? null : String(input[k]).trim() || null;
+  }
+  if (input.assigned_to !== undefined) {
+    patch.assigned_to = await requireCanonicalAssignee(supabase, input.assigned_to);
   }
   if (input.deadline !== undefined) {
     if (input.deadline !== null && !DATE_RE.test(String(input.deadline))) {
