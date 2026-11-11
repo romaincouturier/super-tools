@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { fetchSupertiltActions } from "./daily-data-fetchers";
 
 function mockSupabase(tables: Record<string, unknown[]>) {
@@ -48,7 +48,17 @@ describe("fetchSupertiltActions", () => {
     expect(filters.some(([col]) => col === "deadline")).toBe(false);
   });
 
-  it("attribue l'action à l'assigné résolu par son nom, sinon au créateur", async () => {
+  it("résout un email sans attribuer l'action au créateur", async () => {
+    const sb = mockSupabase({
+      supertilt_actions: [{ ...ACTION, assigned_to: "romain@supertilt.fr" }],
+      profiles: [{ user_id: "u-romain", display_name: "Romain Couturier", first_name: "Romain", last_name: "Couturier", email: "romain@supertilt.fr" }],
+    });
+    const items = await fetchSupertiltActions(sb, "2026-11-11");
+    expect(items[0].assignedTo).toBe("u-romain");
+  });
+
+  it("signale un assigné inconnu au créateur et aux admins", async () => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
     const sb = mockSupabase({
       supertilt_actions: [
         { ...ACTION, id: "a1", assigned_to: "Emmanuelle Marceau" },
@@ -57,12 +67,17 @@ describe("fetchSupertiltActions", () => {
       ],
       profiles: [
         { user_id: "u-manue", first_name: "Emmanuelle", last_name: "Marceau", display_name: null },
+        { user_id: "u-admin", is_admin: true },
       ],
     });
     const items = await fetchSupertiltActions(sb, "2026-11-03");
-    expect(items.find((i) => i.id === "a1")!.assignedTo).toBe("u-manue");
-    expect(items.find((i) => i.id === "a2")!.assignedTo).toBe("u-owner");
-    expect(items.find((i) => i.id === "a3")!.assignedTo).toBe("u-owner");
+    expect(items.find((i) => i.id === "a1")?.assignedTo).toBe("u-manue");
+    expect(items.find((i) => i.id === "a2")?.assignedTo).toBeNull();
+    expect(items.find((i) => i.id === "a2")?.targetUserIds).toEqual(["u-owner", "u-admin"]);
+    expect(items.find((i) => i.id === "a2")?.assignmentWarning).toBe("assigné inconnu : Inconnu");
+    expect(warning).toHaveBeenCalledWith(expect.stringContaining("assigné inconnu : Inconnu"));
+    expect(items.find((i) => i.id === "a3")?.assignedTo).toBe("u-owner");
+    warning.mockRestore();
   });
 
   it("marque en retard uniquement les deadlines dépassées", async () => {
