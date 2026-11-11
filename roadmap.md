@@ -1,5 +1,10 @@
 # Roadmap
 
+## Assignation des actions projets (2026-11-11)
+- [ ] Résolution partagée nom/prénom nom/email, canonisation UI/MCP et alertes explicites pour assignés inconnus.
+- [ ] Contrôler et canoniser les données existantes sans envoi, avec journal des changements.
+- [ ] Tests de régression, déploiement ciblé et vérification des actions du compte demandeur.
+
 ## Simulation noCRM (09/11/2026)
 - [x] Convertisseur Europe/Paris partagé : 74 000 créations supprimées, mesure locale 5 418 → 468 ms ; 14 tests réussis.
 - [x] Colonnes historiques Gagné/Perdu reconnues sans les désarchiver ; nocrm-import déployée, simulation réelle terminée et rapport affiché : 1 955 fiches, 15 577 commentaires/activités, aucune fiche importée.
