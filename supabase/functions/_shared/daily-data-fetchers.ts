@@ -313,7 +313,7 @@ export async function fetchRecipients(supabase: SupabaseClient): Promise<Recipie
 
   const moduleUserIds = new Set<string>();
   (moduleAccess || []).forEach((m: any) => {
-    if (["formations", "crm", "missions", "supertilt_fr", "events"].includes(m.module)) {
+    if (["formations", "crm", "missions", "supertilt_fr", "projets_transverses", "events"].includes(m.module)) {
       moduleUserIds.add(m.user_id);
     }
   });

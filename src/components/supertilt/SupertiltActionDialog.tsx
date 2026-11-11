@@ -86,13 +86,12 @@ export default function SupertiltActionDialog({
     if (open) {
       setTitle(action?.title ?? "");
       setDescription(action?.description || "");
-      const resolved = resolveProjectAssignee(action?.assigned_to, systemUsers);
-      setAssigned(resolved ? canonicalAssignee(resolved) : action?.assigned_to || "__none__");
+      setAssigned(action?.assigned_to || "__none__");
       setDeadline(action?.deadline ? new Date(action.deadline + "T00:00:00") : undefined);
       setTab("details");
       setMissionId(action?.mission_id ?? null);
     }
-  }, [open, action, systemUsers]);
+  }, [open, action]);
 
   const handleTabChange = async (v: string) => {
     const next = v as TabValue;
@@ -116,7 +115,9 @@ export default function SupertiltActionDialog({
     onSave({
       title: title.trim(),
       description: description.trim() || null,
-      assigned_to: assigned && assigned !== "__none__" ? assigned : null,
+      assigned_to: assigned && assigned !== "__none__"
+        ? canonicalAssignee(resolveProjectAssignee(assigned, systemUsers) || { user_id: "", email: assigned })
+        : null,
       deadline: deadline ? format(deadline, "yyyy-MM-dd") : null,
     });
     onOpenChange(false);
@@ -140,7 +141,7 @@ export default function SupertiltActionDialog({
           placeholder="Description (optionnel)"
           rows={3}
         />
-        <Select value={assigned} onValueChange={setAssigned}>
+        <Select value={resolveProjectAssignee(assigned, systemUsers) ? canonicalAssignee(resolveProjectAssignee(assigned, systemUsers) as ProjectAssignee) : assigned} onValueChange={setAssigned}>
           <SelectTrigger>
             <SelectValue placeholder="Assigné à (optionnel)" />
           </SelectTrigger>

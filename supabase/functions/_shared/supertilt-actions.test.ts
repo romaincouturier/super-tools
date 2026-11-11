@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { fetchSupertiltActions } from "./daily-data-fetchers";
+import { fetchSupertiltActions, fetchRecipients } from "./daily-data-fetchers";
 import { canonicalAssignee, resolveProjectAssignee, requireCanonicalAssignee } from "./project-assignee";
 import { createProjectAction, updateProjectAction } from "./project-board-tools";
 
@@ -102,6 +102,10 @@ describe("fetchSupertiltActions", () => {
 const ROMAIN = { user_id: "u-romain", display_name: "Romain C.", first_name: "Romain", last_name: "Couturier", email: "romain@supertilt.fr" };
 
 describe("résolution partagée des assignés", () => {
+  it("inclut un utilisateur ayant seulement le module projets transverses", async () => {
+    const sb = mockSupabase({ profiles: [{ ...ROMAIN, is_admin: false }], user_module_access: [{ user_id: "u-romain", module: "projets_transverses" }] });
+    expect((await fetchRecipients(sb)).map((r) => r.userId)).toEqual(["u-romain"]);
+  });
   it.each(["Romain C.", "Romain Couturier", "romain@supertilt.fr", "  ROMAIN   COUTURIER  ", "  ROMAIN@SUPERTILT.FR  "])("résout %s vers le même utilisateur", async (value) => {
     const sb = mockSupabase({ supertilt_actions: [{ ...ACTION, assigned_to: value }], profiles: [ROMAIN] });
     const items = await fetchSupertiltActions(sb, "2026-11-11");
