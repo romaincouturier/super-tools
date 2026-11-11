@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { fetchSupertiltActions } from "./daily-data-fetchers";
+import { canonicalAssignee, resolveProjectAssignee, requireCanonicalAssignee } from "./project-assignee";
+import { createProjectAction, updateProjectAction } from "./project-board-tools";
 
 function mockSupabase(tables: Record<string, unknown[]>) {
   const calls: { table: string; filters: [string, unknown][] }[] = [];
@@ -16,6 +18,9 @@ function mockSupabase(tables: Record<string, unknown[]>) {
           return q;
         },
         not: () => q,
+        order: () => q,
+        limit: () => q,
+        maybeSingle: () => Promise.resolve({ data: tables[table]?.[0], error: null }),
         lte: (col: string, val: unknown) => {
           entry.filters.push([col, val]);
           return q;
@@ -43,7 +48,7 @@ describe("fetchSupertiltActions", () => {
     const sb = mockSupabase({ supertilt_actions: [ACTION], profiles: [] });
     const items = await fetchSupertiltActions(sb, "2026-11-03");
     expect(items).toHaveLength(1);
-    const filters = sb.calls.find((c) => c.table === "supertilt_actions")!.filters;
+    const filters = sb.calls.find((c) => c.table === "supertilt_actions")?.filters || [];
     expect(filters).toContainEqual(["is_completed", false]);
     expect(filters.some(([col]) => col === "deadline")).toBe(false);
   });
@@ -89,7 +94,50 @@ describe("fetchSupertiltActions", () => {
       profiles: [],
     });
     const items = await fetchSupertiltActions(sb, "2026-11-03");
-    expect(items.find((i) => i.id === "a1")!.isOverdue).toBe(true);
-    expect(items.find((i) => i.id === "a2")!.isOverdue).toBe(false);
+    expect(items.find((i) => i.id === "a1")?.isOverdue).toBe(true);
+    expect(items.find((i) => i.id === "a2")?.isOverdue).toBe(false);
+  });
+});
+
+const ROMAIN = { user_id: "u-romain", display_name: "Romain C.", first_name: "Romain", last_name: "Couturier", email: "romain@supertilt.fr" };
+
+describe("résolution partagée des assignés", () => {
+  it.each(["Romain C.", "Romain Couturier", "romain@supertilt.fr", "  ROMAIN   COUTURIER  ", "  ROMAIN@SUPERTILT.FR  "])("résout %s vers le même utilisateur", async (value) => {
+    const sb = mockSupabase({ supertilt_actions: [{ ...ACTION, assigned_to: value }], profiles: [ROMAIN] });
+    const items = await fetchSupertiltActions(sb, "2026-11-11");
+    expect(items[0].targetUserIds).toEqual(["u-romain"]);
+    expect(items[0].assignedTo).toBe("u-romain");
+    expect(await requireCanonicalAssignee(sb, value)).toBe("Romain C.");
+  });
+
+  it("choisit le nom affiché puis prénom nom puis email", () => {
+    expect(canonicalAssignee(ROMAIN)).toBe("Romain C.");
+    expect(canonicalAssignee({ ...ROMAIN, display_name: "  " })).toBe("Romain Couturier");
+    expect(canonicalAssignee({ ...ROMAIN, display_name: null, first_name: null, last_name: null })).toBe("romain@supertilt.fr");
+  });
+
+  it("refuse une correspondance ambiguë", async () => {
+    const users = [ROMAIN, { ...ROMAIN, user_id: "u-other", email: "other@example.invalid" }];
+    expect(resolveProjectAssignee("Romain C.", users)).toBeNull();
+    await expect(requireCanonicalAssignee(mockSupabase({ profiles: users }), "Romain C.")).rejects.toThrow("inconnu ou ambigu");
+  });
+
+  it("n'assigne rien implicitement lorsque l'annuaire échoue", async () => {
+    const sb = { from: () => ({ select: async () => ({ error: { message: "permission denied" } }) }) };
+    await expect(requireCanonicalAssignee(sb, "Romain C.")).rejects.toThrow("permission denied");
+  });
+
+  it("MCP create refuse un assigné inconnu avant toute écriture ou audit", async () => {
+    const sb = mockSupabase({ supertilt_columns: [{ id: "col", name: "À faire" }], profiles: [ROMAIN] });
+    const audit = vi.fn();
+    await expect(createProjectAction(sb, { board: "site", title: "Test", assigned_to: "Inconnu" }, audit)).rejects.toThrow("Assigné inconnu");
+    expect(audit).not.toHaveBeenCalled();
+  });
+
+  it("MCP update refuse un assigné inconnu avant toute écriture ou audit", async () => {
+    const sb = mockSupabase({ supertilt_actions: [ACTION], profiles: [ROMAIN] });
+    const audit = vi.fn();
+    await expect(updateProjectAction(sb, "1d8a179f-7cbc-4d02-83d2-c28d2a171472", { assigned_to: "Inconnu" }, audit)).rejects.toThrow("Assigné inconnu");
+    expect(audit).not.toHaveBeenCalled();
   });
 });
