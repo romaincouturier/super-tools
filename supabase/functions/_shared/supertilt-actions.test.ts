@@ -144,4 +144,26 @@ describe("résolution partagée des assignés", () => {
     await expect(updateProjectAction(sb, "1d8a179f-7cbc-4d02-83d2-c28d2a171472", { assigned_to: "Inconnu" }, audit)).rejects.toThrow("Assigné inconnu");
     expect(audit).not.toHaveBeenCalled();
   });
+
+  it.each(["create", "update"])("MCP %s stocke le nom canonique pour un email", async (operation) => {
+    const sb = mockSupabase({ supertilt_actions: [ACTION], supertilt_columns: [{ id: "col", name: "À faire" }], profiles: [ROMAIN] });
+    const originalFrom = sb.from.bind(sb);
+    let saved: Record<string, unknown> = {};
+    sb.from = (table: string) => {
+      const q = originalFrom(table);
+      const write = (patch: Record<string, unknown>) => {
+        saved = patch;
+        const result: any = { eq: () => result, select: () => result, single: async () => ({ data: { ...ACTION, ...patch }, error: null }) };
+        return result;
+      };
+      return { ...q, insert: write, update: write };
+    };
+    const audit = vi.fn().mockResolvedValue(undefined);
+    const response = operation === "create"
+      ? await createProjectAction(sb, { board: "site", title: "Test", assigned_to: " ROMAIN@SUPERTILT.FR " }, audit)
+      : await updateProjectAction(sb, "1d8a179f-7cbc-4d02-83d2-c28d2a171472", { assigned_to: " ROMAIN@SUPERTILT.FR " }, audit);
+    expect(saved.assigned_to).toBe("Romain C.");
+    expect(JSON.parse(response).action.assigned_to).toBe("Romain C.");
+    expect(audit).toHaveBeenCalledTimes(1);
+  });
 });

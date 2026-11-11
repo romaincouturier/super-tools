@@ -125,6 +125,7 @@ export default function SupertiltActionDialog({
 
   const tabsEnabled = !isNew && !!action?.id;
   const isCreatingSpace = ensureMission.isPending;
+  const selectedAssignee = resolveProjectAssignee(assigned, systemUsers);
 
   const detailsContent = (
     <>
@@ -141,7 +142,7 @@ export default function SupertiltActionDialog({
           placeholder="Description (optionnel)"
           rows={3}
         />
-        <Select value={resolveProjectAssignee(assigned, systemUsers) ? canonicalAssignee(resolveProjectAssignee(assigned, systemUsers) as ProjectAssignee) : assigned} onValueChange={setAssigned}>
+        <Select value={selectedAssignee ? canonicalAssignee(selectedAssignee) : assigned} onValueChange={setAssigned}>
           <SelectTrigger>
             <SelectValue placeholder="Assigné à (optionnel)" />
           </SelectTrigger>
