@@ -7,6 +7,7 @@
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { daysUntil } from "./tender-tools.ts";
+import { loadProjectAssignees, projectAssignmentTargets } from "./project-assignee.ts";
 
 // ─── Types ───────────────────────────────────────────────────────────
 export interface Recipient {
@@ -468,8 +469,9 @@ export async function fetchMissionsNoStartDate(supabase: SupabaseClient, today: 
 export interface SupertiltActionItem {
   id: string;
   userId: string;
-  /** Utilisateur assigné (résolu depuis le nom affiché), sinon le créateur. */
-  assignedTo: string;
+  assignedTo: string | null;
+  targetUserIds: string[];
+  assignmentWarning: string | null;
   assigneeName: string | null;
   title: string;
   description: string | null;
@@ -482,32 +484,21 @@ export interface SupertiltActionItem {
 export async function fetchSupertiltActions(supabase: SupabaseClient, today: string): Promise<SupertiltActionItem[]> {
   // Toutes les actions en attente des tableaux projets, pas seulement celles
   // dont la deadline est échue : chaque carte non terminée remonte chaque jour.
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("supertilt_actions")
     .select("id, user_id, title, description, assigned_to, deadline, mission_id, board")
     .eq("is_completed", false);
 
+  if (error) throw error;
   if (!data || data.length === 0) return [];
-
-  // assigned_to est un nom affiché (« Romain Couturier ») : on le résout en
-  // user_id via les profils pour cibler le bon destinataire.
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("user_id, first_name, last_name, display_name");
-  const byName = new Map<string, string>();
-  for (const p of profiles || []) {
-    const full = `${p.first_name || ""} ${p.last_name || ""}`.trim().toLowerCase();
-    if (full) byName.set(full, p.user_id);
-    if (p.display_name) byName.set(String(p.display_name).trim().toLowerCase(), p.user_id);
-  }
+  const users = await loadProjectAssignees(supabase);
 
   return data.map((a: any) => {
     const assigneeName = a.assigned_to ? String(a.assigned_to).trim() : null;
-    const resolved = assigneeName ? byName.get(assigneeName.toLowerCase()) : undefined;
     return {
       id: a.id,
       userId: a.user_id,
-      assignedTo: resolved ?? a.user_id,
+      ...projectAssignmentTargets(a, users),
       assigneeName,
       title: a.title,
       description: a.description,

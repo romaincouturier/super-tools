@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/lib/toast";
 import { useEffect, useState } from "react";
+import { fetchProjectAssignees } from "@/services/projectAssignees";
+import type { ProjectAssignee } from "../../supabase/functions/_shared/project-assignee";
 
 export interface SupertiltAction {
   id: string;
@@ -261,19 +263,15 @@ export function useSupertiltActions(board: ProjectBoard) {
   };
 }
 
-interface SystemUser {
-  user_id: string;
-  email: string;
-  display_name: string | null;
-}
+type SystemUser = ProjectAssignee;
 
 /** Annuaire du staff : profiles n'est lisible qu'en admin, la RPC l'ouvre à tout le staff. */
 export function useSystemUsers() {
-  const [users, setUsers] = useState<SystemUser[]>([]);
-  useEffect(() => {
-    sb.rpc("get_staff_directory").then(({ data }: { data: SystemUser[] | null }) => {
-      if (data) setUsers([...data].sort((x, y) => (x.email ?? "").localeCompare(y.email ?? "")));
-    });
-  }, []);
-  return users;
+  const { user } = useAuth();
+  const { data } = useQuery({
+    queryKey: ["project-assignees", user?.id],
+    queryFn: fetchProjectAssignees,
+    enabled: !!user,
+  });
+  return data || [];
 }

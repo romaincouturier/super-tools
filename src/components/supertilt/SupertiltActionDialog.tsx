@@ -47,12 +47,9 @@ import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskEmail, maskName } from "@/lib/demoMask";
+import { canonicalAssignee, resolveProjectAssignee, type ProjectAssignee } from "../../../supabase/functions/_shared/project-assignee";
 
-interface SystemUser {
-  user_id: string;
-  email: string;
-  display_name: string | null;
-}
+type SystemUser = ProjectAssignee;
 
 interface Props {
   action: SupertiltAction | null;
@@ -89,12 +86,13 @@ export default function SupertiltActionDialog({
     if (open) {
       setTitle(action?.title ?? "");
       setDescription(action?.description || "");
-      setAssigned(action?.assigned_to || "__none__");
+      const resolved = resolveProjectAssignee(action?.assigned_to, systemUsers);
+      setAssigned(resolved ? canonicalAssignee(resolved) : action?.assigned_to || "__none__");
       setDeadline(action?.deadline ? new Date(action.deadline + "T00:00:00") : undefined);
       setTab("details");
       setMissionId(action?.mission_id ?? null);
     }
-  }, [open, action]);
+  }, [open, action, systemUsers]);
 
   const handleTabChange = async (v: string) => {
     const next = v as TabValue;
@@ -148,9 +146,12 @@ export default function SupertiltActionDialog({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__">— Aucun —</SelectItem>
+            {assigned !== "__none__" && !resolveProjectAssignee(assigned, systemUsers) && (
+              <SelectItem value={assigned}>Assigné inconnu : {isDemoMode ? maskName(assigned) : assigned}</SelectItem>
+            )}
             {systemUsers.map((u) => (
-              <SelectItem key={u.user_id} value={u.display_name || u.email}>
-                {isDemoMode ? (u.display_name ? maskName(u.display_name) : maskEmail(u.email)) : (u.display_name || u.email)}
+              <SelectItem key={u.user_id} value={canonicalAssignee(u)}>
+                {isDemoMode ? (canonicalAssignee(u).includes("@") ? maskEmail(canonicalAssignee(u)) : maskName(canonicalAssignee(u))) : canonicalAssignee(u)}
               </SelectItem>
             ))}
           </SelectContent>

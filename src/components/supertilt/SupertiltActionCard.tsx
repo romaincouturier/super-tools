@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { format, isPast, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import type { SupertiltAction } from "@/hooks/useSupertilt";
+import { useSystemUsers, type SupertiltAction } from "@/hooks/useSupertilt";
+import { canonicalAssignee, resolveProjectAssignee } from "../../../supabase/functions/_shared/project-assignee";
 
 interface Props {
   action: SupertiltAction;
@@ -16,6 +17,9 @@ interface Props {
 }
 
 export default function SupertiltActionCard({ action, isDragging, onToggle, onEdit }: Props) {
+  const users = useSystemUsers();
+  const assignee = resolveProjectAssignee(action.assigned_to, users);
+  const assigneeLabel = assignee ? canonicalAssignee(assignee) : action.assigned_to;
   const deadlineDate = action.deadline ? new Date(action.deadline + "T00:00:00") : undefined;
   const isOverdue =
     deadlineDate && isPast(deadlineDate) && !isToday(deadlineDate) && !action.is_completed;
@@ -56,10 +60,10 @@ export default function SupertiltActionCard({ action, isDragging, onToggle, onEd
             )}
             {action.assigned_to && (
               <Badge variant="outline" className="text-[10px] gap-1 px-1.5 py-0">
-                <User className="w-2.5 h-2.5" /> {action.assigned_to}
+                <User className="w-2.5 h-2.5" /> {assigneeLabel}
               </Badge>
             )}
-            {action.deadline && (
+            {action.deadline && deadlineDate && (
               <Badge
                 variant="outline"
                 className={cn(
@@ -68,7 +72,7 @@ export default function SupertiltActionCard({ action, isDragging, onToggle, onEd
                 )}
               >
                 <CalendarDays className="w-2.5 h-2.5" />
-                {format(deadlineDate!, "d MMM", { locale: fr })}
+                {format(deadlineDate, "d MMM", { locale: fr })}
               </Badge>
             )}
           </div>

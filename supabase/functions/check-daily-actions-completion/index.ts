@@ -6,6 +6,7 @@ import {
   verifyAuth,
 } from "../_shared/mod.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import { loadProjectAssignees, projectAssignmentTargets } from "../_shared/project-assignee.ts";
 
 /**
  * Check Daily Actions Completion (auto-detection)
@@ -172,12 +173,18 @@ serve(async (req) => {
       .filter((a) => a.entity_type === "supertilt_action")
       .map((a) => a.entity_id);
     const projectActions = new Map<string, any>();
+    const projectTargets = new Map<string, string[]>();
     if (projectActionIds.length > 0) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("supertilt_actions")
-        .select("id, is_completed")
+        .select("id, is_completed, user_id, assigned_to")
         .in("id", projectActionIds);
-      for (const p of data || []) projectActions.set(p.id as string, p);
+      if (error) throw error;
+      const users = await loadProjectAssignees(supabase);
+      for (const p of data || []) {
+        projectActions.set(p.id as string, p);
+        projectTargets.set(p.id, projectAssignmentTargets(p, users).targetUserIds);
+      }
     }
     const ORDER_CATEGORY_STATUS: Record<string, string> = {
       supertilt_a_valider: "to_validate",
@@ -250,7 +257,7 @@ serve(async (req) => {
         // terminée sur le tableau (ou supprimée).
         case "supertilt": {
           const p = projectActions.get(action.entity_id);
-          if (!p || p.is_completed) resolved = true;
+          if (!p || p.is_completed || !projectTargets.get(action.entity_id)?.includes(user.id)) resolved = true;
           break;
         }
 

@@ -642,15 +642,15 @@ serve(async (req) => {
           : a.isOverdue
             ? `En retard (${new Date(a.deadline).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })})`
             : `Échéance le ${new Date(a.deadline).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`;
-      actions.push({
+      for (const targetUserId of a.targetUserIds) actions.push({
         category: "supertilt",
         title: `⚡ ${a.title}`,
-        description: a.isOverdue
+        description: [a.assignmentWarning, a.isOverdue
           ? `⚠️ ${dateLabel}${a.description ? ` — ${a.description}` : ""}`
-          : (a.description ? `${dateLabel} — ${a.description}` : dateLabel),
+          : (a.description ? `${dateLabel} — ${a.description}` : dateLabel)].filter(Boolean).join(" — "),
         link: a.board === "site" ? `${appUrl}/supertilt-fr/projets` : `${appUrl}/projets-transverses`,
         entityType: "supertilt_action", entityId: a.id,
-        assignedTo: a.assignedTo, scope: "strictAssigned",
+        assignedTo: targetUserId, scope: "strictAssigned",
       });
     }
 
