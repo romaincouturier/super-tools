@@ -1,9 +1,9 @@
 # Roadmap
 
 ## Assignation des actions projets (2026-11-11)
-- [ ] Résolution partagée nom/prénom nom/email, canonisation UI/MCP et alertes explicites pour assignés inconnus.
-- [ ] Contrôler et canoniser les données existantes sans envoi, avec journal des changements.
-- [ ] Tests de régression, déploiement ciblé et vérification des actions du compte demandeur.
+- [x] Résolution partagée nom/prénom nom/email, canonisation UI/MCP et alertes explicites pour assignés inconnus ; module projets transverses seul inclus dans les destinataires.
+- [x] Canonisation idempotente exécutée : cinq assignations déjà canoniques, aucune carte modifiée ; seule action quotidienne LinkedIn du 11 novembre réattribuée d’Emmanuelle à Romain avec trace avant/après, historique conservé.
+- [x] 27 tests ciblés et 103 contrôles réussis ; quatre fonctions consommatrices déployées sans invocation d’envoi ; carte et menu vérifiés connectés, lecture quotidienne réelle retourne l’action de Romain. L’ancien écran TODO n’est plus routé ; publication nécessaire pour les changements du formulaire.
 
 ## Simulation noCRM (09/11/2026)
 - [x] Convertisseur Europe/Paris partagé : 74 000 créations supprimées, mesure locale 5 418 → 468 ms ; 14 tests réussis.
