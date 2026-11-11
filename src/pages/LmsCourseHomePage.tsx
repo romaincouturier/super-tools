@@ -57,6 +57,8 @@ import CourseHomeSidebar, { CommunityCtaButton, communityUrlWithContext, type Mo
 import LmsCourseLayout from "@/components/lms/LmsCourseLayout";
 import HomeIntroBox from "@/components/lms/HomeIntroBox";
 import CourseLoadState from "@/components/lms/CourseLoadState";
+import { videoEmbed } from "@/lib/lmsVideoEmbed";
+import { Button } from "@/components/ui/button";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -127,14 +129,6 @@ function meetingTypeLabel(type: string) {
   if (type === "launch") return "Lancement";
   if (type === "closing") return "Séance de clôture";
   return "Live";
-}
-
-function videoEmbed(url: string): string | null {
-  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-  if (yt) return `https://www.youtube.com/embed/${yt[1]}?autoplay=1&rel=0`;
-  const vm = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  if (vm) return `https://player.vimeo.com/video/${vm[1]}?autoplay=1`;
-  return null;
 }
 
 function videoThumbnail(url: string): string | null {
@@ -302,12 +296,13 @@ function ReplayView({ meeting }: { meeting: CourseLiveMeeting }) {
         >
           {playing ? (
             embed ? (
-              <iframe src={embed} className="w-full h-full" allow="autoplay; fullscreen" allowFullScreen />
+              <iframe title={`Replay : ${meeting.title}`} src={embed} className="w-full h-full" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowFullScreen />
             ) : (
               <video src={meeting.replay_url} className="w-full h-full" autoPlay controls />
             )
           ) : (
-            <button
+            <Button
+              variant="ghost"
               onClick={() => setPlaying(true)}
               className="absolute inset-0 flex items-center justify-center group w-full h-full"
               aria-label="Lancer le replay"
@@ -319,7 +314,7 @@ function ReplayView({ meeting }: { meeting: CourseLiveMeeting }) {
               >
                 <Play size={28} style={{ color: "#101820", marginLeft: 4 }} />
               </div>
-            </button>
+            </Button>
           )}
         </div>
       ) : (
