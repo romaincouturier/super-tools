@@ -51,6 +51,7 @@ vi.mock("@/hooks/useLoginAttempts", () => ({
   }),
 }));
 vi.mock("@/components/ForgotPasswordDialog", () => ({ default: () => null }));
+vi.mock("@/components/auth/MaintenanceBanner", () => ({ default: () => null }));
 
 const CONNECTED_STAFF = {
   status: "staff", isStaff: true, mustChangePassword: false, passwordSet: true,
