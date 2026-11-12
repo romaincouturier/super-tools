@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { startOfMonth, endOfMonth, format, addDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchDailyTrainingFormulaAlerts } from "@/services/trainingFormulaAlerts";
 import { todayAsISO, dateAsISO } from "@/lib/dateFormatters";
 import {
   buildKpis,
@@ -387,10 +388,10 @@ async function fetchAgenda(today: string, userId: string | null): Promise<Dashbo
 
 // ── Query: À votre attention ─────────────────────────────────
 
-async function fetchAttention(): Promise<DashboardAttentionItem[]> {
+async function fetchAttention(userId: string): Promise<DashboardAttentionItem[]> {
   const today = todayAsISO();
 
-  const [improvementsRes, projectsRes, failedEmailsRes, evalsRes] = await Promise.all([
+  const [improvementsRes, projectsRes, failedEmailsRes, evalsRes, formulaAlerts] = await Promise.all([
     supabase
       .from("improvements")
       .select("id", { count: "exact", head: true })
@@ -408,9 +409,18 @@ async function fetchAttention(): Promise<DashboardAttentionItem[]> {
       .from("training_evaluations")
       .select("id", { count: "exact", head: true })
       .eq("etat", "envoye"),
+    fetchDailyTrainingFormulaAlerts(userId, today),
   ]);
 
   const items: DashboardAttentionItem[] = [];
+  for (const alert of formulaAlerts) {
+    items.push({
+      icon: "alert",
+      text: alert.description || "Session sans tarif boutique associé",
+      path: `/formations/${alert.entity_id}`,
+      tone: "warn",
+    });
+  }
 
   const improvements = improvementsRes.count ?? 0;
   if (improvements > 0) {
@@ -521,8 +531,9 @@ export function useDashboardData(): DashboardData {
   });
 
   const attentionQuery = useQuery({
-    queryKey: ["dashboard", "attention"],
-    queryFn: fetchAttention,
+    queryKey: ["dashboard", "attention", today, userId],
+    queryFn: () => fetchAttention(userId),
+    enabled: !!userId,
     staleTime: 60 * 1000,
   });
 
