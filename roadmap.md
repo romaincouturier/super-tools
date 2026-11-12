@@ -1,5 +1,9 @@
 # Roadmap
 
+## Reprise des sauvegardes Drive (2026-11-12)
+- [ ] Remplacer la planification legacy refusée par un relais géré authentifié, sans modifier le moteur ni les autres automatismes.
+- [ ] Vérifier le déclenchement réel et suivre le résultat base/fichiers ; conserver les refus anonymes.
+
 ## Portes de connexion (2026-11-12)
 - [x] Exception demandée : « Se connecter » ouvre l'espace apprenant si déjà connecté ; sinon formulaire. `/auth` conserve son formulaire et l'accueil reste public. Clic vérifié avec le compte demandeur.
 - [x] Back-office toujours gardé par `RequireStaff` (apprenant et non connecté refusés), testé ; 25 tests ciblés réussis et build OK ; formulaire `/auth` vérifié connecté.

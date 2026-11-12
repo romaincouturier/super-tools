@@ -1,0 +1,2 @@
+# Architecture
+- This managed callback authenticates with the existing constant-time managed credential helper and delegates only `mode: tick` to scheduled-backup using server credentials, because replacing a legacy schedule must not weaken or duplicate the backup engine.
