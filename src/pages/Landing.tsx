@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowRight, BookOpen, Check, Clock3, Compass, Gift, Layers3, Menu, X,
@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useAcademyCatalog, type AcademyCatalogCourse } from "@/hooks/useAcademyCatalog";
-import { supabase } from "@/integrations/supabase/client";
 import icebreakerModeEmploi from "@/assets/academy/icebreaker-mode-emploi.png.asset.json";
 import icebreakerALaCarte from "@/assets/academy/icebreaker-a-la-carte.png.asset.json";
 import postureManager from "@/assets/academy/posture-manager.png.asset.json";
@@ -63,7 +62,6 @@ function PaidCourseCard({ course }: { course: AcademyCatalogCourse }) {
 
 export default function Landing() {
   const contactEmail = useContactEmail();
-  const navigate = useNavigate();
   const { data, isLoading, isError } = useAcademyCatalog();
   const [menuOpen, setMenuOpen] = useState(false);
   const courses = data?.courses ?? [];
@@ -72,8 +70,6 @@ export default function Landing() {
     courses.filter((course) => course.access_type === "gratuit" && !HIDDEN_FREE_COURSE_IDS.has(course.id)),
   ), [courses]);
   const paidCourses = useMemo(() => courses.filter((course) => course.access_type === "payant" && course.is_featured).slice(0, 3), [courses]);
-
-  useEffect(() => { supabase.auth.getSession().then(({ data: { session } }) => { if (session) navigate("/espace-apprenant"); }); }, [navigate]);
 
   return <main className="min-h-screen bg-background text-foreground">
     <nav className="absolute inset-x-0 top-0 z-20"><div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10"><Link to="/" aria-label="SuperTilt Academy"><SupertiltLogo className="h-9" /></Link><div className="hidden items-center gap-8 md:flex"><a href="#formations" className="text-sm font-semibold text-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:underline">Toutes les formations</a><Link to="/connexion" className="text-sm font-semibold text-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:underline">Se connecter</Link></div><button type="button" className="md:hidden" aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"} onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}</button></div>{menuOpen && <div className="border-y border-border bg-background px-6 py-4 md:hidden"><div className="flex flex-col gap-4 text-sm font-semibold"><a href="#formations" onClick={() => setMenuOpen(false)}>Toutes les formations</a><Link to="/connexion">Se connecter</Link></div></div>}</nav>
