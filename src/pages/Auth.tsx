@@ -26,50 +26,11 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { status, countdown, checkAttempt, logAttempt, formatTimeRemaining } = useLoginAttempts();
-  useEffect(() => {
-    const checkAndRedirect = async (userId: string) => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.user_metadata?.role === "learner") {
-          navigate("/espace-apprenant");
-          return;
-        }
-        const { data: metadata } = await supabase
-          .from("user_security_metadata")
-          .select("must_change_password")
-          .eq("user_id", userId)
-          .maybeSingle();
-        navigate(metadata?.must_change_password ? "/force-password-change" : "/dashboard");
-      } catch (e) {
-        console.error("[Auth] metadata check failed:", e);
-        navigate("/dashboard");
-      }
-    };
-
-    // IMPORTANT: do NOT call async supabase methods inside onAuthStateChange
-    // (it deadlocks the auth lock). Defer with setTimeout(0).
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session?.user) {
-          setTimeout(() => { void checkAndRedirect(session.user.id); }, 0);
-        }
-      }
-    );
-
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        if (session?.user) {
-          void checkAndRedirect(session.user.id);
-        }
-      })
-      .catch(async (err) => {
-        // Stale/corrupt token in storage — clear it so the user can log in again.
-        console.error("[Auth] getSession error, clearing stale session:", err);
-        try { await supabase.auth.signOut(); } catch { /* noop */ }
-      });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  // La porte du back-office affiche toujours son formulaire. Une session déjà
+  // ouverte sur l'appareil (souvent un compte apprenant testé là) ne doit pas
+  // éjecter la personne avant qu'elle ait pu saisir son propre compte. L'accès
+  // au back-office reste tranché par RequireStaff, et l'aiguillage après
+  // connexion est fait dans handleAuth.
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
