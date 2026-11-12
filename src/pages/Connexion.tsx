@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Mail, Lock, ShieldCheck, ArrowLeft } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { AuthCard, AuthShell, AuthTitle } from "@/components/auth/AuthShell";
@@ -39,11 +39,6 @@ export default function Connexion() {
   const { status: attempts, countdown, checkAttempt, logAttempt, formatTimeRemaining } = useLoginAttempts();
   const { signIn } = useAuthActions();
   const { resolve, resolving } = useIdentityResolution();
-
-  // La porte de connexion affiche toujours son formulaire. Une session déjà
-  // ouverte ne doit pas éjecter la personne vers un autre écran : elle ne sait
-  // plus où elle est. L'aiguillage se fait après saisie des identifiants, dans
-  // handlePasswordStep.
 
   const normalizedEmail = email.trim().toLowerCase();
 
@@ -128,6 +123,10 @@ export default function Connexion() {
         <Spinner size="lg" className="text-primary" />
       </div>
     );
+  }
+
+  if (status === "learner" || status === "staff") {
+    return <Navigate to={resolvePostLoginPath({ isStaff: false, mustChangePassword: false, next })} replace />;
   }
 
   return (

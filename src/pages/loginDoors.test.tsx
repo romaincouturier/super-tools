@@ -110,19 +110,32 @@ describe("portes de connexion", () => {
     h.logAttempt.mockResolvedValue(undefined);
   });
 
-  it("la porte apprenant garde son formulaire quand une session staff est déjà ouverte", () => {
+  it("la porte apprenant ouvre l'espace apprenant quand une session staff est déjà ouverte", () => {
     h.session.mockReturnValue(CONNECTED_STAFF);
     renderAt("/connexion", <Connexion />);
-    expect(screen.getByLabelText("Adresse e-mail")).toBeInTheDocument();
+    expect(screen.getByText("ESPACE APPRENANT")).toBeInTheDocument();
     expect(screen.queryByText("BACK OFFICE")).toBeNull();
     expect(screen.queryByText("CREATION MOT DE PASSE")).toBeNull();
   });
 
-  it("la porte apprenant garde son formulaire quand la session ouverte n'a pas de mot de passe", () => {
+  it("la porte apprenant rejoint l'espace protégé avec une session apprenante existante", () => {
     h.session.mockReturnValue(CONNECTED_LEARNER_WITHOUT_PASSWORD);
     renderAt("/connexion", <Connexion />);
-    expect(screen.getByLabelText("Adresse e-mail")).toBeInTheDocument();
+    expect(screen.getByText("ESPACE APPRENANT")).toBeInTheDocument();
     expect(screen.queryByText("CREATION MOT DE PASSE")).toBeNull();
+  });
+
+  it("la porte apprenant affiche le formulaire sans session", () => {
+    renderAt("/connexion", <Connexion />);
+    expect(screen.getByLabelText("Adresse e-mail")).toBeInTheDocument();
+    expect(screen.queryByText("ESPACE APPRENANT")).toBeNull();
+  });
+
+  it("la porte apprenant ne renvoie pas une session existante dans le back-office via next", () => {
+    h.session.mockReturnValue(CONNECTED_STAFF);
+    renderAt("/connexion?next=%2Fdashboard", <Connexion />);
+    expect(screen.getByText("ESPACE APPRENANT")).toBeInTheDocument();
+    expect(screen.queryByText("BACK OFFICE")).toBeNull();
   });
 
   it("la porte du back-office garde son formulaire quand une session est déjà ouverte", async () => {
