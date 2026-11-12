@@ -415,8 +415,26 @@ Deno.serve(async (req: Request): Promise<Response> => {
             }
           }
 
+          // 1️⃣ bis Dates explicites dans la commande mais session non liée à la formule :
+          //     on cherche la session du même catalogue à cette date. Jamais de repli
+          //     sur une autre date (sinon le client est convoqué à la mauvaise session).
+          if (!training && parsedDates) {
+            const { data: byCatalogDate } = await (admin as any)
+              .from("trainings")
+              .select("id, training_name, start_date, end_date, format_formation")
+              .eq("catalog_id", catalogId)
+              .eq("is_cancelled", false)
+              .eq("start_date", parsedDates.start)
+              .limit(1)
+              .maybeSingle();
+            if (byCatalogDate) {
+              training = byCatalogDate;
+              routingReason = `catalogue — session du ${parsedDates.start} (non liée à la formule ${formula.name})`;
+            }
+          }
+
           // 2️⃣ Sinon session permanente liée à la formule (start_date NULL)
-          if (!training) {
+          if (!training && !parsedDates) {
             const permanent = linkedTrainings.find((t) => t.start_date === null);
             if (permanent) {
               training = permanent;
@@ -424,8 +442,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
             }
           }
 
-          // 3️⃣ Sinon prochaine session datée liée à la formule
-          if (!training) {
+          // 3️⃣ Sinon prochaine session datée liée à la formule (seulement si la commande ne précise aucune date)
+          if (!training && !parsedDates) {
             const upcoming = linkedTrainings
               .filter((t) => t.start_date !== null && t.start_date! > today)
               .sort((a, b) => (a.start_date! < b.start_date! ? -1 : 1))[0];
