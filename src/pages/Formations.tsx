@@ -11,6 +11,7 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { parseISO, isPast, isFuture, isToday, differenceInDays } from "date-fns";
 import { formatDateRange } from "@/lib/dateFormatters";
 import { DEFAULT_TRAINING_SORTS, sortTrainings, type TrainingSortField as SortField, type TrainingTab, type TrainingSort } from "@/lib/trainingSorting";
+import TrainingTimeline from "@/components/formations/TrainingTimeline";
 import ModuleLayout from "@/components/ModuleLayout";
 import { useNewSurveyResponses } from "@/hooks/useNewSurveyResponses";
 import { Button } from "@/components/ui/button";
@@ -495,6 +496,8 @@ const Formations = () => {
             </Button>
           </div>
         )}
+
+        <TrainingTimeline trainings={trainings.filter((t) => !t.is_cancelled && matchesFilters(t))} />
 
         {/* Tabs and table */}
         <Card>
