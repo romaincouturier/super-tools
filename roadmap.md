@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Portes de connexion (2026-11-12)
-- [ ] Exception demandée : « Se connecter » ouvre l'espace apprenant si déjà connecté ; sinon formulaire. `/auth` conserve son formulaire et l'accueil reste public.
-- [x] Back-office toujours gardé par `RequireStaff` (apprenant et non connecté refusés), testé ; 5 tests ajoutés, 27 tests de connexion réussis, typecheck et build OK.
+- [x] Exception demandée : « Se connecter » ouvre l'espace apprenant si déjà connecté ; sinon formulaire. `/auth` conserve son formulaire et l'accueil reste public. Clic vérifié avec le compte demandeur.
+- [x] Back-office toujours gardé par `RequireStaff` (apprenant et non connecté refusés), testé ; 25 tests ciblés réussis et build OK ; formulaire `/auth` vérifié connecté.
 - [ ] Publication du front nécessaire pour academy.supertilt.fr ; contrôle préexistant [065] en échec dans TrainingTimeline.tsx, hors périmètre.
 
 
