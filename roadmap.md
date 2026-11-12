@@ -1,5 +1,9 @@
 # Roadmap
 
+## Sessions sans tarif associé (2026-11-12)
+- [ ] Détecter les sessions inter datées à venir sans formule boutique associée ; une alerte par session, réservée aux administrateurs et au responsable autorisé.
+- [ ] Résoudre l’alerte après association ; tests, déploiement et vérification sans email ni modification des sessions.
+
 ## Assignation des actions projets (2026-11-11)
 - [x] Résolution partagée nom/prénom nom/email, canonisation UI/MCP et alertes explicites pour assignés inconnus ; module projets transverses seul inclus dans les destinataires.
 - [x] Canonisation idempotente exécutée : cinq assignations déjà canoniques, aucune carte modifiée ; seule action quotidienne LinkedIn du 11 novembre réattribuée d’Emmanuelle à Romain avec trace avant/après, historique conservé.

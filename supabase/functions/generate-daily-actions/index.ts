@@ -14,6 +14,7 @@ import {
 } from "../_shared/daily-data-fetchers.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { buildFollowUpActions } from "../_shared/feedback-follow-ups.ts";
+import { fetchTrainingFormulaIssues, trainingFormulaAlertRecipients } from "../_shared/training-formula-alerts.ts";
 
 /**
  * Generate Daily Actions
@@ -81,6 +82,25 @@ serve(async (req) => {
     }
 
     const actions: ActionDef[] = [];
+
+    const [formulaIssues, formationAccess] = await Promise.all([
+      fetchTrainingFormulaIssues(supabase, today),
+      supabase.from("user_module_access").select("user_id").eq("module", "formations"),
+    ]);
+    if (formationAccess.error) throw formationAccess.error;
+    const formationUserIds = new Set((formationAccess.data || []).map((r) => r.user_id as string));
+    for (const t of formulaIssues) {
+      for (const userId of trainingFormulaAlertRecipients(t, recipients, formationUserIds)) {
+        actions.push({
+          category: "formations_tarifs_manquants",
+          title: t.training_name,
+          description: `Session du ${new Date(`${t.start_date}T12:00:00`).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })} : aucun tarif boutique associé. Vérifier les formules associées à cette session.`,
+          link: `${appUrl}/formations/${t.id}`,
+          entityType: "training", entityId: t.id,
+          assignedTo: userId, scope: "strictAssigned",
+        });
+      }
+    }
 
     // 0. Missions — Actions à traiter
     for (const m of data.missionActions) {

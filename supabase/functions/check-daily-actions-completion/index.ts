@@ -7,6 +7,7 @@ import {
 } from "../_shared/mod.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { loadProjectAssignees, projectAssignmentTargets } from "../_shared/project-assignee.ts";
+import { fetchTrainingFormulaIssues } from "../_shared/training-formula-alerts.ts";
 
 /**
  * Check Daily Actions Completion (auto-detection)
@@ -196,6 +197,9 @@ serve(async (req) => {
 
     // Check each pending action
     const toComplete: string[] = [];
+    const formulaIssues = pendingActions.some((a) => a.category === "formations_tarifs_manquants")
+      ? new Set((await fetchTrainingFormulaIssues(supabase, today)).map((t) => t.id))
+      : new Set<string>();
     const now = new Date().toISOString();
     // Statuts des appels d'offres encore en attente de décision.
     const tenders = new Map<string, { status: string }>();
@@ -212,6 +216,10 @@ serve(async (req) => {
       let resolved = false;
 
       switch (action.category) {
+        case "formations_tarifs_manquants": {
+          resolved = !formulaIssues.has(action.entity_id);
+          break;
+        }
         case "missions_a_facturer": {
           const m = missions.get(action.entity_id);
           if (m) {
