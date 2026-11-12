@@ -1,7 +1,7 @@
 # Roadmap
 
 ## Portes de connexion (2026-11-12)
-- [x] « Se connecter » et `/auth` affichent toujours leur formulaire : une session déjà ouverte ne redirige plus vers l'espace apprenant ni vers la création du mot de passe.
+- [ ] Exception demandée : « Se connecter » ouvre l'espace apprenant si déjà connecté ; sinon formulaire. `/auth` conserve son formulaire et l'accueil reste public.
 - [x] Back-office toujours gardé par `RequireStaff` (apprenant et non connecté refusés), testé ; 5 tests ajoutés, 27 tests de connexion réussis, typecheck et build OK.
 - [ ] Publication du front nécessaire pour academy.supertilt.fr ; contrôle préexistant [065] en échec dans TrainingTimeline.tsx, hors périmètre.
 
