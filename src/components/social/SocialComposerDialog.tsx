@@ -187,7 +187,7 @@ export default function SocialComposerDialog({ open, onOpenChange, groupId }: So
     groupId: currentId,
     format: v.format,
     sync: v.sync,
-    themeId: v.themeId,
+    themeId: v.details.theme_ids.includes(v.themeId ?? "") ? v.themeId : (v.details.theme_ids[0] ?? null),
     channelIds: v.channelIds,
     commonText: v.commonText,
     texts: v.texts,
