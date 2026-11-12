@@ -1,8 +1,9 @@
 # Roadmap
 
 ## Sessions sans tarif associé (2026-11-12)
-- [ ] Détecter les sessions inter datées à venir sans formule boutique associée ; une alerte par session, réservée aux administrateurs et au responsable autorisé.
-- [ ] Résoudre l’alerte après association ; tests, déploiement et vérification sans email ni modification des sessions.
+- [x] Détecter les sessions inter datées à venir sans formule boutique associée ; une alerte par session, réservée aux administrateurs et au responsable autorisé ; les associations partielles ne sont pas traitées comme un manque.
+- [x] Résolution après association testée ; deux fonctions déployées, génération exécutée et quatre alertes sans doublon relues en base ; aucun email ni modification des sessions.
+- [x] Tableau de bord connecté : quatre alertes visibles et clic vers le 18 mars vérifié ; 46 tests réussis et build OK. Contrôle préexistant [065] en échec dans TrainingTimeline.tsx, hors périmètre ; affichage publié après publication du front.
 
 ## Assignation des actions projets (2026-11-11)
 - [x] Résolution partagée nom/prénom nom/email, canonisation UI/MCP et alertes explicites pour assignés inconnus ; module projets transverses seul inclus dans les destinataires.
