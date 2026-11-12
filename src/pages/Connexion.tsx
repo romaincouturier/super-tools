@@ -27,7 +27,7 @@ export default function Connexion() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const next = searchParams.get(REDIRECT_PARAM);
-  const { status, isStaff, mustChangePassword } = useSession();
+   const { status } = useSession();
 
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
@@ -40,15 +40,10 @@ export default function Connexion() {
   const { signIn } = useAuthActions();
   const { resolve, resolving } = useIdentityResolution();
 
-  // Session déjà ouverte : le formulaire ne s'affiche jamais (W9).
-  useEffect(() => {
-    if (status === "staff" || status === "learner" || status === "none") {
-      navigate(
-        resolvePostLoginPath({ isStaff, mustChangePassword, next, hasAccess: status !== "none" }),
-        { replace: true },
-      );
-    }
-  }, [status, isStaff, mustChangePassword, next, navigate]);
+  // La porte de connexion affiche toujours son formulaire. Une session déjà
+  // ouverte ne doit pas éjecter la personne vers un autre écran : elle ne sait
+  // plus où elle est. L'aiguillage se fait après saisie des identifiants, dans
+  // handlePasswordStep.
 
   const normalizedEmail = email.trim().toLowerCase();
 
