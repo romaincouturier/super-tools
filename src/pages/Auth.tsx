@@ -14,6 +14,7 @@ import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 import LoginAttemptFeedback from "@/components/LoginAttemptFeedback";
 import { validatePassword } from "@/lib/passwordValidation";
 import { useLoginAttempts } from "@/hooks/useLoginAttempts";
+import { useSession } from "@/hooks/useSession";
 import { cn } from "@/lib/utils";
 
 const Auth = () => {
@@ -25,6 +26,7 @@ const Auth = () => {
   const [shakeForm, setShakeForm] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { refresh } = useSession();
   const { status, countdown, checkAttempt, logAttempt, formatTimeRemaining } = useLoginAttempts();
   // La porte du back-office affiche toujours son formulaire. Une session déjà
   // ouverte sur l'appareil (souvent un compte apprenant testé là) ne doit pas
@@ -74,6 +76,7 @@ const Auth = () => {
         // Logger le succès
         await logAttempt(email, true);
         await supabase.rpc("mark_password_proven");
+        await refresh();
         setShowAttemptFeedback(false);
         
         // Restrict /auth to SuperTools team members only.
@@ -124,6 +127,7 @@ const Auth = () => {
           title: "Connexion réussie",
           description: "Bienvenue !",
         });
+        navigate("/dashboard", { replace: true });
       } else {
         // Only admin can create accounts via signup form
         // Other users are created via onboarding process
