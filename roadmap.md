@@ -6,7 +6,7 @@
 - [ ] Résultat final base/fichiers en attente du traitement asynchrone ; la fenêtre actuelle s'arrête à 21:00 UTC et reprend à 05:00 UTC. Contrôle préexistant [065] hors périmètre.
 
 ## Portes de connexion (2026-11-12)
-- [ ] Corriger la connexion administrateur réussie restant sur `/auth` : actualiser la session puis naviguer explicitement ; vérifier la régression.
+- [x] Connexion administrateur restant sur `/auth` corrigée : session actualisée puis navigation explicite. Régression reproduite avant correction ; 29 tests réussis et build OK. Navigateur : réponse de connexion simulée avec vraie session admin, tableau de bord affiché ; saisie du vrai mot de passe non testée.
 - [x] Exception demandée : « Se connecter » ouvre l'espace apprenant si déjà connecté ; sinon formulaire. `/auth` conserve son formulaire et l'accueil reste public. Clic vérifié avec le compte demandeur.
 - [x] Back-office toujours gardé par `RequireStaff` (apprenant et non connecté refusés), testé ; 25 tests ciblés réussis et build OK ; formulaire `/auth` vérifié connecté.
 - [ ] Publication du front nécessaire pour academy.supertilt.fr ; contrôle préexistant [065] en échec dans TrainingTimeline.tsx, hors périmètre.
