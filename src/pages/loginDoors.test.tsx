@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import Auth from "./Auth";
@@ -8,6 +8,7 @@ import { RequireStaff } from "@/components/RequireStaff";
 
 const h = vi.hoisted(() => ({
   session: vi.fn(),
+  refresh: vi.fn(),
   signInWithPassword: vi.fn(),
   signIn: vi.fn(),
   resolve: vi.fn(),
@@ -38,7 +39,7 @@ vi.mock("@/hooks/useAuthActions", () => ({ useAuthActions: () => ({ signIn: h.si
 vi.mock("@/hooks/useIdentityResolution", () => ({
   useIdentityResolution: () => ({ resolve: h.resolve, resolving: false }),
 }));
-vi.mock("@/hooks/useSession", () => ({ useSession: () => h.session() }));
+vi.mock("@/hooks/useSession", () => ({ useSession: () => ({ ...h.session(), refresh: h.refresh }) }));
 vi.mock("@/hooks/useContactEmail", () => ({ useContactEmail: () => "support@example.com" }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: h.toast }) }));
 vi.mock("@/hooks/useLoginAttempts", () => ({
@@ -108,6 +109,7 @@ describe("portes de connexion", () => {
     h.resolve.mockResolvedValue("password");
     h.checkAttempt.mockResolvedValue(true);
     h.logAttempt.mockResolvedValue(undefined);
+    h.refresh.mockResolvedValue(undefined);
   });
 
   it("la porte apprenant ouvre l'espace apprenant quand une session staff est déjà ouverte", () => {
@@ -153,6 +155,23 @@ describe("portes de connexion", () => {
     renderBackOffice("learner");
     expect(await screen.findByText("ESPACE APPRENANT")).toBeInTheDocument();
     expect(screen.queryByText("BACK OFFICE")).toBeNull();
+  });
+
+  it("une connexion administrateur réussie quitte le formulaire après actualisation de la session", async () => {
+    h.signInWithPassword.mockResolvedValue({ data: { user: { id: "admin" } }, error: null });
+    h.from.mockImplementation((table: string) => ({
+      select: () => ({ eq: () => ({ maybeSingle: async () => ({
+        data: table === "profiles" ? { user_id: "admin" } : { must_change_password: false },
+      }) }) }),
+    }));
+    h.rpc.mockResolvedValue({ data: null, error: null });
+    renderAt("/auth", <Auth />);
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "admin@example.com" } });
+    fireEvent.change(screen.getByLabelText("Mot de passe"), { target: { value: "StrongPassword123!" } });
+    fireEvent.click(screen.getByRole("button", { name: "Se connecter" }));
+    expect(await screen.findByText("BACK OFFICE")).toBeInTheDocument();
+    expect(h.refresh).toHaveBeenCalledOnce();
+    expect(screen.queryByLabelText("Email")).toBeNull();
   });
 
   it("le back-office reste fermé à une personne non connectée", async () => {
