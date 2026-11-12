@@ -1,5 +1,11 @@
 # Roadmap
 
+## Portes de connexion (2026-11-12)
+- [x] « Se connecter » et `/auth` affichent toujours leur formulaire : une session déjà ouverte ne redirige plus vers l'espace apprenant ni vers la création du mot de passe.
+- [x] Back-office toujours gardé par `RequireStaff` (apprenant et non connecté refusés), testé ; 5 tests ajoutés, 27 tests de connexion réussis, typecheck et build OK.
+- [ ] Publication du front nécessaire pour academy.supertilt.fr ; contrôle préexistant [065] en échec dans TrainingTimeline.tsx, hors périmètre.
+
+
 ## Sessions sans tarif associé (2026-11-12)
 - [x] Détecter les sessions inter datées à venir sans formule boutique associée ; une alerte par session, réservée aux administrateurs et au responsable autorisé ; les associations partielles ne sont pas traitées comme un manque.
 - [x] Résolution après association testée ; deux fonctions déployées, génération exécutée et quatre alertes sans doublon relues en base ; aucun email ni modification des sessions.
