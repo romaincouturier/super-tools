@@ -15693,6 +15693,7 @@ export type Database = {
       move_stale_tickets_to_boite_a_idees: { Args: never; Returns: undefined }
       next_distribution_contract_reference: { Args: never; Returns: string }
       next_location_contract_ref: { Args: { p_year: number }; Returns: string }
+      normalize_person_name: { Args: { v: string }; Returns: string }
       normalize_url: { Args: { u: string }; Returns: string }
       normalize_watch_source_url: { Args: { value: string }; Returns: string }
       pictodico_norm_key: { Args: { t: string }; Returns: string }
