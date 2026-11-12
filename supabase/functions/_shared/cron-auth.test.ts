@@ -259,6 +259,13 @@ describe("isCronOrServiceRole", () => {
 });
 
 describe("hasManagedCronCredential", () => {
+  it("refuse une clé publique et un JWT apprenant pour le relais des sauvegardes", async () => {
+    env.LOVABLE_CRON_SECRET = "managed";
+    expect(await hasManagedCronCredential(request({ Authorization: "Bearer cle-anon" }))).toBe(false);
+    expect(await hasManagedCronCredential(request({ Authorization: "Bearer learner-jwt" }))).toBe(false);
+    expect(await hasManagedCronCredential(request())).toBe(false);
+  });
+
   it("accepte le secret géré, nu ou en Bearer", async () => {
     env.LOVABLE_CRON_SECRET = "managed";
     expect(await hasManagedCronCredential(request({ "x-cron-secret": "managed" }))).toBe(true);

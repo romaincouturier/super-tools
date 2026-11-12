@@ -1,5 +1,10 @@
 # Roadmap
 
+## Reprise des sauvegardes Drive (2026-11-12)
+- [x] Ancienne planification 18 désactivée ; relais backup-managed-tick déployé et planification gérée 96 créée avec la cadence et la fenêtre d'origine. Moteur et autres automatismes inchangés.
+- [x] Appel automatique réel accepté à 20:58 UTC : run du 12 novembre créé, phase db en cours ; refus anonyme 401 vérifié et 35 tests réussis.
+- [ ] Résultat final base/fichiers en attente du traitement asynchrone ; la fenêtre actuelle s'arrête à 21:00 UTC et reprend à 05:00 UTC. Contrôle préexistant [065] hors périmètre.
+
 ## Portes de connexion (2026-11-12)
 - [x] Exception demandée : « Se connecter » ouvre l'espace apprenant si déjà connecté ; sinon formulaire. `/auth` conserve son formulaire et l'accueil reste public. Clic vérifié avec le compte demandeur.
 - [x] Back-office toujours gardé par `RequireStaff` (apprenant et non connecté refusés), testé ; 25 tests ciblés réussis et build OK ; formulaire `/auth` vérifié connecté.
