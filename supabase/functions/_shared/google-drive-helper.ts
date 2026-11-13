@@ -15,6 +15,7 @@ export interface DriveFile {
   createdTime?: string;
   modifiedTime: string;
   size?: string;
+  videoMediaMetadata?: { durationMillis?: string };
 }
 
 export interface DriveListResult {
@@ -118,7 +119,7 @@ export async function listDriveFolder(
 
   const params = new URLSearchParams({
     q: queries.join(" and "),
-    fields: "nextPageToken,files(id,name,mimeType,createdTime,modifiedTime,size)",
+    fields: "nextPageToken,files(id,name,mimeType,createdTime,modifiedTime,size,videoMediaMetadata)",
     orderBy: "modifiedTime asc",
     pageSize: "100",
     supportsAllDrives: "true",
