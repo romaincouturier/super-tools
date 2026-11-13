@@ -10,17 +10,21 @@
  *   Pass 2 — Discover new Drive files and submit them (up to 5 per run).
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import { isEmptyOrParasiteTranscript, PARASITE_TRANSCRIPT_ERROR } from "../_shared/transcript-quality.ts";
 import {
   assertDriveFolderAccessible,
-  getModifiedAfterWithLookback,
+  getDriveVideoMetadata,
   getValidDriveAccessToken,
   listDriveFolder,
   pollAssemblyAIJob,
   analyzeTranscript,
   notifySlack,
 } from "../_shared/google-drive-helper.ts";
+
+import { discoverDriveVideos, GOOGLE_MEET_ROOT, assembleAudioParts, assertCompleteDuration, type AudioPart } from "../_shared/drive-transcription.ts";
+import { reportDriveTranscriptionError } from "../_shared/drive-transcription-errors.ts";
+import { hasManagedCronCredential, isCronOrServiceRole, isStaffCaller } from "../_shared/cron-auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -33,9 +37,28 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
 
+  if (!(await hasManagedCronCredential(req)) && !(await isCronOrServiceRole(req)) && !(await isStaffCaller(req, "supertilt_fr"))) {
+    return createErrorResponse("Unauthorized", 401);
+  }
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
+    const body = await req.json().catch(() => ({}));
+    if (body.inspect_transcript_id !== undefined) {
+      if (typeof body.inspect_transcript_id !== "string" || !/^[0-9a-f-]{36}$/i.test(body.inspect_transcript_id)) return createErrorResponse("Invalid transcript ID", 400);
+      const { data: transcript, error } = await admin.from("transcripts").select("id, external_id, source, status, duration_seconds").eq("id", body.inspect_transcript_id).single();
+      if (error || !transcript || transcript.source !== "google_drive") return createErrorResponse("Drive transcript not found", 404);
+      const token = await getValidDriveAccessToken(admin);
+      if (!token) throw new Error("No Google Drive access token");
+      const file = await getDriveVideoMetadata(transcript.external_id, token);
+      const expected = Number(file.videoMediaMetadata?.durationMillis ?? 0) / 1000;
+      if (body.probe_audio === true) {
+        const { extractDriveAudioPart } = await import("../_shared/drive-audio.ts");
+        const audio = await extractDriveAudioPart(transcript.external_id, token, Number(file.size), 0);
+        return new Response(JSON.stringify({ extracted_audio_bytes: audio.bytes.length, part_duration: audio.duration, expected_duration: audio.expected, total_parts: audio.totalParts }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ ...transcript, drive_size: file.size, expected_duration_seconds: expected, duration_matches: expected > 0 && Math.abs(expected - Number(transcript.duration_seconds)) <= Math.max(30, expected * 0.01) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     // ── Read config ──────────────────────────────────────────────
     const { data: settingsRows } = await (admin as any)
       .from("app_settings")
@@ -47,10 +70,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
         ?.find((s) => s.setting_key === k)?.setting_value ?? "";
 
     // Plusieurs dossiers possibles, séparés par des virgules
-    const folderIds = get("google_drive_folder_transcripts")
+    const folderIds = [...new Set((get("google_drive_folder_transcripts") + "," + GOOGLE_MEET_ROOT)
       .split(",")
       .map((s) => s.trim())
-      .filter(Boolean);
+      .filter(Boolean))];
     const slackChannel = get("slack_content_channel") || "publications-réso-sociaux";
 
     if (folderIds.length === 0) {
@@ -70,20 +93,64 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const results = { checked: 0, completed: 0, submitted: 0, errors: 0 };
 
+    const { data: stalled, error: stalledError } = await admin.from("transcripts")
+      .select("id, external_id, assemblyai_id")
+      .eq("source", "google_drive").eq("status", "processing")
+      .lt("updated_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+    if (stalledError) throw stalledError;
+    for (const row of stalled ?? []) {
+      const message = "Transcription Drive bloquée depuis plus de 24 h : traitement à vérifier.";
+      await admin.from("transcripts").update({ status: "error", error_message: message }).eq("id", row.id);
+      await reportDriveTranscriptionError(new Error(message), { fn: "poll-drive-transcripts", transcript_id: row.id, job_id: row.assemblyai_id, drive_file_id: row.external_id });
+      results.errors++;
+    }
+
     // ── Pass 1: check pending AssemblyAI jobs ────────────────────
     const { data: processing } = await (admin as any)
       .from("transcripts")
-      .select("id, title, assemblyai_id")
+      .select("id, title, assemblyai_id, external_id, metadata")
       .eq("source", "google_drive")
       .eq("status", "processing")
       .not("assemblyai_id", "is", null);
 
-    for (const row of (processing ?? []) as Array<{ id: string; title: string; assemblyai_id: string }>) {
+    for (const row of (processing ?? []) as Array<{ id: string; title: string; assemblyai_id: string; external_id: string; metadata: Record<string, any> }>) {
       results.checked++;
-      const result = await pollAssemblyAIJob(row.assemblyai_id, ASSEMBLYAI_API_KEY);
+      let result = await pollAssemblyAIJob(row.assemblyai_id, ASSEMBLYAI_API_KEY);
       if (result === null) continue; // still in progress
       if (result === "error") {
-        await (admin as any).from("transcripts").update({ status: "error", error_message: "AssemblyAI transcription failed" }).eq("id", row.id);
+        await (admin as any).from("transcripts").update({ status: "error", error_message: "AssemblyAI transcription failed (cause et identifiant du job dans Sentry)" }).eq("id", row.id);
+        results.errors++;
+        continue;
+      }
+
+      try {
+        const metadata = row.metadata ?? {};
+        const parts: AudioPart[] = metadata.audio_parts ?? [];
+        if (parts.length) {
+          const active = parts.find((p) => p.job_id === row.assemblyai_id);
+          if (!active) throw new Error("Morceau actif introuvable.");
+          active.text = result.text;
+          active.actual_duration = result.duration;
+          assertCompleteDuration(active.duration, result.duration);
+          const { error } = await admin.from("transcripts").update({ metadata: { ...metadata, audio_parts: parts }, assemblyai_id: null }).eq("id", row.id);
+          if (error) throw error;
+          if (parts.length < metadata.audio_total_parts) continue;
+          result = assembleAudioParts(parts, metadata.expected_duration_seconds);
+        } else {
+          let expected = Number(metadata.expected_duration_seconds ?? 0);
+          if (!expected) {
+            const token = await getValidDriveAccessToken(admin);
+            if (!token) throw new Error("Impossible de vérifier la durée originale : Drive non connecté.");
+            const file = await getDriveVideoMetadata(row.external_id, token);
+            expected = Number(file.videoMediaMetadata?.durationMillis ?? 0) / 1000;
+            if (!expected) throw new Error("Durée originale Drive indisponible : complétude non vérifiable.");
+            await admin.from("transcripts").update({ metadata: { ...metadata, expected_duration_seconds: expected, drive_size: file.size } }).eq("id", row.id);
+          }
+          assertCompleteDuration(expected, result.duration);
+        }
+      } catch (err) {
+        await admin.from("transcripts").update({ status: "error", error_message: String(err), assemblyai_id: null }).eq("id", row.id);
+        await reportDriveTranscriptionError(err, { fn: "poll-drive-transcripts", transcript_id: row.id });
         results.errors++;
         continue;
       }
@@ -162,6 +229,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ── Pass 2: discover new Drive files ────────────────────────
     const accessToken = await getValidDriveAccessToken(admin);
     if (!accessToken) {
+      await reportDriveTranscriptionError(new Error("No Google Drive access token"), { fn: "poll-drive-transcripts" });
       await (admin as any).from("polling_cursors")
         .update({ last_synced_at: new Date().toISOString(), status: "error", last_error: "No Drive access token" })
         .eq("source", "drive_transcripts");
@@ -175,48 +243,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
       await assertDriveFolderAccessible(folderId, accessToken);
     }
 
-    const { data: cursorRow } = await (admin as any)
-      .from("polling_cursors")
-      .select("cursor, last_synced_at")
-      .eq("source", "drive_transcripts")
-      .single();
-
-    const modifiedAfter = getModifiedAfterWithLookback(
-      (cursorRow as { cursor?: string; last_synced_at?: string } | null)?.last_synced_at,
-    );
-
-    const files: Array<{ id: string; name: string }> = [];
-    const seenFileIds = new Set<string>();
-    for (const folderId of folderIds) {
-      const { files: folderFiles } = await listDriveFolder(folderId, accessToken, {
-        modifiedAfter,
-        mimeTypePrefix: "video/",
-      });
-      for (const file of folderFiles) {
-        if (seenFileIds.has(file.id)) continue;
-        seenFileIds.add(file.id);
-        files.push(file);
-      }
-    }
-
+    // Full inventory: old nested recordings and files beyond the five-per-run batch must remain discoverable.
+    const files = await discoverDriveVideos(folderIds, (folderId, pageToken) => listDriveFolder(folderId, accessToken, { pageToken }));
 
     // Filter to files not already queued, while retrying stuck rows with no AssemblyAI job.
-    const existingRows = files.length > 0
-      ? ((await (admin as any)
-          .from("transcripts")
-          .select("id, external_id, status, assemblyai_id")
-          .in("external_id", files.map((f) => f.id))).data ?? []) as Array<{
-            id: string;
-            external_id: string;
-            status: string;
-            assemblyai_id: string | null;
-          }>
-      : [];
+    const existingRows: Array<{ id: string; external_id: string; status: string; assemblyai_id: string | null; metadata: any; updated_at: string }> = [];
+    for (let offset = 0; offset < files.length; offset += 100) {
+      const { data, error } = await admin.from("transcripts").select("id, external_id, status, assemblyai_id, metadata, updated_at").eq("source", "google_drive").in("external_id", files.slice(offset, offset + 100).map((f) => f.id));
+      if (error) throw error;
+      existingRows.push(...(data ?? []));
+    }
     const existingByExternalId = new Map(existingRows.map((row) => [row.external_id, row]));
 
     const toProcess = files.filter((file) => {
       const existing = existingByExternalId.get(file.id);
-      return !existing || existing.status === "error" || (existing.status === "processing" && !existing.assemblyai_id);
+      return !existing || (existing.status === "processing" && !existing.assemblyai_id && Date.now() - new Date(existing.updated_at).getTime() > 10 * 60 * 1000);
     }).slice(0, 5);
 
 
@@ -242,17 +283,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
         if (!inserted) continue;
 
-        // Fire-and-forget — submit-drive-transcript returns 202 immediately
-        // and processes in its own background task.
-        fetch(`${SUPABASE_URL}/functions/v1/submit-drive-transcript`, {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/submit-drive-transcript`, {
           method: "POST",
           headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({ transcript_id: inserted.id, drive_file_id: file.id }),
-        }).catch((e) => console.warn("[poll-drive-transcripts] submit failed", e));
+        });
+        if (!response.ok) throw new Error(`submit-drive-transcript ${response.status}: ${await response.text()}`);
 
         results.submitted++;
       } catch (err) {
         console.error(`Failed to enqueue file ${file.name}:`, err);
+        await reportDriveTranscriptionError(err, { fn: "poll-drive-transcripts", drive_file_id: file.id });
         await (admin as any).from("transcripts")
           .update({ status: "error", error_message: String(err) })
           .eq("external_id", file.id)
@@ -277,6 +318,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       || message.startsWith("Le dossier Google Drive")
       || message.startsWith("L'identifiant Google Drive");
     console.error("poll-drive-transcripts error:", message);
+    await reportDriveTranscriptionError(err, { fn: "poll-drive-transcripts" });
     await (admin as any).from("polling_cursors")
       .update({ status: "error", last_error: message })
       .eq("source", "drive_transcripts");

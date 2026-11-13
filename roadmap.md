@@ -1,5 +1,10 @@
 # Roadmap
 
+## Transcription Google Meet Drive (2026-11-13)
+- [x] Racines configurées conservées et Google Meet ajouté ; récursion, pagination et dédoublonnage par ID ; refresh authentifié retrouve cinq fichiers oubliés, quatre prêts immédiatement.
+- [x] Limites documentées : upload 2,2 Go, transcription 5 Go/10 h ; MP4 AAC volumineux extraits en morceaux de 45 min, stockage des jobs/textes ordonnés dans metadata, contrôle de durée et erreurs Sentry ; traitements bloqués >24 h signalés, pas de relance infinie des erreurs.
+- [x] Servier : 2 368 148 140 octets, Drive 12 269,874 s, AssemblyAI 12 270 s, dernière parole 12 266,033 s, 136 973 caractères sauvegardés ; visible connecté. Extraction réelle du premier morceau : 44 086 293 octets / 2 700 s / cinq morceaux, sans seconde transcription. 41 tests réussis ; trois fonctions déployées. Assemblage multi-jobs vérifié par test, pas de seconde facturation complète Servier ; contrôle global [065] préexistant hors périmètre.
+
 ## Reprise des sauvegardes Drive (2026-11-12)
 - [x] Ancienne planification 18 désactivée ; relais backup-managed-tick déployé et planification gérée 96 créée avec la cadence et la fenêtre d'origine. Moteur et autres automatismes inchangés.
 - [x] Appel automatique réel accepté à 20:58 UTC : run du 12 novembre créé, phase db en cours ; refus anonyme 401 vérifié et 35 tests réussis.

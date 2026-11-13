@@ -1,3 +1,4 @@
 # Architecture
 - Attestation rules live in execution-attestation.ts and in a DB trigger (edits draft sent ones, signed frozen, token hashes only), to keep signed content provable.
 - Project action assignments use project-assignee.ts in UI, MCP, daily generation and completion checks; profile emails are service-role aliases and unknown/ambiguous values explicitly target creator plus admins, because label-only matching silently routed email assignments to creators.
+- Drive meeting discovery scans configured roots and the Meet tree with pagination and Drive-ID deduplication; oversized MP4 recordings extract AAC in bounded, ordered parts stored in transcript metadata, because upload and duration limits must never silently truncate meetings.
