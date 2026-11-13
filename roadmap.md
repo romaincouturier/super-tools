@@ -1,5 +1,10 @@
 # Roadmap
 
+## Transcription Google Meet Drive (2026-11-13)
+- [ ] Scanner les deux racines récursivement, paginer et dédoublonner, y compris les anciens fichiers oubliés.
+- [ ] Respecter les limites AssemblyAI avec transfert privé des grandes vidéos et contrôle de durée ; signaler les erreurs dans Sentry.
+- [ ] Vérifier le résultat intégral de l’enregistrement Amélie Faggioli / Servier et déployer les corrections ciblées.
+
 ## Reprise des sauvegardes Drive (2026-11-12)
 - [x] Ancienne planification 18 désactivée ; relais backup-managed-tick déployé et planification gérée 96 créée avec la cadence et la fenêtre d'origine. Moteur et autres automatismes inchangés.
 - [x] Appel automatique réel accepté à 20:58 UTC : run du 12 novembre créé, phase db en cours ; refus anonyme 401 vérifié et 35 tests réussis.
