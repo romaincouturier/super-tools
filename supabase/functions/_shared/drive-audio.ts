@@ -16,6 +16,14 @@ async function readRange(fileId: string, token: string, start: number, end: numb
 
 export async function extractDriveAudioPart(fileId: string, token: string, size: number, partIndex: number) {
   const mp4 = createFile();
+  // Only parse sample tables; expanding every video/audio sample exceeds serverless CPU and memory.
+  mp4.buildSampleLists = () => {
+    for (const track of mp4.moov.traks) {
+      track.samples = [];
+      track.samples_duration = 0;
+      track.samples_size = 0;
+    }
+  };
   let ready = false;
   let parseError = "";
   mp4.onReady = () => { ready = true; };
@@ -34,10 +42,35 @@ export async function extractDriveAudioPart(fileId: string, token: string, size:
   const track = info.audioTracks[0];
   if (!track?.audio || !track.codec.startsWith("mp4a.40.")) throw new Error("La vidéo doit contenir une piste audio AAC (MP4 Google Meet).");
   const objectType = Number(track.codec.split(".")[2]);
-  const expected = track.duration / track.timescale;
+  const audioTrack = mp4.getTrackById(track.id);
+  const expected = audioTrack.mdia.mdhd.duration / audioTrack.mdia.mdhd.timescale;
   const start = partIndex * AUDIO_PART_SECONDS;
   if (start >= expected) throw new Error("Morceau audio hors durée de l’enregistrement.");
-  const samples = mp4.getTrackSamplesInfo(track.id).filter((s) => s.dts / s.timescale >= start && s.dts / s.timescale < start + AUDIO_PART_SECONDS);
+  const table = audioTrack.mdia.minf.stbl;
+  const sizes = table.stsz?.sample_sizes;
+  const offsets = table.stco?.chunk_offsets ?? table.co64?.chunk_offsets;
+  if (!sizes || !offsets || !table.stsc || !table.stts) throw new Error("Tables audio MP4 manquantes.");
+  const samples: Array<{ offset: number; size: number; dts: number; duration: number; timescale: number }> = [];
+  let sampleIndex = 0;
+  let dts = 0;
+  let timingRun = 0;
+  let timingRemaining = table.stts.sample_counts[0];
+  let chunkRun = 0;
+  for (let chunk = 0; chunk < offsets.length; chunk++) {
+    if (chunkRun + 1 < table.stsc.first_chunk.length && chunk + 1 >= table.stsc.first_chunk[chunkRun + 1]) chunkRun++;
+    let position = offsets[chunk];
+    for (let n = 0; n < table.stsc.samples_per_chunk[chunkRun] && sampleIndex < sizes.length; n++, sampleIndex++) {
+      if (!timingRemaining) { timingRun++; timingRemaining = table.stts.sample_counts[timingRun]; }
+      const duration = table.stts.sample_deltas[timingRun];
+      if (dts / track.timescale >= start && dts / track.timescale < start + AUDIO_PART_SECONDS) {
+        samples.push({ offset: position, size: sizes[sampleIndex], dts, duration, timescale: track.timescale });
+      }
+      position += sizes[sampleIndex];
+      dts += duration;
+      timingRemaining--;
+    }
+    if (dts / track.timescale >= start + AUDIO_PART_SECONDS) break;
+  }
   if (!samples.length) throw new Error("Aucun échantillon audio dans le morceau.");
   const totalBytes = samples.reduce((sum, s) => sum + s.size + 7, 0);
   if (totalBytes > 64 * 1024 * 1024) throw new Error("Morceau audio supérieur à 64 Mo : extraction arrêtée sans tronquer.");
