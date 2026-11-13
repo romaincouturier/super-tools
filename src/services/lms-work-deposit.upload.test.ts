@@ -55,6 +55,10 @@ describe("uploadDepositFile et réseau instable", () => {
     invoke.mockResolvedValue({ data: null, error: netErr });
     await expect(uploadDepositFile(file, "l1", "a@b.fr", wait)).rejects.toMatchObject({ upload: { attempts: 3 } });
     expect(wait.mock.calls).toEqual([[1000], [3000]]);
-    for (const [, options] of invoke.mock.calls) expect(options.body.get("file")).toBe(file);
+    for (const [, options] of invoke.mock.calls) {
+      const sent = options.body.get("file") as File;
+      expect({ name: sent.name, size: sent.size, type: sent.type }).toEqual({ name: "Dessin.png", size: 1, type: "image/png" });
+      expect(await sent.text()).toBe("x");
+    }
   });
 });
