@@ -955,6 +955,10 @@ const MAX_TABLE_ATTEMPTS = 3;        // au-delà, la table est sautée (crash-lo
 const MAX_RUNS_PER_DAY = 3;          // nombre de tentatives de run par journée
 
 const MISSING_BACKUP_ALERT_MS = 26 * 60 * 60 * 1000;
+const MAX_RESUMABLE_RUN_AGE_MS = 36 * 60 * 60 * 1000; // au-delà, run abandonné
+// Un run complet dure ~70 min : pas de nouveau run après 19:30 UTC, pour qu'il
+// finisse avant l'arrêt du cron (21:00 UTC). Il démarrera à l'ouverture suivante.
+const LAST_START_MINUTE_UTC = 19 * 60 + 30;
 
 const TABLES_SKIPPED_HEAVY = new Set<string>(["document_embeddings"]);
 
@@ -1824,12 +1828,14 @@ async function checkStorageSyncAlert(supabase: any): Promise<void> {
   const remaining = lastRun?.totals?.storageRemaining;
   try {
     await sendBackupEmail(
-      `⚠️ Synchro des fichiers SuperTools incomplète depuis plus de 72 h`,
+      `⚠️ Aucune synchro complète des fichiers SuperTools depuis plus de 72 h`,
       `<div style="font-family: sans-serif; max-width: 600px; text-align: left;">
         <h2 style="color: #d97706;">Alerte synchro des fichiers</h2>
         <p>La base de données est sauvegardée séparément ; cette alerte concerne uniquement la copie des fichiers vers Google Drive.</p>
         <p style="color: #6b7280;">Dernière synchro complète : <strong>${lastOk?.storage_finished_at ? new Date(lastOk.storage_finished_at).toLocaleString("fr-FR", { timeZone: "Europe/Paris" }) : "jamais"}</strong></p>
-        <p style="color: #6b7280;">Dernier run : ${lastRun?.run_date ?? "?"} (${escapeForHtml(String(lastRun?.storage_status ?? "?"))})${remaining != null ? `, ${remaining} fichiers restant à copier` : ""}.</p>
+        <p style="color: #6b7280;">${lastRun?.storage_status === "success"
+          ? `Aucun run n'a atteint la copie des fichiers depuis le ${lastRun.run_date} : la synchro n'est pas en erreur, elle n'a simplement pas été relancée (sauvegardes non exécutées).`
+          : `Dernier run ayant copié des fichiers : ${lastRun?.run_date ?? "?"} (${escapeForHtml(String(lastRun?.storage_status ?? "?"))})${remaining != null ? `, ${remaining} fichiers restant à copier` : ""}.`}</p>
       </div>`,
       "backup_storage_sync_alert",
     );
@@ -1923,6 +1929,10 @@ serve(async (req) => {
 
         }
       }
+      const nowUtc = new Date();
+      if (mode === "tick" && nowUtc.getUTCHours() * 60 + nowUtc.getUTCMinutes() >= LAST_START_MINUTE_UTC) {
+        return createJsonResponse({ skipped: true, reason: "too_late_to_start" });
+      }
       const { data: created, error: createErr } = await supabase
         .from("backup_runs")
         .insert({ run_date: today, status: "running", phase: "db", cursor_index: 0 })
@@ -1954,7 +1964,11 @@ serve(async (req) => {
         await checkMissingBackupAlert(supabase);
         return createJsonResponse({ finishedWithStorageIncomplete: true, runId: run.id });
       }
-      if (idleMs > STALE_RUN_MS * 4) {
+      // Un run interrompu (fin de fenêtre du cron, worker coupé) reprend à son
+      // curseur : l'export par clé primaire est reprenable. On n'abandonne que
+      // les runs trop anciens pour représenter encore une sauvegarde utile.
+      const runAgeMs = Date.now() - new Date((runningRun as any).started_at).getTime();
+      if (idleMs > STALE_RUN_MS * 4 && runAgeMs > MAX_RESUMABLE_RUN_AGE_MS) {
         await saveRun(supabase, run.id, {
           status: "failed",
           finished_at: new Date().toISOString(),
@@ -1966,7 +1980,7 @@ serve(async (req) => {
             `❌ ÉCHEC sauvegarde SuperTools ${run.run_date}`,
             `<div style="font-family: sans-serif; max-width: 600px; text-align: left;">
               <h2 style="color: #dc2626;">Sauvegarde automatique interrompue</h2>
-              <p>La sauvegarde de la base du ${run.run_date} n'a pas terminé dans la fenêtre du cron (arrêtée en phase <strong>${escapeForHtml(String(run.phase))}</strong>, étape ${run.cursor_index}).</p>
+              <p>La sauvegarde de la base du ${run.run_date} n'a pas terminé dans la fenêtre du cron (arrêtée en phase <strong>${escapeForHtml(String(run.phase))}</strong>, étape ${run.cursor_index}) et n'a pas pu être reprise dans les ${Math.round(MAX_RESUMABLE_RUN_AGE_MS / 3600000)} h.</p>
             </div>`,
             "scheduled_backup_failure",
           );
@@ -2009,6 +2023,6 @@ serve(async (req) => {
     } catch (emailErr) {
       console.error("[scheduled-backup] Could not send failure notification:", emailErr);
     }
-    return createErrorResponse(errorMessage);
+    return createErrorResponse(`Sauvegarde : ${errorMessage}`, 500, { cause: error, fn: "scheduled-backup" });
   }
 });

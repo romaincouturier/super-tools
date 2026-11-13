@@ -20,8 +20,15 @@ serve(async (req) => {
     const client = createClient(url, key);
     const { data, error } = await client.functions.invoke("scheduled-backup", { body: { mode: "tick" } });
     if (error) {
-      console.error("[backup-managed-tick] Échec du relais de sauvegarde", error.message);
-      return createErrorResponse("Échec du relais de sauvegarde", 502);
+      const ctx = (error as { context?: Response }).context;
+      let detail = error.message;
+      if (ctx && typeof ctx.text === "function") {
+        const text = await ctx.text().catch(() => "");
+        detail = `HTTP ${ctx.status}${text ? ` : ${text.slice(0, 500)}` : ""}`;
+      }
+      const message = `Échec du relais de sauvegarde (scheduled-backup ${detail})`;
+      console.error(`[backup-managed-tick] ${message}`);
+      return createErrorResponse(message, 502, { cause: new Error(message), fn: "backup-managed-tick" });
     }
     console.log("[backup-managed-tick]", JSON.stringify(data));
     return createJsonResponse(data);
