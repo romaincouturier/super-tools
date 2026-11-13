@@ -23,6 +23,9 @@ import {
   notifySlack,
 } from "../_shared/google-drive-helper.ts";
 
+import { assertCompleteDuration } from "../_shared/drive-transcription.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ASSEMBLYAI_API_KEY = Deno.env.get("ASSEMBLYAI_API_KEY") ?? "";
@@ -80,12 +83,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // Try transcripts first
   const { data: trRow } = await (admin as any)
     .from("transcripts")
-    .select("id, title")
+    .select("id, title, metadata")
     .eq("assemblyai_id", jobId)
     .maybeSingle();
 
   if (trRow) {
-    return await finalizeTranscript(admin, jobId, trRow as { id: string; title: string });
+    return await finalizeTranscript(admin, jobId, trRow as { id: string; title: string; metadata: Record<string, any> });
   }
 
   // Then testimonials (assemblyai_id stored in metadata JSONB)
@@ -110,11 +113,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
 async function finalizeTranscript(
   admin: any,
   jobId: string,
-  row: { id: string; title: string },
+  row: { id: string; title: string; metadata: Record<string, any> },
 ): Promise<Response> {
   if (!ASSEMBLYAI_API_KEY) {
     return jsonResponse({ ok: false, error: "ASSEMBLYAI_API_KEY missing" }, 500);
   }
+  if (row.metadata?.audio_parts?.length) return jsonResponse({ ok: true, pending: true });
   const result = await pollAssemblyAIJob(jobId, ASSEMBLYAI_API_KEY);
   if (result === null) {
     // Shouldn't happen since webhook fires on terminal state, but be safe
@@ -126,6 +130,14 @@ async function finalizeTranscript(
       error_message: "AssemblyAI transcription failed",
       assemblyai_id: null,
     }).eq("id", row.id);
+    return jsonResponse({ ok: true, finalized: "error" });
+  }
+
+  try {
+    assertCompleteDuration(Number(row.metadata?.expected_duration_seconds ?? 0), result.duration);
+  } catch (err) {
+    await admin.from("transcripts").update({ status: "error", error_message: String(err), assemblyai_id: null }).eq("id", row.id);
+    await reportEdgeError(err, { fn: "assemblyai-webhook", transcript_id: row.id });
     return jsonResponse({ ok: true, finalized: "error" });
   }
 

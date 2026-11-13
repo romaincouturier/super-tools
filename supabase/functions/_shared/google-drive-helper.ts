@@ -5,6 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logAnthropicUsage, logAssemblyAiUsage } from "./api-usage.ts";
 import { CLAUDE_DEFAULT } from "./claude-models.ts";
+import { reportEdgeError } from "./sentry.ts";
 import { refreshGoogleAccessToken } from "./google-oauth.ts";
 
 export interface DriveFile {
@@ -229,7 +230,11 @@ export async function pollAssemblyAIJob(
   const res = await fetch(`https://api.assemblyai.com/v2/transcript/${jobId}`, {
     headers: { Authorization: apiKey },
   });
-  if (!res.ok) return "error";
+  if (!res.ok) {
+    const details = await res.text();
+    await reportEdgeError(new Error(`AssemblyAI poll ${res.status}: ${details}`), { fn: "drive-transcription", job_id: jobId });
+    return null;
+  }
   const result = await res.json();
 
   if (result.status === "completed") {
@@ -253,6 +258,7 @@ export async function pollAssemblyAIJob(
     return { text, duration };
   }
   if (result.status === "error") {
+    await reportEdgeError(new Error(String(result.error ?? "AssemblyAI transcription failed")), { fn: "drive-transcription", job_id: jobId });
     await logAssemblyAiUsage({
       origin: "google-drive-helper",
       operation: "poll-transcript",
@@ -404,4 +410,10 @@ ${text.slice(0, 4000)}`;
   } catch {
     return { client_name: "", company: "", service_type: "" };
   }
+}
+
+export async function getDriveVideoMetadata(fileId: string, accessToken: string): Promise<{ size: string; mimeType: string; videoMediaMetadata?: { durationMillis?: string } }> {
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=size,mimeType,videoMediaMetadata&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) throw new Error(`Drive metadata ${res.status}: ${await res.text()}`);
+  return res.json();
 }

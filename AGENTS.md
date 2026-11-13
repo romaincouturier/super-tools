@@ -95,3 +95,5 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Quote game orders stay internal (`create-devis-order`), never WooCommerce.
 - CRM card lists load via `crmCardsFetch` (paged; slim noCRM metadata).
 - Social fields: `save_social_content_group` `p_details` + `validate_social_content`, so MCP matches UI.
+
+- Drive meeting discovery scans configured roots and the Meet tree with pagination and Drive-ID deduplication; oversized MP4 recordings extract AAC in bounded, ordered parts stored in transcript metadata, because upload and duration limits must never silently truncate meetings.
