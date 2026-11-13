@@ -19,6 +19,6 @@ export default defineConfig({
     ],
   },
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src"), "npm:sanitize-html@2.17.0": "sanitize-html" },
+    alias: { "@": path.resolve(__dirname, "./src"), "npm:sanitize-html@2.17.0": "sanitize-html", "npm:mp4box@2.5.0": "mp4box" },
   },
 });
