@@ -1,5 +1,10 @@
 # Roadmap
 
+## Dépôt apprenant, Sentry 1C (2026-11-13)
+- [x] upload-lms-content reçoit le multipart complet puis l'envoie au stockage ; CORS réel OPTIONS 200 avec tous les headers client. Bucket sans limite propre ni restriction MIME ; formulaire 50 Mio par défaut, pas de timeout client explicite. Aucun log disponible sur 15:15–15:35 UTC, même toutes sources confondues ; cause historique non démontrée.
+- [x] Messages HTTP détaillés et erreur de transport sans attribution certaine au réseau ; 3 tentatives (1 puis 3 s), verrouillage pendant tout l'upload et sélection/commentaire conservés après échec. 28 tests réussis, build OK ; aucun email, donnée ou leçon modifiés, front à publier. La sélection n'est pas persistée après rechargement/fermeture.
+- [ ] Événement Sentry détaillé non accessible : connexion MCP annoncée réussie mais aucun outil Sentry exposé dans cette session. Cause exacte et fichier de l'incident impossibles à certifier avec les seuls éléments disponibles.
+
 ## Lecture MCP des planches du book (2026-11-13)
 - [x] Cause : bucket book-productions privé avec anciennes URLs publiques ; téléchargement SDK sans changement de droits, réduction à 1600 pixels et pleine résolution. mcp-server et agent-chat déployés.
 - [x] Recadrage en pourcentages avant réduction ; 31 tests réussis. Source réelle de 14 666 498 octets : aperçu 1600×1109, zone 10 % en pleine résolution 1764×1223. Limite source 15 Mio, sortie 5 Mio ; aucun original modifié ni email envoyé.
