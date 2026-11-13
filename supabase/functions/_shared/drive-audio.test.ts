@@ -24,8 +24,8 @@ describe("Drive AAC extraction", () => {
       expect(part.totalParts).toBe(1);
       expect(ranges.length).toBeGreaterThan(0);
       writeFileSync("/tmp/drive-extraction-test.aac", part.bytes);
-      const result = execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "json", "/tmp/drive-extraction-test.aac"], { encoding: "utf8" });
-      expect(Number(JSON.parse(result).format.duration)).toBeGreaterThanOrEqual(5);
+      const decoded = execFileSync("ffmpeg", ["-v", "error", "-i", "/tmp/drive-extraction-test.aac", "-f", "s16le", "-ac", "1", "-ar", "44100", "pipe:1"]);
+      expect(decoded.length / (44100 * 2)).toBeGreaterThanOrEqual(5);
     } finally { vi.unstubAllGlobals(); }
   });
 });
