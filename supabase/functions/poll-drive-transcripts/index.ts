@@ -14,7 +14,7 @@ import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from ".
 import { isEmptyOrParasiteTranscript, PARASITE_TRANSCRIPT_ERROR } from "../_shared/transcript-quality.ts";
 import {
   assertDriveFolderAccessible,
-
+  getDriveVideoMetadata,
   getValidDriveAccessToken,
   listDriveFolder,
   pollAssemblyAIJob,
@@ -109,7 +109,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
           if (parts.length < metadata.audio_total_parts) continue;
           result = assembleAudioParts(parts, metadata.expected_duration_seconds);
         } else {
-          assertCompleteDuration(Number(metadata.expected_duration_seconds ?? 0), result.duration);
+          let expected = Number(metadata.expected_duration_seconds ?? 0);
+          if (!expected) {
+            const token = await getValidDriveAccessToken(admin);
+            if (!token) throw new Error("Impossible de vérifier la durée originale : Drive non connecté.");
+            const file = await getDriveVideoMetadata(row.external_id, token);
+            expected = Number(file.videoMediaMetadata?.durationMillis ?? 0) / 1000;
+            if (!expected) throw new Error("Durée originale Drive indisponible : complétude non vérifiable.");
+            await admin.from("transcripts").update({ metadata: { ...metadata, expected_duration_seconds: expected, drive_size: file.size } }).eq("id", row.id);
+          }
+          assertCompleteDuration(expected, result.duration);
         }
       } catch (err) {
         await admin.from("transcripts").update({ status: "error", error_message: String(err), assemblyai_id: null }).eq("id", row.id);
@@ -192,6 +201,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ── Pass 2: discover new Drive files ────────────────────────
     const accessToken = await getValidDriveAccessToken(admin);
     if (!accessToken) {
+      await reportEdgeError(new Error("No Google Drive access token"), { fn: "poll-drive-transcripts" });
       await (admin as any).from("polling_cursors")
         .update({ last_synced_at: new Date().toISOString(), status: "error", last_error: "No Drive access token" })
         .eq("source", "drive_transcripts");
