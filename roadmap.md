@@ -1,5 +1,10 @@
 # Roadmap
 
+## Lecture MCP des planches du book (2026-11-13)
+- [x] Cause : bucket book-productions privé avec anciennes URLs publiques ; téléchargement SDK sans changement de droits, réduction à 1600 pixels et pleine résolution. mcp-server et agent-chat déployés.
+- [x] Recadrage en pourcentages avant réduction ; 31 tests réussis. Source réelle de 14 666 498 octets : aperçu 1600×1109, zone 10 % en pleine résolution 1764×1223. Limite source 15 Mio, sortie 5 Mio ; aucun original modifié ni email envoyé.
+- [x] Média e963d32f-1968-4e5a-a966-f077e81b208b lu avec la session du demandeur et lectures journalisées : réduit 119 855 octets, original identique 175 410 octets (874×1240), crop 438×620 vérifié visuellement. Test du helper réel, pas un appel externe Claude sur le serveur hébergé ; mémoire/temps des grandes planches sur Edge non certifiés. Build OK ; contrôle [065] préexistant hors périmètre.
+
 ## Contrôle d’exhaustivité des transcripts (2026-11-13)
 - [x] Inventaires paginés/récursifs persistants avec accès du module, export et 19 tests réussis (dont droits sur Postgres). Fireflies accessible : 187 réunions, 130 textes conformes, 19 invalides/vides, 37 corbeilles, 1 absente ; 100 fiches locales hors source accessible, pas déclarées perdues.
 - [x] Récupération Fireflies paginée reprenable ; erreurs HTTP/GraphQL/écritures vérifiées, textes absents non prêts, ancien rattrapage remplacé par sélection manuelle. Réparation réelle de la réunion manquante Formation Intelligence collective (1/2) : 146 phrases importées sans notification/génération et trace avant/après ; 131 textes conformes après réparation. Pas de rattrapage massif.
