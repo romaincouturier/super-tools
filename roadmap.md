@@ -1,5 +1,10 @@
 # Roadmap
 
+## Contrôle d’exhaustivité des transcripts (2026-11-13)
+- [ ] Inventaires Fireflies paginés et Drive récursifs, rapports persistants, droits et tests.
+- [ ] Fiabiliser la récupération Fireflies, rattrapage explicite sans notifications ni générations secondaires.
+- [ ] Écran de contrôle, rapprochement réel, vérification des longs traitements Drive et bilan des limites.
+
 ## Génération de contenus depuis un transcript (2026-11-13)
 - [x] Cause confirmée : appel d'outil forcé refusé par le modèle ; sélection automatique avec consigne explicite, validation du nom de l'outil, modèle/réglages/droits inchangés.
 - [x] Quatre tests réussis (article, LinkedIn, réponses sans outil attendu) ; seule generate-transcript-content déployée. Test réel connecté : quatre propositions LinkedIn créées sur PictoChallenge #88, relues après rechargement, aucun envoi vers le board ni email. Build OK ; contrôle global [065] préexistant en échec hors périmètre.
