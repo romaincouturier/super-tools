@@ -171,9 +171,9 @@ serve(async (req) => {
     const requestBody = JSON.stringify({
       model,
       max_tokens: 32000,
-      system: promptCfg.system_prompt,
+      system: `${promptCfg.system_prompt}\n\nPour répondre, appelle obligatoirement l'outil propose_content avec les propositions et les tags. Ne réponds pas uniquement en texte libre.`,
       tools: [tool],
-      tool_choice: { type: "tool", name: "propose_content" },
+      tool_choice: { type: "auto" },
       messages: [{ role: "user", content: userPrompt }],
     });
 
@@ -226,7 +226,7 @@ serve(async (req) => {
       usage: data.usage,
       metadata: { transcript_id, stop_reason: data.stop_reason },
     });
-    const toolUse = data.content?.find((c: any) => c.type === "tool_use");
+    const toolUse = data.content?.find((c: any) => c.type === "tool_use" && c.name === "propose_content");
     if (!toolUse?.input) {
       return new Response(JSON.stringify({ error: "Réponse IA invalide" }), {
         status: 502,

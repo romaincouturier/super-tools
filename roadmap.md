@@ -1,5 +1,9 @@
 # Roadmap
 
+## Génération de contenus depuis un transcript (2026-11-13)
+- [x] Cause confirmée : appel d'outil forcé refusé par le modèle ; sélection automatique avec consigne explicite, validation du nom de l'outil, modèle/réglages/droits inchangés.
+- [x] Quatre tests réussis (article, LinkedIn, réponses sans outil attendu) ; seule generate-transcript-content déployée. Test réel connecté : quatre propositions LinkedIn créées sur PictoChallenge #88, relues après rechargement, aucun envoi vers le board ni email. Build OK ; contrôle global [065] préexistant en échec hors périmètre.
+
 ## Transcription Google Meet Drive (2026-11-13)
 - [x] Racines configurées conservées et Google Meet ajouté ; récursion, pagination et dédoublonnage par ID ; refresh authentifié retrouve cinq fichiers oubliés, quatre prêts immédiatement.
 - [x] Limites documentées : upload 2,2 Go, transcription 5 Go/10 h ; MP4 AAC volumineux extraits en morceaux de 45 min, stockage des jobs/textes ordonnés dans metadata, contrôle de durée et erreurs Sentry ; traitements bloqués >24 h signalés, pas de relance infinie des erreurs.
