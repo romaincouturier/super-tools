@@ -517,7 +517,7 @@ export default function Transcripts() {
       <PageHeader title="Transcripts" />
 
       <Tabs defaultValue="transcripts">
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 max-w-full overflow-x-auto justify-start">
           <TabsTrigger value="transcripts">Transcripts</TabsTrigger>
           <TabsTrigger value="articles">Articles publiés</TabsTrigger>
           <TabsTrigger value="recommendations">Recommandations</TabsTrigger>

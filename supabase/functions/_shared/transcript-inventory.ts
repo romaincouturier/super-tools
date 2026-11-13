@@ -45,7 +45,7 @@ export async function classifyInventoryItem(source: string, item: InventoryItem,
   if (row.status === "processing" || row.status === "pending") return { ...base, state: Date.now() - new Date(row.updated_at).getTime() > 86400000 ? "blocked" : "processing" };
   if (!row.raw_text?.trim()) return { ...base, state: "empty", detail: "Fiche sans texte" };
   if (row.metadata?.text_origin === "summary") return { ...base, state: "summary_only" };
-  if (row.status === "error" || isEmptyOrParasiteTranscript(row.raw_text)) return { ...base, state: "error" };
+  if (row.status === "error" || isEmptyOrParasiteTranscript(row.raw_text)) return { ...base, state: "error", detail: item.checked && !item.source_sentences ? "La source ne fournit aucune phrase" : "Texte source non exploitable ; une réparation peut être impossible" };
   if (source === "fireflies") {
     if (!item.checked) return { ...base, state: "unverified", detail: "Texte source non contrôlé" };
     if (!item.source_sentences) return { ...base, state: "source_empty", detail: "La source ne fournit aucune phrase" };
