@@ -40,7 +40,7 @@ describe("dépôt en cours et fichier conservé", () => {
     await waitFor(() => expect(send).not.toBeDisabled());
     expect(mocks.create).not.toHaveBeenCalled();
     expect(screen.getByPlaceholderText(/Ajoutez un mot/)).toHaveValue("Mon travail");
-    mocks.upload.mockResolvedValueOnce({ url: "https://example.test/dessin.png", name: file.name, size: file.size, mime: file.type });
+    mocks.upload.mockResolvedValueOnce({ url: "https://example.test/dessin.png", name: file.name, size: file.size, mime: "image/png" });
     mocks.create.mockResolvedValueOnce({ id: "deposit" });
     fireEvent.click(send);
     await waitFor(() => expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ file_name: "dessin.png", comment: "Mon travail" })));
