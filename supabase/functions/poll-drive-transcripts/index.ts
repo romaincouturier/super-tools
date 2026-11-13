@@ -23,7 +23,7 @@ import {
 } from "../_shared/google-drive-helper.ts";
 
 import { discoverDriveVideos, GOOGLE_MEET_ROOT, assembleAudioParts, assertCompleteDuration, type AudioPart } from "../_shared/drive-transcription.ts";
-import { reportEdgeError } from "../_shared/sentry.ts";
+import { reportDriveTranscriptionError } from "../_shared/drive-transcription-errors.ts";
 import { hasManagedCronCredential, isCronOrServiceRole, isStaffCaller } from "../_shared/cron-auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -43,6 +43,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
+    const body = await req.json().catch(() => ({}));
+    if (body.inspect_transcript_id !== undefined) {
+      if (typeof body.inspect_transcript_id !== "string" || !/^[0-9a-f-]{36}$/i.test(body.inspect_transcript_id)) return createErrorResponse("Invalid transcript ID", 400);
+      const { data: transcript, error } = await admin.from("transcripts").select("id, external_id, source, status, duration_seconds").eq("id", body.inspect_transcript_id).single();
+      if (error || !transcript || transcript.source !== "google_drive") return createErrorResponse("Drive transcript not found", 404);
+      const token = await getValidDriveAccessToken(admin);
+      if (!token) throw new Error("No Google Drive access token");
+      const file = await getDriveVideoMetadata(transcript.external_id, token);
+      const expected = Number(file.videoMediaMetadata?.durationMillis ?? 0) / 1000;
+      return new Response(JSON.stringify({ ...transcript, drive_size: file.size, expected_duration_seconds: expected, duration_matches: expected > 0 && Math.abs(expected - Number(transcript.duration_seconds)) <= Math.max(30, expected * 0.01) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     // ── Read config ──────────────────────────────────────────────
     const { data: settingsRows } = await (admin as any)
       .from("app_settings")
@@ -122,7 +133,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
       } catch (err) {
         await admin.from("transcripts").update({ status: "error", error_message: String(err), assemblyai_id: null }).eq("id", row.id);
-        await reportEdgeError(err, { fn: "poll-drive-transcripts", transcript_id: row.id });
+        await reportDriveTranscriptionError(err, { fn: "poll-drive-transcripts", transcript_id: row.id });
         results.errors++;
         continue;
       }
@@ -201,7 +212,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ── Pass 2: discover new Drive files ────────────────────────
     const accessToken = await getValidDriveAccessToken(admin);
     if (!accessToken) {
-      await reportEdgeError(new Error("No Google Drive access token"), { fn: "poll-drive-transcripts" });
+      await reportDriveTranscriptionError(new Error("No Google Drive access token"), { fn: "poll-drive-transcripts" });
       await (admin as any).from("polling_cursors")
         .update({ last_synced_at: new Date().toISOString(), status: "error", last_error: "No Drive access token" })
         .eq("source", "drive_transcripts");
@@ -265,7 +276,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         results.submitted++;
       } catch (err) {
         console.error(`Failed to enqueue file ${file.name}:`, err);
-        await reportEdgeError(err, { fn: "poll-drive-transcripts", drive_file_id: file.id });
+        await reportDriveTranscriptionError(err, { fn: "poll-drive-transcripts", drive_file_id: file.id });
         await (admin as any).from("transcripts")
           .update({ status: "error", error_message: String(err) })
           .eq("external_id", file.id)
@@ -290,7 +301,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       || message.startsWith("Le dossier Google Drive")
       || message.startsWith("L'identifiant Google Drive");
     console.error("poll-drive-transcripts error:", message);
-    await reportEdgeError(err, { fn: "poll-drive-transcripts" });
+    await reportDriveTranscriptionError(err, { fn: "poll-drive-transcripts" });
     await (admin as any).from("polling_cursors")
       .update({ status: "error", last_error: message })
       .eq("source", "drive_transcripts");

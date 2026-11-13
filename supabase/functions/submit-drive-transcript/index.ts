@@ -20,7 +20,7 @@ import {
 } from "../_shared/google-drive-helper.ts";
 
 import { isCronOrServiceRole } from "../_shared/cron-auth.ts";
-import { reportEdgeError } from "../_shared/sentry.ts";
+import { reportDriveTranscriptionError } from "../_shared/drive-transcription-errors.ts";
 import { extractDriveAudioPart } from "../_shared/drive-audio.ts";
 import { ASSEMBLY_UPLOAD_MAX_BYTES, ASSEMBLY_MAX_SECONDS, type AudioPart } from "../_shared/drive-transcription.ts";
 import { z } from "https://esm.sh/zod@3.25.76";
@@ -90,7 +90,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         console.log("[submit-drive-transcript] job saved", { transcript_id, job_id: jobId, part: parts.length, total_parts: part?.totalParts ?? 0 });
       } catch (err) {
         console.error(`[submit-drive-transcript] ${transcript_id} failed:`, err);
-        await reportEdgeError(err, { fn: "submit-drive-transcript", transcript_id, drive_file_id });
+        await reportDriveTranscriptionError(err, { fn: "submit-drive-transcript", transcript_id, drive_file_id });
         await (admin as any)
           .from("transcripts")
           .update({
