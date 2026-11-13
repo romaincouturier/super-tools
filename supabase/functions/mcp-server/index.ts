@@ -1,4 +1,5 @@
 import { columnHint, isMissingColumnError } from "../_shared/sql-error-hint.ts";
+import { IMAGE_CROP_SCHEMA } from "../_shared/media-image.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import {
   handleCorsPreflightIfNeeded,
@@ -1263,15 +1264,16 @@ const MCP_TOOLS = [
   {
     name: "read_media_image",
     description:
-      "Return an image from a SuperTools gallery (mission workshop photos, CRM card images...) so you can actually see it. Pass the media id from get_mission_dossier's gallery or from the media table. The whole image is always returned, never cropped; it is downscaled server-side to keep it light.",
+      "Return a gallery or book image, including private storage. Pass a media UUID. By default the whole image is reduced to at most 1600 pixels on its longest side without cropping. Optional crop selects a region of the original before reduction, useful for small text and characters on large boards. Sources up to 15 MiB; returned images limited to 5 MiB. No original is modified.",
     inputSchema: {
       type: "object",
       properties: {
         media_id: { type: "string", description: "UUID of the media row" },
+        crop: IMAGE_CROP_SCHEMA,
         full_resolution: {
           type: "boolean",
           description:
-            "Return the original file without downscaling. Use it to re-read a photo whose details (small handwriting, edges) are hard to make out.",
+            "Keep original pixel dimensions (of the crop if supplied). Large originals may be JPEG-encoded; if the result exceeds 5 MiB, request a smaller crop.",
         },
       },
       required: ["media_id"],
@@ -2628,6 +2630,7 @@ async function callTool(
           (args.media_id as string) || "",
           args.full_resolution === true,
           log,
+          args.crop,
         );
         return { content: [{ type: "image", data: img.data, mimeType: img.mimeType }] };
       } catch (e) {

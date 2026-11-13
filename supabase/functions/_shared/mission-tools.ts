@@ -1,5 +1,6 @@
 import { getSupabaseClient } from "./mod.ts";
 import { extractDocument, type ExtractedPart } from "./document-extract.ts";
+import { prepareMediaImage, validateImageCrop } from "./media-image.ts";
 
 /**
  * Lecture du contenu réel d'une mission : dossier agrégé, pages, documents,
@@ -268,8 +269,6 @@ export async function readMissionPage(
   });
 }
 
-const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
-
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
   const CHUNK = 0x8000;
@@ -284,9 +283,11 @@ export async function readMediaImage(
   mediaId: string,
   fullResolution: boolean,
   audit: AuditFn,
+  cropInput?: unknown,
 ): Promise<{ data: string; mimeType: string }> {
+  const crop = validateImageCrop(cropInput);
   await audit(
-    `read_media_image${fullResolution ? " (pleine résolution)" : ""}: ${mediaId.slice(0, 60)}`,
+    `read_media_image${fullResolution ? " (pleine résolution)" : ""}: ${mediaId.slice(0, 60)}${crop ? ` crop=${JSON.stringify(crop)}` : ""}`,
   );
 
   const { data: row, error } = await supabase
@@ -304,35 +305,19 @@ export async function readMediaImage(
 
   const fileUrl = row.file_url as string;
 
-  // Version réduite via le transformateur d'images du storage quand
-  // disponible (les photos d'atelier sortent de téléphone : plusieurs Mo).
-  // resize=contain est OBLIGATOIRE : sans lui le transformateur applique son
-  // mode par défaut `cover`, qui RECADRE l'image pour remplir le cadre au lieu
-  // de l'y faire tenir — les bords (et donc du contenu manuscrit) sont perdus.
-  let res: Response | null = null;
-  if (!fullResolution && fileUrl.includes("/storage/v1/object/public/")) {
-    const renderUrl =
-      fileUrl.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/") +
-      "?width=1600&height=1600&resize=contain&quality=80";
-    const r = await fetch(renderUrl);
-    if (r.ok && (r.headers.get("content-type") || "").startsWith("image/")) {
-      res = r;
-    }
-  }
-  if (!res) {
+  const storage = fileUrl.match(/\/storage\/v1\/object\/(?:public|authenticated|sign)\/([^/]+)\/([^?]+)/);
+  let bytes: Uint8Array;
+  let mimeType = mime;
+  if (storage) {
+    bytes = await downloadFromBucket(supabase, storage[1], decodeURIComponent(storage[2]));
+  } else {
     const r = await fetch(fileUrl);
     if (!r.ok) throw new Error(`Téléchargement impossible (${r.status})`);
-    res = r;
+    bytes = new Uint8Array(await r.arrayBuffer());
+    mimeType = r.headers.get("content-type")?.split(";")[0] || mime;
   }
-
-  const bytes = new Uint8Array(await res.arrayBuffer());
-  if (bytes.length > IMAGE_MAX_BYTES) {
-    throw new Error(
-      `Image trop lourde (${Math.round(bytes.length / 1024)} Ko, max ${IMAGE_MAX_BYTES / 1024} Ko)`,
-    );
-  }
-  const mimeType = res.headers.get("content-type")?.split(";")[0] || mime;
-  return { data: bytesToBase64(bytes), mimeType };
+  const prepared = await prepareMediaImage(bytes, mimeType, fullResolution, crop);
+  return { data: bytesToBase64(prepared.bytes), mimeType: prepared.mimeType };
 }
 
 const MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024;

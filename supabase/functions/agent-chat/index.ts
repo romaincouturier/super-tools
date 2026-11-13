@@ -322,12 +322,13 @@ const TOOLS = [
   {
     name: "read_media_image",
     description:
-      "Return an image from a SuperTools gallery (workshop photos, CRM images) so you can actually see it. Pass the media id from get_mission_dossier's gallery. Never cropped; downscaled server-side.",
+      "Return a gallery or book image, including private storage. Whole image reduced to 1600 pixels by default. Optional crop (x, y, width, height in percentages of the original) selects a region before reduction. Sources up to 15 MiB; output up to 5 MiB. Originals remain unchanged.",
     input_schema: {
       type: "object" as const,
       properties: {
         media_id: { type: "string", description: "UUID of the media row" },
         full_resolution: { type: "boolean", description: "Original file, for hard-to-read details" },
+        crop: { type: "object", properties: { x: { type: "number" }, y: { type: "number" }, width: { type: "number" }, height: { type: "number" } }, required: ["x", "y", "width", "height"], additionalProperties: false },
       },
       required: ["media_id"],
     },
@@ -570,6 +571,7 @@ async function executeTool(
           (toolInput.media_id as string) || "",
           toolInput.full_resolution === true,
           audit,
+          toolInput.crop,
         );
         return [{ kind: "image", data: img.data, mimeType: img.mimeType }];
       } catch (e) {

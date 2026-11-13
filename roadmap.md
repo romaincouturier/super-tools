@@ -1,5 +1,10 @@
 # Roadmap
 
+## Lecture MCP des planches du book (2026-11-13)
+- [ ] Corriger les anciennes URLs publiques vers le bucket privé sans changer les droits ; réduction par défaut et pleine résolution.
+- [ ] Ajouter un recadrage en pourcentages depuis l’original, borné et testé sur des fichiers jusqu’à 15 Mo.
+- [ ] Vérifier le média e963d32f-1968-4e5a-a966-f077e81b208b après déploiement, sans modifier les originaux ni envoyer d’email.
+
 ## Contrôle d’exhaustivité des transcripts (2026-11-13)
 - [x] Inventaires paginés/récursifs persistants avec accès du module, export et 19 tests réussis (dont droits sur Postgres). Fireflies accessible : 187 réunions, 130 textes conformes, 19 invalides/vides, 37 corbeilles, 1 absente ; 100 fiches locales hors source accessible, pas déclarées perdues.
 - [x] Récupération Fireflies paginée reprenable ; erreurs HTTP/GraphQL/écritures vérifiées, textes absents non prêts, ancien rattrapage remplacé par sélection manuelle. Réparation réelle de la réunion manquante Formation Intelligence collective (1/2) : 146 phrases importées sans notification/génération et trace avant/après ; 131 textes conformes après réparation. Pas de rattrapage massif.
