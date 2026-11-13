@@ -190,6 +190,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
         assemblyai_id: null,
       }).eq("id", row.id);
       results.completed++;
+      if (row.metadata?.silent_repair === true) {
+        if (row.metadata.repair_log_id) await admin.from("transcript_repair_logs").update({ status: "success", after_data: { status: "ready", duration_seconds: result.duration, raw_text: result.text } }).eq("id", row.metadata.repair_log_id);
+        continue;
+      }
       await notifySlack(
         `🎤 *Nouveau transcript prêt* : ${row.title || "Sans titre"}\n${analysis.summary}`,
         slackChannel,

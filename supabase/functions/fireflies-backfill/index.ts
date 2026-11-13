@@ -1,118 +1,46 @@
-/**
- * fireflies-backfill
- *
- * Lists recent Fireflies transcripts via GraphQL and imports any that are
- * missing in our `transcripts` table by calling the fireflies-webhook for each.
- *
- * Usage: POST /fireflies-backfill { "limit": 20 }   (auth required)
- */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
+import { isCronOrServiceRole, hasManagedCronCredential, isStaffCaller } from "../_shared/cron-auth.ts";
+import { listFirefliesPage } from "../_shared/fireflies-client.ts";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const FIREFLIES_API_KEY = Deno.env.get("FIREFLIES_API_KEY") ?? "";
-
-Deno.serve(async (req: Request): Promise<Response> => {
+Deno.serve(async (req) => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
-
-  if (!FIREFLIES_API_KEY) {
-    return new Response(JSON.stringify({ error: "FIREFLIES_API_KEY not configured" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-  let limit = 30;
+  if (!(await isCronOrServiceRole(req)) && !(await hasManagedCronCredential(req)) && !(await isStaffCaller(req, "transcripts"))) return createErrorResponse("Unauthorized", 403);
+  const admin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
   try {
-    const body = await req.json();
-    if (typeof body?.limit === "number" && body.limit > 0 && body.limit <= 50) {
-      limit = body.limit;
+    const { data: checkpoint, error: checkpointError } = await admin.from("polling_cursors").select("cursor").eq("source", "fireflies").single();
+    if (checkpointError) throw checkpointError;
+    let cursor: any = {};
+    try { cursor = JSON.parse(checkpoint.cursor ?? "{}"); } catch (e) { console.warn("Ancien curseur Fireflies", String(e)); }
+    if (!cursor.cutoff) cursor = { skip: 0, cutoff: new Date().toISOString(), seen: [] };
+    const meetings = await listFirefliesPage(cursor.skip, cursor.cutoff);
+    const { data: rows, error } = await admin.from("transcripts").select("external_id,status,raw_text").eq("source", "fireflies").in("external_id", meetings.map((t) => t.id));
+    if (error) throw error;
+    const existing = new Map((rows ?? []).map((r) => [r.external_id, r]));
+    const invalid = meetings.filter((t) => { const row = existing.get(t.id); return row && row.status !== "trashed" && (row.status === "error" || !row.raw_text?.trim()); });
+    const { data: setting, error: settingError } = await admin.from("app_settings").select("setting_value").eq("setting_key", "fireflies_webhook_secret").single();
+    if (settingError || !setting?.setting_value) throw new Error("Secret de réception Fireflies non configuré");
+    let imported = 0;
+    let index = 0;
+    for (; index < meetings.length; index++) {
+      const meeting = meetings[index];
+      if (existing.has(meeting.id)) continue;
+      if (imported >= 3) break;
+      const response = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/fireflies-webhook`, { method: "POST", headers: { "Content-Type": "application/json", "X-Webhook-Secret": String(setting.setting_value) }, body: JSON.stringify({ meetingId: meeting.id, eventType: "backfill" }) });
+      if (!response.ok) throw new Error(`Import Fireflies ${response.status}: ${await response.text()}`);
+      const result = await response.json();
+      if (!result.imported && result.skipped !== "already imported") throw new Error("Import Fireflies non confirmé");
+      if (result.imported) imported++;
     }
-  } catch (_) { /* no body */ }
-
-  // List recent transcripts from Fireflies (capped to preserve daily quota ~50/day)
-  const debugRes = await fetch("https://api.fireflies.ai/graphql", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${FIREFLIES_API_KEY}`,
-    },
-    body: JSON.stringify({
-      query: `query($limit: Int) {
-        user { user_id name email num_transcripts }
-        transcripts(limit: $limit) { id title date }
-      }`,
-      variables: { limit },
-    }),
-  });
-
-  if (debugRes.status === 429) {
-    const retryAfter = debugRes.headers.get("retry-after") ?? "unknown";
-    console.warn("[fireflies-backfill] rate-limited, retry-after:", retryAfter);
-    return new Response(JSON.stringify({
-      ok: false,
-      rate_limited: true,
-      retry_after: retryAfter,
-      hint: "Fireflies daily quota exhausted. Will retry at next cron tick.",
-    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const finished = index === meetings.length && meetings.length < 50;
+    const nextCursor = finished ? {} : { ...cursor, skip: cursor.skip + index };
+    const lastError = invalid.length ? `${invalid.length} fiche(s) vide(s) ou en erreur : ouvrir le contrôle d’exhaustivité pour réparation manuelle.` : null;
+    const saved = await admin.from("polling_cursors").update({ cursor: JSON.stringify(nextCursor), last_synced_at: new Date().toISOString(), status: lastError ? "error" : "idle", last_error: lastError }).eq("source", "fireflies");
+    if (saved.error) throw saved.error;
+    return new Response(JSON.stringify({ ok: true, total_listed: meetings.length, newly_imported: imported, invalid_existing: invalid.length, inventory_complete: finished, cursor: nextCursor }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (e) {
+    await admin.from("polling_cursors").update({ status: "error", last_error: String(e) }).eq("source", "fireflies");
+    return createErrorResponse(String(e), 502, { cause: e, fn: "fireflies-backfill" });
   }
-
-  const debugJson = await debugRes.json();
-  console.log("[fireflies-backfill] debug:", JSON.stringify(debugJson));
-
-  const transcripts: Array<{ id: string; title: string; date: number }> = debugJson?.data?.transcripts ?? [];
-  if (!transcripts.length) {
-    return new Response(JSON.stringify({
-      ok: true,
-      total_listed: 0,
-      debug: debugJson,
-      hint: "Fireflies returned 0 transcripts.",
-    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
-
-  // Find which are missing in DB
-  const ids = transcripts.map((t) => t.id);
-  const { data: existing } = await (admin as any)
-    .from("transcripts")
-    .select("external_id")
-    .eq("source", "fireflies")
-    .in("external_id", ids);
-  const existingSet = new Set((existing as Array<{ external_id: string }> ?? []).map((r) => r.external_id));
-  const missing = transcripts.filter((t) => !existingSet.has(t.id));
-
-  // Read webhook secret
-  const { data: settingRow } = await (admin as any)
-    .from("app_settings")
-    .select("setting_value")
-    .eq("setting_key", "fireflies_webhook_secret")
-    .maybeSingle();
-  const webhookSecret = (settingRow as any)?.setting_value ?? "";
-
-  const results: Array<{ id: string; title: string; status: number; body: string }> = [];
-  for (const t of missing) {
-    const r = await fetch(`${SUPABASE_URL}/functions/v1/fireflies-webhook`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(webhookSecret ? { "X-Webhook-Secret": webhookSecret } : {}),
-      },
-      body: JSON.stringify({ meetingId: t.id, eventType: "backfill" }),
-    });
-    results.push({ id: t.id, title: t.title, status: r.status, body: await r.text() });
-  }
-
-  return new Response(
-    JSON.stringify({
-      ok: true,
-      total_listed: transcripts.length,
-      already_imported: transcripts.length - missing.length,
-      newly_imported: results.filter((r) => r.status === 200 && r.body.includes("imported")).length,
-      results,
-    }),
-    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-  );
 });

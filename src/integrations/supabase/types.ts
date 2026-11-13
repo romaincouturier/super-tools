@@ -13842,6 +13842,95 @@ export type Database = {
           },
         ]
       }
+      transcript_inventory_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          cursor: Json
+          errors: Json
+          id: string
+          items: Json
+          source: string
+          status: string
+          summary: Json
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          cursor?: Json
+          errors?: Json
+          id?: string
+          items?: Json
+          source: string
+          status?: string
+          summary?: Json
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          cursor?: Json
+          errors?: Json
+          id?: string
+          items?: Json
+          source?: string
+          status?: string
+          summary?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      transcript_repair_logs: {
+        Row: {
+          after_data: Json | null
+          before_data: Json | null
+          created_at: string
+          created_by: string
+          error_message: string | null
+          external_id: string
+          id: string
+          run_id: string
+          status: string
+          transcript_id: string | null
+        }
+        Insert: {
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          created_by: string
+          error_message?: string | null
+          external_id: string
+          id?: string
+          run_id: string
+          status: string
+          transcript_id?: string | null
+        }
+        Update: {
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          created_by?: string
+          error_message?: string | null
+          external_id?: string
+          id?: string
+          run_id?: string
+          status?: string
+          transcript_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcript_repair_logs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "transcript_inventory_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transcripts: {
         Row: {
           ai_title: string | null

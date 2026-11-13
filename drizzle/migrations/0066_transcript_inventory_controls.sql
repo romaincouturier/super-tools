@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS public.transcript_inventory_runs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), source text NOT NULL CHECK (source IN ('fireflies','google_drive')), status text NOT NULL DEFAULT 'running' CHECK (status IN ('running','complete','incomplete')), created_by uuid NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz, cursor jsonb NOT NULL DEFAULT '{}'::jsonb, items jsonb NOT NULL DEFAULT '[]'::jsonb, summary jsonb NOT NULL DEFAULT '{}'::jsonb, errors jsonb NOT NULL DEFAULT '[]'::jsonb);
+GRANT SELECT ON public.transcript_inventory_runs TO authenticated;
+GRANT ALL ON public.transcript_inventory_runs TO service_role;
+ALTER TABLE public.transcript_inventory_runs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY transcript_inventory_read ON public.transcript_inventory_runs FOR SELECT TO authenticated USING (public.is_admin(auth.uid()) OR public.has_module_access(auth.uid(),'transcripts'));
+CREATE INDEX IF NOT EXISTS transcript_inventory_source_created ON public.transcript_inventory_runs(source,created_at DESC);
+CREATE TABLE IF NOT EXISTS public.transcript_repair_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), run_id uuid NOT NULL REFERENCES public.transcript_inventory_runs(id), transcript_id uuid, external_id text NOT NULL, created_by uuid NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), before_data jsonb, after_data jsonb, status text NOT NULL CHECK (status IN ('success','error','submitted')), error_message text);
+GRANT SELECT ON public.transcript_repair_logs TO authenticated;
+GRANT ALL ON public.transcript_repair_logs TO service_role;
+ALTER TABLE public.transcript_repair_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY transcript_repair_read ON public.transcript_repair_logs FOR SELECT TO authenticated USING (public.is_admin(auth.uid()) OR public.has_module_access(auth.uid(),'transcripts'));
+COMMENT ON TABLE public.transcript_inventory_runs IS 'Manual exhaustive source inventories; incomplete scans never certify completeness.';
+COMMENT ON TABLE public.transcript_repair_logs IS 'Explicit transcript repairs with before/after trace; no outbound notifications.';

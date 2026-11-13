@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import WpArticlesTab from "@/components/transcripts/WpArticlesTab";
 import EditorialRecommendationsTab from "@/components/transcripts/EditorialRecommendationsTab";
+import TranscriptInventoryPanel from "@/components/transcripts/TranscriptInventoryPanel";
 import { TranscriptGenerationPanel } from "@/components/transcripts/TranscriptGenerationPanel";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
@@ -516,10 +517,11 @@ export default function Transcripts() {
       <PageHeader title="Transcripts" />
 
       <Tabs defaultValue="transcripts">
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 max-w-full overflow-x-auto justify-start">
           <TabsTrigger value="transcripts">Transcripts</TabsTrigger>
           <TabsTrigger value="articles">Articles publiés</TabsTrigger>
           <TabsTrigger value="recommendations">Recommandations</TabsTrigger>
+          <TabsTrigger value="controls">Contrôle</TabsTrigger>
         </TabsList>
 
         <TabsContent value="articles">
@@ -528,6 +530,9 @@ export default function Transcripts() {
 
         <TabsContent value="recommendations">
           <EditorialRecommendationsTab />
+        </TabsContent>
+        <TabsContent value="controls">
+          <TranscriptInventoryPanel />
         </TabsContent>
 
         <TabsContent value="transcripts">

@@ -1,5 +1,11 @@
 # Roadmap
 
+## Contrôle d’exhaustivité des transcripts (2026-11-13)
+- [x] Inventaires paginés/récursifs persistants avec accès du module, export et 19 tests réussis (dont droits sur Postgres). Fireflies accessible : 187 réunions, 130 textes conformes, 19 invalides/vides, 37 corbeilles, 1 absente ; 100 fiches locales hors source accessible, pas déclarées perdues.
+- [x] Récupération Fireflies paginée reprenable ; erreurs HTTP/GraphQL/écritures vérifiées, textes absents non prêts, ancien rattrapage remplacé par sélection manuelle. Réparation réelle de la réunion manquante Formation Intelligence collective (1/2) : 146 phrases importées sans notification/génération et trace avant/après ; 131 textes conformes après réparation. Pas de rattrapage massif.
+- [x] Écran Contrôle vérifié connecté et sur mobile, résultats relus après rechargement ; Drive : 114 vidéos dans 16 dossiers, 79 complètes, 33 absentes, 2 en traitement, 1 fiche locale hors arbre ; fonctions concernées déployées et nouvelles tables incluses aux sauvegardes. Aucune nouvelle planification ni leçon modifiée. Front à publier ; contrôle [065] préexistant hors périmètre.
+- [ ] Deux longues vidéos Drive sont toujours en traitement chez le prestataire ; résultat final indisponible au dernier contrôle, sans seconde transcription lancée.
+
 ## Génération de contenus depuis un transcript (2026-11-13)
 - [x] Cause confirmée : appel d'outil forcé refusé par le modèle ; sélection automatique avec consigne explicite, validation du nom de l'outil, modèle/réglages/droits inchangés.
 - [x] Quatre tests réussis (article, LinkedIn, réponses sans outil attendu) ; seule generate-transcript-content déployée. Test réel connecté : quatre propositions LinkedIn créées sur PictoChallenge #88, relues après rechargement, aucun envoi vers le board ni email. Build OK ; contrôle global [065] préexistant en échec hors périmètre.

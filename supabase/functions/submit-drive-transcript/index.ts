@@ -98,6 +98,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
             error_message: err instanceof Error ? err.message : String(err),
           })
           .eq("id", transcript_id);
+        const { data: failedRow } = await admin.from("transcripts").select("metadata").eq("id", transcript_id).single();
+        if (failedRow?.metadata?.repair_log_id) await admin.from("transcript_repair_logs").update({ status: "error", error_message: String(err) }).eq("id", failedRow.metadata.repair_log_id);
       }
     };
 

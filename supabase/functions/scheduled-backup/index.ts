@@ -104,6 +104,7 @@ const TABLES_TO_BACKUP = [
   "training_survey_recipients", "training_survey_responses", "training_surveys",
   "training_venues", "trainings", "training_transcripts",
   "transcript_ai_prompts", "transcript_generations", "transcripts",
+  "transcript_inventory_runs", "transcript_repair_logs",
   "usage_records", "user_module_access", "user_positioning",
   "user_preferences", "user_security_metadata",
   "vhd_procedures", "vhd_reports",
