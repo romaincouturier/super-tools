@@ -10,7 +10,7 @@
  * blocking other files. The poller returns immediately after fan-out.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import {
   getDriveVideoMetadata,
   uploadToAssemblyAI,
@@ -35,9 +35,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
 
-  if (!(await isCronOrServiceRole(req))) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (!(await isCronOrServiceRole(req))) return createErrorResponse("Unauthorized", 401);
   try {
-    const { transcript_id, drive_file_id } = z.object({ transcript_id: z.string().uuid(), drive_file_id: z.string().regex(/^[a-zA-Z0-9_-]+$/) }).parse(await req.json());
+    const parsed = z.object({ transcript_id: z.string().uuid(), drive_file_id: z.string().regex(/^[a-zA-Z0-9_-]+$/) }).safeParse(await req.json());
+    if (!parsed.success) return createErrorResponse("Invalid transcript_id or drive_file_id", 400);
+    const { transcript_id, drive_file_id } = parsed.data;
     if (!transcript_id || !drive_file_id) {
       return new Response(JSON.stringify({ error: "transcript_id and drive_file_id required" }), {
         status: 400,
@@ -102,7 +104,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const waitUntil = (globalThis as unknown as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } })
       .EdgeRuntime?.waitUntil;
     if (waitUntil) waitUntil(run());
-    else run().catch(() => {});
+    else await run();
 
     return new Response(JSON.stringify({ accepted: true, transcript_id }), {
       status: 202,
