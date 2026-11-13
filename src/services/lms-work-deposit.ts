@@ -120,7 +120,7 @@ export async function deleteDeposit(id: string, learnerEmail: string): Promise<v
 // ── Storage ─────────────────────────────────────────────────────────
 
 export const DEPOSIT_NETWORK_ERROR_MESSAGE =
-  "Connexion instable : le fichier n'a pas pu être envoyé. Vérifiez votre connexion (wifi ou réseau mobile) puis réessayez.";
+  "L'envoi n'a pas pu être confirmé après 3 tentatives : aucune réponse accessible du service d'envoi. La cause peut être le réseau, un blocage du navigateur ou le service. Réessayez sans fermer cette page.";
 
 const UPLOAD_RETRY_DELAYS_MS = [1000, 3000];
 
@@ -128,10 +128,41 @@ function isNetworkFailure(error: unknown): boolean {
   return (error as { name?: string } | null)?.name === "FunctionsFetchError";
 }
 
+async function depositUploadError(error: unknown, file: File, attempt: number): Promise<Error> {
+  const failure = error as { name?: string; context?: unknown; message?: string } | null;
+  const response = failure?.context instanceof Response ? failure.context : null;
+  const status = response?.status;
+  let detail = "";
+  if (response) {
+    const body = await response.clone().text();
+    try {
+      const parsed = JSON.parse(body);
+      if (typeof parsed?.error === "string") detail = parsed.error;
+      else if (typeof parsed?.message === "string") detail = parsed.message;
+    } catch {
+      // Une passerelle peut répondre en HTML plutôt qu'en JSON.
+    }
+  }
+  let message = DEPOSIT_NETWORK_ERROR_MESSAGE;
+  if (status === 413) message = "Le service d'envoi refuse ce fichier car il est trop volumineux. Réduisez sa taille puis réessayez.";
+  else if (status === 415) message = "Le service d'envoi refuse ce type de fichier. Choisissez un autre format.";
+  else if (status === 401) message = "Votre session n'est plus valide. Reconnectez-vous avant de renvoyer votre fichier.";
+  else if (status === 403) message = "L'accès au service d'envoi a été refusé. Contactez l'équipe pédagogique.";
+  else if (status === 504 || status === 408) message = "Le service d'envoi n'a pas répondu à temps. Réessayez sans fermer cette page.";
+  else if (status === 429) message = "Le service d'envoi est temporairement surchargé. Patientez puis réessayez.";
+  else if (status) message = `Le service d'envoi a refusé le fichier (HTTP ${status})${detail ? ` : ${detail}` : ". Réessayez ou contactez l'équipe pédagogique."}`;
+  else if (failure?.name === "FunctionsRelayError") message = "Le relais du service d'envoi a échoué. Réessayez sans fermer cette page.";
+  else if (!isNetworkFailure(error)) message = failure?.message || "Le fichier n'a pas pu être envoyé. Réessayez sans fermer cette page.";
+  return Object.assign(new Error(message), {
+    cause: error,
+    upload: { function: "upload-lms-content", status, attempts: attempt + 1, size: file.size, mime: resolveContentType(file) },
+  });
+}
+
 /**
  * Uploads a deposit file to the lms-content bucket and returns the public URL.
- * Un échec réseau (requête qui n'atteint pas la fonction, fréquent sur mobile)
- * est réessayé deux fois avec un chemin neuf, puis remonte un message clair.
+ * Une absence de réponse accessible est réessayée deux fois, sans présumer
+ * qu'elle provient de la connexion de l'apprenant.
  */
 export async function uploadDepositFile(
   file: File,
@@ -156,9 +187,8 @@ export async function uploadDepositFile(
           await wait(UPLOAD_RETRY_DELAYS_MS[attempt]);
           continue;
         }
-        throw Object.assign(new Error(DEPOSIT_NETWORK_ERROR_MESSAGE), { cause: error });
       }
-      throw error;
+      throw await depositUploadError(error, file, attempt);
     }
     const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
     if (!publicUrl) throw new Error("URL introuvable après l'upload");

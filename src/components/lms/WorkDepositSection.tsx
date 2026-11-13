@@ -278,6 +278,9 @@ function DepositForm({
   const fileRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [comment, setComment] = useState("");
+  const sendingRef = useRef(false);
+  const [uploading, setUploading] = useState(false);
+  const busy = submitting || uploading;
   const accept = config.accepted_formats.map((f) => FORMAT_MIME_ACCEPT[f]).join(",");
   const maxSizeBytes = config.max_size_mb * 1024 * 1024;
 
@@ -307,16 +310,22 @@ function DepositForm({
   const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
 
   const handleSubmit = async () => {
+    if (sendingRef.current || submitting) return;
     if (files.length === 0) {
       onError(new Error("Sélectionnez au moins un fichier à déposer."));
       return;
     }
+    sendingRef.current = true;
+    setUploading(true);
     try {
       await onSubmit({ files, comment });
       setFiles([]);
       setComment("");
     } catch (err) {
       onError(err);
+    } finally {
+      sendingRef.current = false;
+      setUploading(false);
     }
   };
 
@@ -351,6 +360,7 @@ function DepositForm({
           type="file"
           accept={accept}
           multiple
+          disabled={busy}
           className="hidden"
           onChange={(e) => {
             const picked = Array.from(e.target.files ?? []);
@@ -367,7 +377,7 @@ function DepositForm({
                   <p className="font-medium break-words">{f.name}</p>
                   <p className="text-xs text-muted-foreground">{formatFileSize(f.size)}</p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => removeFile(idx)} className="self-end sm:self-auto">
+                <Button variant="ghost" size="sm" disabled={busy} onClick={() => removeFile(idx)} className="self-end sm:self-auto">
                   <X className="h-3.5 w-3.5 mr-1" /> Retirer
                 </Button>
               </li>
@@ -379,7 +389,7 @@ function DepositForm({
             variant="outline"
             onClick={() => fileRef.current?.click()}
             className="w-full sm:w-auto"
-            disabled={files.length >= MAX_DEPOSIT_FILES}
+            disabled={busy || files.length >= MAX_DEPOSIT_FILES}
           >
             <Upload className="h-4 w-4 mr-2" />
             {files.length > 0 ? "Ajouter d'autres fichiers" : "Choisir un ou plusieurs fichiers"}
@@ -395,6 +405,7 @@ function DepositForm({
         <Textarea
           id="deposit-comment"
           value={comment}
+          disabled={busy}
           onChange={(e) => setComment(e.target.value)}
           rows={3}
           placeholder="Ajoutez un mot pour SuperTilt ou pour les autres apprenants…"
@@ -402,8 +413,8 @@ function DepositForm({
       </div>
 
       <div className="flex justify-end pt-2">
-        <Button onClick={handleSubmit} disabled={files.length === 0 || submitting} className="w-full sm:w-auto">
-          {submitting ? <Spinner className="mr-2" /> : null}
+        <Button onClick={handleSubmit} disabled={files.length === 0 || busy} className="w-full sm:w-auto">
+          {busy ? <Spinner className="mr-2" /> : null}
           {files.length > 1 ? `Envoyer mes ${files.length} travaux` : "Envoyer mon travail"}
         </Button>
       </div>

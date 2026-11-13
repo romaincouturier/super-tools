@@ -28,7 +28,33 @@ describe("uploadDepositFile et réseau instable", () => {
   it("ne réessaie pas une erreur renvoyée par la fonction", async () => {
     const httpErr = Object.assign(new Error("refus"), { name: "FunctionsHttpError" });
     invoke.mockResolvedValue({ data: null, error: httpErr });
-    await expect(uploadDepositFile(file, "l1", "a@b.fr", noWait)).rejects.toBe(httpErr);
+    await expect(uploadDepositFile(file, "l1", "a@b.fr", noWait)).rejects.toMatchObject({ message: "refus", cause: httpErr });
     expect(invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([413, 415, 401, 403, 408, 429, 504])("conserve le statut HTTP %s sans l'attribuer au réseau", async (status) => {
+    const error = Object.assign(new Error("Edge Function returned a non-2xx status code"), {
+      name: "FunctionsHttpError", context: new Response(JSON.stringify({ error: "refus serveur" }), { status }),
+    });
+    invoke.mockResolvedValue({ data: null, error });
+    await expect(uploadDepositFile(file, "l1", "a@b.fr", noWait)).rejects.toMatchObject({
+      cause: error, upload: { status, attempts: 1, size: 1, mime: "image/png" },
+    });
+    expect(invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it("extrait le refus réel du stockage dans une réponse HTTP 500", async () => {
+    invoke.mockResolvedValue({ data: null, error: Object.assign(new Error("non-2xx"), {
+      name: "FunctionsHttpError", context: new Response(JSON.stringify({ error: "mime type image/heic is not supported" }), { status: 500 }),
+    }) });
+    await expect(uploadDepositFile(file, "l1", "a@b.fr", noWait)).rejects.toThrow("HTTP 500) : mime type image/heic is not supported");
+  });
+
+  it("réessaie le même fichier après 1 puis 3 secondes", async () => {
+    const wait = vi.fn().mockResolvedValue(undefined);
+    invoke.mockResolvedValue({ data: null, error: netErr });
+    await expect(uploadDepositFile(file, "l1", "a@b.fr", wait)).rejects.toMatchObject({ upload: { attempts: 3 } });
+    expect(wait.mock.calls).toEqual([[1000], [3000]]);
+    for (const [, options] of invoke.mock.calls) expect(options.body.get("file")).toBe(file);
   });
 });
