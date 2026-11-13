@@ -11,6 +11,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { isEmptyOrParasiteTranscript, PARASITE_TRANSCRIPT_ERROR } from "../_shared/transcript-quality.ts";
 import { analyzeTranscript } from "../_shared/google-drive-helper.ts";
+import { isStaffCaller } from "../_shared/cron-auth.ts";
+import { listFirefliesPage } from "../_shared/fireflies-client.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -28,6 +30,9 @@ interface FF {
 Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
+  if (!(await isStaffCaller(req, "transcripts"))) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+  return new Response(JSON.stringify({ error: "Utilisez le contrôle d’exhaustivité pour inventorier puis sélectionner explicitement les réparations, sans notifications." }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   if (!FIREFLIES_API_KEY) {
     return new Response(JSON.stringify({ error: "FIREFLIES_API_KEY missing" }), {

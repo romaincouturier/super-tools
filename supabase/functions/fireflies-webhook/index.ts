@@ -10,6 +10,8 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { isEmptyOrParasiteTranscript, PARASITE_TRANSCRIPT_ERROR } from "../_shared/transcript-quality.ts";
 import { analyzeTranscript, notifySlack } from "../_shared/google-drive-helper.ts";
 import { timingSafeEqualSecret } from "../_shared/crypto.ts";
+import { firefliesInitialStatus } from "../_shared/transcript-repair.ts";
+import { transcriptHash } from "../_shared/transcript-inventory.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -156,12 +158,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
       : t.summary?.overview ?? "";
 
     const parasite = !!rawText && isEmptyOrParasiteTranscript(rawText);
+    const quality = firefliesInitialStatus(rawText, !!t.sentences?.length);
     const analysis = rawText && !parasite
       ? await analyzeTranscript(rawText)
       : { summary: t.summary?.overview ?? "", tags: [] };
 
     // ── Insert transcript ────────────────────────────────────────
-    const { data: inserted } = await (admin as any)
+    const { data: inserted, error: insertError } = await (admin as any)
       .from("transcripts")
       .insert({
         source: "fireflies",
@@ -173,16 +176,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
         duration_seconds: Number.isFinite(Number(t.duration))
           ? Math.round(Number(t.duration) * 60)
           : null,
-        status: parasite ? "error" : "ready",
-        error_message: parasite ? PARASITE_TRANSCRIPT_ERROR : null,
+        status: quality.status,
+        error_message: quality.error_message,
         metadata: {
           fireflies_date: new Date(t.date).toISOString(),
           event_type: body.eventType,
           meeting_id: body.meetingId,
+          text_origin: quality.text_origin,
+          source_hash: await transcriptHash(rawText),
+          source_sentence_count: t.sentences?.length ?? 0,
         },
       })
       .select("id")
       .single();
+    if (insertError || !inserted) throw new Error(insertError?.message ?? "Échec de l’enregistrement Fireflies");
 
     // ── Notify Slack ─────────────────────────────────────────────
     await notifySlack(

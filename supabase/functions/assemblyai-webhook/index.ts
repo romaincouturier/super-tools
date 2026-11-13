@@ -186,6 +186,10 @@ async function finalizeTranscript(
   }).eq("id", row.id);
 
   // Read Slack channel from settings (best-effort)
+  if (row.metadata?.silent_repair === true) {
+    if (row.metadata.repair_log_id) await admin.from("transcript_repair_logs").update({ status: "success", after_data: { status: "ready", duration_seconds: result.duration, raw_text: result.text } }).eq("id", row.metadata.repair_log_id);
+    return jsonResponse({ ok: true, finalized: "ready", silent: true });
+  }
   const { data: chRow } = await admin
     .from("app_settings")
     .select("setting_value")

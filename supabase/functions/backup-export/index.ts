@@ -176,6 +176,8 @@ const TABLES_TO_BACKUP = [
   "pictodico_challenges",
   "pictodico_words",
   "polling_cursors",
+  "transcript_inventory_runs",
+  "transcript_repair_logs",
   "post_evaluation_emails",
   "practice_poll_options",
   "practice_poll_votes",
