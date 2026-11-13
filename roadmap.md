@@ -1,9 +1,9 @@
 # Roadmap
 
 ## Lecture MCP des planches du book (2026-11-13)
-- [ ] Corriger les anciennes URLs publiques vers le bucket privé sans changer les droits ; réduction par défaut et pleine résolution.
-- [ ] Ajouter un recadrage en pourcentages depuis l’original, borné et testé sur des fichiers jusqu’à 15 Mo.
-- [ ] Vérifier le média e963d32f-1968-4e5a-a966-f077e81b208b après déploiement, sans modifier les originaux ni envoyer d’email.
+- [x] Cause : bucket book-productions privé avec anciennes URLs publiques ; téléchargement SDK sans changement de droits, réduction à 1600 pixels et pleine résolution. mcp-server et agent-chat déployés.
+- [x] Recadrage en pourcentages avant réduction ; 31 tests réussis. Source réelle de 14 666 498 octets : aperçu 1600×1109, zone 10 % en pleine résolution 1764×1223. Limite source 15 Mio, sortie 5 Mio ; aucun original modifié ni email envoyé.
+- [x] Média e963d32f-1968-4e5a-a966-f077e81b208b lu avec la session du demandeur et lectures journalisées : réduit 119 855 octets, original identique 175 410 octets (874×1240), crop 438×620 vérifié visuellement. Test du helper réel, pas un appel externe Claude sur le serveur hébergé ; mémoire/temps des grandes planches sur Edge non certifiés. Build OK ; contrôle [065] préexistant hors périmètre.
 
 ## Contrôle d’exhaustivité des transcripts (2026-11-13)
 - [x] Inventaires paginés/récursifs persistants avec accès du module, export et 19 tests réussis (dont droits sur Postgres). Fireflies accessible : 187 réunions, 130 textes conformes, 19 invalides/vides, 37 corbeilles, 1 absente ; 100 fiches locales hors source accessible, pas déclarées perdues.
