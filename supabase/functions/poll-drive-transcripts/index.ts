@@ -10,7 +10,7 @@
  *   Pass 2 — Discover new Drive files and submit them (up to 5 per run).
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import { isEmptyOrParasiteTranscript, PARASITE_TRANSCRIPT_ERROR } from "../_shared/transcript-quality.ts";
 import {
   assertDriveFolderAccessible,
@@ -37,8 +37,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
 
-  if (!(await hasManagedCronCredential(req)) && !(await isCronOrServiceRole(req)) && !(await isStaffCaller(req, "transcripts"))) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (!(await hasManagedCronCredential(req)) && !(await isCronOrServiceRole(req)) && !(await isStaffCaller(req, "supertilt_fr"))) {
+    return createErrorResponse("Unauthorized", 401);
   }
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
