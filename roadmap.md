@@ -1,5 +1,9 @@
 # Roadmap
 
+## Dépôt apprenant, Sentry 1C (2026-11-13)
+- [ ] Vérifier la fonction appelée, CORS, limites et logs de 15:25 UTC ; distinguer faits et cause non démontrée.
+- [ ] Corriger les messages, vérifier retries et conservation de la sélection ; tester sans email ni modification des leçons.
+
 ## Lecture MCP des planches du book (2026-11-13)
 - [x] Cause : bucket book-productions privé avec anciennes URLs publiques ; téléchargement SDK sans changement de droits, réduction à 1600 pixels et pleine résolution. mcp-server et agent-chat déployés.
 - [x] Recadrage en pourcentages avant réduction ; 31 tests réussis. Source réelle de 14 666 498 octets : aperçu 1600×1109, zone 10 % en pleine résolution 1764×1223. Limite source 15 Mio, sortie 5 Mio ; aucun original modifié ni email envoyé.
