@@ -52,6 +52,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!token) throw new Error("No Google Drive access token");
       const file = await getDriveVideoMetadata(transcript.external_id, token);
       const expected = Number(file.videoMediaMetadata?.durationMillis ?? 0) / 1000;
+      if (body.probe_audio === true) {
+        const { extractDriveAudioPart } = await import("../_shared/drive-audio.ts");
+        const audio = await extractDriveAudioPart(transcript.external_id, token, Number(file.size), 0);
+        return new Response(JSON.stringify({ extracted_audio_bytes: audio.bytes.length, part_duration: audio.duration, expected_duration: audio.expected, total_parts: audio.totalParts }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       return new Response(JSON.stringify({ ...transcript, drive_size: file.size, expected_duration_seconds: expected, duration_matches: expected > 0 && Math.abs(expected - Number(transcript.duration_seconds)) <= Math.max(30, expected * 0.01) }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     // ── Read config ──────────────────────────────────────────────
@@ -87,6 +92,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const results = { checked: 0, completed: 0, submitted: 0, errors: 0 };
+
+    const { data: stalled, error: stalledError } = await admin.from("transcripts")
+      .select("id, external_id, assemblyai_id")
+      .eq("source", "google_drive").eq("status", "processing")
+      .lt("updated_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+    if (stalledError) throw stalledError;
+    for (const row of stalled ?? []) {
+      const message = "Transcription Drive bloquée depuis plus de 24 h : traitement à vérifier.";
+      await admin.from("transcripts").update({ status: "error", error_message: message }).eq("id", row.id);
+      await reportDriveTranscriptionError(new Error(message), { fn: "poll-drive-transcripts", transcript_id: row.id, job_id: row.assemblyai_id, drive_file_id: row.external_id });
+      results.errors++;
+    }
 
     // ── Pass 1: check pending AssemblyAI jobs ────────────────────
     const { data: processing } = await (admin as any)
