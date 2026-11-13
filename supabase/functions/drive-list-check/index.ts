@@ -133,6 +133,7 @@ Deno.serve(async (req) => {
             item.source_duration = Number(meeting.duration ?? 0) * 60;
             item.checked = true;
             cursor.detail_index++;
+            await new Promise((resolve) => setTimeout(resolve, 1100));
           }
           if (cursor.detail_index >= run.items.length) cursor.phase = "done";
         }

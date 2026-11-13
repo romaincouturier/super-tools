@@ -13,7 +13,9 @@ export function useTranscriptInventoryControl() {
     onSettled: () => {
       client.invalidateQueries({ queryKey: ["transcript-inventories"] });
       client.invalidateQueries({ queryKey: ["transcripts"] });
-      client.invalidateQueries({ queryKey: ["transcript_counts"] });
+      client.invalidateQueries({ queryKey: ["transcripts-page"] });
+      client.invalidateQueries({ queryKey: ["transcripts-counts"] });
+      client.invalidateQueries({ queryKey: ["transcript"] });
     },
     onError: (error: Error) => toast.error(error.message, { cause: error }),
   });

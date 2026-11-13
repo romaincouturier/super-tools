@@ -40,7 +40,7 @@ function InventorySource({ source, run }: { source: "fireflies" | "google_drive"
         await control.mutateAsync({ action: "repair", run_id: run.id, external_id: id });
         success++;
         setSelected((old) => { const next = new Set(old); next.delete(id); return next; });
-      } catch { break; }
+      } catch (error) { console.warn("Réparation interrompue", error); break; }
     }
     setProgress("");
     setBatchPending(false);
@@ -50,7 +50,7 @@ function InventorySource({ source, run }: { source: "fireflies" | "google_drive"
   const download = () => {
     if (!run) return;
     const fields = ["title", "date", "state", "detail", "external_id", "transcript_id"] as const;
-    const content = [fields.join(";"), ...run.items.map((i) => fields.map((f) => `"${String(i[f] ?? "").replaceAll('"', '""')}"`).join(";"))].join("\r\n");
+    const content = [fields.join(";"), ...run.items.map((i) => fields.map((f) => `"${String(i[f] ?? "").replace(/"/g, '""')}"`).join(";"))].join("\r\n");
     const url = URL.createObjectURL(new Blob(["\ufeff", content], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;

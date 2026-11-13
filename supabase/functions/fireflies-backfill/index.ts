@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     }
     const finished = index === meetings.length && meetings.length < 50;
     const nextCursor = finished ? {} : { ...cursor, skip: cursor.skip + index };
-    const lastError = invalid.length ? `${invalid.length} fichhe(s) vide(s) ou en erreur : ouvrir le contrôle d’exhaustivité pour réparation manuelle.` : null;
+    const lastError = invalid.length ? `${invalid.length} fiche(s) vide(s) ou en erreur : ouvrir le contrôle d’exhaustivité pour réparation manuelle.` : null;
     const saved = await admin.from("polling_cursors").update({ cursor: JSON.stringify(nextCursor), last_synced_at: new Date().toISOString(), status: lastError ? "error" : "idle", last_error: lastError }).eq("source", "fireflies");
     if (saved.error) throw saved.error;
     return new Response(JSON.stringify({ ok: true, total_listed: meetings.length, newly_imported: imported, invalid_existing: invalid.length, inventory_complete: finished, cursor: nextCursor }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
