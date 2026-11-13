@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -7,11 +6,6 @@ const source = readFileSync("supabase/functions/generate-transcript-content/inde
 
 function setup(content: unknown[]) {
   const inserted: Record<string, unknown>[] = [];
-  const variants = [
-    { title: "Première proposition", content: "Premier contenu" },
-    { title: "Deuxième proposition", content: "Deuxième contenu" },
-    { title: "Troisième proposition", content: "Troisième contenu" },
-  ];
   const client = {
     auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "staff-test" } } }) },
     from: (table: string) => {
@@ -49,7 +43,7 @@ function setup(content: unknown[]) {
     (fn: typeof handler) => { handler = fn; }, {}, () => null, () => client, usage, "fallback-model",
   );
   if (!handler) throw new Error("Handler non chargé");
-  return { handler, fetchMock, inserted, variants, usage };
+  return { handler, fetchMock, inserted, usage };
 }
 
 afterEach(() => vi.unstubAllGlobals());
