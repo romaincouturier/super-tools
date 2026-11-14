@@ -21,6 +21,17 @@ vi.mock("./DepositFilePreview", () => ({ default: () => null }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe("dépôt en cours et fichier conservé", () => {
+  it("refuse MKV dès la sélection sans upload ni erreur remontée à Sentry", () => {
+    const { container } = render(<WorkDepositSection lessonId="l1" courseId="c1" moduleId={null} learnerEmail="test@example.test" lessonTitle="Exercice" rawConfig={{}} />);
+    const input = container.querySelector('input[type="file"]');
+    if (!input) throw new Error("Fichier absent");
+    fireEvent.change(input, { target: { files: [new File(["video"], "video.mkv", { type: "video/matroska" })] } });
+    expect(screen.getByRole("button", { name: "Envoyer mon travail" })).toBeDisabled();
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.error).not.toHaveBeenCalled();
+  });
+
   it("bloque un second envoi pendant l'upload et renvoie le fichier conservé après l'échec", async () => {
     let fail: ((error: Error) => void) | undefined;
     mocks.upload.mockImplementationOnce(() => new Promise((_, reject) => { fail = reject; }));

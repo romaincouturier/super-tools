@@ -127,8 +127,31 @@ export const FORMAT_MIME_ACCEPT: Record<DepositFormat, string> = {
   jpg: "image/jpeg",
   png: "image/png",
   pdf: "application/pdf",
-  video: "video/*",
+  video: ".mp4,.webm,.mov",
 };
+
+export const FORMAT_EXTENSIONS: Record<DepositFormat, string[]> = {
+  jpg: [".jpg", ".jpeg"],
+  png: [".png"],
+  pdf: [".pdf"],
+  video: [".mp4", ".webm", ".mov"],
+};
+
+const VIDEO_MIME_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+
+export function depositFormatList(accepted: DepositFormat[]): string {
+  return accepted.flatMap((format) => FORMAT_EXTENSIONS[format]).join(", ");
+}
+
+export function depositFileFormatError(file: Pick<File, "name" | "type">, accepted: DepositFormat[]): string | null {
+  const extension = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] ?? "";
+  const extensions = accepted.flatMap((format) => FORMAT_EXTENSIONS[format]);
+  const mime = file.type.toLowerCase();
+  if (extensions.includes(extension) && (!mime || mime === "application/octet-stream" || isFileFormatAllowed(mime, accepted))) return null;
+  const advice = accepted.includes("video") && (extension === ".mkv" || mime.startsWith("video/"))
+    ? " Convertissez votre vidéo en .mp4 puis réessayez." : " Choisissez un fichier dans l'un de ces formats.";
+  return `Ce format (${extension || mime || "inconnu"}) n'est pas accepté. Formats acceptés : ${depositFormatList(accepted)}.${advice}`;
+}
 
 export const FORMAT_LABELS: Record<DepositFormat, string> = {
   jpg: "JPG",
@@ -153,6 +176,10 @@ export const VISIBILITY_LABELS: Record<DepositVisibility, string> = {
 /** Returns true if the file mime is allowed by the configured formats. */
 export function isFileFormatAllowed(mime: string, accepted: DepositFormat[]): boolean {
   for (const fmt of accepted) {
+    if (fmt === "video") {
+      if (VIDEO_MIME_TYPES.includes(mime)) return true;
+      continue;
+    }
     const accept = FORMAT_MIME_ACCEPT[fmt];
     if (accept.endsWith("/*") && mime.startsWith(accept.slice(0, -1))) return true;
     if (accept === mime) return true;

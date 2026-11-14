@@ -1,5 +1,9 @@
 # Roadmap
 
+## Formats dépôt apprenant, Sentry 1D (2026-11-14)
+- [ ] Refuser MKV à la sélection pour ajout et remplacement, afficher les extensions acceptées selon la leçon et guider vers MP4 sans Sentry.
+- [ ] Ajouter et exécuter les tests de refus avant upload ; aucune leçon ou restriction stockage modifiée.
+
 ## Connexion Marie Leurent (2026-11-14)
 - [x] Compte confirmé créé le 13/11 à 22:54 UTC, mot de passe présent/prouvé, inscription reliée par email ; autre adresse sans compte. Journaux auth/Edge absents pour cette fenêtre, outils Sentry non exposés.
 - [x] Doublons guidés par boutons connexion/récupération avec email prérempli ; après création, session actualisée et formations existantes ouvertes sans passage forcé au catalogue gratuit. create-academy-account déployée : aucune réécriture du profil sur doublon, droits/configuration auth inchangés.
