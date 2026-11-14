@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
+import ts from "typescript";
 
-const source = readFileSync("supabase/functions/create-academy-account/index.ts", "utf8")
-  .replace(/^import[\s\S]*?from ["'][^"']+["'];\s*/gm, "");
+const source = ts.transpileModule(readFileSync("supabase/functions/create-academy-account/index.ts", "utf8")
+  .replace(/^import[\s\S]*?from ["'][^"']+["'];\s*/gm, ""), {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+  }).outputText;
 
 async function request(createError: { message: string } | null) {
   let handler: ((req: Request) => Promise<Response>) | undefined;
