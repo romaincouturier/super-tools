@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   prepare: vi.fn(),
-  pdf: vi.fn(),
+  write: vi.fn(),
   rpc: vi.fn(),
   client: vi.fn(),
 }));
@@ -10,7 +10,7 @@ vi.mock('../supabase', () => ({
   dropshippingClient: mocks.client,
   result: (data: unknown) => ({ content: [{ type: 'text', text: JSON.stringify(data) }] }),
 }));
-vi.mock('../game-quote-pdf', () => ({ generateGameQuotePdf: mocks.pdf }));
+vi.mock('../../../../supabase/functions/_shared/game-quote-writer', () => ({ confirmGameQuote: mocks.write }));
 vi.mock('../game-quote-shared', async (importOriginal) => ({ ...(await importOriginal<typeof import('../game-quote-shared')>()), prepareGameQuote: mocks.prepare }));
 
 import tool from './create-game-quote';
@@ -31,7 +31,7 @@ describe('create_game_quote : barrière preview', () => {
     mocks.prepare.mockResolvedValue({ mode: 'preview', ready: false, issues: ['price missing'], write_performed: false });
     const response = await tool.handler(input as any, {} as any);
     expect(mocks.prepare).toHaveBeenCalledWith(db, expect.objectContaining({ confirm: false }));
-    expect(mocks.pdf).not.toHaveBeenCalled();
+    expect(mocks.write).not.toHaveBeenCalled();
     expect(mocks.rpc).not.toHaveBeenCalled();
     expect(JSON.parse((response as any).content[0].text).write_performed).toBe(false);
   });
@@ -39,7 +39,7 @@ describe('create_game_quote : barrière preview', () => {
   it('confirm=true refuse un preview incomplet avant tout effet externe', async () => {
     mocks.prepare.mockResolvedValue({ mode: 'preview', ready: false, issues: ['price missing'], amounts: null });
     await expect(tool.handler({ ...input, confirm: true } as any, {} as any)).rejects.toThrow('price missing');
-    expect(mocks.pdf).not.toHaveBeenCalled();
+    expect(mocks.write).not.toHaveBeenCalled();
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 });

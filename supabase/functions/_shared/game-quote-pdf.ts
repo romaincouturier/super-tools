@@ -1,4 +1,4 @@
-import type { GameQuoteInput, GameQuotePreview } from './game-quote-shared';
+import type { GameQuoteInput, GameQuotePreview } from '../../../src/lib/mcp/game-quote-shared';
 
 const GAME_DEVIS_TEMPLATE_ID = 'C5099C66-FB36-49F3-B674-2F8C1A2F314A';
 type Runtime = typeof globalThis & { Deno?: { env: { get(name: string): string | undefined } }; process?: { env: Record<string, string | undefined> } };

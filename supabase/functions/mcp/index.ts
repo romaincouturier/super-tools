@@ -609,7 +609,7 @@ var list_games_default = defineTool17({
 // src/lib/mcp/tools/create-game-quote.ts
 import { defineTool as defineTool18 } from "npm:@lovable.dev/mcp-js@3.4.0";
 
-// src/lib/mcp/game-quote-pdf.ts
+// supabase/functions/_shared/game-quote-pdf.ts
 var GAME_DEVIS_TEMPLATE_ID = "C5099C66-FB36-49F3-B674-2F8C1A2F314A";
 function env2(name) {
   const runtime = globalThis;
@@ -655,7 +655,7 @@ async function generateGameQuotePdf(input, preview) {
   throw new Error("PdfMonkey timed out");
 }
 
-// src/lib/mcp/tools/create-game-quote.ts
+// supabase/functions/_shared/game-quote-writer.ts
 async function confirmGameQuote(db, input, preview) {
   if (!preview.ready || !preview.amounts) throw new Error(`Preview is not ready: ${preview.issues.join(" | ")}`);
   const { pdfUrl, documentId } = await generateGameQuotePdf(input, preview);
@@ -751,6 +751,8 @@ async function confirmGameQuote(db, input, preview) {
     throw error;
   }
 }
+
+// src/lib/mcp/tools/create-game-quote.ts
 var create_game_quote_default = defineTool18({
   name: "create_game_quote",
   title: "Create a draft game quote",
@@ -762,6 +764,7 @@ var create_game_quote_default = defineTool18({
     const db = await dropshippingClient(ctx);
     const preview = await prepareGameQuote(db, input);
     if (!input.confirm) return result(preview);
+    if (!preview.ready || !preview.amounts) throw new Error(`Preview is not ready: ${preview.issues.join(" | ")}`);
     return result(await confirmGameQuote(db, input, preview));
   }
 });
