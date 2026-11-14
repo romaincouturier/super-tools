@@ -204,6 +204,7 @@ export interface GameDevisHistoryEntry {
   items: GameDevisItem[];
   pdf_url: string | null;
   pdf_storage_path: string | null;
+  status: "draft" | "sent";
 }
 
 export interface GameDevisItem {
@@ -218,13 +219,14 @@ export function useGameDevisHistory() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("activity_logs")
-        .select("id, created_at, recipient_email, details")
-        .eq("action_type", "game_devis_sent")
+        .select("id, created_at, action_type, recipient_email, details")
+        .in("action_type", ["game_devis_sent", "game_devis_draft"])
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data as Array<{ id: string; created_at: string; recipient_email: string; details: any }>).map((r) => ({
+      return (data as Array<{ id: string; created_at: string; action_type: string; recipient_email: string; details: any }>).map((r) => ({
         id: r.id,
+        status: r.action_type === "game_devis_draft" ? "draft" : "sent",
         created_at: r.created_at,
         recipient_email: r.recipient_email,
         client_name: r.details?.client_name ?? null,

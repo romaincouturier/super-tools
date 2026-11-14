@@ -467,12 +467,12 @@ function GameDevisHistory() {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold border-b pb-2 flex items-center gap-2">
-        <FileText className="h-5 w-5" />Devis envoyés
+        <FileText className="h-5 w-5" />Devis jeux
       </h3>
       {isLoading ? (
         <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>
       ) : history.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center border rounded-lg">Aucun devis jeux envoyé pour le moment.</p>
+        <p className="text-sm text-muted-foreground py-4 text-center border rounded-lg">Aucun devis jeux pour le moment.</p>
       ) : (
         <div className="rounded-md border">
           <Table>
@@ -492,7 +492,7 @@ function GameDevisHistory() {
                 const filename = `Devis_${safeClient}_${d.created_at.slice(0, 10)}.pdf`;
                 return (
                 <TableRow key={d.id}>
-                  <TableCell className="text-sm">{DATE(d.created_at)}</TableCell>
+                  <TableCell className="text-sm">{DATE(d.created_at)}<div className="text-xs text-muted-foreground">{d.status === "draft" ? "Brouillon" : "Envoyé"}</div></TableCell>
                   <TableCell className="text-sm font-medium">{(isDemoMode ? maskText(d.client_name) || null : d.client_name) ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{isDemoMode ? maskEmail(d.recipient_email) : d.recipient_email}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
