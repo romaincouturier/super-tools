@@ -43,16 +43,6 @@ serve(async (req) => {
     // Le prénom et le nom alimentent l'espace apprenant (learner_profiles) et
     // la page de création du mot de passe, qui les préremplit.
     const fullName = `${firstName} ${lastName}`;
-    const { error: profileError } = await admin
-      .from("learner_profiles")
-      .upsert(
-        { email, first_name: firstName, last_name: lastName, updated_at: new Date().toISOString() },
-        { onConflict: "email" },
-      );
-    if (profileError) {
-      return createErrorResponse(profileError.message, 500, { cause: profileError, fn: "create-academy-account" });
-    }
-
     // Le choix des formations se fait après la création du compte (écran
     // /academy/choisir-mes-formations, via enroll-academy-courses) : cette
     // fonction ne fait plus que créer le compte.
@@ -69,6 +59,16 @@ serve(async (req) => {
         return createErrorResponse("already_exists", 409);
       }
       return createErrorResponse(createError.message, 500, { cause: createError, fn: "create-academy-account" });
+    }
+
+    const { error: profileError } = await admin
+      .from("learner_profiles")
+      .upsert(
+        { email, first_name: firstName, last_name: lastName, updated_at: new Date().toISOString() },
+        { onConflict: "email" },
+      );
+    if (profileError) {
+      return createErrorResponse(profileError.message, 500, { cause: profileError, fn: "create-academy-account" });
     }
 
     // Mot de passe choisi à l'inscription : le mail d'accès suivant ne doit pas
