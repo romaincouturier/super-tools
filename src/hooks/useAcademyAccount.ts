@@ -1,37 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
-import { invokeEdge } from "@/lib/invokeEdge";
-
-export type CreateAcademyAccountInput = {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-};
-
-type CreateAcademyAccountResponse = {
-  success: boolean;
-  email: string;
-};
+import { createAcademyAccount } from "@/services/academyAccount";
+export type { CreateAcademyAccountInput } from "@/services/academyAccount";
 
 export function useAcademyAccount() {
   return useMutation({
-    mutationFn: async (input: CreateAcademyAccountInput) => {
-      try {
-        return await invokeEdge<CreateAcademyAccountResponse>("create-academy-account", input);
-      } catch (error) {
-        const response = (error as { context?: Response }).context;
-        if (response) {
-          try {
-            const details = await response.clone().json() as { error?: string };
-            if (details.error === "already_exists") {
-              throw new Error("Cet email est déjà associé à un compte. Connectez-vous depuis l’espace apprenant.");
-            }
-          } catch (parseError) {
-            if (parseError instanceof Error && parseError.message.includes("déjà associé")) throw parseError;
-          }
-        }
-        throw error;
-      }
-    },
+    mutationFn: createAcademyAccount,
   });
 }

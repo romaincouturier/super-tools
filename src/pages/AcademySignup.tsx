@@ -14,6 +14,7 @@ import { useSession } from "@/hooks/useSession";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { sanitizeRedirect } from "@/lib/authRouting";
+import { AcademyAccountExistsError, hasExistingAcademyEnrollment } from "@/services/academyAccount";
 
 function isStrongPassword(password: string) {
   return password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password);
@@ -47,6 +48,8 @@ export default function AcademySignup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [accountExists, setAccountExists] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Pendant la création de compte, la connexion fait apparaitre l'utilisateur :
   // la redirection automatique ne doit pas court-circuiter le choix des
@@ -59,13 +62,21 @@ export default function AcademySignup() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (signingUp.current) return;
     if (!isStrongPassword(password)) return;
     const normalizedEmail = email.trim().toLowerCase();
     signingUp.current = true;
+    setSubmitting(true);
+    setAccountExists(false);
     try {
       await createAccount.mutateAsync({ firstName: firstName.trim(), lastName: lastName.trim(), email: normalizedEmail, password });
       await signIn(normalizedEmail, password);
+      await refresh();
       if (consentReturn) { navigate(consentReturn); return; }
+      if (await hasExistingAcademyEnrollment()) {
+        navigate("/espace-apprenant");
+        return;
+      }
       if (courseId) {
         try {
           await enroll.mutateAsync([courseId]);
@@ -85,7 +96,14 @@ export default function AcademySignup() {
       navigate(`/academy/choisir-mes-formations${next}`);
     } catch (error) {
       signingUp.current = false;
+      if (error instanceof AcademyAccountExistsError) {
+        setAccountExists(true);
+        setPassword("");
+        return;
+      }
       toastError(toast, error instanceof Error ? error.message : "Réessayez dans quelques instants.", { cause: error });
+    } finally {
+      setSubmitting(false);
     }
   };
 

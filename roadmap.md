@@ -1,5 +1,10 @@
 # Roadmap
 
+## Connexion Marie Leurent (2026-11-14)
+- [x] Compte confirmé créé le 13/11 à 22:54 UTC, mot de passe présent/prouvé, inscription reliée par email ; autre adresse sans compte. Journaux auth/Edge absents pour cette fenêtre, outils Sentry non exposés.
+- [ ] Guider les doublons vers connexion/récupération et ouvrir les formations existantes après création ; empêcher une tentative en doublon de réécrire le profil.
+- [ ] Tester sans créer de compte, changer de mot de passe ou envoyer d’email ; vérifier les liens actuels et rendre un compte rendu court.
+
 ## Dépôt apprenant, Sentry 1C (2026-11-13)
 - [x] upload-lms-content reçoit le multipart complet puis l'envoie au stockage ; CORS réel OPTIONS 200 avec tous les headers client. Bucket sans limite propre ni restriction MIME ; formulaire 50 Mio par défaut, pas de timeout client explicite. Aucun log disponible sur 15:15–15:35 UTC, même toutes sources confondues ; cause historique non démontrée.
 - [x] Messages HTTP détaillés et erreur de transport sans attribution certaine au réseau ; 3 tentatives (1 puis 3 s), verrouillage pendant tout l'upload et sélection/commentaire conservés après échec. 28 tests réussis, build OK ; aucun email, donnée ou leçon modifiés, front à publier. La sélection n'est pas persistée après rechargement/fermeture.

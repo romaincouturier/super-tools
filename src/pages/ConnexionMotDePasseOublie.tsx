@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Mail, Lock, CheckCircle2, ShieldCheck } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { AuthBadge, AuthInfoPanel, AuthShell, AuthSplitCard, AuthSupportLine, AuthTitle } from "@/components/auth/AuthShell";
@@ -8,7 +8,8 @@ import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 
 export default function ConnexionMotDePasseOublie() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [searchParams] = useSearchParams();
+  const [email, setEmail] = useState(() => searchParams.get("email")?.trim().toLowerCase() ?? "");
   const [sent, setSent] = useState(false);
   const { loading, invoke } = useEdgeFunction("send-password-reset", {
     errorMessage: "Envoi impossible pour le moment.",
