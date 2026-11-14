@@ -6,6 +6,8 @@
  * and later receive feedback from SuperTilt.
  */
 
+import { resolveContentType } from "@/lib/file-utils";
+
 export type DepositVisibility = "private" | "shared";
 
 export type DepositPublicationStatus = "published" | "hidden";
@@ -146,7 +148,7 @@ export function depositFormatList(accepted: DepositFormat[]): string {
 export function depositFileFormatError(file: Pick<File, "name" | "type">, accepted: DepositFormat[]): string | null {
   const extension = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] ?? "";
   const extensions = accepted.flatMap((format) => FORMAT_EXTENSIONS[format]);
-  const mime = file.type.toLowerCase();
+  const mime = resolveContentType(file as File);
   if (extensions.includes(extension) && (!mime || mime === "application/octet-stream" || isFileFormatAllowed(mime, accepted))) return null;
   const advice = accepted.includes("video") && (extension === ".mkv" || mime.startsWith("video/"))
     ? " Convertissez votre vidéo en .mp4 puis réessayez." : " Choisissez un fichier dans l'un de ces formats.";

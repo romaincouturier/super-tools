@@ -1,8 +1,8 @@
 # Roadmap
 
 ## Formats dépôt apprenant, Sentry 1D (2026-11-14)
-- [ ] Refuser MKV à la sélection pour ajout et remplacement, afficher les extensions acceptées selon la leçon et guider vers MP4 sans Sentry.
-- [ ] Ajouter et exécuter les tests de refus avant upload ; aucune leçon ou restriction stockage modifiée.
+- [x] MKV refusé à la sélection pour ajout et remplacement, même MIME absent ou trompeur ; extensions affichées selon la leçon : JPG/JPEG, PNG, PDF, MP4/WebM/MOV. Refus inline avec conseil MP4, sans toastError/Sentry ni upload.
+- [x] 32 tests ciblés réussis ; aucune leçon, restriction stockage ou fonction modifiée. Front à publier, build OK ; contrôle [065] préexistant hors périmètre.
 
 ## Connexion Marie Leurent (2026-11-14)
 - [x] Compte confirmé créé le 13/11 à 22:54 UTC, mot de passe présent/prouvé, inscription reliée par email ; autre adresse sans compte. Journaux auth/Edge absents pour cette fenêtre, outils Sentry non exposés.
