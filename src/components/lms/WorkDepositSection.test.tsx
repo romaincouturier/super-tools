@@ -2,9 +2,9 @@ import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import WorkDepositSection from "./WorkDepositSection";
 
-const mocks = vi.hoisted(() => ({ upload: vi.fn(), create: vi.fn(), error: vi.fn() }));
+const mocks = vi.hoisted(() => ({ upload: vi.fn(), create: vi.fn(), error: vi.fn(), deposits: [] as Record<string, unknown>[] }));
 vi.mock("@/hooks/useLmsWorkDeposit", () => ({
-  useMyDeposits: () => ({ data: [], isLoading: false }),
+  useMyDeposits: () => ({ data: mocks.deposits, isLoading: false }),
   useVisibleDeposits: () => ({ data: [] }),
   useCreateDeposit: () => ({ isPending: false, mutateAsync: mocks.create }),
   useUpdateDeposit: () => ({ isPending: false }),
@@ -18,7 +18,7 @@ vi.mock("./DepositCommentList", () => ({ default: () => null }));
 vi.mock("./DepositFeedbackList", () => ({ default: () => null }));
 vi.mock("./DepositFilePreview", () => ({ default: () => null }));
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); mocks.deposits = []; });
 
 describe("dépôt en cours et fichier conservé", () => {
   it("refuse MKV dès la sélection sans upload ni erreur remontée à Sentry", () => {
@@ -30,6 +30,17 @@ describe("dépôt en cours et fichier conservé", () => {
     expect(mocks.upload).not.toHaveBeenCalled();
     expect(mocks.create).not.toHaveBeenCalled();
     expect(mocks.error).not.toHaveBeenCalled();
+  });
+
+  it("refuse aussi le remplacement par un MKV sans toucher au dépôt existant", () => {
+    mocks.deposits = [{ id: "deposit", file_name: "original.mp4", created_at: "2026-11-13T16:00:00Z", visibility: "shared" }];
+    const { container } = render(<WorkDepositSection lessonId="l1" courseId="c1" moduleId={null} learnerEmail="test@example.test" lessonTitle="Exercice" rawConfig={{}} />);
+    const input = container.querySelector('input[type="file"]');
+    if (!input) throw new Error("Fichier absent");
+    fireEvent.change(input, { target: { files: [new File(["video"], "replacement.mkv", { type: "video/matroska" })] } });
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(mocks.error).not.toHaveBeenCalled();
+    expect(mocks.deposits[0].file_name).toBe("original.mp4");
   });
 
   it("bloque un second envoi pendant l'upload et renvoie le fichier conservé après l'échec", async () => {
