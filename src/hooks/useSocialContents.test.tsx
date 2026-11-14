@@ -69,7 +69,7 @@ describe("useSetSocialGroupDate", () => {
     act(() => { result.current.mutate({ groupId: "g", scheduledAt: "2026-11-12T08:00:00.000Z" }); });
     await waitFor(() => {
       const cached = qc.getQueryData<SocialContentGroup[]>(["social-contents", "undated"]);
-      expect(cached?.[0].posts[0]).toMatchObject({ scheduled_at: "2026-11-12T08:00:00.000Z", publication_status: "scheduled" });
+      expect(cached?.[0].posts[0]).toMatchObject({ scheduled_at: "2026-11-12T08:00:00.000Z", publication_status: "unscheduled" });
     });
     act(() => { result.current.mutate({ groupId: "d", scheduledAt: "2026-11-10T17:00:00.000Z" }); });
     await waitFor(() => {

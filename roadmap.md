@@ -1,5 +1,12 @@
 # Roadmap
 
+## CI GitHub (2026-11-14)
+- [x] Confirmer les étapes en échec : installation npm pour les deux jobs CI, dépôt d’action inexistant pour Autofix.
+- [x] Lockfile synchronisé (MCP et use-webmcp-tool absents), MCP figé en 3.4.0 et Playwright aligné en 1.62.0 ; installation stricte réussie sous Node 20 et 22. Workflows CI/Autofix/scan passés à Node 22, requis par le SDK existant.
+- [x] Action officielle `anthropics/claude-code-action@v1`, token GitHub explicite et diagnostic du secret Anthropic absent ; test calendrier obsolète aligné sur la séparation date/statut, trois variables documentées, smoke test attend le rendu. Aucun mécanisme métier ou envoi modifié.
+- [x] 3 177 tests unitaires réussis (un saut préexistant), 103 règles réussies, 21 tests navigateur réussis contre l'aperçu local, compilation automatique OK. Build de production et commandes TypeScript séparées non relancés manuellement.
+- [ ] Confirmer la prochaine exécution GitHub ; clé `ANTHROPIC_API_KEY` et autorisation de création de PR privés non accessibles depuis cette session. Annotations GitHub lues sur les cinq commits, téléchargement des journaux complets refusé (403).
+
 ## MCP devis jeux (2026-11-14)
 - [x] Ajouter `list_games` et `create_game_quote` au connecteur MCP actuel, avec droits dropshipping, preview par défaut et écriture uniquement sur `confirm=true`.
 - [x] Créer le brouillon dans le circuit `woocommerce_orders` / `order_items` / `activity_logs`, avec numérotation DV, PDF existant et commentaire CRM, sans email, Slack, vente ni alerte de commande ; brouillons exclus du kanban, des ventes et des commandes actives.

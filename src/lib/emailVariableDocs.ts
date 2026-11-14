@@ -90,6 +90,9 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   has_sheets: { label: "Feuilles jointes ?", description: "Condition : vraie si des feuilles d'émargement sont jointes.", sample: "oui", isCondition: true },
 
   // Modèles éditables (emails automatiques)
+  subject: { label: "Objet de l'attestation", description: "Intitulé de l'intervention attestée.", sample: "Animation du séminaire" },
+  signer: { label: "Signataire de l'attestation", description: "Identité du signataire de l'attestation de bonne exécution.", sample: "Claire Martin" },
+  signed_at: { label: "Date de signature", description: "Date de signature de l'attestation, formatée en français.", sample: "14 novembre 2026" },
   signer_name: { label: "Nom du signataire", description: "Nom de la personne qui a signé (ou doit signer) le document.", sample: "Claire Martin" },
   trainer_first_name: { label: "Prénom du formateur", description: "Prénom du formateur destinataire du mail.", sample: "Romain" },
   trainer_name: { label: "Nom du formateur", description: "Nom complet du formateur concerné.", sample: "Romain Couturier" },
