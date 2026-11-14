@@ -269,6 +269,7 @@ export function useOrderItems(kanbanStatus?: KanbanStatus) {
         .from("order_items")
         .select(`*, woocommerce_orders(*), games(id, title, game_type, game_authors(name))`)
         .is("archived_at", null)
+        .neq("kanban_status", "quote_draft")
         .order("created_at", { ascending: false })
         .limit(300);
       if (kanbanStatus) q = q.eq("kanban_status", kanbanStatus);
@@ -287,6 +288,7 @@ export function useAllOrderItems() {
         .from("order_items")
         .select(`*, woocommerce_orders(*), games(id, title, game_type, game_authors(name))`)
         .is("archived_at", null)
+        .neq("kanban_status", "quote_draft")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -645,7 +647,8 @@ export function useOrderKpis() {
       const { data, error } = await db
         .from("order_items")
         .select("kanban_status, line_total, game_type, created_at, game_id")
-        .is("archived_at", null);
+        .is("archived_at", null)
+        .neq("kanban_status", "quote_draft");
       if (error) throw error;
 
       const items = data as Array<{

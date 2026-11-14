@@ -90,6 +90,7 @@ export async function fetchActiveDevisOrder(cardId: string): Promise<{ id: strin
     .select("id, order_number")
     .eq("crm_card_id", cardId)
     .eq("source", "devis")
+    .neq("wc_status", "draft")
     .is("cancelled_at", null)
     .maybeSingle();
   return data ?? null;

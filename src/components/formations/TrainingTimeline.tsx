@@ -5,6 +5,8 @@ import { fr } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText } from "@/lib/demoMask";
 
 interface TimelineTraining {
   id: string;
@@ -18,6 +20,7 @@ const SPAN_DAYS = 90;
 
 export default function TrainingTimeline({ trainings }: { trainings: TimelineTraining[] }) {
   const navigate = useNavigate();
+  const { isDemoMode } = useDemoMode();
   const [offset, setOffset] = useState(0);
   const from = addDays(startOfDay(new Date()), -7 + offset);
   const to = addDays(from, SPAN_DAYS);
@@ -51,7 +54,9 @@ export default function TrainingTimeline({ trainings }: { trainings: TimelineTra
           {blocks.map(({ t, s, e }) => {
             const left = Math.max(0, pct(s));
             const right = Math.min(100, pct(addDays(e, 1)));
-            const label = `${t.training_name}${t.client_name ? ` · ${t.client_name}` : ""} — ${format(s, "dd/MM/yyyy")}${e > s ? ` au ${format(e, "dd/MM/yyyy")}` : ""}`;
+            const trainingName = isDemoMode ? maskText(t.training_name) : t.training_name;
+            const clientName = isDemoMode ? maskText(t.client_name) : t.client_name;
+            const label = `${trainingName}${clientName ? ` · ${clientName}` : ""} — ${format(s, "dd/MM/yyyy")}${e > s ? ` au ${format(e, "dd/MM/yyyy")}` : ""}`;
             return (
               <button
                 key={t.id}
