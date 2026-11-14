@@ -801,6 +801,212 @@
           "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
+      },
+      {
+        "name": "list_games",
+        "title": "List game catalog",
+        "description": "Lists games with id, title, default catalog price HT, stock, per-unit shipping fee HT and weight. Includes sale/rental price options so create_game_quote can use the right game_id and price_option_id.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "maxLength": 120,
+              "description": "Optional case-insensitive title filter"
+            },
+            "include_inactive": {
+              "type": "boolean",
+              "default": false
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 100
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_game_quote",
+        "title": "Create a draft game quote",
+        "description": "Previews or creates a draft game quote in the SuperTools dropshipping module. Default confirm=false is fully read-only and returns client, lines and HT/VAT/TTC amounts. confirm=true creates woocommerce_orders/order_items with source=devis and status=draft, the usual DV number and PDF, activity audit, and a CRM comment when crm_card_id is provided. It NEVER emails the client, sends Slack, creates a paid order or decrements stock. Prices and shipping default to catalog values; missing values must be overridden explicitly. Review the preview and obtain explicit user approval before confirm=true. Never retry automatically after an ambiguous write failure.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "confirm": {
+              "type": "boolean",
+              "default": false,
+              "description": "false returns a read-only preview; true creates the draft quote"
+            },
+            "client": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "company",
+                    "individual"
+                  ]
+                },
+                "company": {
+                  "type": "string",
+                  "maxLength": 255
+                },
+                "first_name": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "last_name": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "email": {
+                  "type": "string",
+                  "format": "email",
+                  "maxLength": 320
+                },
+                "billing_address": {
+                  "type": "object",
+                  "properties": {
+                    "address_1": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 300
+                    },
+                    "address_2": {
+                      "type": "string",
+                      "maxLength": 300
+                    },
+                    "postcode": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 20
+                    },
+                    "city": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    },
+                    "country": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z]{2}$"
+                    },
+                    "phone": {
+                      "type": "string",
+                      "maxLength": 50
+                    }
+                  },
+                  "required": [
+                    "address_1",
+                    "postcode",
+                    "city",
+                    "country"
+                  ],
+                  "additionalProperties": false
+                },
+                "shipping_address": {
+                  "$ref": "#/properties/client/properties/billing_address"
+                },
+                "vat_number": {
+                  "type": "string",
+                  "maxLength": 50
+                }
+              },
+              "required": [
+                "type",
+                "email",
+                "billing_address"
+              ],
+              "additionalProperties": false
+            },
+            "lines": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "game_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "unit_price": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 10000000,
+                    "description": "Unit price HT override; catalog price is used when omitted"
+                  },
+                  "price_option_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Catalog sale/rental price option; required when several options are ambiguous"
+                  }
+                },
+                "required": [
+                  "quantity"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "shipping_fee": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1000000,
+              "description": "Shipping HT override; otherwise sums catalog shipping_fee per game unit"
+            },
+            "admin_fee": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            },
+            "crm_card_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "valid_until": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "note": {
+              "type": "string",
+              "maxLength": 10000,
+              "default": ""
+            }
+          },
+          "required": [
+            "client",
+            "lines"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
       }
     ]
   }
