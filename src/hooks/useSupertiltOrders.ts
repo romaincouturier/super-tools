@@ -23,7 +23,6 @@ export type KanbanStatus =
   | "dropshipping"
   | "location_pending"
   | "location_active"
-  | "quote_draft"
   | "processed"
   | "blocked";
 

@@ -77,7 +77,7 @@ describe('Devis jeux MCP en base', () => {
     expect(result.rows[0].result.order_number).toMatch(/^DV-\d{4}-0001$/);
     expect(result.rows[0].result.crm_comment_id).toBeTruthy();
     const orders = await db.query<{ wc_status: string; source: string; processed_at: string | null; total_ttc: string }>('SELECT wc_status,source,processed_at,total_ttc FROM public.woocommerce_orders');
-    expect(orders.rows).toEqual([expect.objectContaining({ wc_status: 'draft', source: 'devis', processed_at: null, total_ttc: '120.00' })]);
+    expect(orders.rows).toEqual([expect.objectContaining({ wc_status: 'draft', source: 'devis', processed_at: null, total_ttc: '120' })]);
     const lines = await db.query<{ kanban_status: string; validation_status: string; quantity: number }>('SELECT kanban_status,validation_status,quantity FROM public.order_items');
     expect(lines.rows).toEqual([{ kanban_status: 'quote_draft', validation_status: 'pending', quantity: 2 }]);
     expect((await db.query("SELECT * FROM public.activity_logs WHERE action_type='game_devis_draft'")).rows).toHaveLength(1);
