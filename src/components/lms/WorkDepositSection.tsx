@@ -36,10 +36,10 @@ import DepositCommentList from "@/components/lms/DepositCommentList";
 import DepositFeedbackList from "@/components/lms/DepositFeedbackList";
 import {
   withDepositDefaults,
-  isFileFormatAllowed,
+  depositFileFormatError,
+  depositFormatList,
   PEDAGOGICAL_STATUS_LABELS,
   VISIBILITY_LABELS,
-  FORMAT_LABELS,
   FORMAT_MIME_ACCEPT,
   type WorkDeposit,
   type WorkDepositConfig,
@@ -278,6 +278,7 @@ function DepositForm({
   const fileRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [comment, setComment] = useState("");
+  const [formatError, setFormatError] = useState<string | null>(null);
   const sendingRef = useRef(false);
   const [uploading, setUploading] = useState(false);
   const busy = submitting || uploading;
@@ -286,9 +287,11 @@ function DepositForm({
 
   const pickFiles = (picked: File[]) => {
     const valid: File[] = [];
+    const rejected: string[] = [];
     for (const f of picked) {
-      if (!isFileFormatAllowed(f.type, config.accepted_formats)) {
-        onError(new Error(`Format non accepté pour "${f.name}". Formats : ${config.accepted_formats.map((x) => FORMAT_LABELS[x]).join(", ")}.`));
+      const error = depositFileFormatError(f, config.accepted_formats);
+      if (error) {
+        rejected.push(error);
         continue;
       }
       if (f.size > maxSizeBytes) {
@@ -297,6 +300,7 @@ function DepositForm({
       }
       valid.push(f);
     }
+    setFormatError(rejected.length ? rejected.join("\n") : null);
     setFiles((prev) => {
       const next = [...prev, ...valid];
       if (next.length > MAX_DEPOSIT_FILES) {
@@ -395,8 +399,9 @@ function DepositForm({
             {files.length > 0 ? "Ajouter d'autres fichiers" : "Choisir un ou plusieurs fichiers"}
           </Button>
           <p className="text-[11px] text-muted-foreground mt-1.5">
-            Formats : {config.accepted_formats.map((f) => FORMAT_LABELS[f]).join(", ")} — taille max {config.max_size_mb} Mo par fichier — {MAX_DEPOSIT_FILES} fichiers max
+            Formats acceptés : {depositFormatList(config.accepted_formats)} — taille max {config.max_size_mb} Mo par fichier — {MAX_DEPOSIT_FILES} fichiers max
           </p>
+          {formatError && <p role="alert" className="mt-2 whitespace-pre-line text-sm text-destructive">{formatError}</p>}
         </div>
       </div>
 
@@ -446,6 +451,7 @@ function DepositSummary({
   const fileRef = useRef<HTMLInputElement>(null);
   const [editingComment, setEditingComment] = useState(false);
   const [commentDraft, setCommentDraft] = useState(deposit.comment || "");
+  const [formatError, setFormatError] = useState<string | null>(null);
   const accept = config.accepted_formats.map((f) => FORMAT_MIME_ACCEPT[f]).join(",");
   const maxSizeBytes = config.max_size_mb * 1024 * 1024;
 
@@ -459,8 +465,9 @@ function DepositSummary({
   };
 
   const handleReplaceFile = async (f: File) => {
-    if (!isFileFormatAllowed(f.type, config.accepted_formats)) {
-      onError(new Error(`Format non accepté. Formats : ${config.accepted_formats.map((x) => FORMAT_LABELS[x]).join(", ")}.`));
+    const error = depositFileFormatError(f, config.accepted_formats);
+    setFormatError(error);
+    if (error) {
       return;
     }
     if (f.size > maxSizeBytes) {
@@ -577,6 +584,8 @@ function DepositSummary({
         </Button>
       </div>
 
+      <p className="text-xs text-muted-foreground">Formats acceptés : {depositFormatList(config.accepted_formats)}</p>
+      {formatError && <p role="alert" className="text-sm text-destructive">{formatError}</p>}
       <input
         ref={fileRef}
         type="file"

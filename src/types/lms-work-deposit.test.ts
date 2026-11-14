@@ -4,6 +4,7 @@ import {
   DEFAULT_DEPOSIT_MAX_SIZE_MB,
   DEFAULT_WORK_DEPOSIT_CONFIG,
   isFileFormatAllowed,
+  depositFileFormatError,
   withDepositDefaults,
   type DepositFormat,
 } from "./lms-work-deposit";
@@ -62,10 +63,22 @@ describe("isFileFormatAllowed", () => {
     expect(isFileFormatAllowed("application/pdf", ["pdf"])).toBe(true);
   });
 
-  it("accepts any video subtype when video is allowed (wildcard handling)", () => {
+  it("accepts supported video MIME types", () => {
     expect(isFileFormatAllowed("video/mp4", ["video"])).toBe(true);
     expect(isFileFormatAllowed("video/webm", ["video"])).toBe(true);
     expect(isFileFormatAllowed("video/quicktime", ["video"])).toBe(true);
+  });
+
+  it("refuse MKV même si le type MIME est vide ou prétend être MP4", () => {
+    for (const type of ["video/matroska", "video/x-matroska", "", "video/mp4"]) {
+      expect(depositFileFormatError({ name: "video.MKV", type }, allFormats)).not.toBeNull();
+    }
+    expect(isFileFormatAllowed("video/matroska", ["video"])).toBe(false);
+  });
+
+  it("accepte MP4 sans MIME et respecte les formats de la leçon", () => {
+    expect(depositFileFormatError({ name: "video.mp4", type: "" }, ["video"])).toBeNull();
+    expect(depositFileFormatError({ name: "video.mp4", type: "video/mp4" }, ["pdf"])).not.toBeNull();
   });
 
   it("rejects a JPEG when jpg is not in the allowed list", () => {
