@@ -26,11 +26,11 @@ async function confirmGameQuote(db: any, input: GameQuoteInput, preview: GameQuo
       'Aucun envoi au client.',
     ].filter(Boolean).join('\n');
     const orderItems = preview.lines.map((line) => ({
-      wc_product_id: null,
-      wc_variation_id: null,
+      wc_product_id: line.woocommerce_product_id,
+      wc_variation_id: line.offer_type === 'location' ? line.location_variation_id : null,
       product_name: line.title,
       game_id: line.game_id,
-      game_type: line.offer_type === 'location' ? 'location' : 'partner',
+      game_type: line.offer_type === 'location' ? 'location' : line.game_type,
       quantity: line.quantity,
       unit_price: line.unit_price,
       line_total: line.line_total,

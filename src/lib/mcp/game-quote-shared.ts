@@ -227,6 +227,9 @@ export async function prepareGameQuote(db: Db, input: GameQuoteInput) {
       price_source: line.price_source,
       price_option_id: line.price_option_id,
       offer_type: line.offer_type,
+      game_type: line.game.game_type,
+      woocommerce_product_id: line.game.woocommerce_product_id,
+      location_variation_id: line.game.location_variation_id,
       line_total: line.line_total,
       shipping_fee: line.shipping_fee == null ? null : Number(line.shipping_fee),
       weight_g: line.weight_g,
@@ -242,37 +245,6 @@ export async function prepareGameQuote(db: Db, input: GameQuoteInput) {
 }
 
 export type GameQuotePreview = Awaited<ReturnType<typeof prepareGameQuote>>;
-
-export function quoteOrderItems(preview: GameQuotePreview) {
-  return preview.lines.map((line) => {
-    const game = resolveGame([{
-      id: line.game_id,
-      title: line.title,
-      status: 'active',
-      game_type: 'partner',
-      woocommerce_product_id: null,
-      location_variation_id: null,
-      current_stock: null,
-      stock: null,
-      shipping_fee: line.shipping_fee,
-      weight_g: line.weight_g,
-      proposed_price_ht: line.catalog_price,
-    }], { game_id: line.game_id });
-    return {
-      wc_product_id: game.woocommerce_product_id,
-      wc_variation_id: line.offer_type === 'location' ? game.location_variation_id : null,
-      product_name: line.title,
-      game_id: line.game_id,
-      game_type: line.offer_type === 'location' ? 'location' : game.game_type,
-      quantity: line.quantity,
-      unit_price: line.unit_price,
-      line_total: line.line_total,
-      price_option_id: line.price_option_id,
-      shipping_fee: line.shipping_fee,
-      weight_g: line.weight_g,
-    };
-  });
-}
 
 export function gameQuoteAppUrl(quoteId: string) {
   return `https://academy.supertilt.fr/commandes-jeux?tab=devis&quote=${quoteId}`;

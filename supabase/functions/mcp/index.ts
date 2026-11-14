@@ -36,6 +36,19 @@ async function staffClient(ctx) {
   if (error || data !== true) throw new Error("Acc\xE8s personnel requis");
   return db;
 }
+async function dropshippingClient(ctx) {
+  const db = supabaseForUser(ctx);
+  const userId = ctx.getUserId();
+  if (!userId) throw new Error("Connexion requise");
+  const [admin, module] = await Promise.all([
+    db.rpc("is_admin", { _user_id: userId }),
+    db.rpc("has_module_access", { _user_id: userId, _module: "dropshipping" })
+  ]);
+  if (admin.error) throw admin.error;
+  if (module.error) throw module.error;
+  if (admin.data !== true && module.data !== true) throw new Error("Acc\xE8s dropshipping requis");
+  return db;
+}
 function result(data) {
   return { content: [{ type: "text", text: JSON.stringify(data) }] };
 }
@@ -349,9 +362,413 @@ var update_live_meeting_default = defineTool16({ name: "update_live_meeting", ti
   return result({ before: before.data, after, side_effects: side, ...proposal ? { proposal } : {} });
 } });
 
+// src/lib/mcp/tools/list-games.ts
+import { defineTool as defineTool17 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z20 } from "npm:zod@^3.25.76";
+
+// src/lib/mcp/game-quote-shared.ts
+import { z as z19 } from "npm:zod@^3.25.76";
+var country = z19.string().trim().regex(/^[A-Za-z]{2}$/, "ISO 2-letter country code required").transform((v) => v.toUpperCase());
+var isoDate = z19.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`)), "Invalid date");
+var quoteAddressSchema = z19.object({
+  address_1: z19.string().trim().min(1).max(300),
+  address_2: z19.string().trim().max(300).optional(),
+  postcode: z19.string().trim().min(1).max(20),
+  city: z19.string().trim().min(1).max(120),
+  country,
+  phone: z19.string().trim().max(50).optional()
+});
+var quoteClientSchema = z19.object({
+  type: z19.enum(["company", "individual"]),
+  company: z19.string().trim().max(255).optional(),
+  first_name: z19.string().trim().max(120).optional(),
+  last_name: z19.string().trim().max(120).optional(),
+  email: z19.string().trim().email().max(320).transform((v) => v.toLowerCase()),
+  billing_address: quoteAddressSchema,
+  shipping_address: quoteAddressSchema.optional(),
+  vat_number: z19.string().trim().max(50).optional()
+}).superRefine((client, ctx) => {
+  if (client.type === "company" && !client.company) ctx.addIssue({ code: "custom", message: "company is required for a company client" });
+  if (client.type === "individual" && (!client.first_name || !client.last_name)) {
+    ctx.addIssue({ code: "custom", message: "first_name and last_name are required for an individual client" });
+  }
+});
+var quoteLineSchema = z19.object({
+  game_id: z19.string().uuid().optional(),
+  title: z19.string().trim().min(1).max(255).optional(),
+  quantity: z19.number().int().min(1).max(1e3),
+  unit_price: z19.number().positive().max(1e7).optional().describe("Unit price HT override; catalog price is used when omitted"),
+  price_option_id: z19.string().uuid().optional().describe("Catalog sale/rental price option; required when several options are ambiguous")
+}).refine((line) => line.game_id || line.title, { message: "game_id or title is required" });
+var gameQuoteFields = {
+  confirm: z19.boolean().default(false).describe("false returns a read-only preview; true creates the draft quote"),
+  client: quoteClientSchema,
+  lines: z19.array(quoteLineSchema).min(1).max(50),
+  shipping_fee: z19.number().min(0).max(1e6).optional().describe("Shipping HT override; otherwise sums catalog shipping_fee per game unit"),
+  admin_fee: z19.number().min(0).max(1e6).default(0),
+  crm_card_id: z19.string().uuid().optional(),
+  valid_until: isoDate.optional(),
+  note: z19.string().max(1e4).default("")
+};
+var gameQuoteSchema = z19.object(gameQuoteFields);
+var GAME_CATALOG_FIELDS = "id,title,status,game_type,woocommerce_product_id,location_variation_id,current_stock,stock,shipping_fee,weight_g,proposed_price_ht";
+var GAME_PRICE_FIELDS = "id,game_id,offer_type,label,prix,woocommerce_variation_id,display_order";
+function normalizeGameTitle(value) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+function resolveGame(games, input) {
+  if (input.game_id) {
+    const game = games.find((g) => g.id === input.game_id && g.status === "active");
+    if (!game) throw new Error(`Active game not found: ${input.game_id}`);
+    return game;
+  }
+  const needle = normalizeGameTitle(input.title ?? "");
+  const exact = games.filter((g) => g.status === "active" && normalizeGameTitle(g.title) === needle);
+  const matches = exact.length ? exact : games.filter((g) => {
+    const title = normalizeGameTitle(g.title);
+    return g.status === "active" && (title.includes(needle) || needle.includes(title));
+  });
+  if (matches.length !== 1) throw new Error(matches.length ? `Ambiguous game title: ${input.title}` : `Active game not found: ${input.title}`);
+  return matches[0];
+}
+function priceOptionLabel(option) {
+  const base = option.offer_type === "location" ? "Location" : "Vente";
+  return option.label?.trim() ? `${base} \u2014 ${option.label.trim()}` : base;
+}
+function selectCatalogPrice(game, options, priceOptionId) {
+  const owned = options.filter((o) => o.game_id === game.id);
+  if (priceOptionId) {
+    const selected2 = owned.find((o) => o.id === priceOptionId);
+    if (!selected2) throw new Error(`Price option ${priceOptionId} does not belong to ${game.title}`);
+    return { option: selected2, price: Number(selected2.prix), ambiguous: false };
+  }
+  const sales = owned.filter((o) => o.offer_type === "vente");
+  const selected = owned.length === 1 ? owned[0] : sales.length === 1 ? sales[0] : null;
+  if (selected) return { option: selected, price: Number(selected.prix), ambiguous: false };
+  return { option: null, price: game.proposed_price_ht == null ? null : Number(game.proposed_price_ht), ambiguous: owned.length > 0 };
+}
+function roundMoney(value) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+function quoteTotals(lineTotals, shippingHt, adminFeeHt, vatRate) {
+  const subtotalHt = roundMoney(lineTotals.reduce((sum, value) => sum + value, 0));
+  const totalHt = roundMoney(subtotalHt + shippingHt + adminFeeHt);
+  const totalTax = roundMoney(totalHt * vatRate);
+  return {
+    subtotal_ht: subtotalHt,
+    shipping_ht: roundMoney(shippingHt),
+    admin_fee_ht: roundMoney(adminFeeHt),
+    total_ht: totalHt,
+    vat_rate: vatRate,
+    total_tax: totalTax,
+    total_ttc: roundMoney(totalHt + totalTax)
+  };
+}
+function defaultShipping(lines) {
+  const missing = lines.filter((line) => line.shipping_fee == null).map((line) => line.title);
+  if (missing.length) return { value: null, missing };
+  return {
+    value: roundMoney(lines.reduce((sum, line) => sum + Number(line.shipping_fee) * line.quantity, 0)),
+    missing
+  };
+}
+async function prepareGameQuote(db, input) {
+  const [gamesResult, settingsResult, cardResult] = await Promise.all([
+    db.from("games").select(GAME_CATALOG_FIELDS).order("title"),
+    db.from("supertilt_settings").select("value").eq("key", "vat_rate").maybeSingle(),
+    input.crm_card_id ? db.from("crm_cards").select("id,title,company").eq("id", input.crm_card_id).maybeSingle() : Promise.resolve({ data: null, error: null })
+  ]);
+  if (gamesResult.error) throw gamesResult.error;
+  if (settingsResult.error) throw settingsResult.error;
+  if (cardResult.error) throw cardResult.error;
+  const issues = [];
+  if (input.crm_card_id && !cardResult.data) issues.push(`CRM card not found: ${input.crm_card_id}`);
+  const games = gamesResult.data ?? [];
+  const resolvedGames = input.lines.map((line) => resolveGame(games, line));
+  const { data: optionRows, error: optionsError } = await db.from("game_price_options").select(GAME_PRICE_FIELDS).in("game_id", [...new Set(resolvedGames.map((game) => game.id))]).order("display_order");
+  if (optionsError) throw optionsError;
+  const options = optionRows ?? [];
+  const lines = input.lines.map((line, index) => {
+    const game = resolvedGames[index];
+    const catalog = selectCatalogPrice(game, options, line.price_option_id);
+    const unitPrice = line.unit_price ?? catalog.price;
+    if (unitPrice == null || !(unitPrice > 0)) {
+      issues.push(catalog.ambiguous && line.unit_price == null ? `${game.title}: several catalog prices; provide price_option_id or unit_price` : `${game.title}: no catalog price; provide unit_price`);
+    }
+    const title = catalog.option ? `${game.title} \u2014 ${priceOptionLabel(catalog.option)}` : game.title;
+    const lineTotal = unitPrice == null ? null : roundMoney(unitPrice * line.quantity);
+    return {
+      game,
+      title,
+      quantity: line.quantity,
+      unit_price: unitPrice,
+      catalog_price: catalog.price,
+      price_source: line.unit_price == null ? "catalog" : "override",
+      price_option_id: catalog.option?.id ?? null,
+      offer_type: catalog.option?.offer_type ?? null,
+      shipping_fee: game.shipping_fee,
+      weight_g: game.weight_g,
+      line_total: lineTotal
+    };
+  });
+  const shipping = defaultShipping(lines);
+  if (input.shipping_fee == null && shipping.missing.length) {
+    issues.push(`Missing catalog shipping fee for: ${shipping.missing.join(", ")}; provide shipping_fee`);
+  }
+  const shippingHt = input.shipping_fee ?? shipping.value;
+  const amounts = shippingHt != null && lines.every((line) => line.line_total != null) ? quoteTotals(lines.map((line) => line.line_total), shippingHt, input.admin_fee, Number(settingsResult.data?.value ?? 0.2)) : null;
+  const billing = { ...input.client.billing_address, email: input.client.email };
+  const shippingAddress = { ...input.client.shipping_address ?? input.client.billing_address, email: input.client.email };
+  return {
+    mode: "preview",
+    confirm: false,
+    ready: issues.length === 0,
+    issues,
+    client: {
+      ...input.client,
+      name: input.client.type === "company" ? input.client.company : [input.client.first_name, input.client.last_name].filter(Boolean).join(" "),
+      billing_address: billing,
+      shipping_address: shippingAddress
+    },
+    lines: lines.map((line) => ({
+      game_id: line.game.id,
+      title: line.title,
+      quantity: line.quantity,
+      unit_price: line.unit_price,
+      catalog_price: line.catalog_price,
+      price_source: line.price_source,
+      price_option_id: line.price_option_id,
+      offer_type: line.offer_type,
+      game_type: line.game.game_type,
+      woocommerce_product_id: line.game.woocommerce_product_id,
+      location_variation_id: line.game.location_variation_id,
+      line_total: line.line_total,
+      shipping_fee: line.shipping_fee == null ? null : Number(line.shipping_fee),
+      weight_g: line.weight_g
+    })),
+    shipping: { default_ht: shipping.value, override_ht: input.shipping_fee ?? null, missing_catalog_fees: shipping.missing },
+    amounts,
+    crm_card: cardResult.data ?? null,
+    valid_until: input.valid_until ?? null,
+    note: input.note,
+    write_performed: false,
+    side_effects: { email_sent: false, slack_sent: false, paid_order_created: false, stock_changed: false }
+  };
+}
+function gameQuoteAppUrl(quoteId) {
+  return `https://academy.supertilt.fr/commandes-jeux?tab=devis&quote=${quoteId}`;
+}
+
+// src/lib/mcp/tools/list-games.ts
+var list_games_default = defineTool17({
+  name: "list_games",
+  title: "List game catalog",
+  description: "Lists games with id, title, default catalog price HT, stock, per-unit shipping fee HT and weight. Includes sale/rental price options so create_game_quote can use the right game_id and price_option_id.",
+  inputSchema: {
+    search: z20.string().trim().max(120).optional().describe("Optional case-insensitive title filter"),
+    include_inactive: z20.boolean().default(false),
+    limit: z20.number().int().min(1).max(200).default(100)
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ search, include_inactive, limit }, ctx) => {
+    const db = await dropshippingClient(ctx);
+    let query = db.from("games").select(GAME_CATALOG_FIELDS).order("title").limit(limit);
+    if (!include_inactive) query = query.eq("status", "active");
+    if (search) query = query.ilike("title", `%${search.replace(/[%,]/g, "")}%`);
+    const { data, error } = await query;
+    if (error) throw error;
+    const games = data ?? [];
+    const ids = games.map((game) => game.id);
+    const { data: optionData, error: optionError } = ids.length ? await db.from("game_price_options").select(GAME_PRICE_FIELDS).in("game_id", ids).order("display_order") : { data: [], error: null };
+    if (optionError) throw optionError;
+    const options = optionData ?? [];
+    return result(games.map((game) => {
+      const gameOptions = options.filter((option) => option.game_id === game.id);
+      const catalog = selectCatalogPrice(game, gameOptions);
+      return {
+        id: game.id,
+        title: game.title,
+        status: game.status,
+        price_ht: catalog.price,
+        price_option_id: catalog.option?.id ?? null,
+        price_ambiguous: catalog.ambiguous,
+        stock: game.current_stock ?? game.stock,
+        shipping_fee_ht: game.shipping_fee == null ? null : Number(game.shipping_fee),
+        weight_g: game.weight_g,
+        price_options: gameOptions.map((option) => ({
+          id: option.id,
+          offer_type: option.offer_type,
+          label: option.label,
+          price_ht: Number(option.prix)
+        }))
+      };
+    }));
+  }
+});
+
+// src/lib/mcp/tools/create-game-quote.ts
+import { defineTool as defineTool18 } from "npm:@lovable.dev/mcp-js@3.4.0";
+
+// src/lib/mcp/game-quote-pdf.ts
+var GAME_DEVIS_TEMPLATE_ID = "C5099C66-FB36-49F3-B674-2F8C1A2F314A";
+function env2(name) {
+  const runtime = globalThis;
+  return runtime.Deno?.env.get(name) ?? runtime.process?.env[name];
+}
+async function generateGameQuotePdf(input, preview) {
+  const apiKey = env2("PDFMONKEY_API_KEY");
+  if (!apiKey) throw new Error("PDFMONKEY_API_KEY is not set");
+  const client = preview.client;
+  const validityNote = input.valid_until ? `Valable jusqu'au ${input.valid_until}` : "";
+  const payload = {
+    client: {
+      name: client.name,
+      address: [client.billing_address.address_1, client.billing_address.address_2].filter(Boolean).join("\n"),
+      zip: client.billing_address.postcode,
+      city: client.billing_address.city,
+      country: client.billing_address.country,
+      vat_number: client.vat_number ?? null
+    },
+    items: preview.lines.map((line) => ({ name: line.title, quantity: line.quantity, unit_price: line.unit_price })),
+    shipping_fee: preview.amounts?.shipping_ht ?? 0,
+    admin_fee: preview.amounts?.admin_fee_ht ?? 0,
+    note: [input.note, validityNote].filter(Boolean).join("\n\n"),
+    valid_until: input.valid_until ?? null
+  };
+  const createResponse = await fetch("https://api.pdfmonkey.io/api/v1/documents", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ document: { document_template_id: GAME_DEVIS_TEMPLATE_ID, payload, status: "pending" } })
+  });
+  if (!createResponse.ok) throw new Error(`PdfMonkey create error: ${await createResponse.text()}`);
+  const { document } = await createResponse.json();
+  for (let attempt = 0; attempt < 30; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 2e3));
+    const statusResponse = await fetch(`https://api.pdfmonkey.io/api/v1/documents/${document.id}`, {
+      headers: { Authorization: `Bearer ${apiKey}` }
+    });
+    if (!statusResponse.ok) throw new Error("PdfMonkey status check failed");
+    const { document: current } = await statusResponse.json();
+    if (current.status === "success") return { pdfUrl: current.download_url, documentId: current.id };
+    if (current.status === "failure") throw new Error(`PdfMonkey failed: ${current.failure_cause}`);
+  }
+  throw new Error("PdfMonkey timed out");
+}
+
+// src/lib/mcp/tools/create-game-quote.ts
+async function confirmGameQuote(db, input, preview) {
+  if (!preview.ready || !preview.amounts) throw new Error(`Preview is not ready: ${preview.issues.join(" | ")}`);
+  const { pdfUrl, documentId } = await generateGameQuotePdf(input, preview);
+  const pdfResponse = await fetch(pdfUrl);
+  if (!pdfResponse.ok) throw new Error(`PDF download failed (${pdfResponse.status})`);
+  const pdfBuffer = await pdfResponse.arrayBuffer();
+  const folder = input.crm_card_id ?? "unlinked";
+  const storagePath = `${folder}/${Date.now()}_${crypto.randomUUID()}_jeux.pdf`;
+  const upload = await db.storage.from("devis-pdfs").upload(storagePath, pdfBuffer, { contentType: "application/pdf", upsert: false });
+  if (upload.error) throw upload.error;
+  try {
+    const signed = await db.storage.from("devis-pdfs").createSignedUrl(storagePath, 3600);
+    const signedUrl = signed.data?.signedUrl ?? pdfUrl;
+    const amounts = preview.amounts;
+    const comment = [
+      "Devis jeux cr\xE9\xE9 en brouillon via MCP.",
+      preview.lines.map((line) => `${line.quantity} \xD7 ${line.title}`).join(" ; "),
+      `Total : ${amounts.total_ht.toFixed(2)} \u20AC HT / ${amounts.total_ttc.toFixed(2)} \u20AC TTC.`,
+      input.valid_until ? `Valable jusqu'au ${input.valid_until}.` : "",
+      "Aucun envoi au client."
+    ].filter(Boolean).join("\n");
+    const orderItems = preview.lines.map((line) => ({
+      wc_product_id: line.woocommerce_product_id,
+      wc_variation_id: line.offer_type === "location" ? line.location_variation_id : null,
+      product_name: line.title,
+      game_id: line.game_id,
+      game_type: line.offer_type === "location" ? "location" : line.game_type,
+      quantity: line.quantity,
+      unit_price: line.unit_price,
+      line_total: line.line_total,
+      price_option_id: line.price_option_id,
+      shipping_fee: line.shipping_fee,
+      weight_g: line.weight_g
+    }));
+    const { data, error } = await db.rpc("create_game_quote", {
+      p_quote: {
+        crm_card_id: input.crm_card_id ?? null,
+        customer_first_name: input.client.first_name ?? null,
+        customer_last_name: input.client.last_name ?? null,
+        customer_email: input.client.email,
+        billing_address: preview.client.billing_address,
+        shipping_address: preview.client.shipping_address,
+        total_ht: amounts.total_ht,
+        total_tax: amounts.total_tax,
+        total_ttc: amounts.total_ttc,
+        shipping_total: amounts.shipping_ht,
+        admin_fee: amounts.admin_fee_ht,
+        valid_until: input.valid_until ?? null,
+        note: input.note,
+        vat_number: input.client.vat_number ?? null,
+        crm_comment: comment,
+        activity_details: {
+          crm_card_id: input.crm_card_id ?? null,
+          status: "draft",
+          via: "mcp",
+          total_amount: amounts.total_ht,
+          total_tax: amounts.total_tax,
+          total_ttc: amounts.total_ttc,
+          client_name: preview.client.name,
+          items: preview.lines.map((line) => ({ title: line.title, quantity: line.quantity, unitPrice: line.unit_price })),
+          shipping_fee: amounts.shipping_ht,
+          admin_fee: amounts.admin_fee_ht,
+          valid_until: input.valid_until ?? null,
+          note: input.note,
+          billing_address: preview.client.billing_address,
+          shipping_address: preview.client.shipping_address,
+          vat_number: input.client.vat_number ?? null,
+          pdf_url: pdfUrl,
+          pdf_storage_path: storagePath,
+          pdfmonkey_document_id: documentId
+        }
+      },
+      p_items: orderItems
+    });
+    if (error) throw error;
+    return {
+      mode: "created",
+      quote_id: data.id,
+      quote_number: data.order_number,
+      status: data.status,
+      amounts,
+      pdf_url: signedUrl,
+      pdf_expires_in_seconds: signed.data?.signedUrl ? 3600 : null,
+      pdf_storage_path: storagePath,
+      app_url: gameQuoteAppUrl(data.id),
+      crm_comment: data.crm_comment_id ? { id: data.crm_comment_id, content: comment } : null,
+      email_sent: false,
+      slack_sent: false,
+      paid_order_created: false
+    };
+  } catch (error) {
+    await db.storage.from("devis-pdfs").remove([storagePath]);
+    throw error;
+  }
+}
+var create_game_quote_default = defineTool18({
+  name: "create_game_quote",
+  title: "Create a draft game quote",
+  description: "Previews or creates a draft game quote in the SuperTools dropshipping module. Default confirm=false is fully read-only and returns client, lines and HT/VAT/TTC amounts. confirm=true creates woocommerce_orders/order_items with source=devis and status=draft, the usual DV number and PDF, activity audit, and a CRM comment when crm_card_id is provided. It NEVER emails the client, sends Slack, creates a paid order or decrements stock. Prices and shipping default to catalog values; missing values must be overridden explicitly. Review the preview and obtain explicit user approval before confirm=true. Never retry automatically after an ambiguous write failure.",
+  inputSchema: gameQuoteFields,
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  handler: async (args, ctx) => {
+    const input = gameQuoteSchema.parse(args);
+    const db = await dropshippingClient(ctx);
+    const preview = await prepareGameQuote(db, input);
+    if (!input.confirm) return result(preview);
+    return result(await confirmGameQuote(db, input, preview));
+  }
+});
+
 // src/lib/mcp/index.ts
 var ref = "yewffntzgrdgztrwtava";
-var mcp_default = defineMcp({ name: "supertools", title: "SuperTools", version: "1.0.0", auth: auth.oauth.issuer({ issuer: `https://${ref}.supabase.co/auth/v1`, acceptedAudiences: "authenticated" }), instructions: "Extensions r\xE9serv\xE9es au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille, couvertures et attestations de bonne ex\xE9cution (cr\xE9ation, modification, liste, lien de signature, PDF sign\xE9), sessions live des formations (liste, mise \xE0 jour, replay). Aucun outil de suppression ni envoi d\u2019email hors rappels live reprogramm\xE9s comme dans l\u2019application. Ne jamais modifier les le\xE7ons. Confirmer allow_multiple avec l\u2019utilisateur. Les outils historiques restent sur leur connecteur existant.", tools: [list_lms_modules_default, create_lms_module_default, update_lms_module_default, assign_transcript_default, list_unassigned_transcripts_default, list_watch_sources_default, propose_watch_source_default, update_watch_source_default, update_lms_course_default, create_execution_attestation_default, update_execution_attestation_default, list_execution_attestations_default, get_execution_attestation_link_default, get_execution_attestation_pdf_default, list_live_meetings_default, update_live_meeting_default] });
+var mcp_default = defineMcp({ name: "supertools", title: "SuperTools", version: "1.0.0", auth: auth.oauth.issuer({ issuer: `https://${ref}.supabase.co/auth/v1`, acceptedAudiences: "authenticated" }), instructions: "Extensions r\xE9serv\xE9es au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille, couvertures et attestations de bonne ex\xE9cution (cr\xE9ation, modification, liste, lien de signature, PDF sign\xE9), sessions live des formations (liste, mise \xE0 jour, replay), catalogue jeux et devis dropshipping. list_games retrouve les jeux, prix, stocks, frais de port et poids. create_game_quote renvoie par d\xE9faut un preview sans \xE9criture ; confirm=true est obligatoire pour cr\xE9er le brouillon, apr\xE8s accord explicite. Le devis jeux n\u2019envoie jamais d\u2019email ou de Slack, ne cr\xE9e pas de commande pay\xE9e et ne d\xE9cr\xE9mente pas le stock. Aucun outil de suppression ni envoi d\u2019email hors rappels live reprogramm\xE9s comme dans l\u2019application. Ne jamais modifier les le\xE7ons. Confirmer allow_multiple avec l\u2019utilisateur. Les outils historiques restent sur leur connecteur existant.", tools: [list_lms_modules_default, create_lms_module_default, update_lms_module_default, assign_transcript_default, list_unassigned_transcripts_default, list_watch_sources_default, propose_watch_source_default, update_watch_source_default, update_lms_course_default, create_execution_attestation_default, update_execution_attestation_default, list_execution_attestations_default, get_execution_attestation_link_default, get_execution_attestation_pdf_default, list_live_meetings_default, update_live_meeting_default, list_games_default, create_game_quote_default] });
 
 // lovable-mcp-supabase-entry.ts
 import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@3.4.0/stacks/supabase";

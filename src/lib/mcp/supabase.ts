@@ -14,4 +14,14 @@ export async function staffClient(ctx: ToolContext) {
  const db=supabaseForUser(ctx); const {data,error}=await db.rpc('is_staff_user');
  if(error || data!==true) throw new Error('Accès personnel requis'); return db;
 }
+export async function dropshippingClient(ctx: ToolContext) {
+ const db=supabaseForUser(ctx); const userId=ctx.getUserId(); if(!userId) throw new Error('Connexion requise');
+ const [admin,module]=await Promise.all([
+  db.rpc('is_admin',{_user_id:userId}),
+  db.rpc('has_module_access',{_user_id:userId,_module:'dropshipping'}),
+ ]);
+ if(admin.error) throw admin.error; if(module.error) throw module.error;
+ if(admin.data!==true&&module.data!==true) throw new Error('Accès dropshipping requis');
+ return db;
+}
 export function result(data: unknown) { return {content:[{type:'text' as const,text:JSON.stringify(data)}]}; }
