@@ -22,6 +22,5 @@ test("la page /auth affiche le formulaire de connexion", async ({ page }) => {
 
 test("une route inconnue ne rend pas une page vide", async ({ page }) => {
   await page.goto("/cette-route-n-existe-pas");
-  const rootText = await page.locator("#root").innerText();
-  expect(rootText.trim().length).toBeGreaterThan(0);
+  await expect(page.locator("#root")).toContainText(/\S/);
 });
