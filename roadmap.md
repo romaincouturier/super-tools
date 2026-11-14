@@ -1,5 +1,10 @@
 # Roadmap
 
+## CI GitHub (2026-11-14)
+- [x] Confirmer les étapes en échec : installation npm pour les deux jobs CI, dépôt d’action inexistant pour Autofix.
+- [ ] Synchroniser les dépendances et le lockfile, corriger l’action Autofix et vérifier installation, règles et tests.
+- [ ] Confirmer la prochaine exécution GitHub ; secrets et permissions privés non accessibles depuis cette session.
+
 ## MCP devis jeux (2026-11-14)
 - [x] Ajouter `list_games` et `create_game_quote` au connecteur MCP actuel, avec droits dropshipping, preview par défaut et écriture uniquement sur `confirm=true`.
 - [x] Créer le brouillon dans le circuit `woocommerce_orders` / `order_items` / `activity_logs`, avec numérotation DV, PDF existant et commentaire CRM, sans email, Slack, vente ni alerte de commande ; brouillons exclus du kanban, des ventes et des commandes actives.

@@ -46,10 +46,11 @@ jobs:
         run: npm ci
 
       - name: Fix failing CI with Claude Code
-        uses: anthropic/claude-code-action@v1
+        uses: anthropics/claude-code-action@v1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
             --model claude-opus-4-8
