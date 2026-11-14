@@ -1,5 +1,10 @@
 # Roadmap
 
+## MCP devis jeux (2026-11-14)
+- [ ] Ajouter `list_games` et `create_game_quote` au connecteur MCP actuel, avec droits dropshipping, preview par défaut et écriture uniquement sur `confirm=true`.
+- [ ] Créer le brouillon dans le circuit `woocommerce_orders` / `order_items` / `activity_logs`, avec numérotation DV, PDF existant et commentaire CRM, sans email, Slack, vente ni alerte de commande.
+- [ ] Tester les calculs, les droits, l'absence d'écriture en preview et le cas CLPS Mons-Soignies sans confirmation ; extraire le manifeste MCP, publication requise pour Claude.
+
 ## Formats dépôt apprenant, Sentry 1D (2026-11-14)
 - [x] MKV refusé à la sélection pour ajout et remplacement, même MIME absent ou trompeur ; extensions affichées selon la leçon : JPG/JPEG, PNG, PDF, MP4/WebM/MOV. Refus inline avec conseil MP4, sans toastError/Sentry ni upload.
 - [x] 32 tests ciblés réussis ; aucune leçon, restriction stockage ou fonction modifiée. Front à publier, build OK ; contrôle [065] préexistant hors périmètre.
