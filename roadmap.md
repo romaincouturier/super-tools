@@ -1,9 +1,10 @@
 # Roadmap
 
 ## MCP devis jeux (2026-11-14)
-- [ ] Ajouter `list_games` et `create_game_quote` au connecteur MCP actuel, avec droits dropshipping, preview par défaut et écriture uniquement sur `confirm=true`.
-- [ ] Créer le brouillon dans le circuit `woocommerce_orders` / `order_items` / `activity_logs`, avec numérotation DV, PDF existant et commentaire CRM, sans email, Slack, vente ni alerte de commande.
-- [ ] Tester les calculs, les droits, l'absence d'écriture en preview et le cas CLPS Mons-Soignies sans confirmation ; extraire le manifeste MCP, publication requise pour Claude.
+- [x] Ajouter `list_games` et `create_game_quote` au connecteur MCP actuel, avec droits dropshipping, preview par défaut et écriture uniquement sur `confirm=true`.
+- [x] Créer le brouillon dans le circuit `woocommerce_orders` / `order_items` / `activity_logs`, avec numérotation DV, PDF existant et commentaire CRM, sans email, Slack, vente ni alerte de commande ; brouillons exclus du kanban, des ventes et des commandes actives.
+- [x] Neuf tests ciblés, compilation et 103 contrôles réussis ; manifeste de 18 outils extrait. Preview réel CLPS : bonne fiche et bon jeu, mais prix et frais de port catalogue ECHO absents, donc aucun montant inventé et aucune écriture (0 commande, 0 journal).
+- [ ] Republier l’application pour exposer cette révision MCP à Claude. Pour créer ensuite ce devis ECHO, fournir explicitement `unit_price` et `shipping_fee` ou compléter le catalogue.
 
 ## Formats dépôt apprenant, Sentry 1D (2026-11-14)
 - [x] MKV refusé à la sélection pour ajout et remplacement, même MIME absent ou trompeur ; extensions affichées selon la leçon : JPG/JPEG, PNG, PDF, MP4/WebM/MOV. Refus inline avec conseil MP4, sans toastError/Sentry ni upload.
