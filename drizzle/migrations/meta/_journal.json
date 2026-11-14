@@ -470,6 +470,13 @@
       "when": 1794563524763,
       "tag": "0066_transcript_inventory_controls",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1794643061752,
+      "tag": "0067_game_quotes",
+      "breakpoints": true
     }
   ]
 }

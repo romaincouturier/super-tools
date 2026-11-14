@@ -15081,6 +15081,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_game_quote: {
+        Args: { p_items: Json; p_quote: Json }
+        Returns: Json
+      }
       create_learner_reclamation: {
         Args: {
           p_description: string
