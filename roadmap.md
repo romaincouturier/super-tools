@@ -2,8 +2,8 @@
 
 ## Connexion Marie Leurent (2026-11-14)
 - [x] Compte confirmé créé le 13/11 à 22:54 UTC, mot de passe présent/prouvé, inscription reliée par email ; autre adresse sans compte. Journaux auth/Edge absents pour cette fenêtre, outils Sentry non exposés.
-- [ ] Guider les doublons vers connexion/récupération et ouvrir les formations existantes après création ; empêcher une tentative en doublon de réécrire le profil.
-- [ ] Tester sans créer de compte, changer de mot de passe ou envoyer d’email ; vérifier les liens actuels et rendre un compte rendu court.
+- [x] Doublons guidés par boutons connexion/récupération avec email prérempli ; après création, session actualisée et formations existantes ouvertes sans passage forcé au catalogue gratuit. create-academy-account déployée : aucune réécriture du profil sur doublon, droits/configuration auth inchangés.
+- [x] 66 tests réussis et parcours navigateur doublon/récupération simulé vérifié ; aucun compte, mot de passe, email ni leçon modifié. Liens actuels sur academy.supertilt.fr : /connexion ou /connexion/reinitialisation ; ancien mail de juillet /apprenant/connexion redirigé vers /connexion. Front à publier ; incident historique exact non démontré faute de logs/Sentry, session réelle de Marie non utilisée.
 
 ## Dépôt apprenant, Sentry 1C (2026-11-13)
 - [x] upload-lms-content reçoit le multipart complet puis l'envoie au stockage ; CORS réel OPTIONS 200 avec tous les headers client. Bucket sans limite propre ni restriction MIME ; formulaire 50 Mio par défaut, pas de timeout client explicite. Aucun log disponible sur 15:15–15:35 UTC, même toutes sources confondues ; cause historique non démontrée.
