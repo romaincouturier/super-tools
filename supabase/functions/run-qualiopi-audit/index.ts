@@ -2,12 +2,13 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import { hasManagedCronCredential, isCronOrServiceRole } from "../_shared/cron-auth.ts";
-import { buildFacts, automaticIssues, type RawAuditData } from "../_shared/qualiopi-checks.ts";
-import { auditChanges, auditMailSummary, escapeAuditHtml } from '../_shared/qualiopi-summary.ts';
+import { automaticIssues } from "../_shared/qualiopi-checks.ts";
+import { auditChanges, auditMailSummary, auditEmailModel, renderAuditActions } from '../_shared/qualiopi-summary.ts';
 import { sendEmail } from '../_shared/resend.ts';
 import { getBccList, getSenderEmail } from '../_shared/email-settings.ts';
 import { getSigniticSignature } from '../_shared/signitic.ts';
 import { renderCatalogEmail, ctaButton } from '../_shared/editable-email.ts';
+import { collectAuditFacts } from '../_shared/qualiopi-collector.ts';
 import { verifyAuth } from '../_shared/supabase-client.ts';
 
 /**
@@ -23,10 +24,7 @@ import { verifyAuth } from '../_shared/supabase-client.ts';
  * sa date initiale, et ferme les écarts corrigés ainsi que les doublons.
  */
 
-const VERSION = "run-qualiopi-audit@2026-11-15.1";
-const SAMPLE_SIZE = 5;
-const SUBMITTED_SURVEY_STATES = ["complete", "valide_formateur"];
-
+const VERSION = "run-qualiopi-audit@2026-11-15.2";
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -51,122 +49,24 @@ serve(async (req) => {
     }
     if (!authorized) return createErrorResponse('Unauthorized', 401);
 
-    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-    const oneYearAgo = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString();
-
-    const { data: sampleTrainings, error: sampleError } = await supabase
-      .from("trainings")
-      .select("id, objectives, program_file_url, supports_lms_course_id, trainer_id")
-      .not("start_date", "is", null)
-      .lte("start_date", today)
-      .order("start_date", { ascending: false })
-      .limit(SAMPLE_SIZE);
-
-    // Un échantillon vide par échec de lecture court-circuiterait cinq
-    // requêtes vers des tableaux sans clé d'erreur : le garde plus bas ne
-    // verrait rien et la nuit se conclurait sur un audit propre.
-    if (sampleError) {
-      return createErrorResponse(`Lecture des sessions impossible : ${sampleError.message}`, 500);
-    }
-
-    const sample = sampleTrainings ?? [];
-    const sampleIds = sample.map((t) => t.id);
-    const scoped = <T>(q: Promise<{ data: T[] | null }>, fallback: T[] = []) =>
-      sampleIds.length ? q : Promise.resolve({ data: fallback });
-
-    const [
-      formations, evaluations, surveys, participants, adequacy, reglement, vhd,
-      courses, modules, lessons, trainers, trainerDocs, watchItems, watchSources,
-      referentName, referentEmail, partners, coldParticipant, coldSponsor,
-      funder, reclamations, risks, improvements,
-    ] = await Promise.all([
-      supabase.from("formation_configs").select("recognition_type, funding_terms, access_delay, accessibility_terms").eq("is_active", true),
-      scoped(supabase.from("training_evaluations").select("training_id").in("training_id", sampleIds).eq("etat", "soumis")),
-      scoped(supabase.from("questionnaire_besoins").select("training_id, prerequis_validation").in("training_id", sampleIds).in("etat", SUBMITTED_SURVEY_STATES)),
-      scoped(supabase.from("training_participants").select("training_id, needs_survey_sent_at").in("training_id", sampleIds)),
-      scoped(supabase.from("trainer_training_adequacy").select("training_id").in("training_id", sampleIds)),
-      supabase.from("app_settings").select("setting_value").eq("setting_key", "reglement_interieur_url").maybeSingle(),
-      supabase.from("vhd_procedures").select("id").eq("status", "active"),
-      supabase.from("lms_courses").select("id"),
-      supabase.from("lms_modules").select("id, course_id"),
-      supabase.from("lms_lessons").select("module_id, is_mandatory"),
-      supabase.from("trainers").select("id, competences, formations_suivies"),
-      supabase.from("trainer_documents").select("trainer_id"),
-      supabase.from("watch_items").select("id").gte("created_at", oneYearAgo),
-      supabase.from("watch_sources").select("id").eq("status", "followed"),
-      supabase.from("app_settings").select("setting_value").eq("setting_key", "referent_handicap_name").maybeSingle(),
-      supabase.from("app_settings").select("setting_value").eq("setting_key", "referent_handicap_email").maybeSingle(),
-      supabase.from("handicap_partners").select("id").eq("is_active", true),
-      supabase.from("participant_cold_evaluations").select("id").eq("etat", "soumis"),
-      supabase.from("sponsor_cold_evaluations").select("id").eq("etat", "soumis"),
-      supabase.from("trainings").select("id").not("funder_appreciation", "is", null),
-      supabase.from("reclamations").select("acknowledgement_sent_at, response_date").neq("status", "draft"),
-      supabase.from("quality_risks").select("criticality, preventive_measure, status"),
-      supabase.from("improvements").select("id"),
-    ]);
-
-    // Une lecture en échec deviendrait un zéro mesuré, donc un constat en
-    // défaut inventé, inscrit le lendemain dans les actions de tout le monde.
-    const reads: Array<[string, { error?: unknown }]> = [
-      ["formation_configs", formations], ["training_evaluations", evaluations],
-      ["questionnaire_besoins", surveys], ["training_participants", participants],
-      ["trainer_training_adequacy", adequacy], ["app_settings", reglement],
-      ["vhd_procedures", vhd], ["lms_courses", courses], ["lms_modules", modules],
-      ["lms_lessons", lessons], ["trainers", trainers], ["trainer_documents", trainerDocs],
-      ["watch_items", watchItems], ["watch_sources", watchSources],
-      ["handicap_partners", partners], ["participant_cold_evaluations", coldParticipant],
-      ["sponsor_cold_evaluations", coldSponsor], ["trainings", funder],
-      ["reclamations", reclamations], ["quality_risks", risks], ["improvements", improvements],
-    ];
-    const failed = reads.filter(([, r]) => r.error).map(([t]) => t);
-    if (failed.length > 0) {
-      return createErrorResponse(`Lectures en échec : ${failed.join(", ")}`, 500);
-    }
-
-    const len = (d: unknown[] | null | undefined) => d?.length ?? 0;
-    const raw: RawAuditData = {
-      sampleIds,
-      sampleTrainings: sample,
-      activeFormations: formations.data ?? [],
-      submittedEvaluations: evaluations.data ?? [],
-      submittedSurveys: surveys.data ?? [],
-      participants: participants.data ?? [],
-      adequacy: adequacy.data ?? [],
-      reglementUrl: reglement.data?.setting_value ?? null,
-      activeVhdProcedures: len(vhd.data),
-      lmsCourseIds: (courses.data ?? []).map((c) => c.id),
-      lmsModules: modules.data ?? [],
-      lmsLessons: lessons.data ?? [],
-      trainers: trainers.data ?? [],
-      trainerDocumentOwners: (trainerDocs.data ?? []).map((d) => d.trainer_id),
-      watchItemsLastYear: len(watchItems.data),
-      watchSourcesFollowed: len(watchSources.data),
-      watchItemsLinkedToAction: 0,
-      referentName: referentName.data?.setting_value ?? null,
-      referentEmail: referentEmail.data?.setting_value ?? null,
-      handicapPartnersActive: len(partners.data),
-      coldEvaluationsSubmitted: len(coldParticipant.data),
-      sponsorEvaluationsSubmitted: len(coldSponsor.data),
-      funderAppreciations: len(funder.data),
-      reclamations: reclamations.data ?? [],
-      risks: risks.data ?? [],
-      improvements: len(improvements.data),
-    };
-
-    const facts = buildFacts(raw);
+    const { facts, sample } = await collectAuditFacts(supabase);
+    const sampleIds = sample.map(t => t.trainingId);
     const issues = automaticIssues(facts);
 
     const previousRead = await supabase.from('audit_runs').select('findings, facts, summary_email_sent_at')
       .like('notes', 'Passage automatique%').order('started_at', { ascending: false }).limit(1).maybeSingle();
     if (previousRead.error) throw previousRead.error;
-    const sentRead = await supabase.from('audit_runs').select('id, findings, facts').not('summary_email_sent_at', 'is', null).order('summary_email_sent_at', { ascending: false }).limit(1).maybeSingle();
+    const sentRead = await supabase.from('audit_runs').select('id, findings, facts, answers, summary_email_sent_at').not('summary_email_sent_at', 'is', null).order('summary_email_sent_at', { ascending: false }).limit(1).maybeSingle();
     if (sentRead.error) throw sentRead.error;
+    const answersRead = await supabase.from('audit_runs').select('answers').not('answers', 'eq', '{}').order('started_at', { ascending: false }).limit(1).maybeSingle();
+    if (answersRead.error) throw answersRead.error;
+    const answers = answersRead.data?.answers ?? {};
     const { data: run, error: runError } = await supabase.from("audit_runs").insert({
       label: `Contrôle automatique du ${new Date().toLocaleDateString("fr-FR", { timeZone: 'Europe/Paris' })}`,
       finished_at: new Date().toISOString(),
       sample_training_ids: sampleIds,
       facts,
-      answers: {},
+      answers,
       findings: issues,
       notes: "Passage automatique : contrôles sur les données seulement, sans les questions à l'auditeur.",
     }).select('id').single();
@@ -198,16 +98,19 @@ serve(async (req) => {
     }
 
     const delta = auditChanges(issues, previousRead.data?.findings ?? []);
-    const summary = auditMailSummary(facts);
-    const lastSentSummary = sentRead.data?.facts ? auditMailSummary(sentRead.data.facts) : null;
+    const summary = auditMailSummary(facts, answers);
+    const lastSentSummary = sentRead.data?.facts ? auditMailSummary(sentRead.data.facts, sentRead.data.answers ?? {}) : null;
     const summaryChanged = JSON.stringify(summary) !== JSON.stringify(lastSentSummary);
     const changesSinceEmail = auditChanges(issues, sentRead.data?.findings ?? []);
     let emailSent = false;
-    if (changesSinceEmail.changed || summaryChanged || !sentRead.data) {
-      const list = (items: string[]) => items.length ? `<ul>${items.map(i => `<li>${escapeAuditHtml(i)}</li>`).join('')}</ul>` : '<p>Aucun.</p>';
+    const changed = changesSinceEmail.changed || summaryChanged || !sentRead.data;
+    const parisDay = (date: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(date));
+    const newDay = !sentRead.data?.summary_email_sent_at || parisDay(sentRead.data.summary_email_sent_at) !== parisDay(new Date().toISOString());
+    if (changed || newDay) {
+      const model = auditEmailModel(facts, answers, !changed);
       const rendered = await renderCatalogEmail(supabase, 'qualiopi_audit_summary', {
-        vars: { issues: String(issues.length), conforme: String(summary.conforme), a_verifier: String(summary.aVerifier), non_conformes: String(summary.mineure + summary.majeure), mineure: String(summary.mineure), majeure: String(summary.majeure), added: String(delta.added.length), resolved: String(delta.resolved.length), updated: String(delta.updated.length), questions_count: String(summary.questions.length) },
-        blocks: { added_list: list(delta.added.map(i => `Indicateur ${i.indicator} : ${i.label} — ${i.detail}`)), resolved_list: list(delta.resolved.map(i => `Indicateur ${i.indicator} : ${i.label}`)), updated_list: list(delta.updated.map(i => `Indicateur ${i.indicator} : ${i.label} — ${i.detail}`)), questions_list: list(summary.questions), audit_button: ctaButton("Ouvrir l'audit blanc", 'https://academy.supertilt.fr/audit-blanc'), signature: await getSigniticSignature() },
+        vars: { global_state: model.globalState, change_note: model.changeNote },
+        blocks: { actions_list: renderAuditActions(model.actions), audit_button: ctaButton("Ouvrir l'audit blanc", 'https://academy.supertilt.fr/audit-blanc'), signature: await getSigniticSignature() },
       });
       const sent = await sendEmail({ to: recipientEmail, bcc: (await getBccList()).filter(e => e !== recipientEmail), subject: rendered.subject, html: `<div style="text-align:left">${rendered.html}</div>`, _emailType: 'qualiopi_audit_summary', idempotencyKey: `qualiopi-audit-${run.id}` });
       const saved = await supabase.from('audit_runs').update({ summary_email_sent_at: sent.success ? new Date().toISOString() : null, summary_email_error: sent.error ?? null }).eq('id', run.id);
