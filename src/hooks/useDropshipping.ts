@@ -205,6 +205,7 @@ export interface GameDevisHistoryEntry {
   pdf_url: string | null;
   pdf_storage_path: string | null;
   status: "draft" | "sent";
+  details: Record<string, any>;
 }
 
 export interface GameDevisItem {
@@ -226,6 +227,7 @@ export function useGameDevisHistory() {
       if (error) throw error;
       return (data as Array<{ id: string; created_at: string; action_type: string; recipient_email: string; details: any }>).map((r) => ({
         id: r.id,
+        details: r.details ?? {},
         status: r.action_type === "game_devis_draft" ? "draft" : "sent",
         created_at: r.created_at,
         recipient_email: r.recipient_email,
