@@ -55,11 +55,13 @@ describe('Devis jeux MCP en base', () => {
       INSERT INTO public.games VALUES('${game}','ECHO','active');
       INSERT INTO public.crm_cards VALUES('${card}','Devis ECHO x2');`);
     await db.exec(readFileSync('drizzle/migrations/0067_game_quotes.sql', 'utf8'));
+    await db.exec('CREATE TABLE public.game_price_options(id uuid,game_id uuid);');
+    await db.exec(readFileSync('drizzle/migrations/0069_persistent_game_quote_defaults.sql', 'utf8'));
   });
 
   beforeEach(async () => {
     await db.exec(`SET test.staff='true'; SET test.admin='false'; SET test.module='true';
-      TRUNCATE public.activity_logs,public.woocommerce_orders,public.order_items,public.crm_comments,public.crm_activity_log,public.devis_order_counters;
+      TRUNCATE public.game_quote_defaults,public.activity_logs,public.woocommerce_orders,public.order_items,public.crm_comments,public.crm_activity_log,public.devis_order_counters;
       ALTER SEQUENCE public.devis_order_wc_id_seq RESTART WITH 1;`);
   });
 
@@ -83,6 +85,30 @@ describe('Devis jeux MCP en base', () => {
     expect((await db.query("SELECT * FROM public.activity_logs WHERE action_type='game_devis_draft'")).rows).toHaveLength(1);
     expect((await db.query('SELECT * FROM public.crm_comments')).rows).toHaveLength(1);
     expect((await db.query('SELECT * FROM public.crm_activity_log')).rows).toHaveLength(2);
+  });
+
+  it('mémorise les montants confirmés et conserve une valeur partagée lors de la reprise locale', async () => {
+    await db.query('SELECT public.create_game_quote($1,$2)', [quote, items]);
+    expect((await db.query('SELECT key,amount::text FROM public.game_quote_defaults ORDER BY key')).rows).toEqual([
+      { key: 'admin', amount: '0' }, { key: `price:${game}:`, amount: '50' }, { key: 'shipping', amount: '0' },
+    ]);
+    await db.query('SELECT public.save_game_quote_default($1,59)', [`price:${game}:`]);
+    await db.query('SELECT public.save_game_quote_default($1,30,true)', [`price:${game}:`]);
+    expect((await db.query('SELECT amount::text FROM public.game_quote_defaults WHERE key=$1', [`price:${game}:`])).rows).toEqual([{ amount: '59' }]);
+    expect((await db.query("SELECT * FROM public.activity_logs WHERE action_type='game_quote_default_saved'")).rows).toHaveLength(4);
+  });
+
+  it('refuse la mémorisation aux utilisateurs sans droits', async () => {
+    await db.exec("SET test.module='false'; SET ROLE authenticated");
+    try {
+      await expect(db.query("SELECT public.save_game_quote_default('shipping',12)")).rejects.toThrow('Accès dropshipping requis');
+      expect((await db.query('SELECT * FROM public.game_quote_defaults')).rows).toHaveLength(0);
+    } finally { await db.exec('RESET ROLE'); }
+  });
+
+  it('refuse les montants négatifs et les options étrangères au jeu', async () => {
+    await expect(db.query("SELECT public.save_game_quote_default('shipping',-1)")).rejects.toThrow('Montant invalide');
+    await expect(db.query('SELECT public.save_game_quote_default($1,12)', [`price:${game}:${card}`])).rejects.toThrow('Jeu ou option invalide');
   });
 
   it('accepte plusieurs brouillons et ne les confond pas avec une commande gagnée', async () => {

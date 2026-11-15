@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { useRef } from "react";
-import { fetchOpenGameDevisContacts, loadGameDevisDefaults, saveGameDevisFees, saveGameDevisPrice, resolveGameDevisPrice } from "@/services/gameDevisDefaults";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRef, useEffect } from "react";
+import { fetchOpenGameDevisContacts, fetchSharedGameDevisDefaults, migrateLocalGameDevisDefaults, saveSharedGameDevisAmount, resolveGameDevisPrice } from "@/services/gameDevisDefaults";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 
@@ -10,25 +10,40 @@ export function useOpenGameDevisContacts() {
 
 export function useGameDevisDefaults() {
   const { toast } = useToast();
-  const defaults = useRef<ReturnType<typeof loadGameDevisDefaults> | null>(null);
-  if (defaults.current === null) {
-    try { defaults.current = loadGameDevisDefaults(localStorage); }
-    catch (error) {
-      defaults.current = { prices: {} };
-      toastError(toast, error, { title: "Les derniers montants n’ont pas pu être chargés" });
-    }
-  }
-  const persist = (save: () => void) => {
-    try { save(); }
-    catch (error) { toastError(toast, error, { title: "Le montant n’a pas pu être mémorisé" }); }
+  const queryClient = useQueryClient();
+  const queue = useRef(Promise.resolve());
+  const query = useQuery({
+    queryKey: ["game-devis-defaults"],
+    queryFn: async () => {
+      try { await migrateLocalGameDevisDefaults(localStorage); }
+      catch (error) { toastError(toast, error, { title: "Les anciens montants de cet appareil n’ont pas pu être récupérés" }); }
+      return fetchSharedGameDevisDefaults();
+    },
+    staleTime: 0,
+  });
+  useEffect(() => {
+    if (query.error) toastError(toast, query.error, { title: "Les derniers montants n’ont pas pu être chargés" });
+  }, [query.error, toast]);
+  const persist = (key: string, amount: number | "") => {
+    if (amount === "") return;
+    queue.current = queue.current.then(async () => {
+      await saveSharedGameDevisAmount(key, amount);
+      queryClient.setQueryData<typeof query.data>(["game-devis-defaults"], (old) => {
+        const defaults = old ?? { prices: {} };
+        if (key === "shipping") return { ...defaults, fraisDePort: amount };
+        if (key === "admin") return { ...defaults, fraisDossier: amount };
+        return { ...defaults, prices: { ...defaults.prices, [key.slice(6)]: amount } };
+      });
+    }).catch((error) => {
+      toastError(toast, error, { title: "Le montant n’a pas pu être mémorisé" });
+    });
   };
   return {
-    defaults: defaults.current,
-    price: (gameId: string, optionId: string, catalogPrice: number) => resolveGameDevisPrice(defaults.current?.prices ?? {}, gameId, optionId, catalogPrice),
-    savePrice: (gameId: string, optionId: string, price: number) => persist(() => {
-      saveGameDevisPrice(localStorage, gameId, optionId, price);
-      if (defaults.current) defaults.current.prices[`${gameId}:${optionId}`] = price;
-    }),
-    saveFees: (fraisDePort: number | "", fraisDossier: number | "") => persist(() => saveGameDevisFees(localStorage, { fraisDePort, fraisDossier })),
+    defaults: query.data ?? { prices: {} },
+    isLoading: query.isLoading,
+    isError: query.isError,
+    price: (gameId: string, optionId: string, catalogPrice: number) => resolveGameDevisPrice(query.data?.prices ?? {}, gameId, optionId, catalogPrice),
+    savePrice: (gameId: string, optionId: string, price: number) => persist(`price:${gameId}:${optionId}`, price),
+    saveFee: (key: "shipping" | "admin", amount: number | "") => persist(key, amount),
   };
 }

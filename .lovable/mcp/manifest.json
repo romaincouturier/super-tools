@@ -838,7 +838,7 @@
       {
         "name": "create_game_quote",
         "title": "Create a draft game quote",
-        "description": "Previews or creates a draft game quote in the SuperTools dropshipping module. Default confirm=false is fully read-only and returns client, lines and HT/VAT/TTC amounts. confirm=true creates woocommerce_orders/order_items with source=devis and status=draft, the usual DV number and PDF, activity audit, and a CRM comment when crm_card_id is provided. It NEVER emails the client, sends Slack, creates a paid order or decrements stock. Prices and shipping default to catalog values; missing values must be overridden explicitly. Review the preview and obtain explicit user approval before confirm=true. Never retry automatically after an ambiguous write failure.",
+        "description": "Previews or creates a draft game quote in the SuperTools dropshipping module. Default confirm=false is fully read-only and returns client, lines and HT/VAT/TTC amounts. confirm=true creates woocommerce_orders/order_items with source=devis and status=draft, the usual DV number and PDF, activity audit, and a CRM comment when crm_card_id is provided. It NEVER emails the client, sends Slack, creates a paid order or decrements stock. Prices and fees default to persistent shared amounts, then catalog values; missing values must be overridden explicitly. Confirmed creation remembers amounts; preview never writes. Review the preview and obtain explicit user approval before confirm=true. Never retry automatically after an ambiguous write failure.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": false,
@@ -957,7 +957,7 @@
                     "type": "number",
                     "exclusiveMinimum": 0,
                     "maximum": 10000000,
-                    "description": "Unit price HT override; catalog price is used when omitted"
+                    "description": "Unit price HT override; last saved price, then catalog price is used when omitted"
                   },
                   "price_option_id": {
                     "type": "string",
@@ -982,8 +982,7 @@
             "admin_fee": {
               "type": "number",
               "minimum": 0,
-              "maximum": 1000000,
-              "default": 0
+              "maximum": 1000000
             },
             "crm_card_id": {
               "type": "string",

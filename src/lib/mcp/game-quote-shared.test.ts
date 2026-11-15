@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { defaultShipping, gameQuoteSchema, quoteTotals, selectCatalogPrice, type GameCatalogRow, type GamePriceOptionRow } from './game-quote-shared';
+import { describe, expect, it, vi } from 'vitest';
+import { defaultShipping, gameQuoteSchema, prepareGameQuote, quoteTotals, selectCatalogPrice, type GameCatalogRow, type GamePriceOptionRow } from './game-quote-shared';
 
 const game: GameCatalogRow = {
   id: '11111111-1111-4111-8111-111111111111', title: 'ECHO', status: 'active', game_type: 'partner',
@@ -38,5 +38,23 @@ describe('Devis jeux MCP', () => {
   it('additionne les frais unitaires et refuse de deviner les frais absents', () => {
     expect(defaultShipping([{ quantity: 2, shipping_fee: 12.5, title: 'ECHO' }])).toEqual({ value: 25, missing: [] });
     expect(defaultShipping([{ quantity: 2, shipping_fee: null, title: 'ECHO' }])).toEqual({ value: null, missing: ['ECHO'] });
+  });
+
+  it('préremplit le MCP depuis les montants partagés sans aucune écriture', async () => {
+    const from = vi.fn((table: string) => {
+      const response = { data: table === 'games' ? [game] : table === 'game_price_options' ? [option] : table === 'game_quote_defaults' ? [
+        { key: `price:${game.id}:${option.id}`, amount: 59 }, { key: 'shipping', amount: 15.75 }, { key: 'admin', amount: 5 },
+      ] : { value: 0.2 }, error: null };
+      const chain = { select: () => chain, order: () => Promise.resolve(response), eq: () => chain, maybeSingle: () => Promise.resolve(response), in: () => chain, then: Promise.resolve(response).then.bind(Promise.resolve(response)) };
+      return chain;
+    });
+    const rpc = vi.fn();
+    const input = gameQuoteSchema.parse({ client: { type: 'company', company: 'CLPS', email: 'test@example.org', billing_address: { address_1: 'Rue de la Loi 30', postcode: '7100', city: 'La Louvière', country: 'BE' } }, lines: [{ title: 'ECHO', quantity: 2 }] });
+    const preview = await prepareGameQuote({ from, rpc }, input);
+    expect(preview.lines[0]).toMatchObject({ unit_price: 59, price_source: 'saved' });
+    expect(preview.amounts).toMatchObject({ total_ht: 138.75, shipping_ht: 15.75, admin_fee_ht: 5 });
+    expect(rpc).not.toHaveBeenCalled();
+    const override = await prepareGameQuote({ from, rpc }, { ...input, shipping_fee: 0, admin_fee: 0, lines: [{ title: 'ECHO', quantity: 2, unit_price: 50 }] });
+    expect(override.amounts?.total_ht).toBe(100);
   });
 });

@@ -50,7 +50,7 @@ const TABLES_TO_BACKUP = [
   "event_media", "event_shares", "event_transcripts", "events", "network_contact_transcripts",
   "failed_emails", "faq_items", "feature_usage",
   "formation_configs", "formation_dates", "formation_formulas",
-  "game_authors", "game_expenses", "game_price_options", "game_restock_action_files", "game_restock_actions",
+  "game_authors", "game_expenses", "game_price_options", "game_quote_defaults", "game_restock_action_files", "game_restock_actions",
   "handicap_partners",
   "game_restock_items", "game_restocks", "game_sales", "games",
   "google_calendar_tokens", "google_drive_tokens", "google_tokens",
