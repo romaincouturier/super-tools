@@ -303,7 +303,7 @@ const DailyTodoPanel = () => {
                         />}
                         <div className="min-w-0 flex-1">
                           <p
-                            className={`text-sm leading-tight ${action.is_completed ? "line-through text-muted-foreground" : ""} ${isUrgent && !action.is_completed ? "text-red-800 font-medium" : action.link && !action.is_completed ? "text-primary hover:underline" : ""}`}
+                            className={`text-sm leading-tight ${action.is_completed ? "line-through text-muted-foreground" : ""} ${isUrgent && !action.is_completed ? "text-red-800 font-medium" : action.link && !action.is_completed ? "text-foreground hover:underline" : ""}`}
                           >
                             {action.title}
                           </p>

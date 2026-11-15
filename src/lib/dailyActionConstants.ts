@@ -55,8 +55,8 @@ export const CATEGORY_ORDER = [
 
 export const CATEGORIES: Record<string, CategoryConfig> = {
   qualiopi: { label: 'Audit blanc Qualiopi — écarts à traiter', emoji: '', color: 'text-destructive' },
-  watch_sources_validate: { label: 'Sources de veille à valider', emoji: '', color: 'text-primary' },
-  watch_sources_subscribe: { label: 'Sources de veille — abonnements à faire', emoji: '', color: 'text-primary' },
+  watch_sources_validate: { label: 'Sources de veille à valider', emoji: '', color: 'text-foreground' },
+  watch_sources_subscribe: { label: 'Sources de veille — abonnements à faire', emoji: '', color: 'text-foreground' },
   missions_actions: { label: "Missions \u2014 Actions \u00e0 traiter", emoji: "\u26a1", color: "text-orange-600" },
   elearning_groupe: { label: "Groupes priv\u00e9s e-learning", emoji: "\ud83d\udcac", color: "text-indigo-600" },
   okr_initiatives: { label: "Initiatives OKR", emoji: "\ud83c\udfaf", color: "text-emerald-600" },
