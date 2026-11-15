@@ -1,5 +1,10 @@
 # Roadmap
 
+## Diagnostic et email audit blanc (2026-11-15)
+- [ ] Vérifier les 21 indicateurs sur les données réelles en lecture seule et documenter catégories a/b/c.
+- [ ] Corriger les sources de preuves et produire un email cohérent, priorisé, avec liens et estimations ; tester sans enregistrer d’audit ni envoyer de test.
+- [ ] Vérifier le résultat et expliciter les limites et l’impact du déploiement.
+
 ## Contrat et SIREN auteur (2026-11-15)
 - [x] ADRESSE retire le suffixe CP/ville déjà saisi avant de composer l’adresse structurée ; modèle HTML et contrats existants inchangés.
 - [x] SIREN facultatif, espaces retirés et validation 9 chiffres/Luhn dans le formulaire et avant toute écriture serveur. 28 tests réussis, 103 contrôles OK, compilation OK ; saisie/refus vérifiés au navigateur avec réponses simulées, aucun email ni donnée réelle modifiés. author-onboarding déployée ; front à publier. Recherche INSEE existante non ajoutée : option à valider séparément. AGENTS.md au budget maximum, aucune nouvelle règle structurelle ajoutée.
