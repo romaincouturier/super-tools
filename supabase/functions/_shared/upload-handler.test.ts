@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests for handleFileUpload — the generic edge-function upload handler.
  *

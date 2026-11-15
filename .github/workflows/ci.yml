@@ -30,6 +30,12 @@ jobs:
       - name: Règles IMPROVEMENTS.md
         run: bash scripts/check-rules.sh
 
+      - name: Install audio test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y ffmpeg
+          ffmpeg -version
+
       - name: Tests unitaires
         run: npm test
 

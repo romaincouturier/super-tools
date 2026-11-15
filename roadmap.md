@@ -1,5 +1,11 @@
 # Roadmap
 
+## Suite réparation CI (2026-11-15)
+- [x] Trois runs vérifiés via étapes et annotations GitHub : TypeScript et règles passent ; tests unitaires échouent sur FFmpeg absent et variables email non documentées. Journaux complets refusés (403).
+- [x] FFmpeg installé explicitement dans le job ; six variables actuelles documentées, assertion conservée. Échecs locaux supplémentaires : démarrages PGlite saturés (workers plafonnés à deux, délais inchangés), import Sentry Deno sous jsdom (test upload joué sous Node, mocks et assertions conservés ; setup compatible).
+- [x] TypeScript vérifié via oj sur les projets référencés, 103/103 règles, npm test : 268 fichiers et 3 229 tests passent, un saut préexistant inchangé ; compilation automatique OK. Aucun code métier, donnée, email ou droit modifié. AGENTS.md au budget maximum : règle technique non enregistrée.
+- [ ] Confirmer le prochain run GitHub après synchronisation des corrections ; journaux complets inaccessibles (403), étapes et annotations des trois anciens runs vérifiées.
+
 ## Diagnostic et email audit blanc (2026-11-15)
 - [x] 21 indicateurs vérifiés en lecture seule ; compte rendu livré : a = 5, 11, 12 ; b = autres concernés ; aucun indicateur entier démontré c. Trois sessions en cours faussaient les évaluations, CV ignoré, date de questionnaire utilisée comme convocation et zéro veille exploitable codé en dur.
 - [x] Collecteur commun paginé : sessions terminées non annulées, vrais journaux de convocations, CV, notation des objectifs, positionnement, retours formateurs, relances et liens d’origine. Mail groupé par indicateur, majeurs d’abord, liens et estimations ; inchangé = trois priorités, pas de doublon le même jour Paris.
