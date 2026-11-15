@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import { hasManagedCronCredential, isCronOrServiceRole } from "../_shared/cron-auth.ts";
 import { automaticIssues } from "../_shared/qualiopi-checks.ts";
-import { auditChanges, auditMailSummary, auditEmailModel, renderAuditActions } from '../_shared/qualiopi-summary.ts';
+import { auditChanges, auditMailSummary, auditEmailModel, renderAuditActions, shouldSendAuditSummary } from '../_shared/qualiopi-summary.ts';
 import { sendEmail } from '../_shared/resend.ts';
 import { getBccList, getSenderEmail } from '../_shared/email-settings.ts';
 import { getSigniticSignature } from '../_shared/signitic.ts';
@@ -103,9 +103,7 @@ serve(async (req) => {
     const changesSinceEmail = auditChanges(issues, sentRead.data?.findings ?? []);
     let emailSent = false;
     const changed = changesSinceEmail.changed || summaryChanged || !sentRead.data;
-    const parisDay = (date: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(date));
-    const newDay = !sentRead.data?.summary_email_sent_at || parisDay(sentRead.data.summary_email_sent_at) !== parisDay(new Date().toISOString());
-    if (changed || newDay) {
+    if (shouldSendAuditSummary(changed, sentRead.data?.summary_email_sent_at)) {
       const model = auditEmailModel(facts, answers, !changed);
       const rendered = await renderCatalogEmail(supabase, 'qualiopi_audit_summary', {
         vars: { global_state: model.globalState, change_note: model.changeNote },

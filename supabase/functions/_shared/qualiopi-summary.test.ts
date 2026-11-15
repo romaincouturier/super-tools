@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { auditChanges, auditEmailModel, escapeAuditHtml, renderAuditActions } from './qualiopi-summary';
+import { auditChanges, auditEmailModel, escapeAuditHtml, renderAuditActions, shouldSendAuditSummary } from './qualiopi-summary';
 import { buildFacts, evaluateIndicator, auditPlan, type AutomaticIssue, type RawAuditData } from './qualiopi-checks';
 import { EDITABLE_EMAIL_DEFAULTS } from './editable-email-defaults';
 const raw: RawAuditData = {
@@ -41,6 +41,13 @@ describe('Bilan audit', () => {
     const same = auditEmailModel(buildFacts(raw), {}, true);
     expect(same.actions).toEqual(full.actions.slice(0, 3));
     expect(same.changeNote).toContain('Aucun changement');
+  });
+  it('ne renvoie pas un bilan identique le même jour à Paris', () => {
+    expect(shouldSendAuditSummary(false, '2026-11-15T18:00:00Z', new Date('2026-11-15T21:20:00Z'))).toBe(false);
+  });
+  it('autorise le rappel court au changement de jour à Paris et les bilans modifiés', () => {
+    expect(shouldSendAuditSummary(false, '2026-11-15T18:00:00Z', new Date('2026-11-15T23:01:00Z'))).toBe(true);
+    expect(shouldSendAuditSummary(true, '2026-11-15T18:00:00Z', new Date('2026-11-15T21:20:00Z'))).toBe(true);
   });
   it('détecte le CV enregistré dans la fiche formateur sans document séparé', () => {
     expect(buildFacts({ ...raw, trainers: [{ id: 'r', competences: [], formations_suivies: [], cv_url: 'https://example.org/cv' }] }).trainersWithDocuments).toBe(1);

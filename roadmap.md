@@ -1,9 +1,9 @@
 # Roadmap
 
 ## Diagnostic et email audit blanc (2026-11-15)
-- [ ] Vérifier les 21 indicateurs sur les données réelles en lecture seule et documenter catégories a/b/c.
-- [ ] Corriger les sources de preuves et produire un email cohérent, priorisé, avec liens et estimations ; tester sans enregistrer d’audit ni envoyer de test.
-- [ ] Vérifier le résultat et expliciter les limites et l’impact du déploiement.
+- [x] 21 indicateurs vérifiés en lecture seule ; compte rendu livré : a = 5, 11, 12 ; b = autres concernés ; aucun indicateur entier démontré c. Trois sessions en cours faussaient les évaluations, CV ignoré, date de questionnaire utilisée comme convocation et zéro veille exploitable codé en dur.
+- [x] Collecteur commun paginé : sessions terminées non annulées, vrais journaux de convocations, CV, notation des objectifs, positionnement, retours formateurs, relances et liens d’origine. Mail groupé par indicateur, majeurs d’abord, liens et estimations ; inchangé = trois priorités, pas de doublon le même jour Paris.
+- [x] Vérifié connecté en Romain : 4 OK / 17 à compléter / 1 majeur selon le moteur interne ; nombre de passages inchangé, aucun email de test envoyé. Tests ciblés et 103 contrôles OK ; run-qualiopi-audit déployée, prochain passage/envoi réel non exécuté manuellement. Aucun historique, cron, droit ni leçon modifié ; front à publier. Architecture documentée dans le dossier partagé.
 
 ## Contrat et SIREN auteur (2026-11-15)
 - [x] ADRESSE retire le suffixe CP/ville déjà saisi avant de composer l’adresse structurée ; modèle HTML et contrats existants inchangés.

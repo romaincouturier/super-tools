@@ -119,3 +119,9 @@ export function renderAuditActions(actions: AuditAction[]) {
 export function escapeAuditHtml(value: string) {
   return value.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] ?? c));
 }
+
+export function shouldSendAuditSummary(changed: boolean, lastSentAt: string | null | undefined, now = new Date()) {
+  if (changed || !lastSentAt) return true;
+  const day = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+  return day(new Date(lastSentAt)) !== day(now);
+}
