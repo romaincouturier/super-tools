@@ -1,5 +1,10 @@
 # Roadmap
 
+## Montants persistants devis jeux (2026-11-15)
+- [ ] Stockage partagé et journalisé des prix par jeu/option et frais, droits dropshipping conservés ; récupération des anciennes valeurs locales uniquement si aucune valeur partagée.
+- [ ] Préremplissage application et MCP ; preview sans écriture, mémorisation MCP uniquement à la création confirmée ; aucun devis existant, catalogue ou email modifié.
+- [ ] Tests ciblés, contrôles et vérification connectée entre deux navigateurs ; publication front/MCP requise.
+
 ## Reprise des brouillons devis jeux (2026-11-15)
 - [x] Circuit jeux sans Pennylane ; seul outil historique create_quote appelle Pennylane. ECHO existe mais prix et port absents, aucun tarif optionnel ; aucun brouillon réel créé. La cause de l’appel MCP externe n’est pas certifiée sans son retour exact.
 - [x] Liste : Relire et envoyer, détail et lien quote=, confirmation explicite ; PDF/recipient relus côté serveur, idempotence fournisseur, statut Envoyé seulement après succès, éléments de commande laissés inactifs. generate-game-devis déployée ; droits dropshipping contrôlés, aucune donnée réelle ni email modifié.
