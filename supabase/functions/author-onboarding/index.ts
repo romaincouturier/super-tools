@@ -22,7 +22,7 @@ import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
 import { buildJourneyEvents, LEGAL_BLOCK } from "../_shared/signature-helpers.ts";
 import {
   INVITATION_DAYS, OTP_TTL_MS, sanitizeForm, missingForSubmit, fileKindAllowed, formatCommission,
-  buildContractPayload, otpSendRefusal, otpCheckRefusal, frDateParis, authorPostalAddress, invitationGameTitle, invitationGameName, authorSirenError, type FormData as AuthorForm,
+  buildContractPayload, distributorContractImage, otpSendRefusal, otpCheckRefusal, frDateParis, authorPostalAddress, invitationGameTitle, invitationGameName, authorSirenError, type FormData as AuthorForm,
 } from "../_shared/author-onboarding.ts";
 
 const BUCKET = "author-onboarding";
@@ -402,7 +402,7 @@ serve(async (req) => {
 
     if (action === "distributor_signature") {
       const path = await getSetting(db, "distributor_signature_path");
-      if (body.dataUrl === undefined) return json({ url: await signedUrl(db, path, 600) });
+      if (body.dataUrl === undefined) return json({ url: (await getSetting(db, "company_stamp_url")) || await signedUrl(db, path, 600) });
       const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(String(body.dataUrl));
       if (!m || m[1].length > 2_000_000) return fail("Image PNG attendue (2 Mo max)");
       const bytes = Uint8Array.from(atob(m[1]), (c) => c.charCodeAt(0));
@@ -476,7 +476,7 @@ async function recopyToRecords(db: Db, inv: Db, f: AuthorForm, files: Db[]) {
 async function createContract(db: Db, inv: Db, form: AuthorForm) {
   const { data: ref, error } = await db.rpc("next_distribution_contract_reference");
   if (error) throw error;
-  const distributorSignature = await storageDataUrl(db, await getSetting(db, "distributor_signature_path"));
+  const distributorSignature = await distributorContractImage((key) => getSetting(db, key), (path) => storageDataUrl(db, path));
   const payload = buildContractPayload({ reference: ref, form, commissionRate: Number(inv.commission_rate), date: new Date(), distributorSignature });
   const { bytes, documentId } = await pdfMonkey(payload);
   const path = `contracts/${inv.id}/${ref}.pdf`;
@@ -516,7 +516,7 @@ async function signContract(db: Db, req: Request, inv: Db, c: Db, o: { signature
   try {
     const payload = buildContractPayload({
       reference: c.contrat_reference, form: resp.data, commissionRate: Number(inv.commission_rate), date: new Date(c.created_at),
-      distributorSignature: await storageDataUrl(db, await getSetting(db, "distributor_signature_path")),
+      distributorSignature: await distributorContractImage((key) => getSetting(db, key), (path) => storageDataUrl(db, path)),
       supplierSignature: o.signatureData, supplierSignedAt: signedAt,
     });
     signedBytes = (await pdfMonkey(payload)).bytes;
