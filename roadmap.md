@@ -1,5 +1,10 @@
 # Roadmap
 
+## Revue Sentry hebdomadaire (2026-11-15)
+- [ ] Identifier les sept issues exactes et leurs occurrences du 7 au 14 novembre : connexion MCP acceptée mais aucun outil Sentry exposé ; journaux runtime vides et logs upload/relais indisponibles. Nécessite la liste/export du rapport Sentry.
+- [x] Sept issues citées dans les échanges relues (17 à 1D), sans les présenter comme l'inventaire certifié du rapport ; correctifs existants confrontés au code pour dépôts, MKV, réactions, accueil LMS, import noCRM et relais. Cause historique upload/relais toujours inconnue ; aucune suppression globale de Sentry ni modification sans preuve.
+- [ ] Relancer les tests ciblés existants et livrer un tableau distinguant correction du code et résolution en production non vérifiable.
+
 ## Suite réparation CI (2026-11-15)
 - [x] Trois runs vérifiés via étapes et annotations GitHub : TypeScript et règles passent ; tests unitaires échouent sur FFmpeg absent et variables email non documentées. Journaux complets refusés (403).
 - [x] FFmpeg installé explicitement dans le job ; six variables actuelles documentées, assertion conservée. Échecs locaux supplémentaires : démarrages PGlite saturés (workers plafonnés à deux, délais inchangés), import Sentry Deno sous jsdom (test upload joué sous Node, mocks et assertions conservés ; setup compatible).
