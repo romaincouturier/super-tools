@@ -3,7 +3,7 @@
 ## Revue Sentry hebdomadaire (2026-11-15)
 - [ ] Identifier les sept issues exactes et leurs occurrences du 7 au 14 novembre : connexion MCP acceptée mais aucun outil Sentry exposé ; journaux runtime vides et logs upload/relais indisponibles. Nécessite la liste/export du rapport Sentry.
 - [x] Sept issues citées dans les échanges relues (17 à 1D), sans les présenter comme l'inventaire certifié du rapport ; correctifs existants confrontés au code pour dépôts, MKV, réactions, accueil LMS, import noCRM et relais. Cause historique upload/relais toujours inconnue ; aucune suppression globale de Sentry ni modification sans preuve.
-- [ ] Relancer les tests ciblés existants et livrer un tableau distinguant correction du code et résolution en production non vérifiable.
+- [x] 148 tests ciblés réussis (neuf fichiers), couvrant dépôt/réessais, refus MKV sans capture, réactions, lectures LMS, import et garde du relais. Aucun nouveau bug reproduit, aucun code métier modifié ni incident Sentry fermé. Tableau livré sur les sept références connues ; 17 (05/11) et 18 (06/11) sont antérieures à la fenêtre, leur éventuelle récurrence reste à établir.
 
 ## Suite réparation CI (2026-11-15)
 - [x] Trois runs vérifiés via étapes et annotations GitHub : TypeScript et règles passent ; tests unitaires échouent sur FFmpeg absent et variables email non documentées. Journaux complets refusés (403).
