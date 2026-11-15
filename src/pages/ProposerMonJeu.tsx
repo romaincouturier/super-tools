@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSignaturePad } from "@/hooks/useSignaturePad";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { publicOnboarding, OnboardingError, type PublicOnboarding, type OnboardingFile } from "@/services/authorOnboarding";
+import { authorSirenError, normalizeAuthorSiren } from "../../supabase/functions/_shared/author-onboarding";
 
 type Form = Record<string, string | number | boolean | null>;
 type F = { key: string; label: string; long?: boolean; type?: string; hint?: string; optional?: boolean };
@@ -25,7 +26,7 @@ const SELLER: F[] = [
   { key: "city", label: "Ville", hint: "Ville de ta société." },
   { key: "legal_rep_first_name", label: "Prénom du représentant légal" },
   { key: "legal_rep_last_name", label: "Nom du représentant légal" },
-  { key: "siren", label: "SIREN", hint: "Numéro d’identification de ta société (9 chiffres en France)." },
+  { key: "siren", label: "SIREN", optional: true, hint: "9 chiffres en France. Facultatif pour un particulier ou un auteur étranger." },
   { key: "phone", label: "Téléphone", type: "tel" },
 ];
 const GAME: F[] = [
@@ -74,12 +75,14 @@ function Help({ label, text }: { label: string; text: string }) {
 
 function Field({ f, form, set, disabled }: { f: F; form: Form; set: (k: string, v: string) => void; disabled: boolean }) {
   const v = form[f.key] === null || form[f.key] === undefined ? "" : String(form[f.key]);
+  const error = f.key === "siren" ? authorSirenError(v) : null;
   return (
     <div className={f.long ? "sm:col-span-2" : ""}>
       <div className="flex items-center gap-1"><Label htmlFor={f.key}>{f.label}{f.optional ? <span className="text-muted-foreground font-normal"> (facultatif)</span> : " *"}</Label><Help label={f.label} text={f.hint ?? HELP[f.key] ?? `Indique ${f.label.toLowerCase()} pour préparer la distribution de ton jeu.`} /></div>
       {f.long
         ? <Textarea id={f.key} rows={4} value={v} disabled={disabled || f.key === "author_email"} onChange={(e) => set(f.key, e.target.value)} />
-        : <Input id={f.key} type={f.type === "number" ? "text" : f.type ?? "text"} inputMode={f.type === "number" ? "decimal" : undefined} value={v} disabled={disabled || f.key === "author_email"} onChange={(e) => set(f.key, e.target.value)} />}
+        : <Input id={f.key} type={f.type === "number" ? "text" : f.type ?? "text"} inputMode={f.key === "siren" ? "numeric" : f.type === "number" ? "decimal" : undefined} value={v} disabled={disabled || f.key === "author_email"} aria-invalid={!!error} aria-describedby={error ? `${f.key}-error` : undefined} onChange={(e) => set(f.key, f.key === "siren" ? normalizeAuthorSiren(e.target.value) : e.target.value)} />}
+      {error && <p id={`${f.key}-error`} role="alert" className="text-xs text-destructive mt-1">{error}</p>}
       {f.hint && <p className="text-xs text-muted-foreground mt-1">{f.hint}</p>}
     </div>
   );
@@ -216,7 +219,7 @@ export default function ProposerMonJeu() {
   const set = (k: string, v: string | boolean) => { const next = { ...formRef.current, [k]: v }; formRef.current = next; setForm(next); dirty.current = true; };
 
   const save = useCallback(async () => {
-    if (!dirty.current) return;
+    if (!dirty.current || authorSirenError(formRef.current.siren)) return;
     dirty.current = false;
     try { setSavedAt((await publicOnboarding.save(token, formRef.current)).saved_at); }
     catch { dirty.current = true; }
@@ -230,6 +233,8 @@ export default function ProposerMonJeu() {
   }, [editable, save]);
 
   const submit = async () => {
+    const sirenError = authorSirenError(formRef.current.siren);
+    if (sirenError) { setMissing([sirenError]); return; }
     setSubmitting(true); setMissing([]);
     try {
       const check = await publicOnboarding.check(token, formRef.current);

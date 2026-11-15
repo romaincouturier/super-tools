@@ -22,7 +22,7 @@ import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
 import { buildJourneyEvents, LEGAL_BLOCK } from "../_shared/signature-helpers.ts";
 import {
   INVITATION_DAYS, OTP_TTL_MS, sanitizeForm, missingForSubmit, fileKindAllowed, formatCommission,
-  buildContractPayload, otpSendRefusal, otpCheckRefusal, frDateParis, authorPostalAddress, invitationGameTitle, invitationGameName, type FormData as AuthorForm,
+  buildContractPayload, otpSendRefusal, otpCheckRefusal, frDateParis, authorPostalAddress, invitationGameTitle, invitationGameName, authorSirenError, type FormData as AuthorForm,
 } from "../_shared/author-onboarding.ts";
 
 const BUCKET = "author-onboarding";
@@ -218,6 +218,8 @@ serve(async (req) => {
 
       if (action === "save" || action === "submit") {
         if (inv.submitted_at) return fail("Formulaire déjà soumis");
+        const sirenError = authorSirenError(body.form?.siren);
+        if (sirenError) return json({ error: sirenError, missing: [sirenError] }, 400);
         const data = sanitizeForm({ ...body.form, author_email: inv.recipient_email });
         const now = new Date().toISOString();
         await db.from("author_onboarding_responses").update({ data, updated_at: now, version: (resp?.version ?? 0) + 1 }).eq("invitation_id", inv.id);
