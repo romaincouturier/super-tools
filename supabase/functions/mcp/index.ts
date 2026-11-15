@@ -607,7 +607,7 @@ var list_games_default = defineTool17({
 });
 
 // src/lib/mcp/tools/create-game-quote.ts
-import { defineTool as defineTool18 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { defineTool as defineTool18, ToolError } from "npm:@lovable.dev/mcp-js@3.4.0";
 
 // supabase/functions/_shared/game-quote-pdf.ts
 var GAME_DEVIS_TEMPLATE_ID = "C5099C66-FB36-49F3-B674-2F8C1A2F314A";
@@ -764,7 +764,7 @@ var create_game_quote_default = defineTool18({
     const db = await dropshippingClient(ctx);
     const preview = await prepareGameQuote(db, input);
     if (!input.confirm) return result(preview);
-    if (!preview.ready || !preview.amounts) throw new Error(`Preview is not ready: ${preview.issues.join(" | ")}`);
+    if (!preview.ready || !preview.amounts) throw new ToolError(`Brouillon non cr\xE9\xE9 : ${preview.issues.join(" | ")}. Aucun envoi ni appel Pennylane.`);
     return result(await confirmGameQuote(db, input, preview));
   }
 });

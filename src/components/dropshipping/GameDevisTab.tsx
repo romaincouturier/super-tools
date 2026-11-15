@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ClientInfoSection from "@/components/formations/ClientInfoSection";
 import { useSirenSearch } from "@/hooks/useSirenSearch";
-import { useGames, useGameDevisHistory, resolveGameDevisPdfUrl } from "@/hooks/useDropshipping";
+import { useGames, useGameDevisHistory, resolveGameDevisPdfUrl, type GameDevisHistoryEntry } from "@/hooks/useDropshipping";
+import { useGameQuoteDrafts, useSendGameQuoteDraft } from '@/hooks/useGameQuoteDrafts';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useAuth } from "@/hooks/useAuth";
 import { useGenerateGameDevis, type GameDevisItem } from "@/hooks/useGameDevis";
 import { useGamePriceOptions, priceOptionLabel } from "@/hooks/useGamePriceOptions";
@@ -463,6 +465,19 @@ async function downloadPdf(url: string, filename: string) {
 function GameDevisHistory() {
   const { data: history = [], isLoading } = useGameDevisHistory();
   const { isDemoMode } = useDemoMode();
+  const { data: drafts = [] } = useGameQuoteDrafts();
+  const sendDraft = useSendGameQuoteDraft();
+  const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const [selected, setSelected] = useState<GameDevisHistoryEntry | null>(null);
+  const [sendError, setSendError] = useState('');
+  const selectedOrder = drafts.find((d) => d.devis_activity_log_id === selected?.id);
+  useEffect(() => {
+    const order = drafts.find((d) => d.id === searchParams.get('quote'));
+    const entry = history.find((d) => d.id === order?.devis_activity_log_id && d.status === 'draft');
+    if (entry) setSelected(entry);
+  }, [drafts, history, searchParams]);
+  const openDraft = (entry: GameDevisHistoryEntry) => { setSendError(''); setSelected(entry); };
 
   return (
     <div className="space-y-4">
@@ -500,6 +515,7 @@ function GameDevisHistory() {
                   </TableCell>
                   <TableCell className="text-right text-sm">{isDemoMode ? maskAmount(d.total_amount) : EUR(d.total_amount)}</TableCell>
                   <TableCell>
+                    {d.status === 'draft' && <Button variant="outline" size="sm" onClick={() => openDraft(d)}>Relire et envoyer</Button>}
                     {(d.pdf_storage_path || d.pdf_url) && (
                       <div className="flex items-center justify-end gap-1">
                         <Button
@@ -533,6 +549,32 @@ function GameDevisHistory() {
           </Table>
         </div>
       )}
+      <Dialog open={selected !== null} onOpenChange={(open) => { if (!open && !sendDraft.isPending) setSelected(null); }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Devis jeux {selectedOrder?.order_number ?? ''} · Brouillon</DialogTitle></DialogHeader>
+          {selected && <div className="space-y-4 text-sm">
+            <p className="font-medium">{isDemoMode ? maskText(selected.client_name ?? '') : selected.client_name}</p>
+            <p>{isDemoMode ? maskEmail(selected.recipient_email) : selected.recipient_email}</p>
+            {selectedOrder && <p className="whitespace-pre-line">{isDemoMode ? maskText([selectedOrder.billing_address?.address_1, selectedOrder.billing_address?.postcode, selectedOrder.billing_address?.city, selectedOrder.billing_address?.country].filter(Boolean).join('\n')) : [selectedOrder.billing_address?.address_1, selectedOrder.billing_address?.address_2, selectedOrder.billing_address?.postcode, selectedOrder.billing_address?.city, selectedOrder.billing_address?.country].filter(Boolean).join('\n')}</p>}
+            {selected.items.map((item, i) => <p key={i}>{item.quantity} × {item.title} · {isDemoMode ? maskAmount(item.unitPrice) : EUR(item.unitPrice)} HT / unité</p>)}
+            <p>Port : {isDemoMode ? maskAmount(selected.details.shipping_fee ?? 0) : EUR(selected.details.shipping_fee ?? 0)} HT · Dossier : {isDemoMode ? maskAmount(selected.details.admin_fee ?? 0) : EUR(selected.details.admin_fee ?? 0)} HT</p>
+            <p className="font-semibold">Total : {isDemoMode ? maskAmount(selected.total_amount) : EUR(selected.total_amount)} HT</p>
+            {selected.details.note && <p className="whitespace-pre-line">{isDemoMode ? maskText(selected.details.note) : selected.details.note}</p>}
+            <Button variant="outline" onClick={async () => { const url = await resolveGameDevisPdfUrl(selected); if (url) window.open(url, '_blank', 'noopener,noreferrer'); }}><FileText className="mr-2 h-4 w-4" />Voir le PDF</Button>
+            {!selectedOrder && <p className="text-destructive">Le brouillon lié est introuvable. Aucun envoi possible.</p>}
+            {sendError && <p role="alert" className="text-destructive">{sendError}</p>}
+          </div>}
+          <DialogFooter>
+            <Button variant="outline" disabled={sendDraft.isPending} onClick={() => setSelected(null)}>Annuler</Button>
+            <Button disabled={!selectedOrder || sendDraft.isPending} onClick={async () => {
+              if (!selectedOrder) return;
+              setSendError('');
+              try { await sendDraft.mutateAsync(selectedOrder.id); setSelected(null); toast({ title: 'Devis envoyé' }); }
+              catch (error) { setSendError(error instanceof Error ? error.message : 'Envoi non confirmé.'); }
+            }}>{sendDraft.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}Confirmer l’envoi</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

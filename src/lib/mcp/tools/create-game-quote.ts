@@ -1,4 +1,4 @@
-import { defineTool } from '@lovable.dev/mcp-js';
+import { defineTool, ToolError } from '@lovable.dev/mcp-js';
 import { dropshippingClient, result } from '../supabase';
 import { gameQuoteFields, gameQuoteSchema, prepareGameQuote } from '../game-quote-shared';
 import { confirmGameQuote } from '../../../../supabase/functions/_shared/game-quote-writer';
@@ -14,7 +14,7 @@ export default defineTool({
     const db = await dropshippingClient(ctx);
     const preview = await prepareGameQuote(db, input);
     if (!input.confirm) return result(preview);
-    if (!preview.ready || !preview.amounts) throw new Error(`Preview is not ready: ${preview.issues.join(' | ')}`);
+    if (!preview.ready || !preview.amounts) throw new ToolError(`Brouillon non créé : ${preview.issues.join(' | ')}. Aucun envoi ni appel Pennylane.`);
     return result(await confirmGameQuote(db, input, preview));
   },
 });

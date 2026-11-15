@@ -8,6 +8,7 @@ import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
+import { loadGameQuoteForSend } from "../_shared/game-quote-send.ts";
 
 interface GameDevisItem {
   title: string;
@@ -29,6 +30,8 @@ interface RequestBody {
   noteDevis: string;
   crmCardId?: string;
   senderEmail?: string;
+  draftQuoteId?: string;
+  confirmSend?: boolean;
 }
 
 const GAME_DEVIS_TEMPLATE_ID = "C5099C66-FB36-49F3-B674-2F8C1A2F314A";
@@ -106,7 +109,19 @@ serve(async (req) => {
   }
 
   try {
-    const body: RequestBody = await req.json();
+    let body: RequestBody = await req.json();
+    const supabase = getSupabaseClient();
+    const [admin, moduleAccess] = await Promise.all([
+      supabase.rpc('is_admin', { _user_id: authedUser.id }),
+      supabase.rpc('has_module_access', { _user_id: authedUser.id, _module: 'dropshipping' }),
+    ]);
+    if (admin.error || moduleAccess.error || (admin.data !== true && moduleAccess.data !== true)) {
+      return new Response(JSON.stringify({ error: 'Accès dropshipping requis' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    const draftQuoteId = body.draftQuoteId;
+    const draft = draftQuoteId ? await loadGameQuoteForSend(supabase, draftQuoteId, body.confirmSend === true) : null;
+    if (draft?.alreadySent) return new Response(JSON.stringify({ success: true, alreadySent: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (draft && !draft.alreadySent) body = { ...draft.body, senderEmail: authedUser.email };
 
     if (!body.emailCommanditaire || !body.items?.length) {
       return new Response(JSON.stringify({ error: "Champs obligatoires manquants" }), {
@@ -115,14 +130,14 @@ serve(async (req) => {
       });
     }
 
-    const { pdfUrl, documentId } = await generatePdf(body);
+    const { pdfUrl, documentId } = draft && !draft.alreadySent
+      ? { pdfUrl: draft.pdfUrl, documentId: draft.details.pdfmonkey_document_id }
+      : await generatePdf(body);
     console.log(`PDF generated: ${documentId}`);
 
-    const supabase = getSupabaseClient();
-
     // Persist PDF to storage
-    let storagePath: string | null = null;
-    try {
+    let storagePath: string | null = draft && !draft.alreadySent ? draft.details.pdf_storage_path : null;
+    if (!draft) try {
       const pdfRes = await fetch(pdfUrl);
       if (pdfRes.ok) {
         const pdfBuffer = await pdfRes.arrayBuffer();
@@ -141,8 +156,8 @@ serve(async (req) => {
     // Log activity
     const subtotal = body.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
     const totalHT = subtotal + (body.fraisDePort || 0) + (body.fraisDossier || 0);
-    let activityLogId: string | null = null;
-    try {
+    let activityLogId: string | null = draft && !draft.alreadySent ? draft.activityLogId : null;
+    if (!draft) try {
       const { data: log } = await supabase.from("activity_logs").insert({
         action_type: "game_devis_sent",
         recipient_email: body.emailCommanditaire,
@@ -187,7 +202,7 @@ serve(async (req) => {
     const devisSubject = renderedGd.subject;
     const htmlContent = `<div style="font-family: Arial, sans-serif; max-width: 640px; padding: 20px; font-size:14px; line-height:1.6; color:#222;">${renderedGd.html}${emailSignature || ""}</div>`;
 
-    await sendEmail({
+    const sent = await sendEmail({
       from: senderFrom,
       to: [body.emailCommanditaire],
       bcc: bccList,
@@ -200,7 +215,16 @@ serve(async (req) => {
         },
       ],
       _emailType: "game_devis",
+      ...(draftQuoteId ? { idempotencyKey: `game-quote-send-${draftQuoteId}` } : {}),
     });
+    if (!sent.success) throw new Error(sent.error || 'L’envoi du devis a échoué.');
+    if (draft && !draft.alreadySent) {
+      const { error } = await supabase.from('activity_logs').update({
+        action_type: 'game_devis_sent',
+        details: { ...draft.details, quote_id: draftQuoteId, sent_at: new Date().toISOString(), email_id: sent.id, sent_by: authedUser.id },
+      }).eq('id', draft.activityLogId).eq('action_type', 'game_devis_draft');
+      if (error) throw error;
+    }
 
     // Track in CRM if linked — même flux que les devis formation (micro-devis) :
     // synchro des infos client, déplacement en "Devis envoyé", email tracé,
