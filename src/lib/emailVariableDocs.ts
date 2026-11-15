@@ -90,6 +90,12 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   has_sheets: { label: "Feuilles jointes ?", description: "Condition : vraie si des feuilles d'émargement sont jointes.", sample: "oui", isCondition: true },
 
   // Modèles éditables (emails automatiques)
+  global_state: { label: "État global de l'audit", description: "Bilan des indicateurs OK, à compléter et non conformes de l'audit blanc.", sample: "4 OK / 17 à compléter / 1 non conforme" },
+  change_note: { label: "Évolution de l'audit", description: "Résumé des changements depuis le dernier bilan, ou indication que rien n'a changé.", sample: "Aucun changement depuis le dernier bilan." },
+  actions_list: { label: "Actions prioritaires de l'audit", description: "Actions recommandées par indicateur, avec problème, lien vers l'écran et temps estimé.", sample: "<ol><li>Indicateur 30 : compléter le registre des réclamations.</li></ol>", isBlock: true },
+  audit_button: { label: "Bouton de l'audit blanc", description: "Bouton qui ouvre l'écran Audit blanc Qualiopi.", sample: "<p><a href=\"#\">Ouvrir l'audit blanc</a></p>", isBlock: true },
+  signature: { label: "Signature de l'expéditeur", description: "Signature email de l'expéditeur, fournie par Signitic ou la signature de repli.", sample: "<p>Romain Couturier<br>SuperTilt</p>", isBlock: true },
+  game_mention: { label: "Mention du jeu proposé", description: "Mention du nom du jeu dans l'invitation auteur, laissée vide si aucun nom n'a été renseigné.", sample: " pour ton jeu Echo" },
   subject: { label: "Objet de l'attestation", description: "Intitulé de l'intervention attestée.", sample: "Animation du séminaire" },
   signer: { label: "Signataire de l'attestation", description: "Identité du signataire de l'attestation de bonne exécution.", sample: "Claire Martin" },
   signed_at: { label: "Date de signature", description: "Date de signature de l'attestation, formatée en français.", sample: "14 novembre 2026" },

@@ -1,5 +1,10 @@
 # Roadmap
 
+## Suite réparation CI (2026-11-15)
+- [x] Trois runs vérifiés via étapes et annotations GitHub : TypeScript et règles passent ; tests unitaires échouent sur FFmpeg absent et variables email non documentées. Journaux complets refusés (403).
+- [ ] Installer FFmpeg explicitement dans le job et compléter la documentation des variables actuelles sans retirer de test ; diagnostiquer les échecs supplémentaires de la suite locale.
+- [ ] Vérifier TypeScript, 103 règles et suite unitaire complète ; résultat GitHub à confirmer après une nouvelle exécution.
+
 ## Diagnostic et email audit blanc (2026-11-15)
 - [x] 21 indicateurs vérifiés en lecture seule ; compte rendu livré : a = 5, 11, 12 ; b = autres concernés ; aucun indicateur entier démontré c. Trois sessions en cours faussaient les évaluations, CV ignoré, date de questionnaire utilisée comme convocation et zéro veille exploitable codé en dur.
 - [x] Collecteur commun paginé : sessions terminées non annulées, vrais journaux de convocations, CV, notation des objectifs, positionnement, retours formateurs, relances et liens d’origine. Mail groupé par indicateur, majeurs d’abord, liens et estimations ; inchangé = trois priorités, pas de doublon le même jour Paris.
