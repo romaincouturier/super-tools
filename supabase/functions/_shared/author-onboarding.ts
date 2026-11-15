@@ -62,6 +62,21 @@ export const FORM_FIELDS: Record<string, { type: FieldType; max?: number }> = {
 
 export type FormData = Record<string, string | number | boolean | null>;
 
+export function normalizeAuthorSiren(value: unknown): string {
+  return String(value ?? "").replace(/\s/g, "");
+}
+
+export function authorSirenError(value: unknown): string | null {
+  const siren = normalizeAuthorSiren(value);
+  if (!siren) return null;
+  if (!/^\d{9}$/.test(siren)) return "Le SIREN doit contenir exactement 9 chiffres (espaces autorisés).";
+  const sum = [...siren].reduce((total, digit, index) => {
+    const n = Number(digit) * (index % 2 === 1 ? 2 : 1);
+    return total + (n > 9 ? n - 9 : n);
+  }, 0);
+  return sum % 10 === 0 ? null : "Ce SIREN n’est pas valide : vérifie les 9 chiffres (clé de contrôle incorrecte).";
+}
+
 // deno-lint-ignore no-control-regex
 const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 
@@ -83,14 +98,21 @@ export function sanitizeForm(input: unknown): FormData {
     if (def.type !== "longtext") s = s.replace(/[\r\n]+/g, " ");
     if (def.type === "url" && !/^https?:\/\/[^\s<>"]+$/i.test(s)) { out[key] = null; continue; }
     if (def.type === "email" && !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(s)) { out[key] = null; continue; }
-    out[key] = s || null;
+    out[key] = (key === "siren" ? normalizeAuthorSiren(s) : s) || null;
   }
   if (out.location_enabled) out.location_duration_days = 30;
   return out;
 }
 
 export function authorPostalAddress(form: FormData): string {
-  return [form.postal_address, [form.postal_code, form.city].filter(Boolean).join(" ")].filter(Boolean).join("\n");
+  let street = String(form.postal_address ?? "").trim();
+  const postalCode = String(form.postal_code ?? "").trim();
+  const city = String(form.city ?? "").trim();
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+  for (const suffix of [postalCode && city ? `${postalCode} ${city}` : "", postalCode]) {
+    if (suffix) street = street.replace(new RegExp(`(?:^|[\\s,;]+)${escape(suffix)}[\\s,;]*$`, "i"), "").trim();
+  }
+  return [street, [postalCode, city].filter(Boolean).join(" ")].filter(Boolean).join("\n");
 }
 
 export function invitationGameTitle(name: string, first: string, last: string): string {
@@ -106,7 +128,6 @@ const REQUIRED: [string, string][] = [
   ["postal_address", "Adresse postale"],
   ["postal_code", "Code postal"],
   ["city", "Ville"],
-  ["siren", "SIREN"],
   ["legal_rep_first_name", "Prénom du représentant légal"],
   ["legal_rep_last_name", "Nom du représentant légal"],
   ["phone", "Téléphone"],
@@ -130,6 +151,8 @@ const REQUIRED_LOCATION: [string, string][] = [
 export function missingForSubmit(form: FormData, files: { kind: string }[]): string[] {
   const absent = (k: string) => form[k] === null || form[k] === undefined || form[k] === "";
   const missing = REQUIRED.filter(([k]) => absent(k)).map(([, l]) => l);
+  const sirenError = authorSirenError(form.siren);
+  if (sirenError) missing.push(sirenError);
   if (form.sale_enabled !== false && absent("price_ht")) missing.push("Prix de vente HT");
   if (form.sale_enabled === false && !form.location_enabled) missing.push("Vente ou location");
   if (form.location_enabled) {

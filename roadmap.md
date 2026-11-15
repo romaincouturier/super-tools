@@ -1,5 +1,9 @@
 # Roadmap
 
+## Contrat et SIREN auteur (2026-11-15)
+- [x] ADRESSE retire le suffixe CP/ville déjà saisi avant de composer l’adresse structurée ; modèle HTML et contrats existants inchangés.
+- [x] SIREN facultatif, espaces retirés et validation 9 chiffres/Luhn dans le formulaire et avant toute écriture serveur. 28 tests réussis, 103 contrôles OK, compilation OK ; saisie/refus vérifiés au navigateur avec réponses simulées, aucun email ni donnée réelle modifiés. author-onboarding déployée ; front à publier. Recherche INSEE existante non ajoutée : option à valider séparément. AGENTS.md au budget maximum, aucune nouvelle règle structurelle ajoutée.
+
 ## Informations légales et publication (2026-11-15)
 - [x] Mentions légales enregistrées dans quote_settings (lecture existante attestations/devis), SIRET et autorité conservés dans app_settings et déclarés au registre ; quatre attestations complétées, sept traces avant/après. Relu : trois brouillons sans lien, test envoyé avec lien/statut/expiration préservés. Aucun email ni lien généré.
 - [x] Données relues, compilation OK et 103 règles réussies ; scan sécurité récent sans finding critique. Publication demandée pour academy.supertilt.fr ; disponibilité et clic sur l’ancien lien test non certifiés au moment de la demande.

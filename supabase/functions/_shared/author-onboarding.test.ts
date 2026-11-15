@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   sanitizeForm, missingForSubmit, fileKindAllowed, formatCommission, buildContractPayload,
-  otpSendRefusal, otpCheckRefusal, reminderDue, authorPostalAddress, invitationGameTitle, invitationGameName,
+  otpSendRefusal, otpCheckRefusal, reminderDue, authorPostalAddress, invitationGameTitle, invitationGameName, authorSirenError,
 } from "./author-onboarding";
 
 const complete = () => sanitizeForm({
-  legal_name: "Lean SAS", postal_address: "1 rue X", postal_code: "75001", city: "Paris", siren: "123456789", legal_rep_first_name: "Édouard", legal_rep_last_name: "Vuillemin",
+  legal_name: "Lean SAS", postal_address: "1 rue X", postal_code: "75001", city: "Paris", siren: "540035854", legal_rep_first_name: "Édouard", legal_rep_last_name: "Vuillemin",
   phone: "0600000000", game_name: "Lean TPS", author_email: "e@x.fr", pitch: "p", price_ht: "1 200",
   long_description: "d", credits: "c", weight_g: 4000, package_dimensions: "50x40x20", shipping_fee: 25, shipping_delay: "3 jours",
   game_page_url: "https://x.fr",
@@ -26,8 +26,28 @@ describe("author onboarding", () => {
     const f = { ...complete(), location_enabled: true };
     expect(missingForSubmit(f, files)).toHaveLength(3);
   });
-  it("requires SIREN before submission", () => {
-    expect(missingForSubmit({ ...complete(), siren: null }, files)).toContain("SIREN");
+  it.each([null, "", "   "])("allows an optional empty SIREN: %s", (siren) => {
+    expect(missingForSubmit(sanitizeForm({ ...complete(), siren }), files)).toEqual([]);
+  });
+  it("rejects the reported invalid Luhn key", () => {
+    expect(authorSirenError("123456689")).toContain("clé de contrôle incorrecte");
+    expect(missingForSubmit({ ...complete(), siren: "123456689" }, files)).toHaveLength(1);
+  });
+  it.each(["54003585", "5400358540", "54003585A", "540-035-854"])("rejects malformed SIREN %s", (siren) => {
+    expect(authorSirenError(siren)).toContain("exactement 9 chiffres");
+  });
+  it("accepts a valid Luhn key and removes spaces", () => {
+    const f = sanitizeForm({ ...complete(), siren: " 540 035\u00a0854 " });
+    expect(f.siren).toBe("540035854");
+    expect(authorSirenError(f.siren)).toBeNull();
+    expect(missingForSubmit(f, files)).toEqual([]);
+  });
+  it.each(["55 chemin du Moulin du Got, 69340 Francheville", "55 chemin du Moulin du Got\n69340 FRANCHEVILLE", "55 chemin du Moulin du Got, 69340", "55 chemin du Moulin du Got"])("deduplicates contract address from %s", (postal_address) => {
+    const f = { ...complete(), postal_address, postal_code: "69340", city: "Francheville" };
+    expect(buildContractPayload({ reference: "DIST-2026-002", form: f, commissionRate: 0.15, date: new Date(), distributorSignature: "" }).ADRESSE).toBe("55 chemin du Moulin du Got\n69340 Francheville");
+  });
+  it("preserves street names containing a city or postcode", () => {
+    expect(authorPostalAddress({ postal_address: "1 rue de Paris", postal_code: "75001", city: "Paris" })).toBe("1 rue de Paris\n75001 Paris");
   });
   it("requires separate postal code and city and keeps them in the contract address", () => {
     expect(missingForSubmit({ ...complete(), postal_code: null, city: null }, files)).toEqual(["Code postal", "Ville"]);
