@@ -1,5 +1,11 @@
 # Roadmap
 
+## Visibilité audit blanc et sources de veille (2026-11-15)
+- [ ] Corriger les actions Qualiopi persistantes, sans doublons et avec clôture des écarts résolus ; rendre le menu évident.
+- [ ] Afficher les sources proposées et leurs transitions validation / abonnement dans les actions quotidiennes, avec droits et traçabilité conservés.
+- [ ] Envoyer le bilan audit via l’infrastructure existante, sans email si inchangé ; tester un passage explicitement autorisé.
+- [ ] Vérifier avec le compte Romain les données réelles, les tests ciblés et les contrôles du projet.
+
 ## CI GitHub (2026-11-14)
 - [x] Confirmer les étapes en échec : installation npm pour les deux jobs CI, dépôt d’action inexistant pour Autofix.
 - [x] Lockfile synchronisé (MCP et use-webmcp-tool absents), MCP figé en 3.4.0 et Playwright aligné en 1.62.0 ; installation stricte réussie sous Node 20 et 22. Workflows CI/Autofix/scan passés à Node 22, requis par le SDK existant.
