@@ -1,5 +1,9 @@
 # Roadmap
 
+## Informations légales et publication (2026-11-15)
+- [ ] Enregistrer les mentions légales dans les réglages devis lus par les attestations et compléter uniquement les quatre attestations demandées, avec trace avant/après ; préserver le lien test et les trois brouillons, aucun email ni lien généré.
+- [ ] Relire les données enregistrées et demander la publication après contrôle sécurité ; disponibilité du déploiement à distinguer de la demande de publication.
+
 ## Retours formulaire auteur (2026-11-15)
 - [x] Retours du 10 novembre complétés : nom du jeu facultatif à l'invitation, brouillon en tutoiement, commission visible, code postal/ville, SIREN obligatoire, email repris de l'invitation et verrouillé, vente/location, durée 30 jours renouvelables et aides. La fonction author-onboarding est déployée ; aucune migration, aucun email, contrat signé ou droit modifié.
 - [x] 15 tests et 103 contrôles réussis, compilation OK ; formulaire testé en simulation sur ordinateur/téléphone, aide et modes de distribution visibles, formulaire incomplet sans confirmation ni soumission. Pas de soumission réelle ni de génération PDF vérifiée ; écrans à publier. AGENTS.md au budget maximum : règle structurelle non ajoutée pour préserver les règles existantes.
