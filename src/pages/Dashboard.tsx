@@ -30,6 +30,7 @@ import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskAmount, demoBlur } from "@/lib/demoMask";
 import DailyActionsPerUserChart from "@/components/dashboard/DailyActionsPerUserChart";
 import PearlWidget from "@/components/dashboard/PearlWidget";
+import DailyTodoPanel from '@/components/dashboard/DailyTodoPanel';
 
 // ── Palette (charte SuperTools) ──────────────────────────────
 const CREAM = "#f7f5f0";
@@ -491,6 +492,10 @@ const Dashboard = () => {
               </section>
             </div>
           </div>
+
+          <section aria-label="Actions quotidiennes" className="mb-8 border-t border-border pt-6" style={demoBlur(isDemoMode)}>
+            <DailyTodoPanel />
+          </section>
 
           {/* Actions quotidiennes par personne (admin) */}
           {isAdmin && (

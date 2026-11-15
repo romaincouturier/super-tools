@@ -545,6 +545,8 @@ export type Database = {
           notes: string | null
           sample_training_ids: string[]
           started_at: string
+          summary_email_error: string | null
+          summary_email_sent_at: string | null
           updated_at: string
         }
         Insert: {
@@ -560,6 +562,8 @@ export type Database = {
           notes?: string | null
           sample_training_ids?: string[]
           started_at?: string
+          summary_email_error?: string | null
+          summary_email_sent_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -575,6 +579,8 @@ export type Database = {
           notes?: string | null
           sample_training_ids?: string[]
           started_at?: string
+          summary_email_error?: string | null
+          summary_email_sent_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -15109,6 +15115,10 @@ export type Database = {
       }
       current_user_access_level: { Args: never; Returns: string }
       decay_watch_relevance: { Args: never; Returns: undefined }
+      decide_daily_watch_source: {
+        Args: { _source_id: string; _status: string }
+        Returns: undefined
+      }
       decrypt_token: {
         Args: { encrypted_token: string; encryption_key: string }
         Returns: string
@@ -15942,6 +15952,10 @@ export type Database = {
       submit_training_survey: {
         Args: { p_answers: Json; p_token: string }
         Returns: Json
+      }
+      sync_daily_quality_actions: {
+        Args: { _user_id?: string }
+        Returns: undefined
       }
       sync_training_schedules_from_lives: {
         Args: { p_training_id: string }

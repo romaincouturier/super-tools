@@ -3,6 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import { hasManagedCronCredential, isCronOrServiceRole } from "../_shared/cron-auth.ts";
 import { buildFacts, automaticIssues, type RawAuditData } from "../_shared/qualiopi-checks.ts";
+import { auditChanges, auditMailSummary, escapeAuditHtml } from '../_shared/qualiopi-summary.ts';
+import { sendEmail } from '../_shared/resend.ts';
+import { getBccList, getSenderEmail } from '../_shared/email-settings.ts';
+import { getSigniticSignature } from '../_shared/signitic.ts';
+import { renderCatalogEmail, ctaButton } from '../_shared/editable-email.ts';
+import { verifyAuth } from '../_shared/supabase-client.ts';
 
 /**
  * Audit blanc automatique, chaque nuit.
@@ -13,12 +19,11 @@ import { buildFacts, automaticIssues, type RawAuditData } from "../_shared/quali
  * contrôles sur les données, figer les faits du jour, et inscrire chaque
  * constat en défaut dans les actions quotidiennes.
  *
- * L'index unique de daily_actions porte sur (user, date, catégorie, entité) :
- * rejouer la tâche le même jour ne duplique donc aucune action, et un constat
- * corrigé cesse d'apparaître le lendemain.
+ * La réconciliation conserve une action active par écart, sans dépendre de
+ * sa date initiale, et ferme les écarts corrigés ainsi que les doublons.
  */
 
-const VERSION = "run-qualiopi-audit@2026-11-05.1";
+const VERSION = "run-qualiopi-audit@2026-11-15.1";
 const SAMPLE_SIZE = 5;
 const SUBMITTED_SURVEY_STATES = ["complete", "valide_formateur"];
 
@@ -29,18 +34,24 @@ serve(async (req) => {
   try {
     // Planification gérée Lovable Cloud (LOVABLE_CRON_SECRET), ou secret dédié
     // QUALIOPI_CRON_SECRET (règle [036]) pour un appel manuel interne.
-    const authorized = (await hasManagedCronCredential(req)) ||
+    let authorized = (await hasManagedCronCredential(req)) ||
       (await isCronOrServiceRole(req, "QUALIOPI_CRON_SECRET"));
+
+    const url = Deno.env.get('SUPABASE_URL');
+    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!url || !key) throw new Error('Configuration serveur absente');
+    const supabase = createClient(url, key);
     if (!authorized) {
-      return createErrorResponse("Unauthorized", 401);
+      const user = await verifyAuth(req.headers.get('Authorization'));
+      if (user) {
+        const admin = await supabase.rpc('is_admin', { _user_id: user.id });
+        if (admin.error) throw admin.error;
+        authorized = admin.data === true;
+      }
     }
+    if (!authorized) return createErrorResponse('Unauthorized', 401);
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
     const oneYearAgo = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString();
 
     const { data: sampleTrainings, error: sampleError } = await supabase
@@ -145,20 +156,25 @@ serve(async (req) => {
     const facts = buildFacts(raw);
     const issues = automaticIssues(facts);
 
-    const { error: runError } = await supabase.from("audit_runs").insert({
-      label: `Contrôle automatique du ${new Date().toLocaleDateString("fr-FR")}`,
+    const previousRead = await supabase.from('audit_runs').select('findings, facts, summary_email_sent_at')
+      .like('notes', 'Passage automatique%').order('started_at', { ascending: false }).limit(1).maybeSingle();
+    if (previousRead.error) throw previousRead.error;
+    const sentRead = await supabase.from('audit_runs').select('id, findings, facts').not('summary_email_sent_at', 'is', null).order('summary_email_sent_at', { ascending: false }).limit(1).maybeSingle();
+    if (sentRead.error) throw sentRead.error;
+    const { data: run, error: runError } = await supabase.from("audit_runs").insert({
+      label: `Contrôle automatique du ${new Date().toLocaleDateString("fr-FR", { timeZone: 'Europe/Paris' })}`,
       finished_at: new Date().toISOString(),
       sample_training_ids: sampleIds,
       facts,
       answers: {},
       findings: issues,
       notes: "Passage automatique : contrôles sur les données seulement, sans les questions à l'auditeur.",
-    });
+    }).select('id').single();
 
     // La trace du passage est la preuve attendue au titre de l'audit interne :
     // la perdre en silence viderait la tâche de son objet.
-    if (runError) {
-      return createErrorResponse(`Enregistrement du passage impossible : ${runError.message}`, 500);
+    if (runError || !run) {
+      return createErrorResponse(`Enregistrement du passage impossible : ${runError?.message ?? 'aucun passage retourné'}`, 500);
     }
 
     // Les constats partent chez les administrateurs : ce sont eux qui portent
@@ -172,39 +188,37 @@ serve(async (req) => {
     if (adminsError) throw adminsError;
     const recipients = (admins ?? []).map((a) => a.user_id).filter(Boolean) as string[];
 
-    const rows = recipients.flatMap((userId) =>
-      issues.map((issue) => ({
-        user_id: userId,
-        action_date: today,
-        category: "qualiopi",
-        title: `Indicateur ${issue.indicator} : ${issue.label}`,
-        description: `${issue.detail}. ${
-          issue.kind === "sans_matiere"
-            ? "Le contrôle n'a rien trouvé à vérifier : il ne peut pas conclure en l'état."
-            : issue.gradation === "majeure_seule"
-              ? "Cet indicateur ne connaît que la non-conformité majeure."
-              : "Non-conformité mineure possible."
-        }`,
-        link: issue.fixHref ?? "/audit-blanc",
-        entity_type: "qualiopi_check",
-        entity_id: issue.checkId,
-      })),
-    );
-
-    if (rows.length > 0) {
-      const { error } = await supabase
-        .from("daily_actions")
-        // Pas d'ignoreDuplicates : un second passage le même jour doit
-        // rafraîchir le compte affiché. is_completed n'est pas dans la charge
-        // utile, donc une action déjà cochée le reste.
-        .upsert(rows, { onConflict: "user_id,action_date,category,entity_type,entity_id" });
-      if (error) console.error(`[${VERSION}] insertion des actions`, error);
+    const recipientEmail = await getSenderEmail();
+    const owner = await supabase.from('profiles').select('user_id').eq('email', recipientEmail).maybeSingle();
+    if (owner.error) throw owner.error;
+    if (owner.data?.user_id) recipients.push(owner.data.user_id);
+    for (const userId of new Set(recipients)) {
+      const synced = await supabase.rpc('sync_daily_quality_actions', { _user_id: userId });
+      if (synced.error) throw synced.error;
     }
 
-    console.log(`[${VERSION}] ${issues.length} constats, ${rows.length} actions`);
+    const delta = auditChanges(issues, previousRead.data?.findings ?? []);
+    const summary = auditMailSummary(facts);
+    const lastSentSummary = sentRead.data?.facts ? auditMailSummary(sentRead.data.facts) : null;
+    const summaryChanged = JSON.stringify(summary) !== JSON.stringify(lastSentSummary);
+    const changesSinceEmail = auditChanges(issues, sentRead.data?.findings ?? []);
+    let emailSent = false;
+    if (changesSinceEmail.changed || summaryChanged || !sentRead.data) {
+      const list = (items: string[]) => items.length ? `<ul>${items.map(i => `<li>${escapeAuditHtml(i)}</li>`).join('')}</ul>` : '<p>Aucun.</p>';
+      const rendered = await renderCatalogEmail(supabase, 'qualiopi_audit_summary', {
+        vars: { issues: String(issues.length), conforme: String(summary.conforme), a_verifier: String(summary.aVerifier), non_conformes: String(summary.mineure + summary.majeure), mineure: String(summary.mineure), majeure: String(summary.majeure), added: String(delta.added.length), resolved: String(delta.resolved.length), updated: String(delta.updated.length), questions_count: String(summary.questions.length) },
+        blocks: { added_list: list(delta.added.map(i => `Indicateur ${i.indicator} : ${i.label} — ${i.detail}`)), resolved_list: list(delta.resolved.map(i => `Indicateur ${i.indicator} : ${i.label}`)), updated_list: list(delta.updated.map(i => `Indicateur ${i.indicator} : ${i.label} — ${i.detail}`)), questions_list: list(summary.questions), audit_button: ctaButton("Ouvrir l'audit blanc", 'https://academy.supertilt.fr/audit-blanc'), signature: await getSigniticSignature() },
+      });
+      const sent = await sendEmail({ to: recipientEmail, bcc: (await getBccList()).filter(e => e !== recipientEmail), subject: rendered.subject, html: `<div style="text-align:left">${rendered.html}</div>`, _emailType: 'qualiopi_audit_summary', idempotencyKey: `qualiopi-audit-${run.id}` });
+      const saved = await supabase.from('audit_runs').update({ summary_email_sent_at: sent.success ? new Date().toISOString() : null, summary_email_error: sent.error ?? null }).eq('id', run.id);
+      if (saved.error) throw saved.error;
+      if (!sent.success) throw new Error(`Envoi du bilan impossible : ${sent.error}`);
+      emailSent = true;
+    }
+    console.log(`[${VERSION}] ${issues.length} constats, bilan envoyé : ${emailSent}`);
 
     return new Response(
-      JSON.stringify({ success: true, issues: issues.length, actions: rows.length, _version: VERSION }),
+      JSON.stringify({ success: true, issues: issues.length, actions: issues.length * new Set(recipients).size, emailSent, summary, _version: VERSION }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {

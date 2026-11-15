@@ -1,5 +1,11 @@
 # Roadmap
 
+## Visibilité audit blanc et sources de veille (2026-11-15)
+- [x] Panne de visibilité : le tableau de bord ne montait plus DailyTodoPanel ; rétabli. Audit sorti du sous-menu Formations, maintenant accessible directement. Nettoyage quotidien exclut les catégories persistantes ; réconciliation ferme anciens doublons/résolus sans effacer l’historique.
+- [x] Vérifié connecté en Romain, après rechargement et sur mobile : 16 écarts distincts et les 32 sources proposées, avec nom/URL/pertinence/consignes et boutons À abonner / Écarter. RPC atomique et journalisée pour to_subscribe puis Fait → followed ; transitions testées sur Postgres isolé, aucune source réelle validée à sa place.
+- [x] Bilan modifiable via le catalogue email existant, envoi Resend habituel avec BCC/signature et trace des erreurs. Passage réel 18:24 UTC : email accepté et journalisé pour romain@supertilt.fr, 1 conforme / 18 à vérifier / 3 majeurs, 20 questions. Second passage identique : aucun email et aucun doublon. Réception dans la boîte non vérifiable. Planification existante inchangée.
+- [x] 32 tests ciblés et 103 règles réussis, compilation automatique OK. Deux fonctions déployées ; affichage en production nécessite publication du front. AGENTS.md au budget maximum : règle d’architecture non ajoutée pour ne pas altérer les règles existantes.
+
 ## CI GitHub (2026-11-14)
 - [x] Confirmer les étapes en échec : installation npm pour les deux jobs CI, dépôt d’action inexistant pour Autofix.
 - [x] Lockfile synchronisé (MCP et use-webmcp-tool absents), MCP figé en 3.4.0 et Playwright aligné en 1.62.0 ; installation stricte réussie sous Node 20 et 22. Workflows CI/Autofix/scan passés à Node 22, requis par le SDK existant.

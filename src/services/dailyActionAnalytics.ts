@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { visibleDailyActions } from '@/lib/dailyQualityActions';
 import {
   CATEGORIES,
   type CategoryAnalytics,
@@ -28,19 +29,27 @@ export async function fetchDailyActions(
   userId: string,
   actionDate: string
 ): Promise<DailyAction[]> {
+  const synced = await supabase.rpc('sync_daily_quality_actions', { _user_id: userId });
+  if (synced.error) throw synced.error;
   const { data, error } = await supabase
     .from("daily_actions")
     .select(
-      "id, category, title, description, link, is_completed, completed_at, auto_completed"
+      "id, category, title, description, link, is_completed, completed_at, auto_completed, action_date, entity_type, entity_id"
     )
     .eq("user_id", userId)
-    .eq("action_date", actionDate)
+    .or(`action_date.eq.${actionDate},and(category.in.(qualiopi,watch_sources_validate,watch_sources_subscribe),is_completed.eq.false)`)
+    .order('action_date', { ascending: false })
     .order("category")
     .order("is_completed")
     .order("title");
 
   if (error) throw error;
-  return (data ?? []) as DailyAction[];
+  return visibleDailyActions(data ?? [], actionDate);
+}
+
+export async function decideDailyWatchSource(sourceId: string, status: 'to_subscribe' | 'dropped' | 'followed') {
+  const { error } = await supabase.rpc('decide_daily_watch_source', { _source_id: sourceId, _status: status });
+  if (error) throw error;
 }
 
 /** Toggle the completion status of a single action. */

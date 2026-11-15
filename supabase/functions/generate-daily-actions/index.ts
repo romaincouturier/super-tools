@@ -683,6 +683,7 @@ serve(async (req) => {
         .delete()
         .eq("user_id", recipient.userId)
         .eq("action_date", today)
+        .not('category', 'in', '(qualiopi,watch_sources_validate,watch_sources_subscribe)')
         .eq("is_completed", false);
 
       // Delete completed strict-assigned actions (may have been reassigned)

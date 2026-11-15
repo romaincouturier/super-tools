@@ -477,6 +477,13 @@
       "when": 1794643061752,
       "tag": "0067_game_quotes",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1794766651112,
+      "tag": "0068_daily_quality_visibility",
+      "breakpoints": true
     }
   ]
 }
