@@ -1,5 +1,9 @@
 # Roadmap
 
+## Informations légales et publication (2026-11-15)
+- [x] Mentions légales enregistrées dans quote_settings (lecture existante attestations/devis), SIRET et autorité conservés dans app_settings et déclarés au registre ; quatre attestations complétées, sept traces avant/après. Relu : trois brouillons sans lien, test envoyé avec lien/statut/expiration préservés. Aucun email ni lien généré.
+- [x] Données relues, compilation OK et 103 règles réussies ; scan sécurité récent sans finding critique. Publication demandée pour academy.supertilt.fr ; disponibilité et clic sur l’ancien lien test non certifiés au moment de la demande.
+
 ## Retours formulaire auteur (2026-11-15)
 - [x] Retours du 10 novembre complétés : nom du jeu facultatif à l'invitation, brouillon en tutoiement, commission visible, code postal/ville, SIREN obligatoire, email repris de l'invitation et verrouillé, vente/location, durée 30 jours renouvelables et aides. La fonction author-onboarding est déployée ; aucune migration, aucun email, contrat signé ou droit modifié.
 - [x] 15 tests et 103 contrôles réussis, compilation OK ; formulaire testé en simulation sur ordinateur/téléphone, aide et modes de distribution visibles, formulaire incomplet sans confirmation ni soumission. Pas de soumission réelle ni de génération PDF vérifiée ; écrans à publier. AGENTS.md au budget maximum : règle structurelle non ajoutée pour préserver les règles existantes.

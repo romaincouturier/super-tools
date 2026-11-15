@@ -1467,6 +1467,8 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   reglement_interieur_draft: { default: "", description: "Brouillon Markdown du règlement intérieur" },
   reglement_interieur_versions: { default: "[]", description: "Historique des versions publiées du règlement intérieur" },
   company_stamp_url: { default: "", description: "URL du tampon de la société (image), apposé sur les feuilles d'émargement" },
+  company_siret: { default: "", description: "SIRET du prestataire, complément des données émetteur du module devis" },
+  training_declaration_authority: { default: "", description: "Autorité auprès de laquelle la déclaration d'activité du prestataire est enregistrée" },
   slack_crm_channel: { default: "general", description: "Nom du canal Slack pour les notifications CRM (ex: crm, general)" },
   slack_editorial_channel: { default: "article", description: "Nom du canal Slack pour le digest hebdomadaire du moteur éditorial" },
   slack_support_channel: { default: "supertools", description: "Nom du canal Slack notifié quand un ticket support finit d'être VIP codé" },
