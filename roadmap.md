@@ -1,5 +1,10 @@
 # Roadmap
 
+## Diagnostic et email audit blanc (2026-11-15)
+- [x] 21 indicateurs vérifiés en lecture seule ; compte rendu livré : a = 5, 11, 12 ; b = autres concernés ; aucun indicateur entier démontré c. Trois sessions en cours faussaient les évaluations, CV ignoré, date de questionnaire utilisée comme convocation et zéro veille exploitable codé en dur.
+- [x] Collecteur commun paginé : sessions terminées non annulées, vrais journaux de convocations, CV, notation des objectifs, positionnement, retours formateurs, relances et liens d’origine. Mail groupé par indicateur, majeurs d’abord, liens et estimations ; inchangé = trois priorités, pas de doublon le même jour Paris.
+- [x] Vérifié connecté en Romain : 4 OK / 17 à compléter / 1 majeur selon le moteur interne ; nombre de passages inchangé, aucun email de test envoyé. Tests ciblés et 103 contrôles OK ; run-qualiopi-audit déployée, prochain passage/envoi réel non exécuté manuellement. Aucun historique, cron, droit ni leçon modifié ; front à publier. Architecture documentée dans le dossier partagé.
+
 ## Contrat et SIREN auteur (2026-11-15)
 - [x] ADRESSE retire le suffixe CP/ville déjà saisi avant de composer l’adresse structurée ; modèle HTML et contrats existants inchangés.
 - [x] SIREN facultatif, espaces retirés et validation 9 chiffres/Luhn dans le formulaire et avant toute écriture serveur. 28 tests réussis, 103 contrôles OK, compilation OK ; saisie/refus vérifiés au navigateur avec réponses simulées, aucun email ni donnée réelle modifiés. author-onboarding déployée ; front à publier. Recherche INSEE existante non ajoutée : option à valider séparément. AGENTS.md au budget maximum, aucune nouvelle règle structurelle ajoutée.

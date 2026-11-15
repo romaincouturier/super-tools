@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Gavel, Play, CheckCircle2, AlertTriangle, XCircle, HelpCircle, ArrowRight } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -18,6 +18,7 @@ import {
   auditPlan,
   evaluateIndicator,
   summarize,
+  automaticAnswers,
   type AnswerValue,
   type AuditFacts,
   type Verdict,
@@ -60,6 +61,8 @@ const VERDICT_STYLE: Record<Verdict, { label: string; className: string; icon: t
 };
 
 export default function AuditBlanc() {
+  const [searchParams] = useSearchParams();
+  const requestedIndicator = searchParams.get('indicator');
   useAuth();
   const { gather, loading: gathering } = useAuditFacts();
   const { runs, saveRun, loading: loadingRuns } = useAuditRuns();
@@ -88,7 +91,7 @@ export default function AuditBlanc() {
       const result = await gather();
       setFacts(result.facts);
       setSample(result.sample);
-      setAnswers({});
+      setAnswers(automaticAnswers(result.facts));
     } catch (error: unknown) {
       // Sans ce garde, un échec de lecture laissait l'écran muet : le bouton
       // s'arrêtait de tourner et rien ne se passait.
@@ -217,13 +220,13 @@ export default function AuditBlanc() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Accordion type="multiple" className="w-full">
+                  <Accordion type="multiple" defaultValue={requestedIndicator ? [`i${requestedIndicator}`] : []} className="w-full">
                     {group.map((plan) => {
                       const finding = findings.find((f) => f.number === plan.indicator.number);
                       if (!finding) return null;
                       const style = VERDICT_STYLE[finding.verdict];
                       return (
-                        <AccordionItem key={plan.indicator.number} value={`i${plan.indicator.number}`}>
+                        <AccordionItem id={`indicator-${plan.indicator.number}`} key={plan.indicator.number} value={`i${plan.indicator.number}`}>
                           <AccordionTrigger className="hover:no-underline">
                             <div className="flex items-center gap-3 text-left flex-1 pr-3">
                               <Badge variant="outline" className="shrink-0">

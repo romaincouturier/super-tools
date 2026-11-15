@@ -42,6 +42,8 @@ export interface AuditFacts {
   sampleWithNeedsSurvey: number;
   sampleWithPrerequisiteCheck: number;
   sampleWithEvaluations: number;
+  sampleWithObjectiveRatings?: number;
+  sampleWithPositioning?: number;
   sampleWithConvocation: number;
   sampleWithTrainerAdequacy: number;
   /** Indicateur 9 */
@@ -77,6 +79,10 @@ export interface AuditFacts {
   qualityRisks: number;
   highRisksWithoutMeasure: number;
   improvements: number;
+  trainerReturns?: number;
+  startReminders?: number;
+  stakeholderSolicitations?: number;
+  improvementsWithOrigin?: number;
 }
 
 /**
@@ -207,7 +213,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
       {
         id: "5.evaluables",
         label: "Les objectifs sont notés un à un par les participants",
-        run: (f) => ratio(f.sampleWithEvaluations, f.sampleSize, "sessions évaluées"),
+        run: (f) => ratio(f.sampleWithObjectiveRatings ?? f.sampleWithEvaluations, f.sampleSize, "sessions avec objectifs évalués"),
         onEmpty: "cannot_conclude",
       },
     ],
@@ -234,8 +240,8 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
     checks: [
       {
         id: "8.prerequis",
-        label: "Validation des prérequis recueillie à l'entrée",
-        run: (f) => ratio(f.sampleWithPrerequisiteCheck, f.sampleSize, "sessions"),
+        label: "Positionnement recueilli à l'entrée (niveau, compétences ou prérequis)",
+        run: (f) => ratio(f.sampleWithPositioning ?? f.sampleWithPrerequisiteCheck, f.sampleSize, "sessions positionnées"),
         onEmpty: "cannot_conclude",
       },
     ],
@@ -244,6 +250,11 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "8.suite",
         label: "Un prérequis non validé donne-t-il lieu à une décision tracée ?",
         hint: "Validation formateur du dossier, repositionnement, refus motivé.",
+      },
+      {
+        id: "8.validation",
+        label: "Pour les prérequis applicables, la vérification et les décisions sont-elles documentées ?",
+        hint: "Le niveau déclaré prouve le positionnement, pas la validation de chaque prérequis. Joindre la vérification sur les dossiers concernés.",
       },
     ],
   },
@@ -260,7 +271,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         label: "Règlement intérieur publié et accessible",
         run: (f) =>
           f.reglementInterieurPublished ? ok("Publié") : ko("Aucun règlement publié"),
-        fix: { label: "Publier le règlement intérieur", href: "/parametres#reglement-interieur" },
+        fix: { label: "Publier le règlement intérieur", href: "/parametres?find=reglement_interieur" },
       },
     ],
     questions: [
@@ -369,14 +380,14 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "21.competences",
         label: "Compétences définies pour chaque intervenant",
         run: (f) => ratio(f.trainersWithCompetences, f.trainers, "intervenants"),
-        fix: { label: "Renseigner les compétences", href: "/parametres#trainers" },
+        fix: { label: "Renseigner les compétences", href: "/parametres?find=tab%3Atrainers" },
         onEmpty: "defect",
       },
       {
         id: "21.justificatifs",
         label: "Justificatifs disponibles : CV, diplômes, certifications",
         run: (f) => ratio(f.trainersWithDocuments, f.trainers, "intervenants"),
-        fix: { label: "Charger CV et diplômes", href: "/parametres#trainers" },
+        fix: { label: "Charger CV et diplômes", href: "/parametres?find=tab%3Atrainers" },
         onEmpty: "defect",
       },
       {
@@ -394,7 +405,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "22.formation",
         label: "Formation continue renseignée pour chaque intervenant",
         run: (f) => ratio(f.trainersWithContinuingEducation, f.trainers, "intervenants"),
-        fix: { label: "Renseigner les formations suivies", href: "/parametres#trainers" },
+        fix: { label: "Renseigner les formations suivies", href: "/parametres?find=tab%3Atrainers" },
         onEmpty: "defect",
       },
     ],
@@ -475,7 +486,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         label: "Référent handicap désigné et joignable",
         run: (f) =>
           f.handicapReferentDesignated ? ok("Désigné") : ko("Aucun référent désigné"),
-        fix: { label: "Désigner le référent", href: "/parametres#referent-handicap" },
+        fix: { label: "Désigner le référent", href: "/parametres?find=referent_handicap" },
       },
       {
         id: "26.reseau",
@@ -484,7 +495,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
           f.handicapPartnersActive > 0
             ? ok(`${f.handicapPartnersActive} partenaires actifs`)
             : ko("Aucun partenaire enregistré"),
-        fix: { label: "Alimenter le réseau", href: "/parametres#partenaires-handicap" },
+        fix: { label: "Alimenter le réseau", href: "/parametres?find=partenaires_handicap" },
       },
     ],
     questions: [
@@ -508,7 +519,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         run: (f) =>
           f.coldEvaluationsSubmitted > 0
             ? ok(`${f.coldEvaluationsSubmitted} retours à froid`)
-            : ko("Aucun retour à froid"),
+            : { status: "unknown", detail: "Aucun retour à froid : vérifier les échéances et les sollicitations, pas de non-conformité déduite du seul zéro" },
       },
       {
         id: "30.commanditaire",
@@ -516,7 +527,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         run: (f) =>
           f.sponsorEvaluationsSubmitted > 0
             ? ok(`${f.sponsorEvaluationsSubmitted} retours commanditaires`)
-            : ko("Aucun retour commanditaire"),
+            : { status: "unknown", detail: `${f.stakeholderSolicitations ?? 0} sollicitations à froid/financeur tracées ; aucun retour commanditaire` },
       },
       {
         id: "30.financeur",
@@ -524,7 +535,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         run: (f) =>
           f.funderAppreciations > 0
             ? ok(`${f.funderAppreciations} appréciations financeur`)
-            : ko("Aucune appréciation financeur"),
+            : { status: "unknown", detail: "Aucune appréciation financeur : vérifier les financeurs concernés et la preuve de sollicitation" },
       },
     ],
     questions: [
@@ -532,6 +543,11 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "30.pedagogique",
         label: "L'équipe pédagogique est-elle sollicitée ?",
         hint: "Auto-évaluation du formateur, comptes rendus de réunions d'équipe.",
+      },
+      {
+        id: "30.solicitations",
+        label: "Les parties prenantes concernées ont-elles été sollicitées et les absences de réponse suivies ?",
+        hint: "Vérifier les échéances dans Évaluations et les sollicitations financeurs dans la fiche formation. Les sessions terminées avant le 03/11/2026 restent suivies manuellement, sans rattrapage automatique.",
       },
     ],
   },
@@ -641,6 +657,7 @@ export function evaluateIndicator(
   facts: AuditFacts,
   answers: Record<string, AnswerValue>,
 ): IndicatorFinding {
+  answers = { ...automaticAnswers(facts), ...answers };
   // Un contrôle sans matière ne dit pas la même chose partout : pour
   // certains c'est le manque lui-même, pour d'autres l'impossibilité de
   // juger. Les deux sont déclarés sur le contrôle, pas devinés ici.
@@ -719,6 +736,14 @@ export function evaluateIndicator(
   };
 }
 
+export function automaticAnswers(facts: AuditFacts): Record<string, AnswerValue> {
+  const answers: Record<string, AnswerValue> = {};
+  if ((facts.trainerReturns ?? 0) > 0) answers['30.pedagogique'] = 'oui';
+  if ((facts.startReminders ?? 0) > 0) answers['12.abandons'] = 'oui';
+  if ((facts.improvementsWithOrigin ?? 0) > 0) answers['32.origine'] = 'oui';
+  return answers;
+}
+
 export interface AuditSummary {
   conforme: number;
   mineure: number;
@@ -766,9 +791,10 @@ export interface RawAuditData {
     access_delay: string | null;
     accessibility_terms: string | null;
   }>;
-  submittedEvaluations: Array<{ training_id: string }>;
-  submittedSurveys: Array<{ training_id: string; prerequis_validation: string | null }>;
+  submittedEvaluations: Array<{ training_id: string; objectifs_evaluation?: unknown }>;
+  submittedSurveys: Array<{ training_id: string; prerequis_validation: string | null; niveau_actuel?: number | null; competences_actuelles?: string | null }>;
   participants: Array<{ training_id: string; needs_survey_sent_at: string | null }>;
+  invitationTrainingIds?: string[];
   adequacy: Array<{ training_id: string }>;
   reglementUrl: string | null;
   activeVhdProcedures: number;
@@ -776,7 +802,7 @@ export interface RawAuditData {
   lmsModules: Array<{ id: string; course_id: string }>;
   lmsLessons: Array<{ module_id: string | null; is_mandatory: boolean | null }>;
   lmsCourseIds: string[];
-  trainers: Array<{ id: string; competences: string[] | null; formations_suivies: unknown }>;
+  trainers: Array<{ id: string; competences: string[] | null; formations_suivies: unknown; cv_url?: string | null }>;
   trainerDocumentOwners: string[];
   watchItemsLastYear: number;
   watchSourcesFollowed: number;
@@ -790,6 +816,10 @@ export interface RawAuditData {
   reclamations: Array<{ acknowledgement_sent_at: string | null; response_date: string | null }>;
   risks: Array<{ criticality: number | null; preventive_measure: string | null; status: string }>;
   improvements: number;
+  trainerReturns?: number;
+  startReminders?: number;
+  stakeholderSolicitations?: number;
+  improvementsWithOrigin?: number;
 }
 
 const filled = (v: unknown): boolean => typeof v === "string" && v.trim().length > 0;
@@ -820,9 +850,13 @@ export function buildFacts(raw: RawAuditData): AuditFacts {
   const withPrerequisite = new Set(
     raw.submittedSurveys.filter((s) => filled(s.prerequis_validation)).map((s) => s.training_id),
   );
-  const withConvocation = new Set(
-    raw.participants.filter((p) => p.needs_survey_sent_at).map((p) => p.training_id),
-  );
+  const withConvocation = new Set(raw.invitationTrainingIds ?? []);
+  const withPositioning = new Set(raw.submittedSurveys.filter(s =>
+    filled(s.prerequis_validation) || typeof s.niveau_actuel === 'number' || filled(s.competences_actuelles),
+  ).map(s => s.training_id));
+  const withObjectiveRatings = new Set(raw.submittedEvaluations.filter(e =>
+    Array.isArray(e.objectifs_evaluation) && e.objectifs_evaluation.some(r => r && typeof r.niveau === 'number' && filled(r.objectif)),
+  ).map(e => e.training_id));
   const withAdequacy = new Set(raw.adequacy.map((a) => a.training_id));
   const docOwners = new Set(raw.trainerDocumentOwners);
 
@@ -846,6 +880,8 @@ export function buildFacts(raw: RawAuditData): AuditFacts {
     sampleWithNeedsSurvey: raw.sampleIds.filter((id) => withSurvey.has(id)).length,
     sampleWithPrerequisiteCheck: raw.sampleIds.filter((id) => withPrerequisite.has(id)).length,
     sampleWithEvaluations: raw.sampleIds.filter((id) => withEvaluation.has(id)).length,
+    sampleWithObjectiveRatings: raw.sampleIds.filter((id) => withObjectiveRatings.has(id)).length,
+    sampleWithPositioning: raw.sampleIds.filter((id) => withPositioning.has(id)).length,
     sampleWithConvocation: raw.sampleIds.filter((id) => withConvocation.has(id)).length,
     sampleWithTrainerAdequacy: raw.sampleIds.filter((id) => withAdequacy.has(id)).length,
     reglementInterieurPublished: filled(raw.reglementUrl),
@@ -856,7 +892,7 @@ export function buildFacts(raw: RawAuditData): AuditFacts {
     distanceThresholdConfigured: false,
     trainers: raw.trainers.length,
     trainersWithCompetences: raw.trainers.filter((t) => (t.competences ?? []).length > 0).length,
-    trainersWithDocuments: raw.trainers.filter((t) => docOwners.has(t.id)).length,
+    trainersWithDocuments: raw.trainers.filter((t) => docOwners.has(t.id) || filled(t.cv_url)).length,
     trainersWithContinuingEducation: raw.trainers.filter(
       (t) => Array.isArray(t.formations_suivies) && t.formations_suivies.length > 0,
     ).length,
@@ -876,6 +912,10 @@ export function buildFacts(raw: RawAuditData): AuditFacts {
       (r) => (r.criticality ?? 0) >= 8 && r.status !== "closed" && !filled(r.preventive_measure),
     ).length,
     improvements: raw.improvements,
+    trainerReturns: raw.trainerReturns ?? 0,
+    startReminders: raw.startReminders ?? 0,
+    stakeholderSolicitations: raw.stakeholderSolicitations ?? 0,
+    improvementsWithOrigin: raw.improvementsWithOrigin ?? 0,
   };
 }
 
