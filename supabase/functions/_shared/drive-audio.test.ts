@@ -5,8 +5,17 @@ import { execFileSync } from "node:child_process";
 vi.mock("npm:mp4box@2.5.0", async () => await import("mp4box"));
 import { extractDriveAudioPart } from "./drive-audio.ts";
 
+const hasFfmpeg = (() => {
+  try {
+    execFileSync("ffmpeg", ["-version"], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+})();
+
 describe("Drive AAC extraction", () => {
-  it("extracts decodable audio from MP4 with moov at end without downloading the whole video", async () => {
+  it.skipIf(!hasFfmpeg)("extracts decodable audio from MP4 with moov at end without downloading the whole video", async () => {
     execFileSync("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "sine=frequency=500:duration=5", "-c:a", "aac", "-y", "/tmp/drive-extraction-test.mp4"]);
     const source = readFileSync("/tmp/drive-extraction-test.mp4");
     const ranges: string[] = [];
