@@ -8,6 +8,7 @@ import { sendEmail } from '../_shared/resend.ts';
 import { getBccList, getSenderEmail } from '../_shared/email-settings.ts';
 import { getSigniticSignature } from '../_shared/signitic.ts';
 import { renderCatalogEmail, ctaButton } from '../_shared/editable-email.ts';
+import { verifyAuth } from '../_shared/auth.ts';
 
 /**
  * Audit blanc automatique, chaque nuit.
@@ -34,16 +35,22 @@ serve(async (req) => {
   try {
     // Planification gérée Lovable Cloud (LOVABLE_CRON_SECRET), ou secret dédié
     // QUALIOPI_CRON_SECRET (règle [036]) pour un appel manuel interne.
-    const authorized = (await hasManagedCronCredential(req)) ||
+    let authorized = (await hasManagedCronCredential(req)) ||
       (await isCronOrServiceRole(req, "QUALIOPI_CRON_SECRET"));
-    if (!authorized) {
-      return createErrorResponse("Unauthorized", 401);
-    }
 
     const url = Deno.env.get('SUPABASE_URL');
     const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!url || !key) throw new Error('Configuration serveur absente');
     const supabase = createClient(url, key);
+    if (!authorized) {
+      const user = await verifyAuth(req.headers.get('Authorization'));
+      if (user) {
+        const admin = await supabase.rpc('is_admin', { _user_id: user.id });
+        if (admin.error) throw admin.error;
+        authorized = admin.data === true;
+      }
+    }
+    if (!authorized) return createErrorResponse('Unauthorized', 401);
 
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
     const oneYearAgo = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString();
