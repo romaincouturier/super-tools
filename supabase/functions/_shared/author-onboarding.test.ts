@@ -47,7 +47,7 @@ describe("author onboarding", () => {
     expect(buildContractPayload({ reference: "DIST-2026-002", form: f, commissionRate: 0.15, date: new Date(), distributorSignature: "" }).ADRESSE).toBe("55 chemin du Moulin du Got\n69340 Francheville");
   });
   it("preserves street names containing a city or postcode", () => {
-    expect(authorPostalAddress({ postal_address: "1 rue de Paris", postal_code: "75001", city: "Paris" })).toBe("1 rue de\n75001 Paris");
+    expect(authorPostalAddress({ postal_address: "1 rue de Paris", postal_code: "75001", city: "Paris" })).toBe("1 rue de Paris\n75001 Paris");
   });
   it("requires separate postal code and city and keeps them in the contract address", () => {
     expect(missingForSubmit({ ...complete(), postal_code: null, city: null }, files)).toEqual(["Code postal", "Ville"]);

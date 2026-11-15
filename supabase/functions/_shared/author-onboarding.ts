@@ -109,7 +109,7 @@ export function authorPostalAddress(form: FormData): string {
   const postalCode = String(form.postal_code ?? "").trim();
   const city = String(form.city ?? "").trim();
   const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
-  for (const suffix of [city, postalCode]) {
+  for (const suffix of [postalCode && city ? `${postalCode} ${city}` : "", postalCode]) {
     if (suffix) street = street.replace(new RegExp(`(?:^|[\\s,;]+)${escape(suffix)}[\\s,;]*$`, "i"), "").trim();
   }
   return [street, [postalCode, city].filter(Boolean).join(" ")].filter(Boolean).join("\n");
