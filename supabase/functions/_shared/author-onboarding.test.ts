@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   sanitizeForm, missingForSubmit, fileKindAllowed, formatCommission, buildContractPayload,
-  otpSendRefusal, otpCheckRefusal, reminderDue,
+  otpSendRefusal, otpCheckRefusal, reminderDue, authorPostalAddress, invitationGameTitle, invitationGameName,
 } from "./author-onboarding";
 
 const complete = () => sanitizeForm({
-  legal_name: "Lean SAS", postal_address: "1 rue X", legal_rep_first_name: "Édouard", legal_rep_last_name: "Vuillemin",
+  legal_name: "Lean SAS", postal_address: "1 rue X", postal_code: "75001", city: "Paris", siren: "123456789", legal_rep_first_name: "Édouard", legal_rep_last_name: "Vuillemin",
   phone: "0600000000", game_name: "Lean TPS", author_email: "e@x.fr", pitch: "p", price_ht: "1 200",
   long_description: "d", credits: "c", weight_g: 4000, package_dimensions: "50x40x20", shipping_fee: 25, shipping_delay: "3 jours",
   game_page_url: "https://x.fr",
@@ -24,7 +24,34 @@ describe("author onboarding", () => {
   });
   it("location requires its four values when checked", () => {
     const f = { ...complete(), location_enabled: true };
-    expect(missingForSubmit(f, files)).toHaveLength(4);
+    expect(missingForSubmit(f, files)).toHaveLength(3);
+  });
+  it("requires SIREN before submission", () => {
+    expect(missingForSubmit({ ...complete(), siren: null }, files)).toContain("SIREN");
+  });
+  it("requires separate postal code and city and keeps them in the contract address", () => {
+    expect(missingForSubmit({ ...complete(), postal_code: null, city: null }, files)).toEqual(["Code postal", "Ville"]);
+    expect(authorPostalAddress(complete())).toBe("1 rue X\n75001 Paris");
+  });
+  it("uses 30 renewable days for rentals even if a different duration is submitted", () => {
+    const f = sanitizeForm({ ...complete(), location_enabled: true, location_duration_days: 90 });
+    expect(f.location_duration_days).toBe(30);
+    expect(buildContractPayload({ reference: "TEST", form: f, commissionRate: 0.15, date: new Date(), distributorSignature: "" }).LOCATION_DUREE).toBe("30 jours renouvelables");
+  });
+  it("rental-only does not require a selling price", () => {
+    const f = sanitizeForm({ ...complete(), sale_enabled: false, price_ht: null, location_enabled: true,
+      location_price_ht: 100, location_late_fee_month: 20, location_replacement_price: 1200 });
+    expect(missingForSubmit(f, files)).toEqual([]);
+  });
+  it("requires a price only when selling and at least one distribution mode", () => {
+    expect(missingForSubmit({ ...complete(), price_ht: null }, files)).toContain("Prix de vente HT");
+    expect(missingForSubmit({ ...complete(), sale_enabled: false, location_enabled: false }, files)).toContain("Vente ou location");
+  });
+  it("accepts an unnamed invitation without putting its internal title in the email", () => {
+    const title = invitationGameTitle("", "Édouard", "Vuillemin");
+    expect(title).toBe("Jeu à renseigner — Édouard Vuillemin");
+    expect(invitationGameName(title)).toBe("");
+    expect(invitationGameName(invitationGameTitle("Lean TPS", "Édouard", "Vuillemin"))).toBe("Lean TPS");
   });
   it("requires page url or pdf", () => {
     const f = { ...complete(), game_page_url: null };
