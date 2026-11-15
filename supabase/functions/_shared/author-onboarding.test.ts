@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   sanitizeForm, missingForSubmit, fileKindAllowed, formatCommission, buildContractPayload,
-  otpSendRefusal, otpCheckRefusal, reminderDue, authorPostalAddress, invitationGameTitle, invitationGameName, authorSirenError,
+  otpSendRefusal, otpCheckRefusal, reminderDue, authorPostalAddress, invitationGameTitle, invitationGameName, authorSirenError, distributorContractImage,
 } from "./author-onboarding";
 
 const complete = () => sanitizeForm({
@@ -13,6 +13,16 @@ const complete = () => sanitizeForm({
 const files = [{ kind: "logo" }, { kind: "photo" }];
 
 describe("author onboarding", () => {
+  it("uses the general company stamp as the distributor image even when a separate signature exists", async () => {
+    const stamp = "https://example.org/company-stamp.png";
+    const image = await distributorContractImage(async (key) => key === "company_stamp_url" ? stamp : "settings/old-signature.png", async () => "old-signature");
+    const payload = buildContractPayload({ reference: "TEST", form: complete(), commissionRate: 0.15, date: new Date(), distributorSignature: image });
+    expect(payload.SIGNATURE_DISTRIBUTEUR).toBe(stamp);
+  });
+  it("keeps the stored signature fallback when the company stamp is absent", async () => {
+    const image = await distributorContractImage(async (key) => key === "company_stamp_url" ? null : "settings/signature.png", async (path) => path === "settings/signature.png" ? "data:image/png;base64,c2ln" : "");
+    expect(image).toBe("data:image/png;base64,c2ln");
+  });
   it("drops unknown fields and unsafe urls", () => {
     const f = sanitizeForm({ evil: "x", video_url: "javascript:alert(1)", price_ht: "1 200,5" });
     expect("evil" in f).toBe(false);

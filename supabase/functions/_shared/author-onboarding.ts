@@ -187,6 +187,15 @@ export function frDateParis(d: Date): string {
   return new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", day: "2-digit", month: "2-digit", year: "numeric" }).format(d);
 }
 
+export async function distributorContractImage(
+  readSetting: (key: string) => Promise<string | null>,
+  readStoredImage: (path: string | null) => Promise<string>,
+): Promise<string> {
+  const stamp = (await readSetting("company_stamp_url"))?.trim();
+  if (stamp) return stamp;
+  return readStoredImage(await readSetting("distributor_signature_path"));
+}
+
 /** Variables Liquid du modèle PDFMonkey du contrat de distribution. */
 export function buildContractPayload(opts: {
   reference: string;
