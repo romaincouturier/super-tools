@@ -1,5 +1,9 @@
 # Roadmap
 
+## Retours formulaire auteur (2026-11-15)
+- [x] Retours du 10 novembre complétés : nom du jeu facultatif à l'invitation, brouillon en tutoiement, commission visible, code postal/ville, SIREN obligatoire, email repris de l'invitation et verrouillé, vente/location, durée 30 jours renouvelables et aides. La fonction author-onboarding est déployée ; aucune migration, aucun email, contrat signé ou droit modifié.
+- [x] 15 tests et 103 contrôles réussis, compilation OK ; formulaire testé en simulation sur ordinateur/téléphone, aide et modes de distribution visibles, formulaire incomplet sans confirmation ni soumission. Pas de soumission réelle ni de génération PDF vérifiée ; écrans à publier. AGENTS.md au budget maximum : règle structurelle non ajoutée pour préserver les règles existantes.
+
 ## Visibilité audit blanc et sources de veille (2026-11-15)
 - [x] Panne de visibilité : le tableau de bord ne montait plus DailyTodoPanel ; rétabli. Audit sorti du sous-menu Formations, maintenant accessible directement. Nettoyage quotidien exclut les catégories persistantes ; réconciliation ferme anciens doublons/résolus sans effacer l’historique.
 - [x] Vérifié connecté en Romain, après rechargement et sur mobile : 16 écarts distincts et les 32 sources proposées, avec nom/URL/pertinence/consignes et boutons À abonner / Écarter. RPC atomique et journalisée pour to_subscribe puis Fait → followed ; transitions testées sur Postgres isolé, aucune source réelle validée à sa place.

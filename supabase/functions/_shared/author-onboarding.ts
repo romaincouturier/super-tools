@@ -32,6 +32,8 @@ type FieldType = "text" | "longtext" | "email" | "url" | "number" | "int" | "boo
 export const FORM_FIELDS: Record<string, { type: FieldType; max?: number }> = {
   legal_name: { type: "text", max: 200 },
   postal_address: { type: "longtext", max: 500 },
+  postal_code: { type: "text", max: 20 },
+  city: { type: "text", max: 150 },
   legal_rep_first_name: { type: "text", max: 100 },
   legal_rep_last_name: { type: "text", max: 100 },
   siren: { type: "text", max: 20 },
@@ -49,6 +51,7 @@ export const FORM_FIELDS: Record<string, { type: FieldType; max?: number }> = {
   shipping_fee: { type: "number" },
   shipping_delay: { type: "text", max: 100 },
   location_enabled: { type: "bool" },
+  sale_enabled: { type: "bool" },
   location_duration_days: { type: "int" },
   location_price_ht: { type: "number" },
   location_late_fee_month: { type: "number" },
@@ -68,6 +71,7 @@ export function sanitizeForm(input: unknown): FormData {
   const out: FormData = {};
   for (const [key, def] of Object.entries(FORM_FIELDS)) {
     const raw = src[key];
+    if (key === "sale_enabled" && raw === undefined) { out[key] = true; continue; }
     if (raw === undefined || raw === null || raw === "") { out[key] = def.type === "bool" ? false : null; continue; }
     if (def.type === "bool") { out[key] = raw === true || raw === "true"; continue; }
     if (def.type === "number" || def.type === "int") {
@@ -81,19 +85,34 @@ export function sanitizeForm(input: unknown): FormData {
     if (def.type === "email" && !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(s)) { out[key] = null; continue; }
     out[key] = s || null;
   }
+  if (out.location_enabled) out.location_duration_days = 30;
   return out;
+}
+
+export function authorPostalAddress(form: FormData): string {
+  return [form.postal_address, [form.postal_code, form.city].filter(Boolean).join(" ")].filter(Boolean).join("\n");
+}
+
+export function invitationGameTitle(name: string, first: string, last: string): string {
+  return name.trim() || `Jeu à renseigner — ${first} ${last}`;
+}
+
+export function invitationGameName(title: string): string {
+  return title.startsWith("Jeu à renseigner — ") ? "" : title;
 }
 
 const REQUIRED: [string, string][] = [
   ["legal_name", "Raison sociale"],
   ["postal_address", "Adresse postale"],
+  ["postal_code", "Code postal"],
+  ["city", "Ville"],
+  ["siren", "SIREN"],
   ["legal_rep_first_name", "Prénom du représentant légal"],
   ["legal_rep_last_name", "Nom du représentant légal"],
   ["phone", "Téléphone"],
   ["game_name", "Nom du jeu"],
   ["author_email", "Email de l'auteur"],
   ["pitch", "Pitch"],
-  ["price_ht", "Prix de vente HT"],
   ["long_description", "Description longue"],
   ["credits", "Mentions des auteurs et crédits"],
   ["weight_g", "Poids"],
@@ -102,7 +121,6 @@ const REQUIRED: [string, string][] = [
   ["shipping_delay", "Délai d'expédition"],
 ];
 const REQUIRED_LOCATION: [string, string][] = [
-  ["location_duration_days", "Durée de location"],
   ["location_price_ht", "Tarif de location HT"],
   ["location_late_fee_month", "Pénalité de retard par mois"],
   ["location_replacement_price", "Prix de remplacement"],
@@ -110,7 +128,10 @@ const REQUIRED_LOCATION: [string, string][] = [
 
 /** Liste des libellés manquants pour la soumission (vide = soumissible). */
 export function missingForSubmit(form: FormData, files: { kind: string }[]): string[] {
-  const missing = REQUIRED.filter(([k]) => form[k] === null || form[k] === undefined).map(([, l]) => l);
+  const absent = (k: string) => form[k] === null || form[k] === undefined || form[k] === "";
+  const missing = REQUIRED.filter(([k]) => absent(k)).map(([, l]) => l);
+  if (form.sale_enabled !== false && absent("price_ht")) missing.push("Prix de vente HT");
+  if (form.sale_enabled === false && !form.location_enabled) missing.push("Vente ou location");
   if (form.location_enabled) {
     missing.push(...REQUIRED_LOCATION.filter(([k]) => form[k] === null || form[k] === undefined).map(([, l]) => l));
   }
@@ -159,12 +180,12 @@ export function buildContractPayload(opts: {
     CONTRAT_REFERENCE: opts.reference,
     SOCIETE: f.legal_name ?? "",
     SIREN: f.siren ?? "",
-    ADRESSE: f.postal_address ?? "",
+    ADRESSE: authorPostalAddress(f),
     NOM_REPRESENTANT: [f.legal_rep_first_name, f.legal_rep_last_name].filter(Boolean).join(" "),
     NOM_JEU: f.game_name ?? "",
     COMMISSION: formatCommission(opts.commissionRate),
     LOCATION_ACTIVE: loc,
-    LOCATION_DUREE: loc && f.location_duration_days ? `${f.location_duration_days} jours` : "",
+    LOCATION_DUREE: loc ? "30 jours renouvelables" : "",
     LOCATION_TARIF_HT: loc ? eur(f.location_price_ht as number) : "",
     LOCATION_TARIF_RETARD: loc ? eur(f.location_late_fee_month as number) : "",
     LOCATION_PRIX_REMPLACEMENT: loc ? eur(f.location_replacement_price as number) : "",

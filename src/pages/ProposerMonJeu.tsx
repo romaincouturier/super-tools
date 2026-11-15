@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { CheckCircle2, FileText, Trash2, Upload } from "lucide-react";
+import { CheckCircle2, FileText, Info, Trash2, Upload } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,19 +20,20 @@ type F = { key: string; label: string; long?: boolean; type?: string; hint?: str
 
 const SELLER: F[] = [
   { key: "legal_name", label: "Raison sociale", hint: "Apparaît dans le contrat" },
-  { key: "postal_address", label: "Adresse postale", long: true },
+  { key: "postal_address", label: "Adresse (numéro et rue)", hint: "Adresse de ta société pour le contrat." },
+  { key: "postal_code", label: "Code postal", hint: "Code postal de ta société." },
+  { key: "city", label: "Ville", hint: "Ville de ta société." },
   { key: "legal_rep_first_name", label: "Prénom du représentant légal" },
   { key: "legal_rep_last_name", label: "Nom du représentant légal" },
-  { key: "siren", label: "SIREN", optional: true },
+  { key: "siren", label: "SIREN", hint: "Numéro d’identification de ta société (9 chiffres en France)." },
   { key: "phone", label: "Téléphone", type: "tel" },
 ];
 const GAME: F[] = [
   { key: "game_name", label: "Nom du jeu tel qu'affiché en ligne" },
   { key: "author_email", label: "Email de l'auteur", type: "email" },
   { key: "pitch", label: "Pitch", long: true },
-  { key: "price_ht", label: "Prix de vente HT (€)", type: "number" },
-  { key: "game_page_url", label: "URL de la page du jeu", type: "url", optional: true, hint: "Ou ajoutez un PDF plus bas" },
-  { key: "video_url", label: "URL de la vidéo de présentation", type: "url", optional: true },
+  { key: "game_page_url", label: "URL de la page du jeu", type: "url", optional: true, hint: "Lien vers la présentation du jeu ; tu peux aussi joindre un PDF." },
+  { key: "video_url", label: "URL de la vidéo de présentation", type: "url", optional: true, hint: "Une vidéo qui présente le jeu est un vrai plus pour sa vente." },
   { key: "long_description", label: "Description longue (mécanique, exemple d'un tour…)", long: true },
   { key: "credits", label: "Mentions des auteurs et crédits", long: true },
 ];
@@ -42,24 +44,42 @@ const LOGISTICS: F[] = [
   { key: "shipping_delay", label: "Délai d'expédition", hint: "Ex. 3 jours ouvrés" },
 ];
 const LOCATION: F[] = [
-  { key: "location_duration_days", label: "Durée de location (jours)", type: "number" },
   { key: "location_price_ht", label: "Tarif de location HT (€)", type: "number" },
-  { key: "location_late_fee_month", label: "Pénalité de retard par mois (€)", type: "number" },
-  { key: "location_replacement_price", label: "Prix de remplacement (€)", type: "number" },
+  { key: "location_late_fee_month", label: "Pénalité de retard par mois (€)", type: "number", hint: "Montant facturé par mois de retard si le jeu n’est pas rendu à temps." },
+  { key: "location_replacement_price", label: "Prix de remplacement (€)", type: "number", hint: "Montant dû si le jeu est perdu ou ne peut plus être utilisé." },
 ];
 const EXTRA: F[] = [
-  { key: "testimonials", label: "Témoignages de joueurs", long: true, optional: true },
-  { key: "other_info", label: "Autres infos pour la fiche produit", long: true, optional: true },
+  { key: "testimonials", label: "Témoignages de joueurs", long: true, optional: true, hint: "Ajoute des retours que tu es autorisé à publier pour donner envie de jouer." },
+  { key: "other_info", label: "Autres infos pour la fiche produit", long: true, optional: true, hint: "Précisions utiles : public, nombre de joueurs, durée, matériel, conseils." },
 ];
+
+const HELP: Record<string, string> = {
+  legal_name: "Nom officiel de ta société qui figurera dans le contrat.",
+  legal_rep_first_name: "Prénom de la personne autorisée à signer le contrat.",
+  legal_rep_last_name: "Nom de la personne autorisée à signer le contrat.",
+  phone: "Numéro auquel te joindre pour la distribution du jeu.",
+  game_name: "Nom que les clients verront dans la boutique.",
+  author_email: "Adresse reprise de ton invitation ; contacte SuperTilt pour la corriger.",
+  pitch: "Présente le jeu en quelques phrases : objectif, public et intérêt.",
+  long_description: "Décris la mécanique du jeu et un exemple de tour.",
+  credits: "Noms des auteurs, illustrateurs et autres personnes à créditer.",
+  weight_g: "Poids du jeu emballé, en grammes, pour calculer le transport.",
+  price_ht: "Prix de vente du jeu avant TVA, en euros.",
+  location_price_ht: "Tarif hors taxe pour une période de 30 jours renouvelables.",
+};
+
+function Help({ label, text }: { label: string; text: string }) {
+  return <Popover><PopoverTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label={`Information : ${label}`}><Info className="h-4 w-4" /></Button></PopoverTrigger><PopoverContent className="text-sm" onClick={(e) => e.stopPropagation()}>{text}</PopoverContent></Popover>;
+}
 
 function Field({ f, form, set, disabled }: { f: F; form: Form; set: (k: string, v: string) => void; disabled: boolean }) {
   const v = form[f.key] === null || form[f.key] === undefined ? "" : String(form[f.key]);
   return (
     <div className={f.long ? "sm:col-span-2" : ""}>
-      <Label htmlFor={f.key}>{f.label}{f.optional ? <span className="text-muted-foreground font-normal"> (facultatif)</span> : " *"}</Label>
+      <div className="flex items-center gap-1"><Label htmlFor={f.key}>{f.label}{f.optional ? <span className="text-muted-foreground font-normal"> (facultatif)</span> : " *"}</Label><Help label={f.label} text={f.hint ?? HELP[f.key] ?? `Indique ${f.label.toLowerCase()} pour préparer la distribution de ton jeu.`} /></div>
       {f.long
-        ? <Textarea id={f.key} rows={4} value={v} disabled={disabled} onChange={(e) => set(f.key, e.target.value)} />
-        : <Input id={f.key} type={f.type === "number" ? "text" : f.type ?? "text"} inputMode={f.type === "number" ? "decimal" : undefined} value={v} disabled={disabled} onChange={(e) => set(f.key, e.target.value)} />}
+        ? <Textarea id={f.key} rows={4} value={v} disabled={disabled || f.key === "author_email"} onChange={(e) => set(f.key, e.target.value)} />
+        : <Input id={f.key} type={f.type === "number" ? "text" : f.type ?? "text"} inputMode={f.type === "number" ? "decimal" : undefined} value={v} disabled={disabled || f.key === "author_email"} onChange={(e) => set(f.key, e.target.value)} />}
       {f.hint && <p className="text-xs text-muted-foreground mt-1">{f.hint}</p>}
     </div>
   );
@@ -81,7 +101,7 @@ function Files({ kind, label, files, token, onChange, disabled, multiple, accept
   };
   return (
     <div className="sm:col-span-2 space-y-2">
-      <Label>{label}</Label>
+      <div className="flex items-center gap-1"><Label>{label}</Label><Help label={label} text={kind === "pdf" ? "Présentation PDF du jeu si tu n’as pas de page web ; 3 fichiers maximum, 10 Mo chacun." : kind === "logo" ? "Logo du jeu, en PNG, JPG ou WebP ; 10 Mo maximum." : "Photos du jeu et de son matériel pour illustrer sa fiche ; 20 maximum, 10 Mo chacune."} /></div>
       <ul className="space-y-1">
         {mine.map((f) => (
           <li key={f.id} className="flex items-center justify-between text-sm border rounded px-2 py-1">
@@ -118,7 +138,7 @@ function SignStep({ token, data, onSigned, onEdit }: { token: string; data: Publ
     finally { setBusy(false); }
   };
   const sign = async () => {
-    if (isEmpty()) { toast({ title: "Dessinez votre signature" }); return; }
+    if (isEmpty()) { toast({ title: "Dessine ta signature" }); return; }
     setBusy(true);
     trackEvent("submit_button_clicked");
     try {
@@ -139,7 +159,7 @@ function SignStep({ token, data, onSigned, onEdit }: { token: string; data: Publ
           <Button variant="outline" asChild><a href={data.contract_pdf_url} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent("pdf_consulted")}><FileText className="h-4 w-4 mr-2" />Lire le contrat (PDF)</a></Button>
         )}
         <div className="space-y-2">
-          <p className="text-sm">1. Recevez un code de vérification à l'adresse {data.contract?.recipient_email /* demo-safe: page publique de l'auteur, sa propre adresse */}.</p>
+          <p className="text-sm">1. Reçois un code de vérification à l'adresse {data.contract?.recipient_email /* demo-safe: page publique de l'auteur, sa propre adresse */}.</p>
           <div className="flex gap-2 items-center flex-wrap">
             <Button variant="secondary" onClick={sendCode} disabled={busy}>{sentTo ? "Renvoyer un code" : "Recevoir mon code"}</Button>
             {sentTo && <span className="text-sm text-muted-foreground">Code envoyé à {sentTo}, valable 10 minutes.</span>}
@@ -148,7 +168,7 @@ function SignStep({ token, data, onSigned, onEdit }: { token: string; data: Publ
         </div>
         <div><Label>2. Nom et prénom du signataire</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
         <div>
-          <Label>3. Votre signature</Label>
+          <Label>3. Ta signature</Label>
           <div className="border rounded bg-background"><canvas ref={canvasRef} className="w-full h-44 touch-none" style={{ touchAction: "none" }} /></div>
           <Button variant="ghost" size="sm" onClick={() => { clear(); trackEvent("signature_cleared"); }}>Effacer</Button>
         </div>
@@ -158,9 +178,9 @@ function SignStep({ token, data, onSigned, onEdit }: { token: string; data: Publ
         </label>
         <Button onClick={sign} disabled={busy || code.length !== 6 || !name.trim() || !consent}>{busy ? <Spinner /> : "Signer le contrat"}</Button>
         <div className="border-t pt-4 space-y-2">
-          <p className="text-sm text-muted-foreground">Une information à corriger ou à compléter ? Vous pouvez modifier vos réponses tant que le contrat n'est pas signé : un nouveau contrat sera généré. Après signature, elles ne seront plus modifiables.</p>
+          <p className="text-sm text-muted-foreground">Une information à corriger ou à compléter ? Tu peux modifier tes réponses tant que le contrat n'est pas signé : un nouveau contrat sera généré. Après signature, elles ne seront plus modifiables.</p>
           <Button variant="outline" disabled={busy} onClick={async () => {
-            if (!confirm("Modifier vos réponses ? Ce contrat sera annulé et un nouveau sera généré à la prochaine validation.")) return;
+            if (!confirm("Modifier tes réponses ? Ce contrat sera annulé et un nouveau sera généré à la prochaine validation.")) return;
             setBusy(true);
             try { await publicOnboarding.edit(token); onEdit(); }
             catch (e) { toast({ title: "Modification impossible", description: (e as Error).message, variant: "destructive" }); }
@@ -186,12 +206,13 @@ export default function ProposerMonJeu() {
   const { toast } = useToast();
 
   const load = useCallback(async () => {
-    try { const d = await publicOnboarding.get(token); setData(d); setForm(d.form); formRef.current = d.form; }
+    try { const d = await publicOnboarding.get(token); setData(d); const initial = { sale_enabled: true, location_duration_days: 30, ...d.form }; setForm(initial); formRef.current = initial; }
     catch (e) { setError((e as Error).message); }
   }, [token]);
   useEffect(() => { load(); }, [load]);
 
   const editable = data?.status === "form";
+  const downloadUrl = signedUrl ?? data?.contract_pdf_url;
   const set = (k: string, v: string | boolean) => { const next = { ...formRef.current, [k]: v }; formRef.current = next; setForm(next); dirty.current = true; };
 
   const save = useCallback(async () => {
@@ -215,10 +236,10 @@ export default function ProposerMonJeu() {
       dirty.current = false; setSavedAt(check.saved_at);
       if (check.missing.length) {
         setMissing(check.missing);
-        toast({ title: "Formulaire incomplet", description: "Complétez les éléments listés en bas du formulaire.", variant: "destructive" });
+        toast({ title: "Formulaire incomplet", description: "Complète les éléments listés en bas du formulaire.", variant: "destructive" });
         return;
       }
-      if (!confirm("Générer le contrat à partir de vos réponses ? Vous pourrez encore les modifier tant que le contrat n'est pas signé ; un nouveau contrat sera alors généré.")) return;
+      if (!confirm("Générer le contrat à partir de tes réponses ? Tu pourras encore les modifier tant que le contrat n'est pas signé ; un nouveau contrat sera alors généré.")) return;
       const r = await publicOnboarding.submit(token, formRef.current);
       dirty.current = false;
       if (r.contract_error) { toast({ title: "Formulaire envoyé", description: r.contract_error }); await load(); }
@@ -247,18 +268,19 @@ export default function ProposerMonJeu() {
           <Card><CardContent className="p-6 space-y-3 text-center">
             <CheckCircle2 className="h-10 w-10 mx-auto text-primary" />
             <p className="font-semibold">Contrat signé, merci !</p>
-            <p className="text-sm text-muted-foreground">Une copie vous a été envoyée par email. Nous préparons la fiche produit.</p>
-            {(signedUrl ?? data.contract_pdf_url) && <Button variant="outline" asChild><a href={(signedUrl ?? data.contract_pdf_url)!} target="_blank" rel="noopener noreferrer">Télécharger le contrat signé</a></Button>}
+            <p className="text-sm text-muted-foreground">Une copie t’a été envoyée par email. Nous préparons la fiche produit.</p>
+            {downloadUrl && <Button variant="outline" asChild><a href={downloadUrl} target="_blank" rel="noopener noreferrer">Télécharger le contrat signé</a></Button>}
           </CardContent></Card>
         ) : data.status === "contract" ? (
           <SignStep token={token} data={data} onSigned={setSignedUrl} onEdit={() => { setData(null); void load(); }} />
         ) : data.status === "submitted" ? (
-          <Card><CardContent className="p-6 text-center">Formulaire reçu. Le contrat est en préparation : SuperTilt revient vers vous rapidement.</CardContent></Card>
+          <Card><CardContent className="p-6 text-center">Formulaire reçu. Le contrat est en préparation : SuperTilt revient vers toi rapidement.</CardContent></Card>
         ) : (
-          <p className="text-sm text-muted-foreground">Vos réponses sont enregistrées automatiquement : vous pouvez revenir plus tard avec le même lien (valable jusqu'au {new Date(data.expires_at).toLocaleDateString("fr-FR")}). Commission SuperTilt : {data.commission}.</p>
+          <p className="text-sm text-muted-foreground">Tes réponses sont enregistrées automatiquement : tu peux revenir plus tard avec le même lien (valable jusqu’au {new Date(data.expires_at).toLocaleDateString("fr-FR")}).</p>
         )}
 
         {editable && <>
+          <div className="border-l-4 border-primary bg-primary/10 px-4 py-3"><p className="text-sm font-medium">Commission SuperTilt convenue ensemble</p><p className="text-3xl font-bold text-primary">{data.commission}</p></div>
           {section("Vendeur", SELLER)}
           <Card><CardHeader><CardTitle className="text-lg">Jeu</CardTitle></CardHeader>
             <CardContent className="grid sm:grid-cols-2 gap-4">
@@ -269,17 +291,19 @@ export default function ProposerMonJeu() {
             </CardContent>
           </Card>
           {section("Logistique", LOGISTICS)}
-          <Card><CardHeader><CardTitle className="text-lg">Location (facultatif)</CardTitle></CardHeader>
+          <Card><CardHeader><CardTitle className="text-lg">Vente et location</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <label className="flex items-center gap-2 text-sm"><Checkbox checked={!!form.location_enabled} onCheckedChange={(c) => set("location_enabled", !!c)} />Je propose aussi le jeu à la location</label>
-              {form.location_enabled && <div className="grid sm:grid-cols-2 gap-4">{LOCATION.map((f) => <Field key={f.key} f={f} form={form} set={set} disabled={false} />)}</div>}
+              <div className="flex items-center gap-2"><label className="flex items-center gap-2 text-sm"><Checkbox checked={form.sale_enabled !== false} onCheckedChange={(c) => set("sale_enabled", !!c)} />Je propose le jeu à la vente</label><Help label="Vente" text="Coche les modes de distribution convenus : vente, location ou les deux." /></div>
+              {form.sale_enabled !== false && <Field f={{ key: "price_ht", label: "Prix de vente HT (€)", type: "number" }} form={form} set={set} disabled={false} />}
+              <div className="flex items-center gap-2"><label className="flex items-center gap-2 text-sm"><Checkbox checked={!!form.location_enabled} onCheckedChange={(c) => { set("location_enabled", !!c); set("location_duration_days", "30"); }} />Je propose le jeu à la location</label><Help label="Location" text="La location est facultative. Si tu la proposes, complète ses tarifs." /></div>
+              {form.location_enabled && <><p className="text-sm font-medium">Durée de location : 30 jours renouvelables</p><div className="grid sm:grid-cols-2 gap-4">{LOCATION.map((f) => <Field key={f.key} f={f} form={form} set={set} disabled={false} />)}</div></>}
             </CardContent>
           </Card>
           {section("Informations complémentaires", EXTRA)}
           {missing.length > 0 && <Card className="border-destructive"><CardContent className="p-4 text-sm"><p className="font-medium mb-1">À compléter :</p><ul className="list-disc pl-5">{missing.map((m) => <li key={m}>{m}</li>)}</ul></CardContent></Card>}
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <span className="text-xs text-muted-foreground">{savedAt ? `Brouillon enregistré à ${new Date(savedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : ""}</span>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button variant="outline" onClick={() => { dirty.current = true; void save(); }}>Enregistrer le brouillon</Button>
               <Button onClick={submit} disabled={submitting}>{submitting ? <><Spinner /> Préparation du contrat…</> : "Soumettre et voir le contrat"}</Button>
             </div>

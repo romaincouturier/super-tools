@@ -33,7 +33,7 @@ function InviteDialog({ onClose, onDraft }: { onClose: () => void; onDraft: (d: 
     } catch (e) { toast({ title: "Invitation impossible", description: (e as Error).message, variant: "destructive" }); }
     finally { setBusy(false); }
   };
-  const ok = f.email && f.first_name && f.last_name && f.game_name && Number(f.commission.replace(",", ".")) >= 0;
+  const ok = f.email && f.first_name && f.last_name && Number(f.commission.replace(",", ".")) >= 0;
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent>
@@ -44,7 +44,7 @@ function InviteDialog({ onClose, onDraft }: { onClose: () => void; onDraft: (d: 
           <div className="col-span-2"><Label>Email</Label><Input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></div>
           <div><Label>Prénom</Label><Input value={f.first_name} onChange={(e) => setF({ ...f, first_name: e.target.value })} /></div>
           <div><Label>Nom</Label><Input value={f.last_name} onChange={(e) => setF({ ...f, last_name: e.target.value })} /></div>
-          <div><Label>Nom du jeu</Label><Input value={f.game_name} onChange={(e) => setF({ ...f, game_name: e.target.value })} /></div>
+          <div><Label>Nom du jeu (facultatif)</Label><Input value={f.game_name} onChange={(e) => setF({ ...f, game_name: e.target.value })} /></div>
           <div><Label>Commission (%)</Label><Input inputMode="decimal" value={f.commission} onChange={(e) => setF({ ...f, commission: e.target.value })} /></div>
         </div>
         <DialogFooter>
@@ -200,7 +200,7 @@ export default function AuthorOnboardingPanel() {
           </TableBody>
         </Table>
       </div>
-      {inviting && <InviteDialog onClose={() => setInviting(false)} onDraft={(d) => { setInviting(false); setDraft({ d, id: d.invitation_id! }); }} />}
+      {inviting && <InviteDialog onClose={() => setInviting(false)} onDraft={(d) => { setInviting(false); if (d.invitation_id) setDraft({ d, id: d.invitation_id }); }} />}
       {draft && <DraftDialog draft={draft.d} invitationId={draft.id} onClose={() => setDraft(null)} />}
       {signing && <SignatureDialog onClose={() => setSigning(false)} />}
     </div>

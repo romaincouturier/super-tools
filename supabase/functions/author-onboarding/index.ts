@@ -22,7 +22,7 @@ import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
 import { buildJourneyEvents, LEGAL_BLOCK } from "../_shared/signature-helpers.ts";
 import {
   INVITATION_DAYS, OTP_TTL_MS, sanitizeForm, missingForSubmit, fileKindAllowed, formatCommission,
-  buildContractPayload, otpSendRefusal, otpCheckRefusal, frDateParis, type FormData as AuthorForm,
+  buildContractPayload, otpSendRefusal, otpCheckRefusal, frDateParis, authorPostalAddress, invitationGameTitle, invitationGameName, type FormData as AuthorForm,
 } from "../_shared/author-onboarding.ts";
 
 const BUCKET = "author-onboarding";
@@ -135,7 +135,7 @@ function publicView(inv: Db, resp: Db, files: Db[], contract: Db | null) {
     game_name: resp?.data?.game_name,
     commission: formatCommission(Number(inv.commission_rate)),
     expires_at: inv.expires_at,
-    form: resp?.data ?? {},
+    form: { ...resp?.data, author_email: inv.recipient_email },
     files,
     contract: contract ? {
       reference: contract.contrat_reference, status: contract.status, signed_at: contract.signed_at,
@@ -205,7 +205,7 @@ serve(async (req) => {
           ]);
           const { data: created } = await db.from("author_onboarding_responses").insert({
             invitation_id: inv.id,
-            data: sanitizeForm({ game_name: game?.title, author_email: author?.email, legal_rep_first_name: author?.first_name, legal_rep_last_name: author?.last_name }),
+            data: sanitizeForm({ game_name: invitationGameName(game?.title ?? ""), author_email: inv.recipient_email, legal_rep_first_name: author?.first_name, legal_rep_last_name: author?.last_name }),
           }).select("*").single();
           resp = created;
         }
@@ -218,7 +218,7 @@ serve(async (req) => {
 
       if (action === "save" || action === "submit") {
         if (inv.submitted_at) return fail("Formulaire déjà soumis");
-        const data = sanitizeForm(body.form);
+        const data = sanitizeForm({ ...body.form, author_email: inv.recipient_email });
         const now = new Date().toISOString();
         await db.from("author_onboarding_responses").update({ data, updated_at: now, version: (resp?.version ?? 0) + 1 }).eq("invitation_id", inv.id);
         const { data: author } = await db.from("game_authors").select("onboarding_status").eq("id", inv.author_id).single();
@@ -324,7 +324,7 @@ serve(async (req) => {
       const last = String(body.last_name || "").trim().slice(0, 100);
       const gameName = String(body.game_name || "").trim().slice(0, 150);
       const rate = Number(body.commission_rate ?? 0.15);
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !first || !last || !gameName) return fail("Email, prénom, nom et jeu requis");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !first || !last) return fail("Email, prénom et nom requis");
       if (!(rate >= 0 && rate <= 1)) return fail("Commission invalide");
 
       const { data: existing } = await db.from("game_authors").select("id").ilike("email", email).limit(1);
@@ -339,7 +339,7 @@ serve(async (req) => {
         authorId = a.id;
       }
       const { data: g, error: gErr } = await db.from("games").insert({
-        title: gameName, author_id: authorId, status: "inactive", onboarding_status: "invited", commission_type: "percentage", commission_rate: rate,
+        title: invitationGameTitle(gameName, first, last), author_id: authorId, status: "inactive", onboarding_status: "invited", commission_type: "percentage", commission_rate: rate,
       }).select("id").single();
       if (gErr) throw gErr;
       const token = randomToken();
@@ -430,21 +430,24 @@ serve(async (req) => {
 async function invitationDraft(db: Db, invitationId: string, link: string) {
   const { data: inv } = await db.from("author_onboarding_invitations").select("*, game_authors(first_name), games(title)").eq("id", invitationId).single();
   const d = EDITABLE_EMAIL_DEFAULTS.author_invitation;
-  const tpl = await loadEditableTemplate(db, "author_invitation").catch(() => null);
+  const tpl = await loadEditableTemplate(db, "author_invitation", false).catch(() => null);
+  const gameName = invitationGameName(inv.games?.title ?? "");
   const vars: Record<string, string> = {
     first_name: inv.game_authors?.first_name ?? "",
-    game_name: inv.games?.title ?? "",
+    game_name: gameName,
+    game_mention: gameName ? `« ${gameName} »` : "ton jeu",
     commission: formatCommission(Number(inv.commission_rate)),
     expires_at: frDateParis(new Date(inv.expires_at)),
   };
   const fill = (s: string) => s.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars ? vars[k] : m));
-  return { subject: fill(tpl?.subject ?? d.subject.vous), content: fill(tpl?.html_content ?? d.content.vous), link, to: inv.recipient_email };
+  const oldDefault = tpl?.html_content.includes("il vous suffit de remplir ce formulaire");
+  return { subject: fill(!oldDefault && tpl ? tpl.subject : d.subject.tu), content: fill(!oldDefault && tpl ? tpl.html_content : d.content.tu), link, to: inv.recipient_email };
 }
 
 async function recopyToRecords(db: Db, inv: Db, f: AuthorForm, files: Db[]) {
   const rep = [f.legal_rep_first_name, f.legal_rep_last_name].filter(Boolean).join(" ");
   await db.from("game_authors").update({
-    legal_name: f.legal_name, company: f.legal_name, postal_address: f.postal_address, legal_rep_name: rep,
+    legal_name: f.legal_name, company: f.legal_name, postal_address: authorPostalAddress(f), legal_rep_name: rep,
     siren: f.siren, phone: f.phone,
   }).eq("id", inv.author_id);
   const logo = files.find((x) => x.kind === "logo");
@@ -456,12 +459,12 @@ async function recopyToRecords(db: Db, inv: Db, f: AuthorForm, files: Db[]) {
   const loc = !!f.location_enabled;
   await db.from("games").update({
     title: f.game_name, description: f.long_description, pitch: f.pitch, credits: f.credits, video_url: f.video_url,
-    proposed_price_ht: f.price_ht, weight_g: f.weight_g, package_dimensions: f.package_dimensions,
+    proposed_price_ht: f.sale_enabled === false ? null : f.price_ht, weight_g: f.weight_g, package_dimensions: f.package_dimensions,
     shipping_fee: f.shipping_fee, shipping_delay: f.shipping_delay, logo_url: logoPath,
     secondary_author_email: f.author_email,
     location_enabled: loc,
     ...(loc ? {
-      location_duree_jours: f.location_duration_days, location_duree_libelle: `${f.location_duration_days} jours`,
+      location_duree_jours: 30, location_duree_libelle: "30 jours renouvelables",
       location_tarif_ht: f.location_price_ht, location_tarif_retard_mois: f.location_late_fee_month,
       location_prix_remplacement: f.location_replacement_price,
     } : {}),

@@ -568,19 +568,19 @@ Merci et à bientôt !`),
     name: "Invitation auteur de jeu (dropshipping)",
     audience: "client",
     sendingInfo: "📤 Préparé à l'invitation d'un auteur (Dropshipping > Auteurs), relu puis envoyé manuellement",
-    subject: same("Proposer « {{game_name}} » sur la boutique SuperTilt"),
+    subject: same("Proposer ton jeu sur la boutique SuperTilt"),
     content: same(`Bonjour {{first_name}},
 
-Merci pour notre échange ! Pour distribuer « {{game_name}} » sur la boutique supertilt.fr, il vous suffit de remplir ce formulaire. Vous pouvez l'enregistrer et y revenir plus tard.
+Merci pour notre échange ! Pour distribuer {{game_mention}} sur la boutique supertilt.fr, il te suffit de remplir ce formulaire. Tu peux l'enregistrer et y revenir plus tard.
 
 {{invitation_button}}
 
-À la fin du formulaire, vous pourrez relire et signer en ligne le contrat de distribution (commission SuperTilt : {{commission}}).
+La commission SuperTilt convenue ensemble est de **{{commission}}**. À la fin du formulaire, tu pourras relire et signer en ligne le contrat de distribution.
 
 Le lien reste valable jusqu'au {{expires_at}}.
 
 À très vite !`),
-    variables: ["first_name", "game_name", "commission", "expires_at", "invitation_button"],
+    variables: ["first_name", "game_name", "game_mention", "commission", "expires_at", "invitation_button"],
   },
 
   author_signature_otp: {
