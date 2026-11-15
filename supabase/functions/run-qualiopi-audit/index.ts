@@ -8,7 +8,7 @@ import { sendEmail } from '../_shared/resend.ts';
 import { getBccList, getSenderEmail } from '../_shared/email-settings.ts';
 import { getSigniticSignature } from '../_shared/signitic.ts';
 import { renderCatalogEmail, ctaButton } from '../_shared/editable-email.ts';
-import { verifyAuth } from '../_shared/auth.ts';
+import { verifyAuth } from '../_shared/supabase-client.ts';
 
 /**
  * Audit blanc automatique, chaque nuit.
@@ -19,12 +19,11 @@ import { verifyAuth } from '../_shared/auth.ts';
  * contrôles sur les données, figer les faits du jour, et inscrire chaque
  * constat en défaut dans les actions quotidiennes.
  *
- * L'index unique de daily_actions porte sur (user, date, catégorie, entité) :
- * rejouer la tâche le même jour ne duplique donc aucune action, et un constat
- * corrigé cesse d'apparaître le lendemain.
+ * La réconciliation conserve une action active par écart, sans dépendre de
+ * sa date initiale, et ferme les écarts corrigés ainsi que les doublons.
  */
 
-const VERSION = "run-qualiopi-audit@2026-11-05.1";
+const VERSION = "run-qualiopi-audit@2026-11-15.1";
 const SAMPLE_SIZE = 5;
 const SUBMITTED_SURVEY_STATES = ["complete", "valide_formateur"];
 
