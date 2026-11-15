@@ -484,6 +484,13 @@
       "when": 1794766651112,
       "tag": "0068_daily_quality_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1794781736585,
+      "tag": "0069_persistent_game_quote_defaults",
+      "breakpoints": true
     }
   ]
 }

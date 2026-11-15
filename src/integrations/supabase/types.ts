@@ -4344,6 +4344,27 @@ export type Database = {
           },
         ]
       }
+      game_quote_defaults: {
+        Row: {
+          amount: number
+          key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          amount: number
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          amount?: number
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       game_restock_action_files: {
         Row: {
           action_id: string
@@ -15869,6 +15890,10 @@ export type Database = {
         Returns: undefined
       }
       revoke_other_sessions: { Args: never; Returns: number }
+      save_game_quote_default: {
+        Args: { p_amount: number; p_key: string; p_only_missing?: boolean }
+        Returns: undefined
+      }
       save_social_content_group: {
         Args: {
           p_details?: Json
