@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { Plus, Trash2, Loader2, Send, FileText, ExternalLink, Download, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from '@/components/ui/spinner';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -571,7 +572,7 @@ function GameDevisHistory() {
               setSendError('');
               try { await sendDraft.mutateAsync(selectedOrder.id); setSelected(null); toast({ title: 'Devis envoyé' }); }
               catch (error) { setSendError(error instanceof Error ? error.message : 'Envoi non confirmé.'); }
-            }}>{sendDraft.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}Confirmer l’envoi</Button>
+            }}>{sendDraft.isPending ? <Spinner className="mr-2" /> : <Send className="mr-2 h-4 w-4" />}Confirmer l’envoi</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
