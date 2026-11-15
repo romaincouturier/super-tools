@@ -303,7 +303,7 @@ export default function ProposerMonJeu() {
           {missing.length > 0 && <Card className="border-destructive"><CardContent className="p-4 text-sm"><p className="font-medium mb-1">À compléter :</p><ul className="list-disc pl-5">{missing.map((m) => <li key={m}>{m}</li>)}</ul></CardContent></Card>}
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <span className="text-xs text-muted-foreground">{savedAt ? `Brouillon enregistré à ${new Date(savedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : ""}</span>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button variant="outline" onClick={() => { dirty.current = true; void save(); }}>Enregistrer le brouillon</Button>
               <Button onClick={submit} disabled={submitting}>{submitting ? <><Spinner /> Préparation du contrat…</> : "Soumettre et voir le contrat"}</Button>
             </div>
