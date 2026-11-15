@@ -1,9 +1,10 @@
 # Roadmap
 
 ## Reprise des brouillons devis jeux (2026-11-15)
-- [ ] Vérifier catalogue ECHO, outils MCP et absence de Pennylane dans le circuit jeux.
-- [ ] Ouvrir les brouillons depuis la liste et confirmer manuellement leur envoi, sans déclencher de commande.
-- [ ] Tester les garde-fous et le parcours ; aucun email réel sans demande dédiée.
+- [x] Circuit jeux sans Pennylane ; seul outil historique create_quote appelle Pennylane. ECHO existe mais prix et port absents, aucun tarif optionnel ; aucun brouillon réel créé. La cause de l’appel MCP externe n’est pas certifiée sans son retour exact.
+- [x] Liste : Relire et envoyer, détail et lien quote=, confirmation explicite ; PDF/recipient relus côté serveur, idempotence fournisseur, statut Envoyé seulement après succès, éléments de commande laissés inactifs. generate-game-devis déployée ; droits dropshipping contrôlés, aucune donnée réelle ni email modifié.
+- [x] 10 tests, 103 règles, compilation OK ; vraie liste relue en session Romain, brouillon deux ECHO belge et confirmation vérifiés avec écritures/envoi simulés. Manifeste 18 outils extrait ; republish requis, appel externe et réception réelle non vérifiés. AGENTS.md au budget maximum : règle structurelle non enregistrée.
+- [ ] Publier front/MCP puis vérifier l’appel externe ; pour ECHO, fournir prix HT et port Belgique avant toute création réelle.
 
 ## Revue Sentry hebdomadaire (2026-11-15)
 - [ ] Identifier les sept issues exactes et leurs occurrences du 7 au 14 novembre : connexion MCP acceptée mais aucun outil Sentry exposé ; journaux runtime vides et logs upload/relais indisponibles. Nécessite la liste/export du rapport Sentry.
