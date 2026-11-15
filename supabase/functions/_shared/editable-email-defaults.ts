@@ -17,6 +17,33 @@ export interface EditableEmailDefault {
 const same = (s: string) => ({ tu: s, vous: s });
 
 export const EDITABLE_EMAIL_DEFAULTS: Record<string, EditableEmailDefault> = {
+  qualiopi_audit_summary: {
+    name: 'Audit blanc Qualiopi — bilan nocturne',
+    audience: 'internal',
+    sendingInfo: 'Après chaque audit nocturne, au responsable configuré. Aucun envoi si le bilan est inchangé depuis le dernier email réussi.',
+    subject: same('Audit blanc : {{issues}} écarts, {{added}} nouveaux, {{resolved}} résolus'),
+    content: same(`Audit blanc Qualiopi
+
+{{conforme}} indicateurs conformes ; {{a_verifier}} à vérifier / à risque ; {{non_conformes}} non conformes ({{mineure}} mineurs, {{majeure}} majeurs).
+
+Contrôle automatique : les questions sans réponse empêchent de conclure à la conformité.
+
+Nouveaux écarts ({{added}})
+{{added_list}}
+
+Écarts résolus ({{resolved}})
+{{resolved_list}}
+
+Écarts mis à jour ({{updated}})
+{{updated_list}}
+
+Questions ouvertes à l'auditeur ({{questions_count}})
+{{questions_list}}
+
+{{audit_button}}
+{{signature}}`),
+    variables: ['issues', 'conforme', 'a_verifier', 'non_conformes', 'mineure', 'majeure', 'added', 'resolved', 'updated', 'added_list', 'resolved_list', 'updated_list', 'questions_count', 'questions_list', 'audit_button', 'signature'],
+  },
   elearning_erratum: {
     name: "Erratum lien e-learning",
     audience: "client",

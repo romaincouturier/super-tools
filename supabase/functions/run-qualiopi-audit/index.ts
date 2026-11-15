@@ -5,8 +5,9 @@ import { hasManagedCronCredential, isCronOrServiceRole } from "../_shared/cron-a
 import { buildFacts, automaticIssues, type RawAuditData } from "../_shared/qualiopi-checks.ts";
 import { auditChanges, auditMailSummary, escapeAuditHtml } from '../_shared/qualiopi-summary.ts';
 import { sendEmail } from '../_shared/resend.ts';
-import { getBccList } from '../_shared/email-settings.ts';
+import { getBccList, getSenderEmail } from '../_shared/email-settings.ts';
 import { getSigniticSignature } from '../_shared/signitic.ts';
+import { renderCatalogEmail, ctaButton } from '../_shared/editable-email.ts';
 
 /**
  * Audit blanc automatique, chaque nuit.
@@ -152,7 +153,7 @@ serve(async (req) => {
     const previousRead = await supabase.from('audit_runs').select('findings, facts, summary_email_sent_at')
       .like('notes', 'Passage automatique%').order('started_at', { ascending: false }).limit(1).maybeSingle();
     if (previousRead.error) throw previousRead.error;
-    const sentRead = await supabase.from('audit_runs').select('id').not('summary_email_sent_at', 'is', null).limit(1);
+    const sentRead = await supabase.from('audit_runs').select('id, findings, facts').not('summary_email_sent_at', 'is', null).order('summary_email_sent_at', { ascending: false }).limit(1).maybeSingle();
     if (sentRead.error) throw sentRead.error;
     const { data: run, error: runError } = await supabase.from("audit_runs").insert({
       label: `Contrôle automatique du ${new Date().toLocaleDateString("fr-FR", { timeZone: 'Europe/Paris' })}`,
@@ -166,8 +167,8 @@ serve(async (req) => {
 
     // La trace du passage est la preuve attendue au titre de l'audit interne :
     // la perdre en silence viderait la tâche de son objet.
-    if (runError) {
-      return createErrorResponse(`Enregistrement du passage impossible : ${runError.message}`, 500);
+    if (runError || !run) {
+      return createErrorResponse(`Enregistrement du passage impossible : ${runError?.message ?? 'aucun passage retourné'}`, 500);
     }
 
     // Les constats partent chez les administrateurs : ce sont eux qui portent
@@ -181,7 +182,8 @@ serve(async (req) => {
     if (adminsError) throw adminsError;
     const recipients = (admins ?? []).map((a) => a.user_id).filter(Boolean) as string[];
 
-    const owner = await supabase.from('profiles').select('user_id').eq('email', 'romain@supertilt.fr').maybeSingle();
+    const recipientEmail = await getSenderEmail();
+    const owner = await supabase.from('profiles').select('user_id').eq('email', recipientEmail).maybeSingle();
     if (owner.error) throw owner.error;
     if (owner.data?.user_id) recipients.push(owner.data.user_id);
     for (const userId of new Set(recipients)) {
@@ -191,13 +193,17 @@ serve(async (req) => {
 
     const delta = auditChanges(issues, previousRead.data?.findings ?? []);
     const summary = auditMailSummary(facts);
-    const previousSummary = previousRead.data?.facts ? auditMailSummary(previousRead.data.facts) : null;
-    const summaryChanged = JSON.stringify(summary) !== JSON.stringify(previousSummary);
+    const lastSentSummary = sentRead.data?.facts ? auditMailSummary(sentRead.data.facts) : null;
+    const summaryChanged = JSON.stringify(summary) !== JSON.stringify(lastSentSummary);
+    const changesSinceEmail = auditChanges(issues, sentRead.data?.findings ?? []);
     let emailSent = false;
-    if (delta.changed || summaryChanged || !sentRead.data?.length) {
+    if (changesSinceEmail.changed || summaryChanged || !sentRead.data) {
       const list = (items: string[]) => items.length ? `<ul>${items.map(i => `<li>${escapeAuditHtml(i)}</li>`).join('')}</ul>` : '<p>Aucun.</p>';
-      const html = `<div style="text-align:left"><h1>Audit blanc Qualiopi</h1><p>${summary.conforme} indicateurs conformes ; ${summary.aVerifier} à vérifier / à risque ; ${summary.mineure + summary.majeure} non conformes (${summary.mineure} mineurs, ${summary.majeure} majeurs).</p><p>Contrôle automatique : les questions sans réponse empêchent de conclure à la conformité.</p><h2>Nouveaux écarts (${delta.added.length})</h2>${list(delta.added.map(i => `Indicateur ${i.indicator} : ${i.label} — ${i.detail}`))}<h2>Écarts résolus (${delta.resolved.length})</h2>${list(delta.resolved.map(i => `Indicateur ${i.indicator} : ${i.label}`))}<h2>Écarts mis à jour (${delta.updated.length})</h2>${list(delta.updated.map(i => `Indicateur ${i.indicator} : ${i.label} — ${i.detail}`))}<h2>Questions ouvertes à l'auditeur (${summary.questions.length})</h2>${list(summary.questions)}<p><a href="https://academy.supertilt.fr/audit-blanc">Ouvrir l'audit blanc</a></p>${await getSigniticSignature()}</div>`;
-      const sent = await sendEmail({ to: 'romain@supertilt.fr', bcc: (await getBccList()).filter(e => e !== 'romain@supertilt.fr'), subject: `Audit blanc : ${issues.length} écarts, ${delta.added.length} nouveaux, ${delta.resolved.length} résolus`, html, _emailType: 'qualiopi_audit_summary', idempotencyKey: `qualiopi-audit-${run.id}` });
+      const rendered = await renderCatalogEmail(supabase, 'qualiopi_audit_summary', {
+        vars: { issues: String(issues.length), conforme: String(summary.conforme), a_verifier: String(summary.aVerifier), non_conformes: String(summary.mineure + summary.majeure), mineure: String(summary.mineure), majeure: String(summary.majeure), added: String(delta.added.length), resolved: String(delta.resolved.length), updated: String(delta.updated.length), questions_count: String(summary.questions.length) },
+        blocks: { added_list: list(delta.added.map(i => `Indicateur ${i.indicator} : ${i.label} — ${i.detail}`)), resolved_list: list(delta.resolved.map(i => `Indicateur ${i.indicator} : ${i.label}`)), updated_list: list(delta.updated.map(i => `Indicateur ${i.indicator} : ${i.label} — ${i.detail}`)), questions_list: list(summary.questions), audit_button: ctaButton("Ouvrir l'audit blanc", 'https://academy.supertilt.fr/audit-blanc'), signature: await getSigniticSignature() },
+      });
+      const sent = await sendEmail({ to: recipientEmail, bcc: (await getBccList()).filter(e => e !== recipientEmail), subject: rendered.subject, html: `<div style="text-align:left">${rendered.html}</div>`, _emailType: 'qualiopi_audit_summary', idempotencyKey: `qualiopi-audit-${run.id}` });
       const saved = await supabase.from('audit_runs').update({ summary_email_sent_at: sent.success ? new Date().toISOString() : null, summary_email_error: sent.error ?? null }).eq('id', run.id);
       if (saved.error) throw saved.error;
       if (!sent.success) throw new Error(`Envoi du bilan impossible : ${sent.error}`);
