@@ -115,6 +115,7 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   event_title: { label: "Titre de l'événement", description: "Nom de l'événement concerné.", sample: "Salon de la formation" },
   survey_title: { label: "Titre du sondage", description: "Nom du sondage auquel une réponse a été reçue.", sample: "Bilan de la journée" },
   game_name: { label: "Nom du jeu", description: "Nom du jeu pédagogique loué.", sample: "Echo" },
+  game_mention: { label: "Mention du jeu", description: "Mention du jeu dans la phrase (« ton jeu Echo » ou « ton jeu » si le nom est inconnu).", sample: "ton jeu Echo" },
   commission: { label: "Commission", description: "Commission de distribution SuperTilt.", sample: "15 %" },
   invitation_button: { label: "Bouton d'invitation", description: "Bouton vers le formulaire « Proposer mon jeu ».", sample: "[Proposer mon jeu]" },
   code: { label: "Code de vérification", description: "Code à usage unique avant signature.", sample: "482913" },
@@ -207,6 +208,24 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   platform_changed: { label: "Compte existant sans mot de passe ?", description: "Condition vraie quand l'apprenant avait déjà un compte mais n'a jamais créé de mot de passe (ancienne plateforme). À utiliser sous la forme {{#platform_changed}}...{{/platform_changed}}.", sample: "oui", isCondition: true },
   password_set: { label: "Mot de passe défini ?", description: "Condition vraie quand l'apprenant a déjà un mot de passe. À utiliser sous la forme {{#password_set}}...{{/password_set}}.", sample: "oui", isCondition: true },
   no_password: { label: "Sans mot de passe ?", description: "Condition vraie quand l'apprenant doit encore créer son mot de passe. À utiliser sous la forme {{#no_password}}...{{/no_password}}.", sample: "oui", isCondition: true },
+
+  // Audit blanc Qualiopi (email interne nocturne)
+  issues: { label: "Nombre d'écarts", description: "Nombre total d'écarts constatés lors de l'audit blanc.", sample: "7" },
+  conforme: { label: "Indicateurs conformes", description: "Nombre d'indicateurs jugés conformes.", sample: "25" },
+  a_verifier: { label: "Indicateurs à vérifier", description: "Nombre d'indicateurs à vérifier ou à risque.", sample: "4" },
+  non_conformes: { label: "Indicateurs non conformes", description: "Nombre d'indicateurs non conformes.", sample: "3" },
+  mineure: { label: "Écarts mineurs", description: "Nombre d'écarts non conformes mineurs.", sample: "2" },
+  majeure: { label: "Écarts majeurs", description: "Nombre d'écarts non conformes majeurs.", sample: "1" },
+  added: { label: "Nouveaux écarts", description: "Nombre d'écarts apparus depuis le dernier audit.", sample: "2" },
+  resolved: { label: "Écarts résolus", description: "Nombre d'écarts résolus depuis le dernier audit.", sample: "3" },
+  updated: { label: "Écarts mis à jour", description: "Nombre d'écarts modifiés depuis le dernier audit.", sample: "1" },
+  added_list: { label: "Liste des nouveaux écarts", description: "Liste détaillée des écarts apparus depuis le dernier audit.", sample: "- Indicateur 12 : preuve manquante", isBlock: true },
+  resolved_list: { label: "Liste des écarts résolus", description: "Liste détaillée des écarts résolus depuis le dernier audit.", sample: "- Indicateur 8 : preuve ajoutée", isBlock: true },
+  updated_list: { label: "Liste des écarts mis à jour", description: "Liste détaillée des écarts modifiés depuis le dernier audit.", sample: "- Indicateur 5 : commentaire mis à jour", isBlock: true },
+  questions_count: { label: "Questions ouvertes", description: "Nombre de questions ouvertes à l'auditeur.", sample: "2" },
+  questions_list: { label: "Liste des questions", description: "Liste des questions ouvertes à l'auditeur.", sample: "- Indicateur 3 : la preuve est-elle suffisante ?", isBlock: true },
+  audit_button: { label: "Bouton de l'audit", description: "Bouton qui ouvre le détail de l'audit blanc Qualiopi.", sample: "<p><a href=\\\"#\\\">Ouvrir l'audit</a></p>", isBlock: true },
+  signature: { label: "Signature", description: "Bloc de signature ajouté automatiquement en bas du mail.", sample: "L'équipe SuperTilt", isBlock: true },
 };
 
 /** Heuristic fallback for a variable that has no explicit documentation. */
