@@ -1,5 +1,9 @@
 # Roadmap
 
+## Retours formulaire auteur (2026-11-15)
+- [ ] Compléter les retours du fichier joint du 10 novembre : invitation, adresse, SIREN, email repris, vente/location et aides.
+- [ ] Tester le formulaire et ses règles, sans email ni modification d'un contrat signé.
+
 ## Visibilité audit blanc et sources de veille (2026-11-15)
 - [x] Panne de visibilité : le tableau de bord ne montait plus DailyTodoPanel ; rétabli. Audit sorti du sous-menu Formations, maintenant accessible directement. Nettoyage quotidien exclut les catégories persistantes ; réconciliation ferme anciens doublons/résolus sans effacer l’historique.
 - [x] Vérifié connecté en Romain, après rechargement et sur mobile : 16 écarts distincts et les 32 sources proposées, avec nom/URL/pertinence/consignes et boutons À abonner / Écarter. RPC atomique et journalisée pour to_subscribe puis Fait → followed ; transitions testées sur Postgres isolé, aucune source réelle validée à sa place.
