@@ -207,6 +207,27 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   platform_changed: { label: "Compte existant sans mot de passe ?", description: "Condition vraie quand l'apprenant avait déjà un compte mais n'a jamais créé de mot de passe (ancienne plateforme). À utiliser sous la forme {{#platform_changed}}...{{/platform_changed}}.", sample: "oui", isCondition: true },
   password_set: { label: "Mot de passe défini ?", description: "Condition vraie quand l'apprenant a déjà un mot de passe. À utiliser sous la forme {{#password_set}}...{{/password_set}}.", sample: "oui", isCondition: true },
   no_password: { label: "Sans mot de passe ?", description: "Condition vraie quand l'apprenant doit encore créer son mot de passe. À utiliser sous la forme {{#no_password}}...{{/no_password}}.", sample: "oui", isCondition: true },
+
+  // Audit blanc Qualiopi (bilan nocturne interne)
+  issues: { label: "Nombre d'écarts", description: "Nombre total d'écarts relevés par l'audit blanc.", sample: "7" },
+  conforme: { label: "Indicateurs conformes", description: "Nombre d'indicateurs jugés conformes.", sample: "25" },
+  a_verifier: { label: "À vérifier", description: "Nombre d'indicateurs à vérifier ou à risque.", sample: "4" },
+  non_conformes: { label: "Non conformes", description: "Nombre d'indicateurs non conformes (mineurs et majeurs).", sample: "3" },
+  mineure: { label: "Écarts mineurs", description: "Nombre d'écarts de gravité mineure.", sample: "2" },
+  majeure: { label: "Écarts majeurs", description: "Nombre d'écarts de gravité majeure.", sample: "1" },
+  added: { label: "Nouveaux écarts", description: "Nombre d'écarts apparus depuis le dernier bilan.", sample: "2" },
+  resolved: { label: "Écarts résolus", description: "Nombre d'écarts résolus depuis le dernier bilan.", sample: "1" },
+  updated: { label: "Écarts mis à jour", description: "Nombre d'écarts dont le détail a changé depuis le dernier bilan.", sample: "1" },
+  added_list: { label: "Liste des nouveaux écarts", description: "Liste des écarts nouvellement apparus, un par ligne.", sample: "- Indicateur 12 : ...", isBlock: true },
+  resolved_list: { label: "Liste des écarts résolus", description: "Liste des écarts résolus depuis le dernier bilan, un par ligne.", sample: "- Indicateur 8 : ...", isBlock: true },
+  updated_list: { label: "Liste des écarts mis à jour", description: "Liste des écarts dont le détail a changé, un par ligne.", sample: "- Indicateur 3 : ...", isBlock: true },
+  questions_count: { label: "Questions ouvertes", description: "Nombre de questions laissées à l'auditeur par le contrôle automatique.", sample: "2" },
+  questions_list: { label: "Liste des questions", description: "Questions ouvertes à l'auditeur, une par ligne.", sample: "- Indicateur 5 : ...", isBlock: true },
+  audit_button: { label: "Bouton de l'audit", description: "Bouton qui ouvre l'audit blanc dans l'application.", sample: "<p><a href=\\\"#\\\">Ouvrir l'audit blanc</a></p>", isBlock: true },
+  signature: { label: "Signature", description: "Bloc de signature de l'organisme ajouté automatiquement.", sample: "<p>SuperTilt</p>", isBlock: true },
+
+  // Invitation auteur de jeu
+  game_mention: { label: "Mention du jeu", description: "Nom du jeu entre guillemets, ou « ton jeu » quand il n'est pas encore nommé.", sample: "« Echo »" },
 };
 
 /** Heuristic fallback for a variable that has no explicit documentation. */
