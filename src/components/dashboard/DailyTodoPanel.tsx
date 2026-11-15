@@ -9,6 +9,7 @@ import {
 } from "@/lib/dailyActionConstants";
 import type { ThemeRankingEntry } from "@/hooks/useDailyAnalytics";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from '@/components/ui/button';
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
@@ -80,6 +81,9 @@ const DailyTodoPanel = () => {
     progressPercent,
     toggleAction,
     autoDetect,
+    decideSource,
+    decisionPending,
+    decisionError,
   } = useDailyActions();
   const { themeRanking } = useDailyAnalytics();
 
@@ -127,7 +131,7 @@ const DailyTodoPanel = () => {
     } else {
       try {
         const url = new URL(link, window.location.origin);
-        navigate(url.pathname);
+        navigate(url.pathname + url.search + url.hash);
       } catch {
         navigate(link);
       }
@@ -213,6 +217,7 @@ const DailyTodoPanel = () => {
       </div>
 
       {/* Actions list */}
+      {decisionError && <p role="alert" className="text-sm text-destructive">{decisionError}</p>}
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="space-y-3 pr-2">
           {/* AI Agenda */}
@@ -284,18 +289,18 @@ const DailyTodoPanel = () => {
                         } ${action.link ? "cursor-pointer" : ""}`}
                         onClick={
                           action.link
-                            ? () => handleNavigate(action.link!)
+                            ? () => { if (action.link) handleNavigate(action.link); }
                             : undefined
                         }
                       >
-                        <Checkbox
+                        {!['qualiopi', 'watch_sources_validate', 'watch_sources_subscribe'].includes(action.category) && <Checkbox
                           checked={action.is_completed}
                           onCheckedChange={(checked) =>
                             toggleAction(action.id, checked === true)
                           }
                           onClick={(e) => e.stopPropagation()}
                           className="mt-0.5 shrink-0"
-                        />
+                        />}
                         <div className="min-w-0 flex-1">
                           <p
                             className={`text-sm leading-tight ${action.is_completed ? "line-through text-muted-foreground" : ""} ${isUrgent && !action.is_completed ? "text-red-800 font-medium" : action.link && !action.is_completed ? "text-primary hover:underline" : ""}`}
@@ -303,9 +308,17 @@ const DailyTodoPanel = () => {
                             {action.title}
                           </p>
                           {action.description && (
-                            <p className={`text-xs mt-0.5 truncate ${isUrgent ? "text-red-700" : "text-muted-foreground"}`}>
+                            <p className={`text-xs mt-0.5 ${action.entity_type === 'watch_source' ? 'whitespace-pre-line break-words' : 'truncate'} ${isUrgent ? "text-red-700" : "text-muted-foreground"}`}>
                               {action.description}
                             </p>
+                          )}
+                          {action.entity_type === 'watch_source' && action.entity_id && (
+                            <div className="mt-2 flex flex-wrap gap-2" onClick={e => e.stopPropagation()}>
+                              {action.category === 'watch_sources_validate' ? <>
+                                <Button size="sm" variant="outline" disabled={decisionPending} onClick={() => { if (action.entity_id) void decideSource(action.entity_id, 'to_subscribe'); }}>À abonner</Button>
+                                <Button size="sm" variant="ghost" disabled={decisionPending} onClick={() => { if (action.entity_id) void decideSource(action.entity_id, 'dropped'); }}>Écarter</Button>
+                              </> : <Button size="sm" variant="outline" disabled={decisionPending} onClick={() => { if (action.entity_id) void decideSource(action.entity_id, 'followed'); }}><CheckCircle2 className="mr-1 h-4 w-4" />Fait</Button>}
+                            </div>
                           )}
                           {action.auto_completed && action.is_completed && (
                             <span className="text-[10px] text-green-600 font-medium">

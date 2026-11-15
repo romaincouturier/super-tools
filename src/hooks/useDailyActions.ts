@@ -6,6 +6,7 @@ import {
   fetchDailyActions,
   toggleDailyAction,
   checkDailyActionsCompletion,
+  decideDailyWatchSource,
 } from "@/services/dailyActionAnalytics";
 
 export function useDailyActions() {
@@ -14,7 +15,9 @@ export function useDailyActions() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const [decisionPending, setDecisionPending] = useState(false);
+  const [decisionError, setDecisionError] = useState<string | null>(null);
 
   const loadActions = useCallback(async () => {
     if (!user) return;
@@ -52,6 +55,19 @@ export function useDailyActions() {
     },
     [loadActions]
   );
+
+  const decideSource = useCallback(async (sourceId: string, status: 'to_subscribe' | 'dropped' | 'followed') => {
+    setDecisionPending(true);
+    setDecisionError(null);
+    try {
+      await decideDailyWatchSource(sourceId, status);
+      await loadActions();
+    } catch (error) {
+      setDecisionError(getErrorMessage(error));
+    } finally {
+      setDecisionPending(false);
+    }
+  }, [loadActions]);
 
   const autoDetect = useCallback(async () => {
     if (!user) return;
@@ -92,5 +108,8 @@ export function useDailyActions() {
     progressPercent,
     toggleAction,
     autoDetect,
+    decideSource,
+    decisionPending,
+    decisionError,
   };
 }

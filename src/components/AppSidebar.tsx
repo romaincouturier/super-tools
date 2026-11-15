@@ -39,6 +39,7 @@ const NAV_CONFIG: NavConfig[] = [
     ],
   },
   { type: "item", key: "missions" },
+  { type: "item", key: "audit" },
   {
     type: "group",
     key: "supertilt-fr",
@@ -63,7 +64,6 @@ const NAV_CONFIG: NavConfig[] = [
       { key: "reclamations" },
       { key: "signalements" },
       { key: "risques" },
-      { key: "audit" },
       { key: "ameliorations" },
     ],
   },
