@@ -397,7 +397,7 @@ var quoteLineSchema = z19.object({
   game_id: z19.string().uuid().optional(),
   title: z19.string().trim().min(1).max(255).optional(),
   quantity: z19.number().int().min(1).max(1e3),
-  unit_price: z19.number().positive().max(1e7).optional().describe("Unit price HT override; catalog price is used when omitted"),
+  unit_price: z19.number().positive().max(1e7).optional().describe("Unit price HT override; last saved price, then catalog price is used when omitted"),
   price_option_id: z19.string().uuid().optional().describe("Catalog sale/rental price option; required when several options are ambiguous")
 }).refine((line) => line.game_id || line.title, { message: "game_id or title is required" });
 var gameQuoteFields = {
@@ -405,7 +405,7 @@ var gameQuoteFields = {
   client: quoteClientSchema,
   lines: z19.array(quoteLineSchema).min(1).max(50),
   shipping_fee: z19.number().min(0).max(1e6).optional().describe("Shipping HT override; otherwise sums catalog shipping_fee per game unit"),
-  admin_fee: z19.number().min(0).max(1e6).default(0),
+  admin_fee: z19.number().min(0).max(1e6).optional(),
   crm_card_id: z19.string().uuid().optional(),
   valid_until: isoDate.optional(),
   note: z19.string().max(1e4).default("")
@@ -473,14 +473,17 @@ function defaultShipping(lines) {
   };
 }
 async function prepareGameQuote(db, input) {
-  const [gamesResult, settingsResult, cardResult] = await Promise.all([
+  const [gamesResult, settingsResult, cardResult, defaultsResult] = await Promise.all([
     db.from("games").select(GAME_CATALOG_FIELDS).order("title"),
     db.from("supertilt_settings").select("value").eq("key", "vat_rate").maybeSingle(),
-    input.crm_card_id ? db.from("crm_cards").select("id,title,company").eq("id", input.crm_card_id).maybeSingle() : Promise.resolve({ data: null, error: null })
+    input.crm_card_id ? db.from("crm_cards").select("id,title,company").eq("id", input.crm_card_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    db.from("game_quote_defaults").select("key,amount")
   ]);
   if (gamesResult.error) throw gamesResult.error;
   if (settingsResult.error) throw settingsResult.error;
   if (cardResult.error) throw cardResult.error;
+  if (defaultsResult.error) throw defaultsResult.error;
+  const defaults = new Map((defaultsResult.data ?? []).map((row) => [row.key, Number(row.amount)]));
   const issues = [];
   if (input.crm_card_id && !cardResult.data) issues.push(`CRM card not found: ${input.crm_card_id}`);
   const games = gamesResult.data ?? [];
@@ -491,7 +494,8 @@ async function prepareGameQuote(db, input) {
   const lines = input.lines.map((line, index) => {
     const game = resolvedGames[index];
     const catalog = selectCatalogPrice(game, options, line.price_option_id);
-    const unitPrice = line.unit_price ?? catalog.price;
+    const savedPrice = catalog.ambiguous ? void 0 : defaults.get(`price:${game.id}:${catalog.option?.id ?? ""}`);
+    const unitPrice = line.unit_price ?? savedPrice ?? catalog.price;
     if (unitPrice == null || !(unitPrice > 0)) {
       issues.push(catalog.ambiguous && line.unit_price == null ? `${game.title}: several catalog prices; provide price_option_id or unit_price` : `${game.title}: no catalog price; provide unit_price`);
     }
@@ -503,7 +507,7 @@ async function prepareGameQuote(db, input) {
       quantity: line.quantity,
       unit_price: unitPrice,
       catalog_price: catalog.price,
-      price_source: line.unit_price == null ? "catalog" : "override",
+      price_source: line.unit_price != null ? "override" : savedPrice != null ? "saved" : "catalog",
       price_option_id: catalog.option?.id ?? null,
       offer_type: catalog.option?.offer_type ?? null,
       shipping_fee: game.shipping_fee,
@@ -512,11 +516,11 @@ async function prepareGameQuote(db, input) {
     };
   });
   const shipping = defaultShipping(lines);
-  if (input.shipping_fee == null && shipping.missing.length) {
+  if (input.shipping_fee == null && !defaults.has("shipping") && shipping.missing.length) {
     issues.push(`Missing catalog shipping fee for: ${shipping.missing.join(", ")}; provide shipping_fee`);
   }
-  const shippingHt = input.shipping_fee ?? shipping.value;
-  const amounts = shippingHt != null && lines.every((line) => line.line_total != null) ? quoteTotals(lines.map((line) => line.line_total), shippingHt, input.admin_fee, Number(settingsResult.data?.value ?? 0.2)) : null;
+  const shippingHt = input.shipping_fee ?? defaults.get("shipping") ?? shipping.value;
+  const amounts = shippingHt != null && lines.every((line) => line.line_total != null) ? quoteTotals(lines.map((line) => line.line_total), shippingHt, input.admin_fee ?? defaults.get("admin") ?? 0, Number(settingsResult.data?.value ?? 0.2)) : null;
   const billing = { ...input.client.billing_address, email: input.client.email };
   const shippingAddress = { ...input.client.shipping_address ?? input.client.billing_address, email: input.client.email };
   return {
@@ -756,7 +760,7 @@ async function confirmGameQuote(db, input, preview) {
 var create_game_quote_default = defineTool18({
   name: "create_game_quote",
   title: "Create a draft game quote",
-  description: "Previews or creates a draft game quote in the SuperTools dropshipping module. Default confirm=false is fully read-only and returns client, lines and HT/VAT/TTC amounts. confirm=true creates woocommerce_orders/order_items with source=devis and status=draft, the usual DV number and PDF, activity audit, and a CRM comment when crm_card_id is provided. It NEVER emails the client, sends Slack, creates a paid order or decrements stock. Prices and shipping default to catalog values; missing values must be overridden explicitly. Review the preview and obtain explicit user approval before confirm=true. Never retry automatically after an ambiguous write failure.",
+  description: "Previews or creates a draft game quote in the SuperTools dropshipping module. Default confirm=false is fully read-only and returns client, lines and HT/VAT/TTC amounts. confirm=true creates woocommerce_orders/order_items with source=devis and status=draft, the usual DV number and PDF, activity audit, and a CRM comment when crm_card_id is provided. It NEVER emails the client, sends Slack, creates a paid order or decrements stock. Prices and fees default to persistent shared amounts, then catalog values; missing values must be overridden explicitly. Confirmed creation remembers amounts; preview never writes. Review the preview and obtain explicit user approval before confirm=true. Never retry automatically after an ambiguous write failure.",
   inputSchema: gameQuoteFields,
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   handler: async (args, ctx) => {

@@ -54,3 +54,32 @@ export function saveGameDevisPrice(storage: Pick<Storage, "getItem" | "setItem">
 export function resolveGameDevisPrice(prices: Record<string, number>, gameId: string, optionId: string, catalogPrice: number) {
   return prices[`${gameId}:${optionId}`] ?? catalogPrice;
 }
+export async function fetchSharedGameDevisDefaults(): Promise<GameDevisDefaults> {
+  const { data, error } = await supabase.from("game_quote_defaults").select("key,amount");
+  if (error) throw error;
+  return defaultsFromRows(data ?? []);
+}
+
+export function defaultsFromRows(rows: Array<{ key: string; amount: number | string }>): GameDevisDefaults {
+  const defaults: GameDevisDefaults = { prices: {} };
+  for (const row of rows) {
+    const amount = Number(row.amount);
+    if (!Number.isFinite(amount) || amount < 0) continue;
+    if (row.key === "shipping") defaults.fraisDePort = amount;
+    else if (row.key === "admin") defaults.fraisDossier = amount;
+    else if (row.key.startsWith("price:")) defaults.prices[row.key.slice(6)] = amount;
+  }
+  return defaults;
+}
+
+export async function saveSharedGameDevisAmount(key: string, amount: number, onlyMissing = false) {
+  const { error } = await supabase.rpc("save_game_quote_default", { p_key: key, p_amount: amount, p_only_missing: onlyMissing });
+  if (error) throw error;
+}
+
+export async function migrateLocalGameDevisDefaults(storage: Pick<Storage, "getItem">) {
+  const local = loadGameDevisDefaults(storage);
+  for (const [key, amount] of Object.entries(local.prices)) await saveSharedGameDevisAmount(`price:${key}`, amount, true);
+  if (typeof local.fraisDePort === "number") await saveSharedGameDevisAmount("shipping", local.fraisDePort, true);
+  if (typeof local.fraisDossier === "number") await saveSharedGameDevisAmount("admin", local.fraisDossier, true);
+}

@@ -32,7 +32,7 @@ export const quoteLineSchema = z.object({
   game_id: z.string().uuid().optional(),
   title: z.string().trim().min(1).max(255).optional(),
   quantity: z.number().int().min(1).max(1000),
-  unit_price: z.number().positive().max(10_000_000).optional().describe('Unit price HT override; catalog price is used when omitted'),
+  unit_price: z.number().positive().max(10_000_000).optional().describe('Unit price HT override; last saved price, then catalog price is used when omitted'),
   price_option_id: z.string().uuid().optional().describe('Catalog sale/rental price option; required when several options are ambiguous'),
 }).refine((line) => line.game_id || line.title, { message: 'game_id or title is required' });
 
@@ -41,7 +41,7 @@ export const gameQuoteFields = {
   client: quoteClientSchema,
   lines: z.array(quoteLineSchema).min(1).max(50),
   shipping_fee: z.number().min(0).max(1_000_000).optional().describe('Shipping HT override; otherwise sums catalog shipping_fee per game unit'),
-  admin_fee: z.number().min(0).max(1_000_000).default(0),
+  admin_fee: z.number().min(0).max(1_000_000).optional(),
   crm_card_id: z.string().uuid().optional(),
   valid_until: isoDate.optional(),
   note: z.string().max(10_000).default(''),
@@ -146,17 +146,20 @@ export function defaultShipping(lines: Array<{ quantity: number; shipping_fee: n
 type Db = any;
 
 export async function prepareGameQuote(db: Db, input: GameQuoteInput) {
-  const [gamesResult, settingsResult, cardResult] = await Promise.all([
+  const [gamesResult, settingsResult, cardResult, defaultsResult] = await Promise.all([
     db.from('games').select(GAME_CATALOG_FIELDS).order('title'),
     db.from('supertilt_settings').select('value').eq('key', 'vat_rate').maybeSingle(),
     input.crm_card_id
       ? db.from('crm_cards').select('id,title,company').eq('id', input.crm_card_id).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    db.from('game_quote_defaults').select('key,amount'),
   ]);
   if (gamesResult.error) throw gamesResult.error;
   if (settingsResult.error) throw settingsResult.error;
   if (cardResult.error) throw cardResult.error;
 
+  if (defaultsResult.error) throw defaultsResult.error;
+  const defaults = new Map<string, number>((defaultsResult.data ?? []).map((row: { key: string; amount: number | string }) => [row.key, Number(row.amount)]));
   const issues: string[] = [];
   if (input.crm_card_id && !cardResult.data) issues.push(`CRM card not found: ${input.crm_card_id}`);
   const games = (gamesResult.data ?? []) as GameCatalogRow[];
@@ -171,7 +174,8 @@ export async function prepareGameQuote(db: Db, input: GameQuoteInput) {
   const lines = input.lines.map((line, index) => {
     const game = resolvedGames[index];
     const catalog = selectCatalogPrice(game, options, line.price_option_id);
-    const unitPrice = line.unit_price ?? catalog.price;
+    const savedPrice = catalog.ambiguous ? undefined : defaults.get(`price:${game.id}:${catalog.option?.id ?? ''}`);
+    const unitPrice = line.unit_price ?? savedPrice ?? catalog.price;
     if (unitPrice == null || !(unitPrice > 0)) {
       issues.push(catalog.ambiguous && line.unit_price == null
         ? `${game.title}: several catalog prices; provide price_option_id or unit_price`
@@ -185,7 +189,7 @@ export async function prepareGameQuote(db: Db, input: GameQuoteInput) {
       quantity: line.quantity,
       unit_price: unitPrice,
       catalog_price: catalog.price,
-      price_source: line.unit_price == null ? 'catalog' : 'override',
+      price_source: line.unit_price != null ? 'override' : savedPrice != null ? 'saved' : 'catalog',
       price_option_id: catalog.option?.id ?? null,
       offer_type: catalog.option?.offer_type ?? null,
       shipping_fee: game.shipping_fee,
@@ -195,12 +199,12 @@ export async function prepareGameQuote(db: Db, input: GameQuoteInput) {
   });
 
   const shipping = defaultShipping(lines);
-  if (input.shipping_fee == null && shipping.missing.length) {
+  if (input.shipping_fee == null && !defaults.has('shipping') && shipping.missing.length) {
     issues.push(`Missing catalog shipping fee for: ${shipping.missing.join(', ')}; provide shipping_fee`);
   }
-  const shippingHt = input.shipping_fee ?? shipping.value;
+  const shippingHt = input.shipping_fee ?? defaults.get('shipping') ?? shipping.value;
   const amounts = shippingHt != null && lines.every((line) => line.line_total != null)
-    ? quoteTotals(lines.map((line) => line.line_total as number), shippingHt, input.admin_fee, Number(settingsResult.data?.value ?? 0.2))
+    ? quoteTotals(lines.map((line) => line.line_total as number), shippingHt, input.admin_fee ?? defaults.get('admin') ?? 0, Number(settingsResult.data?.value ?? 0.2))
     : null;
   const billing = { ...input.client.billing_address, email: input.client.email };
   const shippingAddress = { ...(input.client.shipping_address ?? input.client.billing_address), email: input.client.email };

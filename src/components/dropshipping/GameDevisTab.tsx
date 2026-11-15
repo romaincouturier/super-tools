@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { Plus, Trash2, Loader2, Send, FileText, ExternalLink, Download, ChevronsUpDown } from "lucide-react";
@@ -66,6 +66,13 @@ export default function GameDevisTab() {
   const [fraisDePort, setFraisDePort] = useState<number | "">(savedAmounts.defaults.fraisDePort ?? "");
   const [fraisDossier, setFraisDossier] = useState<number | "">(savedAmounts.defaults.fraisDossier ?? "");
   const [noteDevis, setNoteDevis] = useState("");
+  const feesInitialized = useRef(false);
+  useEffect(() => {
+    if (savedAmounts.isLoading || savedAmounts.isError || feesInitialized.current) return;
+    feesInitialized.current = true;
+    setFraisDePort(savedAmounts.defaults.fraisDePort ?? "");
+    setFraisDossier(savedAmounts.defaults.fraisDossier ?? "");
+  }, [savedAmounts.isLoading, savedAmounts.isError, savedAmounts.defaults]);
 
   // Lien opportunité CRM : préremplissage + rattachement du devis à la carte.
   const [searchParams] = useSearchParams();
@@ -190,6 +197,7 @@ export default function GameDevisTab() {
     <div className="space-y-12">
     <GameDevisHistory />
     <form onSubmit={handleSubmit} className="space-y-8 max-w-3xl">
+      <fieldset disabled={savedAmounts.isLoading || savedAmounts.isError} className="space-y-8 min-w-0 border-0 p-0 m-0">
       {crmCardId && (
         <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
           Ce devis sera rattaché à l'opportunité CRM (montant, PDF, relance et informations client synchronisés).
@@ -374,7 +382,7 @@ export default function GameDevisTab() {
               onChange={(e) => {
                 const value = e.target.value === "" ? "" : parseFloat(e.target.value) || 0;
                 setFraisDePort(value);
-                if (value === "" || value >= 0) savedAmounts.saveFees(value, fraisDossier);
+                if (value === "" || value >= 0) savedAmounts.saveFee("shipping", value);
               }}
               placeholder="0.00"
             />
@@ -390,7 +398,7 @@ export default function GameDevisTab() {
               onChange={(e) => {
                 const value = e.target.value === "" ? "" : parseFloat(e.target.value) || 0;
                 setFraisDossier(value);
-                if (value === "" || value >= 0) savedAmounts.saveFees(fraisDePort, value);
+                if (value === "" || value >= 0) savedAmounts.saveFee("admin", value);
               }}
               placeholder="0.00"
             />
@@ -440,6 +448,7 @@ export default function GameDevisTab() {
           <><Send className="w-5 h-5 mr-2" />Générer le devis jeux</>
         )}
       </Button>
+    </fieldset>
     </form>
     </div>
   );
