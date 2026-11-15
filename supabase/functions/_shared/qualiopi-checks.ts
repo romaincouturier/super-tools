@@ -271,7 +271,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         label: "Règlement intérieur publié et accessible",
         run: (f) =>
           f.reglementInterieurPublished ? ok("Publié") : ko("Aucun règlement publié"),
-        fix: { label: "Publier le règlement intérieur", href: "/parametres#reglement-interieur" },
+        fix: { label: "Publier le règlement intérieur", href: "/parametres?find=reglement_interieur" },
       },
     ],
     questions: [
@@ -380,14 +380,14 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "21.competences",
         label: "Compétences définies pour chaque intervenant",
         run: (f) => ratio(f.trainersWithCompetences, f.trainers, "intervenants"),
-        fix: { label: "Renseigner les compétences", href: "/parametres?find=trainers" },
+        fix: { label: "Renseigner les compétences", href: "/parametres?find=tab%3Atrainers" },
         onEmpty: "defect",
       },
       {
         id: "21.justificatifs",
         label: "Justificatifs disponibles : CV, diplômes, certifications",
         run: (f) => ratio(f.trainersWithDocuments, f.trainers, "intervenants"),
-        fix: { label: "Charger CV et diplômes", href: "/parametres?find=trainers" },
+        fix: { label: "Charger CV et diplômes", href: "/parametres?find=tab%3Atrainers" },
         onEmpty: "defect",
       },
       {
@@ -405,7 +405,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "22.formation",
         label: "Formation continue renseignée pour chaque intervenant",
         run: (f) => ratio(f.trainersWithContinuingEducation, f.trainers, "intervenants"),
-        fix: { label: "Renseigner les formations suivies", href: "/parametres?find=trainers" },
+        fix: { label: "Renseigner les formations suivies", href: "/parametres?find=tab%3Atrainers" },
         onEmpty: "defect",
       },
     ],
@@ -486,7 +486,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         label: "Référent handicap désigné et joignable",
         run: (f) =>
           f.handicapReferentDesignated ? ok("Désigné") : ko("Aucun référent désigné"),
-        fix: { label: "Désigner le référent", href: "/parametres#referent-handicap" },
+        fix: { label: "Désigner le référent", href: "/parametres?find=referent_handicap" },
       },
       {
         id: "26.reseau",
@@ -495,7 +495,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
           f.handicapPartnersActive > 0
             ? ok(`${f.handicapPartnersActive} partenaires actifs`)
             : ko("Aucun partenaire enregistré"),
-        fix: { label: "Alimenter le réseau", href: "/parametres#partenaires-handicap" },
+        fix: { label: "Alimenter le réseau", href: "/parametres?find=partenaires_handicap" },
       },
     ],
     questions: [

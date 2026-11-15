@@ -1,4 +1,5 @@
 # Architecture
+- Qualiopi screen and scheduled audit share a paginated read-only collector; only evidenced questions are auto-answered and missing responses are not missing processes, because partial samples and placeholder zeros must not invent non-conformities.
 - Transcript controls use persistent, manually resumed source inventories; repairs require a selected source ID, preserve trashed rows and suppress downstream notifications/generations via stored metadata, because presence alone cannot certify completeness.
 - Attestation rules live in execution-attestation.ts and in a DB trigger (edits draft sent ones, signed frozen, token hashes only), to keep signed content provable.
 - Project action assignments use project-assignee.ts in UI, MCP, daily generation and completion checks; profile emails are service-role aliases and unknown/ambiguous values explicitly target creator plus admins, because label-only matching silently routed email assignments to creators.
