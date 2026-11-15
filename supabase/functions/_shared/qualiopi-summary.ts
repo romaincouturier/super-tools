@@ -113,7 +113,7 @@ export function auditEmailModel(facts: AuditFacts, answers: Record<string, Answe
 
 export function renderAuditActions(actions: AuditAction[]) {
   if (!actions.length) return '<p>Aucune action à traiter.</p>';
-  return `<ol>${actions.map(a => `<li><strong>Indicateur ${a.indicator} (${escapeAuditHtml(a.label)})</strong> : ${escapeAuditHtml(a.problem)}<br>Action : ${escapeAuditHtml(a.recommendation)}<br><a href="https://academy.supertilt.fr${escapeAuditHtml(a.href)}">Ouvrir l’écran concerné</a> · Temps estimé : ${a.minutes} min.</li>`).join('')}</ol>`;
+  return `<ol>${actions.map(a => `<li><strong>Indicateur ${a.indicator} (${escapeAuditHtml(a.label)})</strong> : ${escapeAuditHtml(a.problem)}<br>Action : ${escapeAuditHtml(a.recommendation)}<br><a href="https://academy.supertilt.fr${escapeAuditHtml(a.href)}">Ouvrir l’écran concerné</a> · <a href="https://academy.supertilt.fr/audit-blanc?indicator=${a.indicator}">Compléter cet indicateur dans l’audit</a> · Temps estimé : ${a.minutes} min.</li>`).join('')}</ol>`;
 }
 
 export function escapeAuditHtml(value: string) {
