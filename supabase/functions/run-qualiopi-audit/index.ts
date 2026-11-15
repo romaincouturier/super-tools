@@ -53,14 +53,14 @@ serve(async (req) => {
     const sampleIds = sample.map(t => t.trainingId);
     const issues = automaticIssues(facts);
 
-    const previousRead = await supabase.from('audit_runs').select('findings, facts, summary_email_sent_at')
-      .like('notes', 'Passage automatique%').order('started_at', { ascending: false }).limit(1).maybeSingle();
-    if (previousRead.error) throw previousRead.error;
     const sentRead = await supabase.from('audit_runs').select('id, findings, facts, answers, summary_email_sent_at').not('summary_email_sent_at', 'is', null).order('summary_email_sent_at', { ascending: false }).limit(1).maybeSingle();
     if (sentRead.error) throw sentRead.error;
-    const answersRead = await supabase.from('audit_runs').select('answers').not('answers', 'eq', '{}').order('started_at', { ascending: false }).limit(1).maybeSingle();
+    const answersRead = await supabase.from('audit_runs').select('answers, sample_training_ids')
+      .not('notes', 'like', 'Passage automatique%').not('answers', 'eq', '{}')
+      .order('started_at', { ascending: false }).limit(1).maybeSingle();
     if (answersRead.error) throw answersRead.error;
-    const answers = answersRead.data?.answers ?? {};
+    const sameSample = JSON.stringify([...(answersRead.data?.sample_training_ids ?? [])].sort()) === JSON.stringify([...sampleIds].sort());
+    const answers = sameSample ? answersRead.data?.answers ?? {} : {};
     const { data: run, error: runError } = await supabase.from("audit_runs").insert({
       label: `Contrôle automatique du ${new Date().toLocaleDateString("fr-FR", { timeZone: 'Europe/Paris' })}`,
       finished_at: new Date().toISOString(),
@@ -97,7 +97,6 @@ serve(async (req) => {
       if (synced.error) throw synced.error;
     }
 
-    const delta = auditChanges(issues, previousRead.data?.findings ?? []);
     const summary = auditMailSummary(facts, answers);
     const lastSentSummary = sentRead.data?.facts ? auditMailSummary(sentRead.data.facts, sentRead.data.answers ?? {}) : null;
     const summaryChanged = JSON.stringify(summary) !== JSON.stringify(lastSentSummary);

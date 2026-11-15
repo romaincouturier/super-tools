@@ -19,7 +19,8 @@ describe('Bilan audit', () => {
   it('utilise le même total par indicateur dans le titre et le bilan', () => {
     const model = auditEmailModel(buildFacts(raw));
     expect(model.summary.conforme + model.summary.aVerifier + model.summary.mineure + model.summary.majeure).toBe(22);
-    expect(model.globalState).toBe(`${model.summary.conforme} OK / ${model.summary.aVerifier} à compléter / ${model.summary.mineure + model.summary.majeure} non conformes (${model.summary.majeure} majeurs)`);
+    expect(model.globalState).toContain(`${model.summary.conforme} OK / ${model.summary.aVerifier} à compléter / ${model.summary.mineure + model.summary.majeure} non conforme`);
+    expect(new Set(model.actions.map(a => a.indicator)).size).toBe(model.actions.length);
     const template = EDITABLE_EMAIL_DEFAULTS.qualiopi_audit_summary;
     expect(template.subject.vous).toContain('{{global_state}}');
     expect(template.content.vous).toContain('{{global_state}}');

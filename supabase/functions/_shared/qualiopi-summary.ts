@@ -34,7 +34,7 @@ export interface AuditAction {
 }
 
 const destinations: Record<number, string> = {
-  1: '/catalogue', 2: '/statistiques', 4: '/besoins', 5: '/evaluations', 6: '/formations', 8: '/besoins',
+  1: '/catalogue', 2: '/evaluations', 4: '/besoins', 5: '/evaluations', 6: '/formations', 8: '/besoins',
   9: '/formations', 10: '/formations', 11: '/evaluations', 12: '/signalements', 17: '/formations', 18: '/formations',
   19: '/lms', 21: '/parametres?find=tab%3Atrainers', 22: '/parametres?find=tab%3Atrainers',
   23: '/veille', 24: '/veille', 25: '/veille', 26: '/parametres?find=partenaires_handicap', 30: '/evaluations',
@@ -96,8 +96,19 @@ export function auditEmailModel(facts: AuditFacts, answers: Record<string, Answe
     });
     return failed;
   }).sort((a, b) => a.priority - b.priority || a.indicator - b.indicator);
-  const globalState = `${summary.conforme} OK / ${summary.aVerifier} à compléter / ${summary.mineure + summary.majeure} non conformes (${summary.majeure} majeurs)`;
-  return { summary, globalState, changeNote: unchanged ? 'Aucun changement depuis le dernier envoi. Voici les trois actions prioritaires encore à traiter.' : 'Les contrôles portent sur les cinq dernières sessions terminées non annulées. Les preuves non détectables restent à compléter, pas à déclarer absentes.', actions: unchanged ? actions.slice(0, 3) : actions };
+  const nc = summary.mineure + summary.majeure;
+  const globalState = `${summary.conforme} OK / ${summary.aVerifier} à compléter / ${nc} non conforme${nc > 1 ? 's' : ''} (${summary.majeure} majeur${summary.majeure > 1 ? 's' : ''})`;
+  const grouped = new Map<number, AuditAction>();
+  for (const action of actions) {
+    const existing = grouped.get(action.indicator);
+    if (!existing) grouped.set(action.indicator, { ...action });
+    else {
+      existing.recommendation += ` ${action.recommendation}`;
+      existing.minutes += action.minutes;
+    }
+  }
+  const prioritized = [...grouped.values()];
+  return { summary, globalState, changeNote: unchanged ? 'Aucun changement depuis le dernier envoi. Voici les trois actions prioritaires encore à traiter.' : 'Les contrôles portent sur les cinq dernières sessions terminées non annulées. Les preuves non détectables restent à compléter, pas à déclarer absentes.', actions: unchanged ? prioritized.slice(0, 3) : prioritized };
 }
 
 export function renderAuditActions(actions: AuditAction[]) {
