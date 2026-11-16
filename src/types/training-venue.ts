@@ -7,5 +7,6 @@ export interface TrainingVenue {
   email: string;
   room_name: string | null;
   formal_address: boolean;
+  access_instructions?: string | null;
   created_at: string;
 }
