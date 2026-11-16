@@ -20,6 +20,8 @@ export async function createTrainingVenue(
     .select()
     .single();
   if (error) throw error;
+  const { data: { user } } = await supabase.auth.getUser();
+  await logActivity({ actionType: "training_venue_created", recipientEmail: user?.email || "", userId: user?.id, details: { venue_id: data.id, access_instructions: input.access_instructions || null } });
   return data as TrainingVenue;
 }
 

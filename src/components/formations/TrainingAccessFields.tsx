@@ -12,6 +12,7 @@ export default function TrainingAccessFields({ value, onChange, venueId, locatio
     {legacyMatches.length === 1 && <VenueAccessEditor venue={legacyMatches[0]} />}
     <Label htmlFor="session-access">Instructions d’accès pour cette session</Label>
     <Textarea id="session-access" value={value} onChange={e => onChange(e.target.value)} placeholder={inherited || "Digicode, étage, interphone, transports, contact sur place…"} />
+    <p className="text-sm text-muted-foreground">Facultatif : si vide, les instructions du lieu sont reprises.</p>
     {inherited && <p className="text-sm text-muted-foreground whitespace-pre-wrap">Instructions du lieu : {inherited}</p>}
   </div>;
 }
