@@ -1,10 +1,12 @@
 # Roadmap
 
 ## Consommation Anthropic (2026-11-16)
+- [x] Demande suivante : supprimer entièrement Autofix en conservant CI ; workflow supprimé, test de non-régression adapté et règle .github remplacée.
+- [ ] Annuler les éventuels runs Autofix actifs et confirmer la suppression sur GitHub : aucun accès GitHub authentifié disponible dans cette session ; consultation API tentée, annulation non effectuée.
 - [x] Registre app depuis le 15/11 : un appel Anthropic (3144 entrée/134 sortie, estimation 0,007628 USD), provider partagé Lovable. GitHub : six Autofix non ignorés le 15/11 et deux le 16/11 ; étapes Claude vérifiées sur deux runs, modèle Opus sans borne de tours/budget. Tokens/factures GitHub non accessibles (logs 403), origine probable hors registre app.
 - [x] Autofix rendu manuel uniquement, run CI échoué/main/dépôt validé avant la clé, 12 tours maximum, budget client estimé 5 USD (pas garantie de facture), durée 20 minutes ; CI et modèle conservés. Deux descriptions email Qualiopi manquantes corrigées, cause du dernier CI confirmée par annotations.
 - [x] 10 tests ciblés, 103 règles et suite complète : 275 fichiers, 3305 tests OK, un saut préexistant ; compilation OK. Aucune fonction/crons/donnée/clés modifiés. Règle technique dans .github/AGENTS.md car root plein.
-- [ ] Synchroniser le workflow sur GitHub puis vérifier le prochain échec sans démarrage Claude ; pas de droit d’écriture GitHub dans cette session, aucun push effectué. Ancien run 43969206005 encore actif au contrôle : annulation nécessaire dans Actions, anciennes exécutions non affectées par le fichier modifié.
+- [ ] Synchroniser la suppression sur GitHub ; pas de droit d’écriture GitHub dans cette session, aucun push effectué. Ancien run 43969206005 actif au précédent contrôle : son état actuel et son annulation restent à vérifier dans Actions.
 
 ## Choix de communauté formation (2026-11-16)
 - [x] Choix interne/externe/aucune dans création et modification, bouton Supprimer ; communauté distincte des supports et inscriptions. Convocations, accès, démarrage et rappels live/aujourd’hui utilisent le lien interne ; alertes internes réutilisent les travaux sans retour staff, sans doublonner les groupes externes.
