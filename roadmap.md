@@ -1,5 +1,10 @@
 # Roadmap
 
+## Consommation Anthropic (2026-11-16)
+- [ ] Vérifier tokens de l’application et exécutions Claude GitHub depuis hier ; distinguer usage et facture fournisseur.
+- [ ] Arrêter les autocorrections payantes non bornées sans désactiver CI/tests ; couvrir la nouvelle garde par tests.
+- [ ] Vérifier règles, exécutions et limites de déploiement ; compte rendu des causes et blocages.
+
 ## Choix de communauté formation (2026-11-16)
 - [x] Choix interne/externe/aucune dans création et modification, bouton Supprimer ; communauté distincte des supports et inscriptions. Convocations, accès, démarrage et rappels live/aujourd’hui utilisent le lien interne ; alertes internes réutilisent les travaux sans retour staff, sans doublonner les groupes externes.
 - [x] Trois sessions Facilitation graphique (mars 2026, novembre 2026, mars 2027) rattachées au cours interne, trois traces ; 27 anciennes tâches LinkedIn ouvertes clôturées avec trace. Aucun groupe externe dans les formations après relecture ; cinq événements PictoChallenge #83/#84/#86 (deux)/#87 conservent leur groupe 9892107, non déclaré obsolète et non modifié.
