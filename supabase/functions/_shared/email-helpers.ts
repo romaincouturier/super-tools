@@ -9,6 +9,7 @@ import { sendEmail, type EmailAttachment } from "./resend.ts";
 import { getSenderFrom, getBccList } from "./email-settings.ts";
 import { getSigniticSignature } from "./signitic.ts";
 import { processTemplate, textToHtml } from "./templates.ts";
+import { appendTrainingCommunity } from "./training-community.ts";
 
 // ───── Template fetching ─────
 
@@ -107,7 +108,11 @@ export async function prepareTemplatedEmail(opts: {
 
   const convertToHtml = opts.convertToHtml !== false;
   const bodyHtml = convertToHtml ? textToHtml(contentText) : contentText;
-  const html = `${bodyHtml}\n${signatureHtml}`;
+  let html = `${bodyHtml}\n${signatureHtml}`;
+  if (opts.trainingId && opts.templateType.startsWith("elearning_available_")) {
+    const { getAppUrls } = await import("./app-urls.ts");
+    html = await appendTrainingCommunity(opts.supabase, html, opts.trainingId, (await getAppUrls()).app_url);
+  }
 
   return {
     to: [opts.to],

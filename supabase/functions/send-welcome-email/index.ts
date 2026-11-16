@@ -21,6 +21,7 @@ import {
 import { formatSessionDateFr } from "../_shared/training-date.ts";
 import { recordWelcome } from "../_shared/welcome-record.ts";
 import { fetchAccessVenues, resolveTrainingAccess, includeAccessInstructions, accessInstructionsHtml } from "../_shared/training-access.ts";
+import { includeTrainingCommunity } from "../_shared/training-community.ts";
 
 // Send notification to sponsor (intra-enterprise)
 async function sendSponsorNotification(
@@ -266,6 +267,7 @@ serve(async (req) => {
     // Le player LMS exige ?email= sur les liens supports/e-learning.
     if (!template?.html_content.includes("{{access_instructions}}")) htmlContent = includeAccessInstructions(htmlContent, accessInstructions);
     htmlContent = personalizeSupportsLinks(htmlContent, participant.email);
+    htmlContent = includeTrainingCommunity(htmlContent, training, appUrl);
 
     console.log("Sending welcome email to:", participant.email);
     console.log("Subject:", subject);

@@ -26,6 +26,7 @@ import TrainingNameCombobox, { FormationConfig } from "@/components/formations/T
 import ScheduledActionsEditor from "@/components/formations/ScheduledActionsEditor";
 import VenueSelector from "@/components/formations/VenueSelector";
 import TrainingAccessFields from "@/components/formations/TrainingAccessFields";
+import TrainingCommunityFields from "@/components/formations/TrainingCommunityFields";
 import { FormationFormula } from "@/types/training";
 import type { TrainingVenue } from "@/types/training-venue";
 import {
@@ -545,6 +546,7 @@ const FormationCreate = () => {
                   )}
 
                   {/* LMS course - required for e-learning */}
+                  <TrainingCommunityFields form={form} />
                   {form.isElearning && (
                     <div className="space-y-2">
                       <Label htmlFor="lms-course">Cours e-learning *</Label>

@@ -188,6 +188,7 @@ const DuplicateTrainingDialog = ({
           catalog_id: original.catalog_id,
            supports_url: original.supports_url,
           private_group_url: original.private_group_url,
+          community_lms_course_id: original.community_lms_course_id,
           assigned_to: original.assigned_to,
           venue_id: original.venue_id,
           created_by: userId,

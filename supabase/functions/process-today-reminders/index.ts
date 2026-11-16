@@ -8,6 +8,7 @@ import { processTemplate, emailButton, templateTextToHtml } from "../_shared/tem
 import { tuVousSuffix, fetchTemplateOrDefault, logEmailActivity } from "../_shared/email-helpers.ts";
 import { aiChat } from "../_shared/ai.ts";
 import { personalizeSupportsLinks } from "../_shared/supports-url.ts";
+import { appendTrainingCommunity } from "../_shared/training-community.ts";
 import { fetchAccessVenues, resolveTrainingAccess, includeAccessInstructions, accessInstructionsHtml } from "../_shared/training-access.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
@@ -324,7 +325,7 @@ serve(async (req) => {
           to: p.email,
           bcc: bccList,
           subject: resolvedSubject,
-          html: resolvedHtml,
+          html: await appendTrainingCommunity(supabase, resolvedHtml, trainingId, APP_URL),
           _trainingId: trainingId,
           _participantId: p.id,
           _emailType: "today_reminder",

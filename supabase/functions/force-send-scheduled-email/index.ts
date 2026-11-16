@@ -20,6 +20,7 @@ import { isColdEvaluationEligible, isColdEvaluationType, MISSING_SPONSOR_EMAIL_M
 import { renderLiveRecordingNotice } from "../_shared/live-recording-notice.ts";
 import { addWorkingDays, fetchWorkingDays } from "../_shared/working-days.ts";
 import { fetchAccessVenues, resolveTrainingAccess, includeAccessInstructions, accessInstructionsHtml } from "../_shared/training-access.ts";
+import { includeTrainingCommunity } from "../_shared/training-community.ts";
 
 interface ForceSendRequest {
   scheduledEmailId: string;
@@ -1354,6 +1355,9 @@ Règles :
     // Balayage final : personnalise les liens support (y compris collés en dur
     // dans un template custom) — le player LMS exige ?email=<destinataire>.
     htmlContent = personalizeSupportsLinks(htmlContent, recipientEmail);
+    if (["welcome", "reminder", "live_reminder"].includes(scheduledEmail.email_type)) {
+      htmlContent = includeTrainingCommunity(htmlContent, training, appUrl);
+    }
 
     let emailResponse;
     try {
