@@ -17,6 +17,8 @@ export interface VariableDoc {
 }
 
 export const VARIABLE_DOCS: Record<string, VariableDoc> = {
+  focus_title: { label: "Titre du focus Qualiopi", description: "Titre du focus quotidien des deux indicateurs prioritaires.", sample: "Votre focus Qualiopi du jour" },
+  global_footer: { label: "Synthèse globale Qualiopi", description: "Nombre d’indicateurs restant à traiter et lien vers l’audit blanc.", sample: "<p>Reste 16 indicateurs à traiter. <a href=\"#\">Voir l’audit blanc</a></p>", isBlock: true },
   // Personnes
   first_name: { label: "Prénom du destinataire", description: "Prénom de la personne qui reçoit le mail (participant, contact, apprenant).", sample: "Sophie" },
   recipient_name: { label: "Nom du destinataire", description: "Nom complet de la personne qui reçoit le mail.", sample: "Sophie Bergaglio" },

@@ -32,7 +32,6 @@ jobs:
           CI_RUN_ID: ${{ inputs.ci_run_id }}
         with:
           script: |
-            const { validateAutofixRun } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/autofix-policy.mjs`).catch(() => ({ validateAutofixRun: null }));
             const id = process.env.CI_RUN_ID;
             if (!/^\d+$/.test(id)) throw new Error('Identifiant CI invalide');
             const { data: run } = await github.rest.actions.getWorkflowRun({ ...context.repo, run_id: id });
@@ -78,6 +77,7 @@ jobs:
           claude_args: |
             --model claude-opus-4-8
             --max-turns 12
+            --max-budget-usd 5
             --allowedTools Bash,Read,Write,Edit,Glob,Grep,Agent
           prompt: |
             Le workflow CI vient d'échouer sur main
