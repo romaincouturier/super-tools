@@ -1,5 +1,11 @@
 # Roadmap
 
+## Consommation Anthropic (2026-11-16)
+- [x] Registre app depuis le 15/11 : un appel Anthropic (3144 entrée/134 sortie, estimation 0,007628 USD), provider partagé Lovable. GitHub : six Autofix non ignorés le 15/11 et deux le 16/11 ; étapes Claude vérifiées sur deux runs, modèle Opus sans borne de tours/budget. Tokens/factures GitHub non accessibles (logs 403), origine probable hors registre app.
+- [x] Autofix rendu manuel uniquement, run CI échoué/main/dépôt validé avant la clé, 12 tours maximum, budget client estimé 5 USD (pas garantie de facture), durée 20 minutes ; CI et modèle conservés. Deux descriptions email Qualiopi manquantes corrigées, cause du dernier CI confirmée par annotations.
+- [x] 10 tests ciblés, 103 règles et suite complète : 275 fichiers, 3305 tests OK, un saut préexistant ; compilation OK. Aucune fonction/crons/donnée/clés modifiés. Règle technique dans .github/AGENTS.md car root plein.
+- [ ] Synchroniser le workflow sur GitHub puis vérifier le prochain échec sans démarrage Claude ; pas de droit d’écriture GitHub dans cette session, aucun push effectué. Ancien run 43969206005 encore actif au contrôle : annulation nécessaire dans Actions, anciennes exécutions non affectées par le fichier modifié.
+
 ## Choix de communauté formation (2026-11-16)
 - [x] Choix interne/externe/aucune dans création et modification, bouton Supprimer ; communauté distincte des supports et inscriptions. Convocations, accès, démarrage et rappels live/aujourd’hui utilisent le lien interne ; alertes internes réutilisent les travaux sans retour staff, sans doublonner les groupes externes.
 - [x] Trois sessions Facilitation graphique (mars 2026, novembre 2026, mars 2027) rattachées au cours interne, trois traces ; 27 anciennes tâches LinkedIn ouvertes clôturées avec trace. Aucun groupe externe dans les formations après relecture ; cinq événements PictoChallenge #83/#84/#86 (deux)/#87 conservent leur groupe 9892107, non déclaré obsolète et non modifié.

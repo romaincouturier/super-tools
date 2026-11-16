@@ -1,0 +1,2 @@
+# Architecture
+- Paid CI repair is manual-only and validates the requested failed main CI run before Claude; agent turns, estimated spend and job duration are bounded, because every failing push otherwise launches another paid agent outside the app usage ledger.

@@ -1,35 +1,48 @@
 name: Autofix main
 
-# Détection-réparation : Lovable pousse librement sur main (aucune protection
-# de branche), le CI observe, et quand il passe au rouge ce workflow déclenche
-# Claude qui diagnostique, corrige sur une branche dédiée et ouvre une PR
-# corrective. Ne pousse jamais sur main.
+# Réparation payante uniquement sur demande explicite pour un run CI échoué.
+# La CI continue automatiquement, sans déclencher Claude sur chaque commit.
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  workflow_dispatch:
+    inputs:
+      ci_run_id:
+        description: "Identifiant du run CI en échec à corriger"
+        required: true
+        type: string
 
 concurrency:
-  group: autofix-main
+  group: autofix-main-${{ inputs.ci_run_id }}
   cancel-in-progress: false
 
 jobs:
   autofix:
-    if: >
-      github.event.workflow_run.conclusion == 'failure' &&
-      github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       pull-requests: write
       issues: write
       actions: read
     steps:
+      - name: Valider le run CI demandé
+        id: ci
+        uses: actions/github-script@v7
+        env:
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+        with:
+          script: |
+            const id = process.env.CI_RUN_ID;
+            if (!/^\d+$/.test(id)) throw new Error('Identifiant CI invalide');
+            const { data: run } = await github.rest.actions.getWorkflowRun({ ...context.repo, run_id: id });
+            if (run.name !== 'CI' || run.head_branch !== 'main' || run.status !== 'completed' || run.conclusion !== 'failure' || run.repository?.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+              throw new Error('Seul un run CI terminé en échec sur main de ce dépôt peut être réparé');
+            }
+            core.setOutput('sha', run.head_sha);
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ steps.ci.outputs.sha }}
           fetch-depth: 0
 
       - name: Setup git
@@ -63,13 +76,15 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
             --model claude-opus-4-8
+            --max-turns 12
+            --max-budget-usd 5
             --allowedTools Bash,Read,Write,Edit,Glob,Grep,Agent
           prompt: |
             Le workflow CI vient d'échouer sur main
-            (commit ${{ github.event.workflow_run.head_sha }}).
+            (commit ${{ steps.ci.outputs.sha }}).
 
             1. Récupère les logs de l'échec :
-               gh run view ${{ github.event.workflow_run.id }} --log-failed
+               gh run view ${{ inputs.ci_run_id }} --log-failed
             2. Reproduis en local (npm run typecheck, bash scripts/check-rules.sh,
                npm test) et identifie la cause racine.
             3. Applique le correctif minimal. Consulte IMPROVEMENTS.md avant de
