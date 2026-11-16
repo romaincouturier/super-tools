@@ -23,7 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskText, maskEmail } from "@/lib/demoMask";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import {
   STATUS_LABELS,
@@ -77,6 +77,12 @@ const Reclamations = () => {
   const [loading, setLoading] = useState(true);
   const [selectedRec, setSelectedRec] = useState<Reclamation | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const requestedReclamation = searchParams.get('id');
+  useEffect(() => {
+    const row = reclamations.find(r => r.id === requestedReclamation);
+    if (row) { setSelectedRec(row); setDrawerOpen(true); }
+  }, [requestedReclamation, reclamations]);
   const [generatingLink, setGeneratingLink] = useState(false);
   const { loading: aiLoading, invoke: invokeAiAssist } = useEdgeFunction<{ analysis?: string; draft?: string; summary?: string }>(
     "reclamation-ai-assist",

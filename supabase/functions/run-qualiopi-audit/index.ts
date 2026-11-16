@@ -3,11 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import { hasManagedCronCredential, isCronOrServiceRole } from "../_shared/cron-auth.ts";
 import { automaticIssues } from "../_shared/qualiopi-checks.ts";
-import { auditChanges, auditMailSummary, auditEmailModel, renderAuditActions, shouldSendAuditSummary } from '../_shared/qualiopi-summary.ts';
+import { auditChanges, auditMailSummary, auditFocusModel, renderAuditActions, shouldSendAuditSummary } from '../_shared/qualiopi-summary.ts';
 import { sendEmail } from '../_shared/resend.ts';
 import { getBccList, getSenderEmail } from '../_shared/email-settings.ts';
 import { getSigniticSignature } from '../_shared/signitic.ts';
-import { renderCatalogEmail, ctaButton } from '../_shared/editable-email.ts';
+import { renderCatalogEmail } from '../_shared/editable-email.ts';
 import { collectAuditFacts } from '../_shared/qualiopi-collector.ts';
 import { verifyAuth } from '../_shared/supabase-client.ts';
 
@@ -24,7 +24,7 @@ import { verifyAuth } from '../_shared/supabase-client.ts';
  * sa date initiale, et ferme les écarts corrigés ainsi que les doublons.
  */
 
-const VERSION = "run-qualiopi-audit@2026-11-15.2";
+const VERSION = "run-qualiopi-audit@2026-11-16.1";
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -53,6 +53,8 @@ serve(async (req) => {
     const sampleIds = sample.map(t => t.trainingId);
     const issues = automaticIssues(facts);
 
+    const focusRead = await supabase.from('audit_runs').select('facts').like('notes', 'Passage automatique%').order('started_at', { ascending: false }).limit(1).maybeSingle();
+    if (focusRead.error) throw focusRead.error;
     const sentRead = await supabase.from('audit_runs').select('id, findings, facts, answers, summary_email_sent_at').not('summary_email_sent_at', 'is', null).order('summary_email_sent_at', { ascending: false }).limit(1).maybeSingle();
     if (sentRead.error) throw sentRead.error;
     const answersRead = await supabase.from('audit_runs').select('answers, sample_training_ids')
@@ -61,6 +63,8 @@ serve(async (req) => {
     if (answersRead.error) throw answersRead.error;
     const sameSample = JSON.stringify([...(answersRead.data?.sample_training_ids ?? [])].sort()) === JSON.stringify([...sampleIds].sort());
     const answers = sameSample ? answersRead.data?.answers ?? {} : {};
+    const model = auditFocusModel(facts, answers, focusRead.data?.facts?.auditFocus ?? []);
+    facts.auditFocus = model.focus;
     const { data: run, error: runError } = await supabase.from("audit_runs").insert({
       label: `Contrôle automatique du ${new Date().toLocaleDateString("fr-FR", { timeZone: 'Europe/Paris' })}`,
       finished_at: new Date().toISOString(),
@@ -104,10 +108,9 @@ serve(async (req) => {
     let emailSent = false;
     const changed = changesSinceEmail.changed || summaryChanged || !sentRead.data;
     if (shouldSendAuditSummary(changed, sentRead.data?.summary_email_sent_at)) {
-      const model = auditEmailModel(facts, answers, !changed);
-      const rendered = await renderCatalogEmail(supabase, 'qualiopi_audit_summary', {
-        vars: { global_state: model.globalState, change_note: model.changeNote },
-        blocks: { actions_list: renderAuditActions(model.actions), audit_button: ctaButton("Ouvrir l'audit blanc", 'https://academy.supertilt.fr/audit-blanc'), signature: await getSigniticSignature() },
+      const rendered = await renderCatalogEmail(supabase, 'qualiopi_audit_focus', {
+        vars: { focus_title: model.focus.length ? `indicateurs ${model.focus.join(' et ')}` : 'aucun indicateur à corriger' },
+        blocks: { actions_list: renderAuditActions(model.actions), global_footer: `<p>Reste ${model.remaining} indicateur${model.remaining > 1 ? 's' : ''} à traiter${model.remaining ? ', prochain focus demain' : ''} · <a href="https://academy.supertilt.fr/audit-blanc">Audit blanc</a></p>`, signature: await getSigniticSignature() },
       });
       const sent = await sendEmail({ to: recipientEmail, bcc: (await getBccList()).filter(e => e !== recipientEmail), subject: rendered.subject, html: `<div style="text-align:left">${rendered.html}</div>`, _emailType: 'qualiopi_audit_summary', idempotencyKey: `qualiopi-audit-${run.id}` });
       const saved = await supabase.from('audit_runs').update({ summary_email_sent_at: sent.success ? new Date().toISOString() : null, summary_email_error: sent.error ?? null }).eq('id', run.id);

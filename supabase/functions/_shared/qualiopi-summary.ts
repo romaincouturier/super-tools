@@ -1,4 +1,4 @@
-import { auditPlan, automaticAnswers, evaluateIndicator, summarize, type AuditFacts, type AutomaticIssue, type AnswerValue } from './qualiopi-checks.ts';
+import { auditPlan, automaticAnswers, evaluateIndicator, summarize, type AuditFacts, type AutomaticIssue, type AnswerValue, type AuditAffectedItem } from './qualiopi-checks.ts';
 
 export function auditChanges(current: AutomaticIssue[], previous: AutomaticIssue[]) {
   const before = new Map(previous.map(i => [i.checkId, i]));
@@ -31,6 +31,7 @@ export interface AuditAction {
   href: string;
   minutes: number;
   priority: number;
+  tasks?: Array<{ problem: string; recommendation: string; href: string; items: AuditAffectedItem[] }>;
 }
 
 const destinations: Record<number, string> = {
@@ -85,14 +86,14 @@ export function auditEmailModel(facts: AuditFacts, answers: Record<string, Answe
     const failed = finding.checks.filter(c => c.status === 'ko' || finding.blocked.includes(c.id)).map(c => {
       const def = plan.checks.find(d => d.id === c.id);
       const [recommendation, minutes] = recommendations[c.id] ?? [`Vérifie « ${c.label} » et conserve la preuve dans l’audit.`, 15];
-      return { ...base, problem: `${c.label} : ${c.detail}`, recommendation, minutes, href: def?.fix?.href ?? destinations[finding.number] ?? '/audit-blanc' };
+      return { ...base, problem: `${c.label} : ${c.detail}`, recommendation, minutes, href: def?.fix?.href ?? destinations[finding.number] ?? '/audit-blanc', tasks: [{ problem: `${c.label} : ${c.detail}`, recommendation, href: def?.fix?.href ?? destinations[finding.number] ?? '/audit-blanc', items: facts.affectedItems?.[c.id] ?? [] }] };
     });
     const manual = plan.questions.filter(q => !effective[q.id] || effective[q.id] === 'non');
     if (manual.length) failed.push({
       ...base,
       problem: effective[manual[0].id] === 'non' ? 'Une réponse manuelle indique un attendu non respecté.' : 'Les preuves disponibles ne permettent pas de vérifier ce point sans ton complément.',
       recommendation: manual.map(q => `Réponds dans l’audit : ${q.label}${q.hint ? ` Preuve : ${q.hint}` : ''}`).join(' '),
-      href: `/audit-blanc?indicator=${finding.number}`, minutes: manual.length * 5,
+      href: `/audit-blanc?indicator=${finding.number}`, minutes: manual.length * 5, tasks: manual.map(q => ({ problem: 'Preuve à confirmer dans cet audit.', recommendation: `Confirme avec une preuve : ${q.label}`, href: `/audit-blanc?indicator=${finding.number}`, items: [] })),
     });
     return failed;
   }).sort((a, b) => a.priority - b.priority || a.indicator - b.indicator);
@@ -103,6 +104,7 @@ export function auditEmailModel(facts: AuditFacts, answers: Record<string, Answe
     const existing = grouped.get(action.indicator);
     if (!existing) grouped.set(action.indicator, { ...action });
     else {
+      existing.tasks = [...(existing.tasks ?? []), ...(action.tasks ?? [])];
       existing.recommendation += ` ${action.recommendation}`;
       existing.minutes += action.minutes;
     }
@@ -111,9 +113,21 @@ export function auditEmailModel(facts: AuditFacts, answers: Record<string, Answe
   return { summary, globalState, changeNote: unchanged ? 'Aucun changement depuis le dernier envoi. Voici les trois actions prioritaires encore à traiter.' : 'Les contrôles portent sur les cinq dernières sessions terminées non annulées. Les preuves non détectables restent à compléter, pas à déclarer absentes.', actions: unchanged ? prioritized.slice(0, 3) : prioritized };
 }
 
+export function selectAuditFocus(actions: AuditAction[], previous: number[] = []): number[] {
+  const unresolved = previous.filter((n, i) => previous.indexOf(n) === i && actions.some(a => a.indicator === n));
+  if (unresolved.length) return unresolved.slice(0, 2);
+  return [...actions].sort((a, b) => a.priority - b.priority || a.indicator - b.indicator).slice(0, 2).map(a => a.indicator);
+}
+
+export function auditFocusModel(facts: AuditFacts, answers: Record<string, AnswerValue> = {}, previous: number[] = []) {
+  const model = auditEmailModel(facts, answers);
+  const focus = selectAuditFocus(model.actions, previous);
+  return { ...model, focus, actions: focus.flatMap(n => model.actions.filter(a => a.indicator === n)), remaining: model.actions.length };
+}
+
 export function renderAuditActions(actions: AuditAction[]) {
-  if (!actions.length) return '<p>Aucune action à traiter.</p>';
-  return `<ol>${actions.map(a => `<li><strong>Indicateur ${a.indicator} (${escapeAuditHtml(a.label)})</strong> : ${escapeAuditHtml(a.problem)}<br>Action : ${escapeAuditHtml(a.recommendation)}<br><a href="https://academy.supertilt.fr${escapeAuditHtml(a.href)}">Ouvrir l’écran concerné</a> · <a href="https://academy.supertilt.fr/audit-blanc?indicator=${a.indicator}">Compléter cet indicateur dans l’audit</a> · Temps estimé : ${a.minutes} min.</li>`).join('')}</ol>`;
+  if (!actions.length) return '<p>Aucun indicateur à corriger.</p>';
+  return actions.map(a => `<section style="margin-bottom:24px"><p><strong>Indicateur ${a.indicator} — ${escapeAuditHtml(a.label)}</strong></p><p>${escapeAuditHtml(a.problem)}</p>${(a.tasks ?? [{ problem: a.problem, recommendation: a.recommendation, href: a.href, items: [] }]).map(t => `<p>Action : ${escapeAuditHtml(t.recommendation)}</p>${t.items.length ? `<ul>${t.items.map(i => `<li><a href="https://academy.supertilt.fr${escapeAuditHtml(i.href)}">${escapeAuditHtml(i.label)}</a> : ${escapeAuditHtml(i.missing)}</li>`).join('')}</ul>` : `<p><a href="https://academy.supertilt.fr${escapeAuditHtml(t.href)}">${escapeAuditHtml(t.recommendation.startsWith('Confirme') ? 'Confirmer cette preuve dans l’audit' : 'Ouvrir le dossier concerné')}</a></p>`}`).join('')}<p><a href="https://academy.supertilt.fr/audit-blanc?indicator=${a.indicator}#indicator-${a.indicator}">Compléter cet indicateur</a> · Temps estimé : ${a.minutes} min.</p></section>`).join('');
 }
 
 export function escapeAuditHtml(value: string) {

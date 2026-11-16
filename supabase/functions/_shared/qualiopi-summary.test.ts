@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { auditChanges, auditEmailModel, escapeAuditHtml, renderAuditActions, shouldSendAuditSummary } from './qualiopi-summary';
+import { auditChanges, auditEmailModel, auditFocusModel, selectAuditFocus, escapeAuditHtml, renderAuditActions, shouldSendAuditSummary, type AuditAction } from './qualiopi-summary';
 import { buildFacts, evaluateIndicator, auditPlan, type AutomaticIssue, type RawAuditData } from './qualiopi-checks';
 import { EDITABLE_EMAIL_DEFAULTS } from './editable-email-defaults';
 const raw: RawAuditData = {
@@ -78,5 +78,39 @@ describe('Bilan audit', () => {
     expect(model.summary.questions.some(q => q.includes('équipe pédagogique'))).toBe(false);
     expect(model.summary.questions.some(q => q.includes('ruptures de parcours'))).toBe(false);
     expect(auditEmailModel(buildFacts(raw)).summary.questions.some(q => q.includes('équipe pédagogique'))).toBe(true);
+  });
+});
+
+describe('Focus quotidien audit blanc', () => {
+  const action = (indicator: number, priority: number): AuditAction => ({ indicator, priority, label: 'Test', problem: 'Manque', recommendation: 'Compléter', href: '/audit-blanc', minutes: 5 });
+  it('limite le focus à deux indicateurs, majeurs puis mineurs puis à compléter', () => {
+    expect(selectAuditFocus([action(4, 2), action(22, 0), action(1, 1)])).toEqual([22, 1]);
+  });
+  it('conserve les deux indicateurs non corrigés malgré une nouvelle priorité', () => {
+    expect(selectAuditFocus([action(1, 0), action(4, 2), action(8, 2)], [4, 8])).toEqual([4, 8]);
+  });
+  it('ne passe pas au suivant tant que le deuxième indicateur reste en défaut', () => {
+    expect(selectAuditFocus([action(1, 0), action(8, 2)], [4, 8])).toEqual([8]);
+  });
+  it('prend les deux suivants une fois le focus entièrement corrigé', () => {
+    expect(selectAuditFocus([action(1, 1), action(22, 0), action(9, 2)], [4, 8])).toEqual([22, 1]);
+  });
+  it('le mail et le résultat utilisent les deux mêmes indicateurs et comptent tous ceux restants', () => {
+    const facts = buildFacts(raw);
+    const model = auditFocusModel(facts);
+    expect(model.actions).toHaveLength(2);
+    expect(model.remaining).toBe(auditEmailModel(facts).actions.length);
+    expect(model.actions.map(a => a.indicator)).toEqual(model.focus);
+  });
+  it('fournit chaque session en défaut, son manque et son lien sans perdre les autres contrôles', () => {
+    const facts = buildFacts({ ...raw, sampleIds: ['a', 'b'], sampleTrainings: ['a', 'b'].map(id => ({ id, training_name: `Session ${id}`, objectives: [], program_file_url: null, supports_lms_course_id: null, trainer_id: null })) });
+    const model = auditFocusModel(facts, {}, [6]);
+    expect(model.actions).toHaveLength(1);
+    expect(model.actions[0].tasks?.[0].items.map(i => i.href)).toEqual(['/formations/a', '/formations/b']);
+    expect(model.actions[0].tasks?.[0].items[0].missing).toBe('Aucun programme ou parcours rattaché.');
+    const html = renderAuditActions(model.actions);
+    expect(html).toContain('https://academy.supertilt.fr/formations/a');
+    expect(html).toContain('https://academy.supertilt.fr/formations/b');
+    expect(html).not.toContain('Indicateur 22');
   });
 });
