@@ -1,4 +1,5 @@
 # Architecture
+- Training communities have their own course link, independent of supports/enrollment; learner email links use training-community.ts and internal daily alerts reuse the pending LMS queue, because selecting a community must not change course access or duplicate alerts.
 - Physical training access uses a shared resolver (session override, venue link or unique exact legacy address match) and email-safe rendering; daily alerts use the same resolver and a strict seven-day boundary, so legacy sessions inherit real venue instructions without changing session data.
 - Qualiopi screen and scheduled audit share a paginated read-only collector; only evidenced questions are auto-answered and missing responses are not missing processes, because partial samples and placeholder zeros must not invent non-conformities.
 - Qualiopi focus is stored inside each automatic run's facts and shared by email and UI; unresolved focus members block advancing to the next pair, and affected items retain their own missing evidence and deep links, because a global count cannot identify the dossier to correct.

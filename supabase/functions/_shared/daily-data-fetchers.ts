@@ -358,14 +358,14 @@ export async function fetchMissionActions(supabase: SupabaseClient, today: strin
 export async function fetchElearningGroups(supabase: SupabaseClient, today: string): Promise<ElearningGroupItem[]> {
   const { data } = await supabase
     .from("trainings")
-    .select("id, training_name, start_date, end_date, private_group_url, assigned_to")
+    .select("id, training_name, start_date, end_date, private_group_url, community_lms_course_id, assigned_to, is_cancelled")
     .in("format_formation", ["e_learning"])
     .not("private_group_url", "is", null)
-    .lte("start_date", today);
+    .or(`start_date.is.null,start_date.lte.${today}`);
 
   if (!data) return [];
   return data
-    .filter((t: any) => !(t.end_date && t.end_date < today) && t.private_group_url?.trim())
+    .filter((t: any) => !t.is_cancelled && !t.community_lms_course_id && !(t.end_date && t.end_date < today) && t.private_group_url?.trim())
     .map((t: any) => ({
       id: t.id,
       trainingName: t.training_name,
