@@ -52,9 +52,12 @@ export type Database = {
           id: string
           is_favorite: boolean
           mime_type: string | null
+          source_gmail_message_id: string | null
+          storage_path: string | null
           summary: string | null
           tags: string[] | null
           uploaded_at: string | null
+          valid_until: string | null
           year: number | null
         }
         Insert: {
@@ -67,9 +70,12 @@ export type Database = {
           id?: string
           is_favorite?: boolean
           mime_type?: string | null
+          source_gmail_message_id?: string | null
+          storage_path?: string | null
           summary?: string | null
           tags?: string[] | null
           uploaded_at?: string | null
+          valid_until?: string | null
           year?: number | null
         }
         Update: {
@@ -82,9 +88,12 @@ export type Database = {
           id?: string
           is_favorite?: boolean
           mime_type?: string | null
+          source_gmail_message_id?: string | null
+          storage_path?: string | null
           summary?: string | null
           tags?: string[] | null
           uploaded_at?: string | null
+          valid_until?: string | null
           year?: number | null
         }
         Relationships: []
