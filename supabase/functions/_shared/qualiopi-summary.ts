@@ -105,7 +105,6 @@ export function auditEmailModel(facts: AuditFacts, answers: Record<string, Answe
     if (!existing) grouped.set(action.indicator, { ...action });
     else {
       existing.tasks = [...(existing.tasks ?? []), ...(action.tasks ?? [])];
-      existing.problem += ` ${action.problem}`;
       existing.recommendation += ` ${action.recommendation}`;
       existing.minutes += action.minutes;
     }

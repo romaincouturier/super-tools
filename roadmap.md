@@ -1,9 +1,10 @@
 # Roadmap
 
 ## Focus quotidien audit blanc (2026-11-16)
-- [ ] Conserver deux indicateurs prioritaires jusqu’à résolution du focus, persister le choix avec le passage automatique et remplacer le rapport email complet.
-- [ ] Charger le dernier résultat à l’ouverture, afficher le focus et les défauts par élément avec leurs liens et actions.
-- [ ] Tester la priorité, la persistance et les liens en session réelle sans envoi ni modification de données réelles d’audit ; déployer uniquement la fonction d’audit, sans changer le cron.
+- [x] Deux indicateurs prioritaires maximum, maintenus jusqu’à correction de toute la paire ; choix persisté dans les faits du passage automatique, nouveau modèle email focus distinct pour ne pas réutiliser un ancien rapport personnalisé.
+- [x] Dernier résultat chargé dès l’ouverture, focus et défauts par dossier avec actions ; ouverture directe des indicateurs, formations, catalogue, formateurs, risques et réclamations. Anciens résultats enrichis en lecture seule uniquement si l’échantillon correspond.
+- [x] 59 tests et 103 règles réussis ; session réelle Romain : deux indicateurs 21/1, résultat ouvert sans relance, cinq liens individuels vers les formations et ouverture d’une fiche, mobile sans débordement ni erreur. Aucun email ou audit déclenché ; 10 passages conservés, dernier 16/11 06:40 UTC. run-qualiopi-audit déployée, cron et droits inchangés ; règle structurelle dans _shared/AGENTS.md, root plein.
+- [ ] Publier les écrans ; publication non demandée. Premier email quotidien du nouveau format et conservation après un prochain passage automatique non exécutés pendant les tests pour préserver les données réelles.
 
 ## Archives entreprise MCP (2026-11-16)
 - [x] Archives administratives réutilisées : quatre outils OAuth, administrateurs uniquement, stockage privé et ajouts journalisés sans remplacement ni suppression ; Gmail connecté préexistant conservé.
