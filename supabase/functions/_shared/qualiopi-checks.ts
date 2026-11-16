@@ -827,7 +827,7 @@ export interface RawAuditData {
   sponsorEvaluationsSubmitted: number;
   funderAppreciations: number;
   reclamations: Array<{ id?: string; description?: string; acknowledgement_sent_at: string | null; response_date: string | null }>;
-  risks: Array<{ id?: string; title?: string; criticality: number | null; preventive_measure: string | null; status: string }>;
+  risks: Array<{ id?: string; label?: string; criticality: number | null; preventive_measure: string | null; status: string }>;
   improvements: number;
   trainerReturns?: number;
   startReminders?: number;
@@ -903,7 +903,7 @@ export function buildFacts(raw: RawAuditData): AuditFacts {
   }
   for (const t of raw.trainers) {
     const label = [t.first_name, t.last_name].filter(Boolean).join(' ') || 'Formateur';
-    const href = '/parametres?find=tab%3Atrainers';
+    const href = `/parametres?find=tab%3Atrainers&trainer=${t.id}`;
     if (!(t.competences ?? []).length) add('21.competences', label, href, 'Compétences non renseignées.');
     if (!docOwners.has(t.id) && !filled(t.cv_url)) add('21.justificatifs', label, href, 'Aucun CV ou justificatif rattaché.');
     if (!Array.isArray(t.formations_suivies) || !t.formations_suivies.length) add('22.formation', label, href, 'Aucune formation continue renseignée.');
@@ -914,7 +914,7 @@ export function buildFacts(raw: RawAuditData): AuditFacts {
     if (!r.response_date) add('31.reponse', r.description ?? 'Réclamation', href, 'Réponse datée non enregistrée.');
   }
   for (const r of raw.risks) if ((r.criticality ?? 0) >= 8 && r.status !== 'closed' && !filled(r.preventive_measure)) {
-    add('32.mesures', r.title ?? 'Risque élevé', '/risques', 'Mesure de prévention manquante.');
+    add('32.mesures', r.label ?? 'Risque élevé', r.id ? `/risques?id=${r.id}` : '/risques', 'Mesure de prévention manquante.');
   }
   return {
     affectedItems,

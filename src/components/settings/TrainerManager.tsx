@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { useSearchParams } from 'react-router-dom';
 
 interface FormationSuivie {
   titre: string;
@@ -96,6 +97,8 @@ export default function TrainerManager() {
   const [formationsSuivies, setFormationsSuivies] = useState<FormationSuivie[]>([]);
 
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const requestedTrainer = searchParams.get('trainer');
 
   useEffect(() => {
     fetchTrainers();
@@ -167,6 +170,11 @@ export default function TrainerManager() {
     }
     setDialogOpen(true);
   };
+
+  useEffect(() => {
+    const trainer = trainers.find(t => t.id === requestedTrainer);
+    if (trainer) openDialog(trainer);
+  }, [requestedTrainer, trainers]);
 
   const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

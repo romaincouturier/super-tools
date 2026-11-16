@@ -1,5 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from 'react-router-dom';
 import { AlertTriangle, Plus, ShieldQuestion } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -94,6 +95,8 @@ const RegistreRisques = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<QualityRiskFormValues>(EMPTY_RISK_FORM);
   const [saving, setSaving] = useState(false);
+  const [searchParams] = useSearchParams();
+  const requestedRisk = searchParams.get('id');
 
   const today = todayAsISO();
 
@@ -121,6 +124,11 @@ const RegistreRisques = () => {
     });
     setDialogOpen(true);
   };
+
+  useEffect(() => {
+    const risk = risks.find(r => r.id === requestedRisk);
+    if (risk) openEdit(risk);
+  }, [requestedRisk, risks]);
 
   const handleSave = async () => {
     if (!form.label.trim()) {

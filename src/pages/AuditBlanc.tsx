@@ -85,9 +85,18 @@ export default function AuditBlanc() {
       setFacts(stored);
       setSample(stored.sample ?? []);
       setAnswers({ ...automaticAnswers(stored), ...(latest.answers as Record<string, AnswerValue> ?? {}) });
+      if (!stored.affectedItems) {
+        gather().then(result => {
+          const sameSample = JSON.stringify([...latest.sample_training_ids].sort()) === JSON.stringify(result.sample.map(s => s.trainingId).sort());
+          if (sameSample) {
+            setFacts(current => current ? { ...current, affectedItems: result.facts.affectedItems } : current);
+            setSample(result.sample);
+          }
+        }).catch(error => toastError(toast, error instanceof Error ? error.message : 'Détails des dossiers indisponibles'));
+      }
     }
     setInitialized(true);
-  }, [runs, loadingRuns, initialized]);
+  }, [runs, loadingRuns, initialized, gather, toast]);
 
   const plans = useMemo(() => auditPlan(), []);
 
