@@ -19,6 +19,7 @@ import { isEvaluationSubmitted, isNeedsSurveySubmitted } from "../_shared/remind
 import { isColdEvaluationEligible, isColdEvaluationType, MISSING_SPONSOR_EMAIL_MESSAGE, resolveSponsorRecipient } from "../_shared/cold-evaluation.ts";
 import { renderLiveRecordingNotice } from "../_shared/live-recording-notice.ts";
 import { addWorkingDays, fetchWorkingDays } from "../_shared/working-days.ts";
+import { fetchAccessVenues, resolveTrainingAccess, includeAccessInstructions, accessInstructionsHtml } from "../_shared/training-access.ts";
 
 interface ForceSendRequest {
   scheduledEmailId: string;
@@ -105,6 +106,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Fetch required equipment from catalog if linked
+    const accessInstructions = ["welcome", "reminder"].includes(scheduledEmail.email_type)
+      ? resolveTrainingAccess(training, await fetchAccessVenues(supabase)) : "";
     let requiredEquipment = "";
     if (training.catalog_id) {
       const { data: catalogData } = await supabase
@@ -175,13 +178,13 @@ const handler = async (req: Request): Promise<Response> => {
       if (!template) return null;
       
       const resolvedSubject = processTemplate(template.subject, variables, false);
-      const body = processTemplate(template.html_content, variables, false);
+      const body = processTemplate(template.html_content, { ...variables, access_instructions: accessInstructionsHtml(accessInstructions) }, false);
       // Convert plain text newlines to HTML paragraphs, preserving any HTML in template
       const resolvedHtml = body
         .split(/\n\n+/)
         .map((p: string) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
         .join("") + "\n" + signatureHtml;
-      return { subject: resolvedSubject, htmlContent: resolvedHtml };
+      return { subject: resolvedSubject, htmlContent: template.html_content.includes("{{access_instructions}}") ? resolvedHtml : includeAccessInstructions(resolvedHtml, accessInstructions) };
     }
 
     // Format helpers
@@ -261,6 +264,7 @@ const handler = async (req: Request): Promise<Response> => {
             ${signatureHtml}
           `;
         }
+        if (!resolved) htmlContent = includeAccessInstructions(htmlContent, accessInstructions);
         break;
       }
 
@@ -419,6 +423,7 @@ const handler = async (req: Request): Promise<Response> => {
             ${signatureHtml}
           `;
         }
+        if (!resolved) htmlContent = includeAccessInstructions(htmlContent, accessInstructions);
         break;
       }
 

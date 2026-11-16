@@ -8,6 +8,7 @@ import { processTemplate, emailButton, templateTextToHtml } from "../_shared/tem
 import { tuVousSuffix, fetchTemplateOrDefault, logEmailActivity } from "../_shared/email-helpers.ts";
 import { aiChat } from "../_shared/ai.ts";
 import { personalizeSupportsLinks } from "../_shared/supports-url.ts";
+import { fetchAccessVenues, resolveTrainingAccess, includeAccessInstructions, accessInstructionsHtml } from "../_shared/training-access.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
@@ -53,7 +54,7 @@ serve(async (req) => {
       if (!schedulesByTraining.has(s.training_id)) {
         schedulesByTraining.set(s.training_id, []);
       }
-      schedulesByTraining.get(s.training_id)!.push({ start_time: s.start_time, end_time: s.end_time });
+      schedulesByTraining.get(s.training_id)?.push({ start_time: s.start_time, end_time: s.end_time });
     }
 
     // Also include trainings whose start_date == today (e.g. e-learning) even
@@ -89,6 +90,9 @@ serve(async (req) => {
         training_name,
         start_date,
         location,
+        venue_id,
+        access_instructions,
+        session_format,
         format_formation,
         participants_formal_address,
         supports_url,
@@ -166,9 +170,11 @@ serve(async (req) => {
     const APP_URL = urls.app_url;
 
     let totalSent = 0;
+    const accessVenues = await fetchAccessVenues(supabase);
 
     for (const training of trainings) {
       const trainingId = training.id;
+      const accessInstructions = resolveTrainingAccess(training, accessVenues);
 
       // Check if already sent today for this training
       const { data: existingLog } = await supabase
@@ -290,6 +296,7 @@ serve(async (req) => {
           first_name: p.first_name || "",
           training_name: training.training_name,
           location: training.location || "",
+          access_instructions: accessInstructionsHtml(accessInstructions),
           schedule: isElearning ? "" : (scheduleText || "Horaires à confirmer"),
           is_presentiel: isPresentiel ? "1" : undefined,
           is_classe_virtuelle: isClasseVirtuelle ? "1" : undefined,
@@ -305,7 +312,9 @@ serve(async (req) => {
         // Le player LMS exige ?email= : personnalise les liens support éventuels
         // (notamment collés en dur dans un template custom).
         const resolvedHtml = personalizeSupportsLinks(
-          templateTextToHtml(body)
+          template.content.includes("{{access_instructions}}") ? templateTextToHtml(body)
+            + "\n" + emailButton("Infos & documents de la formation", summaryUrl)
+            + "\n" + signatureHtml : includeAccessInstructions(templateTextToHtml(body), accessInstructions)
             + "\n" + emailButton("Infos & documents de la formation", summaryUrl)
             + "\n" + signatureHtml,
           p.email,

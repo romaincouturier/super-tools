@@ -40,6 +40,7 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   training_dates: { label: "Dates de la formation", description: "Toutes les dates de la session, formatées et séparées par des virgules.", sample: "12 et 13 mars 2026" },
   training_schedule: { label: "Horaires détaillés", description: "Programme jour par jour avec les horaires (bloc de plusieurs lignes).", sample: "Jeudi 12 mars : 9h00 - 12h30 / 14h00 - 17h30", isBlock: true },
   training_location: { label: "Lieu de la formation", description: "Adresse ou modalité (visio) du lieu de formation.", sample: "12 rue de Paris, 75011 Paris" },
+  access_instructions: { label: "Instructions d’accès", description: "Instructions de la session ou du lieu ; uniquement en présentiel et si renseignées.", sample: "<p><strong>Instructions d’accès</strong><br>Digicode 1234, 2e étage.</p>", isBlock: true },
   location: { label: "Lieu", description: "Lieu de l'évènement ou de la session.", sample: "Paris 11e" },
   session_date: { label: "Date de la session", description: "Date de la session concernée, formatée en français.", sample: "12 mars 2026" },
   start_date: { label: "Date de début", description: "Date de début de la formation ou de la période.", sample: "12 mars 2026" },

@@ -1122,7 +1122,7 @@ Nous restons à votre disposition pour toute question.
 
 À très bientôt !`,
     },
-    variables: ["first_name", "training_name", "training_date", "training_schedule", "training_location"],
+    variables: ["first_name", "training_name", "training_date", "training_schedule", "training_location", "access_instructions"],
   },
   reminder: {
     name: "Rappel formation imminente",
@@ -1161,7 +1161,7 @@ N'hésitez pas à me contacter si vous avez des questions.
 
 À très bientôt !`,
     },
-    variables: ["first_name", "training_name", "training_date", "training_schedule", "training_location"],
+    variables: ["first_name", "training_name", "training_date", "training_schedule", "training_location", "access_instructions"],
   },
   trainer_summary: {
     name: "Synthèse pré-formation (formateur)",
