@@ -1,5 +1,10 @@
 # Roadmap
 
+## Focus quotidien audit blanc (2026-11-16)
+- [ ] Conserver deux indicateurs prioritaires jusqu’à résolution du focus, persister le choix avec le passage automatique et remplacer le rapport email complet.
+- [ ] Charger le dernier résultat à l’ouverture, afficher le focus et les défauts par élément avec leurs liens et actions.
+- [ ] Tester la priorité, la persistance et les liens en session réelle sans envoi ni modification de données réelles d’audit ; déployer uniquement la fonction d’audit, sans changer le cron.
+
 ## Archives entreprise MCP (2026-11-16)
 - [x] Archives administratives réutilisées : quatre outils OAuth, administrateurs uniquement, stockage privé et ajouts journalisés sans remplacement ni suppression ; Gmail connecté préexistant conservé.
 - [x] Validité facultative et rappels J-30 à expiration dans digest/actions, catégories ajoutées ; migrations 0071/0072 appliquées, trois fonctions déployées, aucun cron ni email déclenché. 25 tests, 103 règles et compilation OK ; manifeste 22 outils extrait.
