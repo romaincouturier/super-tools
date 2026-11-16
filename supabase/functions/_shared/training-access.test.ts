@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { resolveTrainingAccess, findMissingTrainingAccess, includeAccessInstructions, accessInstructionsHtml, fetchAccessVenues } from "./training-access";
-import { EMAIL_TEMPLATES } from "../../../src/components/settings/settingsConstants";
+import { DEFAULT_TEMPLATES } from "../../../src/components/settings/settingsConstants";
 
 vi.mock("./resend.ts", () => ({ escapeHtml: (s: string) => s.replace(/</g, "&lt;").replace(/>/g, "&gt;") }));
 const { processTemplate, templateTextToHtml } = await import("./templates");
@@ -34,7 +34,7 @@ describe("instructions d’accès", () => {
 describe("instructions dans les mails participants", () => {
   it.each(["welcome", "reminder"])("insère les instructions dans %s tu et vous", type => {
     for (const suffix of ["tu", "vous"] as const) {
-      const definition = EMAIL_TEMPLATES[type];
+      const definition = DEFAULT_TEMPLATES[type];
       const html = includeAccessInstructions(templateTextToHtml(processTemplate(definition.content[suffix], { training_location: "Paris" }, false)), resolveTrainingAccess(training, [venue]));
       expect(html).toContain("Digicode 1234<br>2e étage, interphone Tribu");
       expect(html).toContain("Instructions d'accès");
