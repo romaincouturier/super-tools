@@ -58,6 +58,7 @@ describe("uploadAdminDocument", () => {
     uploaded_at: "2024-01-01T00:00:00Z",
     analyzed_at: null,
     is_favorite: false,
+    valid_until: null,
   };
 
   beforeEach(() => {
@@ -127,6 +128,7 @@ describe("deleteAdminDocument", () => {
     uploaded_at: "2024-01-01T00:00:00Z",
     analyzed_at: null,
     is_favorite: false,
+    valid_until: null,
   };
 
   it("removes the file from admin-archives storage", async () => {

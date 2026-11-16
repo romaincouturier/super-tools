@@ -9,6 +9,7 @@ export interface CategoryConfig {
 
 /** Display order for categories (matches daily digest email order) */
 export const CATEGORY_ORDER = [
+  "archives_expiration",
   "missions_actions",
   "formations_facture",
   "missions_a_facturer",
@@ -55,6 +56,7 @@ export const CATEGORY_ORDER = [
 ] as const;
 
 export const CATEGORIES: Record<string, CategoryConfig> = {
+  archives_expiration: { label: 'Archives — documents à renouveler', emoji: '', color: 'text-destructive' },
   qualiopi: { label: 'Audit blanc Qualiopi — écarts à traiter', emoji: '', color: 'text-destructive' },
   watch_sources_validate: { label: 'Sources de veille à valider', emoji: '', color: 'text-foreground' },
   watch_sources_subscribe: { label: 'Sources de veille — abonnements à faire', emoji: '', color: 'text-foreground' },
