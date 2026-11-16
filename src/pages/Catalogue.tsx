@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, BookOpen, Search, X, ArrowUpDown, ArrowUp, ArrowDown, FileDown, Copy, AlertTriangle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -149,6 +149,15 @@ const Catalogue = () => {
   const [sortColumn, setSortColumn] = useState<SortColumn>("formation_name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedEntry = searchParams.get('entry');
+  useEffect(() => {
+    if (!requestedEntry) return;
+    const entry = catalogEntries.find(e => e.id === requestedEntry);
+    if (!entry) return;
+    setEditingEntry(entry);
+    setDialogOpen(true);
+  }, [requestedEntry, catalogEntries]);
   const isMobile = useIsMobile();
   const { toast } = useToast();
 

@@ -26,7 +26,7 @@ import {
 import { criterionLabel } from "@/lib/auditReferential";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskText } from "@/lib/demoMask";
-import { auditFocusModel } from "../../supabase/functions/_shared/qualiopi-summary";
+import { auditEmailModel, auditFocusModel } from "../../supabase/functions/_shared/qualiopi-summary";
 
 /**
  * Un passage manuel stocke des verdicts, un passage automatique des constats
@@ -97,6 +97,7 @@ export default function AuditBlanc() {
   );
   const summary = useMemo(() => summarize(findings), [findings]);
   const focus = useMemo(() => facts ? auditFocusModel(facts, answers, facts.auditFocus ?? []).actions : [], [facts, answers]);
+  const actions = useMemo(() => facts ? auditEmailModel(facts, answers).actions : [], [facts, answers]);
 
   useEffect(() => {
     if (!facts || !requestedIndicator) return;
@@ -258,7 +259,7 @@ export default function AuditBlanc() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Accordion type="multiple" defaultValue={requestedIndicator ? [`i${requestedIndicator}`] : []} className="w-full">
+                  <Accordion key={requestedIndicator ?? 'all'} type="multiple" defaultValue={requestedIndicator ? [`i${requestedIndicator}`] : []} className="w-full">
                     {group.map((plan) => {
                       const finding = findings.find((f) => f.number === plan.indicator.number);
                       if (!finding) return null;
@@ -301,9 +302,7 @@ export default function AuditBlanc() {
                                         {(c.status === 'ko' || finding.blocked.includes(c.id)) && (
                                           <div className="mt-2 space-y-2">
                                             {facts.affectedItems?.[c.id]?.map((item, index) => <div key={`${item.href}-${index}`}><Link className="text-primary underline" to={item.href}>{isDemoMode ? maskText(item.label) : item.label}</Link><p>{item.missing}</p></div>)}
-                                            {auditFocusModel(facts, answers).summary && focus.length >= 0 && (
-                                              <p className="text-muted-foreground">{auditFocusModel(facts, answers, [finding.number]).actions.find(a => a.indicator === finding.number)?.tasks?.find(t => t.problem === `${c.label} : ${c.detail}`)?.recommendation}</p>
-                                            )}
+                                            <p className="text-muted-foreground">{actions.find(a => a.indicator === finding.number)?.tasks?.find(t => t.problem === `${c.label} : ${c.detail}`)?.recommendation}</p>
                                           </div>
                                         )}
                                       </div>
