@@ -1,5 +1,11 @@
 # Roadmap
 
+## Instructions d’accès aux lieux (2026-11-16)
+- [ ] Champ partagé par lieu et surcharge par session, avec droits et traces existants.
+- [ ] Convocation, rappel/synthèse J-1 et aujourd’hui : instructions uniquement en présentiel si renseignées.
+- [ ] Alerte quotidienne pour les sessions à moins de sept jours sans instructions ; lien vers la saisie.
+- [ ] Tests et parcours navigateur sans email réel ; préciser les éléments à publier.
+
 ## Montants persistants devis jeux (2026-11-15)
 - [x] Stockage partagé et journalisé des prix par jeu/option et frais, droits dropshipping conservés ; récupération des anciennes valeurs locales uniquement si aucune valeur partagée. Migration 0069 appliquée ; table ajoutée aux deux exports de sauvegarde, fonctions déployées sans lancement ni changement de cron.
 - [x] Préremplissage application et MCP ; preview sans écriture, mémorisation MCP uniquement à la création confirmée ; aucun devis existant, catalogue ou email modifié. 15,75 € temporaires saisis dans la vraie UI et relus depuis un second navigateur vierge avec la session Romain, puis supprimés avec trace de nettoyage.
