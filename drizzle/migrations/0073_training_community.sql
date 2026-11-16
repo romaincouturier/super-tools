@@ -1,0 +1,2 @@
+ALTER TABLE public.trainings ADD COLUMN IF NOT EXISTS community_lms_course_id uuid REFERENCES public.lms_courses(id) ON DELETE SET NULL;
+COMMENT ON COLUMN public.trainings.community_lms_course_id IS 'Explicit internal community selection, independent of supports and enrollments; takes priority over private_group_url.';

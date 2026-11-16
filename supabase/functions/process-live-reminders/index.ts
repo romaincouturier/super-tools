@@ -11,6 +11,7 @@ import { learnerHasNotifEnabled } from "../_shared/learner-prefs.ts";
 import { appendEmailParam, personalizeSupportsLinks, resolveSupportsUrlBase } from "../_shared/supports-url.ts";
 import { emailSecondaryLink } from "../_shared/templates.ts";
 import { renderLiveRecordingNotice } from "../_shared/live-recording-notice.ts";
+import { appendTrainingCommunity } from "../_shared/training-community.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
@@ -249,6 +250,7 @@ serve(async (req) => {
         // Le player LMS exige ?email= : personnalise les liens support,
         // y compris ceux collés en dur dans un template custom.
         htmlContent = personalizeSupportsLinks(htmlContent, p.email);
+        htmlContent = await appendTrainingCommunity(supabase, htmlContent, trainingId, APP_URL);
 
         if (!(await claimLiveReminder(supabase, liveId, p.id, "process-live-reminders"))) {
           skippedAlreadySent++;

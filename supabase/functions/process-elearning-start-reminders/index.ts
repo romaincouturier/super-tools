@@ -176,7 +176,9 @@ serve(async (req) => {
         return `<p>${t.split(/\n/).map((l) => l.trim()).join("<br>")}</p>`;
       }).filter(Boolean).join("\n");
 
-      const html = `${formatted}\n${signature}`;
+      const { appendTrainingCommunity } = await import("../_shared/training-community.ts");
+      const { getAppUrls } = await import("../_shared/app-urls.ts");
+      const html = await appendTrainingCommunity(supabase, `${formatted}\n${signature}`, training.id, (await getAppUrls()).app_url);
 
       const bccList = await getBccList();
       const result = await sendEmail({

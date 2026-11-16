@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/services/activityLog";
 import VenueSelector from "@/components/formations/VenueSelector";
 import TrainingAccessFields from "@/components/formations/TrainingAccessFields";
+import TrainingCommunityFields from "@/components/formations/TrainingCommunityFields";
 import type { TrainingVenue } from "@/types/training-venue";
 import { Calendar, Save, CalendarPlus, AlertTriangle, Plus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -183,6 +184,8 @@ N'hésitez pas à me contacter en amont pour toute question.
       form.setProgramFileUrl(t.program_file_url || "");
       form.setSupertiltLink(t.supertilt_link || "");
       form.setPrivateGroupUrl(t.private_group_url || "");
+      form.setCommunityCourseId(training.community_lms_course_id ?? null);
+      form.setLmsCourseId(training.supports_lms_course_id ?? null);
       form.setSponsorFirstName(t.sponsor_first_name || "");
       form.setSponsorLastName(t.sponsor_last_name || "");
       form.setSponsorEmail(t.sponsor_email || "");
@@ -391,6 +394,8 @@ N'hésitez pas à me contacter en amont pour toute question.
           client_name: form.clientName,
           total_days: form.selectedDates.length,
           access_instructions: accessInstructions.trim() || null,
+          community_lms_course_id: form.communityCourseId,
+          private_group_url: form.communityCourseId ? null : (form.privateGroupUrl.trim() || null),
         },
       });
 
@@ -521,6 +526,7 @@ N'hésitez pas à me contacter en amont pour toute question.
 
                   {/* Session type/format */}
                   <SessionTypeFormatSelector form={form} />
+                  <TrainingCommunityFields form={form} />
 
                   {/* Location and client */}
                   {form.sessionFormat === "presentiel" && <TrainingAccessFields value={accessInstructions} onChange={setAccessInstructions} venueId={venueId} location={location} />}

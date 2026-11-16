@@ -132,6 +132,7 @@ export function useFormationForm() {
   const [programFileUrl, setProgramFileUrl] = useState("");
   const [supertiltLink, setSupertiltLink] = useState("");
   const [privateGroupUrl, setPrivateGroupUrl] = useState("");
+  const [communityCourseId, setCommunityCourseId] = useState<string | null>(null);
   const [catalogId, setCatalogId] = useState<string | null>(null);
 
   // Sponsor
@@ -299,7 +300,8 @@ export function useFormationForm() {
         objectives,
         program_file_url: programFileUrl || null,
         supertilt_link: supertiltLink || null,
-        private_group_url: privateGroupUrl || null,
+        private_group_url: communityCourseId ? null : (privateGroupUrl.trim() || null),
+        community_lms_course_id: communityCourseId,
         sponsor_formal_address: isInter ? true : sponsorFormalAddress,
         participants_formal_address: false,
         financeur_same_as_sponsor: isInter ? true : financeurSameAsSponsor,
@@ -366,7 +368,7 @@ export function useFormationForm() {
     [
       trainingName, isPermanent, isElearning, isInter,
       sessionType, sessionFormat, prerequisites, objectives,
-      programFileUrl, supertiltLink, privateGroupUrl,
+      programFileUrl, supertiltLink, privateGroupUrl, communityCourseId,
       sponsorFormalAddress, financeurSameAsSponsor,
       catalogId, lmsCourseId, selectedFormulaId,
       clientName, clientAddress, soldPriceHt, ancillaryFeesHt, maxParticipants,
@@ -404,6 +406,7 @@ export function useFormationForm() {
     programFileUrl, setProgramFileUrl,
     supertiltLink, setSupertiltLink,
     privateGroupUrl, setPrivateGroupUrl,
+    communityCourseId, setCommunityCourseId,
     catalogId, setCatalogId,
     sponsorFirstName, setSponsorFirstName,
     sponsorLastName, setSponsorLastName,

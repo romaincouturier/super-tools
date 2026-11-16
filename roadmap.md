@@ -1,5 +1,11 @@
 # Roadmap
 
+## Choix de communauté formation (2026-11-16)
+- [x] Choix interne/externe/aucune dans création et modification, bouton Supprimer ; communauté distincte des supports et inscriptions. Convocations, accès, démarrage et rappels live/aujourd’hui utilisent le lien interne ; alertes internes réutilisent les travaux sans retour staff, sans doublonner les groupes externes.
+- [x] Trois sessions Facilitation graphique (mars 2026, novembre 2026, mars 2027) rattachées au cours interne, trois traces ; 27 anciennes tâches LinkedIn ouvertes clôturées avec trace. Aucun groupe externe dans les formations après relecture ; cinq événements PictoChallenge #83/#84/#86 (deux)/#87 conservent leur groupe 9892107, non déclaré obsolète et non modifié.
+- [x] 50 tests, 103 règles, compilation OK ; session Romain réelle : valeur persistée relue, suppression/changement vérifiés sans sauvegarde supplémentaire, lien communauté et mobile sans débordement. Onze fonctions déployées ; aucun email ni cron/droit/leçon modifiés.
+- [ ] Publier les nouveaux champs ; publication non demandée. Prochain email réel non déclenché pour préserver les destinataires.
+
 ## Focus quotidien audit blanc (2026-11-16)
 - [x] Deux indicateurs prioritaires maximum, maintenus jusqu’à correction de toute la paire ; choix persisté dans les faits du passage automatique, nouveau modèle email focus distinct pour ne pas réutiliser un ancien rapport personnalisé.
 - [x] Dernier résultat chargé dès l’ouverture, focus et défauts par dossier avec actions ; ouverture directe des indicateurs, formations, catalogue, formateurs, risques et réclamations. Anciens résultats enrichis en lecture seule uniquement si l’échantillon correspond.

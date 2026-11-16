@@ -18,6 +18,7 @@ import { maskAddress, maskAmount, maskEmail, maskName, maskText } from "@/lib/de
 import type { Training, Schedule, Participant } from "@/hooks/useFormationDetail";
 import type { FormationFormula } from "@/types/training";
 import { openStorageUrl } from "@/lib/storageUrl";
+import { trainingCommunityUrl } from "../../../supabase/functions/_shared/training-community";
 
 interface Props {
   training: Training;
@@ -259,18 +260,18 @@ const FormationDetailInfo = ({
       )}
 
       {/* Private group URL */}
-      {(training as unknown as { private_group_url?: string | null }).private_group_url && (
+      {trainingCommunityUrl(training as any, "", true) && (
         <>
           <Separator />
           <div className="flex items-center gap-2">
             <a
-              href={(training as unknown as { private_group_url?: string | null }).private_group_url ?? undefined}
+              href={trainingCommunityUrl(training as any, "", true) ?? undefined}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-sm text-primary hover:underline"
             >
               <ExternalLink className="h-4 w-4" />
-              Groupe privé
+              Communauté des apprenants
             </a>
           </div>
         </>

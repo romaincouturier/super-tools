@@ -1,4 +1,5 @@
 import { renderLiveRecordingNotice, trainingHasLives } from "./live-recording-notice.ts";
+import { includeTrainingCommunity, type TrainingCommunity } from "./training-community.ts";
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { normalizeLearnerEmail, isUsableLearnerEmail } from "./learner-email.ts";
 import { generateHash } from "./crypto.ts";
@@ -115,11 +116,11 @@ export function decideLearnerAccessEmail(state: { passwordSet: boolean; hasTrain
 export async function resolveTrainingAccess(
   admin: SupabaseClient,
   trainingId: string | null | undefined,
-): Promise<{ trainingName: string | null; courseId: string | null; formal?: boolean | null; hasLives?: boolean }> {
+): Promise<{ trainingName: string | null; courseId: string | null; formal?: boolean | null; hasLives?: boolean; community?: TrainingCommunity }> {
   if (!trainingId) return { trainingName: null, courseId: null };
   const { data } = await admin
     .from("trainings")
-    .select("training_name, supports_lms_course_id, participants_formal_address")
+    .select("training_name, supports_lms_course_id, participants_formal_address, community_lms_course_id, private_group_url")
     .eq("id", trainingId)
     .maybeSingle();
   return {
@@ -127,6 +128,7 @@ export async function resolveTrainingAccess(
     courseId: (data as { supports_lms_course_id?: string | null } | null)?.supports_lms_course_id ?? null,
     formal: (data as { participants_formal_address?: boolean | null } | null)?.participants_formal_address ?? null,
     hasLives: data ? await trainingHasLives(admin, trainingId) : false,
+    community: data ?? undefined,
   };
 }
 
@@ -148,6 +150,7 @@ export async function sendLearnerAccessEmail(
     quotaExempt?: boolean;
     formal?: boolean | null;
     hasLives?: boolean;
+    community?: TrainingCommunity;
   } = {},
 ): Promise<{ sent: boolean; kind?: LearnerAccessEmailKind }> {
   const normalized = normalizeLearnerEmail(email);
@@ -216,7 +219,8 @@ export async function sendLearnerAccessEmail(
 
   const signature = await getSigniticSignature();
   const notice = opts.hasLives ? await renderLiveRecordingNotice(admin, opts.formal) : "";
-  const html = wrapEmailHtml(rendered.html + notice, signature);
+  const urls = await getAppUrls();
+  const html = wrapEmailHtml(includeTrainingCommunity(rendered.html + notice, opts.community ?? {}, urls.app_url), signature);
   const subject = rendered.subject;
 
   const bccList = await getBccList();
@@ -237,7 +241,7 @@ export async function sendLearnerAccessEmail(
 export async function sendRegisteredLearnerAccessEmail(
   admin: SupabaseClient,
   email: string,
-  opts: { trainingName?: string | null; courseId?: string | null; ip?: string; callerId?: string; formal?: boolean | null; hasLives?: boolean } = {},
+  opts: { trainingName?: string | null; courseId?: string | null; ip?: string; callerId?: string; formal?: boolean | null; hasLives?: boolean; community?: TrainingCommunity } = {},
 ): Promise<{ sent: boolean; kind?: LearnerAccessEmailKind; accountCreated: boolean }> {
   const normalized = normalizeLearnerEmail(email);
   if (!isUsableLearnerEmail(normalized)) throw new Error("Email invalide");
