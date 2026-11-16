@@ -512,6 +512,13 @@
       "when": 1794843503148,
       "tag": "0072_company_archive_audit_recipient",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1794866926712,
+      "tag": "0073_training_community",
+      "breakpoints": true
     }
   ]
 }

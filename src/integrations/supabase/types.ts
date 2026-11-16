@@ -13557,6 +13557,7 @@ export type Database = {
           client_address: string | null
           client_name: string
           commanditaire_of_name: string | null
+          community_lms_course_id: string | null
           convention_file_url: string | null
           created_at: string
           created_by: string
@@ -13633,6 +13634,7 @@ export type Database = {
           client_address?: string | null
           client_name?: string
           commanditaire_of_name?: string | null
+          community_lms_course_id?: string | null
           convention_file_url?: string | null
           created_at?: string
           created_by: string
@@ -13709,6 +13711,7 @@ export type Database = {
           client_address?: string | null
           client_name?: string
           commanditaire_of_name?: string | null
+          community_lms_course_id?: string | null
           convention_file_url?: string | null
           created_at?: string
           created_by?: string
@@ -13775,6 +13778,13 @@ export type Database = {
             columns: ["catalog_id"]
             isOneToOne: false
             referencedRelation: "formation_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainings_community_lms_course_id_fkey"
+            columns: ["community_lms_course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
             referencedColumns: ["id"]
           },
           {
