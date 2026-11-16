@@ -1,5 +1,10 @@
 # Roadmap
 
+## Choix de communauté formation (2026-11-16)
+- [ ] Choix interne/externe/aucune, suppression explicite ; liens apprenants et récap cohérents, droits préservés.
+- [ ] Rattacher Facilitation graphique à sa communauté interne avec trace ; inventorier les liens externes restants.
+- [ ] Tests et vérification connectée ; déployer les fonctions concernées sans email ni changement de cron.
+
 ## Focus quotidien audit blanc (2026-11-16)
 - [x] Deux indicateurs prioritaires maximum, maintenus jusqu’à correction de toute la paire ; choix persisté dans les faits du passage automatique, nouveau modèle email focus distinct pour ne pas réutiliser un ancien rapport personnalisé.
 - [x] Dernier résultat chargé dès l’ouverture, focus et défauts par dossier avec actions ; ouverture directe des indicateurs, formations, catalogue, formateurs, risques et réclamations. Anciens résultats enrichis en lecture seule uniquement si l’échantillon correspond.
