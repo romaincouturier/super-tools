@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Gavel, Play, CheckCircle2, AlertTriangle, XCircle, HelpCircle, ArrowRight } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -26,6 +26,7 @@ import {
 import { criterionLabel } from "@/lib/auditReferential";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskText } from "@/lib/demoMask";
+import { auditFocusModel } from "../../supabase/functions/_shared/qualiopi-summary";
 
 /**
  * Un passage manuel stocke des verdicts, un passage automatique des constats
@@ -74,6 +75,19 @@ export default function AuditBlanc() {
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (loadingRuns || initialized) return;
+    const latest = runs[0];
+    if (latest?.facts && typeof latest.facts === 'object' && 'sampleSize' in latest.facts) {
+      const stored = latest.facts as AuditFacts;
+      setFacts(stored);
+      setSample(stored.sample ?? []);
+      setAnswers({ ...automaticAnswers(stored), ...(latest.answers as Record<string, AnswerValue> ?? {}) });
+    }
+    setInitialized(true);
+  }, [runs, loadingRuns, initialized]);
 
   const plans = useMemo(() => auditPlan(), []);
 
@@ -82,6 +96,13 @@ export default function AuditBlanc() {
     [plans, facts, answers],
   );
   const summary = useMemo(() => summarize(findings), [findings]);
+  const focus = useMemo(() => facts ? auditFocusModel(facts, answers, facts.auditFocus ?? []).actions : [], [facts, answers]);
+
+  useEffect(() => {
+    if (!facts || !requestedIndicator) return;
+    const frame = requestAnimationFrame(() => document.getElementById(`indicator-${requestedIndicator}`)?.scrollIntoView({ block: 'start' }));
+    return () => cancelAnimationFrame(frame);
+  }, [facts, requestedIndicator]);
   // Un verdict suspendu faute de matière ne se corrige pas en répondant à une
   // question : il se distingue de celui qui attend l'auditeur.
   const blockedCount = useMemo(() => findings.filter((f) => f.blocked.length > 0).length, [findings]);
@@ -89,7 +110,7 @@ export default function AuditBlanc() {
   const start = async () => {
     try {
       const result = await gather();
-      setFacts(result.facts);
+      setFacts({ ...result.facts, auditFocus: facts?.auditFocus ?? focus.map(a => a.indicator) });
       setSample(result.sample);
       setAnswers(automaticAnswers(result.facts));
     } catch (error: unknown) {
@@ -136,12 +157,12 @@ export default function AuditBlanc() {
           actions={
             <Button onClick={start} disabled={gathering}>
               {gathering ? <Spinner className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-              {facts ? "Recommencer" : "Lancer l'audit"}
+              {facts ? "Relancer l’audit" : "Lancer l'audit"}
             </Button>
           }
         />
 
-        {!facts ? (
+        {loadingRuns ? <Spinner className="h-6 w-6" /> : !facts ? (
           <Card>
             <CardContent className="pt-6 space-y-3 text-sm text-muted-foreground">
               <p>
@@ -163,6 +184,23 @@ export default function AuditBlanc() {
           </Card>
         ) : (
           <>
+            <section className="space-y-4 border-b border-border pb-6" aria-label="Focus du jour">
+              <h2 className="text-xl font-semibold">Focus du jour</h2>
+              <p className="text-sm text-muted-foreground">Dernier résultat : {runs[0] ? new Date(runs[0].started_at).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' }) : 'passage manuel'}</p>
+              {focus.length ? focus.map(action => (
+                <article key={action.indicator} className="border-l-2 border-primary pl-4 space-y-3">
+                  <h3 className="font-semibold">Indicateur {action.indicator} — {action.label}</h3>
+                  <p className="text-sm">{action.problem}</p>
+                  {action.tasks?.map((task, index) => (
+                    <div key={index} className="space-y-2 text-sm">
+                      <p><strong>Action : </strong>{task.recommendation}</p>
+                      {task.items.length ? <ul className="space-y-2">{task.items.map((item, i) => <li key={`${item.href}-${i}`}><Link className="text-primary underline" to={item.href}>{isDemoMode ? maskText(item.label) : item.label}</Link><p className="text-muted-foreground">{item.missing}</p></li>)}</ul> : <Link className="text-primary underline" to={task.href}>Ouvrir le dossier concerné</Link>}
+                    </div>
+                  ))}
+                  <Button asChild variant="outline" size="sm"><Link to={`/audit-blanc?indicator=${action.indicator}#indicator-${action.indicator}`}>Compléter cet indicateur<ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
+                </article>
+              )) : <p className="text-sm">Aucun indicateur à corriger sur ce passage.</p>}
+            </section>
             {/* Synthèse */}
             <Card>
               <CardHeader className="pb-3">
@@ -255,11 +293,19 @@ export default function AuditBlanc() {
                                   return (
                                     <div
                                       key={c.id}
-                                      className="flex items-start justify-between gap-3 text-sm border rounded-md p-2"
+                                      className="flex flex-col gap-3 text-sm border border-border rounded-md p-3"
                                     >
                                       <div className="min-w-0">
                                         <p>{c.label}</p>
                                         <p className="text-xs text-muted-foreground">{c.detail}</p>
+                                        {(c.status === 'ko' || finding.blocked.includes(c.id)) && (
+                                          <div className="mt-2 space-y-2">
+                                            {facts.affectedItems?.[c.id]?.map((item, index) => <div key={`${item.href}-${index}`}><Link className="text-primary underline" to={item.href}>{isDemoMode ? maskText(item.label) : item.label}</Link><p>{item.missing}</p></div>)}
+                                            {auditFocusModel(facts, answers).summary && focus.length >= 0 && (
+                                              <p className="text-muted-foreground">{auditFocusModel(facts, answers, [finding.number]).actions.find(a => a.indicator === finding.number)?.tasks?.find(t => t.problem === `${c.label} : ${c.detail}`)?.recommendation}</p>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
                                       <div className="flex items-center gap-2 shrink-0">
                                         {c.status === "ko" && def?.fix && (
@@ -287,7 +333,7 @@ export default function AuditBlanc() {
 
                             {plan.questions.length > 0 && (
                               <div className="space-y-2">
-                                <p className="text-sm font-medium">Questions à l'auditeur</p>
+                                <p className="text-sm font-medium">Ce que l’auditeur vous demandera : confirmez avec vos preuves</p>
                                 {plan.questions.map((q) => (
                                   <div key={q.id} className="border rounded-md p-2 space-y-2">
                                     <p className="text-sm">{q.label}</p>
