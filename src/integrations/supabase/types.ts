@@ -13494,6 +13494,7 @@ export type Database = {
       }
       training_venues: {
         Row: {
+          access_instructions: string | null
           address: string
           city: string
           created_at: string
@@ -13505,6 +13506,7 @@ export type Database = {
           room_name: string | null
         }
         Insert: {
+          access_instructions?: string | null
           address: string
           city: string
           created_at?: string
@@ -13516,6 +13518,7 @@ export type Database = {
           room_name?: string | null
         }
         Update: {
+          access_instructions?: string | null
           address?: string
           city?: string
           created_at?: string
@@ -13530,6 +13533,7 @@ export type Database = {
       }
       trainings: {
         Row: {
+          access_instructions: string | null
           admin_contact_email: string | null
           admin_contact_first_name: string | null
           admin_contact_last_name: string | null
@@ -13605,6 +13609,7 @@ export type Database = {
           venue_id: string | null
         }
         Insert: {
+          access_instructions?: string | null
           admin_contact_email?: string | null
           admin_contact_first_name?: string | null
           admin_contact_last_name?: string | null
@@ -13680,6 +13685,7 @@ export type Database = {
           venue_id?: string | null
         }
         Update: {
+          access_instructions?: string | null
           admin_contact_email?: string | null
           admin_contact_first_name?: string | null
           admin_contact_last_name?: string | null

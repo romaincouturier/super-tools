@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/services/activityLog";
 import VenueSelector from "@/components/formations/VenueSelector";
+import TrainingAccessFields from "@/components/formations/TrainingAccessFields";
 import type { TrainingVenue } from "@/types/training-venue";
 import { Calendar, Save, CalendarPlus, AlertTriangle, Plus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -45,6 +46,7 @@ interface TrainingExtended {
   training_name: string;
   location: string;
   venue_id?: string | null;
+  access_instructions?: string | null;
   client_name: string;
   client_address?: string | null;
   sold_price_ht?: number | null;
@@ -91,6 +93,7 @@ const FormationEdit = () => {
   // Edit uses a plain location string (not radio group)
   const [location, setLocation] = useState("");
   const [venueId, setVenueId] = useState<string | null>(null);
+  const [accessInstructions, setAccessInstructions] = useState("");
   const [selectedVenue, setSelectedVenue] = useState<TrainingVenue | null>(null);
   const [sourceFinancementBpf, setSourceFinancementBpf] = useState<string | null>(null);
   const [typeStagiaireBpf, setTypeStagiaireBpf] = useState<string | null>(null);
@@ -150,6 +153,7 @@ N'hésitez pas à me contacter en amont pour toute question.
       form.setTrainingName(t.training_name);
       setLocation(t.location);
       setVenueId(t.venue_id ?? null);
+      setAccessInstructions(t.access_instructions || "");
       form.setClientName(t.client_name);
       form.setClientAddress(t.client_address || "");
       form.setSoldPriceHt(t.sold_price_ht != null ? String(t.sold_price_ht) : "");
@@ -344,6 +348,7 @@ N'hésitez pas à me contacter en amont pour toute question.
       }
 
       payload.source_financement_bpf = isFree ? null : (sourceFinancementBpf || null);
+      (payload as Record<string, unknown>).access_instructions = accessInstructions.trim() || null;
       (payload as Record<string, unknown>).type_stagiaire_bpf = isFree ? null : (typeStagiaireBpf || null);
       (payload as Record<string, unknown>).is_free = isFree;
       if (isFree) {
@@ -385,6 +390,7 @@ N'hésitez pas à me contacter en amont pour toute question.
           training_name: form.trainingName,
           client_name: form.clientName,
           total_days: form.selectedDates.length,
+          access_instructions: accessInstructions.trim() || null,
         },
       });
 
@@ -517,6 +523,7 @@ N'hésitez pas à me contacter en amont pour toute question.
                   <SessionTypeFormatSelector form={form} />
 
                   {/* Location and client */}
+                  {form.sessionFormat === "presentiel" && <TrainingAccessFields value={accessInstructions} onChange={setAccessInstructions} venueId={venueId} location={location} />}
                   {form.isInter ? (
                     !form.isElearning && form.sessionFormat !== "distanciel_synchrone" && (
                       <div className="space-y-2">

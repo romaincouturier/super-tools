@@ -1,4 +1,5 @@
 # Architecture
+- Physical training access uses a shared resolver (session override, venue link or unique exact legacy address match) and email-safe rendering; daily alerts use the same resolver and a strict seven-day boundary, so legacy sessions inherit real venue instructions without changing session data.
 - Qualiopi screen and scheduled audit share a paginated read-only collector; only evidenced questions are auto-answered and missing responses are not missing processes, because partial samples and placeholder zeros must not invent non-conformities.
 - Transcript controls use persistent, manually resumed source inventories; repairs require a selected source ID, preserve trashed rows and suppress downstream notifications/generations via stored metadata, because presence alone cannot certify completeness.
 - Attestation rules live in execution-attestation.ts and in a DB trigger (edits draft sent ones, signed frozen, token hashes only), to keep signed content provable.

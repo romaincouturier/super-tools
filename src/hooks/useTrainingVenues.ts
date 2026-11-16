@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchTrainingVenues, createTrainingVenue } from "@/services/training-venues";
+import { fetchTrainingVenues, createTrainingVenue, updateVenueAccess } from "@/services/training-venues";
 import type { TrainingVenue } from "@/types/training-venue";
 
 export function useTrainingVenues() {
@@ -15,4 +15,9 @@ export function useCreateTrainingVenue() {
     mutationFn: createTrainingVenue,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["training-venues"] }),
   });
+}
+
+export function useUpdateVenueAccess() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: updateVenueAccess, onSuccess: () => qc.invalidateQueries({ queryKey: ["training-venues"] }) });
 }

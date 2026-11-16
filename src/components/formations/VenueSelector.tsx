@@ -9,6 +9,8 @@ import { useTrainingVenues, useCreateTrainingVenue } from "@/hooks/useTrainingVe
 import type { TrainingVenue } from "@/types/training-venue";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskAddress, maskEmail } from "@/lib/demoMask";
+import { Textarea } from "@/components/ui/textarea";
+import VenueAccessEditor from "./VenueAccessEditor";
 
 interface VenueSelectorProps {
   value: string | null;
@@ -23,6 +25,7 @@ const EMPTY_FORM = {
   email: "",
   room_name: "",
   formal_address: true,
+  access_instructions: "",
 };
 
 export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
@@ -52,6 +55,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
         email: form.email.trim(),
         room_name: form.room_name.trim() || null,
         formal_address: form.formal_address,
+        access_instructions: form.access_instructions.trim() || null,
       });
       setShowForm(false);
       setForm(EMPTY_FORM);
@@ -99,6 +103,7 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
             <div>{isDemoMode ? maskAddress(venue.address) : venue.address}, {isDemoMode ? maskAddress(venue.postal_code) : venue.postal_code} {venue.city}</div>
             {venue.room_name && <div>Salle : {venue.room_name}</div>}
             <div>Contact : {isDemoMode ? maskEmail(venue.email) : venue.email}</div>
+            <VenueAccessEditor venue={venue} />
           </div>
         );
       })()}
@@ -167,6 +172,8 @@ export default function VenueSelector({ value, onChange }: VenueSelectorProps) {
               Vouvoiement dans les e-mails
             </Label>
           </div>
+          <Label htmlFor="new-venue-access">Instructions d’accès</Label>
+          <Textarea id="new-venue-access" value={form.access_instructions} onChange={e => setForm(f => ({ ...f, access_instructions: e.target.value }))} placeholder="Digicode, étage, interphone, transports, contact sur place…" />
           <div className="flex gap-2 pt-1">
             <Button
               type="button"

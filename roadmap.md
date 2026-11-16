@@ -1,5 +1,12 @@
 # Roadmap
 
+## Instructions d’accès aux lieux (2026-11-16)
+- [x] Migration 0070 appliquée : champ partagé par lieu et surcharge par session, droits inchangés, traces des saisies. Session Agile Tribu du 16/11 sans venue_id : héritage par adresse complète exacte unique, sans réécrire les données.
+- [x] Convocations manuelles/programmées, rappel participant et aujourd’hui : insertion automatique même dans les anciens modèles, vide/visio masqués. La synthèse J-1 existante est destinée au formateur, pas aux participants ; aucun nouveau circuit créé.
+- [x] Alerte dans le digest et les actions quotidiennes, aujourd’hui à J+6, annulées/visio exclues, accès admin ou responsable autorisé, lien vers /edit#access-instructions et résolution après saisie. Six fonctions déployées, aucun cron ni envoi déclenché.
+- [x] 65 tests ciblés, 103 contrôles et compilation OK ; session Romain réelle consultée, saisie et confirmation testées avec écritures simulées, ordinateur/mobile vérifiés. Aucune instruction réelle inventée ni email envoyé. Architecture du resolver documentée dans _shared/AGENTS.md, root au budget existant.
+- [ ] Publier les écrans de saisie et d’alertes ; publication non demandée. Les instructions réelles d’Agile Tribu restent à renseigner par l’utilisateur.
+
 ## Montants persistants devis jeux (2026-11-15)
 - [x] Stockage partagé et journalisé des prix par jeu/option et frais, droits dropshipping conservés ; récupération des anciennes valeurs locales uniquement si aucune valeur partagée. Migration 0069 appliquée ; table ajoutée aux deux exports de sauvegarde, fonctions déployées sans lancement ni changement de cron.
 - [x] Préremplissage application et MCP ; preview sans écriture, mémorisation MCP uniquement à la création confirmée ; aucun devis existant, catalogue ou email modifié. 15,75 € temporaires saisis dans la vraie UI et relus depuis un second navigateur vierge avec la session Romain, puis supprimés avec trace de nettoyage.

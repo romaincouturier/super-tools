@@ -15,6 +15,7 @@ import {
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { buildFollowUpActions } from "../_shared/feedback-follow-ups.ts";
 import { fetchTrainingFormulaIssues, trainingFormulaAlertRecipients } from "../_shared/training-formula-alerts.ts";
+import { fetchMissingTrainingAccess } from "../_shared/training-access.ts";
 
 /**
  * Generate Daily Actions
@@ -89,6 +90,12 @@ serve(async (req) => {
     ]);
     if (formationAccess.error) throw formationAccess.error;
     const formationUserIds = new Set((formationAccess.data || []).map((r) => r.user_id as string));
+    const accessIssues = await fetchMissingTrainingAccess(supabase, today);
+    for (const t of accessIssues) {
+      for (const r of recipients.filter(r => r.isAdmin || (r.userId === t.assigned_to && formationUserIds.has(r.userId)))) {
+        actions.push({ category: "formations_acces_manquants", title: t.training_name || "Formation", description: "Session présentielle dans moins de 7 jours sans instructions d'accès", link: `${appUrl}/formations/${t.id}/edit#access-instructions`, entityType: "training", entityId: t.id || "", assignedTo: r.userId, scope: "strictAssigned" });
+      }
+    }
     for (const t of formulaIssues) {
       for (const userId of trainingFormulaAlertRecipients(t, recipients, formationUserIds)) {
         actions.push({

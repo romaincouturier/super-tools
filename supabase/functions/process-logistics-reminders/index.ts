@@ -6,6 +6,7 @@ import { sendEmail, escapeHtml } from "../_shared/resend.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
 import { formatDateFr, formatDateWithDayFr } from "../_shared/date-utils.ts";
+import { fetchMissingTrainingAccess } from "../_shared/training-access.ts";
 import {
   fetchAllDailyData,
   userCanSee,
@@ -177,6 +178,9 @@ serve(async (req) => {
 
     console.log(`[${VERSION}] Found ${recipients.length} recipient(s)`);
     logDataCounts(data);
+    const [accessIssues, formationAccess] = await Promise.all([fetchMissingTrainingAccess(supabase, today), supabase.from("user_module_access").select("user_id").eq("module", "formations")]);
+    if (formationAccess.error) throw formationAccess.error;
+    const formationUserIds = new Set((formationAccess.data || []).map(r => r.user_id));
 
     // ── Build email-specific lookups ──
     // Review articles by email (match assignedUserIds → recipient email)
@@ -266,6 +270,8 @@ serve(async (req) => {
       };
 
       // 0. Missions — Actions à traiter
+      add("📍", "Session présentielle dans moins de 7 jours sans instructions d'accès", COLORS.red,
+        accessIssues.filter(t => recipient.isAdmin || (recipient.userId === t.assigned_to && formationUserIds.has(recipient.userId))).map(t => `<li>${linkHtml(`${appUrl}/formations/${t.id}/edit#access-instructions`, escapeHtml(t.training_name || "Formation"), true)} — ${escapeHtml(t.start_date || "")} : saisir les instructions d’accès.</li>`));
       add("🎯", "Missions — Actions à traiter", COLORS.primary,
         data.missionActions
           .filter(a => userCanSee(recipient, a.assignedTo))

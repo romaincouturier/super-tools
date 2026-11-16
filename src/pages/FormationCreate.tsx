@@ -25,6 +25,7 @@ import ScheduleEditor from "@/components/formations/ScheduleEditor";
 import TrainingNameCombobox, { FormationConfig } from "@/components/formations/TrainingNameCombobox";
 import ScheduledActionsEditor from "@/components/formations/ScheduledActionsEditor";
 import VenueSelector from "@/components/formations/VenueSelector";
+import TrainingAccessFields from "@/components/formations/TrainingAccessFields";
 import { FormationFormula } from "@/types/training";
 import type { TrainingVenue } from "@/types/training-venue";
 import {
@@ -48,6 +49,7 @@ const FormationCreate = () => {
   const { user, loading } = useAuth();
   const form = useFormationForm();
   const [venueId, setVenueId] = useState<string | null>(null);
+  const [accessInstructions, setAccessInstructions] = useState("");
   const [selectedVenue, setSelectedVenue] = useState<TrainingVenue | null>(null);
   const [catalogDialogOpen, setCatalogDialogOpen] = useState(false);
   const { data: lmsCourses = [] } = useCourses();
@@ -238,6 +240,7 @@ const FormationCreate = () => {
     try {
       const payload = form.buildTrainingPayload({ isCreate: true });
       payload.created_by = user.id;
+      (payload as Record<string, unknown>).access_instructions = accessInstructions.trim() || null;
       if (venueId && selectedVenue) {
         payload.venue_id = venueId;
         payload.location = [
@@ -380,6 +383,7 @@ const FormationCreate = () => {
           start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
           total_days: form.isPermanent ? 0 : form.selectedDates.length,
           is_permanent: form.isPermanent,
+          access_instructions: accessInstructions.trim() || null,
         },
       });
 
@@ -604,6 +608,7 @@ const FormationCreate = () => {
                   )}
 
                   {/* Location */}
+                  {!form.isPermanent && form.sessionFormat === "presentiel" && <TrainingAccessFields value={accessInstructions} onChange={setAccessInstructions} venueId={venueId} location={form.getFinalLocation()} />}
                   {!form.isPermanent && form.isInter && !form.isElearning && form.sessionFormat !== "distanciel_synchrone" && (
                     <div className="space-y-2">
                       <Label>Lieu *</Label>

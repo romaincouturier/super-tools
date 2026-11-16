@@ -20,6 +20,7 @@ import {
 } from "../_shared/supports-url.ts";
 import { formatSessionDateFr } from "../_shared/training-date.ts";
 import { recordWelcome } from "../_shared/welcome-record.ts";
+import { fetchAccessVenues, resolveTrainingAccess, includeAccessInstructions, accessInstructionsHtml } from "../_shared/training-access.ts";
 
 // Send notification to sponsor (intra-enterprise)
 async function sendSponsorNotification(
@@ -143,6 +144,7 @@ serve(async (req) => {
     }
 
     const isInterEntreprise = training.format_formation !== "intra";
+    const accessInstructions = resolveTrainingAccess(training, await fetchAccessVenues(supabase));
 
     // Fetch schedules for the training
     const { data: schedules } = await supabase
@@ -209,6 +211,7 @@ serve(async (req) => {
       client_name: training.client_name,
       training_summary_url: trainingSummaryUrl,
       supports_url: supportsUrl,
+      access_instructions: accessInstructionsHtml(accessInstructions),
     };
 
     let subject: string;
@@ -261,6 +264,7 @@ serve(async (req) => {
     }
 
     // Le player LMS exige ?email= sur les liens supports/e-learning.
+    if (!template?.html_content.includes("{{access_instructions}}")) htmlContent = includeAccessInstructions(htmlContent, accessInstructions);
     htmlContent = personalizeSupportsLinks(htmlContent, participant.email);
 
     console.log("Sending welcome email to:", participant.email);
