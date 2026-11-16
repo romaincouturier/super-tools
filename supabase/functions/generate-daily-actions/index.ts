@@ -16,6 +16,7 @@ import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { buildFollowUpActions } from "../_shared/feedback-follow-ups.ts";
 import { fetchTrainingFormulaIssues, trainingFormulaAlertRecipients } from "../_shared/training-formula-alerts.ts";
 import { fetchMissingTrainingAccess } from "../_shared/training-access.ts";
+import { fetchExpiringArchives } from "../_shared/company-archives.ts";
 
 /**
  * Generate Daily Actions
@@ -83,6 +84,13 @@ serve(async (req) => {
     }
 
     const actions: ActionDef[] = [];
+    const archiveToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date());
+    const expiringArchives = await fetchExpiringArchives(supabase, archiveToday);
+    for (const doc of expiringArchives) {
+      for (const recipient of recipients.filter(r => r.isAdmin)) {
+        actions.push({ category: 'archives_expiration', title: doc.file_name, description: `Document valable jusqu’au ${doc.valid_until} : archiver la version renouvelée.`, link: `${appUrl}/archives`, entityType: 'admin_document', entityId: doc.id, assignedTo: recipient.userId, scope: 'strictAssigned' });
+      }
+    }
 
     const [formulaIssues, formationAccess] = await Promise.all([
       fetchTrainingFormulaIssues(supabase, today),

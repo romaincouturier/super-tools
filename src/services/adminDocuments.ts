@@ -14,6 +14,7 @@ export interface AdminDocument {
   uploaded_at: string;
   analyzed_at: string | null;
   is_favorite: boolean;
+  valid_until: string | null;
 }
 
 export async function toggleAdminDocumentFavorite(id: string, isFavorite: boolean): Promise<void> {
@@ -26,6 +27,9 @@ export async function toggleAdminDocumentFavorite(id: string, isFavorite: boolea
 }
 
 export const ARCHIVE_CATEGORIES = [
+  "Qualiopi",
+  "Administratif",
+  "Juridique",
   "Facture",
   "Contrat",
   "RH / Paie",
@@ -53,7 +57,7 @@ export async function fetchAdminDocuments(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let query = (supabase as any)
     .from("admin_documents")
-    .select("id, file_url, file_name, file_size, mime_type, year, category, tags, summary, analysis_status, uploaded_at, analyzed_at, is_favorite")
+    .select("id, file_url, file_name, file_size, mime_type, year, category, tags, summary, analysis_status, uploaded_at, analyzed_at, is_favorite, valid_until")
     .order("is_favorite", { ascending: false })
     .order("uploaded_at", { ascending: false });
 

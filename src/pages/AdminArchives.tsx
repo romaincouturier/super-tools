@@ -381,6 +381,7 @@ export default function AdminArchives() {
                     >
                       {isDemoMode ? maskFileName(doc.file_name) : doc.file_name}
                     </button>
+                    {doc.valid_until && <p className="text-xs text-muted-foreground">Valable jusqu’au {new Date(`${doc.valid_until}T12:00:00Z`).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}</p>}
                     {doc.analysis_status === "done" ? (
                       <>
                         {doc.summary && (
