@@ -8,6 +8,7 @@ import {
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { loadProjectAssignees, projectAssignmentTargets } from "../_shared/project-assignee.ts";
 import { fetchTrainingFormulaIssues } from "../_shared/training-formula-alerts.ts";
+import { fetchMissingTrainingAccess } from "../_shared/training-access.ts";
 
 /**
  * Check Daily Actions Completion (auto-detection)
@@ -201,6 +202,8 @@ serve(async (req) => {
       ? new Set((await fetchTrainingFormulaIssues(supabase, today)).map((t) => t.id))
       : new Set<string>();
     const now = new Date().toISOString();
+    const accessIssues = pendingActions.some(a => a.category === "formations_acces_manquants")
+      ? new Set((await fetchMissingTrainingAccess(supabase, today)).map(t => t.id)) : new Set<string>();
     // Statuts des appels d'offres encore en attente de décision.
     const tenders = new Map<string, { status: string }>();
     if (tenderIds.length > 0) {
@@ -216,6 +219,10 @@ serve(async (req) => {
       let resolved = false;
 
       switch (action.category) {
+        case "formations_acces_manquants": {
+          resolved = !accessIssues.has(action.entity_id);
+          break;
+        }
         case "formations_tarifs_manquants": {
           resolved = !formulaIssues.has(action.entity_id);
           break;
