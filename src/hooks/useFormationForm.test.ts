@@ -5,6 +5,24 @@ vi.mock("@/components/formations/ScheduleEditor", () => ({ SESSION_PRESETS: { fu
 import { useFormationForm } from "./useFormationForm";
 
 describe("Formule de session permanente", () => {
+  it("la communauté choisie remplace le lien externe sans changer les supports", () => {
+    const { result } = renderHook(() => useFormationForm());
+    act(() => {
+      result.current.setLmsCourseId("supports-course");
+      result.current.setCommunityCourseId("community-course");
+      result.current.setPrivateGroupUrl("https://www.linkedin.com/groups/13909349/");
+    });
+    const payload = result.current.buildTrainingPayload({ isCreate: false });
+    expect(payload.community_lms_course_id).toBe("community-course");
+    expect(payload.private_group_url).toBeNull();
+    expect(payload).not.toHaveProperty("supports_lms_course_id");
+  });
+  it("la suppression du lien persiste null", () => {
+    const { result } = renderHook(() => useFormationForm());
+    act(() => result.current.setPrivateGroupUrl(""));
+    expect(result.current.buildTrainingPayload({ isCreate: false }).private_group_url).toBeNull();
+    expect(result.current.buildTrainingPayload({ isCreate: false }).community_lms_course_id).toBeNull();
+  });
   it("conserve la formule sélectionnée et le cours dans la nouvelle session", () => {
     const { result } = renderHook(() => useFormationForm());
     act(() => {

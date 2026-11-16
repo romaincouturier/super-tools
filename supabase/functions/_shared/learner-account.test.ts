@@ -381,6 +381,13 @@ describe("decideLearnerAccessEmail (règle du 04/11/2026)", () => {
 
 describe("mails d'accès selon l'état du compte", () => {
   beforeEach(() => sendEmailMock.mockReset().mockResolvedValue({ success: true, id: "email-1" }));
+  it("ajoute la communauté interne au mail d’accès sans envoyer le lien LinkedIn", async () => {
+    const { admin } = makeAccessAdmin({ passwordSet: true });
+    await sendLearnerAccessEmail(admin, "connu@example.com", { trainingName: "Facilitation graphique", courseId: "course-1", community: { community_lms_course_id: "course-1", private_group_url: "https://www.linkedin.com/groups/13909349/" } });
+    const html = sendEmailMock.mock.calls[0][0].html;
+    expect(html).toContain("https://app.example.com/espace-apprenant/pratique?fromCourse=course-1");
+    expect(html).not.toContain("https://www.linkedin.com/groups/13909349/");
+  });
 
   it("mot de passe défini : « Votre accès à … est ouvert » avec lien direct vers le cours, sans jeton", async () => {
     const { admin, generateLink } = makeAccessAdmin({ passwordSet: true });
