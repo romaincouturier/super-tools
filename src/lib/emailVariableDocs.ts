@@ -95,6 +95,8 @@ export const VARIABLE_DOCS: Record<string, VariableDoc> = {
   change_note: { label: "Évolution de l'audit", description: "Résumé des changements depuis le dernier bilan, ou indication que rien n'a changé.", sample: "Aucun changement depuis le dernier bilan." },
   actions_list: { label: "Actions prioritaires de l'audit", description: "Actions recommandées par indicateur, avec problème, lien vers l'écran et temps estimé.", sample: "<ol><li>Indicateur 30 : compléter le registre des réclamations.</li></ol>", isBlock: true },
   audit_button: { label: "Bouton de l'audit blanc", description: "Bouton qui ouvre l'écran Audit blanc Qualiopi.", sample: "<p><a href=\"#\">Ouvrir l'audit blanc</a></p>", isBlock: true },
+  focus_title: { label: "Focus du jour", description: "Indicateurs prioritaires du focus quotidien de l'audit blanc, ou mention qu'il n'y a rien à corriger.", sample: "indicateurs 30 et 31" },
+  global_footer: { label: "Pied de page de l'audit", description: "Rappel du nombre d'indicateurs restant à traiter, avec le lien vers l'écran Audit blanc.", sample: "<p>Reste 2 indicateurs à traiter, prochain focus demain · <a href=\"#\">Audit blanc</a></p>", isBlock: true },
   signature: { label: "Signature de l'expéditeur", description: "Signature email de l'expéditeur, fournie par Signitic ou la signature de repli.", sample: "<p>Romain Couturier<br>SuperTilt</p>", isBlock: true },
   game_mention: { label: "Mention du jeu proposé", description: "Mention du nom du jeu dans l'invitation auteur, laissée vide si aucun nom n'a été renseigné.", sample: " pour ton jeu Echo" },
   subject: { label: "Objet de l'attestation", description: "Intitulé de l'intervention attestée.", sample: "Animation du séminaire" },
