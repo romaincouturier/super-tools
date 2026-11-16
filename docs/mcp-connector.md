@@ -1,5 +1,15 @@
 # Connecteur MCP SuperTools (lecture, plus trois écritures encadrées)
 
+## Archives entreprise (extension OAuth SuperTools)
+
+Interface : **Archives → Archives administratives** (`/archives`), accès administrateur existant.
+- `archive_email_attachments(gmail_message_id, category, attachment_filenames?, valid_until?)` : Gmail connecté de Romain ; tous les fichiers si noms omis, sélection exacte sinon ; résultat `documents`, `errors`, `complete` pour signaler les réussites partielles. Pas de copie du corps du mail ni envoi.
+- `upload_company_document(file_name, mime_type, file_base64, category, valid_until?)` : fichier base64 standard, 20 Mo maximum.
+- `list_company_documents(category?, search?, limit=50, offset=0)` : métadonnées, pagination ; recherche sur le nom.
+- `read_company_document(document_id)` : métadonnées et base64 via téléchargement authentifié, 20 Mo maximum.
+
+Catégories : Qualiopi, Administratif, Juridique et catégories historiques. Validité `AAAA-MM-JJ`, facultative. Rappel aux administrateurs dans le récapitulatif quotidien de J-30 au jour d’expiration inclus, sans nouveau cron. Les documents sans validité ne déclenchent pas d’alerte. Les nouveaux outils créent uniquement de nouvelles versions, jamais de suppression/remplacement ni analyse automatique. Les fonctions de suppression préexistantes de l’interface restent inchangées. Les erreurs ambiguës de stockage ne doivent pas être rejouées automatiquement. La nouvelle révision MCP nécessite une republication.
+
 Permet d'interroger les données SuperTools depuis claude.ai ou Claude Desktop,
 et de les croiser avec les connecteurs natifs (Google Drive, Notion).
 

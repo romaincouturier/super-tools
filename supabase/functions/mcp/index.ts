@@ -773,9 +773,136 @@ var create_game_quote_default = defineTool18({
   }
 });
 
+// src/lib/mcp/tools/upload-company-document.ts
+import { defineTool as defineTool19 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z22 } from "npm:zod@^3.25.76";
+
+// src/lib/mcp/company-archives.ts
+import { z as z21 } from "npm:zod@^3.25.76";
+
+// supabase/functions/_shared/company-archives.ts
+var COMPANY_ARCHIVE_CATEGORIES = ["Qualiopi", "Administratif", "Juridique", "Facture", "Contrat", "RH / Paie", "Fiscal", "Bancaire", "Assurance", "L\xE9gal", "Formation", "Commercial", "Divers"];
+var ARCHIVE_MAX_BYTES = 20 * 1024 * 1024;
+function validateArchiveMetadata(input) {
+  if (!input.file_name?.trim() || input.file_name.length > 255) throw new Error("Nom de fichier requis (255 caract\xE8res maximum)");
+  if (!/^[\w.+-]+\/[\w.+-]+$/.test(input.mime_type)) throw new Error("Type MIME invalide");
+  if (!COMPANY_ARCHIVE_CATEGORIES.includes(input.category)) throw new Error("Cat\xE9gorie invalide");
+  if (input.valid_until) {
+    const d = /* @__PURE__ */ new Date(`${input.valid_until}T12:00:00Z`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.valid_until) || Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== input.valid_until) throw new Error("Date de validit\xE9 invalide (AAAA-MM-JJ)");
+  }
+}
+function decodeArchiveBase64(value) {
+  if (!value || value.length > Math.ceil(ARCHIVE_MAX_BYTES / 3) * 4 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) throw new Error("Base64 invalide ou fichier sup\xE9rieur \xE0 20 Mo");
+  const bytes = Uint8Array.from(atob(value), (c) => c.charCodeAt(0));
+  if (!bytes.length || bytes.length > ARCHIVE_MAX_BYTES) throw new Error("Fichier vide ou sup\xE9rieur \xE0 20 Mo");
+  return bytes;
+}
+async function archiveCompanyFile(db, input, bytes) {
+  validateArchiveMetadata(input);
+  if (!bytes.length || bytes.length > ARCHIVE_MAX_BYTES) throw new Error("Fichier vide ou sup\xE9rieur \xE0 20 Mo");
+  const id = crypto.randomUUID();
+  const path = `documents/${id}_${input.file_name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const { error: uploadError } = await db.storage.from("admin-archives").upload(path, bytes, { contentType: input.mime_type, upsert: false });
+  if (uploadError) throw new Error(uploadError.message);
+  const { data, error } = await db.from("admin_documents").insert({ id, file_name: input.file_name, mime_type: input.mime_type, category: input.category, valid_until: input.valid_until || null, file_size: bytes.length, storage_path: path, file_url: db.storage.from("admin-archives").getPublicUrl(path).data.publicUrl, source_gmail_message_id: input.source_gmail_message_id || null, analysis_status: "done", year: Number(new Intl.DateTimeFormat("en", { timeZone: "Europe/Paris", year: "numeric" }).format(/* @__PURE__ */ new Date())) }).select("id,file_name,category,valid_until,file_size").single();
+  if (error) throw new Error(`Fichier stock\xE9 mais non r\xE9f\xE9renc\xE9 (${id}) : ${error.message}. Ne pas r\xE9essayer automatiquement.`);
+  return data;
+}
+
+// src/lib/mcp/company-archives.ts
+var archiveMetadata = {
+  category: z21.enum(COMPANY_ARCHIVE_CATEGORIES),
+  valid_until: z21.string().optional().describe("Date de validit\xE9 AAAA-MM-JJ, facultative ; rappel quotidien 30 jours avant expiration.")
+};
+async function archiveClient(ctx) {
+  const db = supabaseForUser(ctx);
+  const userId = ctx.getUserId();
+  if (!userId) throw new Error("Connexion requise");
+  const { data, error } = await db.rpc("is_admin", { _user_id: userId });
+  if (error || data !== true) throw new Error("Acc\xE8s administrateur aux archives requis");
+  return db;
+}
+
+// src/lib/mcp/tools/upload-company-document.ts
+var upload_company_document_default = defineTool19({
+  name: "upload_company_document",
+  title: "Archiver un document entreprise",
+  description: "Ajoute un fichier base64 (20 Mo maximum) aux Archives administratives, avec cat\xE9gorie et validit\xE9 facultative. Jamais de remplacement, suppression, analyse automatique ni email ; chaque ajout est journalis\xE9.",
+  inputSchema: { file_name: z22.string().min(1).max(255), mime_type: z22.string().max(120), file_base64: z22.string().min(1).max(27962028), ...archiveMetadata },
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  handler: async (input, ctx) => result(await archiveCompanyFile(await archiveClient(ctx), input, decodeArchiveBase64(input.file_base64)))
+});
+
+// src/lib/mcp/tools/archive-email-attachments.ts
+import { defineTool as defineTool20 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z23 } from "npm:zod@^3.25.76";
+var archive_email_attachments_default = defineTool20({
+  name: "archive_email_attachments",
+  title: "Archiver des pi\xE8ces jointes Gmail",
+  description: "Archive dans les archives entreprise les pi\xE8ces jointes du Gmail connect\xE9 (bo\xEEte partag\xE9e Romain). attachment_filenames omis = toutes ; sinon noms exacts s\xE9lectionn\xE9s. Cat\xE9gorie requise, validit\xE9 facultative. Aucun email envoy\xE9, remplacement ou suppression ; r\xE9sultat d\xE9taill\xE9 et erreurs partielles. Ne pas r\xE9essayer automatiquement.",
+  inputSchema: { gmail_message_id: z23.string().trim().min(1).max(300), attachment_filenames: z23.array(z23.string().min(1).max(255)).min(1).max(50).optional(), ...archiveMetadata },
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  handler: async (input, ctx) => {
+    const db = await archiveClient(ctx);
+    const { data, error } = await db.functions.invoke("archive-company-email", { body: input });
+    if (error) {
+      const response = "context" in error ? error.context : null;
+      throw new Error(response instanceof Response ? await response.text() : error.message);
+    }
+    return result(data);
+  }
+});
+
+// src/lib/mcp/tools/list-company-documents.ts
+import { defineTool as defineTool21 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z24 } from "npm:zod@^3.25.76";
+var list_company_documents_default = defineTool21({
+  name: "list_company_documents",
+  title: "Lister les archives entreprise",
+  description: "Retrouve les documents des Archives administratives par cat\xE9gorie ou nom, avec id, taille, validit\xE9 et r\xE9sum\xE9. Pagination par offset ; utiliser read_company_document pour r\xE9cup\xE9rer le fichier.",
+  inputSchema: { category: archiveMetadata.category.optional(), search: z24.string().trim().max(120).optional(), limit: z24.number().int().min(1).max(100).default(50), offset: z24.number().int().min(0).default(0) },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ category, search, limit, offset }, ctx) => {
+    const db = await archiveClient(ctx);
+    let q = db.from("admin_documents").select("id,file_name,file_size,mime_type,category,valid_until,summary,tags,uploaded_at").order("uploaded_at", { ascending: false }).order("id").range(offset, offset + limit - 1);
+    if (category) q = q.eq("category", category);
+    if (search) q = q.ilike("file_name", `%${search.replace(/[%,]/g, "")}%`);
+    const { data, error } = await q;
+    if (error) throw error;
+    return result({ documents: data || [], next_offset: data?.length === limit ? offset + limit : null });
+  }
+});
+
+// src/lib/mcp/tools/read-company-document.ts
+import { defineTool as defineTool22 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z25 } from "npm:zod@^3.25.76";
+var read_company_document_default = defineTool22({
+  name: "read_company_document",
+  title: "Lire un document entreprise",
+  description: "Retourne les m\xE9tadonn\xE9es et le fichier base64 (20 Mo maximum) par document_id, apr\xE8s v\xE9rification des droits administrateur et t\xE9l\xE9chargement authentifi\xE9. Aucune URL publique ni \xE9criture.",
+  inputSchema: { document_id: z25.string().uuid() },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ document_id }, ctx) => {
+    const db = await archiveClient(ctx);
+    const { data: doc, error } = await db.from("admin_documents").select("id,file_name,mime_type,file_size,category,valid_until,summary,storage_path,file_url").eq("id", document_id).single();
+    if (error || !doc) throw new Error(error?.message || "Document introuvable");
+    if (doc.file_size && doc.file_size > ARCHIVE_MAX_BYTES) throw new Error("Lecture base64 limit\xE9e \xE0 20 Mo");
+    const path = doc.storage_path || doc.file_url.split("/admin-archives/")[1]?.split("?")[0];
+    if (!path || path.includes("..")) throw new Error("Chemin du document invalide");
+    const { data: blob, error: downloadError } = await db.storage.from("admin-archives").download(path);
+    if (downloadError || !blob) throw new Error(downloadError?.message || "T\xE9l\xE9chargement impossible");
+    if (blob.size > ARCHIVE_MAX_BYTES) throw new Error("Lecture base64 limit\xE9e \xE0 20 Mo");
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 8192) binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+    return result({ id: doc.id, file_name: doc.file_name, mime_type: doc.mime_type, category: doc.category, valid_until: doc.valid_until, summary: doc.summary, file_base64: btoa(binary) });
+  }
+});
+
 // src/lib/mcp/index.ts
 var ref = "yewffntzgrdgztrwtava";
-var mcp_default = defineMcp({ name: "supertools", title: "SuperTools", version: "1.0.0", auth: auth.oauth.issuer({ issuer: `https://${ref}.supabase.co/auth/v1`, acceptedAudiences: "authenticated" }), instructions: "Extensions r\xE9serv\xE9es au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille, couvertures et attestations de bonne ex\xE9cution (cr\xE9ation, modification, liste, lien de signature, PDF sign\xE9), sessions live des formations (liste, mise \xE0 jour, replay), catalogue jeux et devis dropshipping. list_games retrouve les jeux, prix, stocks, frais de port et poids. create_game_quote renvoie par d\xE9faut un preview sans \xE9criture ; confirm=true est obligatoire pour cr\xE9er le brouillon, apr\xE8s accord explicite. Le devis jeux n\u2019envoie jamais d\u2019email ou de Slack, ne cr\xE9e pas de commande pay\xE9e et ne d\xE9cr\xE9mente pas le stock. Aucun outil de suppression ni envoi d\u2019email hors rappels live reprogramm\xE9s comme dans l\u2019application. Ne jamais modifier les le\xE7ons. Confirmer allow_multiple avec l\u2019utilisateur. Les outils historiques restent sur leur connecteur existant.", tools: [list_lms_modules_default, create_lms_module_default, update_lms_module_default, assign_transcript_default, list_unassigned_transcripts_default, list_watch_sources_default, propose_watch_source_default, update_watch_source_default, update_lms_course_default, create_execution_attestation_default, update_execution_attestation_default, list_execution_attestations_default, get_execution_attestation_link_default, get_execution_attestation_pdf_default, list_live_meetings_default, update_live_meeting_default, list_games_default, create_game_quote_default] });
+var mcp_default = defineMcp({ name: "supertools", title: "SuperTools", version: "1.0.0", auth: auth.oauth.issuer({ issuer: `https://${ref}.supabase.co/auth/v1`, acceptedAudiences: "authenticated" }), instructions: "Extensions r\xE9serv\xE9es au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille, couvertures et attestations de bonne ex\xE9cution (cr\xE9ation, modification, liste, lien de signature, PDF sign\xE9), sessions live des formations (liste, mise \xE0 jour, replay), catalogue jeux et devis dropshipping, archives entreprise (archive_email_attachments, upload_company_document, list_company_documents, read_company_document). Les archives sont r\xE9serv\xE9es aux administrateurs, strictement additives, sans email ni suppression. list_games retrouve les jeux, prix, stocks, frais de port et poids. create_game_quote renvoie par d\xE9faut un preview sans \xE9criture ; confirm=true est obligatoire pour cr\xE9er le brouillon, apr\xE8s accord explicite. Le devis jeux n\u2019envoie jamais d\u2019email ou de Slack, ne cr\xE9e pas de commande pay\xE9e et ne d\xE9cr\xE9mente pas le stock. Aucun outil de suppression ni envoi d\u2019email hors rappels live reprogramm\xE9s comme dans l\u2019application. Ne jamais modifier les le\xE7ons. Confirmer allow_multiple avec l\u2019utilisateur. Les outils historiques restent sur leur connecteur existant.", tools: [upload_company_document_default, archive_email_attachments_default, list_company_documents_default, read_company_document_default, list_lms_modules_default, create_lms_module_default, update_lms_module_default, assign_transcript_default, list_unassigned_transcripts_default, list_watch_sources_default, propose_watch_source_default, update_watch_source_default, update_lms_course_default, create_execution_attestation_default, update_execution_attestation_default, list_execution_attestations_default, get_execution_attestation_link_default, get_execution_attestation_pdf_default, list_live_meetings_default, update_live_meeting_default, list_games_default, create_game_quote_default] });
 
 // lovable-mcp-supabase-entry.ts
 import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@3.4.0/stacks/supabase";

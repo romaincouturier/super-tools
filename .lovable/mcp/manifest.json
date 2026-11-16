@@ -17,6 +17,203 @@
     },
     "tools": [
       {
+        "name": "upload_company_document",
+        "title": "Archiver un document entreprise",
+        "description": "Ajoute un fichier base64 (20 Mo maximum) aux Archives administratives, avec catégorie et validité facultative. Jamais de remplacement, suppression, analyse automatique ni email ; chaque ajout est journalisé.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "file_name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "mime_type": {
+              "type": "string",
+              "maxLength": 120
+            },
+            "file_base64": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 27962028
+            },
+            "category": {
+              "type": "string",
+              "enum": [
+                "Qualiopi",
+                "Administratif",
+                "Juridique",
+                "Facture",
+                "Contrat",
+                "RH / Paie",
+                "Fiscal",
+                "Bancaire",
+                "Assurance",
+                "Légal",
+                "Formation",
+                "Commercial",
+                "Divers"
+              ]
+            },
+            "valid_until": {
+              "type": "string",
+              "description": "Date de validité AAAA-MM-JJ, facultative ; rappel quotidien 30 jours avant expiration."
+            }
+          },
+          "required": [
+            "file_name",
+            "mime_type",
+            "file_base64",
+            "category"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "archive_email_attachments",
+        "title": "Archiver des pièces jointes Gmail",
+        "description": "Archive dans les archives entreprise les pièces jointes du Gmail connecté (boîte partagée Romain). attachment_filenames omis = toutes ; sinon noms exacts sélectionnés. Catégorie requise, validité facultative. Aucun email envoyé, remplacement ou suppression ; résultat détaillé et erreurs partielles. Ne pas réessayer automatiquement.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "gmail_message_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            },
+            "attachment_filenames": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "category": {
+              "type": "string",
+              "enum": [
+                "Qualiopi",
+                "Administratif",
+                "Juridique",
+                "Facture",
+                "Contrat",
+                "RH / Paie",
+                "Fiscal",
+                "Bancaire",
+                "Assurance",
+                "Légal",
+                "Formation",
+                "Commercial",
+                "Divers"
+              ]
+            },
+            "valid_until": {
+              "type": "string",
+              "description": "Date de validité AAAA-MM-JJ, facultative ; rappel quotidien 30 jours avant expiration."
+            }
+          },
+          "required": [
+            "gmail_message_id",
+            "category"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_company_documents",
+        "title": "Lister les archives entreprise",
+        "description": "Retrouve les documents des Archives administratives par catégorie ou nom, avec id, taille, validité et résumé. Pagination par offset ; utiliser read_company_document pour récupérer le fichier.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "string",
+              "enum": [
+                "Qualiopi",
+                "Administratif",
+                "Juridique",
+                "Facture",
+                "Contrat",
+                "RH / Paie",
+                "Fiscal",
+                "Bancaire",
+                "Assurance",
+                "Légal",
+                "Formation",
+                "Commercial",
+                "Divers"
+              ]
+            },
+            "search": {
+              "type": "string",
+              "maxLength": 120
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "read_company_document",
+        "title": "Lire un document entreprise",
+        "description": "Retourne les métadonnées et le fichier base64 (20 Mo maximum) par document_id, après vérification des droits administrateur et téléchargement authentifié. Aucune URL publique ni écriture.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "required": [
+            "document_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
         "name": "list_lms_modules",
         "title": "Lister les modules",
         "description": "Liste les modules ordonnés, y compris vides, avec nombre de leçons.",

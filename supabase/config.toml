@@ -782,3 +782,6 @@ verify_jwt = false
 
 [functions.submit-attestation-signature]
 verify_jwt = false
+
+[functions.archive-company-email]
+verify_jwt = false

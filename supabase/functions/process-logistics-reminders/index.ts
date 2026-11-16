@@ -7,6 +7,7 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
 import { formatDateFr, formatDateWithDayFr } from "../_shared/date-utils.ts";
 import { fetchMissingTrainingAccess } from "../_shared/training-access.ts";
+import { fetchExpiringArchives } from "../_shared/company-archives.ts";
 import {
   fetchAllDailyData,
   userCanSee,
@@ -178,6 +179,8 @@ serve(async (req) => {
 
     console.log(`[${VERSION}] Found ${recipients.length} recipient(s)`);
     logDataCounts(data);
+    const archiveToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date());
+    const expiringArchives = await fetchExpiringArchives(supabase, archiveToday);
     const [accessIssues, formationAccess] = await Promise.all([fetchMissingTrainingAccess(supabase, today), supabase.from("user_module_access").select("user_id").eq("module", "formations")]);
     if (formationAccess.error) throw formationAccess.error;
     const formationUserIds = new Set((formationAccess.data || []).map(r => r.user_id));
@@ -270,6 +273,8 @@ serve(async (req) => {
       };
 
       // 0. Missions — Actions à traiter
+      if (recipient.isAdmin) add('', 'Documents à renouveler dans les 30 jours', COLORS.red,
+        expiringArchives.map(doc => `<li>${linkHtml(`${appUrl}/archives`, escapeHtml(doc.file_name), true)} : valable jusqu’au ${escapeHtml(doc.valid_until)}. Archiver le document renouvelé.</li>`));
       add("📍", "Session présentielle dans moins de 7 jours sans instructions d'accès", COLORS.red,
         accessIssues.filter(t => recipient.isAdmin || (recipient.userId === t.assigned_to && formationUserIds.has(recipient.userId))).map(t => `<li>${linkHtml(`${appUrl}/formations/${t.id}/edit#access-instructions`, escapeHtml(t.training_name || "Formation"), true)} — ${escapeHtml(t.start_date || "")} : saisir les instructions d’accès.</li>`));
       add("🎯", "Missions — Actions à traiter", COLORS.primary,

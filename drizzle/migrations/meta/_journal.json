@@ -498,6 +498,20 @@
       "when": 1794827445728,
       "tag": "0070_training_access_instructions",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1794843211973,
+      "tag": "0071_company_archive_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1794843503148,
+      "tag": "0072_company_archive_audit_recipient",
+      "breakpoints": true
     }
   ]
 }

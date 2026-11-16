@@ -1,5 +1,11 @@
 # Roadmap
 
+## Archives entreprise MCP (2026-11-16)
+- [x] Archives administratives réutilisées : quatre outils OAuth, administrateurs uniquement, stockage privé et ajouts journalisés sans remplacement ni suppression ; Gmail connecté préexistant conservé.
+- [x] Validité facultative et rappels J-30 à expiration dans digest/actions, catégories ajoutées ; migrations 0071/0072 appliquées, trois fonctions déployées, aucun cron ni email déclenché. 25 tests, 103 règles et compilation OK ; manifeste 22 outils extrait.
+- [x] Ajout réel, liste et relecture octet par octet vérifiés en session Romain, document visible dans /archives et trace relue. PDF de test conservé conformément au périmètre additif ; premier essai a laissé un objet non référencé après refus du journal (recipient_email obligatoire), corrigé sans supprimer cet objet. Gmail testé par simulations, pas sur le mail Atalia. Root AGENTS au budget ; règle enregistrée dans src/lib/mcp/AGENTS.md.
+- [ ] Republier front/MCP pour exposer les outils aux clients externes ; appel Claude externe non vérifié, aucun nouveau service activé (Cloud, Gmail et MCP préexistants).
+
 ## Instructions d’accès aux lieux (2026-11-16)
 - [x] Migration 0070 appliquée : champ partagé par lieu et surcharge par session, droits inchangés, traces des saisies. Session Agile Tribu du 16/11 sans venue_id : héritage par adresse complète exacte unique, sans réécrire les données.
 - [x] Convocations manuelles/programmées, rappel participant et aujourd’hui : insertion automatique même dans les anciens modèles, vide/visio masqués. La synthèse J-1 existante est destinée au formateur, pas aux participants ; aucun nouveau circuit créé.
