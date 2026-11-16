@@ -1,5 +1,10 @@
 # Roadmap
 
+## Archives entreprise MCP (2026-11-16)
+- [ ] Réutiliser Archives administratives, ajouter upload/base64, Gmail sélectionné et liste/lecture sous droits existants, sans écrasement ni suppression.
+- [ ] Ajouter validité optionnelle et rappel avant expiration, tests et extraction manifeste ; aucun email de test.
+- [ ] Vérifier le parcours et préciser la publication nécessaire.
+
 ## Instructions d’accès aux lieux (2026-11-16)
 - [x] Migration 0070 appliquée : champ partagé par lieu et surcharge par session, droits inchangés, traces des saisies. Session Agile Tribu du 16/11 sans venue_id : héritage par adresse complète exacte unique, sans réécrire les données.
 - [x] Convocations manuelles/programmées, rappel participant et aujourd’hui : insertion automatique même dans les anciens modèles, vide/visio masqués. La synthèse J-1 existante est destinée au formateur, pas aux participants ; aucun nouveau circuit créé.
