@@ -29,7 +29,7 @@ export async function collectAuditFacts(db: any, now = new Date()) {
     : Promise.resolve([]);
   const [formations, evaluations, surveys, invitations, adequacy, settings, vhd, courses, modules, lessons, trainers, documents, watchCount, sourcesCount,
     partners, cold, sponsors, funder, complaints, risks, improvements, trainerReturns, reminders, solicitations] = await Promise.all([
-    all(() => db.from('formation_configs').select('id, recognition_type, funding_terms, access_delay, accessibility_terms').eq('is_active', true), 'catalogue'),
+    all(() => db.from('formation_configs').select('id, formation_name, recognition_type, funding_terms, access_delay, accessibility_terms').eq('is_active', true), 'catalogue'),
     scoped('training_evaluations', 'id, training_id, objectifs_evaluation', q => q.eq('etat', 'soumis')),
     scoped('questionnaire_besoins', 'id, training_id, prerequis_validation, niveau_actuel, competences_actuelles', q => q.in('etat', ['complete', 'valide_formateur'])),
     scoped('sent_emails_log', 'id, training_id', q => q.in('email_type', ['welcome', 'scheduled_welcome', 'needs_survey', 'scheduled_needs_survey'])),
@@ -39,7 +39,7 @@ export async function collectAuditFacts(db: any, now = new Date()) {
     all(() => db.from('lms_courses').select('id').eq('status', 'published'), 'cours publiés'),
     all(() => db.from('lms_modules').select('id, course_id'), 'modules'),
     all(() => db.from('lms_lessons').select('id, module_id, is_mandatory'), 'leçons'),
-    all(() => db.from('trainers').select('id, competences, formations_suivies, cv_url'), 'formateurs'),
+    all(() => db.from('trainers').select('id, first_name, last_name, competences, formations_suivies, cv_url'), 'formateurs'),
     all(() => db.from('trainer_documents').select('id, trainer_id'), 'justificatifs'),
     count(db.from('watch_items').select('id', { count: 'exact', head: true }).gte('created_at', yearAgo), 'veille'),
     count(db.from('watch_sources').select('id', { count: 'exact', head: true }).eq('status', 'followed'), 'sources suivies'),

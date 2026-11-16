@@ -17,6 +17,19 @@ export interface EditableEmailDefault {
 const same = (s: string) => ({ tu: s, vous: s });
 
 export const EDITABLE_EMAIL_DEFAULTS: Record<string, EditableEmailDefault> = {
+  qualiopi_audit_focus: {
+    name: 'Audit blanc Qualiopi — focus quotidien',
+    audience: 'internal',
+    sendingInfo: 'Deux indicateurs prioritaires maximum par jour, conservés tant que le focus n’est pas entièrement corrigé.',
+    subject: same('Audit blanc : {{focus_title}}'),
+    content: same(`Focus du jour
+
+{{actions_list}}
+
+{{global_footer}}
+{{signature}}`),
+    variables: ['focus_title', 'actions_list', 'global_footer', 'signature'],
+  },
   qualiopi_audit_summary: {
     name: 'Audit blanc Qualiopi — bilan nocturne',
     audience: 'internal',

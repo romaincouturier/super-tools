@@ -27,7 +27,16 @@ export interface CheckOutcome {
   detail: string;
 }
 
+export interface AuditAffectedItem {
+  label: string;
+  href: string;
+  missing: string;
+}
+
 export interface AuditFacts {
+  affectedItems?: Record<string, AuditAffectedItem[]>;
+  auditFocus?: number[];
+  sample?: Array<{ trainingId: string; trainingName: string; endDate: string | null }>;
   /** Indicateur 1 */
   activeFormations: number;
   formationsWithAllDisclosures: number;
@@ -780,12 +789,16 @@ export interface RawAuditData {
   sampleIds: string[];
   sampleTrainings: Array<{
     id: string;
+    training_name?: string;
+    end_date?: string | null;
     objectives: string[] | null;
     program_file_url: string | null;
     supports_lms_course_id: string | null;
     trainer_id: string | null;
   }>;
   activeFormations: Array<{
+    id?: string;
+    formation_name?: string;
     recognition_type: string | null;
     funding_terms: string | null;
     access_delay: string | null;
@@ -802,7 +815,7 @@ export interface RawAuditData {
   lmsModules: Array<{ id: string; course_id: string }>;
   lmsLessons: Array<{ module_id: string | null; is_mandatory: boolean | null }>;
   lmsCourseIds: string[];
-  trainers: Array<{ id: string; competences: string[] | null; formations_suivies: unknown; cv_url?: string | null }>;
+  trainers: Array<{ first_name?: string; last_name?: string; id: string; competences: string[] | null; formations_suivies: unknown; cv_url?: string | null }>;
   trainerDocumentOwners: string[];
   watchItemsLastYear: number;
   watchSourcesFollowed: number;
@@ -813,8 +826,8 @@ export interface RawAuditData {
   coldEvaluationsSubmitted: number;
   sponsorEvaluationsSubmitted: number;
   funderAppreciations: number;
-  reclamations: Array<{ acknowledgement_sent_at: string | null; response_date: string | null }>;
-  risks: Array<{ criticality: number | null; preventive_measure: string | null; status: string }>;
+  reclamations: Array<{ id?: string; description?: string; acknowledgement_sent_at: string | null; response_date: string | null }>;
+  risks: Array<{ id?: string; title?: string; criticality: number | null; preventive_measure: string | null; status: string }>;
   improvements: number;
   trainerReturns?: number;
   startReminders?: number;
@@ -860,7 +873,52 @@ export function buildFacts(raw: RawAuditData): AuditFacts {
   const withAdequacy = new Set(raw.adequacy.map((a) => a.training_id));
   const docOwners = new Set(raw.trainerDocumentOwners);
 
+  const affectedItems: Record<string, AuditAffectedItem[]> = {};
+  const add = (check: string, label: string, href: string, missing: string) => {
+    (affectedItems[check] ??= []).push({ label, href, missing });
+  };
+  for (const t of raw.sampleTrainings) {
+    const label = `${t.training_name ?? t.id}${t.end_date ? ` — ${t.end_date}` : ''}`;
+    const href = `/formations/${t.id}`;
+    const checks: Array<[string, boolean, string]> = [
+      ['4.recueil', withSurvey.has(t.id), 'Aucun questionnaire de besoins complété détecté.'],
+      ['5.objectifs', (t.objectives ?? []).length > 0, 'Objectifs de formation manquants.'],
+      ['5.evaluables', withObjectiveRatings.has(t.id), 'Aucune notation des objectifs détectée.'],
+      ['6.programme', !!(t.program_file_url || t.supports_lms_course_id), 'Aucun programme ou parcours rattaché.'],
+      ['8.prerequis', withPositioning.has(t.id), 'Aucun positionnement renseigné détecté.'],
+      ['9.convocation', withConvocation.has(t.id), 'Aucune convocation ou bienvenue journalisée.'],
+      ['11.evaluation', withEvaluation.has(t.id), 'Aucune évaluation de fin reçue.'],
+      ['18.intervenant', !!t.trainer_id, 'Aucun formateur rattaché.'],
+      ['21.adequation', withAdequacy.has(t.id), 'Adéquation formateur/session sans validation datée et nominative.'],
+      ['30.beneficiaires', withEvaluation.has(t.id), 'Aucune appréciation de fin reçue.'],
+    ];
+    for (const [check, covered, missing] of checks) if (!covered) add(check, label, href, missing);
+  }
+  const disclosures: Array<[keyof RawAuditData['activeFormations'][number], string]> = [
+    ['recognition_type', 'reconnaissance'], ['funding_terms', 'financement'], ['access_delay', 'délai d’accès'], ['accessibility_terms', 'accessibilité'],
+  ];
+  for (const f of raw.activeFormations) {
+    const missing = disclosures.filter(([key]) => !filled(f[key])).map(([, label]) => label);
+    if (missing.length) add('1.mentions', f.formation_name ?? 'Formation du catalogue', f.id ? `/catalogue?entry=${f.id}` : '/catalogue', `Mentions manquantes : ${missing.join(', ')}.`);
+  }
+  for (const t of raw.trainers) {
+    const label = [t.first_name, t.last_name].filter(Boolean).join(' ') || 'Formateur';
+    const href = '/parametres?find=tab%3Atrainers';
+    if (!(t.competences ?? []).length) add('21.competences', label, href, 'Compétences non renseignées.');
+    if (!docOwners.has(t.id) && !filled(t.cv_url)) add('21.justificatifs', label, href, 'Aucun CV ou justificatif rattaché.');
+    if (!Array.isArray(t.formations_suivies) || !t.formations_suivies.length) add('22.formation', label, href, 'Aucune formation continue renseignée.');
+  }
+  for (const r of raw.reclamations) {
+    const href = r.id ? `/reclamations?id=${r.id}` : '/reclamations';
+    if (!r.acknowledgement_sent_at) add('31.accuse', r.description ?? 'Réclamation', href, 'Accusé de réception non enregistré.');
+    if (!r.response_date) add('31.reponse', r.description ?? 'Réclamation', href, 'Réponse datée non enregistrée.');
+  }
+  for (const r of raw.risks) if ((r.criticality ?? 0) >= 8 && r.status !== 'closed' && !filled(r.preventive_measure)) {
+    add('32.mesures', r.title ?? 'Risque élevé', '/risques', 'Mesure de prévention manquante.');
+  }
   return {
+    affectedItems,
+    sample: raw.sampleTrainings.map(t => ({ trainingId: t.id, trainingName: t.training_name ?? t.id, endDate: t.end_date ?? null })),
     activeFormations: raw.activeFormations.length,
     formationsWithAllDisclosures: raw.activeFormations.filter(
       (f) =>
