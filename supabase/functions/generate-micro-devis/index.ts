@@ -383,16 +383,19 @@ async function sendEmailWithResend(
   const urls = await getAppUrls();
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const qualiopiPath = urls.qualiopi_certificate_path;
-  const qualiopiPublicUrl = `${supabaseUrl}/storage/v1/object/public/${encodeURI(qualiopiPath)}`;
-  
   let qualiopiCertificate: ArrayBuffer | null = null;
   try {
-    const qualiopiResponse = await fetch(qualiopiPublicUrl);
-    if (qualiopiResponse.ok) {
-      qualiopiCertificate = await qualiopiResponse.arrayBuffer();
+    const slash = qualiopiPath.indexOf("/");
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
+    const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: qualiopiFile, error: qualiopiError } = await admin.storage
+      .from(qualiopiPath.slice(0, slash))
+      .download(qualiopiPath.slice(slash + 1));
+    if (qualiopiFile && !qualiopiError) {
+      qualiopiCertificate = await qualiopiFile.arrayBuffer();
       console.log("Qualiopi certificate fetched successfully");
     } else {
-      console.warn("Could not fetch Qualiopi certificate:", qualiopiResponse.status);
+      console.warn("Could not fetch Qualiopi certificate:", qualiopiError?.message);
     }
   } catch (error) {
     console.warn("Error fetching Qualiopi certificate:", error);
