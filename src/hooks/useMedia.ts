@@ -14,7 +14,7 @@ async function uploadMediaEdge(name: string, body: FormData, onProgress: UploadP
   }, onProgress) as Promise<{ media?: MediaItem }>;
 }
 
-export type MediaSourceType = "mission" | "event" | "training" | "crm" | "content" | "lms";
+export type MediaSourceType = "mission" | "event" | "training" | "crm" | "content" | "lms" | "watch";
 
 export interface MediaItem {
   id: string;
@@ -91,6 +91,8 @@ export const useMediaLibrary =(options: { enabled?: boolean } = {}) => {
       const contentIds = [...new Set(rows.filter((r) => r.source_type === "content").map((r) => r.source_id))];
       const lmsIds = [...new Set(rows.filter((r) => r.source_type === "lms").map((r) => r.source_id))];
 
+      const watchIds = [...new Set(rows.filter((r) => r.source_type === "watch").map((r) => r.source_id))];
+
       // Fetch labels
       const labelMap: Record<string, { label: string; emoji: string | null; color: string | null; tags: string[] }> = {};
 
@@ -156,6 +158,14 @@ export const useMediaLibrary =(options: { enabled?: boolean } = {}) => {
         (lessonRows || []).forEach((l) => {
           // Lesson lookup takes precedence when the id resolves to a lesson.
           labelMap[l.id] = { label: l.title, emoji: null, color: null, tags: ["formation en ligne", "leçon"] };
+        });
+      }
+
+      if (watchIds.length > 0) {
+        const { data, error: watchError } = await supabase.from("watch_items").select("id, title, tags").in("id", watchIds);
+        if (watchError) throw watchError;
+        (data || []).forEach((item) => {
+          labelMap[item.id] = { label: item.title, emoji: null, color: null, tags: ["veille", ...(item.tags || [])] };
         });
       }
 

@@ -1,0 +1,2 @@
+# Architecture
+- Watch images are registered as media with source_type watch through the authenticated upload endpoint; stable pending IDs and successful-file removal allow retry without duplicating the item or images, because the library and watch card must reference the same files.

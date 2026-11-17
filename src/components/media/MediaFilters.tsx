@@ -71,6 +71,7 @@ const MediaFilters = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Toutes les sources</SelectItem>
+            <SelectItem value="watch">Veille</SelectItem>
             <SelectItem value="mission">
               <span className="flex items-center gap-2">
                 <Briefcase className="h-3.5 w-3.5" /> Missions

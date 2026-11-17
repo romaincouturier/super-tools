@@ -6,6 +6,8 @@ import {
   createJsonResponse,
 } from "../_shared/cors.ts";
 import { resolveContentType } from "../_shared/file-utils.ts";
+import { requireStaff } from "../_shared/cron-auth.ts";
+import { saveWatchImage } from "../_shared/watch-image.ts";
 
 const BUCKET = "watch";
 
@@ -29,6 +31,14 @@ Deno.serve(async (req) => {
     const path = String(form.get("path") || "");
 
     if (!(file instanceof File)) return createErrorResponse("Fichier manquant", 400);
+    const watchItemId = String(form.get("watchItemId") || "");
+    if (watchItemId) {
+      const user = await requireStaff(req);
+      if (!user) return createErrorResponse("Accès réservé à l’équipe", 403);
+      const admin = createClient(supabaseUrl, serviceKey);
+      const media = await saveWatchImage(admin, user, file, watchItemId, String(form.get("mediaId") || ""), resolveContentType(file));
+      return createJsonResponse({ media });
+    }
     if (!path) return createErrorResponse("Chemin manquant", 400);
 
     const admin = createClient(supabaseUrl, serviceKey);

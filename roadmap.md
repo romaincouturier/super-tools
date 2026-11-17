@@ -1,5 +1,9 @@
 # Roadmap
 
+## Images multiples en veille (2026-11-17)
+- [x] Images multiples en création/modification, galerie et médiathèque avec filtre Veille ; progression réelle et conservation des fichiers restants pour réessayer sans dupliquer la carte. Source media additive, droits staff inchangés, écritures tracées ; fonction upload-watch-file déployée.
+- [x] Deux vrais uploads enregistrés, relus après rechargement et trouvés dans la médiathèque ; ordinateur/mobile sans débordement. Tests temporaires nettoyés avec traces ; 8 tests et 103 règles OK, aucun email ni automatisation supplémentaire. Front à publier.
+
 ## Vidéo MP4 mission (2026-11-17)
 - [x] Fiche Gipal précisée : mission 6e9d24d4-ab40-4834-b745-3ad445d46147 ; même correctif appliqué aux vidéos insérées dans les pages mission.
 - [x] Dépassements CPU confirmés à 20:32:46 et 20:34:05 : gros fichiers mission via transport signé/reprenable existant, droits inchangés, erreurs détaillées. Aucun changement serveur, bucket ou données.

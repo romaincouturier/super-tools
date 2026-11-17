@@ -12,6 +12,8 @@ import { reportHandledError } from "@/lib/sentry";
 import type { WatchItem } from "@/hooks/useWatch";
 import { useUpdateWatchItem, useWatchTags } from "@/hooks/useWatch";
 import WatchRichEditor from "./WatchRichEditor";
+import { useWatchImages } from "@/hooks/useWatchImages";
+import { WatchImageGallery, WatchImagePicker } from "./WatchImages";
 
 interface WatchEditDialogProps {
   item: WatchItem;
@@ -27,10 +29,12 @@ const WatchEditDialog = ({ item, open, onOpenChange }: WatchEditDialogProps) => 
   const [tags, setTags] = useState<string[]>(item.tags || []);
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const images = useWatchImages();
 
   // Resync form state each time the dialog opens (avoids stale values after a mutation).
   useEffect(() => {
     if (open) {
+      images.reset();
       setTitle(item.title);
       setBody(item.body);
       setComment(item.comment ?? "");
@@ -62,6 +66,7 @@ const WatchEditDialog = ({ item, open, onOpenChange }: WatchEditDialogProps) => 
         ...(item.content_type === "url" ? { source_url: sourceUrl.trim() || null } : {}),
         tags,
       });
+      await images.upload(item.id);
       toast.success("Modifications enregistrées");
       onOpenChange(false);
     } catch (err) {
@@ -75,7 +80,7 @@ const WatchEditDialog = ({ item, open, onOpenChange }: WatchEditDialogProps) => 
   const suggestions = (allTags || []).filter((t) => !tags.includes(t));
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(value) => { if (!saving) onOpenChange(value); }}>
       <DialogContent className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Modifier la carte de veille</DialogTitle>
@@ -115,6 +120,9 @@ const WatchEditDialog = ({ item, open, onOpenChange }: WatchEditDialogProps) => 
               />
             </div>
           )}
+
+          <WatchImageGallery itemId={item.id} />
+          <WatchImagePicker state={images} disabled={saving} />
 
           <div>
             <Label htmlFor="edit-watch-comment">Commentaire</Label>

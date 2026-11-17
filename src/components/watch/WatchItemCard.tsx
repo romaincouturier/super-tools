@@ -24,6 +24,7 @@ import {
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import MultiUserSelector from "@/components/shared/MultiUserSelector";
 import WatchEditDialog from "./WatchEditDialog";
+import { WatchImageGallery } from "./WatchImages";
 import { displayNameOf, initialsOf, type UserProfileLite } from "@/lib/userDisplay";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -181,7 +182,7 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
       open={editDialogOpen}
       onOpenChange={setEditDialogOpen}
     />
-    <Card className="p-4 space-y-3 hover:shadow-md transition-shadow">
+    <Card className="min-w-0 p-4 space-y-3 hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2 min-w-0 flex-1">
@@ -243,6 +244,8 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
           loading="lazy"
         />
       )}
+
+      <WatchImageGallery itemId={item.id} omitUrl={item.content_type === "image" ? item.file_url : null} />
 
       {/* OCR transcript for images */}
       {item.content_type === "image" && item.transcript && (

@@ -21,6 +21,8 @@ import { fr } from "date-fns/locale";
 import WatchRichEditor, { stripWatchHtml } from "./WatchRichEditor";
 import { extractMentionedUserIdsFromHtml } from "@/lib/tiptapMentionSuggestion";
 import MultiUserSelector from "@/components/shared/MultiUserSelector";
+import { useWatchImages } from "@/hooks/useWatchImages";
+import { WatchImagePicker, WatchImageGallery } from "./WatchImages";
 
 
 interface WatchAddDialogProps {
@@ -44,6 +46,8 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
   const [transcriptSearch, setTranscriptSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const images = useWatchImages();
+  const [savedItemId, setSavedItemId] = useState<string | null>(null);
   const addMutation = useAddWatchItem();
   const queryClient = useQueryClient();
 
@@ -54,6 +58,8 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
   const { data: selectedTranscript } = useTranscript(tab === "transcript" ? transcriptId : null);
 
   const reset = () => {
+    images.reset();
+    setSavedItemId(null);
     setTitle("");
     setBody("");
     setComment("");
@@ -94,6 +100,16 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
     selectedTranscript?.ai_title || selectedTranscript?.title || "Transcript";
 
   const handleSubmit = async () => {
+    if (savedItemId) {
+      setUploading(true);
+      try {
+        await images.upload(savedItemId);
+        toast.success("Images enregistrées");
+        reset(); setOpen(false);
+      } catch (cause) { toast.error(cause instanceof Error ? cause.message : "Certaines images n’ont pas été envoyées. Réessayez."); }
+      finally { setUploading(false); }
+      return;
+    }
     const isTranscript = tab === "transcript";
     const contentType = (isTranscript ? "text" : tab) as "text" | "url" | "image" | "audio" | "document";
     const finalBody = isTranscript ? transcriptBody() : body;
@@ -120,7 +136,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       }
     }
 
-    if ((contentType === "image" || contentType === "audio") && !file) {
+    if ((contentType === "image" && images.images.length === 0) || (contentType === "audio" && !file)) {
       toast.error(`Veuillez sélectionner un fichier ${contentType === "image" ? "image" : "audio"}`);
       return;
     }
@@ -147,7 +163,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       }
 
       // Upload file if needed
-      if (file && (contentType === "image" || contentType === "audio" || contentType === "document")) {
+      if (file && (contentType === "audio" || contentType === "document")) {
         fileUrl = await uploadWatchFile(file);
         fileName = file.name;
         fileSize = file.size;
@@ -172,6 +188,9 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
           ]),
         ],
       });
+
+      setSavedItemId(item.id);
+      await images.upload(item.id);
 
       // Trigger async processing (AI title/tags, scraping, OCR, transcription)
       const processed = await processWatchItem(item.id);
@@ -205,7 +224,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       let fileSize: number | null = null;
       let mimeType: string | null = null;
 
-      if (file && (contentType === "image" || contentType === "audio" || contentType === "document")) {
+      if (file && (contentType === "audio" || contentType === "document")) {
         fileUrl = await uploadWatchFile(file);
         fileName = file.name;
         fileSize = file.size;
@@ -232,6 +251,8 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       });
 
 
+      setSavedItemId(item.id);
+      await images.upload(item.id);
       const processed = await processWatchItem(item.id);
       await queryClient.invalidateQueries({ queryKey: ["watch-items"] });
       await queryClient.invalidateQueries({ queryKey: ["watch-tags"] });
@@ -251,7 +272,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+    <Dialog open={open} onOpenChange={(v) => { if (uploading) return; setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus className="h-4 w-4 mr-1" />
@@ -263,7 +284,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
           <DialogTitle>Ajouter un contenu de veille</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={tab} onValueChange={setTab}>
+        <Tabs value={tab} onValueChange={(value) => { if (!uploading && !savedItemId) setTab(value); }}>
           <TabsList className="w-full">
             <TabsTrigger value="text" className="gap-1.5 flex-1">
               <FileText className="h-3.5 w-3.5" />
@@ -275,7 +296,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
             </TabsTrigger>
             <TabsTrigger value="image" className="gap-1.5 flex-1">
               <Image className="h-3.5 w-3.5" />
-              Image
+              Images
             </TabsTrigger>
             <TabsTrigger value="audio" className="gap-1.5 flex-1">
               <Mic className="h-3.5 w-3.5" />
@@ -325,40 +346,6 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
               <p className="text-xs text-muted-foreground mt-1">
                 Le contenu sera automatiquement scrappé si possible.
               </p>
-            </TabsContent>
-
-            <TabsContent value="image" className="mt-0">
-              <Label>Image</Label>
-              <div
-                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {file ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <Image className="h-5 w-5 text-primary" />
-                    <span className="text-sm">{file.name}</span>
-                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); setFile(null); }}>
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div>
-                    <Image className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Cliquez pour sélectionner une image</p>
-                    <p className="text-xs text-muted-foreground mt-1">Le texte sera extrait par OCR</p>
-                  </div>
-                )}
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) setFile(f);
-                }}
-              />
             </TabsContent>
 
             <TabsContent value="audio" className="mt-0">
@@ -478,6 +465,9 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
 
 
 
+            {savedItemId && <WatchImageGallery itemId={savedItemId} />}
+            <WatchImagePicker state={images} disabled={uploading} />
+
             {/* Comment — contexte libre saisi par l'utilisateur */}
             <div>
               <Label htmlFor="watch-comment">Commentaire (optionnel)</Label>
@@ -565,7 +555,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
                   Traitement...
                 </>
               ) : (
-                "Ajouter"
+                savedItemId ? "Réessayer les images" : "Ajouter"
               )}
             </Button>
           </div>
