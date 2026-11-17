@@ -293,9 +293,9 @@ serve(async (req) => {
     // Un parcours interrompu au milieu laisse des avis non lus. Le dire en 502
     // plutôt qu'en succès : sinon le cron se déclare vert tous les matins
     // pendant qu'il manque la moitié du flux, et Sentry ne voit rien.
-    if (walk.error) {
+    if (walk.error || walk.truncated) {
       return createErrorResponse(
-        `Parcours TED incomplet (${walk.error}) : ${kept} avis enregistrés sur ` +
+        `Parcours TED incomplet (${walk.error ?? "plafond de pagination atteint"}) : ${kept} avis enregistrés sur ` +
           `${notices.length} lus, le reste n'a pas été parcouru.`,
         502,
         { fn: "ted-sync" },
