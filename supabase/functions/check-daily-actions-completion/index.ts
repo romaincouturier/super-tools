@@ -9,6 +9,7 @@ import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { loadProjectAssignees, projectAssignmentTargets } from "../_shared/project-assignee.ts";
 import { fetchTrainingFormulaIssues } from "../_shared/training-formula-alerts.ts";
 import { fetchMissingTrainingAccess } from "../_shared/training-access.ts";
+import { fetchTenderSourceHealth } from "../_shared/tender-health.ts";
 
 /**
  * Check Daily Actions Completion (auto-detection)
@@ -39,6 +40,7 @@ serve(async (req) => {
     }
 
     const today = new Date().toISOString().split("T")[0];
+    const staleTenderSources = new Set((await fetchTenderSourceHealth(supabase)).map(state => state.source));
 
     // Fetch uncompleted actions for today
     const { data: pendingActions, error: fetchError } = await supabase
@@ -279,6 +281,10 @@ serve(async (req) => {
         // Un appel d'offres est traité dès qu'il quitte la file de décision,
         // que ce soit par un Go, un No Go ou l'expiration automatique.
         case "marches_publics": {
+          if (action.entity_type === "tender_source_health") {
+            resolved = !staleTenderSources.has(action.entity_id);
+            break;
+          }
           const t = tenders.get(action.entity_id);
           // Ligne absente = supprimée : plus rien à décider non plus.
           if (!t || !["raw", "to_review"].includes(t.status)) resolved = true;

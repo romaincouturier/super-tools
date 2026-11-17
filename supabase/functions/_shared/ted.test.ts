@@ -7,6 +7,7 @@ import {
   mapTedNotice,
   noticesOf,
   tedNoticeUrl,
+  tedDeadline,
   walkTedPages,
 } from "./ted.ts";
 
@@ -171,6 +172,13 @@ describe("mapTedNotice", () => {
 });
 
 describe("tedNoticeUrl", () => {
+  it("lit la remise des offres avant la date de candidature", () => {
+    expect(tedDeadline({
+      "deadline-receipt-tender-date-lot": ["2026-11-18+01:00"],
+      "deadline-receipt-tender-time-lot": ["12:00:00"],
+      "deadline-receipt-request": "2026-10-01T10:00:00Z",
+    })).toBe("2026-11-18T11:00:00.000Z");
+  });
   it("construit le lien public depuis le numéro de publication", () => {
     expect(tedNoticeUrl("00123456-2026")).toBe(
       "https://ted.europa.eu/en/notice/-/detail/00123456-2026",

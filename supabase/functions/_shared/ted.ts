@@ -101,6 +101,8 @@ export const TED_FIELDS = [
   "classification-cpv",
   "publication-date",
   "deadline-receipt-request",
+  "deadline-receipt-tender-date-lot",
+  "deadline-receipt-tender-time-lot",
   // Montant, durée, accord-cadre.
   "estimated-value-proc",
   "estimated-value-cur-proc",
@@ -275,6 +277,18 @@ export function tedNoticeUrl(publicationNumber: string): string | null {
   return `https://ted.europa.eu/en/notice/-/detail/${encodeURIComponent(clean)}`;
 }
 
+export function tedDeadline(notice: Json): string | null {
+  const day = firstText(notice, ["deadline-receipt-tender-date-lot"]);
+  if (day) {
+    const time = firstText(notice, ["deadline-receipt-tender-time-lot"]) ?? "23:59:59";
+    const zone = day.match(/([+-]\d{2}:\d{2}|Z)$/)?.[1];
+    const raw = `${day.slice(0, 10)}T${time}${zone && !/(Z|[+-]\d{2}:\d{2})$/.test(time) ? zone : ""}`;
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  }
+  return firstText(notice, ["deadline-receipt-request", "deadline-receipt-tender", "cbc:EndDate"]);
+}
+
 /**
  * Complète la fiche de décision avec les champs plats de la recherche TED.
  *
@@ -410,11 +424,7 @@ export function mapTedNotice(notice: Json): NormalizedTender {
     code_departement: country ? [country] : [],
     cpv_codes: [...cpv],
     dateparution: firstText(notice, ["publication-date", "dispatch-date"]),
-    datelimitereponse: firstText(notice, [
-      "deadline-receipt-request",
-      "deadline-receipt-tender",
-      "cbc:EndDate",
-    ]),
+    datelimitereponse: tedDeadline(notice),
     decision,
     full_text: tedFullText(notice, decision),
     raw: notice,
@@ -500,7 +510,8 @@ export async function fetchPageWithRetry(
     }
   }
 
-  return lastPage!;
+  if (lastPage) return lastPage;
+  throw new Error("Aucune page TED reçue");
 }
 
 /**

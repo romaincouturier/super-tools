@@ -19,7 +19,7 @@
 
 import { parseEmailAddress } from "./email-address.ts";
 import { dedupKey, loadTenderFilterConfig, matchTender } from "./tender-tools.ts";
-import { ingestTenderEmailNotices } from "./tender-email-notices.ts";
+import { ingestTenderEmailNotices, parseTenderEmailNotices } from "./tender-email-notices.ts";
 
 export interface InboundAddresses {
   /** Destinataires d'enveloppe, puis en-tête To en repli. */
@@ -107,6 +107,13 @@ export async function routeTenderEmail(
   const { matched, source } = matchTenderRecipient(email.recipients, setting?.setting_value);
   if (!matched || !source) {
     return { routed: false, source: null, created: false, reason: null };
+  }
+
+  // Les exclusions portent sur chaque avis, jamais sur tout le digest.
+  if (parseTenderEmailNotices(email.body).length >= 2) {
+    const ingest = await ingestTenderEmailNotices(supabase, { ...email, body: email.body ?? "", source });
+    return { routed: true, source, created: ingest.created > 0,
+      reason: `${ingest.created} avis retenus sur ${ingest.notices}` };
   }
 
   const config = await loadTenderFilterConfig(supabase);

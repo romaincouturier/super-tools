@@ -1,5 +1,12 @@
 # Roadmap
 
+## Veille AO (2026-11-17)
+- [x] TED API et manuel OK : ancien callback silencieux, cause HTTP historique non récupérable ; remplacé par relais géré testé 200 / anonyme 401, ancien job 84 arrêté, nouveau 97 actif à horaire inchangé. 97 nouveaux TED depuis septembre, 993 lus en quatre pages sans échec/troncature avec cinq formulations métier ajoutées.
+- [x] AWS : réception OK, exclusions appliquées au digest entier et mots-clés trop étroits ; filtrage par avis corrigé, erreurs d’écriture remontées et dates Paris hiver corrigées. Sept mails depuis le 10/11 rejoués ; mail du 17/11 : 15 avis, deux retenus (ALTEMED / Grésivaudan).
+- [x] PLACE : page publique ASNR lue, avis archivé ; routage mail place@ déjà existant, pas de collecte active vérifiée. Option proposée : alertes de recherches sauvegardées PLACE avec transfert dédié.
+- [x] Alerte stricte >3 jours ouvrés sans nouvel import (donc pas preuve automatique de panne), récap et tâches quotidiennes, fermeture après retour de source. 67 tests / 103 règles / build OK, fonctions déployées, aucun email ni Go CRM lancé. Totaux hébergés relus ; liste vide en navigateur malgré session admin et droits CRM, lecture UI non validée, droits non élargis.
+- [ ] Activer les alertes PLACE : nécessite le compte PLACE de Romain et son réglage de transfert, aucun accès disponible.
+
 ## Consommation Anthropic (2026-11-16)
 - [x] Demande suivante : supprimer entièrement Autofix en conservant CI ; workflow supprimé, test de non-régression adapté et règle .github remplacée.
 - [x] GitHub vérifié à 22:38 UTC : aucun Autofix actif ni en attente (in_progress/queued/waiting/pending/requested = 0) ; run 43969206005 terminé avec succès. Aucune annulation nécessaire. Deux tests de régression et 103 règles OK, CI inchangée.

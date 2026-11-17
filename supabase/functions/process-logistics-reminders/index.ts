@@ -8,6 +8,7 @@ import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
 import { formatDateFr, formatDateWithDayFr } from "../_shared/date-utils.ts";
 import { fetchMissingTrainingAccess } from "../_shared/training-access.ts";
 import { fetchExpiringArchives } from "../_shared/company-archives.ts";
+import { tenderHealthLabel } from "../_shared/tender-health.ts";
 import {
   fetchAllDailyData,
   userCanSee,
@@ -619,6 +620,12 @@ serve(async (req) => {
         ]);
       }
 
+
+      add("⚠️", "Veille AO — santé des sources", COLORS.red,
+        data.tenderSourceHealth.map(state =>
+          `<li>${linkHtml(`${appUrl}/crm/marches-publics`, tenderHealthLabel(state))} — vérifier l'import (absence d'avis ≠ panne confirmée).</li>`
+        )
+      );
 
       // 16. Tickets support en attente
       const priorityEmojis: Record<string, string> = { critical: "🔴", high: "🟠", medium: "🟡", low: "🟢" };
