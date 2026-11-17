@@ -265,7 +265,7 @@ const EntityMediaManager = ({
           } catch (err: unknown) {
             const errMsg = err instanceof Error ? err.message : JSON.stringify(err);
             console.error("Upload error for file:", file.name, "type:", file.type, "size:", file.size, "resolved:", resolveContentType(file), "error:", errMsg);
-            toast.error(`Erreur : ${file.name}`);
+            toast.error(`Erreur : ${file.name} · ${errMsg}`);
           }
 
           doneCount++;

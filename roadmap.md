@@ -1,5 +1,10 @@
 # Roadmap
 
+## Vidéo MP4 mission (2026-11-17)
+- [x] Fiche Gipal précisée : mission 6e9d24d4-ab40-4834-b745-3ad445d46147 ; même correctif appliqué aux vidéos insérées dans les pages mission.
+- [x] Dépassements CPU confirmés à 20:32:46 et 20:34:05 : gros fichiers mission via transport signé/reprenable existant, droits inchangés, erreurs détaillées. Aucun changement serveur, bucket ou données.
+- [x] Cinq tests et 103 règles OK, build OK ; test navigateur non abouti (galerie non atteinte), fichier MP4 original indisponible : succès réel sur Gipal non confirmé, publication du front requise.
+
 ## Progression des galeries (2026-11-17)
 - [x] Pourcentage du fichier et compteur réussi/total visibles dans les galeries vides/remplies et la fenêtre d'ajout ; erreurs séparées, choix bloqués pendant l'envoi, destinations et droits inchangés.
 - [x] Quatre tests de transfert/HTTP/coupure/signature et 103 règles OK, build OK ; session réelle sur formation, deux transferts simulés sans écriture : photo 25 % / 0 sur 2, vidéo 50 % / 1 sur 2, affichage ordinateur/mobile vérifié. Envoi réel non déclenché.

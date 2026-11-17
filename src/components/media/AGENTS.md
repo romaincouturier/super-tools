@@ -1,2 +1,3 @@
 # Architecture
 - Gallery progress uses transport byte events (XHR or resumable upload), stays visible above populated grids, and counts successful registrations separately from failures, because transferred bytes alone do not prove a file was saved.
+- Mission gallery files above the existing signed-upload threshold use the shared media signed/resumable transport and authenticated registry insert; small files retain the mission endpoint, because multipart video parsing exceeded Edge CPU limits. Registry writes retain RLS and no bucket permissions change.

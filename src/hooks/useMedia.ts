@@ -333,6 +333,21 @@ export const useUploadMissionMedia = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ file, missionId, onProgress }: { file: File; missionId: string; onProgress?: UploadProgressCallback }) => {
+      assertMediaFileSupported(file);
+      if (file.size > SIGNED_UPLOAD_THRESHOLD) {
+        const fileUrl = await uploadMediaFile(file, "mission", missionId, onProgress);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Veuillez vous reconnecter avant l'enregistrement");
+        const mimeType = resolveContentType(file);
+        const { data, error } = await supabase.from("media").insert({
+          file_url: fileUrl, file_name: file.name, file_size: file.size,
+          mime_type: mimeType, file_type: mimeType.startsWith("video/") ? "video" : mimeType.startsWith("audio/") ? "audio" : "image",
+          source_type: "mission", source_id: missionId, position: 0, created_by: session.user.id,
+        }).select().single();
+        if (error) throw error;
+        if (!data) throw new Error("Média introuvable après enregistrement");
+        return { ...data, source_label: "", source_emoji: null, source_color: null, source_tags: [] } as unknown as MediaItem;
+      }
       const formData = new FormData();
       formData.append("missionId", missionId);
       formData.append("file", file, file.name || "media");

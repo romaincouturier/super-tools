@@ -132,7 +132,7 @@ import { useDemoMode } from "@/contexts/DemoModeContext";
 import { demoBlur, maskText } from "@/lib/demoMask";
 import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
-import { registerMediaEntry } from "@/hooks/useMedia";
+import { registerMediaEntry, uploadMediaFile } from "@/hooks/useMedia";
 import { resolveContentType } from "@/lib/file-utils";
 import { sanitizeLmsHtml } from "@/lib/sanitizeLmsHtml";
 import { searchMissionPages } from "@/lib/missionPageSearch";
@@ -598,6 +598,19 @@ const PageEditor = ({
 
   const uploadImage = useCallback(
     async (file: File): Promise<string | null> => {
+      if (file.size > 5 * 1024 * 1024) {
+        try {
+          const url = await uploadMediaFile(file, "mission", missionId);
+          const mimeType = resolveContentType(file);
+          await registerMediaEntry({ file_url: url, file_name: file.name, file_size: file.size,
+            mime_type: mimeType, file_type: mimeType.startsWith("video/") ? "video" : "image",
+            source_type: "mission", source_id: missionId });
+          return url;
+        } catch (error) {
+          toastError(toast, error instanceof Error ? error.message : "Échec de l'envoi du fichier");
+          return null;
+        }
+      }
       const form = new FormData();
       form.append("missionId", missionId);
       form.append("pageId", page.id);
