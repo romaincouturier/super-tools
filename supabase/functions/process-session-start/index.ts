@@ -6,6 +6,7 @@ import { sendEmail } from "../_shared/resend.ts";
 import { wrapEmailHtml } from "../_shared/templates.ts";
 import { renderEditableEmail, ctaButton } from "../_shared/editable-email.ts";
 import { EDITABLE_EMAIL_DEFAULTS } from "../_shared/editable-email-defaults.ts";
+import { resolveAttendanceTrainer } from "../_shared/attendance-trainer.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
@@ -305,7 +306,7 @@ serve(async (req) => {
           }
         }
 
-        const trainerData = training.trainers as any;
+        const trainerData = await resolveAttendanceTrainer(supabase, training);
         const trainerEmail = trainerData?.email || null;
         const trainerFirstName = trainerData?.first_name || training.trainer_name || "Formateur";
         let trainerNotified = false;
