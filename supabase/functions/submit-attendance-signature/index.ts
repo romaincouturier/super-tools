@@ -11,6 +11,7 @@ import {
   storeProofFile,
 } from "../_shared/signature-helpers.ts";
 import { logEmailActivity } from "../_shared/email-helpers.ts";
+import { resolveAttendanceTrainer } from "../_shared/attendance-trainer.ts";
 
 interface RequestBody {
   token: string;
@@ -207,11 +208,12 @@ serve(async (req: Request): Promise<Response> => {
       // Fetch trainer info for this training
       const { data: trainingFull } = await supabase
         .from("trainings")
-        .select("trainer_id, trainer_name, trainers(id, email, first_name)")
+        .select("trainer_id, trainer_name, trainers(id, email, first_name, last_name)")
         .eq("id", signature.training_id)
         .single();
 
-      const trainerData = (trainingFull as any)?.trainers;
+      if (!trainingFull) throw new Error("Formation introuvable pour la notification d'émargement");
+      const trainerData = await resolveAttendanceTrainer(supabase, trainingFull as any);
       const trainerEmail = trainerData?.email;
 
       if (trainerEmail) {
@@ -291,7 +293,7 @@ serve(async (req: Request): Promise<Response> => {
           blocks: { status_block: statusBlock },
         });
 
-        await sendTrainerEmail({
+        const trainerResult = await sendTrainerEmail({
           from: senderFrom,
           to: [trainerEmail],
           bcc: bccList,
@@ -301,7 +303,10 @@ serve(async (req: Request): Promise<Response> => {
           _trainingId: signature.training_id,
         });
 
+        if (!trainerResult.success) throw new Error(`Notification d'émargement refusée : ${trainerResult.error}`);
         console.log(`Trainer notified: ${trainerEmail} (${signed.length} signed, ${pending.length} pending)`);
+      } else {
+        console.warn(`Aucun destinataire formateur pour la formation ${signature.training_id}`);
       }
     } catch (trainerNotifyErr) {
       console.error("Failed to notify trainer of signature:", trainerNotifyErr);
