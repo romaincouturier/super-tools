@@ -7,6 +7,7 @@
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { daysUntil } from "./tender-tools.ts";
+import { fetchTenderSourceHealth, type TenderSourceHealth } from "./tender-health.ts";
 import { loadProjectAssignees, projectAssignmentTargets } from "./project-assignee.ts";
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -1693,6 +1694,7 @@ export interface DailyData {
   supportTickets: SupportTicketItem[];
   tendersToDecide: TenderItem[];
   tenderBacklog: TenderBacklogItem | null;
+  tenderSourceHealth: TenderSourceHealth[];
   pendingEmailDrafts: MissionEmailDraftItem[];
   logisticsReminders: LogisticsReminderItem[];
   supertiltAlerts: SupertiltAlertItem[];
@@ -1823,6 +1825,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     supportTickets,
     tendersToDecide,
     tenderBacklog,
+    tenderSourceHealth,
     pendingEmailDrafts,
     logisticsReminders,
     supertiltAlerts,
@@ -1857,6 +1860,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchPendingSupportTickets(supabase, today),
     fetchTendersToDecide(supabase, today),
     fetchTenderBacklog(supabase, today),
+    fetchTenderSourceHealth(supabase),
     fetchPendingEmailDrafts(supabase),
     fetchLogisticsReminders(supabase, today),
     fetchSupertiltAlerts(supabase),
@@ -1877,7 +1881,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     unbilledActivities, missionsNoStartDate, crmCards, trainingConventions,
     reviewArticles, blockedArticles, unresolvedComments, upcomingEvents,
     cfpAlerts, cfpReminders, pastTrainingsNoInvoice, pastEventsNoSummary,
-    reservations, okrInitiatives, supportTickets, tendersToDecide, tenderBacklog, pendingEmailDrafts,
+    reservations, okrInitiatives, supportTickets, tendersToDecide, tenderBacklog, tenderSourceHealth, pendingEmailDrafts,
     logisticsReminders, supertiltAlerts, supertiltActions, lmsCommunityPending,
     restockDeliveries,
     inProgressRestocks,

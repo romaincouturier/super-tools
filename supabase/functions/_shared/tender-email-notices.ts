@@ -46,9 +46,13 @@ export function parseFrenchDeadline(value: string | null | undefined): string | 
     m = [t[0], t[1], String(month + 1), t[3], t[4], t[5]] as unknown as RegExpMatchArray;
   }
   const [, d, mo, y, h, mi] = m;
-  const iso = `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}T${(h ?? "23").padStart(2, "0")}:${mi ?? "59"}:00+02:00`;
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+  const wall = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h ?? "23"), Number(mi ?? "59"));
+  if (!Number.isFinite(wall)) return null;
+  const zoneParts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Paris", timeZoneName: "shortOffset",
+  }).formatToParts(new Date(wall));
+  const offset = Number(zoneParts.find((part) => part.type === "timeZoneName")?.value.match(/GMT\+(\d+)/)?.[1] ?? 1);
+  return new Date(wall - offset * 3_600_000).toISOString();
 }
 
 /** Département depuis un code postal (`97261` → `972`, `38307` → `38`). */
@@ -125,6 +129,7 @@ export async function ingestTenderEmailNotices(
     subject: string | null;
     from: string | null;
     body: string;
+    source?: string;
   },
 ): Promise<IngestResult> {
   const result: IngestResult = { notices: 0, created: 0, skipped: 0, placeholderRemoved: false };
@@ -134,7 +139,8 @@ export async function ingestTenderEmailNotices(
     .select("id, source, source_ref, status, decision, crm_card_id, raw")
     .eq("source_email_id", email.id);
 
-  const source: string = existing?.[0]?.source ?? "mail";
+  const source: string = email.source ?? existing?.[0]?.source ??
+    (/aws-france\.com/i.test(email.from ?? "") ? "marches" : "mail");
   const config = await loadTenderFilterConfig(supabase);
   const notices = parseTenderEmailNotices(email.body);
   result.notices = notices.length;
@@ -155,7 +161,7 @@ export async function ingestTenderEmailNotices(
       email.body.match(/https?:\/\/[^\s<>"]*(?:achatpublic|marches-publics|boamp|place|maximilien|megalis)[^\s<>"]*/i)?.[0] ??
       null;
 
-    await supabase
+    const { error } = await supabase
       .from("tender_opportunities")
       .update({
         objet,
@@ -172,6 +178,8 @@ export async function ingestTenderEmailNotices(
         raw: { ...raw, body: email.body },
       })
       .eq("id", target.id);
+
+    if (error) throw new Error(`Mise à jour avis mail: ${error.message}`);
 
     result.created = 1;
     return result;
@@ -215,7 +223,7 @@ export async function ingestTenderEmailNotices(
         },
       },
     });
-    if (error) result.skipped++;
+    if (error) throw new Error(`Import avis ${notice.reference}: ${error.message}`);
     else result.created++;
   }
 
@@ -235,6 +243,7 @@ export async function ingestTenderEmailNotices(
       .delete()
       .eq("id", placeholder.id);
     result.placeholderRemoved = !error;
+    if (error) throw new Error(`Retrait fiche digest: ${error.message}`);
   }
 
   return result;

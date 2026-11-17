@@ -17,6 +17,7 @@ import { buildFollowUpActions } from "../_shared/feedback-follow-ups.ts";
 import { fetchTrainingFormulaIssues, trainingFormulaAlertRecipients } from "../_shared/training-formula-alerts.ts";
 import { fetchMissingTrainingAccess } from "../_shared/training-access.ts";
 import { fetchExpiringArchives } from "../_shared/company-archives.ts";
+import { tenderHealthLabel } from "../_shared/tender-health.ts";
 
 /**
  * Generate Daily Actions
@@ -385,6 +386,15 @@ serve(async (req) => {
         link: `${appUrl}/crm/marches-publics`,
         entityType: "tender_backlog", entityId: "flux",
         scope: "global",
+      });
+    }
+
+    for (const state of data.tenderSourceHealth) {
+      actions.push({
+        category: "marches_publics", title: `⚠️ ${tenderHealthLabel(state)}`,
+        description: "Vérifier la réception et la synchronisation de cette source ; absence d'avis ne signifie pas forcément panne.",
+        link: `${appUrl}/crm/marches-publics`, entityType: "tender_source_health",
+        entityId: state.source, scope: "global",
       });
     }
 
