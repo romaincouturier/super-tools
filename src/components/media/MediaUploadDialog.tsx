@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Upload, Plus, Briefcase, GraduationCap, CalendarDays, HandCoins } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import MediaUploadProgress, { type MediaUploadState } from "./MediaUploadProgress";
 
 interface EntityOption {
   id: string;
@@ -41,6 +42,8 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
   const [selectedSourceType, setSelectedSourceType] = useState<MediaSourceType>("mission");
   const [selectedEntityId, setSelectedEntityId] = useState<string>("");
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<MediaUploadState | null>(null);
+  const uploadLock = useRef(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addMedia = useAddMedia();
@@ -56,6 +59,7 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
   };
 
   const uploadFiles = async (files: FileList | File[]) => {
+    if (uploadLock.current) return;
     if (!selectedEntityId) {
       toast.error("Veuillez sélectionner une entité");
       return;
@@ -70,14 +74,19 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
     }
 
     setUploading(true);
+    uploadLock.current = true;
+    let failed = 0;
 
     try {
       let successCount = 0;
 
       for (const file of validFiles) {
+        setUploadProgress({ done: successCount, total: validFiles.length, fileName: file.name, percent: 0, failed });
         try {
-          const fileType = getFileType(file)!;
-          const fileUrl = await uploadMediaFile(file, selectedSourceType, selectedEntityId);
+          const fileType = getFileType(file);
+          if (!fileType) continue;
+          const fileUrl = await uploadMediaFile(file, selectedSourceType, selectedEntityId,
+            percent => setUploadProgress(prev => prev ? { ...prev, percent } : prev));
 
           await addMedia.mutateAsync({
             file_url: fileUrl,
@@ -92,9 +101,11 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
 
           successCount++;
         } catch (err) {
+          failed++;
           console.error("Upload error:", err);
           toast.error(`Erreur lors de l'upload de ${file.name}`);
         }
+        setUploadProgress(prev => prev ? { ...prev, done: successCount, failed } : prev);
       }
 
       if (successCount > 0) {
@@ -117,7 +128,9 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
         setSelectedEntityId("");
       }
     } finally {
+      uploadLock.current = false;
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -135,7 +148,7 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={value => { if (!uploadLock.current) setOpen(value); }}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
@@ -151,7 +164,7 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
           {/* Source type selector */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Type de source</label>
-            <Select value={selectedSourceType} onValueChange={handleSourceTypeChange}>
+            <Select disabled={uploading} value={selectedSourceType} onValueChange={handleSourceTypeChange}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -187,7 +200,7 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
                selectedSourceType === "training" ? "Formation" :
                selectedSourceType === "event" ? "Événement" : "Opportunité"}
             </label>
-            <Select value={selectedEntityId} onValueChange={setSelectedEntityId}>
+            <Select disabled={uploading} value={selectedEntityId} onValueChange={setSelectedEntityId}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner..." />
               </SelectTrigger>
@@ -218,6 +231,7 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
             <input
               ref={fileInputRef}
               type="file"
+              disabled={uploading}
               multiple
               accept="image/*,video/*,.svg"
               className="hidden"
@@ -229,7 +243,7 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
             {uploading ? (
               <div className="flex flex-col items-center gap-2">
                 <Spinner size="lg" className="text-primary" />
-                <p className="text-sm text-muted-foreground">Upload en cours...</p>
+                {uploadProgress && <MediaUploadProgress state={uploadProgress} />}
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2">

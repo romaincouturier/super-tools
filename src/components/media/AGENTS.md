@@ -1,0 +1,2 @@
+# Architecture
+- Gallery progress uses transport byte events (XHR or resumable upload), stays visible above populated grids, and counts successful registrations separately from failures, because transferred bytes alone do not prove a file was saved.

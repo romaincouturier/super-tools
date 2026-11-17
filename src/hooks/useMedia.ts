@@ -3,6 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { invokeEdge } from "@/lib/invokeEdge";
 import { resolveContentType, assertMediaFileSupported } from "@/lib/file-utils";
 import { SOCIAL_CONTENTS_KEY } from "@/hooks/useSocialContents";
+import { uploadSignedFile, uploadWithProgress, type UploadProgressCallback } from "@/services/uploadProgress";
+
+async function uploadMediaEdge(name: string, body: FormData, onProgress: UploadProgressCallback) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Veuillez vous reconnecter avant l'envoi");
+  return uploadWithProgress(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${name}`, "POST", body, {
+    apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    Authorization: `Bearer ${session.access_token}`,
+  }, onProgress) as Promise<{ media?: MediaItem }>;
+}
 
 export type MediaSourceType = "mission" | "event" | "training" | "crm" | "content" | "lms";
 
@@ -248,7 +258,7 @@ const SIGNED_UPLOAD_THRESHOLD = 5 * 1024 * 1024; // 5MB
 export const useUploadEventMedia = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ file, eventId }: { file: File; eventId: string }) => {
+    mutationFn: async ({ file, eventId, onProgress }: { file: File; eventId: string; onProgress?: UploadProgressCallback }) => {
       assertMediaFileSupported(file);
       // Large files bypass the edge-function FormData path (which has a strict
       // body limit) and are uploaded directly to storage via a signed URL.
@@ -268,10 +278,12 @@ export const useUploadEventMedia = () => {
         const bucket = signedResult?.bucket || "media";
         if (!path || !token || !publicUrl) throw new Error("Réponse d'upload invalide");
 
-        const { error: uploadError } = await supabase.storage
-          .from(bucket)
-          .uploadToSignedUrl(path, token, normalizedFile, { contentType: mimeType, upsert: false });
-        if (uploadError) throw uploadError;
+        if (onProgress) {
+          await uploadSignedFile(bucket, path, token, normalizedFile, mimeType, false, onProgress);
+        } else {
+          const { error: uploadError } = await supabase.storage.from(bucket).uploadToSignedUrl(path, token, normalizedFile, { contentType: mimeType, upsert: false });
+          if (uploadError) throw uploadError;
+        }
 
         const { data: regData, error: regError } = await supabase.functions.invoke(
           "register-event-media",
@@ -296,6 +308,12 @@ export const useUploadEventMedia = () => {
       formData.append("eventId", eventId);
       formData.append("file", file, file.name || "media");
 
+      if (onProgress) {
+        const data = await uploadMediaEdge("upload-event-media", formData, onProgress);
+        if (!data.media) throw new Error("Média introuvable après upload");
+        return data.media;
+      }
+
       const { data, error } = await supabase.functions.invoke("upload-event-media", {
         body: formData,
       });
@@ -314,10 +332,16 @@ export const useUploadEventMedia = () => {
 export const useUploadMissionMedia = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ file, missionId }: { file: File; missionId: string }) => {
+    mutationFn: async ({ file, missionId, onProgress }: { file: File; missionId: string; onProgress?: UploadProgressCallback }) => {
       const formData = new FormData();
       formData.append("missionId", missionId);
       formData.append("file", file, file.name || "media");
+
+      if (onProgress) {
+        const data = await uploadMediaEdge("upload-mission-media", formData, onProgress);
+        if (!data.media) throw new Error("Média introuvable après upload");
+        return data.media;
+      }
 
       const { data, error } = await supabase.functions.invoke("upload-mission-media", {
         body: formData,
@@ -474,7 +498,7 @@ export const useUpdateMediaTranscript = () => {
 };
 
 
-export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, sourceId: string) => {
+export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, sourceId: string, onProgress?: UploadProgressCallback) => {
   assertMediaFileSupported(file);
   const resolvedContentType = resolveContentType(file);
 
@@ -518,6 +542,7 @@ export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, s
         },
         metadata: { bucketName: bucket, objectName: path, contentType: resolvedContentType, cacheControl: "3600" },
         onError: (err) => reject(new Error(err.message || "Upload réseau échoué")),
+        onProgress: (loaded, total) => { if (total > 0) onProgress?.(Math.round(loaded / total * 100)); },
         onSuccess: () => resolve(),
       });
       upload.start();
@@ -527,6 +552,16 @@ export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, s
 
   let lastError: unknown = null;
   for (let attempt = 0; attempt < 3; attempt++) {
+    if (onProgress) {
+      try {
+        await uploadSignedFile(bucket, path, token, normalizedFile, resolvedContentType, true, onProgress);
+        return publicUrl;
+      } catch (error) {
+        lastError = error;
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+        continue;
+      }
+    }
     const { error: uploadError } = await supabase.storage
       .from(bucket)
       .uploadToSignedUrl(path, token, normalizedFile, { contentType: resolvedContentType, upsert: true });

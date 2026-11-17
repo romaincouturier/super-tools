@@ -42,6 +42,7 @@ import MediaLightbox from "@/components/media/MediaLightbox";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskFileName, demoBlur } from "@/lib/demoMask";
 import { todayAsISO } from "@/lib/dateFormatters";
+import MediaUploadProgress, { type MediaUploadState } from "./MediaUploadProgress";
 
 function SortableThumb({ id, children }: { id: string; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -100,7 +101,8 @@ const EntityMediaManager = ({
   const { isDemoMode } = useDemoMode();
 
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<MediaUploadState | null>(null);
+  const uploadLock = useRef(false);
   const [downloading, setDownloading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
@@ -170,6 +172,7 @@ const EntityMediaManager = ({
   const queryClient = useQueryClient();
 
   const uploadFiles = useCallback(async (files: FileList | File[]) => {
+    if (uploadLock.current) return;
     const fileArray = Array.from(files);
     const validFiles = fileArray.filter((f) => {
       if (allowDocuments && isPdf(f)) {
@@ -201,7 +204,8 @@ const EntityMediaManager = ({
     }
 
     setUploading(true);
-    setUploadProgress({ done: 0, total: validFiles.length });
+    uploadLock.current = true;
+    setUploadProgress({ done: 0, total: validFiles.length, fileName: validFiles[0].name, percent: 0, failed: 0 });
     let successCount = 0;
     let routedAudioToDocs = 0;
     let doneCount = 0;
@@ -216,8 +220,11 @@ const EntityMediaManager = ({
         const batch = validFiles.slice(batchStart, batchStart + BATCH_SIZE);
 
         for (const file of batch) {
+          setUploadProgress({ done: successCount, total: validFiles.length, fileName: file.name, percent: 0, failed: doneCount - successCount });
+          const onProgress = (percent: number) => setUploadProgress(prev => prev ? { ...prev, percent } : prev);
           try {
-            const fileType = allowDocuments && isPdf(file) ? "document" : getFileType(file)!;
+            const fileType = allowDocuments && isPdf(file) ? "document" : getFileType(file);
+            if (!fileType) continue;
 
             // Audio on missions → route through the documents pipeline so the
             // file shows in the "Documents" tab AND a transcript page is auto-
@@ -229,11 +236,11 @@ const EntityMediaManager = ({
               routedAudioToDocs++;
             } else {
               const result = sourceType === "event"
-                ? await uploadEventMedia.mutateAsync({ file, eventId: sourceId })
+                ? await uploadEventMedia.mutateAsync({ file, eventId: sourceId, onProgress })
                 : sourceType === "mission"
-                ? await uploadMissionMedia.mutateAsync({ file, missionId: sourceId })
+                ? await uploadMissionMedia.mutateAsync({ file, missionId: sourceId, onProgress })
                 : await addMedia.mutateAsync({
-                    file_url: await uploadMediaFile(file, sourceType, sourceId),
+                    file_url: await uploadMediaFile(file, sourceType, sourceId, onProgress),
                     file_name: file.name,
                     file_type: fileType,
                     mime_type: resolveContentType(file),
@@ -262,7 +269,7 @@ const EntityMediaManager = ({
           }
 
           doneCount++;
-          setUploadProgress({ done: doneCount, total: validFiles.length });
+          setUploadProgress(prev => prev ? { ...prev, done: successCount, failed: doneCount - successCount } : prev);
         }
 
         // Pause between batches — lets Safari GC collect FormData objects
@@ -291,6 +298,7 @@ const EntityMediaManager = ({
         handleTranscribe(audioItem);
       }
     } finally {
+      uploadLock.current = false;
       setUploading(false);
       setUploadProgress(null);
     }
@@ -513,9 +521,11 @@ const EntityMediaManager = ({
 
   const content = (
     <>
+      {uploading && uploadProgress && <MediaUploadProgress state={uploadProgress} />}
       <input
         ref={fileInputRef}
         type="file"
+        disabled={uploading}
         multiple
         accept={`image/*,video/*,audio/*,.m4a,.mp3,.wav,.aac,.ogg,.caf,.svg${allowDocuments ? ",application/pdf,.pdf" : ""}`}
         className="hidden"
@@ -541,11 +551,7 @@ const EntityMediaManager = ({
           {uploading ? (
             <div className="flex flex-col items-center gap-2">
               <Spinner size="lg" className="text-primary" />
-              <p className="text-sm text-muted-foreground">
-                {uploadProgress && uploadProgress.total > 1
-                  ? `Upload en cours... ${uploadProgress.done}/${uploadProgress.total}`
-                  : "Upload en cours..."}
-              </p>
+              <p className="text-sm text-muted-foreground">Envoi en cours…</p>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
