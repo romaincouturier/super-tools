@@ -101,6 +101,8 @@ export const TED_FIELDS = [
   "classification-cpv",
   "publication-date",
   "deadline-receipt-request",
+  "deadline-receipt-tender-date-lot",
+  "deadline-receipt-tender-time-lot",
   // Montant, durée, accord-cadre.
   "estimated-value-proc",
   "estimated-value-cur-proc",
@@ -500,7 +502,8 @@ export async function fetchPageWithRetry(
     }
   }
 
-  return lastPage!;
+  if (lastPage) return lastPage;
+  throw new Error("Aucune page TED reçue");
 }
 
 /**
