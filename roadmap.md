@@ -1,5 +1,11 @@
 # Roadmap
 
+## Veille AO (2026-11-17)
+- [ ] Diagnostiquer TED et AWS, réparer et rattraper les avis ouverts avec le filtre existant.
+- [ ] Vérifier PLACE et proposer une voie accessible sans contourner ses protections.
+- [ ] Ajouter une alerte après plus de trois jours ouvrés sans import, tester et déployer.
+- [ ] Relire les avis réellement importés et rendre le compte rendu des causes et limites.
+
 ## Consommation Anthropic (2026-11-16)
 - [x] Demande suivante : supprimer entièrement Autofix en conservant CI ; workflow supprimé, test de non-régression adapté et règle .github remplacée.
 - [x] GitHub vérifié à 22:38 UTC : aucun Autofix actif ni en attente (in_progress/queued/waiting/pending/requested = 0) ; run 43969206005 terminé avec succès. Aucune annulation nécessaire. Deux tests de régression et 103 règles OK, CI inchangée.
