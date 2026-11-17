@@ -785,3 +785,6 @@ verify_jwt = false
 
 [functions.archive-company-email]
 verify_jwt = false
+
+[functions.tender-sync-managed]
+verify_jwt = false
