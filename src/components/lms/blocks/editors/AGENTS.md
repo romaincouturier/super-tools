@@ -1,0 +1,2 @@
+# Architecture
+- Gallery bulk imports use three workers and flush settled results in filename order through current content/image refs, because completion order must not reorder or overwrite images; image upload paths are UUID-based to prevent simultaneous uploads overwriting storage objects.

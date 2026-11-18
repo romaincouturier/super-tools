@@ -34,7 +34,7 @@ export async function uploadLmsVideo(file: File, lessonId: string): Promise<stri
 export async function uploadLmsImage(file: File, lessonId: string): Promise<string> {
   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const contentType = resolveContentType(file) || "image/jpeg";
-  const publicUrl = await uploadAndGetUrl(`images/${lessonId}/${Date.now()}.${ext}`, file);
+  const publicUrl = await uploadAndGetUrl(`images/${lessonId}/${crypto.randomUUID()}.${ext}`, file);
   await registerMediaEntry({ file_url: publicUrl, file_name: file.name, file_type: "image", mime_type: contentType, file_size: file.size, source_type: "lms", source_id: lessonId });
   return publicUrl;
 }

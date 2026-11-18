@@ -1,5 +1,9 @@
 # Roadmap
 
+## Import multiple galerie LMS (2026-11-18)
+- [x] Bouton et glisser-déposer multiple ; trois uploads maximum, tri alphabétique et ajouts progressifs sans perte concurrente, bilan des échecs. Chemins images UUID pour éviter les collisions des uploads simultanés.
+- [x] Six tests réussis (lot de 74, concurrence, ordre, échecs, drops et chemins distincts), 103 règles et build OK. Éditeur isolé vérifié dans le navigateur : 12 imports simulés, trois simultanés, progression et mobile sans débordement ; aucun upload réel ni modification de leçon. Viewer et format inchangés ; front à publier.
+
 ## Images multiples en veille (2026-11-17)
 - [x] Images multiples en création/modification, galerie et médiathèque avec filtre Veille ; progression réelle et conservation des fichiers restants pour réessayer sans dupliquer la carte. Source media additive, droits staff inchangés, écritures tracées ; fonction upload-watch-file déployée.
 - [x] Deux vrais uploads enregistrés, relus après rechargement et trouvés dans la médiathèque ; ordinateur/mobile sans débordement. Tests temporaires nettoyés avec traces ; 8 tests et 103 règles OK, aucun email ni automatisation supplémentaire. Front à publier.
