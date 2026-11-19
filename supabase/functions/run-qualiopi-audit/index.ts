@@ -10,6 +10,7 @@ import { getSigniticSignature } from '../_shared/signitic.ts';
 import { renderCatalogEmail } from '../_shared/editable-email.ts';
 import { collectAuditFacts } from '../_shared/qualiopi-collector.ts';
 import { verifyAuth } from '../_shared/supabase-client.ts';
+import { mergeEvidenceAnswers } from '../_shared/audit-evidence.ts';
 
 /**
  * Audit blanc automatique, chaque nuit.
@@ -62,7 +63,12 @@ serve(async (req) => {
       .order('started_at', { ascending: false }).limit(1).maybeSingle();
     if (answersRead.error) throw answersRead.error;
     const sameSample = JSON.stringify([...(answersRead.data?.sample_training_ids ?? [])].sort()) === JSON.stringify([...sampleIds].sort());
-    const answers = sameSample ? answersRead.data?.answers ?? {} : {};
+    // Les preuves datées (écran ou agent MCP) ne dépendent pas de l'échantillon :
+    // valides moins de 45 jours, elles fixent la réponse ; au-delà, la question redevient à confirmer.
+    const evidenceRead = await supabase.from('audit_question_evidence').select('question_id, answer, checked_at, recorded_at')
+      .order('recorded_at', { ascending: false }).limit(1000);
+    if (evidenceRead.error) throw evidenceRead.error;
+    const answers = mergeEvidenceAnswers(sameSample ? answersRead.data?.answers ?? {} : {}, evidenceRead.data ?? []);
     const model = auditFocusModel(facts, answers, focusRead.data?.facts?.auditFocus ?? []);
     facts.auditFocus = model.focus;
     const { data: run, error: runError } = await supabase.from("audit_runs").insert({

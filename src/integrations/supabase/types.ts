@@ -540,6 +540,62 @@ export type Database = {
           },
         ]
       }
+      audit_question_evidence: {
+        Row: {
+          answer: string
+          audit_run_id: string | null
+          checked_at: string
+          evidence_details: Json | null
+          evidence_summary: string
+          evidence_urls: string[]
+          id: string
+          indicator: number
+          question_id: string
+          recorded_at: string
+          recorded_by: string | null
+          source_label: string
+          source_type: string
+        }
+        Insert: {
+          answer: string
+          audit_run_id?: string | null
+          checked_at: string
+          evidence_details?: Json | null
+          evidence_summary: string
+          evidence_urls?: string[]
+          id?: string
+          indicator: number
+          question_id: string
+          recorded_at?: string
+          recorded_by?: string | null
+          source_label: string
+          source_type: string
+        }
+        Update: {
+          answer?: string
+          audit_run_id?: string | null
+          checked_at?: string
+          evidence_details?: Json | null
+          evidence_summary?: string
+          evidence_urls?: string[]
+          id?: string
+          indicator?: number
+          question_id?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          source_label?: string
+          source_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_question_evidence_audit_run_id_fkey"
+            columns: ["audit_run_id"]
+            isOneToOne: false
+            referencedRelation: "audit_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_runs: {
         Row: {
           answers: Json

@@ -25,3 +25,14 @@ export async function dropshippingClient(ctx: ToolContext) {
  return db;
 }
 export function result(data: unknown) { return {content:[{type:'text' as const,text:JSON.stringify(data)}]}; }
+export async function auditClient(ctx: ToolContext) {
+ const db=supabaseForUser(ctx); const userId=ctx.getUserId(); if(!userId) throw new Error('Connexion requise');
+ const checks=await Promise.all([
+  db.rpc('is_admin',{_user_id:userId}),
+  db.rpc('has_module_access',{_user_id:userId,_module:'audit'}),
+  db.rpc('has_module_access',{_user_id:userId,_module:'formations'}),
+ ]);
+ for(const c of checks) if(c.error) throw c.error;
+ if(!checks.some(c=>c.data===true)) throw new Error('Accès audit requis');
+ return db;
+}

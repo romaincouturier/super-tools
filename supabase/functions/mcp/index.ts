@@ -52,6 +52,19 @@ async function dropshippingClient(ctx) {
 function result(data) {
   return { content: [{ type: "text", text: JSON.stringify(data) }] };
 }
+async function auditClient(ctx) {
+  const db = supabaseForUser(ctx);
+  const userId = ctx.getUserId();
+  if (!userId) throw new Error("Connexion requise");
+  const checks = await Promise.all([
+    db.rpc("is_admin", { _user_id: userId }),
+    db.rpc("has_module_access", { _user_id: userId, _module: "audit" }),
+    db.rpc("has_module_access", { _user_id: userId, _module: "formations" })
+  ]);
+  for (const c of checks) if (c.error) throw c.error;
+  if (!checks.some((c) => c.data === true)) throw new Error("Acc\xE8s audit requis");
+  return db;
+}
 
 // src/lib/mcp/tools/list-lms-modules.ts
 var list_lms_modules_default = defineTool({ name: "list_lms_modules", title: "Lister les modules", description: "Liste les modules ordonn\xE9s, y compris vides, avec nombre de le\xE7ons.", inputSchema: { course_id: z.string().uuid() }, annotations: { readOnlyHint: true }, handler: async ({ course_id }, ctx) => {
@@ -900,9 +913,853 @@ var read_company_document_default = defineTool22({
   }
 });
 
+// src/lib/mcp/tools/list-audit-questions.ts
+import { defineTool as defineTool23 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z26 } from "npm:zod@^3.25.76";
+
+// supabase/functions/_shared/qualiopi-referential.ts
+var MINOR_ALLOWED = /* @__PURE__ */ new Set([1, 2, 3, 8, 9, 12, 13, 17, 18, 19, 23, 24, 25, 28, 30, 33]);
+function gradationOf(number) {
+  return MINOR_ALLOWED.has(number) ? "mineure_possible" : "majeure_seule";
+}
+var AUDIT_INDICATORS = [
+  {
+    number: 1,
+    criterion: 1,
+    label: "Information accessible, d\xE9taill\xE9e et v\xE9rifiable sur les prestations",
+    expected: "Donner une information accessible, exhaustive sur la prestation et sur l'int\xE9gralit\xE9 des items mentionn\xE9s. Cette information doit \xEAtre \xE0 jour.",
+    gradation: gradationOf(1),
+    evidence: [
+      "Supports et outils d'information : site, plaquette, r\xE9seaux sociaux, conditions g\xE9n\xE9rales",
+      "Pr\xE9requis, objectifs, reconnaissance d\xE9livr\xE9e, dur\xE9e, modalit\xE9s p\xE9dagogiques et de financement",
+      "D\xE9lais d'acc\xE8s, tarifs, contacts, m\xE9thodes mobilis\xE9es, modalit\xE9s d'\xE9valuation",
+      "Conditions d'acc\xE8s et politique d'accessibilit\xE9 aux personnes en situation de handicap"
+    ]
+  },
+  {
+    number: 2,
+    criterion: 1,
+    label: "Diffusion d'indicateurs de r\xE9sultats",
+    expected: "Donner une information chiffr\xE9e permettant de suivre les r\xE9sultats de la prestation au regard des objectifs, en pr\xE9cisant sa m\xE9thode de calcul.",
+    gradation: gradationOf(2),
+    evidence: [
+      "Taux de satisfaction, nombre de stagiaires, taux et causes des abandons",
+      "Taux de retour des enqu\xEAtes, taux de r\xE9alisation des heures contractualis\xE9es",
+      "Rapports d'activit\xE9, bilans, r\xE9sultats d'enqu\xEAtes"
+    ]
+  },
+  {
+    number: 3,
+    criterion: 1,
+    label: "Information sur les taux d'obtention des certifications",
+    expected: "Sans objet : l'organisme ne pr\xE9pare \xE0 aucune certification professionnelle.",
+    gradation: gradationOf(3),
+    evidence: [],
+    notApplicable: "Aucune prestation conduisant \xE0 une certification professionnelle."
+  },
+  {
+    number: 4,
+    criterion: 2,
+    label: "Analyse du besoin du b\xE9n\xE9ficiaire",
+    expected: "D\xE9montrer comment le besoin du b\xE9n\xE9ficiaire est analys\xE9 en fonction de la finalit\xE9 de la prestation, en lien avec l'entreprise et/ou le financeur.",
+    gradation: gradationOf(4),
+    evidence: [
+      "Support synth\xE9tisant les besoins identifi\xE9s, grilles d'analyse, diagnostics pr\xE9alables",
+      "Comptes rendus d'entretiens, crit\xE8res de d\xE9termination de l'opportunit\xE9",
+      "Pour un public en situation de handicap : analyse concert\xE9e des besoins de compensation"
+    ]
+  },
+  {
+    number: 5,
+    criterion: 2,
+    label: "Objectifs op\xE9rationnels et \xE9valuables",
+    expected: "D\xE9montrer que les objectifs sp\xE9cifiques \xE0 la prestation ont \xE9t\xE9 d\xE9finis et peuvent faire l'objet d'une \xE9valuation.",
+    gradation: gradationOf(5),
+    evidence: [
+      "Indicateurs de suivi et de r\xE9sultats, supports de contractualisation",
+      "Objectifs p\xE9dagogiques interm\xE9diaires et finaux"
+    ]
+  },
+  {
+    number: 6,
+    criterion: 2,
+    label: "Contenus et modalit\xE9s adapt\xE9s aux objectifs et aux publics",
+    expected: "D\xE9montrer que les contenus et modalit\xE9s de mise en \u0153uvre des prestations sont adapt\xE9s aux objectifs d\xE9finis en fonction des b\xE9n\xE9ficiaires.",
+    gradation: gradationOf(6),
+    evidence: [
+      "Parcours, d\xE9roul\xE9s et s\xE9quences, grilles et modalit\xE9s d'\xE9valuation",
+      "Modalit\xE9s techniques et p\xE9dagogiques d'accompagnement, en pr\xE9sentiel ou \xE0 distance"
+    ]
+  },
+  {
+    number: 7,
+    criterion: 2,
+    label: "Ad\xE9quation du contenu \xE0 la certification vis\xE9e",
+    expected: "Sans objet : aucune prestation ne conduit \xE0 une certification professionnelle.",
+    gradation: gradationOf(7),
+    evidence: [],
+    notApplicable: "Aucune prestation certifiante."
+  },
+  {
+    number: 8,
+    criterion: 2,
+    label: "Positionnement et \xE9valuation des acquis \xE0 l'entr\xE9e",
+    expected: "D\xE9montrer l'existence de proc\xE9dures de positionnement et d'\xE9valuation des acquis \xE0 l'entr\xE9e de la prestation, adapt\xE9es aux publics et aux modalit\xE9s.",
+    gradation: gradationOf(8),
+    evidence: [
+      "Diagnostic pr\xE9alable, entretien, quiz, auto-positionnement",
+      "Proc\xE9dures de positionnement et conditions d'acc\xE8s",
+      "Le positionnement peut se limiter \xE0 la prise en compte des titres exig\xE9s"
+    ]
+  },
+  {
+    number: 9,
+    criterion: 3,
+    label: "Information sur les conditions de d\xE9roulement",
+    expected: "Les modalit\xE9s d'accueil et les conditions de d\xE9roulement sont formalis\xE9es et diffus\xE9es.",
+    gradation: gradationOf(9),
+    evidence: [
+      "R\xE8glement int\xE9rieur, livret d'accueil, convocation",
+      "Noms des r\xE9f\xE9rents p\xE9dagogiques et administratifs",
+      "Pour la formation \xE0 distance : modalit\xE9s d'acc\xE8s au LMS, assistance technique et p\xE9dagogique"
+    ]
+  },
+  {
+    number: 10,
+    criterion: 3,
+    label: "Adaptation de la prestation, de l'accompagnement et du suivi",
+    expected: "La prestation est adapt\xE9e aux situations et profils des b\xE9n\xE9ficiaires lorsque l'analyse du besoin en \xE9tablit la n\xE9cessit\xE9 : contenus, accompagnement, suivi.",
+    gradation: gradationOf(10),
+    evidence: [
+      "Dur\xE9es et contenus adapt\xE9s, groupes de niveaux, entretiens",
+      "Tra\xE7abilit\xE9 de l'accompagnement technique et p\xE9dagogique",
+      "Plans individuels de compensation du handicap, fiches de suivi"
+    ]
+  },
+  {
+    number: 11,
+    criterion: 3,
+    label: "\xC9valuation de l'atteinte des objectifs",
+    expected: "D\xE9montrer qu'un processus d'\xE9valuation existe, est formalis\xE9 et mis en \u0153uvre, et qu'il permet d'appr\xE9cier l'atteinte des objectifs.",
+    gradation: gradationOf(11),
+    evidence: [
+      "Outils d'\xE9valuation des acquis en cours et en fin de prestation",
+      "Bilans interm\xE9diaires, comptes rendus, auto-\xE9valuation"
+    ]
+  },
+  {
+    number: 12,
+    criterion: 3,
+    label: "Engagement, pr\xE9vention des ruptures, violences et discriminations",
+    expected: "D\xE9montrer que des mesures formalis\xE9es existent et sont mises en \u0153uvre.",
+    gradation: gradationOf(12),
+    scopeNote: "Cet indicateur s'applique aux formations d'une dur\xE9e sup\xE9rieure \xE0 2 jours.",
+    evidence: [
+      "Proc\xE9dure de gestion des abandons et de relance",
+      "Proc\xE9dure de pr\xE9vention et de traitement des violences sexistes et sexuelles port\xE9e \xE0 la connaissance des apprenants",
+      "R\xE9f\xE9rent charg\xE9 du traitement des signalements, tra\xE7abilit\xE9 des signalements et des suites"
+    ]
+  },
+  {
+    number: 17,
+    criterion: 4,
+    label: "Moyens humains et techniques adapt\xE9s",
+    expected: "D\xE9montrer que les locaux, les \xE9quipements et les moyens humains sont en ad\xE9quation avec les objectifs des prestations.",
+    gradation: gradationOf(17),
+    evidence: [
+      "Mat\xE9riel ad\xE9quat, plateformes LMS, aides \xE0 la connexion \xE0 distance",
+      "Planning d'intervention, espace documentaire, plateforme p\xE9dagogique"
+    ]
+  },
+  {
+    number: 18,
+    criterion: 4,
+    label: "Mobilisation et coordination des intervenants",
+    expected: "Le prestataire identifie, selon les fonctions n\xE9cessaires aux prestations, les intervenants dont il assure la coordination.",
+    gradation: gradationOf(18),
+    evidence: [
+      "Organigramme fonctionnel, liste des intervenants, fiches de poste",
+      "Un prestataire ind\xE9pendant peut assurer seul les diff\xE9rentes fonctions"
+    ]
+  },
+  {
+    number: 19,
+    criterion: 4,
+    label: "Ressources p\xE9dagogiques et effectivit\xE9 du suivi \xE0 distance",
+    expected: "D\xE9montrer que les ressources p\xE9dagogiques sont coh\xE9rentes, disponibles, et que des dispositions permettent aux b\xE9n\xE9ficiaires de se les approprier. V\xE9rifier l'effectivit\xE9 du suivi des modules \xE0 distance.",
+    gradation: gradationOf(19),
+    scopeNote: "Le r\xE9f\xE9rent p\xE9dagogique n'est exig\xE9 qu'au-del\xE0 d'un nombre d'intervenants fix\xE9 par arr\xEAt\xE9, non paru \xE0 ce jour.",
+    evidence: [
+      "Supports de cours, ressources documentaires, modalit\xE9s d'acc\xE8s",
+      "Suivi de l'assiduit\xE9 et de la progression \xE0 distance : relances en cas d'inactivit\xE9, alertes de d\xE9crochage"
+    ]
+  },
+  {
+    number: 21,
+    criterion: 5,
+    label: "Comp\xE9tences des intervenants",
+    expected: "D\xE9montrer que les comp\xE9tences requises ont \xE9t\xE9 d\xE9finies en amont et sont adapt\xE9es aux prestations. La ma\xEEtrise de ces comp\xE9tences est v\xE9rifi\xE9e par le prestataire.",
+    gradation: gradationOf(21),
+    evidence: [
+      "CV des intervenants, formations initiales et continues",
+      "Analyse des besoins de comp\xE9tences, modalit\xE9s de recrutement",
+      "Sensibilisation \xE0 l'accueil du public en situation de handicap"
+    ]
+  },
+  {
+    number: 22,
+    criterion: 5,
+    label: "D\xE9veloppement des comp\xE9tences des personnels",
+    expected: "D\xE9montrer la mobilisation des diff\xE9rents leviers de formation et de professionnalisation pour l'ensemble de son personnel.",
+    gradation: gradationOf(22),
+    evidence: [
+      "Plan de d\xE9veloppement des comp\xE9tences, entretiens professionnels",
+      "Communaut\xE9 de pairs, groupes d'analyse de pratiques",
+      "Les prestataires ind\xE9pendants d\xE9montrent leur d\xE9marche de formation continue"
+    ]
+  },
+  {
+    number: 23,
+    criterion: 6,
+    label: "Veille l\xE9gale et r\xE9glementaire",
+    expected: "D\xE9montrer la mise en place d'une veille l\xE9gale et r\xE9glementaire, sa prise en compte et sa communication en interne.",
+    gradation: gradationOf(23),
+    evidence: [
+      "Abonnements, adh\xE9sions, participation \xE0 des salons et conf\xE9rences",
+      "Actualisation des supports d'information et de contractualisation",
+      "Consultation et diffusion de la documentation institutionnelle"
+    ]
+  },
+  {
+    number: 24,
+    criterion: 6,
+    label: "Veille sur les comp\xE9tences, m\xE9tiers et emplois",
+    expected: "D\xE9montrer la mise en place d'une veille sur les th\xE8mes de l'indicateur et son impact \xE9ventuel sur les prestations.",
+    gradation: gradationOf(24),
+    evidence: [
+      "Veille sur les \xE9volutions des comp\xE9tences, des m\xE9tiers et des emplois",
+      "Diffusion au personnel, \xE9volutions apport\xE9es au contenu des prestations"
+    ]
+  },
+  {
+    number: 25,
+    criterion: 6,
+    label: "Veille sur les innovations p\xE9dagogiques et technologiques",
+    expected: "D\xE9montrer la mise en place d'une veille sur les th\xE8mes de l'indicateur et son impact \xE9ventuel sur les prestations.",
+    gradation: gradationOf(25),
+    evidence: [
+      "Veille sur les innovations p\xE9dagogiques et technologiques",
+      "Analyse d'opportunit\xE9 et de faisabilit\xE9 sur leur mise en \u0153uvre"
+    ]
+  },
+  {
+    number: 26,
+    criterion: 6,
+    label: "R\xE9seau et expertises du champ du handicap",
+    expected: "D\xE9montrer l'identification d'un r\xE9seau de partenaires, experts et acteurs du champ du handicap, mobilisable par les personnels. En cas d'accueil, pr\xE9ciser les modalit\xE9s de recours et les mesures mises en \u0153uvre.",
+    gradation: gradationOf(26),
+    evidence: [
+      "Liste des partenaires du handicap : Agefiph, Fiphfp, Cap emploi, MDPH",
+      "Comp\xE9tences et connaissances actualis\xE9es du r\xE9f\xE9rent handicap",
+      "Recours \xE0 la Ressource Handicap Formation"
+    ]
+  },
+  {
+    number: 27,
+    criterion: 6,
+    label: "Conformit\xE9 des sous-traitants",
+    expected: "Sans objet : l'organisme ne recourt ni \xE0 la sous-traitance ni au portage salarial.",
+    gradation: gradationOf(27),
+    evidence: [],
+    notApplicable: "L'organisme ne sous-traite pas. Le formateur externe h\xE9berg\xE9 sur la plateforme facture ses propres clients."
+  },
+  {
+    number: 30,
+    criterion: 7,
+    label: "Recueil des appr\xE9ciations des parties prenantes",
+    expected: "D\xE9montrer la sollicitation des appr\xE9ciations \xE0 une fr\xE9quence pertinente, incluant des dispositifs de relance et permettant une libre expression.",
+    gradation: gradationOf(30),
+    evidence: [
+      "Enqu\xEAtes de satisfaction, \xE9valuations \xE0 chaud et \xE0 froid",
+      "Sollicitation des financeurs, au moins une fois par an",
+      "Les \xE9valuations des acquis ne sont pas un \xE9l\xE9ment de preuve probant pour cet indicateur"
+    ]
+  },
+  {
+    number: 31,
+    criterion: 7,
+    label: "Traitement des difficult\xE9s, r\xE9clamations et al\xE9as",
+    expected: "D\xE9montrer la mise en place de modalit\xE9s de traitement des al\xE9as, difficult\xE9s et r\xE9clamations.",
+    gradation: gradationOf(31),
+    evidence: [
+      "Accus\xE9 de r\xE9ception des r\xE9clamations et r\xE9ponses apport\xE9es aux r\xE9clamants",
+      "Analyse et traitement des r\xE9clamations, traitement des difficult\xE9s et des al\xE9as",
+      "Tableau de suivi des r\xE9clamations et de leur traitement"
+    ]
+  },
+  {
+    number: 32,
+    criterion: 7,
+    label: "Am\xE9lioration continue et analyse des risques",
+    expected: "D\xE9montrer la mise en place d'une d\xE9marche d'am\xE9lioration continue.",
+    gradation: gradationOf(32),
+    evidence: [
+      "Identification des causes d'abandon ou d'insatisfaction, plans d'action",
+      "Tableau de suivi des mesures d'am\xE9lioration issues des r\xE9clamations, al\xE9as et difficult\xE9s",
+      "Analyse des risques sur la qualit\xE9 des formations d\xE9livr\xE9es",
+      "Organisation de l'audit interne"
+    ]
+  }
+];
+var APPLICABLE_INDICATORS = AUDIT_INDICATORS.filter((i) => !i.notApplicable);
+
+// supabase/functions/_shared/qualiopi-checks.ts
+var ok = (detail) => ({ status: "ok", detail });
+var ko = (detail) => ({ status: "ko", detail });
+function ratio(done, total, noun, zeroDetail) {
+  if (total === 0) return { status: "unknown", detail: zeroDetail ?? `Aucun ${noun} \xE0 contr\xF4ler` };
+  const detail = `${done}/${total} ${noun}`;
+  return done >= total ? ok(detail) : ko(detail);
+}
+var PLANS = {
+  1: {
+    checks: [
+      {
+        id: "1.mentions",
+        label: "Mentions obligatoires renseign\xE9es sur chaque formation active",
+        run: (f) => ratio(f.formationsWithAllDisclosures, f.activeFormations, "formations compl\xE8tes"),
+        fix: { label: "Compl\xE9ter le catalogue", href: "/catalogue" }
+      }
+    ],
+    questions: [
+      {
+        id: "1.publie",
+        label: "Ces informations sont-elles accessibles au public, hors de l'application ?",
+        hint: "Page produit du site, plaquette, conditions g\xE9n\xE9rales. L'information doit \xEAtre \xE0 jour."
+      },
+      {
+        id: "1.trompeuse",
+        label: "La communication est-elle exempte de mention pouvant induire le public en erreur ?",
+        hint: "Conditions d'acc\xE8s, contenu, financement, droits conf\xE9r\xE9s par la formation."
+      }
+    ]
+  },
+  2: {
+    checks: [
+      {
+        id: "2.calcul",
+        label: "Un indicateur de r\xE9sultat est calcul\xE9 par formation",
+        run: (f) => f.formationsWithSatisfaction > 0 ? ok(`${f.formationsWithSatisfaction} formations avec un r\xE9sultat mesur\xE9`) : ko("Aucun r\xE9sultat calcul\xE9")
+      },
+      {
+        id: "2.methode",
+        label: "La m\xE9thode de calcul accompagne le r\xE9sultat",
+        run: (f) => f.satisfactionMethodAvailable ? ok("Texte de diffusion avec m\xE9thode disponible") : ko("Aucun texte de m\xE9thode")
+      }
+    ],
+    questions: [
+      {
+        id: "2.publie",
+        label: "Les r\xE9sultats sont-ils diffus\xE9s au public avec leur m\xE9thode de calcul ?",
+        hint: "Le d\xE9cret ajoute la transparence de la m\xE9thode : un taux seul ne suffit plus."
+      }
+    ]
+  },
+  4: {
+    checks: [
+      {
+        id: "4.recueil",
+        label: "Recueil des besoins rempli sur les sessions \xE9chantillonn\xE9es",
+        run: (f) => ratio(f.sampleWithNeedsSurvey, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude"
+      }
+    ],
+    questions: [
+      {
+        id: "4.entreprise",
+        label: "Le besoin est-il analys\xE9 en lien avec l'entreprise et/ou le financeur ?",
+        hint: "Compte rendu d'entretien, cahier des charges, synth\xE8se partag\xE9e avec le commanditaire."
+      }
+    ]
+  },
+  5: {
+    checks: [
+      {
+        id: "5.objectifs",
+        label: "Objectifs d\xE9finis sur les sessions \xE9chantillonn\xE9es",
+        run: (f) => ratio(f.sampleWithObjectives, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude"
+      },
+      {
+        id: "5.evaluables",
+        label: "Les objectifs sont not\xE9s un \xE0 un par les participants",
+        run: (f) => ratio(f.sampleWithObjectiveRatings ?? f.sampleWithEvaluations, f.sampleSize, "sessions avec objectifs \xE9valu\xE9s"),
+        onEmpty: "cannot_conclude"
+      }
+    ],
+    questions: []
+  },
+  6: {
+    checks: [
+      {
+        id: "6.programme",
+        label: "Programme ou parcours rattach\xE9 aux sessions \xE9chantillonn\xE9es",
+        run: (f) => ratio(f.sampleWithProgramme, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude"
+      }
+    ],
+    questions: [
+      {
+        id: "6.adaptation",
+        label: "Les contenus sont-ils adapt\xE9s aux objectifs et aux publics accueillis ?",
+        hint: "D\xE9roul\xE9s, s\xE9quences, modalit\xE9s techniques et p\xE9dagogiques."
+      }
+    ]
+  },
+  8: {
+    checks: [
+      {
+        id: "8.prerequis",
+        label: "Positionnement recueilli \xE0 l'entr\xE9e (niveau, comp\xE9tences ou pr\xE9requis)",
+        run: (f) => ratio(f.sampleWithPositioning ?? f.sampleWithPrerequisiteCheck, f.sampleSize, "sessions positionn\xE9es"),
+        onEmpty: "cannot_conclude"
+      }
+    ],
+    questions: [
+      {
+        id: "8.suite",
+        label: "Un pr\xE9requis non valid\xE9 donne-t-il lieu \xE0 une d\xE9cision trac\xE9e ?",
+        hint: "Validation formateur du dossier, repositionnement, refus motiv\xE9."
+      },
+      {
+        id: "8.validation",
+        label: "Pour les pr\xE9requis applicables, la v\xE9rification et les d\xE9cisions sont-elles document\xE9es ?",
+        hint: "Le niveau d\xE9clar\xE9 prouve le positionnement, pas la validation de chaque pr\xE9requis. Joindre la v\xE9rification sur les dossiers concern\xE9s."
+      }
+    ]
+  },
+  9: {
+    checks: [
+      {
+        id: "9.convocation",
+        label: "Convocation envoy\xE9e sur les sessions \xE9chantillonn\xE9es",
+        run: (f) => ratio(f.sampleWithConvocation, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude"
+      },
+      {
+        id: "9.reglement",
+        label: "R\xE8glement int\xE9rieur publi\xE9 et accessible",
+        run: (f) => f.reglementInterieurPublished ? ok("Publi\xE9") : ko("Aucun r\xE8glement publi\xE9"),
+        fix: { label: "Publier le r\xE8glement int\xE9rieur", href: "/parametres?find=reglement_interieur" }
+      }
+    ],
+    questions: [
+      {
+        id: "9.referents",
+        label: "Les noms des r\xE9f\xE9rents p\xE9dagogique et administratif sont-ils communiqu\xE9s ?"
+      }
+    ]
+  },
+  10: {
+    checks: [],
+    questions: [
+      {
+        id: "10.adaptation",
+        label: "La prestation est-elle adapt\xE9e quand l'analyse du besoin l'\xE9tablit ?",
+        hint: "Dur\xE9es, contenus, groupes de niveaux, rythmes."
+      },
+      {
+        id: "10.handicap",
+        label: "Les am\xE9nagements d\xE9cid\xE9s pour une personne en situation de handicap sont-ils trac\xE9s ?",
+        hint: "Plan de compensation, fiche de suivi, trace de ce qui a \xE9t\xE9 mis en place."
+      }
+    ]
+  },
+  11: {
+    checks: [
+      {
+        id: "11.evaluation",
+        label: "\xC9valuation de fin recueillie sur les sessions \xE9chantillonn\xE9es",
+        run: (f) => ratio(f.sampleWithEvaluations, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude"
+      }
+    ],
+    questions: []
+  },
+  12: {
+    checks: [
+      {
+        id: "12.procedure",
+        label: "Proc\xE9dure de pr\xE9vention des violences en vigueur",
+        run: (f) => f.vhdProcedureActive ? ok("Une version active") : ko("Aucune version active"),
+        fix: { label: "R\xE9diger la proc\xE9dure", href: "/signalements" }
+      },
+      {
+        id: "12.diffusion",
+        label: "Proc\xE9dure port\xE9e \xE0 la connaissance des apprenants",
+        run: (f) => f.vhdProcedurePublished ? ok("Publi\xE9e sur la page de session") : ko("Non diffus\xE9e")
+      }
+    ],
+    questions: [
+      {
+        id: "12.abandons",
+        label: "Des mesures de pr\xE9vention des ruptures de parcours sont-elles mises en \u0153uvre ?",
+        hint: "Relances, gestion des abandons, contacts individuels."
+      }
+    ]
+  },
+  17: {
+    checks: [],
+    questions: [
+      {
+        id: "17.moyens",
+        label: "Les locaux, \xE9quipements et moyens humains sont-ils adapt\xE9s aux objectifs ?",
+        hint: "Mat\xE9riel, plateforme LMS, aides \xE0 la connexion \xE0 distance."
+      }
+    ]
+  },
+  18: {
+    checks: [
+      {
+        id: "18.intervenant",
+        label: "Intervenant identifi\xE9 sur les sessions \xE9chantillonn\xE9es",
+        run: (f) => ratio(f.sampleWithTrainer, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude"
+      }
+    ],
+    questions: []
+  },
+  19: {
+    checks: [
+      {
+        id: "19.suivi",
+        label: "Parcours \xE0 distance dot\xE9s de modules obligatoires, donc d'un attendu v\xE9rifiable",
+        run: (f) => ratio(
+          f.elearningCoursesWithMandatoryLessons,
+          f.elearningCourses,
+          "parcours",
+          "Aucun parcours \xE0 distance"
+        )
+      }
+    ],
+    questions: [
+      {
+        id: "19.ressources",
+        label: "Les ressources p\xE9dagogiques sont-elles disponibles et appropriables ?"
+      }
+    ]
+  },
+  21: {
+    checks: [
+      {
+        id: "21.competences",
+        label: "Comp\xE9tences d\xE9finies pour chaque intervenant",
+        run: (f) => ratio(f.trainersWithCompetences, f.trainers, "intervenants"),
+        fix: { label: "Renseigner les comp\xE9tences", href: "/parametres?find=tab%3Atrainers" },
+        onEmpty: "defect"
+      },
+      {
+        id: "21.justificatifs",
+        label: "Justificatifs disponibles : CV, dipl\xF4mes, certifications",
+        run: (f) => ratio(f.trainersWithDocuments, f.trainers, "intervenants"),
+        fix: { label: "Charger CV et dipl\xF4mes", href: "/parametres?find=tab%3Atrainers" },
+        onEmpty: "defect"
+      },
+      {
+        id: "21.adequation",
+        label: "Ad\xE9quation intervenant/session valid\xE9e sur l'\xE9chantillon",
+        run: (f) => ratio(f.sampleWithTrainerAdequacy, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude"
+      }
+    ],
+    questions: []
+  },
+  22: {
+    checks: [
+      {
+        id: "22.formation",
+        label: "Formation continue renseign\xE9e pour chaque intervenant",
+        run: (f) => ratio(f.trainersWithContinuingEducation, f.trainers, "intervenants"),
+        fix: { label: "Renseigner les formations suivies", href: "/parametres?find=tab%3Atrainers" },
+        onEmpty: "defect"
+      }
+    ],
+    questions: [
+      {
+        id: "22.leviers",
+        label: "Quels leviers de professionnalisation sont mobilis\xE9s ?",
+        hint: "Communaut\xE9 de pairs, analyse de pratiques, formations suivies."
+      }
+    ]
+  },
+  23: {
+    checks: [
+      {
+        id: "23.veille",
+        label: "Veille aliment\xE9e sur les douze derniers mois",
+        run: (f) => f.watchItemsLastYear > 0 ? ok(`${f.watchItemsLastYear} \xE9l\xE9ments capt\xE9s`) : ko("Aucun \xE9l\xE9ment sur douze mois")
+      },
+      {
+        id: "23.exploitation",
+        label: "Veille exploit\xE9e : un \xE9l\xE9ment au moins a produit une d\xE9cision trac\xE9e",
+        run: (f) => f.watchItemsLinkedToAction > 0 ? ok(`${f.watchItemsLinkedToAction} \xE9l\xE9ments rattach\xE9s \xE0 une action`) : ko("Aucun lien entre un \xE9l\xE9ment de veille et une d\xE9cision")
+      }
+    ],
+    questions: [
+      {
+        id: "23.legale",
+        label: "La veille couvre-t-elle le champ l\xE9gal et r\xE9glementaire de la formation ?"
+      }
+    ]
+  },
+  24: {
+    checks: [
+      {
+        id: "24.exploitation",
+        label: "Veille exploit\xE9e : un \xE9l\xE9ment au moins a produit une d\xE9cision trac\xE9e",
+        run: (f) => f.watchItemsLinkedToAction > 0 ? ok(`${f.watchItemsLinkedToAction} \xE9l\xE9ments rattach\xE9s \xE0 une action`) : ko("Aucun lien entre un \xE9l\xE9ment de veille et une d\xE9cision")
+      }
+    ],
+    questions: [
+      {
+        id: "24.metiers",
+        label: "La veille couvre-t-elle les \xE9volutions des comp\xE9tences, m\xE9tiers et emplois ?"
+      }
+    ]
+  },
+  25: {
+    checks: [
+      {
+        id: "25.exploitation",
+        label: "Veille exploit\xE9e : un \xE9l\xE9ment au moins a produit une d\xE9cision trac\xE9e",
+        run: (f) => f.watchItemsLinkedToAction > 0 ? ok(`${f.watchItemsLinkedToAction} \xE9l\xE9ments rattach\xE9s \xE0 une action`) : ko("Aucun lien entre un \xE9l\xE9ment de veille et une d\xE9cision")
+      }
+    ],
+    questions: [
+      {
+        id: "25.innovation",
+        label: "La veille couvre-t-elle les innovations p\xE9dagogiques et technologiques ?"
+      }
+    ]
+  },
+  26: {
+    checks: [
+      {
+        id: "26.referent",
+        label: "R\xE9f\xE9rent handicap d\xE9sign\xE9 et joignable",
+        run: (f) => f.handicapReferentDesignated ? ok("D\xE9sign\xE9") : ko("Aucun r\xE9f\xE9rent d\xE9sign\xE9"),
+        fix: { label: "D\xE9signer le r\xE9f\xE9rent", href: "/parametres?find=referent_handicap" }
+      },
+      {
+        id: "26.reseau",
+        label: "R\xE9seau de partenaires du handicap identifi\xE9",
+        run: (f) => f.handicapPartnersActive > 0 ? ok(`${f.handicapPartnersActive} partenaires actifs`) : ko("Aucun partenaire enregistr\xE9"),
+        fix: { label: "Alimenter le r\xE9seau", href: "/parametres?find=partenaires_handicap" }
+      }
+    ],
+    questions: [
+      {
+        id: "26.recours",
+        label: "Les modalit\xE9s de recours \xE0 ce r\xE9seau sont-elles connues des personnels ?"
+      }
+    ]
+  },
+  30: {
+    checks: [
+      {
+        id: "30.beneficiaires",
+        label: "Appr\xE9ciations des b\xE9n\xE9ficiaires recueillies",
+        run: (f) => ratio(f.sampleWithEvaluations, f.sampleSize, "sessions"),
+        onEmpty: "cannot_conclude"
+      },
+      {
+        id: "30.froid",
+        label: "Appr\xE9ciations recueillies \xE0 froid",
+        run: (f) => f.coldEvaluationsSubmitted > 0 ? ok(`${f.coldEvaluationsSubmitted} retours \xE0 froid`) : { status: "unknown", detail: "Aucun retour \xE0 froid : v\xE9rifier les \xE9ch\xE9ances et les sollicitations, pas de non-conformit\xE9 d\xE9duite du seul z\xE9ro" }
+      },
+      {
+        id: "30.commanditaire",
+        label: "Appr\xE9ciations des entreprises clientes recueillies",
+        run: (f) => f.sponsorEvaluationsSubmitted > 0 ? ok(`${f.sponsorEvaluationsSubmitted} retours commanditaires`) : { status: "unknown", detail: `${f.stakeholderSolicitations ?? 0} sollicitations \xE0 froid/financeur trac\xE9es ; aucun retour commanditaire` }
+      },
+      {
+        id: "30.financeur",
+        label: "Financeurs sollicit\xE9s au moins une fois dans l'ann\xE9e",
+        run: (f) => f.funderAppreciations > 0 ? ok(`${f.funderAppreciations} appr\xE9ciations financeur`) : { status: "unknown", detail: "Aucune appr\xE9ciation financeur : v\xE9rifier les financeurs concern\xE9s et la preuve de sollicitation" }
+      }
+    ],
+    questions: [
+      {
+        id: "30.pedagogique",
+        label: "L'\xE9quipe p\xE9dagogique est-elle sollicit\xE9e ?",
+        hint: "Auto-\xE9valuation du formateur, comptes rendus de r\xE9unions d'\xE9quipe."
+      },
+      {
+        id: "30.solicitations",
+        label: "Les parties prenantes concern\xE9es ont-elles \xE9t\xE9 sollicit\xE9es et les absences de r\xE9ponse suivies ?",
+        hint: "V\xE9rifier les \xE9ch\xE9ances dans \xC9valuations et les sollicitations financeurs dans la fiche formation. Les sessions termin\xE9es avant le 03/11/2026 restent suivies manuellement, sans rattrapage automatique."
+      }
+    ]
+  },
+  31: {
+    checks: [
+      {
+        id: "31.accuse",
+        label: "Accus\xE9 de r\xE9ception envoy\xE9 \xE0 chaque r\xE9clamant",
+        run: (f) => ratio(
+          f.reclamationsAcknowledged,
+          f.reclamations,
+          "r\xE9clamations",
+          "Aucune r\xE9clamation re\xE7ue \xE0 ce jour"
+        ),
+        fix: { label: "Ouvrir le registre", href: "/reclamations" }
+      },
+      {
+        id: "31.reponse",
+        label: "R\xE9ponse apport\xE9e \xE0 chaque r\xE9clamation",
+        run: (f) => ratio(
+          f.reclamationsAnswered,
+          f.reclamations,
+          "r\xE9clamations",
+          "Aucune r\xE9clamation re\xE7ue \xE0 ce jour"
+        ),
+        fix: { label: "Ouvrir le registre", href: "/reclamations" }
+      }
+    ],
+    questions: [
+      {
+        id: "31.modalites",
+        label: "Les modalit\xE9s de traitement des al\xE9as et difficult\xE9s sont-elles formalis\xE9es ?",
+        hint: "Le registre distingue r\xE9clamation, al\xE9a et difficult\xE9. Montrer la proc\xE9dure."
+      }
+    ]
+  },
+  32: {
+    checks: [
+      {
+        id: "32.risques",
+        label: "Analyse des risques sur la qualit\xE9 des formations",
+        run: (f) => f.qualityRisks > 0 ? ok(`${f.qualityRisks} risques analys\xE9s`) : ko("Registre vide"),
+        fix: { label: "Alimenter le registre des risques", href: "/risques" }
+      },
+      {
+        id: "32.mesures",
+        label: "Risques \xE9lev\xE9s ou critiques couverts par une mesure de pr\xE9vention",
+        run: (f) => f.highRisksWithoutMeasure === 0 ? ok("Tous couverts") : ko(`${f.highRisksWithoutMeasure} sans mesure`),
+        fix: { label: "Opposer une mesure", href: "/risques" }
+      },
+      {
+        id: "32.ameliorations",
+        label: "Mesures d'am\xE9lioration engag\xE9es",
+        run: (f) => f.improvements > 0 ? ok(`${f.improvements} actions`) : ko("Aucune action d'am\xE9lioration"),
+        fix: { label: "Ouvrir le plan d'am\xE9lioration", href: "/ameliorations" }
+      }
+    ],
+    questions: [
+      {
+        id: "32.origine",
+        label: "Les actions d'am\xE9lioration sont-elles reli\xE9es aux appr\xE9ciations et r\xE9clamations ?"
+      }
+    ]
+  }
+};
+function auditPlan() {
+  return APPLICABLE_INDICATORS.map((indicator) => ({
+    indicator,
+    checks: PLANS[indicator.number]?.checks ?? [],
+    questions: PLANS[indicator.number]?.questions ?? []
+  }));
+}
+
+// supabase/functions/_shared/audit-evidence.ts
+var AUDIT_EVIDENCE_MAX_AGE_DAYS = 45;
+var DAY_MS = 864e5;
+function auditQuestionCatalog() {
+  return auditPlan().flatMap((p) => p.questions.map((q) => ({ question_id: q.id, indicator: p.indicator.number, label: q.label, hint: q.hint ?? null })));
+}
+function evidenceAgeDays(row, now = /* @__PURE__ */ new Date()) {
+  return Math.floor((now.getTime() - new Date(row.checked_at).getTime()) / DAY_MS);
+}
+function evidenceStatus(row, now = /* @__PURE__ */ new Date()) {
+  if (!row) return "a_confirmer";
+  return evidenceAgeDays(row, now) < AUDIT_EVIDENCE_MAX_AGE_DAYS ? "valide" : "perimee";
+}
+function latestEvidence(rows) {
+  const latest = /* @__PURE__ */ new Map();
+  for (const row of rows) {
+    const current = latest.get(row.question_id);
+    if (!current || row.recorded_at > current.recorded_at) latest.set(row.question_id, row);
+  }
+  return latest;
+}
+
+// src/lib/mcp/tools/list-audit-questions.ts
+var list_audit_questions_default = defineTool23({
+  name: "list_audit_questions",
+  title: "Lister les questions manuelles de l'audit blanc",
+  description: "Questions manuelles de l'audit blanc Qualiopi avec leur derni\xE8re preuve (r\xE9ponse, date, source, statut valide/p\xE9rim\xE9e/\xE0 confirmer).",
+  inputSchema: { indicator: z26.number().int().min(1).max(32).optional() },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ indicator }, ctx) => {
+    const db = await auditClient(ctx);
+    const questions = auditQuestionCatalog().filter((q) => !indicator || q.indicator === indicator);
+    let query = db.from("audit_question_evidence").select("question_id, answer, evidence_summary, evidence_urls, checked_at, recorded_at, source_type, source_label").order("recorded_at", { ascending: false }).limit(1e3);
+    if (indicator) query = query.eq("indicator", indicator);
+    const { data, error } = await query;
+    if (error) throw error;
+    const latest = latestEvidence(data ?? []);
+    return result(questions.map((q) => {
+      const e = latest.get(q.question_id);
+      return { ...q, current: e ? { ...e, age_days: evidenceAgeDays(e), status: evidenceStatus(e) } : null, status: evidenceStatus(e) };
+    }));
+  }
+});
+
+// src/lib/mcp/tools/record-audit-evidence.ts
+import { defineTool as defineTool24, ToolError as ToolError2 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z27 } from "npm:zod@^3.25.76";
+var recordAuditEvidenceInput = {
+  question_id: z27.string().min(3).max(60).describe("Identifiant stable, ex. 1.publie"),
+  answer: z27.enum(["oui", "non"]),
+  evidence_summary: z27.string().trim().min(1).max(5e3),
+  evidence_urls: z27.array(z27.string().url().refine((u) => /^https?:\/\//.test(u), "URL http(s) attendue")).max(50).default([]),
+  evidence_details: z27.union([z27.string().max(1e5), z27.record(z27.string(), z27.unknown()), z27.array(z27.unknown())]).optional().describe("Texte ou JSON : citations par page et par \xE9l\xE9ment, mentions v\xE9rifi\xE9es ou trompeuses"),
+  checked_at: z27.string().datetime({ offset: true }).describe("Date et heure du contr\xF4le (ISO 8601)"),
+  source: z27.string().regex(/^agent:.+/, "Format attendu : agent:<nom de la t\xE2che>").max(200)
+};
+var record_audit_evidence_default = defineTool24({
+  name: "record_audit_evidence",
+  title: "Enregistrer une preuve d'audit blanc",
+  description: "Ajoute une r\xE9ponse oui/non avec sa preuve \xE0 une question manuelle de l'audit blanc. Historique conserv\xE9, jamais d'\xE9crasement ni de suppression.",
+  inputSchema: recordAuditEvidenceInput,
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  handler: async (input, ctx) => {
+    const question = auditQuestionCatalog().find((q) => q.question_id === input.question_id);
+    if (!question) throw new ToolError2(`Question inconnue : ${input.question_id}. Utiliser list_audit_questions.`);
+    const db = await auditClient(ctx);
+    const previous = await db.from("audit_question_evidence").select("id, answer, checked_at, recorded_at, source_type, source_label").eq("question_id", question.question_id).order("recorded_at", { ascending: false }).limit(1).maybeSingle();
+    if (previous.error) throw previous.error;
+    const details = input.evidence_details === void 0 ? null : typeof input.evidence_details === "string" ? { text: input.evidence_details } : input.evidence_details;
+    const { data, error } = await db.from("audit_question_evidence").insert({
+      question_id: question.question_id,
+      indicator: question.indicator,
+      answer: input.answer,
+      evidence_summary: input.evidence_summary,
+      evidence_urls: input.evidence_urls,
+      evidence_details: details,
+      checked_at: input.checked_at,
+      source_type: "agent",
+      source_label: input.source,
+      recorded_by: ctx.getUserId()
+    }).select("id, question_id, indicator, answer, checked_at, recorded_at, source_type, source_label").single();
+    if (error) throw new ToolError2(error.message);
+    return result({ recorded: data, previous: previous.data });
+  }
+});
+
 // src/lib/mcp/index.ts
 var ref = "yewffntzgrdgztrwtava";
-var mcp_default = defineMcp({ name: "supertools", title: "SuperTools", version: "1.0.0", auth: auth.oauth.issuer({ issuer: `https://${ref}.supabase.co/auth/v1`, acceptedAudiences: "authenticated" }), instructions: "Extensions r\xE9serv\xE9es au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille, couvertures et attestations de bonne ex\xE9cution (cr\xE9ation, modification, liste, lien de signature, PDF sign\xE9), sessions live des formations (liste, mise \xE0 jour, replay), catalogue jeux et devis dropshipping, archives entreprise (archive_email_attachments, upload_company_document, list_company_documents, read_company_document). Les archives sont r\xE9serv\xE9es aux administrateurs, strictement additives, sans email ni suppression. list_games retrouve les jeux, prix, stocks, frais de port et poids. create_game_quote renvoie par d\xE9faut un preview sans \xE9criture ; confirm=true est obligatoire pour cr\xE9er le brouillon, apr\xE8s accord explicite. Le devis jeux n\u2019envoie jamais d\u2019email ou de Slack, ne cr\xE9e pas de commande pay\xE9e et ne d\xE9cr\xE9mente pas le stock. Aucun outil de suppression ni envoi d\u2019email hors rappels live reprogramm\xE9s comme dans l\u2019application. Ne jamais modifier les le\xE7ons. Confirmer allow_multiple avec l\u2019utilisateur. Les outils historiques restent sur leur connecteur existant.", tools: [upload_company_document_default, archive_email_attachments_default, list_company_documents_default, read_company_document_default, list_lms_modules_default, create_lms_module_default, update_lms_module_default, assign_transcript_default, list_unassigned_transcripts_default, list_watch_sources_default, propose_watch_source_default, update_watch_source_default, update_lms_course_default, create_execution_attestation_default, update_execution_attestation_default, list_execution_attestations_default, get_execution_attestation_link_default, get_execution_attestation_pdf_default, list_live_meetings_default, update_live_meeting_default, list_games_default, create_game_quote_default] });
+var mcp_default = defineMcp({ name: "supertools", title: "SuperTools", version: "1.0.0", auth: auth.oauth.issuer({ issuer: `https://${ref}.supabase.co/auth/v1`, acceptedAudiences: "authenticated" }), instructions: "Extensions r\xE9serv\xE9es au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille, couvertures et attestations de bonne ex\xE9cution (cr\xE9ation, modification, liste, lien de signature, PDF sign\xE9), sessions live des formations (liste, mise \xE0 jour, replay), catalogue jeux et devis dropshipping, archives entreprise (archive_email_attachments, upload_company_document, list_company_documents, read_company_document). Les archives sont r\xE9serv\xE9es aux administrateurs, strictement additives, sans email ni suppression. list_games retrouve les jeux, prix, stocks, frais de port et poids. create_game_quote renvoie par d\xE9faut un preview sans \xE9criture ; confirm=true est obligatoire pour cr\xE9er le brouillon, apr\xE8s accord explicite. Le devis jeux n\u2019envoie jamais d\u2019email ou de Slack, ne cr\xE9e pas de commande pay\xE9e et ne d\xE9cr\xE9mente pas le stock. Aucun outil de suppression ni envoi d\u2019email hors rappels live reprogramm\xE9s comme dans l\u2019application. Ne jamais modifier les le\xE7ons. Confirmer allow_multiple avec l\u2019utilisateur. Audit blanc Qualiopi : list_audit_questions lit les questions manuelles et leur derni\xE8re preuve ; record_audit_evidence ajoute une r\xE9ponse oui/non avec preuve (valide 45 jours, historique conserv\xE9, sans suppression). Les outils historiques restent sur leur connecteur existant.", tools: [upload_company_document_default, archive_email_attachments_default, list_company_documents_default, read_company_document_default, list_lms_modules_default, create_lms_module_default, update_lms_module_default, assign_transcript_default, list_unassigned_transcripts_default, list_watch_sources_default, propose_watch_source_default, update_watch_source_default, update_lms_course_default, create_execution_attestation_default, update_execution_attestation_default, list_execution_attestations_default, get_execution_attestation_link_default, get_execution_attestation_pdf_default, list_live_meetings_default, update_live_meeting_default, list_games_default, create_game_quote_default, list_audit_questions_default, record_audit_evidence_default] });
 
 // lovable-mcp-supabase-entry.ts
 import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@3.4.0/stacks/supabase";

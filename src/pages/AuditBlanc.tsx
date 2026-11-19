@@ -14,6 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useAuditFacts, type AuditSample } from "@/hooks/useAuditFacts";
 import { useAuditRuns } from "@/hooks/useAuditRuns";
+import { useAuditEvidence } from "@/hooks/useAuditEvidence";
+import { AuditEvidencePanel } from "@/components/audit/AuditEvidencePanel";
+import { evidenceStatus, latestEvidence, mergeEvidenceAnswers } from "../../supabase/functions/_shared/audit-evidence";
 import {
   auditPlan,
   evaluateIndicator,
@@ -64,9 +67,10 @@ const VERDICT_STYLE: Record<Verdict, { label: string; className: string; icon: t
 export default function AuditBlanc() {
   const [searchParams] = useSearchParams();
   const requestedIndicator = searchParams.get('indicator');
-  useAuth();
+  const { user } = useAuth();
   const { gather, loading: gathering } = useAuditFacts();
   const { runs, saveRun, loading: loadingRuns } = useAuditRuns();
+  const { evidence, loading: loadingEvidence, recordHuman } = useAuditEvidence();
   const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
 
@@ -78,13 +82,13 @@ export default function AuditBlanc() {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (loadingRuns || initialized) return;
+    if (loadingRuns || loadingEvidence || initialized) return;
     const latest = runs[0];
     if (latest?.facts && typeof latest.facts === 'object' && 'sampleSize' in latest.facts) {
       const stored = latest.facts as AuditFacts;
       setFacts(stored);
       setSample(stored.sample ?? []);
-      setAnswers({ ...automaticAnswers(stored), ...(latest.answers as Record<string, AnswerValue> ?? {}) });
+      setAnswers(mergeEvidenceAnswers({ ...automaticAnswers(stored), ...(latest.answers as Record<string, AnswerValue> ?? {}) }, evidence));
       if (!stored.affectedItems) {
         gather().then(result => {
           const sameSample = JSON.stringify([...latest.sample_training_ids].sort()) === JSON.stringify(result.sample.map(s => s.trainingId).sort());
@@ -96,7 +100,7 @@ export default function AuditBlanc() {
       }
     }
     setInitialized(true);
-  }, [runs, loadingRuns, initialized, gather, toast]);
+  }, [runs, loadingRuns, loadingEvidence, evidence, initialized, gather, toast]);
 
   const plans = useMemo(() => auditPlan(), []);
 
@@ -122,7 +126,7 @@ export default function AuditBlanc() {
       const result = await gather();
       setFacts({ ...result.facts, auditFocus: facts?.auditFocus ?? focus.map(a => a.indicator) });
       setSample(result.sample);
-      setAnswers(automaticAnswers(result.facts));
+      setAnswers(mergeEvidenceAnswers(automaticAnswers(result.facts), evidence));
     } catch (error: unknown) {
       // Sans ce garde, un échec de lecture laissait l'écran muet : le bouton
       // s'arrêtait de tourner et rien ne se passait.
@@ -134,9 +138,27 @@ export default function AuditBlanc() {
   const answer = (id: string, value: AnswerValue) =>
     setAnswers((a) => ({ ...a, [id]: a[id] === value ? null : value }));
 
+  const evidenceByQuestion = useMemo(() => {
+    const map = new Map<string, typeof evidence>();
+    for (const e of evidence) map.set(e.question_id, [...(map.get(e.question_id) ?? []), e]);
+    return map;
+  }, [evidence]);
+
   const finish = async () => {
     if (!facts) return;
     setSaving(true);
+    // Une réponse humaine devient une preuve datée, sauf si elle confirme déjà la dernière preuve valide.
+    const auto = automaticAnswers(facts);
+    const latest = latestEvidence(evidence);
+    const humanRows = plans.flatMap((p) => p.questions
+      .filter((q) => (answers[q.id] === "oui" || answers[q.id] === "non") && !(q.id in auto))
+      .filter((q) => { const l = latest.get(q.id); return !l || evidenceStatus(l) !== "valide" || l.answer !== answers[q.id]; })
+      .map((q) => ({ question_id: q.id, indicator: p.indicator.number, answer: answers[q.id] as "oui" | "non",
+        summary: notes.trim() || "Réponse confirmée dans l'audit blanc.", sourceLabel: user?.email ?? "Saisie humaine" })));
+    if (user && humanRows.length > 0) {
+      try { await recordHuman(humanRows, user.id); }
+      catch (error) { toastError(toast, error instanceof Error ? error.message : "Enregistrement des preuves impossible"); }
+    }
     await saveRun({
       facts,
       answers,
@@ -348,6 +370,7 @@ export default function AuditBlanc() {
                                     {q.hint && (
                                       <p className="text-xs text-muted-foreground">{q.hint}</p>
                                     )}
+                                    <AuditEvidencePanel history={evidenceByQuestion.get(q.id) ?? []} />
                                     <div className="flex gap-2">
                                       <Button
                                         size="sm"

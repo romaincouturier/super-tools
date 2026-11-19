@@ -6,6 +6,7 @@ import { verifyAuth } from "../_shared/supabase-client.ts";
 import { refreshGoogleAccessToken } from "../_shared/google-oauth.ts";
 // List of all tables to backup
 const TABLES_TO_BACKUP = [
+  "audit_question_evidence",
   "activity_logs",
   "admin_documents",
   "agent_conversations",
