@@ -1183,7 +1183,7 @@ export function useSendLocationContractEmail() {
   return useMutation({
     mutationFn: async ({ orderItemId, enableOnlineSignature = true }: { orderItemId: string; enableOnlineSignature?: boolean }) => {
       const { data, error } = await db.functions.invoke("send-location-contract-email", {
-        body: { orderItemId, enableOnlineSignature },
+        body: { orderItemId, enableOnlineSignature, resend: true },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

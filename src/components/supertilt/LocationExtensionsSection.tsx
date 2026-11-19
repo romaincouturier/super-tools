@@ -36,7 +36,7 @@ function ExtensionRow({ ext, orderItemId }: { ext: LocationExtension; orderItemI
   };
 
   const handleSend = async () => {
-    const res = await send.invoke({ orderItemId, extensionId: ext.id, enableOnlineSignature: true });
+    const res = await send.invoke({ orderItemId, extensionId: ext.id, enableOnlineSignature: true, resend: true });
     if (!res) return;
     refresh();
     toast({ title: "Avenant envoyé", description: "Email avec lien de signature envoyé au locataire." });

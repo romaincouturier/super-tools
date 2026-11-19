@@ -19,6 +19,8 @@ interface RequestBody {
   enableOnlineSignature?: boolean;
   /** Avenant de prolongation à envoyer au lieu du contrat d'origine. */
   extensionId?: string;
+  /** Renvoi manuel explicite : réutilise le lien en attente et renvoie l'email. */
+  resend?: boolean;
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -27,7 +29,7 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const body: RequestBody = await req.json();
-    const { orderItemId, enableOnlineSignature = true, extensionId } = body;
+    const { orderItemId, enableOnlineSignature = true, extensionId, resend = false } = body;
 
     if (!orderItemId) {
       return new Response(JSON.stringify({ error: "orderItemId requis" }), {
@@ -178,10 +180,10 @@ serve(async (req: Request): Promise<Response> => {
         .or(extension ? `location_extension_id.eq.${extension.id}` : "location_extension_id.is.null")
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (existingError) throw existingError;
-      if (existing?.status === "signed" || (existing?.status === "pending" && existing?.email_sent_at && existing?.pdf_hash === pdfHashHex)) {
+      if (existing?.status === "signed" || ((!resend && existing?.status === "pending" && existing?.email_sent_at && existing?.pdf_hash === pdfHashHex))) {
         return new Response(JSON.stringify({ success: true, alreadySent: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      const reusable = existing?.status === "pending" && !existing.email_sent_at && existing.pdf_hash === pdfHashHex && new Date(existing.expires_at).getTime() > Date.now();
+      const reusable = existing?.status === "pending" && (resend || !existing.email_sent_at) && existing.pdf_hash === pdfHashHex && new Date(existing.expires_at).getTime() > Date.now();
       signatureToken = reusable ? existing.token : crypto.randomUUID();
       signatureId = reusable ? existing.id : null;
       const urls = await getAppUrls();

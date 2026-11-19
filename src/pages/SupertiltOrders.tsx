@@ -551,7 +551,11 @@ function LocationContractSection({ item }: { item: OrderItem }) {
 
   const handleSend = async () => {
     try {
-      await sendContract({ orderItemId: item.id, enableOnlineSignature: true });
+      const res = await sendContract({ orderItemId: item.id, enableOnlineSignature: true });
+      if ((res as { alreadySent?: boolean })?.alreadySent) {
+        toast({ title: "Aucun email envoyé", description: "Ce contrat est déjà signé." });
+        return;
+      }
       toast({ title: "Contrat envoyé", description: "Email avec lien de signature envoyé au locataire." });
     } catch (e: any) {
       toastError(toast, e?.message || "Erreur envoi contrat");
