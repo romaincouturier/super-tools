@@ -2,7 +2,7 @@
 
 ## Échec de publication (2026-11-19)
 - [x] Cause confirmée : le MCP généré importe le client Cloud avec une plage de versions, résolue en dépendance auth 2.119.2 indisponible au déploiement ; figer la version déjà installée 2.110.0, sans changement de droits, données, emails ou leçons.
-- [ ] Vérifier les dépendances et le manifeste, puis retenter la publication demandée.
+- [x] Version exacte propagée dans les deux lockfiles et le MCP généré ; 13 tests, 103 règles, compilation automatique et manifeste 22 outils OK ; publication demandée pour academy.supertilt.fr, résultat du déploiement non encore confirmé. Aucun service activé ni changement de sécurité.
 
 ## Téléchargements book ST-2026-0272
 - [x] Téléchargements privés carte, visionneuse et album, originaux et noms conservés ; partage public inchangé.
