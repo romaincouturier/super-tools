@@ -1,4 +1,5 @@
 # Architecture
+- Rental creation paths share an awaited generation/send workflow; reuse originals and sent signatures, preserve active rentals on webhook replay, and record failures, because missing PDFs must never silently block or duplicate contracts.
 - Attendance notifications share a read-only trainer resolver (linked ID, unique legacy name, default when unassigned); explicit or ambiguous trainers never fall back to another recipient, because missing links must not silently suppress or misdirect emails.
 - Tender digests filter each notice before exclusions; daily source health uses Paris business-day import age, because rejecting one notice must not hide the whole feed.
 - Training communities have their own course link, independent of supports/enrollment; learner email links use training-community.ts and internal daily alerts reuse the pending LMS queue, because selecting a community must not change course access or duplicate alerts.

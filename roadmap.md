@@ -1,5 +1,9 @@
 # Roadmap
 
+## Parcours location Laura Schyns (2026-11-19)
+- [x] Créations boutique/devis : génération automatique, envoi selon le réglage existant, réutilisation des contrats déjà envoyés ; boutons accessibles sur location bloquée. Après signature, passage en cours et effacement du blocage ; aucun cron ni droit public élargi, délégation serveur authentifiée conservée.
+- [x] 23 tests et 103 règles OK, compilation automatique OK ; six fonctions déployées. Laura : contrat LOC-2026-003 généré puis envoyé depuis sa carte le 19/11 à 12:02 Paris, Resend accepté, signature pending et carte location_pending relues, traces génération/envoi présentes. Aucun autre email envoyé, aucune signature effectuée à sa place. Prochaine commande boutique non rejouée ; bouton corrigé dans l’aperçu, front à publier.
+
 ## Échec de publication (2026-11-19)
 - [x] Cause confirmée : le MCP généré importe le client Cloud avec une plage de versions, résolue en dépendance auth 2.119.2 indisponible au déploiement ; figer la version déjà installée 2.110.0, sans changement de droits, données, emails ou leçons.
 - [x] Version exacte propagée dans les deux lockfiles et le MCP généré ; 13 tests, 103 règles, compilation automatique et manifeste 22 outils OK ; publication demandée pour academy.supertilt.fr, résultat du déploiement non encore confirmé. Aucun service activé ni changement de sécurité.

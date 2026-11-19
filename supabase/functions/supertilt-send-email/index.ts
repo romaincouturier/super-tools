@@ -16,6 +16,8 @@ import { processTemplate, wrapEmailHtml } from "../_shared/templates.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { runRentalWorkflow } from "../_shared/rental-workflow.ts";
+import { canAccessOrderItem } from "../_shared/order-item-access.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -60,6 +62,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       });
     }
 
+    if (!isInternalCall && !(await canAccessOrderItem(req, order_item_id))) {
+      return new Response(JSON.stringify({ error: "Accès refusé" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // ── Load order item with joins ───────────────────────────────
     const { data: item, error: itemErr } = await (admin as any)
       .from("order_items")
@@ -91,6 +97,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const order = (item as any).woocommerce_orders;
     const game = (item as any).games;
     const author = game?.game_authors;
+
+    if ((item as any).game_type === "location" && !test_recipient && !templateKeyOverride) {
+      const sent = await runRentalWorkflow(admin, order_item_id, true);
+      return new Response(JSON.stringify({ success: true, sent }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     if (!game) {
       return new Response(

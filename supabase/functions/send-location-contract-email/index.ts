@@ -8,6 +8,7 @@ import { sendEmail } from "../_shared/resend.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { emailButton } from "../_shared/templates.ts";
 import { hashArrayBuffer } from "../_shared/crypto.ts";
+import { isCronOrServiceRole } from "../_shared/cron-auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -36,7 +37,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Garde [063] : la RLS du module dropshipping, jouée avec le jeton de l'appelant.
-    if (!(await canAccessOrderItem(req, orderItemId))) {
+    if (!(await isCronOrServiceRole(req)) && !(await canAccessOrderItem(req, orderItemId))) {
       return createErrorResponse("Accès refusé", 403);
     }
 
@@ -168,9 +169,21 @@ serve(async (req: Request): Promise<Response> => {
     // ── Create signature token ────────────────────────────────────
     let signatureUrl = "";
     let signatureToken = "";
+    let signatureId: string | null = null;
 
     if (enableOnlineSignature) {
-      signatureToken = crypto.randomUUID();
+      const { data: existing, error: existingError } = await supabase.from("location_contract_signatures" as any)
+        .select("id, token, status, email_sent_at, expires_at, pdf_hash")
+        .eq("order_item_id", orderItemId)
+        .or(extension ? `location_extension_id.eq.${extension.id}` : "location_extension_id.is.null")
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (existingError) throw existingError;
+      if (existing?.status === "signed" || (existing?.status === "pending" && existing?.email_sent_at && existing?.pdf_hash === pdfHashHex)) {
+        return new Response(JSON.stringify({ success: true, alreadySent: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const reusable = existing?.status === "pending" && !existing.email_sent_at && existing.pdf_hash === pdfHashHex && new Date(existing.expires_at).getTime() > Date.now();
+      signatureToken = reusable ? existing.token : crypto.randomUUID();
+      signatureId = reusable ? existing.id : null;
       const urls = await getAppUrls();
       const appUrl = (urls.app_url || "https://academy.supertilt.fr").replace(/\/+$/, "");
       signatureUrl = `${appUrl}/signature-location/${signatureToken}`;
@@ -178,7 +191,8 @@ serve(async (req: Request): Promise<Response> => {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30);
 
-      const { error: insertError } = await supabase
+      if (!reusable) {
+      const { data: inserted, error: insertError } = await supabase
         .from("location_contract_signatures" as any)
         .insert({
           token: signatureToken,
@@ -191,13 +205,15 @@ serve(async (req: Request): Promise<Response> => {
           pdf_url: permanentUrl,
           pdf_hash: pdfHashHex,
           status: "pending",
-          email_sent_at: new Date().toISOString(),
+          email_sent_at: null,
           expires_at: expiresAt.toISOString(),
-        });
+        }).select("id").single();
 
       if (insertError) {
         console.error("Error creating location signature record:", insertError);
         throw new Error("Impossible de créer le lien de signature");
+      }
+      signatureId = inserted.id;
       }
     }
 
@@ -251,19 +267,31 @@ serve(async (req: Request): Promise<Response> => {
       subject,
       html: fullHtml,
       bcc: bccList,
+      _emailType: "location_contract",
+      idempotencyKey: `location-contract-${signatureId ?? orderItemId}-${pdfHashHex}`,
       attachments: [
         {
           filename: `${contratReference || "contrat-location"}.pdf`,
-          content: Array.from(pdfBytes),
-          type: "application/pdf",
-          disposition: "attachment",
+          content: btoa(Array.from(pdfBytes, (byte) => String.fromCharCode(byte)).join("")),
         },
       ],
     });
 
+    const sentAt = new Date().toISOString();
+    await supabase.from("order_email_log" as any).insert({ order_item_id: orderItemId, wc_order_id: order?.wc_order_id, template_key: "location_contract", sent_to: [recipientEmail], subject, body: fullHtml, status: sendResult.success ? "sent" : "failed", error: sendResult.error ?? null });
     if (!sendResult.success) {
       throw new Error(`Erreur envoi email: ${sendResult.error}`);
     }
+
+    if (signatureId) {
+      const { error: signatureUpdateError } = await supabase.from("location_contract_signatures" as any).update({ email_sent_at: sentAt }).eq("id", signatureId);
+      if (signatureUpdateError) throw signatureUpdateError;
+    }
+    if (!extension) {
+      const { error: itemUpdateError } = await supabase.from("order_items" as any).update({ email_sent_at: sentAt, email_sent_to: recipientEmail, kanban_status: "location_pending", block_reason: null }).eq("id", orderItemId);
+      if (itemUpdateError) throw itemUpdateError;
+    }
+    await supabase.from("activity_logs").insert({ action_type: "location_contract_sent", recipient_email: recipientEmail, details: { order_item_id: orderItemId, contrat_reference: contratReference, resend_email_id: sendResult.id, signature_id: signatureId } });
 
     console.log("Location contract email sent to:", recipientEmail);
 

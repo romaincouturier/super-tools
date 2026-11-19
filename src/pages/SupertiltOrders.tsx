@@ -728,7 +728,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
         <p className="text-xs text-muted-foreground italic border-l-2 pl-2">{item.notes}</p>
       )}
 
-      {item.kanban_status === "location_pending" && (
+      {item.game_type === "location" && (item.kanban_status === "location_pending" || item.kanban_status === "blocked") && (
         <LocationContractSection item={item} />
       )}
 

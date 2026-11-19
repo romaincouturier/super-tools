@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { canAccessOrderItem } from "../_shared/order-item-access.ts";
 import { daysBetween, frDate } from "../_shared/location-extension.ts";
+import { isCronOrServiceRole } from "../_shared/cron-auth.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -12,6 +13,7 @@ interface RequestBody {
   orderItemId: string;
   /** Avenant de prolongation : génère le PDF de la prolongation au lieu du contrat d'origine. */
   extensionId?: string;
+  reuseExisting?: boolean;
 }
 
 function formatDateFR(date: Date): string {
@@ -34,7 +36,7 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const body: RequestBody = await req.json();
-    const { orderItemId, extensionId } = body;
+    const { orderItemId, extensionId, reuseExisting = false } = body;
 
     if (!orderItemId) {
       return new Response(JSON.stringify({ error: "orderItemId requis" }), {
@@ -44,7 +46,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Garde [063] : la RLS du module dropshipping, jouée avec le jeton de l'appelant.
-    if (!(await canAccessOrderItem(req, orderItemId))) {
+    if (!(await isCronOrServiceRole(req)) && !(await canAccessOrderItem(req, orderItemId))) {
       return createErrorResponse("Accès refusé", 403);
     }
 
@@ -95,6 +97,10 @@ serve(async (req: Request): Promise<Response> => {
 
     const order = (item as any).woocommerce_orders;
     const game = (item as any).games;
+
+    if (!extension && reuseExisting && (item as any).location_contract_file_url) {
+      return new Response(JSON.stringify({ contractUrl: (item as any).location_contract_file_url, documentId: (item as any).location_document_id, contratReference: (item as any).contrat_reference }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     if (!game?.pdfmonkey_template_id) {
       return new Response(
@@ -256,14 +262,17 @@ serve(async (req: Request): Promise<Response> => {
         .update({ contract_file_url: pdfUrl, contract_document_id: documentId })
         .eq("id", extension.id);
     } else {
-      await supabase
+      const { error: saveError } = await supabase
         .from("order_items" as any)
         .update({
           location_contract_file_url: pdfUrl,
           location_document_id: documentId,
           contrat_reference: contratReference,
+          ...((item as any).game_type === "location" && ["blocked", "location_pending"].includes((item as any).kanban_status) ? { kanban_status: "location_pending", block_reason: null } : {}),
         })
         .eq("id", orderItemId);
+      if (saveError) throw saveError;
+      await supabase.from("activity_logs").insert({ action_type: "location_contract_generated", recipient_email: order?.customer_email ?? "", details: { order_item_id: orderItemId, contrat_reference: contratReference, document_id: documentId, previous_status: (item as any).kanban_status } });
     }
 
     console.log("Contract URL saved to order_item:", pdfUrl);

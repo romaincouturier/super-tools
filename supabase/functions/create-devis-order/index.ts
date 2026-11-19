@@ -11,6 +11,7 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 import { isStaffCaller } from "../_shared/cron-auth.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
+import { runRentalWorkflow } from "../_shared/rental-workflow.ts";
 import {
   canCancelDevisOrder,
   devisLineTotal,
@@ -147,7 +148,7 @@ async function handleCreate(admin: any, user: { id: string; email?: string }, bo
 
   const { data: savedItems } = await admin
     .from("order_items")
-    .select("id, game_id, quantity, line_total, unit_price")
+    .select("id, game_id, game_type, quantity, line_total, unit_price")
     .eq("woocommerce_order_id", result.id)
     .order("created_at", { ascending: true });
 
@@ -178,7 +179,13 @@ async function handleCreate(admin: any, user: { id: string; email?: string }, bo
     }, { onConflict: "woocommerce_order_id" });
     if (saleErr) console.error("game_sales upsert failed:", saleErr.message);
 
-    if (settings.autoSend) {
+    if (it.game_type === "location") {
+      try {
+        if (await runRentalWorkflow(admin, it.id, settings.autoSend)) emailsQueued++;
+      } catch (error) {
+        console.error("Location contract workflow failed:", error);
+      }
+    } else if (settings.autoSend) {
       try {
         await fetch(`${SUPABASE_URL}/functions/v1/supertilt-send-email`, {
           method: "POST",

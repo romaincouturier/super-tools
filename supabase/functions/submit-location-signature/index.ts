@@ -297,12 +297,10 @@ serve(async (req: Request): Promise<Response> => {
 
     // ── Location en cours, échéance = signature + 30 jours (un avenant ne touche pas au kanban) ──
     if (rec.order_item_id && !rec.location_extension_id) {
-      const parisDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date(signedAt));
-      const end = new Date(`${parisDay}T00:00:00Z`);
-      end.setUTCDate(end.getUTCDate() + 30);
+      const { rentalSignaturePatch } = await import("../_shared/rental-workflow.ts");
       await supabase
         .from("order_items" as any)
-        .update({ kanban_status: "location_active", location_end_date: end.toISOString().slice(0, 10) })
+        .update(rentalSignaturePatch(signedAt))
         .eq("id", rec.order_item_id);
     }
 

@@ -15,6 +15,7 @@ import { timingSafeEqualSecret } from "../_shared/crypto.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { appendRowToSheet } from "../_shared/google-sheets-helper.ts";
 import { postWooOrderToSlack } from "../_shared/woo-slack.ts";
+import { runRentalWorkflow } from "../_shared/rental-workflow.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -75,6 +76,13 @@ async function upsertVisibleOrderItem(
   item: WCLineItem,
   patch: VisibleOrderItemPatch = {},
 ) {
+  if (patch.game_type === "location") {
+    const { data: existing } = await admin.from("order_items").select("kanban_status, archived_at, location_end_date")
+      .eq("woocommerce_order_id", wooOrderId).eq("wc_product_id", item.product_id).maybeSingle();
+    if (existing && (existing.archived_at || existing.location_end_date || ["location_active", "processed"].includes(existing.kanban_status))) {
+      patch = { ...patch, kanban_status: existing.kanban_status };
+    }
+  }
   const payload = {
     woocommerce_order_id: wooOrderId,
     wc_order_id: order.id,
@@ -731,11 +739,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
       }
 
-      // Trigger email if auto-send is on and we have a game
-      if (autoSend && game && savedItem) {
+      if (gameType === "location" && game && savedItem) {
+        try {
+          if (await runRentalWorkflow(admin, savedItem.id, autoSend)) results.emails_queued++;
+        } catch (error) {
+          console.error("Location contract workflow failed:", error);
+        }
+      } else if (autoSend && game && savedItem) {
         try {
           const emailFnUrl = `${SUPABASE_URL}/functions/v1/supertilt-send-email`;
-          await fetch(emailFnUrl, {
+          const emailResponse = await fetch(emailFnUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -743,6 +756,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
             },
             body: JSON.stringify({ order_item_id: (savedItem as { id: string }).id }),
           });
+          if (!emailResponse.ok) throw new Error(`supertilt-send-email: ${emailResponse.status}`);
           results.emails_queued++;
         } catch (e) {
           console.error("Failed to queue email for item:", e);
