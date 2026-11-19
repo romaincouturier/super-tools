@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, Plus, Share2, BarChart2, Library, Pencil, GripVertical } from 'lucide-react';
+import { ChevronLeft, Plus, Share2, BarChart2, Library, Pencil, GripVertical, Download } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
 import {
@@ -50,6 +50,7 @@ import type { BookProduction } from '@/types/book';
 import { toast } from '@/hooks/use-toast';
 import { useUserPreference } from '@/hooks/useUserPreferences';
 import { sortProductions, BOOK_SORT_OPTIONS, type BookSortMode } from '@/lib/bookSort';
+import { useBookDownloads } from '@/hooks/useBookDownloads';
 
 interface SortableTileProps {
   production: BookProduction;
@@ -58,9 +59,11 @@ interface SortableTileProps {
   onDelete: () => void;
   onEdit: () => void;
   onSetCover: () => void;
+  onDownload: () => void;
+  downloading: boolean;
 }
 
-function SortableTile({ production, isCover, onClick, onDelete, onEdit, onSetCover }: SortableTileProps) {
+function SortableTile({ production, isCover, onClick, onDelete, onEdit, onSetCover, onDownload, downloading }: SortableTileProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: production.id,
   });
@@ -89,6 +92,8 @@ function SortableTile({ production, isCover, onClick, onDelete, onEdit, onSetCov
         onDelete={onDelete}
         onEdit={onEdit}
         onSetCover={onSetCover}
+        onDownload={onDownload}
+        downloading={downloading}
       />
     </div>
   );
@@ -106,6 +111,7 @@ export default function BookAlbumDetail({
   albumDescription,
 }: BookAlbumDetailProps) {
   const navigate = useNavigate();
+  const { downloading, download } = useBookDownloads(true);
   const { data: rawProductions = [], isLoading } = useBookProductions(albumId);
   useBackfillBookThumbnails(albumId);
   const { data: rawCoverUrl } = useAlbumRawCover(albumId);
@@ -230,7 +236,7 @@ export default function BookAlbumDetail({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap min-w-0 w-full sm:w-auto">
           <Select value={sortMode} onValueChange={(v) => saveSortMode(v as BookSortMode)}>
             <SelectTrigger className="h-9 w-[190px]">
               <SelectValue />
@@ -246,6 +252,11 @@ export default function BookAlbumDetail({
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil className="w-4 h-4 mr-1.5" />
             Renommer
+          </Button>
+          <Button variant="outline" size="sm" disabled={downloading || productions.length === 0}
+            onClick={() => void download(displayed)}>
+            <Download className="w-4 h-4 mr-1.5" />
+            {downloading ? 'Téléchargement…' : 'Tout télécharger'}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setStatsOpen(true)}>
             <BarChart2 className="w-4 h-4 mr-1.5" />
@@ -298,6 +309,8 @@ export default function BookAlbumDetail({
                   onDelete={() => handleDelete(production)}
                   onEdit={() => handleEdit(production)}
                   onSetCover={() => handleSetCover(production)}
+                  onDownload={() => void download([production])}
+                  downloading={downloading}
                 />
               ))}
             </div>

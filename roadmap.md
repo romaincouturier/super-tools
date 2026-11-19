@@ -1,5 +1,9 @@
 # Roadmap
 
+## Téléchargements book ST-2026-0272
+- [x] Téléchargements privés carte, visionneuse et album, originaux et noms conservés ; partage public inchangé.
+- [x] Carte et visionneuse : original JPEG 14 978 057 octets ; album : 13 téléchargements réels, aucun échec. Mobile sans débordement ; partage public vidéo vérifié sur données simulées sans créer de vues prospect. Huit nouveaux tests, suite complète 3349 tests et 103 règles OK. Ticket résolu, note et trace relues, aucun email ; front à publier.
+
 ## Rafraîchissement Fireflies (2026-11-19)
 - [x] Rétablir les 30 réunions récentes à chaque appel bouton/MCP, sans curseur historique ni plafond de trois imports ; droits, doublons et réparations manuelles préservés. Inventaire historique conservé dans le contrôle d’exhaustivité.
 - [x] 17 tests et 103 règles réussis ; fireflies-backfill déployée. Deux appels successifs et 30 imports vérifiés par tests simulés, sans rattrapage réel ni email déclenché ; prochain clic réel non exécuté pour préserver les données et notifications.

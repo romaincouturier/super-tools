@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Video, Edit2, Trash2, Star, Link2, ImageIcon } from 'lucide-react';
+import { Video, Edit2, Trash2, Star, Link2, ImageIcon, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import WatermarkOverlay from '@/components/book/WatermarkOverlay';
@@ -13,6 +13,8 @@ interface BookProductionCardProps {
   onDelete: () => void;
   onEdit: () => void;
   onSetCover?: () => void;
+  onDownload?: () => void;
+  downloading?: boolean;
   watermarkText?: string;
 }
 
@@ -23,6 +25,8 @@ export default function BookProductionCard({
   onDelete,
   onEdit,
   onSetCover,
+  onDownload,
+  downloading,
   watermarkText,
 }: BookProductionCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
@@ -127,6 +131,19 @@ export default function BookProductionCard({
               }}
             >
               <Star className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          {onDownload && (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-7 w-7"
+              title="Télécharger"
+              aria-label="Télécharger"
+              disabled={downloading}
+              onClick={(e) => { e.stopPropagation(); onDownload(); }}
+            >
+              <Download className="w-3.5 h-3.5" />
             </Button>
           )}
           <Button

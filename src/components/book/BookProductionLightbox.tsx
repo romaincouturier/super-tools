@@ -1,10 +1,11 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight, Ruler, Calendar, Tag, StickyNote } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Ruler, Calendar, Tag, StickyNote, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useRecordView } from '@/hooks/useBook';
+import { useBookDownloads } from '@/hooks/useBookDownloads';
 import WatermarkOverlay from '@/components/book/WatermarkOverlay';
 import type { BookProduction } from '@/types/book';
 
@@ -31,6 +32,7 @@ export default function BookProductionLightbox({
   onIndexChange,
 }: BookProductionLightboxProps) {
   const recordView = useRecordView();
+  const { downloading, download } = useBookDownloads(!isPublic);
   const viewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recordedIds = useRef<Set<string>>(new Set());
 
@@ -104,6 +106,12 @@ export default function BookProductionLightbox({
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {!isPublic && (
+            <Button variant="secondary" size="icon" title="Télécharger" aria-label="Télécharger"
+              disabled={downloading} onClick={() => void download([production])}>
+              <Download className="w-5 h-5" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
