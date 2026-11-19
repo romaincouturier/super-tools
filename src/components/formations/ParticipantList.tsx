@@ -1,6 +1,11 @@
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Search, X } from "lucide-react";
 import { useState, useMemo, useCallback } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskText } from "@/lib/demoMask";
+import { filterParticipantsBySearch } from "@/lib/participantSearch";
 import { differenceInDays, parseISO } from "date-fns";
 import { computeEvaluationStats } from "@/lib/evaluationUtils";
 import type { EvaluationData } from "@/lib/evaluationUtils";
@@ -24,6 +29,8 @@ const ParticipantList = ({
   const [traceabilityParticipant, setTraceabilityParticipant] = useState<Participant | null>(null);
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [search, setSearch] = useState("");
+  const { isDemoMode } = useDemoMode();
 
   const isInterEntreprise = isInterEntrepriseProp ?? (formatFormation === "inter-entreprises" || formatFormation === "e_learning");
   const isIndividualConvention = isInterEntreprise;
@@ -46,7 +53,13 @@ const ParticipantList = ({
     } else { setSortField(field); setSortDirection("asc"); }
   };
 
-  const sortedParticipants = useMemo(() => [...participants].sort((a, b) => {
+  const filteredParticipants = useMemo(
+    () => filterParticipantsBySearch(participants, search),
+    [participants, search],
+  );
+  const isFiltering = search.trim().length > 0;
+
+  const sortedParticipants = useMemo(() => [...filteredParticipants].sort((a, b) => {
     if (!sortField) return 0;
     const dir = sortDirection === "asc" ? 1 : -1;
     switch (sortField) {
@@ -56,7 +69,7 @@ const ParticipantList = ({
       case "amount": return isFreeTraining ? 0 : dir * ((a.sold_price_ht || 0) - (b.sold_price_ht || 0));
       default: return 0;
     }
-  }), [participants, sortField, sortDirection]);
+  }), [filteredParticipants, sortField, sortDirection]);
 
   const handleViewEvaluation = useCallback((evaluation: EvaluationData) => {
     setSelectedEvaluation(evaluation);
@@ -75,6 +88,12 @@ const ParticipantList = ({
 
   const { total: evalTotal, soumis: evalSoumis, envoye: evalEnvoye, avgRating } =
     computeEvaluationStats(data.evaluationsByParticipant, participants.length);
+
+  // Le terme saisi peut être une adresse email : masqué en mode démo comme tout
+  // affichage identifiant d'un écran interne.
+  const maskedSearch = isDemoMode
+    ? (search.includes("@") ? maskEmail(search) : maskText(search))
+    : search;
 
   const sharedActionsProps = {
     trainingId, trainingName, trainingStartDate, trainingEndDate, trainingLocation, formatFormation,
@@ -112,7 +131,39 @@ const ParticipantList = ({
     <>
       <EvaluationSummaryBar evalTotal={evalTotal} evalSoumis={evalSoumis}
         evalEnvoye={evalEnvoye} avgRating={avgRating} participantCount={participants.length} />
-      {isMobile ? (
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[16rem] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            aria-label="Rechercher un participant"
+            placeholder="Rechercher par email, nom, prénom ou entreprise…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 pr-9"
+          />
+          {isFiltering && (
+            <Button type="button" variant="ghost" size="icon" aria-label="Effacer la recherche"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+              onClick={() => setSearch("")}>
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        {isFiltering && (
+          <span className="text-sm text-muted-foreground">
+            {filteredParticipants.length} sur {participants.length} participants
+          </span>
+        )}
+      </div>
+      {isFiltering && filteredParticipants.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <Search className="h-10 w-10 mx-auto mb-3 opacity-50" />
+          <p className="text-lg">Aucun participant ne correspond à « {maskedSearch} »</p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => setSearch("")}>
+            Effacer la recherche
+          </Button>
+        </div>
+      ) : isMobile ? (
         <ParticipantMobileCard sortedParticipants={sortedParticipants} {...sharedActionsProps} />
       ) : (
         <ParticipantTable sortedParticipants={sortedParticipants}
