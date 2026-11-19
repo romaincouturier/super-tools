@@ -1,5 +1,9 @@
 # Roadmap
 
+## Dictée des commentaires communauté staff (2026-11-19)
+- [x] Micro réservé à la session staff dans les commentaires de modération, dictée ajoutée au brouillon sans remplacer la saisie, envoi manuel bloqué pendant enregistrement/transcription ; aucun changement de leçon, droits ou email.
+- [x] Neuf tests et 103 règles réussis, compilation automatique OK ; vraie transcription AssemblyAI depuis un audio test dans une communauté avec la session staff, texte ajouté au brouillon, aucun commentaire ni email envoyé. Micro et absence de débordement vérifiés sur ordinateur/mobile ; exclusion apprenant testée. Front à publier ; AGENTS.md plein, règle structurelle non ajoutée pour préserver les règles existantes.
+
 ## Parcours location Laura Schyns (2026-11-19)
 - [x] Créations boutique/devis : génération automatique, envoi selon le réglage existant, réutilisation des contrats déjà envoyés ; boutons accessibles sur location bloquée. Après signature, passage en cours et effacement du blocage ; aucun cron ni droit public élargi, délégation serveur authentifiée conservée.
 - [x] 23 tests et 103 règles OK, compilation automatique OK ; six fonctions déployées. Laura : contrat LOC-2026-003 généré puis envoyé depuis sa carte le 19/11 à 12:02 Paris, Resend accepté, signature pending et carte location_pending relues, traces génération/envoi présentes. Aucun autre email envoyé, aucune signature effectuée à sa place. Prochaine commande boutique non rejouée ; bouton corrigé dans l’aperçu, front à publier.

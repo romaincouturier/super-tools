@@ -23,6 +23,8 @@ import PdfInlinePreview from "@/components/lms/PdfInlinePreview";
 import { asciiToEmoji } from "@/lib/asciiEmoji";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskEmail, maskFileName, maskName } from "@/lib/demoMask";
+import { useSession } from "@/hooks/useSession";
+import StaffCommentDictation from "@/components/lms/StaffCommentDictation";
 
 /**
  * Render post text supporting [label](url) markdown links and bare URLs.
@@ -140,6 +142,18 @@ export default function PracticePostCard({
     return () => document.removeEventListener("mousedown", handle);
   }, [showEmojiPicker]);
   const [commentText, setCommentText] = useState("");
+  const [dictationBusy, setDictationBusy] = useState(false);
+  const commentInputRef = useRef<HTMLTextAreaElement>(null);
+  const { isStaff } = useSession();
+  const canDictate = isAdmin && isStaff;
+
+  useEffect(() => {
+    if (!canDictate) return;
+    const el = commentInputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [commentText, showComments, canDictate]);
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [downloadingFile, setDownloadingFile] = useState(false);
@@ -164,7 +178,7 @@ export default function PracticePostCard({
   const canDelete = isOwn || isAdmin;
 
   const handleComment = async () => {
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || createComment.isPending || (canDictate && dictationBusy)) return;
     try {
       await createComment.mutateAsync({ postId: post.id, content: commentText.trim() });
       setCommentText("");
@@ -649,9 +663,10 @@ export default function PracticePostCard({
           })}
           {/* Comment input */}
           <div className="flex items-end gap-2">
-            <div className="flex-1 flex items-end gap-2 rounded-2xl border px-3 py-1.5"
+            <div className="flex-1 min-w-0 flex items-end gap-2 rounded-2xl border px-3 py-1.5"
               style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.12)" }}>
               <textarea
+                ref={commentInputRef}
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 onKeyDown={(e) => {
@@ -662,7 +677,7 @@ export default function PracticePostCard({
                 }}
                 rows={1}
                 placeholder="Ajouter un commentaire... (Entrée pour envoyer, Maj+Entrée pour un retour à la ligne)"
-                className="flex-1 text-sm bg-transparent outline-none resize-none max-h-40 py-1 leading-snug"
+                className="flex-1 min-w-0 text-sm bg-transparent outline-none resize-none max-h-40 py-1 leading-snug"
                 style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
                 onInput={(e) => {
                   const el = e.currentTarget;
@@ -670,11 +685,18 @@ export default function PracticePostCard({
                   el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
                 }}
               />
+              {canDictate && (
+                <StaffCommentDictation
+                  onTranscript={(text) => setCommentText((current) => current ? `${current}\n${text}` : text)}
+                  onBusyChange={setDictationBusy}
+                  disabled={createComment.isPending}
+                />
+              )}
               <EmojiInsert onInsert={(e) => setCommentText((t) => t + e)} />
             </div>
             <button
               onClick={handleComment}
-              disabled={!commentText.trim() || createComment.isPending}
+              disabled={!commentText.trim() || createComment.isPending || (canDictate && dictationBusy)}
               className="w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 shrink-0"
               style={{ background: "var(--st-yellow)", color: "#101820" }}
             >
