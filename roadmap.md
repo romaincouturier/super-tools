@@ -1,5 +1,9 @@
 # Roadmap
 
+## Échec de publication (2026-11-19)
+- [x] Cause confirmée : le MCP généré importe le client Cloud avec une plage de versions, résolue en dépendance auth 2.119.2 indisponible au déploiement ; figer la version déjà installée 2.110.0, sans changement de droits, données, emails ou leçons.
+- [ ] Vérifier les dépendances et le manifeste, puis retenter la publication demandée.
+
 ## Téléchargements book ST-2026-0272
 - [x] Téléchargements privés carte, visionneuse et album, originaux et noms conservés ; partage public inchangé.
 - [x] Carte et visionneuse : original JPEG 14 978 057 octets ; album : 13 téléchargements réels, aucun échec. Mobile sans débordement ; partage public vidéo vérifié sur données simulées sans créer de vues prospect. Huit nouveaux tests, suite complète 3349 tests et 103 règles OK. Ticket résolu, note et trace relues, aucun email ; front à publier.
