@@ -71,7 +71,7 @@ async function storeFile(
 async function loadParticipant(db: Db, id: string) {
   if (!UUID_RE.test(id)) throw new Error("record_id doit être un UUID");
   const { data, error } = await db.from("training_participants")
-    .select("id, first_name, last_name, email, training_id, signed_convention_url, trainings(training_name)")
+    .select("id, first_name, last_name, email, training_id, signed_convention_url, trainings!training_participants_training_id_fkey(training_name)")
     .eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error(`participant introuvable : ${id}`);
