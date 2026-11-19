@@ -22,10 +22,10 @@ export async function firefliesQuery(query: string, variables: Record<string, un
   return json.data;
 }
 
-export async function listFirefliesPage(skip: number, toDate?: string, fromDate?: string): Promise<FirefliesMeeting[]> {
+export async function listFirefliesPage(skip: number, toDate?: string, fromDate?: string, limit = 50): Promise<FirefliesMeeting[]> {
   const data = await firefliesQuery(`query($limit: Int, $skip: Int, $toDate: DateTime, $fromDate: DateTime) {
     transcripts(limit: $limit, skip: $skip, toDate: $toDate, fromDate: $fromDate) { id title date }
-  }`, { limit: 50, skip, toDate, fromDate });
+  }`, { limit, skip, toDate, fromDate });
   if (!Array.isArray(data.transcripts)) throw new Error("Fireflies : inventaire indisponible");
   return data.transcripts;
 }

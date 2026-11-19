@@ -1,5 +1,9 @@
 # Roadmap
 
+## Rafraîchissement Fireflies (2026-11-19)
+- [x] Rétablir les 30 réunions récentes à chaque appel bouton/MCP, sans curseur historique ni plafond de trois imports ; droits, doublons et réparations manuelles préservés. Inventaire historique conservé dans le contrôle d’exhaustivité.
+- [x] 17 tests et 103 règles réussis ; fireflies-backfill déployée. Deux appels successifs et 30 imports vérifiés par tests simulés, sans rattrapage réel ni email déclenché ; prochain clic réel non exécuté pour préserver les données et notifications.
+
 ## Import multiple galerie LMS (2026-11-18)
 - [x] Bouton et glisser-déposer multiple ; trois uploads maximum, tri alphabétique et ajouts progressifs sans perte concurrente, bilan des échecs. Chemins images UUID pour éviter les collisions des uploads simultanés.
 - [x] Six tests réussis (lot de 74, concurrence, ordre, échecs, drops et chemins distincts), 103 règles et build OK. Éditeur isolé vérifié dans le navigateur : 12 imports simulés, trois simultanés, progression et mobile sans débordement ; aucun upload réel ni modification de leçon. Viewer et format inchangés ; front à publier.
