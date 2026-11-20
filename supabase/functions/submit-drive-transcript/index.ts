@@ -84,7 +84,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         if (part) parts.push({ index: parts.length, start: part.start, duration: part.duration, job_id: jobId });
         const { error: savedError } = await admin.from("transcripts").update({
           assemblyai_id: jobId,
-          metadata: { ...metadata, drive_size: file.size, expected_duration_seconds: part?.expected ?? expected, audio_parts: parts, audio_total_parts: part?.totalParts ?? 0, submission_started_at: new Date().toISOString() },
+          metadata: { ...metadata, drive_size: file.size, expected_duration_seconds: part?.expected ?? expected, audio_parts: parts, audio_total_parts: part?.totalParts ?? 0, dispatch_attempts: 0, submission_started_at: new Date().toISOString() },
         }).eq("id", transcript_id);
         if (savedError) throw new Error(savedError.message);
         console.log("[submit-drive-transcript] job saved", { transcript_id, job_id: jobId, part: parts.length, total_parts: part?.totalParts ?? 0 });

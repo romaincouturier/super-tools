@@ -1,6 +1,8 @@
 export const GOOGLE_MEET_ROOT = "1GzvSFXpyQHLTbXfY4OowRn6hrOeUzQHY";
 export const AUDIO_PART_SECONDS = 45 * 60;
-export const ASSEMBLY_UPLOAD_MAX_BYTES = 2_200_000_000;
+// Au-delà, l'envoi direct de la vidéo dépasse le temps d'exécution et s'arrête sans erreur : on extrait l'audio par morceaux.
+export const ASSEMBLY_UPLOAD_MAX_BYTES = 300_000_000;
+export const MAX_SILENT_DISPATCHES = 3;
 export const ASSEMBLY_MAX_SECONDS = 10 * 60 * 60;
 
 export interface AudioPart {

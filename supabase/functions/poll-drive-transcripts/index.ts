@@ -22,7 +22,7 @@ import {
   notifySlack,
 } from "../_shared/google-drive-helper.ts";
 
-import { discoverDriveVideos, GOOGLE_MEET_ROOT, assembleAudioParts, assertCompleteDuration, type AudioPart } from "../_shared/drive-transcription.ts";
+import { discoverDriveVideos, GOOGLE_MEET_ROOT, assembleAudioParts, assertCompleteDuration, MAX_SILENT_DISPATCHES, type AudioPart } from "../_shared/drive-transcription.ts";
 import { reportDriveTranscriptionError } from "../_shared/drive-transcription-errors.ts";
 import { hasManagedCronCredential, isCronOrServiceRole, isStaffCaller } from "../_shared/cron-auth.ts";
 
@@ -134,7 +134,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
           assertCompleteDuration(active.duration, result.duration);
           const { error } = await admin.from("transcripts").update({ metadata: { ...metadata, audio_parts: parts }, assemblyai_id: null }).eq("id", row.id);
           if (error) throw error;
-          if (parts.length < metadata.audio_total_parts) continue;
+          if (parts.length < metadata.audio_total_parts) {
+            // Morceau suivant tout de suite, sans attendre le passage horaire suivant.
+            const next = await fetch(`${SUPABASE_URL}/functions/v1/submit-drive-transcript`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ transcript_id: row.id, drive_file_id: row.external_id }),
+            });
+            if (!next.ok) console.warn("[poll-drive-transcripts] next part dispatch failed", row.id, next.status);
+            continue;
+          }
           result = assembleAudioParts(parts, metadata.expected_duration_seconds);
         } else {
           let expected = Number(metadata.expected_duration_seconds ?? 0);
@@ -272,10 +281,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
     for (const file of toProcess) {
       try {
         const existing = existingByExternalId.get(file.id);
+        const attempts = Number(existing?.metadata?.dispatch_attempts ?? 0);
+        if (existing && attempts >= MAX_SILENT_DISPATCHES) {
+          const message = `Envoi vers la transcription interrompu ${attempts} fois sans réponse : fichier à vérifier.`;
+          await admin.from("transcripts").update({ status: "error", error_message: message }).eq("id", existing.id);
+          await reportDriveTranscriptionError(new Error(message), { fn: "poll-drive-transcripts", transcript_id: existing.id, drive_file_id: file.id });
+          results.errors++;
+          continue;
+        }
         const { data: inserted } = existing
           ? await (admin as any)
               .from("transcripts")
-              .update({ title: file.name, status: "processing", error_message: null, assemblyai_id: null })
+              .update({ title: file.name, status: "processing", error_message: null, assemblyai_id: null, metadata: { ...(existing.metadata ?? {}), dispatch_attempts: attempts + 1 } })
               .eq("id", existing.id)
               .select("id")
               .single()
