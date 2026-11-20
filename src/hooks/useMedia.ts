@@ -4,6 +4,7 @@ import { invokeEdge } from "@/lib/invokeEdge";
 import { resolveContentType, assertMediaFileSupported } from "@/lib/file-utils";
 import { SOCIAL_CONTENTS_KEY } from "@/hooks/useSocialContents";
 import { uploadSignedFile, uploadWithProgress, type UploadProgressCallback } from "@/services/uploadProgress";
+import { Upload } from "tus-js-client";
 
 async function uploadMediaEdge(name: string, body: FormData, onProgress: UploadProgressCallback) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -555,7 +556,6 @@ export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, s
   // Large files: resumable chunked upload on the same signed token, because a
   // single request of tens of MB drops on Safari/mobile networks ("Load failed").
   if (normalizedFile.size > 6 * 1024 * 1024) {
-    const { Upload } = await import("tus-js-client");
     await new Promise<void>((resolve, reject) => {
       const upload = new Upload(normalizedFile, {
         endpoint: `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/upload/resumable/sign`,
