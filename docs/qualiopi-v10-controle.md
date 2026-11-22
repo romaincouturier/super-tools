@@ -97,12 +97,17 @@ Le moteur vit dans `supabase/functions/_shared/qualiopi-referential.ts` et `qual
 
 `run-qualiopi-audit` repasse les contrôles automatiques chaque nuit et inscrit chaque constat en défaut dans les actions quotidiennes des administrateurs. Elle n'est pas planifiée par une migration : la règle [036] l'interdit, `vault.decrypted_secrets` étant vide sur ce projet.
 
-**Mise en service, et pourquoi ce secret-là.** Le job a d'abord été posé, le 9 novembre 2026,
-avec un en-tête `Authorization: Bearer` portant le secret géré par Lovable : il passait alors
-par `hasManagedCronCredential`, et `QUALIOPI_CRON_SECRET` ne servait à rien. Une rotation de ce
-secret géré l'aurait cassé en 401 silencieux — le défaut même que la règle [036] cherche à
-éviter, déplacé d'un secret à l'autre. Le cron a donc été recâblé sur un secret dédié, dont la
-rotation est décidée ici et nulle part ailleurs.
+**Ce qui tourne aujourd'hui, et ce qui reste à décider.** Le job a été posé le 9 novembre 2026
+avec un en-tête `Authorization: Bearer` portant le secret géré par Lovable. Il passe donc par
+`hasManagedCronCredential`, et `QUALIOPI_CRON_SECRET` existe sans servir à rien. Vérifié en base :
+`select command ilike '%x-cron-secret%' from cron.job where jobname = 'run-qualiopi-audit'` rend
+`false`.
+
+Ce montage marche, et porte une fragilité : une rotation du secret géré casse le cron en 401
+silencieux, le défaut même que la règle [036] cherche à éviter, déplacé d'un secret à l'autre.
+Le recâbler sur `QUALIOPI_CRON_SECRET` met cette rotation sous le contrôle du dépôt. Ce n'est pas
+fait : la procédure ci-dessous est à jouer pour que ce soit vrai, et la vérification plus bas dit
+comment le constater plutôt que le croire.
 
 Deux étapes :
 
