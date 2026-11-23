@@ -1,5 +1,9 @@
 # Roadmap
 
+## Revue des parcours de lecture d’images (2026-11-23)
+- [x] Code relu : MCP historique et assistant intégré partagent readMediaImage ; documents/PDF scannés et analyse d’appels d’offres ne décompressent pas les pixels ; book privé/public utilise navigateur ou transforms ; imports conservent les fichiers et reçoivent les vignettes du navigateur. Recherche globale : aucun autre ImageScript/décodeur de pixels serveur trouvé ; aucun cron ni fonction SQL exécuté.
+- [x] Téléchargement externe interrompu dès dépassement de 512 Kio (aperçu/crop) ou 5 Mio (original pleine résolution sans crop), délai 30 s ; URLs Storage brutes et transformées également résolues par le client existant. 34 tests ciblés, 103 règles et build OK ; mcp-server et agent-chat redéployés. Aucun original, droit, réglage ni protection publique modifié. Limites restantes : voir les deux tâches ouvertes ci-dessous.
+
 ## Lecture des grandes planches MCP (2026-11-23)
 - [x] Réduction Storage signée 60 s, 1600×1600 contain qualité 80 avant décodage ; crop sur version réduite aux dimensions JPEG/PNG vérifiées, fallback local limité à 512 Kio et 1600² pixels. full_resolution sans crop conserve l’original seulement jusqu’à 5 Mio ; crop ne garantit plus la résolution originale. Droits, originaux, services et emails inchangés ; mcp-server et agent-chat déployés, manifeste parallèle 24 outils extrait, 41 tests et 103 règles OK, build OK.
 - [x] Transformations réelles authentifiées Romain : c7a63837 (963 Ko) → HTTP 200, JPEG 66 951 octets / 1600×698 ; 35f19225 (3,5 Mo) → HTTP 200, JPEG 189 130 octets / 1600×1108. Ce ne sont pas des appels MCP ; crop validé seulement par tests simulés.

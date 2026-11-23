@@ -1,6 +1,6 @@
 import { getSupabaseClient } from "./mod.ts";
 import { extractDocument, type ExtractedPart } from "./document-extract.ts";
-import { prepareMediaImage, prepareStorageMediaImage, validateImageCrop } from "./media-image.ts";
+import { IMAGE_LOCAL_MAX_BYTES, IMAGE_OUTPUT_MAX_BYTES, prepareMediaImage, prepareStorageMediaImage, readImageBytes, validateImageCrop } from "./media-image.ts";
 
 /**
  * Lecture du contenu réel d'une mission : dossier agrégé, pages, documents,
@@ -305,16 +305,17 @@ export async function readMediaImage(
 
   const fileUrl = row.file_url as string;
 
-  const storage = fileUrl.match(/\/storage\/v1\/object\/(?:public|authenticated|sign)\/([^/]+)\/([^?]+)/);
+  const storage = fileUrl.match(/\/storage\/v1\/(?:object\/(?:public\/|authenticated\/|sign\/)?|render\/image\/(?:public|authenticated|sign)\/)\b([^/]+)\/([^?]+)/);
   let bytes: Uint8Array;
   let mimeType = mime;
   if (storage) {
     const prepared = await prepareStorageMediaImage(supabase.storage.from(storage[1]), decodeURIComponent(storage[2]), mime, fullResolution, crop);
     return { data: bytesToBase64(prepared.bytes), mimeType: prepared.mimeType };
   } else {
-    const r = await fetch(fileUrl);
+    const r = await fetch(fileUrl, { signal: AbortSignal.timeout(30000) });
     if (!r.ok) throw new Error(`Téléchargement impossible (${r.status})`);
-    bytes = new Uint8Array(await r.arrayBuffer());
+    bytes = await readImageBytes(r, fullResolution && !crop ? IMAGE_OUTPUT_MAX_BYTES : IMAGE_LOCAL_MAX_BYTES,
+      fullResolution && !crop ? "Image retournée trop lourde (maximum 5 Mo)" : "Image externe trop lourde pour un décodage local (maximum 512 Kio) : utiliser une transformation Storage");
     mimeType = r.headers.get("content-type")?.split(";")[0] || mime;
   }
   const prepared = await prepareMediaImage(bytes, mimeType, fullResolution, crop);

@@ -111,24 +111,7 @@ export async function prepareStorageMediaImage(
     }
     throw new Error(`Transformation Storage impossible (${response.status})`);
   }
-  if (Number(response.headers.get("content-length")) > IMAGE_OUTPUT_MAX_BYTES) throw new Error("Image retournée trop lourde (maximum 5 Mo) : désactiver full_resolution");
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error("Image Storage vide");
-  const chunks: Uint8Array[] = [];
-  let length = 0;
-  while (true) {
-    const part = await reader.read();
-    if (part.done) break;
-    length += part.value.length;
-    if (length > IMAGE_OUTPUT_MAX_BYTES) {
-      await reader.cancel();
-      throw new Error("Image retournée trop lourde (maximum 5 Mo) : désactiver full_resolution");
-    }
-    chunks.push(part.value);
-  }
-  const bytes = new Uint8Array(length);
-  let offset = 0;
-  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+  const bytes = await readImageBytes(response, IMAGE_OUTPUT_MAX_BYTES, "Image retournée trop lourde (maximum 5 Mo) : désactiver full_resolution");
   const returnedMime = response.headers.get("content-type")?.split(";")[0] || mimeType;
   if (!returnedMime.startsWith("image/")) throw new Error("Storage n’a pas retourné une image");
   if (!crop) return { bytes, mimeType: returnedMime };
@@ -140,4 +123,29 @@ export async function prepareStorageMediaImage(
   const output = await image.encodeJPEG(80);
   if (output.length > IMAGE_OUTPUT_MAX_BYTES) throw new Error("Image recadrée trop lourde (maximum 5 Mo)");
   return { bytes: output, mimeType: "image/jpeg" };
+}
+
+export async function readImageBytes(response: Response, maxBytes: number, tooLargeMessage: string) {
+  if (Number(response.headers.get("content-length")) > maxBytes) {
+    await response.body?.cancel();
+    throw new Error(tooLargeMessage);
+  }
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("Image Storage vide");
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  while (true) {
+    const part = await reader.read();
+    if (part.done) break;
+    length += part.value.length;
+    if (length > maxBytes) {
+      await reader.cancel();
+      throw new Error(tooLargeMessage);
+    }
+    chunks.push(part.value);
+  }
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+  return bytes;
 }
