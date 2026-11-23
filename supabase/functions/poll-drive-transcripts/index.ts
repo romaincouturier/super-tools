@@ -22,7 +22,7 @@ import {
   notifySlack,
 } from "../_shared/google-drive-helper.ts";
 
-import { discoverDriveVideos, GOOGLE_MEET_ROOT, assembleAudioParts, assertCompleteDuration, MAX_SILENT_DISPATCHES, type AudioPart } from "../_shared/drive-transcription.ts";
+import { discoverDriveVideos, GOOGLE_MEET_ROOT, assembleAudioParts, assertCompleteDuration, MAX_SILENT_DISPATCHES, stalledTranscriptAction, MAX_STALL_RESUMES, type AudioPart } from "../_shared/drive-transcription.ts";
 import { reportDriveTranscriptionError } from "../_shared/drive-transcription-errors.ts";
 import { hasManagedCronCredential, isCronOrServiceRole, isStaffCaller } from "../_shared/cron-auth.ts";
 
@@ -93,16 +93,35 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const results = { checked: 0, completed: 0, submitted: 0, errors: 0 };
 
+    // Traitements bloqués depuis plus de 24 h : reprise automatique au point atteint
+    // (morceaux déjà transcrits conservés), erreur signalée seulement après MAX_STALL_RESUMES reprises.
     const { data: stalled, error: stalledError } = await admin.from("transcripts")
-      .select("id, external_id, assemblyai_id")
+      .select("id, external_id, assemblyai_id, metadata")
       .eq("source", "google_drive").eq("status", "processing")
       .lt("updated_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
     if (stalledError) throw stalledError;
-    for (const row of stalled ?? []) {
-      const message = "Transcription Drive bloquée depuis plus de 24 h : traitement à vérifier.";
-      await admin.from("transcripts").update({ status: "error", error_message: message }).eq("id", row.id);
-      await reportDriveTranscriptionError(new Error(message), { fn: "poll-drive-transcripts", transcript_id: row.id, job_id: row.assemblyai_id, drive_file_id: row.external_id });
-      results.errors++;
+    for (const row of (stalled ?? []) as Array<{ id: string; external_id: string; assemblyai_id: string | null; metadata: Record<string, any> | null }>) {
+      const decision = stalledTranscriptAction(row.metadata);
+      if (decision.action === "fail") {
+        const message = `Transcription Drive bloquée depuis plus de 24 h malgré ${decision.resumes} reprises automatiques : fichier à vérifier.`;
+        await admin.from("transcripts").update({ status: "error", error_message: message }).eq("id", row.id);
+        await reportDriveTranscriptionError(new Error(message), { fn: "poll-drive-transcripts", transcript_id: row.id, job_id: row.assemblyai_id, drive_file_id: row.external_id });
+        results.errors++;
+        continue;
+      }
+      const metadata = { ...(row.metadata ?? {}), stall_resumes: decision.resumes, dispatch_attempts: 0 };
+      if (row.assemblyai_id && Array.isArray(metadata.audio_parts)) {
+        // Job AssemblyAI perdu : le morceau en cours sera renvoyé.
+        metadata.audio_parts = metadata.audio_parts.filter((p: AudioPart) => p.job_id !== row.assemblyai_id || p.text);
+      }
+      await admin.from("transcripts").update({ metadata, assemblyai_id: null, error_message: null }).eq("id", row.id);
+      const resumed = await fetch(`${SUPABASE_URL}/functions/v1/submit-drive-transcript`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript_id: row.id, drive_file_id: row.external_id }),
+      }).catch(() => null);
+      console.log(`[poll-drive-transcripts] reprise ${decision.resumes}/${MAX_STALL_RESUMES} de ${row.id} : ${resumed?.status ?? "envoi impossible"}`);
+      results.submitted++;
     }
 
     // ── Pass 1: check pending AssemblyAI jobs ────────────────────

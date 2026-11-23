@@ -1,3 +1,6 @@
+  // Blob composite : aucune copie supplémentaire du fichier en mémoire.
+  const bodyParts = new Blob([metaPart, blob, endPart]);
+
 /**
  * Scheduled Backup
  *
@@ -377,7 +380,8 @@ function computeGfsKeepSet(
 
 // Au-delà de cette taille le fichier n'est plus téléchargé en mémoire mais
 // streamé chunk par chunk vers une session resumable Drive.
-const INLINE_UPLOAD_MAX_BYTES = 25 * 1024 * 1024;
+// Au-delà, copie en streaming : un fichier inline occupe la mémoire du worker (WORKER_RESOURCE_LIMIT).
+const INLINE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
 // Garde-fou : un fichier plus gros ne tiendrait pas dans le budget d'un tick.
 const STREAM_FILE_MAX_BYTES = 500 * 1024 * 1024;
 const STREAM_FILE_BUDGET_MS = 90_000;

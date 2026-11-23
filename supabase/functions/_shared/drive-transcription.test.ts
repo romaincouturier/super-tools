@@ -27,3 +27,11 @@ describe("Drive Meet transcription", () => {
     expect((header[2] >> 2) & 15).toBe(3);
   });
 });
+import { stalledTranscriptAction } from "./drive-transcription";
+describe("stalledTranscriptAction", () => {
+  it("reprend automatiquement trois fois puis passe en erreur", () => {
+    expect(stalledTranscriptAction({})).toEqual({ action: "resume", resumes: 1 });
+    expect(stalledTranscriptAction({ stall_resumes: 2 })).toEqual({ action: "resume", resumes: 3 });
+    expect(stalledTranscriptAction({ stall_resumes: 3 })).toEqual({ action: "fail", resumes: 3 });
+  });
+});

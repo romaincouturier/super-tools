@@ -69,3 +69,9 @@ export function adtsHeader(size: number, sampleRate: number, channels: number, o
   }
   return new Uint8Array([255, 241, ((objectType - 1) << 6) | (frequency << 2) | (channels >> 2), ((channels & 3) << 6) | (length >> 11), (length >> 3) & 255, ((length & 7) << 5) | 31, 252]);
 }
+/** Reprises automatiques d'une transcription bloquée (> 24 h sans progrès) avant de la passer en erreur. */
+export const MAX_STALL_RESUMES = 3;
+export function stalledTranscriptAction(metadata: Record<string, unknown> | null | undefined): { action: "resume" | "fail"; resumes: number } {
+  const resumes = Number(metadata?.stall_resumes ?? 0);
+  return resumes >= MAX_STALL_RESUMES ? { action: "fail", resumes } : { action: "resume", resumes: resumes + 1 };
+}
