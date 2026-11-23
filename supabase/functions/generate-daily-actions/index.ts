@@ -548,6 +548,26 @@ serve(async (req) => {
       });
     }
 
+    // 17ter. Locations : le statut du contrat pilote la préparation du colis
+    for (const r of data.rentalShipping ?? []) {
+      const signed = r.signedAt ? new Date(r.signedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", timeZone: "Europe/Paris" }) : "";
+      actions.push(r.kind === "prepare" ? {
+        category: "location_a_preparer",
+        title: `📦 ${r.contratReference} signé${signed ? ` le ${signed}` : ""} : colis à préparer`,
+        description: `${r.client} — ${r.gameName}${r.address ? ` — ${r.address}` : ""}`,
+        link: `${appUrl}/commandes-jeux`,
+        entityType: "supertilt_order_item", entityId: r.id,
+        scope: "global",
+      } : {
+        category: "location_attente_signature",
+        title: `⏳ ${r.contratReference} en attente de signature : ne pas expédier`,
+        description: `${r.client} — ${r.gameName} — envoyé il y a ${r.ageDays} j, ${r.reminders} relance${r.reminders > 1 ? "s" : ""}`,
+        link: `${appUrl}/commandes-jeux`,
+        entityType: "supertilt_order_item", entityId: r.id,
+        scope: "global",
+      });
+    }
+
     // 17bis. Communautés LMS — publications à traiter (travaux sans retour staff)
     for (const c of data.lmsCommunityPending) {
       actions.push({

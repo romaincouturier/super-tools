@@ -1705,6 +1705,7 @@ export interface DailyData {
   elearningIntegrationIssues: ElearningIntegrationIssueItem[];
   unassignedTranscripts: UnassignedTranscriptItem[];
   locationSignatureAlerts: LocationSignatureAlertItem[];
+  rentalShipping: RentalShippingItem[];
   missionsNoNextAction: MissionNoNextActionItem[];
 }
 
@@ -1799,6 +1800,49 @@ export async function fetchLocationSignatureAlerts(supabase: SupabaseClient): Pr
   });
 }
 
+export interface RentalShippingItem {
+  id: string;
+  kind: "wait" | "prepare";
+  contratReference: string;
+  gameName: string;
+  client: string;
+  address: string;
+  signedAt: string | null;
+  ageDays: number;
+  reminders: number;
+}
+
+/** Locations à piloter : contrats en attente (ne pas expédier) et contrats signés à expédier. */
+export async function fetchRentalShipping(supabase: SupabaseClient): Promise<RentalShippingItem[]> {
+  const { rentalShippingState, formatShippingAddress } = await import("./rental-shipping.ts");
+  const { data: items, error } = await (supabase as any).from("order_items")
+    .select("id, product_name, shipped_confirmed_at, hand_delivered_at, location_returned_at, archived_at, woocommerce_orders(customer_first_name, customer_last_name, customer_email, shipping_address, billing_address)")
+    .eq("game_type", "location").in("kanban_status", ["location_pending", "location_active"])
+    .is("archived_at", null).is("shipped_confirmed_at", null).is("hand_delivered_at", null).is("location_returned_at", null).limit(200);
+  if (error) { console.error("fetchRentalShipping error:", error.message); return []; }
+  const ids = (items ?? []).map((i: any) => i.id);
+  if (!ids.length) return [];
+  const { data: sigs } = await (supabase as any).from("location_contract_signatures")
+    .select("order_item_id, status, email_sent_at, signed_at, expires_at, reminder_count, contrat_reference, game_name, created_at")
+    .in("order_item_id", ids).is("location_extension_id", null).order("created_at", { ascending: false });
+  const latest = new Map<string, any>();
+  for (const s of (sigs ?? []) as any[]) if (!latest.has(s.order_item_id)) latest.set(s.order_item_id, s);
+  return ((items ?? []) as any[]).flatMap((i) => {
+    const sig = latest.get(i.id);
+    const st: any = rentalShippingState(sig, i);
+    if (st.kind !== "wait" && st.kind !== "prepare") return [];
+    const o = i.woocommerce_orders;
+    return [{
+      id: i.id, kind: st.kind,
+      contratReference: sig?.contrat_reference || "Contrat",
+      gameName: sig?.game_name || i.product_name || "Jeu",
+      client: [o?.customer_first_name, o?.customer_last_name].filter(Boolean).join(" ") || o?.customer_email || "Client",
+      address: formatShippingAddress(o?.shipping_address) || formatShippingAddress(o?.billing_address),
+      signedAt: st.signedAt ?? null, ageDays: st.ageDays ?? 0, reminders: st.reminders ?? 0,
+    }];
+  });
+}
+
 export async function fetchAllDailyData(supabase: SupabaseClient, today: string): Promise<DailyData> {
   // Fetch dynamic column assignments first (needed by review & comment fetchers)
   const assignedColumns = await fetchAssignedColumns(supabase);
@@ -1836,6 +1880,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     elearningIntegrationIssues,
     unassignedTranscripts,
     locationSignatureAlerts,
+    rentalShipping,
     missionsNoNextAction,
     missionInvoiceFlags,
   ] = await Promise.all([
@@ -1871,6 +1916,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchElearningIntegrationIssues(supabase),
     fetchUnassignedTranscripts(supabase),
     fetchLocationSignatureAlerts(supabase),
+    fetchRentalShipping(supabase),
     fetchMissionsNoNextAction(supabase),
     fetchMissionInvoiceFlags(supabase),
   ]);
@@ -1888,6 +1934,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     elearningIntegrationIssues,
     unassignedTranscripts,
     locationSignatureAlerts,
+    rentalShipping,
     missionsNoNextAction,
     missionInvoiceFlags,
   };

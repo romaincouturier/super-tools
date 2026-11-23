@@ -1425,6 +1425,7 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   sender_email: { default: "", description: "Adresse email de l'expéditeur pour tous les envois" },
   sender_name: { default: "", description: "Nom de l'expéditeur pour tous les envois" },
   evaluation_notification_email: { default: "romain@supertilt.fr, emmanuelle@supertilt.fr", description: "Adresses (séparées par des virgules) qui reçoivent l'alerte « Commentaire à créer sur le site » et l'action quotidienne associée" },
+  rental_shipping_notify_email: { default: "", description: "Adresses (séparées par des virgules) prévenues à la signature d'un contrat de location pour expédier le colis" },
   contact_email: { default: "contact@supertilt.fr", description: "Adresse de contact affichée aux apprenants et clients" },
   mcp_allowed_email: { default: "romain@supertilt.fr", description: "Adresse email autorisée à utiliser le serveur MCP" },
   nocrm_bcc_email: { default: "supertilt@bcc.nocrm.io", description: "Adresse de copie cachée (BCC) vers noCRM ajoutée à tous les envois" },

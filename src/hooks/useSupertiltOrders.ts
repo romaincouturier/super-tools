@@ -1138,6 +1138,8 @@ export interface LocationContractSignature {
   status: "pending" | "signed" | "expired" | "cancelled";
   signed_at: string | null;
   email_sent_at: string | null;
+  expires_at: string | null;
+  reminder_count: number | null;
   created_at: string;
 }
 
@@ -1148,7 +1150,7 @@ export function useLocationContractSignature(orderItemId: string | null | undefi
     queryFn: async () => {
       const { data, error } = await db
         .from("location_contract_signatures")
-        .select("id, token, order_item_id, recipient_email, recipient_name, game_name, contrat_reference, pdf_url, signed_pdf_url, status, signed_at, email_sent_at, created_at")
+        .select("id, token, order_item_id, recipient_email, recipient_name, game_name, contrat_reference, pdf_url, signed_pdf_url, status, signed_at, email_sent_at, expires_at, reminder_count, created_at")
         .eq("order_item_id", orderItemId as string)
         .is("location_extension_id", null)
         .order("created_at", { ascending: false })

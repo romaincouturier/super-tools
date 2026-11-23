@@ -196,6 +196,8 @@ serve(async (req) => {
       supertilt_recues: "received",
       supertilt_dropshipping: "dropshipping",
       supertilt_dropshipping_relance: "dropshipping",
+      location_a_preparer: "location_active",
+      location_attente_signature: "location_pending",
     };
 
     // Check each pending action

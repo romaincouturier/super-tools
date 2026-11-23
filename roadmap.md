@@ -1,5 +1,9 @@
 # Roadmap
 
+## Locations : contrat et préparation du colis (2026-11-23)
+- [x] Bandeaux de statut sur la carte, tâches quotidiennes (attente / colis à préparer) auto-closes, mail interne à la signature vers le réglage `rental_shipping_notify_email` (Emmanuelle), tests et 103 règles OK, fonctions déployées.
+- [ ] Écran Commandes et réglage : attend la republication.
+
 ## Lecture et indexation des productions Book (2026-11-23)
 - [x] Lecture des identifiants book_productions et chemins privés, repli vignette sur limite de transformation/404, réduction 1600 px, crop borné et limite full_resolution inchangée ; MCP historique et assistant intégré déployés.
 - [x] Analyse IA des nouveaux visuels via file persistante, lots de trois, lease et pauses durables ; régénération privée et éditions manuelles protégées par snapshots et verrou titre. Rattrapage des images sans tags mis en file, planification horaire créée (24 passages/jour), sans email ni changement de fichiers.

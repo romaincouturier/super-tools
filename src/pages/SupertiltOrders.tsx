@@ -1,3 +1,4 @@
+import { rentalShippingState } from "../../supabase/functions/_shared/rental-shipping";
 import DOMPurify from "dompurify";
 import { useState, useEffect } from "react";
 import {
@@ -568,6 +569,13 @@ function LocationContractSection({ item }: { item: OrderItem }) {
       {item.contrat_reference && (
         <p className="text-xs text-muted-foreground">Réf. {item.contrat_reference}</p>
       )}
+      {(() => {
+        const st: any = rentalShippingState(sig, item);
+        if (st.kind === "wait") return <p className="text-xs font-medium rounded px-2 py-1 bg-warning/15 text-warning-foreground border border-warning/40">Contrat envoyé le {DATE(st.sentAt)}, en attente de signature : ne pas expédier ({st.ageDays} j, {st.reminders} relance{st.reminders > 1 ? "s" : ""}{st.expiresAt ? `, lien valable jusqu'au ${DATE(st.expiresAt)}` : ""})</p>;
+        if (st.kind === "prepare") return <p className="text-xs font-medium rounded px-2 py-1 bg-primary/10 text-primary border border-primary/30">Contrat signé{st.signedAt ? ` le ${DATE(st.signedAt)}` : ""} : colis à préparer</p>;
+        if (st.kind === "invalid") return <p className="text-xs font-medium rounded px-2 py-1 bg-destructive/10 text-destructive border border-destructive/30">Contrat {st.reason} : ne pas expédier, renvoyer un contrat</p>;
+        return null;
+      })()}
       {isSigned ? (
         <div className="flex items-center gap-1.5 text-xs text-green-700">
           <CheckCircle className="h-3.5 w-3.5" />

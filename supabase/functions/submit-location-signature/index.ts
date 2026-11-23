@@ -343,6 +343,31 @@ serve(async (req: Request): Promise<Response> => {
       console.warn("Failed to send confirmation email:", emailErr);
     }
 
+    // ── Confirmation interne « colis à préparer » (destinataires = réglage, une fois par contrat) ──
+    if (rec.order_item_id && !rec.location_extension_id) {
+      try {
+        const { parseNotifyEmails, formatShippingAddress } = await import("../_shared/rental-shipping.ts");
+        const { data: setting } = await supabase.from("app_settings").select("setting_value").eq("setting_key", "rental_shipping_notify_email").maybeSingle();
+        const to = parseNotifyEmails((setting as any)?.setting_value);
+        const { data: already } = await supabase.from("order_email_log").select("id").eq("order_item_id", rec.order_item_id).eq("template_key", "rental_ready_to_ship").eq("status", "sent").limit(1);
+        if (to.length > 0 && !(already ?? []).length) {
+          const { data: item } = await supabase.from("order_items" as any)
+            .select("product_name, woocommerce_orders(order_number, shipping_address, billing_address, customer_first_name, customer_last_name)")
+            .eq("id", rec.order_item_id).maybeSingle();
+          const order = (item as any)?.woocommerce_orders;
+          const client = order?.shipping_address?.company || [order?.customer_first_name, order?.customer_last_name].filter(Boolean).join(" ") || rec.recipient_name || rec.recipient_email;
+          const address = formatShippingAddress(order?.shipping_address) || formatShippingAddress(order?.billing_address) || "adresse à vérifier sur la commande";
+          const esc = (v: unknown) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+          const subject = `Contrat ${rec.contrat_reference} signé : colis à préparer`;
+          const html = `<p>Le contrat <strong>${esc(rec.contrat_reference)}</strong> vient d'être signé le ${esc(formatDateTime(signedAt))}. Tu peux expédier le colis.</p><ul><li><strong>Client :</strong> ${esc(client)}</li><li><strong>Jeu :</strong> ${esc(rec.game_name || (item as any)?.product_name)}</li><li><strong>Adresse :</strong> ${esc(address)}</li>${order?.order_number ? `<li><strong>Commande :</strong> ${esc(order.order_number)}</li>` : ""}</ul>`;
+          const res = await sendEmail({ to, subject, html: wrapEmailHtml(html, ""), _emailType: "rental_ready_to_ship" } as any);
+          await supabase.from("order_email_log").insert({ order_item_id: rec.order_item_id, template_key: "rental_ready_to_ship", status: res.success ? "sent" : "failed", error: res.success ? null : String((res as any).error ?? "échec"), sent_to: to });
+        }
+      } catch (notifyErr) {
+        console.warn("Failed to send internal rental notification:", notifyErr);
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true, signedAt, signatureHash, proofHash }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

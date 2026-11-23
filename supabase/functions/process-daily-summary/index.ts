@@ -44,6 +44,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   supertilt_dropshipping: "SuperTilt — Dropshipping en attente",
   dropshipping_fiche_produit: "🎲 Dropshipping — fiche produit à créer",
   supertilt_dropshipping_relance: "🔴 SuperTilt — Dropshipping relancé sans réponse",
+  location_a_preparer: "📦 Locations — colis à préparer (contrat signé)",
+  location_attente_signature: "⏳ Locations — en attente de signature (ne pas expédier)",
   risques_revue: "🛡️ Risques qualité — revue à faire",
   risques_sans_amelioration: "🛡️ Risques qualité — sans amélioration liée",
   commentaires_site: "⭐ Commentaires à créer sur le site",
