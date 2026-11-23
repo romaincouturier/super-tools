@@ -1,5 +1,9 @@
 # Roadmap
 
+## Import noCRM lisible (2026-11-23)
+- [x] Verdict de simulation, comparaison spec/fichier expliquée, anomalies regroupées, rôle des trois boutons, contrôle fiche par fiche de l'import test (fonction déployée).
+- [ ] Écran à publier ; bouton « Vérifier les 50 fiches test » à cliquer par Romain.
+
 ## Locations : contrat et préparation du colis (2026-11-23)
 - [x] Bandeaux de statut sur la carte, tâches quotidiennes (attente / colis à préparer) auto-closes, mail interne à la signature vers le réglage `rental_shipping_notify_email` (Emmanuelle), tests et 103 règles OK, fonctions déployées.
 - [ ] Écran Commandes et réglage : attend la republication.

@@ -79,9 +79,9 @@ function planMerges(leads: Row[], existing: Awaited<ReturnType<typeof loadExisti
   return plan;
 }
 
-function expectedFromFile(leads: Row[], comments: Map<string, NocrmComment[]>) {
+function expectedFromFile(leads: Row[], comments: Map<string, NocrmComment[]>, onlyLeads = false) {
   const won = leads.filter((l) => (l.Status ?? "").trim().toLowerCase() === "won");
-  const all = [...comments.values()].flat();
+  const all = onlyLeads ? leads.flatMap((l) => comments.get(l.ID?.trim() ?? "") ?? []) : [...comments.values()].flat();
   return {
     leads: leads.length,
     wonCount: won.length,
@@ -272,6 +272,50 @@ async function reconcile(db: Db, expected: ReturnType<typeof expectedFromFile>) 
   return { ok: checks.every((c) => c.ok), checks, won_value_in_crm: +wonValue.toFixed(2) };
 }
 
+/** Contrôle d'un import test : chaque fiche du lot doit être présente avec toutes ses notes et activités. */
+async function reconcileSubset(db: Db, leads: Row[], comments: Map<string, NocrmComment[]>) {
+  const expected = expectedFromFile(leads, comments, true);
+  const ids = leads.map((l) => l.ID?.trim()).filter(Boolean) as string[];
+  const cards = new Map<string, any>();
+  for (let i = 0; i < ids.length; i += 100) {
+    const { data, error } = await db.from("crm_cards")
+      .select("id, estimated_value, nocrm_id:source_metadata->>nocrm_id, nocrm_status:source_metadata->nocrm->>Status, nocrm_amount:source_metadata->nocrm->>Amount")
+      .in("source_metadata->>nocrm_id", ids.slice(i, i + 100));
+    if (error) throw new Error(error.message);
+    for (const r of (data ?? []) as any[]) cards.set(r.nocrm_id, r);
+  }
+  const cardIds = [...cards.values()].map((c) => c.id);
+  const notesBy = new Map<string, number>(), actsBy = new Map<string, number>();
+  for (let i = 0; i < cardIds.length; i += 100) {
+    const chunk = cardIds.slice(i, i + 100);
+    const { data: n, error: e1 } = await db.from("crm_comments").select("card_id").in("card_id", chunk).like("import_key", "nocrm:%");
+    if (e1) throw new Error(e1.message);
+    for (const r of (n ?? []) as any[]) notesBy.set(r.card_id, (notesBy.get(r.card_id) ?? 0) + 1);
+    const { data: a, error: e2 } = await db.from("crm_activity_log").select("card_id").in("card_id", chunk).eq("actor_email", ACTOR).eq("action_type", "nocrm_activity");
+    if (e2) throw new Error(e2.message);
+    for (const r of (a ?? []) as any[]) actsBy.set(r.card_id, (actsBy.get(r.card_id) ?? 0) + 1);
+  }
+  let wonCount = 0, wonValue = 0, notes = 0, activities = 0;
+  const missing: string[] = [];
+  const mismatches: Array<{ nocrm_id: string; issue: string }> = [];
+  for (const id of ids) {
+    const c = cards.get(id);
+    if (!c) { missing.push(id); continue; }
+    if ((c.nocrm_status ?? "").toLowerCase() === "won") { wonCount++; wonValue += parseAmount(c.nocrm_amount); }
+    const list = comments.get(id) ?? [];
+    const en = list.filter((x) => x.isNote).length, ea = list.length - en;
+    const an = notesBy.get(c.id) ?? 0, aa = actsBy.get(c.id) ?? 0;
+    notes += an; activities += aa;
+    if (an !== en) mismatches.push({ nocrm_id: id, issue: `Notes : ${an} importées sur ${en} attendues` });
+    if (aa !== ea) mismatches.push({ nocrm_id: id, issue: `Activités : ${aa} importées sur ${ea} attendues` });
+  }
+  const actual = { leads: cards.size, wonCount, wonValue: +wonValue.toFixed(2), notes, activities };
+  const checks = (Object.keys(EXPECTED) as Array<keyof typeof EXPECTED>).map((k) => ({
+    key: k, expected_spec: expected[k], expected_file: expected[k], actual: actual[k], ok: Math.abs(actual[k] - expected[k]) < 0.01,
+  }));
+  return { ok: checks.every((c) => c.ok) && !missing.length && !mismatches.length, scope: "test", checks, won_value_in_crm: 0, missing_ids: missing, mismatches };
+}
+
 async function step(db: Db, run: any) {
   if (run.status !== "running") return run;
   const { leads, comments } = await loadFiles(db, run.leads_path, run.comments_path);
@@ -315,8 +359,8 @@ async function step(db: Db, run: any) {
   };
   if (finished) {
     patch.finished_at = new Date().toISOString();
-    if (run.mode === "full") {
-      const rec = await reconcile(db, expectedFromFile(leads, comments));
+    if (run.mode === "full" || run.mode === "test") {
+      const rec = run.mode === "test" ? await reconcileSubset(db, leads.slice(0, limit), comments) : await reconcile(db, expectedFromFile(leads, comments));
       patch.reconciliation = rec;
       patch.status = rec.ok ? "done" : "reconciliation_failed";
     } else patch.status = "done";
@@ -384,7 +428,9 @@ Deno.serve(async (req) => {
       if (!run) return json({ error: "Import introuvable" }, 404);
       if (action === "step") return json({ run: await step(db, run) });
       const { leads, comments } = await loadFiles(db, run.leads_path, run.comments_path);
-      const rec = await reconcile(db, expectedFromFile(leads, comments));
+      const rec = run.mode === "test"
+        ? await reconcileSubset(db, leads.slice(0, Math.min(run.lead_limit ?? leads.length, leads.length)), comments)
+        : await reconcile(db, expectedFromFile(leads, comments));
       const { data } = await db.from("nocrm_import_runs").update({ reconciliation: rec, status: run.status === "running" ? "running" : rec.ok ? "done" : "reconciliation_failed" }).eq("id", run.id).select("*").single();
       return json({ run: data });
     }

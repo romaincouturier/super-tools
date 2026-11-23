@@ -20,7 +20,7 @@ export interface NocrmImportRun {
   activities_count: number;
   errors: Array<{ nocrm_id?: string; error: string }>;
   report: any;
-  reconciliation: { ok: boolean; checks: Array<{ key: string; expected_spec: number; expected_file: number; actual: number; ok: boolean }>; won_value_in_crm: number } | null;
+  reconciliation: { ok: boolean; checks: Array<{ key: string; expected_spec: number; expected_file: number; actual: number; ok: boolean }>; won_value_in_crm: number; scope?: "test"; missing_ids?: string[]; mismatches?: Array<{ nocrm_id: string; issue: string }> } | null;
   started_at: string;
   finished_at: string | null;
 }

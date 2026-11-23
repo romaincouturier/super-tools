@@ -31,18 +31,21 @@ function Reconciliation({ run }: { run: NocrmImportRun }) {
   const rec = run.reconciliation;
   if (!rec) return null;
   const fmt = (k: string, v: number) => (k === "wonValue" ? EUR(v) : v.toLocaleString("fr-FR"));
+  const isTest = rec.scope === "test";
   return (
     <div className="space-y-2">
       <p className={rec.ok ? "font-medium text-primary" : "font-medium text-destructive"}>
-        {rec.ok ? "Rapprochement conforme." : "Écart au rapprochement : l'import n'est pas validé."}
+        {isTest
+          ? rec.ok ? `Contrôle réussi : les ${run.total_leads} fiches test sont dans SuperTools avec toutes leurs notes et activités. Vous pouvez lancer l'import complet.` : "Contrôle en écart : des fiches test sont incomplètes (détail ci-dessous). Ne lancez pas l'import complet."
+          : rec.ok ? "Rapprochement conforme : tout le fichier est dans SuperTools." : "Écart au rapprochement : l'import n'est pas validé."}
       </p>
       <Table>
-        <TableHeader><TableRow><TableHead>Contrôle</TableHead><TableHead>Attendu (spec)</TableHead><TableHead>Attendu (fichiers)</TableHead><TableHead>Dans SuperTools</TableHead><TableHead /></TableRow></TableHeader>
+        <TableHeader><TableRow><TableHead>Contrôle</TableHead>{!isTest && <TableHead>Attendu (spec)</TableHead>}<TableHead>Attendu (fichiers)</TableHead><TableHead>Dans SuperTools</TableHead><TableHead /></TableRow></TableHeader>
         <TableBody>
           {rec.checks.map((c) => (
             <TableRow key={c.key}>
               <TableCell>{CHECK_LABEL[c.key] ?? c.key}</TableCell>
-              <TableCell>{fmt(c.key, c.expected_spec)}</TableCell>
+              {!isTest && <TableCell>{fmt(c.key, c.expected_spec)}</TableCell>}
               <TableCell>{fmt(c.key, c.expected_file)}</TableCell>
               <TableCell>{fmt(c.key, c.actual)}</TableCell>
               <TableCell>{c.ok ? <Badge variant="secondary">OK</Badge> : <Badge variant="destructive">Écart</Badge>}</TableCell>
@@ -50,7 +53,9 @@ function Reconciliation({ run }: { run: NocrmImportRun }) {
           ))}
         </TableBody>
       </Table>
-      <p className="text-xs text-muted-foreground">Montant gagné tel qu'enregistré dans les opportunités (les fiches fusionnées gardent leur montant SuperTools) : {EUR(rec.won_value_in_crm)}</p>
+      {!!rec.missing_ids?.length && <p className="text-sm text-destructive">Fiches absentes de SuperTools : {rec.missing_ids.join(", ")}</p>}
+      {!!rec.mismatches?.length && <ul className="list-disc pl-5 text-sm text-destructive">{rec.mismatches.map((m, i) => <li key={i}>#{m.nocrm_id} : {m.issue}</li>)}</ul>}
+      {!isTest && <p className="text-xs text-muted-foreground">Montant gagné tel qu'enregistré dans les opportunités (les fiches fusionnées gardent leur montant SuperTools) : {EUR(rec.won_value_in_crm)}</p>}
     </div>
   );
 }
@@ -59,8 +64,39 @@ function SimulationReport({ report }: { report: any }) {
   const { isDemoMode } = useDemoMode();
   if (!report) return null;
   const exp = report.expected_from_file;
+  const spec = report.expected_from_spec;
+  const sameTotal = exp.notes + exp.activities === spec.notes + spec.activities;
+  const groups = new Map<string, number>();
+  for (const a of report.anomalies) groups.set(a.issue, (groups.get(a.issue) ?? 0) + 1);
+  const rows: Array<[string, string, string, boolean, string?]> = [
+    ["Fiches", String(spec.leads), String(exp.leads), spec.leads === exp.leads],
+    ["Montant gagné", EUR(spec.wonValue), EUR(exp.wonValue), Math.abs(spec.wonValue - exp.wonValue) < 0.01],
+    ["Fiches gagnées", String(spec.wonCount), String(exp.wonCount), spec.wonCount === exp.wonCount, "Le montant gagné est identique : la différence vient du nombre de fiches comptées « gagnées » dans la spec, à confirmer."],
+    ["Notes + activités", String(spec.notes + spec.activities), String(exp.notes + exp.activities), sameTotal, sameTotal ? `Total identique : seule la répartition diffère (${exp.notes} notes / ${exp.activities} activités dans le fichier, ${spec.notes} / ${spec.activities} dans la spec). Rien n'est perdu.` : undefined],
+  ];
+  const blocking = report.anomalies.filter((a: any) => !/ramenée à la création|date de création utilisée/.test(a.issue)).length;
   return (
     <div className="space-y-4 text-sm">
+      <div className="rounded border p-3 space-y-1">
+        <p className="font-medium text-primary">Simulation réussie : le fichier a été lu en entier, rien n'a été écrit dans le CRM.</p>
+        <p>{report.leads} fiches lues : {report.to_create} seront créées, {report.to_merge} fusionnées avec une fiche SuperTools existante{report.to_update ? `, ${report.to_update} mises à jour` : ""}. Total : {report.to_create + report.to_merge + report.to_update} sur {report.leads}{report.to_create + report.to_merge + report.to_update === report.leads ? ", aucune oubliée." : ` : ${report.leads - report.to_create - report.to_merge - report.to_update} écartée(s), voir anomalies.`}</p>
+        <p>{blocking === 0 ? "Aucune anomalie bloquante." : `${blocking} anomalie(s) à regarder avant l'import.`}</p>
+      </div>
+      <div>
+        <p className="mb-1 font-medium">Comparaison avec les chiffres de la spec</p>
+        <Table>
+          <TableHeader><TableRow><TableHead>Contrôle</TableHead><TableHead>Spec</TableHead><TableHead>Fichier</TableHead><TableHead /></TableRow></TableHeader>
+          <TableBody>
+            {rows.map(([label, a, b, ok, why]) => (
+              <TableRow key={label}>
+                <TableCell>{label}{!ok && why && <p className="text-xs text-muted-foreground">{why}</p>}{ok && why && <p className="text-xs text-muted-foreground">{why}</p>}</TableCell>
+                <TableCell>{a}</TableCell><TableCell>{b}</TableCell>
+                <TableCell>{ok ? <Badge variant="secondary">OK</Badge> : <Badge variant="outline">Écart</Badge>}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div><p className="text-muted-foreground">Fiches dans le fichier</p><p className="text-lg font-semibold">{report.leads}</p></div>
         <div><p className="text-muted-foreground">À créer</p><p className="text-lg font-semibold">{report.to_create}</p></div>
@@ -101,10 +137,11 @@ function SimulationReport({ report }: { report: any }) {
       )}
       <div>
         <p className="mb-1 font-medium">Anomalies ({report.anomalies.length})</p>
+        {groups.size > 0 && <ul className="mb-2 list-disc pl-5">{[...groups.entries()].map(([k, n]) => <li key={k}>{n} × {k}{/ramenée à la création|date de création utilisée/.test(k) ? " : corrigé automatiquement, non bloquant" : ""}</li>)}</ul>}
         {report.anomalies.length === 0 ? <p className="text-muted-foreground">Aucune.</p> : (
-          <div className="max-h-60 overflow-auto rounded border p-2">
+          <details className="rounded border p-2"><summary className="cursor-pointer text-muted-foreground">Voir le détail par fiche</summary><div className="max-h-60 overflow-auto">
             <ul className="space-y-1">{report.anomalies.map((a: any, i: number) => <li key={i}><span className="font-mono">{a.nocrm_id}</span> : {a.issue}</li>)}</ul>
-          </div>
+          </div></details>
         )}
       </div>
     </div>
@@ -177,7 +214,12 @@ export default function CrmNocrmImport() {
         <Card>
           <CardHeader><CardTitle className="text-base">2. Simulation puis import</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <p className="text-muted-foreground">La simulation n'écrit rien dans le CRM. L'import ne déclenche aucun email, relance, action quotidienne ni notification Slack. Relancer un import met les fiches à jour sans doublon.</p>
+            <ol className="list-decimal space-y-1 pl-5">
+              <li><strong>Lancer la simulation</strong> : lit tout le fichier et annonce ce qui sera créé ou fusionné, sans rien écrire. {lastSimulation ? <span className="text-primary">Faite le {DATE(lastSimulation.started_at)}.</span> : null}</li>
+              <li><strong>Importer 50 fiches (test)</strong> : importe réellement les 50 premières fiches, puis vérifie une par une qu'elles ont toutes leurs notes et activités. {lastTest ? <span className={lastTest.reconciliation?.ok ? "text-primary" : "text-destructive"}>{lastTest.reconciliation ? (lastTest.reconciliation.ok ? "Test vérifié." : "Test en écart.") : "Test fait, pas encore vérifié."}</span> : null}</li>
+              <li><strong>Import complet</strong> : importe toutes les fiches, puis compare le total SuperTools au fichier.</li>
+            </ol>
+            <p className="text-muted-foreground">Aucun email, relance, action quotidienne ni notification Slack. Relancer un import met les fiches à jour sans doublon.</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" disabled={!activePaths || runner.busy} onClick={() => guard(() => runner.simulate(activePaths!.leads, activePaths!.comments), "Échec de la simulation")}>Lancer la simulation</Button>
               <Button variant="outline" disabled={!activePaths || !lastSimulation || runner.busy || !!running} onClick={() => guard(() => runner.start("test", activePaths!.leads, activePaths!.comments), "Échec de l'import test")}>Importer 50 fiches (test)</Button>
@@ -187,6 +229,9 @@ export default function CrmNocrmImport() {
               }, "Échec de l'import")}>Import complet</Button>
               {running && !runner.busy && <Button variant="secondary" onClick={() => guard(() => runner.resume(running), "Échec de la reprise")}>Reprendre l'import en cours</Button>}
               {runner.busy && <Button variant="ghost" onClick={runner.stop}>Mettre en pause</Button>}
+              {shown && shown.mode === "test" && !runner.busy && shown.status !== "running" && (
+                <Button variant="secondary" onClick={() => guard(() => runner.reconcile(shown.id), "Échec du contrôle")}>{shown.reconciliation ? "Revérifier les fiches test" : "Vérifier les 50 fiches test"}</Button>
+              )}
               {shown && shown.mode === "full" && !runner.busy && shown.status !== "running" && (
                 <Button variant="ghost" onClick={() => guard(() => runner.reconcile(shown.id), "Échec du rapprochement")}>Refaire le rapprochement</Button>
               )}
