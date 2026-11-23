@@ -3,13 +3,13 @@ import { z } from "https://esm.sh/zod@3.25.76";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse } from "../_shared/cors.ts";
 import { isStaffCaller } from "../_shared/cron-auth.ts";
 import { getValidDriveAccessToken, listDriveFolder, assertDriveFolderAccessible } from "../_shared/google-drive-helper.ts";
-import { GOOGLE_MEET_ROOT } from "../_shared/drive-transcription.ts";
+import { GOOGLE_MEET_ROOT, canResumeDrive, completedAudioPrefix } from "../_shared/drive-transcription.ts";
 import { listFirefliesPage, getFirefliesMeeting } from "../_shared/fireflies-client.ts";
 import { classifyInventoryItem, inventorySummary, firefliesText, transcriptHash, canRepairInventoryItem, type InventoryItem } from "../_shared/transcript-inventory.ts";
 import { importFirefliesText } from "../_shared/transcript-repair.ts";
 
 const schema = z.object({
-  action: z.enum(["start", "continue", "repair", "refresh"]).default("start"),
+  action: z.enum(["start", "continue", "repair", "resume", "refresh"]).default("start"),
   source: z.enum(["fireflies", "google_drive"]).default("google_drive"),
   run_id: z.string().uuid().optional(),
   external_id: z.string().regex(/^[a-zA-Z0-9_-]+$/).max(200).optional(),
@@ -71,13 +71,14 @@ Deno.serve(async (req) => {
       run = data;
     }
 
-    if (body.action === "repair") {
+    if (body.action === "repair" || body.action === "resume") {
       const item = run.items.find((i: InventoryItem) => i.external_id === body.external_id);
       if (!item) return createErrorResponse("Élément absent du rapport", 400);
       const { data: existing, error } = await admin.from("transcripts").select("*").eq("source", run.source).eq("external_id", item.external_id).maybeSingle();
       if (error) throw error;
       const current = await classifyInventoryItem(run.source, item, existing ?? undefined);
-      if (!canRepairInventoryItem(current, existing ?? undefined)) return createErrorResponse("Cet élément ne peut pas être réparé : corbeille, traitement actif ou absence d’écart récupérable", 409);
+      const resumable = body.action === "resume" && run.source === "google_drive" && canResumeDrive(existing);
+      if (body.action === "resume" ? !resumable : !canRepairInventoryItem(current, existing ?? undefined)) return createErrorResponse("Cet élément ne peut pas être réparé : corbeille, traitement actif ou absence d’écart récupérable", 409);
       const { data: log, error: logError } = await admin.from("transcript_repair_logs").insert({ run_id: run.id, external_id: item.external_id, created_by: userId, transcript_id: existing?.id, before_data: existing, status: "submitted" }).select("id").single();
       if (logError) throw logError;
       try {
@@ -87,9 +88,9 @@ Deno.serve(async (req) => {
           const index = run.items.findIndex((i: InventoryItem) => i.external_id === item.external_id);
           run.items[index] = { ...item, checked: true, source_hash: after.metadata.source_hash, source_sentences: after.metadata.source_sentence_count };
         } else {
-          const patch = { status: "processing", error_message: null, assemblyai_id: null, metadata: { ...(existing?.metadata ?? {}), silent_repair: true, repair_log_id: log.id, audio_parts: [], audio_total_parts: 0 } };
+          const patch = { status: "processing", error_message: null, assemblyai_id: null, metadata: { ...(existing?.metadata ?? {}), silent_repair: true, repair_log_id: log.id, audio_parts: body.action === "resume" ? completedAudioPrefix(existing?.metadata?.audio_parts ?? []) : [], audio_total_parts: body.action === "resume" ? (existing?.metadata?.audio_total_parts ?? 0) : 0, dispatch_attempts: 0, upload_lease_until: null, submission_stage: "queued" } };
           const query = existing
-            ? admin.from("transcripts").update(patch).eq("id", existing.id).eq("updated_at", existing.updated_at).neq("status", "trashed").neq("status", "processing")
+            ? admin.from("transcripts").update(patch).eq("id", existing.id).eq("updated_at", existing.updated_at).in("status", body.action === "resume" ? ["processing", "error"] : ["error", "ready"])
             : admin.from("transcripts").insert({ ...patch, source: "google_drive", external_id: item.external_id, title: item.title });
           const saved = await query.select("*").single();
           if (saved.error || !saved.data) throw new Error(saved.error?.message ?? "Fiche modifiée simultanément");

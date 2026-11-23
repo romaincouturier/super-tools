@@ -77,6 +77,7 @@ async function ensureSentry(dsn: string): Promise<void> {
     dsn,
     environment: Deno.env.get("SENTRY_ENVIRONMENT") || "production",
     tracesSampleRate: 0,
+    sendClientReports: false,
   });
   initialized = true;
 }

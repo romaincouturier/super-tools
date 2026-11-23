@@ -1,5 +1,12 @@
 # Roadmap
 
+## Priorité Savencia et reprises Drive (2026-11-23)
+- [x] Savencia du 23/11 18:34 retrouvée dans Drive et soumise seule avec journal de réparation, sans notification ni génération de contenu.
+- [x] Savencia prête : 17 025 caractères, durée 1 067 s contre 1 066,887 s attendues, texte relu dans l’écran avec la session de Romain.
+- [x] Morceaux de dix minutes avec reprise au temps exact, extraction sérialisée par instance et file persistée, lease optimiste, finalisation par webhook ciblé ; fichiers récents prioritaires, timer Sentry désactivé. Quatre fonctions déployées, 103 règles et 3 460 tests complets réussis, puis trois tests webhook supplémentaires réussis ; droits, crons, fichiers et leçons inchangés.
+- [x] Dix-huit blocages existants et deux nouveaux enregistrements du jour relancés avec journal nominatif ; morceaux terminés conservés, aucune notification ni génération de contenu. Dernier bilan : Savencia et cinq autres prêts, quinze encore en traitement/file, aucun statut erreur ni nouvelle saturation observée après sérialisation.
+- [ ] Fin des quinze traitements : dépend des réponses AssemblyAI et de la file serveur ; résultat complet non encore disponible à la fin de cette intervention.
+
 ## Import noCRM lisible (2026-11-23)
 - [x] Verdict de simulation, comparaison spec/fichier expliquée, anomalies regroupées, rôle des trois boutons, contrôle fiche par fiche de l'import test (fonction déployée).
 - [ ] Écran à publier ; bouton « Vérifier les 50 fiches test » à cliquer par Romain.

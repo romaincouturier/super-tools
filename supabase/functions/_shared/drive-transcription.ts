@@ -1,9 +1,28 @@
 export const GOOGLE_MEET_ROOT = "1GzvSFXpyQHLTbXfY4OowRn6hrOeUzQHY";
 export const AUDIO_PART_SECONDS = 45 * 60;
+export const AUDIO_EXTRACTION_SECONDS = 10 * 60;
 // Au-delà, l'envoi direct de la vidéo dépasse le temps d'exécution et s'arrête sans erreur : on extrait l'audio par morceaux.
 export const ASSEMBLY_UPLOAD_MAX_BYTES = 300_000_000;
 export const MAX_SILENT_DISPATCHES = 3;
 export const ASSEMBLY_MAX_SECONDS = 10 * 60 * 60;
+
+export function canResumeDrive(row: { status: string; assemblyai_id?: string | null; updated_at: string } | null | undefined, now = Date.now()): boolean {
+  return !!row && ["processing", "error"].includes(row.status) && !row.assemblyai_id && now - Date.parse(row.updated_at) > 10 * 60 * 1000;
+}
+
+export function newestDriveFirst<T extends { createdTime?: string }>(files: T[]): T[] {
+  return [...files].sort((a, b) => (Date.parse(b.createdTime ?? "") || 0) - (Date.parse(a.createdTime ?? "") || 0));
+}
+
+export function completedAudioPrefix(parts: AudioPart[]): AudioPart[] {
+  const completed = parts.filter((part) => part.text !== undefined && part.actual_duration !== undefined).sort((a, b) => a.index - b.index);
+  let end = 0;
+  for (const [index, part] of completed.entries()) {
+    if (part.index !== index || Math.abs(part.start - end) > 1) throw new Error("Reprise impossible : un morceau audio terminé manque.");
+    end = part.start + part.duration;
+  }
+  return completed;
+}
 
 export interface AudioPart {
   index: number;

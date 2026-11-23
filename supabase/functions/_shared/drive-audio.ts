@@ -1,5 +1,5 @@
 import { createFile } from "npm:mp4box@2.5.0";
-import { adtsHeader, AUDIO_PART_SECONDS } from "./drive-transcription.ts";
+import { adtsHeader, AUDIO_PART_SECONDS, AUDIO_EXTRACTION_SECONDS } from "./drive-transcription.ts";
 
 const RANGE_BYTES = 4 * 1024 * 1024;
 
@@ -14,7 +14,7 @@ async function readRange(fileId: string, token: string, start: number, end: numb
   return res.arrayBuffer();
 }
 
-export async function extractDriveAudioPart(fileId: string, token: string, size: number, partIndex: number) {
+export async function extractDriveAudioPart(fileId: string, token: string, size: number, partIndex: number, resumeAt?: number) {
   const mp4 = createFile();
   // Only parse sample tables; expanding every video/audio sample exceeds serverless CPU and memory.
   mp4.buildSampleLists = () => {
@@ -44,7 +44,7 @@ export async function extractDriveAudioPart(fileId: string, token: string, size:
   const objectType = Number(track.codec.split(".")[2]);
   const audioTrack = mp4.getTrackById(track.id);
   const expected = audioTrack.mdia.mdhd.duration / audioTrack.mdia.mdhd.timescale;
-  const start = partIndex * AUDIO_PART_SECONDS;
+  const start = resumeAt ?? partIndex * AUDIO_PART_SECONDS;
   if (start >= expected) throw new Error("Morceau audio hors durée de l’enregistrement.");
   const table = audioTrack.mdia.minf.stbl;
   const sizes = table.stsz?.sample_sizes;
@@ -62,14 +62,14 @@ export async function extractDriveAudioPart(fileId: string, token: string, size:
     for (let n = 0; n < table.stsc.samples_per_chunk[chunkRun] && sampleIndex < sizes.length; n++, sampleIndex++) {
       if (!timingRemaining) { timingRun++; timingRemaining = table.stts.sample_counts[timingRun]; }
       const duration = table.stts.sample_deltas[timingRun];
-      if (dts / track.timescale >= start && dts / track.timescale < start + AUDIO_PART_SECONDS) {
+      if (dts / track.timescale >= start && dts / track.timescale < start + AUDIO_EXTRACTION_SECONDS) {
         samples.push({ offset: position, size: sizes[sampleIndex], dts, duration, timescale: track.timescale });
       }
       position += sizes[sampleIndex];
       dts += duration;
       timingRemaining--;
     }
-    if (dts / track.timescale >= start + AUDIO_PART_SECONDS) break;
+    if (dts / track.timescale >= start + AUDIO_EXTRACTION_SECONDS) break;
   }
   if (!samples.length) throw new Error("Aucun échantillon audio dans le morceau.");
   const totalBytes = samples.reduce((sum, s) => sum + s.size + 7, 0);
@@ -98,6 +98,6 @@ export async function extractDriveAudioPart(fileId: string, token: string, size:
     bytes, expected,
     start: first.dts / first.timescale,
     duration: (last.dts + last.duration) / last.timescale - first.dts / first.timescale,
-    totalParts: Math.ceil(expected / AUDIO_PART_SECONDS),
+    totalParts: partIndex + Math.ceil((expected - start) / AUDIO_EXTRACTION_SECONDS),
   };
 }

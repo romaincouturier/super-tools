@@ -120,7 +120,18 @@ async function finalizeTranscript(
   if (!ASSEMBLYAI_API_KEY) {
     return jsonResponse({ ok: false, error: "ASSEMBLYAI_API_KEY missing" }, 500);
   }
-  if (row.metadata?.audio_parts?.length) return jsonResponse({ ok: true, pending: true });
+  if (row.metadata?.audio_parts?.length) {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/poll-drive-transcripts`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ only_transcript_id: row.id }),
+    });
+    if (!response.ok) {
+      await reportEdgeError(new Error(`Finalisation morceau Drive HTTP ${response.status}`), { fn: "assemblyai-webhook", transcript_id: row.id });
+      return jsonResponse({ ok: false, error: "Finalisation du morceau échouée" }, 502);
+    }
+    return jsonResponse({ ok: true, part_processed: true });
+  }
   const result = await pollAssemblyAIJob(jobId, ASSEMBLYAI_API_KEY);
   if (result === null) {
     // Shouldn't happen since webhook fires on terminal state, but be safe
@@ -175,7 +186,7 @@ async function finalizeTranscript(
     return jsonResponse({ ok: true, finalized: "trashed" });
   }
 
-  const analysis = await analyzeTranscript(result.text);
+  const analysis = row.metadata?.silent_repair === true ? { summary: "", tags: [] } : await analyzeTranscript(result.text);
   await admin.from("transcripts").update({
     status: "ready",
     raw_text: result.text,

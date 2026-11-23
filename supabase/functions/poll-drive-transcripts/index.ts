@@ -22,7 +22,7 @@ import {
   notifySlack,
 } from "../_shared/google-drive-helper.ts";
 
-import { discoverDriveVideos, GOOGLE_MEET_ROOT, assembleAudioParts, assertCompleteDuration, MAX_SILENT_DISPATCHES, stalledTranscriptAction, MAX_STALL_RESUMES, type AudioPart } from "../_shared/drive-transcription.ts";
+import { discoverDriveVideos, GOOGLE_MEET_ROOT, assembleAudioParts, assertCompleteDuration, MAX_SILENT_DISPATCHES, stalledTranscriptAction, MAX_STALL_RESUMES, newestDriveFirst, type AudioPart } from "../_shared/drive-transcription.ts";
 import { reportDriveTranscriptionError } from "../_shared/drive-transcription-errors.ts";
 import { hasManagedCronCredential, isCronOrServiceRole, isStaffCaller } from "../_shared/cron-auth.ts";
 
@@ -44,6 +44,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   try {
     const body = await req.json().catch(() => ({}));
+    const onlyId = body.only_transcript_id;
+    if (onlyId !== undefined && (typeof onlyId !== "string" || !/^[0-9a-f-]{36}$/i.test(onlyId))) return createErrorResponse("Invalid transcript ID", 400);
     if (body.inspect_transcript_id !== undefined) {
       if (typeof body.inspect_transcript_id !== "string" || !/^[0-9a-f-]{36}$/i.test(body.inspect_transcript_id)) return createErrorResponse("Invalid transcript ID", 400);
       const { data: transcript, error } = await admin.from("transcripts").select("id, external_id, source, status, duration_seconds").eq("id", body.inspect_transcript_id).single();
@@ -95,9 +97,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // Traitements bloqués depuis plus de 24 h : reprise automatique au point atteint
     // (morceaux déjà transcrits conservés), erreur signalée seulement après MAX_STALL_RESUMES reprises.
-    const { data: stalled, error: stalledError } = await admin.from("transcripts")
+    const { data: stalled, error: stalledError } = onlyId ? { data: [], error: null } : await admin.from("transcripts")
       .select("id, external_id, assemblyai_id, metadata")
       .eq("source", "google_drive").eq("status", "processing")
+      .is("assemblyai_id", null)
       .lt("updated_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
     if (stalledError) throw stalledError;
     for (const row of (stalled ?? []) as Array<{ id: string; external_id: string; assemblyai_id: string | null; metadata: Record<string, any> | null }>) {
@@ -109,7 +112,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         results.errors++;
         continue;
       }
-      const metadata = { ...(row.metadata ?? {}), stall_resumes: decision.resumes, dispatch_attempts: 0 };
+      const metadata = { ...(row.metadata ?? {}), stall_resumes: decision.resumes, dispatch_attempts: 0, submission_stage: "queued", upload_lease_until: null };
       if (row.assemblyai_id && Array.isArray(metadata.audio_parts)) {
         // Job AssemblyAI perdu : le morceau en cours sera renvoyé.
         metadata.audio_parts = metadata.audio_parts.filter((p: AudioPart) => p.job_id !== row.assemblyai_id || p.text);
@@ -125,12 +128,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     // ── Pass 1: check pending AssemblyAI jobs ────────────────────
-    const { data: processing } = await (admin as any)
+    let processingQuery = (admin as any)
       .from("transcripts")
       .select("id, title, assemblyai_id, external_id, metadata")
       .eq("source", "google_drive")
       .eq("status", "processing")
       .not("assemblyai_id", "is", null);
+    if (onlyId) processingQuery = processingQuery.eq("id", onlyId);
+    const { data: processing, error: processingError } = await processingQuery;
+    if (processingError) throw processingError;
 
     for (const row of (processing ?? []) as Array<{ id: string; title: string; assemblyai_id: string; external_id: string; metadata: Record<string, any> }>) {
       results.checked++;
@@ -151,8 +157,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
           active.text = result.text;
           active.actual_duration = result.duration;
           assertCompleteDuration(active.duration, result.duration);
-          const { error } = await admin.from("transcripts").update({ metadata: { ...metadata, audio_parts: parts }, assemblyai_id: null }).eq("id", row.id);
+          const { data: claimedPart, error } = await admin.from("transcripts").update({ metadata: { ...metadata, audio_parts: parts, submission_stage: "queued", upload_lease_until: null }, assemblyai_id: null }).eq("id", row.id).eq("assemblyai_id", row.assemblyai_id).eq("status", "processing").select("id").maybeSingle();
           if (error) throw error;
+          if (!claimedPart) continue;
           if (parts.length < metadata.audio_total_parts) {
             // Morceau suivant tout de suite, sans attendre le passage horaire suivant.
             const next = await fetch(`${SUPABASE_URL}/functions/v1/submit-drive-transcript`, {
@@ -208,7 +215,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         continue;
       }
 
-      const analysis = await analyzeTranscript(result.text);
+      const analysis = row.metadata?.silent_repair === true ? { summary: "", tags: [] } : await analyzeTranscript(result.text);
       await (admin as any).from("transcripts").update({
         status: "ready",
         raw_text: result.text,
@@ -258,6 +265,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }
     }
 
+    if (onlyId) return new Response(JSON.stringify({ ok: true, ...results }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
     // ── Pass 2: discover new Drive files ────────────────────────
     const accessToken = await getValidDriveAccessToken(admin);
     if (!accessToken) {
@@ -287,10 +296,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
     const existingByExternalId = new Map(existingRows.map((row) => [row.external_id, row]));
 
-    const toProcess = files.filter((file) => {
+    const toProcess = newestDriveFirst(files.filter((file) => {
       const existing = existingByExternalId.get(file.id);
-      return !existing || (existing.status === "processing" && !existing.assemblyai_id && Date.now() - new Date(existing.updated_at).getTime() > 10 * 60 * 1000);
-    }).slice(0, 5);
+      return !existing || (existing.status === "processing" && !existing.assemblyai_id && !(Date.parse(existing.metadata?.upload_lease_until ?? "") > Date.now()) && Date.now() - new Date(existing.updated_at).getTime() > 10 * 60 * 1000);
+    })).slice(0, 5);
 
 
 
@@ -311,13 +320,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const { data: inserted } = existing
           ? await (admin as any)
               .from("transcripts")
-              .update({ title: file.name, status: "processing", error_message: null, assemblyai_id: null, metadata: { ...(existing.metadata ?? {}), dispatch_attempts: attempts + 1 } })
+              .update({ title: file.name, status: "processing", error_message: null, assemblyai_id: null, metadata: { ...(existing.metadata ?? {}), dispatch_attempts: attempts + 1, submission_stage: "queued", upload_lease_until: null } })
               .eq("id", existing.id)
               .select("id")
               .single()
           : await (admin as any)
               .from("transcripts")
-              .insert({ source: "google_drive", external_id: file.id, title: file.name, status: "processing" })
+              .insert({ source: "google_drive", external_id: file.id, title: file.name, status: "processing", metadata: { submission_stage: "queued" } })
               .select("id")
               .single();
 

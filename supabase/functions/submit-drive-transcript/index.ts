@@ -30,6 +30,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ASSEMBLYAI_API_KEY = Deno.env.get("ASSEMBLYAI_API_KEY") ?? "";
 const ASSEMBLYAI_WEBHOOK_SECRET = Deno.env.get("ASSEMBLYAI_WEBHOOK_SECRET") ?? "";
 const ASSEMBLYAI_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/assemblyai-webhook`;
+let activeUpload = false;
 
 Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
@@ -48,24 +49,34 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    if (activeUpload) return new Response(JSON.stringify({ accepted: true, queued: true, transcript_id }), { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    activeUpload = true;
 
     const run = async () => {
       try {
         const accessToken = await getValidDriveAccessToken(admin);
         if (!accessToken) throw new Error("No Google Drive access token");
 
-        const { data: row, error: rowError } = await admin.from("transcripts").select("metadata,external_id,status,assemblyai_id").eq("id", transcript_id).single();
+        const { data: row, error: rowError } = await admin.from("transcripts").select("metadata,external_id,status,assemblyai_id,updated_at").eq("id", transcript_id).single();
         if (rowError || !row || row.external_id !== drive_file_id || row.status !== "processing") throw new Error("Transcript Drive introuvable ou incompatible.");
         if (row.assemblyai_id) return;
         const metadata = row.metadata ?? {};
+        const startedAt = new Date().toISOString();
+        if (metadata.upload_lease_until && Date.parse(metadata.upload_lease_until) > Date.now()) return;
+        const { data: claimed, error: claimError } = await admin.from("transcripts").update({ metadata: { ...metadata, submission_started_at: startedAt, upload_lease_until: new Date(Date.now() + 8 * 60 * 1000).toISOString(), submission_stage: "reading_drive" } }).eq("id", transcript_id).eq("updated_at", row.updated_at).is("assemblyai_id", null).select("id").maybeSingle();
+        if (claimError) throw claimError;
+        if (!claimed) return;
         const file = await getDriveVideoMetadata(drive_file_id, accessToken);
+        console.log("[submit-drive-transcript] source", { transcript_id, bytes: file.size, stage: "extract_or_upload" });
         const expected = Number(file.videoMediaMetadata?.durationMillis ?? 0) / 1000;
-        const parts: AudioPart[] = metadata.audio_parts ?? [];
+        const parts: AudioPart[] = [...(metadata.audio_parts ?? [])];
         const needsAudio = Number(file.size) > ASSEMBLY_UPLOAD_MAX_BYTES || expected > ASSEMBLY_MAX_SECONDS || parts.length > 0;
         let part: Awaited<ReturnType<typeof extractDriveAudioPart>> | undefined;
         let uploadUrl: string;
         if (needsAudio) {
-          part = await extractDriveAudioPart(drive_file_id, accessToken, Number(file.size), parts.length);
+          const previous = parts[parts.length - 1];
+          part = await extractDriveAudioPart(drive_file_id, accessToken, Number(file.size), parts.length, previous ? previous.start + previous.duration : 0);
+          console.log("[submit-drive-transcript] extracted", { transcript_id, bytes: part.bytes.length, seconds: part.duration });
           uploadUrl = await uploadToAssemblyAI(part.bytes, ASSEMBLYAI_API_KEY);
         } else {
           uploadUrl = await uploadDriveFileToAssemblyAI(drive_file_id, accessToken, ASSEMBLYAI_API_KEY);
@@ -73,7 +84,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const jobId = await submitAssemblyAIJob(
           uploadUrl,
           ASSEMBLYAI_API_KEY,
-          !needsAudio && ASSEMBLYAI_WEBHOOK_SECRET
+          ASSEMBLYAI_WEBHOOK_SECRET
             ? {
                 url: ASSEMBLYAI_WEBHOOK_URL,
                 authHeaderName: "x-webhook-secret",
@@ -84,13 +95,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
         if (part) parts.push({ index: parts.length, start: part.start, duration: part.duration, job_id: jobId });
         const { error: savedError } = await admin.from("transcripts").update({
           assemblyai_id: jobId,
-          metadata: { ...metadata, drive_size: file.size, expected_duration_seconds: part?.expected ?? expected, audio_parts: parts, audio_total_parts: part?.totalParts ?? 0, dispatch_attempts: 0, submission_started_at: new Date().toISOString() },
+          metadata: { ...metadata, drive_size: file.size, expected_duration_seconds: part?.expected ?? expected, audio_parts: parts, audio_total_parts: part?.totalParts ?? 0, dispatch_attempts: 0, submission_started_at: startedAt, upload_lease_until: null, submission_stage: "transcribing" },
         }).eq("id", transcript_id);
         if (savedError) throw new Error(savedError.message);
         console.log("[submit-drive-transcript] job saved", { transcript_id, job_id: jobId, part: parts.length, total_parts: part?.totalParts ?? 0 });
       } catch (err) {
         console.error(`[submit-drive-transcript] ${transcript_id} failed:`, err);
-        await reportDriveTranscriptionError(err, { fn: "submit-drive-transcript", transcript_id, drive_file_id });
         await (admin as any)
           .from("transcripts")
           .update({
@@ -100,6 +110,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
           .eq("id", transcript_id);
         const { data: failedRow } = await admin.from("transcripts").select("metadata").eq("id", transcript_id).single();
         if (failedRow?.metadata?.repair_log_id) await admin.from("transcript_repair_logs").update({ status: "error", error_message: String(err) }).eq("id", failedRow.metadata.repair_log_id);
+        await reportDriveTranscriptionError(err, { fn: "submit-drive-transcript", transcript_id, drive_file_id });
+      } finally {
+        activeUpload = false;
+        const { data: next } = await admin.from("transcripts").select("id,external_id")
+          .eq("source", "google_drive").eq("status", "processing").is("assemblyai_id", null)
+          .eq("metadata->>submission_stage", "queued").order("updated_at").limit(1).maybeSingle();
+        if (next) {
+          const response = await fetch(`${SUPABASE_URL}/functions/v1/submit-drive-transcript`, {
+            method: "POST", headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ transcript_id: next.id, drive_file_id: next.external_id }),
+          }).catch(() => null);
+          if (!response?.ok) console.warn("[submit-drive-transcript] queued handoff failed", next.id, response?.status);
+        }
       }
     };
 
