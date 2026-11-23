@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Video, Edit2, Trash2, Star, Link2, ImageIcon, Download } from 'lucide-react';
+import { Video, Edit2, Trash2, Star, Link2, ImageIcon, Download, Tags } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import WatermarkOverlay from '@/components/book/WatermarkOverlay';
@@ -15,6 +15,8 @@ interface BookProductionCardProps {
   onSetCover?: () => void;
   onDownload?: () => void;
   downloading?: boolean;
+  onRegenerateTags?: () => void;
+  analyzing?: boolean;
   watermarkText?: string;
 }
 
@@ -27,6 +29,8 @@ export default function BookProductionCard({
   onSetCover,
   onDownload,
   downloading,
+  onRegenerateTags,
+  analyzing,
   watermarkText,
 }: BookProductionCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
@@ -146,10 +150,18 @@ export default function BookProductionCard({
               <Download className="w-3.5 h-3.5" />
             </Button>
           )}
+          {production.file_type === 'image' && onRegenerateTags && (
+            <Button variant="secondary" size="icon" className="h-7 w-7" title="Régénérer les tags" aria-label="Régénérer les tags"
+              disabled={analyzing} onClick={e => { e.stopPropagation(); onRegenerateTags(); }}>
+              <Tags className="w-3.5 h-3.5" />
+            </Button>
+          )}
           <Button
             variant="secondary"
             size="icon"
             className="h-7 w-7 bg-white/90 hover:bg-white"
+            title="Modifier le visuel"
+            aria-label="Modifier le visuel"
             onClick={(e) => {
               e.stopPropagation();
               onEdit();

@@ -1757,9 +1757,46 @@ var record_audit_evidence_default = defineTool24({
   }
 });
 
+// src/lib/mcp/tools/search-book-productions.ts
+import { defineTool as defineTool25 } from "npm:@lovable.dev/mcp-js@3.4.0";
+import { z as z29 } from "npm:zod@^3.25.76";
+
+// supabase/functions/_shared/book-tools.ts
+import { z as z28 } from "npm:zod@^3.25.76";
+var bookSearchSchema = z28.object({ query: z28.string().trim().min(1).max(250), album: z28.string().trim().min(1).max(200).optional(), limit: z28.number().int().min(1).max(100).optional() }).strict();
+async function searchBookProductions(db, input) {
+  const args = bookSearchSchema.parse(input);
+  const { data, error } = await db.rpc("search_book_productions", { p_query: args.query, p_album: args.album ?? null, p_limit: args.limit ?? 20 });
+  if (error) throw error;
+  const results = [];
+  for (const row of data ?? []) {
+    let thumbnail = null;
+    const raw = row.thumbnail;
+    if (raw) {
+      const storage = raw.match(/\/storage\/v1\/(?:object\/(?:public\/|authenticated\/|sign\/)?|render\/image\/(?:public|authenticated|sign)\/)([^/]+)\/([^?]+)/);
+      if (storage || !/^https?:\/\//.test(raw)) {
+        const signed = await db.storage.from(storage?.[1] || "book-productions").createSignedUrl(decodeURIComponent(storage?.[2] || raw), 60, { transform: { width: 600, height: 600, resize: "contain", quality: 70 } });
+        if (!signed.error) thumbnail = signed.data?.signedUrl ?? null;
+      }
+    }
+    results.push({ id: row.id, album: row.album, title: row.title, tags: row.tags, notes: row.notes, thumbnail });
+  }
+  return results;
+}
+
+// src/lib/mcp/tools/search-book-productions.ts
+var search_book_productions_default = defineTool25({
+  name: "search_book_productions",
+  title: "Rechercher les visuels du Book",
+  description: "Recherche priv\xE9e insensible aux accents et \xE0 la casse dans title, tags et notes. Retourne id, album, title, tags, notes et thumbnail sign\xE9 temporairement, selon les droits du compte connect\xE9. album accepte un UUID ou un nom partiel.",
+  inputSchema: { query: z29.string().trim().min(1).max(250), album: z29.string().trim().min(1).max(200).optional(), limit: z29.number().int().min(1).max(100).optional() },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async (args, ctx) => result(await searchBookProductions(supabaseForUser(ctx), args))
+});
+
 // src/lib/mcp/index.ts
 var ref = "yewffntzgrdgztrwtava";
-var mcp_default = defineMcp({ name: "supertools", title: "SuperTools", version: "1.0.0", auth: auth.oauth.issuer({ issuer: `https://${ref}.supabase.co/auth/v1`, acceptedAudiences: "authenticated" }), instructions: "Extensions r\xE9serv\xE9es au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille, couvertures et attestations de bonne ex\xE9cution (cr\xE9ation, modification, liste, lien de signature, PDF sign\xE9), sessions live des formations (liste, mise \xE0 jour, replay), catalogue jeux et devis dropshipping, archives entreprise (archive_email_attachments, upload_company_document, list_company_documents, read_company_document). Les archives sont r\xE9serv\xE9es aux administrateurs, strictement additives, sans email ni suppression. list_games retrouve les jeux, prix, stocks, frais de port et poids. create_game_quote renvoie par d\xE9faut un preview sans \xE9criture ; confirm=true est obligatoire pour cr\xE9er le brouillon, apr\xE8s accord explicite. Le devis jeux n\u2019envoie jamais d\u2019email ou de Slack, ne cr\xE9e pas de commande pay\xE9e et ne d\xE9cr\xE9mente pas le stock. Aucun outil de suppression ni envoi d\u2019email hors rappels live reprogramm\xE9s comme dans l\u2019application. Ne jamais modifier les le\xE7ons. Confirmer allow_multiple avec l\u2019utilisateur. Audit blanc Qualiopi : list_audit_questions lit les questions manuelles et leur derni\xE8re preuve ; record_audit_evidence ajoute une r\xE9ponse oui/non avec preuve (valide 45 jours, historique conserv\xE9, sans suppression). Les outils historiques restent sur leur connecteur existant.", tools: [upload_company_document_default, archive_email_attachments_default, list_company_documents_default, read_company_document_default, list_lms_modules_default, create_lms_module_default, update_lms_module_default, assign_transcript_default, list_unassigned_transcripts_default, list_watch_sources_default, propose_watch_source_default, update_watch_source_default, update_lms_course_default, create_execution_attestation_default, update_execution_attestation_default, list_execution_attestations_default, get_execution_attestation_link_default, get_execution_attestation_pdf_default, list_live_meetings_default, update_live_meeting_default, list_games_default, create_game_quote_default, list_audit_questions_default, record_audit_evidence_default] });
+var mcp_default = defineMcp({ name: "supertools", title: "SuperTools", version: "1.0.0", auth: auth.oauth.issuer({ issuer: `https://${ref}.supabase.co/auth/v1`, acceptedAudiences: "authenticated" }), instructions: "Extensions r\xE9serv\xE9es au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille, couvertures et attestations de bonne ex\xE9cution (cr\xE9ation, modification, liste, lien de signature, PDF sign\xE9), sessions live des formations (liste, mise \xE0 jour, replay), catalogue jeux et devis dropshipping, archives entreprise (archive_email_attachments, upload_company_document, list_company_documents, read_company_document). Les archives sont r\xE9serv\xE9es aux administrateurs, strictement additives, sans email ni suppression. list_games retrouve les jeux, prix, stocks, frais de port et poids. create_game_quote renvoie par d\xE9faut un preview sans \xE9criture ; confirm=true est obligatoire pour cr\xE9er le brouillon, apr\xE8s accord explicite. Le devis jeux n\u2019envoie jamais d\u2019email ou de Slack, ne cr\xE9e pas de commande pay\xE9e et ne d\xE9cr\xE9mente pas le stock. Aucun outil de suppression ni envoi d\u2019email hors rappels live reprogramm\xE9s comme dans l\u2019application. Ne jamais modifier les le\xE7ons. Confirmer allow_multiple avec l\u2019utilisateur. Audit blanc Qualiopi : list_audit_questions lit les questions manuelles et leur derni\xE8re preuve ; record_audit_evidence ajoute une r\xE9ponse oui/non avec preuve (valide 45 jours, historique conserv\xE9, sans suppression). Book : search_book_productions recherche les visuels par titre, tags et description, uniquement dans les productions accessibles au compte connect\xE9. Les outils historiques restent sur leur connecteur existant.", tools: [upload_company_document_default, archive_email_attachments_default, list_company_documents_default, read_company_document_default, list_lms_modules_default, create_lms_module_default, update_lms_module_default, assign_transcript_default, list_unassigned_transcripts_default, list_watch_sources_default, propose_watch_source_default, update_watch_source_default, update_lms_course_default, create_execution_attestation_default, update_execution_attestation_default, list_execution_attestations_default, get_execution_attestation_link_default, get_execution_attestation_pdf_default, list_live_meetings_default, update_live_meeting_default, list_games_default, create_game_quote_default, list_audit_questions_default, record_audit_evidence_default, search_book_productions_default] });
 
 // lovable-mcp-supabase-entry.ts
 import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@3.4.0/stacks/supabase";

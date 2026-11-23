@@ -322,11 +322,11 @@ const TOOLS = [
   {
     name: "read_media_image",
     description:
-      "Return a gallery or book image, including private storage. Storage reduces images server-side to 1600 pixels before local decoding. Optional crop (x, y, width, height in percentages) selects a region of that reduced image. Output up to 5 MiB. Originals remain unchanged.",
+      "Return a gallery or Book image from a media or book_productions UUID, including private storage. Book uses file_url with private thumbnail fallback if the original cannot be transformed or is missing. Storage reduces previews server-side to 1600 pixels before local cropping. Optional crop selects percentages of that reduced image. Output up to 5 MiB; originals and permissions remain unchanged.",
     input_schema: {
       type: "object" as const,
       properties: {
-        media_id: { type: "string", description: "UUID of the media row" },
+        media_id: { type: "string", description: "UUID from media or book_productions" },
         full_resolution: { type: "boolean", description: "Untouched original without crop, only up to 5 MiB. With crop, resolution remains bounded to 1600 px before cropping." },
         crop: { type: "object", properties: { x: { type: "number" }, y: { type: "number" }, width: { type: "number" }, height: { type: "number" } }, required: ["x", "y", "width", "height"], additionalProperties: false },
       },

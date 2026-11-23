@@ -30,3 +30,12 @@ update_social_post_content
 social_posts_delete_empty_group
 social_calendar_notes_set_created_by
 social_set_created_by
+enqueue_book_image
+request_book_analysis
+claim_book_analysis
+finish_book_analysis
+resume_book_analysis
+book_search_normalize
+search_book_productions
+book_metadata_manual_guard
+book_analysis_title_guard

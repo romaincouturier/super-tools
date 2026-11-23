@@ -788,3 +788,7 @@ verify_jwt = false
 
 [functions.tender-sync-managed]
 verify_jwt = false
+
+[functions.analyze-book-productions]
+verify_jwt = false
+import_map = "./functions/analyze-book-productions/deno.json"

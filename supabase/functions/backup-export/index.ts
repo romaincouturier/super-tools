@@ -22,6 +22,8 @@ const TABLES_TO_BACKUP = [
   "balance_sheets",
   "billing_plans",
   "book_albums",
+  "book_analysis_control",
+  "book_analysis_jobs",
   "book_analytics_events",
   "book_productions",
   "book_profiles",

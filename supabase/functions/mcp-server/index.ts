@@ -1264,11 +1264,11 @@ const MCP_TOOLS = [
   {
     name: "read_media_image",
     description:
-      "Return a gallery or book image, including private storage. Pass a media UUID. Storage reduces images server-side to at most 1600 pixels before any local decoding. Optional crop selects percentages of that reduced image. Large Storage originals are not downloaded or decoded for previews. Returned images limited to 5 MiB. No original is modified.",
+      "Return a gallery or Book image, including private storage. media_id accepts a UUID from media OR book_productions. For Book, read file_url from its private bucket, with thumbnail_url fallback if the original exceeds Storage transformation limits or is missing. Storage reduces previews to at most 1600 pixels before local cropping. crop selects percentages of that reduced image. full_resolution returns the original only within the existing 5 MiB output limit. No original, permission or public sharing protection is modified.",
     inputSchema: {
       type: "object",
       properties: {
-        media_id: { type: "string", description: "UUID of the media row" },
+        media_id: { type: "string", description: "UUID from media or book_productions" },
         crop: IMAGE_CROP_SCHEMA,
         full_resolution: {
           type: "boolean",

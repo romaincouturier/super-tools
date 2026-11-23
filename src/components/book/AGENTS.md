@@ -1,2 +1,3 @@
 # Architecture
+- Book visual metadata is edited through a private dialog and analysis hook; shared views receive no editing or regeneration callbacks, because visual indexing must not weaken public sharing protections.
 - Private book downloads use a shared hook and service resolving the original media under the current user's rights, then the shared downloadFile utility; cards receive a private-only callback and the lightbox gates on isPublic, because public sharing must retain its protections.

@@ -1026,6 +1026,74 @@ export type Database = {
         }
         Relationships: []
       }
+      book_analysis_control: {
+        Row: {
+          id: boolean
+          lease_id: string | null
+          lease_until: string | null
+          pause_reason: string | null
+          resume_after: string | null
+        }
+        Insert: {
+          id?: boolean
+          lease_id?: string | null
+          lease_until?: string | null
+          pause_reason?: string | null
+          resume_after?: string | null
+        }
+        Update: {
+          id?: boolean
+          lease_id?: string | null
+          lease_until?: string | null
+          pause_reason?: string | null
+          resume_after?: string | null
+        }
+        Relationships: []
+      }
+      book_analysis_jobs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          finished_at: string | null
+          mode: string
+          production_id: string
+          requested_by: string | null
+          run_id: string | null
+          snapshot: Json | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          mode?: string
+          production_id: string
+          requested_by?: string | null
+          run_id?: string | null
+          snapshot?: Json | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          mode?: string
+          production_id?: string
+          requested_by?: string | null
+          run_id?: string | null
+          snapshot?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_analysis_jobs_production_id_fkey"
+            columns: ["production_id"]
+            isOneToOne: true
+            referencedRelation: "book_productions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       book_analytics_events: {
         Row: {
           event_type: string
@@ -1082,6 +1150,7 @@ export type Database = {
           tags: string[]
           thumbnail_url: string | null
           title: string
+          title_manual: boolean
           updated_at: string
           user_id: string
         }
@@ -1101,6 +1170,7 @@ export type Database = {
           tags?: string[]
           thumbnail_url?: string | null
           title: string
+          title_manual?: boolean
           updated_at?: string
           user_id: string
         }
@@ -1120,6 +1190,7 @@ export type Database = {
           tags?: string[]
           thumbnail_url?: string | null
           title?: string
+          title_manual?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -15091,6 +15162,7 @@ export type Database = {
         Returns: Json
       }
       backup_schema_inventory: { Args: never; Returns: Json }
+      book_search_normalize: { Args: { p_text: string }; Returns: string }
       can_access_attestation_source: {
         Args: { _source_type: string }
         Returns: boolean
@@ -15114,6 +15186,26 @@ export type Database = {
       check_link_quota: {
         Args: { p_email_hash: string; p_ip: string }
         Returns: boolean
+      }
+      claim_book_analysis: {
+        Args: { p_run: string }
+        Returns: {
+          created_at: string
+          error_message: string | null
+          finished_at: string | null
+          mode: string
+          production_id: string
+          requested_by: string | null
+          run_id: string | null
+          snapshot: Json | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "book_analysis_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       cleanup_agent_embedding_cache: { Args: never; Returns: number }
       community_post_audience: {
@@ -15238,6 +15330,16 @@ export type Database = {
         Returns: string
       }
       expire_tender_opportunities: { Args: never; Returns: number }
+      finish_book_analysis: {
+        Args: {
+          p_id: string
+          p_notes: string
+          p_run: string
+          p_tags: string[]
+          p_title: string
+        }
+        Returns: undefined
+      }
       generate_execution_attestation_link: {
         Args: { p_id: string }
         Returns: Json
@@ -15957,6 +16059,7 @@ export type Database = {
         }
         Returns: Json
       }
+      request_book_analysis: { Args: { p_id: string }; Returns: undefined }
       request_password_change: { Args: never; Returns: undefined }
       resolve_formulaire_token: {
         Args: { p_course_id: number; p_email: string; p_form_type: string }
@@ -15970,6 +16073,7 @@ export type Database = {
         Args: { p_snapshot_id: string }
         Returns: undefined
       }
+      resume_book_analysis: { Args: never; Returns: undefined }
       revoke_other_sessions: { Args: never; Returns: number }
       save_game_quote_default: {
         Args: { p_amount: number; p_key: string; p_only_missing?: boolean }
@@ -15989,6 +16093,17 @@ export type Database = {
       save_training_regulation_draft: {
         Args: { p_content: string; p_expected: string }
         Returns: undefined
+      }
+      search_book_productions: {
+        Args: { p_album?: string; p_limit?: number; p_query: string }
+        Returns: {
+          album: Json
+          id: string
+          notes: string
+          tags: string[]
+          thumbnail: string
+          title: string
+        }[]
       }
       seo_cannibalisation: {
         Args: {

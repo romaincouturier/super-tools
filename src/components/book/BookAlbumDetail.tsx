@@ -31,7 +31,6 @@ import {
 import {
   useBookProductions,
   useDeleteProduction,
-  useUpdateProduction,
   useSetAlbumCover,
   useAlbumRawCover,
   useReorderProductions,
@@ -51,6 +50,8 @@ import { toast } from '@/hooks/use-toast';
 import { useUserPreference } from '@/hooks/useUserPreferences';
 import { sortProductions, BOOK_SORT_OPTIONS, type BookSortMode } from '@/lib/bookSort';
 import { useBookDownloads } from '@/hooks/useBookDownloads';
+import { useBookAnalysis } from '@/hooks/useBookAnalysis';
+import BookProductionEditor from './BookProductionEditor';
 
 interface SortableTileProps {
   production: BookProduction;
@@ -61,9 +62,11 @@ interface SortableTileProps {
   onSetCover: () => void;
   onDownload: () => void;
   downloading: boolean;
+  onRegenerateTags: () => void;
+  analyzing: boolean;
 }
 
-function SortableTile({ production, isCover, onClick, onDelete, onEdit, onSetCover, onDownload, downloading }: SortableTileProps) {
+function SortableTile({ production, isCover, onClick, onDelete, onEdit, onSetCover, onDownload, downloading, onRegenerateTags, analyzing }: SortableTileProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: production.id,
   });
@@ -94,6 +97,8 @@ function SortableTile({ production, isCover, onClick, onDelete, onEdit, onSetCov
         onSetCover={onSetCover}
         onDownload={onDownload}
         downloading={downloading}
+        onRegenerateTags={onRegenerateTags}
+        analyzing={analyzing}
       />
     </div>
   );
@@ -113,10 +118,11 @@ export default function BookAlbumDetail({
   const navigate = useNavigate();
   const { downloading, download } = useBookDownloads(true);
   const { data: rawProductions = [], isLoading } = useBookProductions(albumId);
+  const analysis = useBookAnalysis(albumId, rawProductions.map(p => p.id));
+  const [editingProduction, setEditingProduction] = useState<BookProduction | null>(null);
   useBackfillBookThumbnails(albumId);
   const { data: rawCoverUrl } = useAlbumRawCover(albumId);
   const deleteProduction = useDeleteProduction();
-  const updateProduction = useUpdateProduction();
   const setAlbumCover = useSetAlbumCover();
 
   const { value: sortMode, save: saveSortMode } = useUserPreference<BookSortMode>(
@@ -200,14 +206,7 @@ export default function BookAlbumDetail({
   }
 
   function handleEdit(production: BookProduction) {
-    const newTitle = window.prompt('Nouveau titre', production.title);
-    if (newTitle && newTitle.trim() && newTitle.trim() !== production.title) {
-      updateProduction.mutate({
-        id: production.id,
-        albumId: production.album_id,
-        title: newTitle.trim(),
-      });
-    }
+    setEditingProduction(production);
   }
 
   async function handleSetCover(production: BookProduction) {
@@ -217,6 +216,13 @@ export default function BookAlbumDetail({
 
   return (
     <div className="space-y-6">
+      {analysis.data?.pause && <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
+        <span>Analyse du Book en pause : {analysis.data.pause}</span>
+        <Button variant="outline" size="sm" disabled={analysis.loading} onClick={() => void analysis.resume()}>Reprendre l’analyse</Button>
+      </div>}
+      {analysis.data?.jobs.filter(j => j.status === 'error').map(job => <div key={job.production_id} className="text-sm text-destructive" role="alert">
+        {rawProductions.find(p => p.id === job.production_id)?.title} : {job.error_message}
+      </div>)}
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-3">
@@ -311,6 +317,8 @@ export default function BookAlbumDetail({
                   onSetCover={() => handleSetCover(production)}
                   onDownload={() => void download([production])}
                   downloading={downloading}
+                  onRegenerateTags={() => void analysis.regenerate(production.id)}
+                  analyzing={analysis.loading || analysis.data?.jobs.some(j => j.production_id === production.id && j.status === 'processing') === true}
                 />
               ))}
             </div>
@@ -320,6 +328,7 @@ export default function BookAlbumDetail({
 
 
       {/* Dialogs */}
+      {editingProduction && <BookProductionEditor key={editingProduction.id} production={editingProduction} onClose={() => setEditingProduction(null)} />}
       <BookUploadDialog
         open={uploadOpen}
         onOpenChange={setUploadOpen}

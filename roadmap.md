@@ -1,5 +1,12 @@
 # Roadmap
 
+## Lecture et indexation des productions Book (2026-11-23)
+- [x] Lecture des identifiants book_productions et chemins privés, repli vignette sur limite de transformation/404, réduction 1600 px, crop borné et limite full_resolution inchangée ; MCP historique et assistant intégré déployés.
+- [x] Analyse IA des nouveaux visuels via file persistante, lots de trois, lease et pauses durables ; régénération privée et éditions manuelles protégées par snapshots et verrou titre. Rattrapage des images sans tags mis en file, planification horaire créée (24 passages/jour), sans email ni changement de fichiers.
+- [x] Recherche MCP SDK sous les droits de l’appelant sur titre/tags/notes sans accents/casse, vignette signée ; manifeste de 25 outils extrait. Édition titre/tags/notes privée ; partage public inchangé.
+- [x] 59 tests ciblés et 103 règles réussis, build OK. Analyse réelle du c2ea89b2 : titre « Les bons usages de la prospection par téléphone », 12 tags français et description de deux phrases enregistrés et relus avec Romain. Journal corrigé et testé avec destinataire obligatoire ; aucune autre production enrichie pendant cette vérification.
+- [ ] Publication du nouvel outil MCP SDK et de l’écran : attend la republication par Romain. L’appel depuis Claude reste non vérifié faute de session MCP historique ; première exécution horaire et fin des 107 autres analyses non encore observées. Aucun nouveau service activé ; authentification de planification synchronisée, droits préservés.
+
 ## Revue des parcours de lecture d’images (2026-11-23)
 - [x] Code relu : MCP historique et assistant intégré partagent readMediaImage ; documents/PDF scannés et analyse d’appels d’offres ne décompressent pas les pixels ; book privé/public utilise navigateur ou transforms ; imports conservent les fichiers et reçoivent les vignettes du navigateur. Recherche globale : aucun autre ImageScript/décodeur de pixels serveur trouvé ; aucun cron ni fonction SQL exécuté.
 - [x] Téléchargement externe interrompu dès dépassement de 512 Kio (aperçu/crop) ou 5 Mio (original pleine résolution sans crop), délai 30 s ; URLs Storage brutes et transformées également résolues par le client existant. 34 tests ciblés, 103 règles et build OK ; mcp-server et agent-chat redéployés. Aucun original, droit, réglage ni protection publique modifié. Limites restantes : voir les deux tâches ouvertes ci-dessous.

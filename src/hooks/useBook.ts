@@ -360,6 +360,7 @@ interface UploadProductionParams {
 
 export function useUploadProduction() {
   const queryClient = useQueryClient();
+  const analysis = useEdgeFunction('analyze-book-productions', { silentOnError: true });
   return useMutation({
     mutationFn: async ({
       albumId,
@@ -391,8 +392,10 @@ export function useUploadProduction() {
       if (error) throw error;
       return data.production as BookProduction;
     },
-    onSuccess: (_result, variables) => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ["book-productions", variables.albumId] });
+      queryClient.invalidateQueries({ queryKey: ["book-analysis", variables.albumId] });
+      if (result.file_type === 'image') void analysis.invoke();
     },
     onError: (err: Error) => {
       toastError(toast, err, { title: "Erreur upload" });
@@ -478,6 +481,7 @@ interface MediaPickerItem {
 
 export function useAddMediaToAlbum() {
   const queryClient = useQueryClient();
+  const analysis = useEdgeFunction('analyze-book-productions', { silentOnError: true });
   return useMutation({
     mutationFn: async ({
       albumId,
@@ -521,9 +525,11 @@ export function useAddMediaToAlbum() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["book-productions", variables.albumId] });
       queryClient.invalidateQueries({ queryKey: ["book-albums"] });
+      queryClient.invalidateQueries({ queryKey: ["book-analysis", variables.albumId] });
+      if (data?.some(p => p.file_type === 'image')) void analysis.invoke();
     },
     onError: (err: Error) => {
       toastError(toast, err, { title: "Erreur ajout depuis la médiathèque" });

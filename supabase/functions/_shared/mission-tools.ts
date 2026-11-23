@@ -296,20 +296,40 @@ export async function readMediaImage(
     .eq("id", mediaId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!row) throw new Error("Media introuvable");
+  let book: { file_url: string; thumbnail_url: string | null; file_type: string } | null = null;
+  if (!row) {
+    const result = await supabase.from("book_productions")
+      .select("file_url, thumbnail_url, file_type").eq("id", mediaId).maybeSingle();
+    if (result.error) throw new Error(result.error.message);
+    book = result.data;
+  }
+  if (!row && !book) throw new Error("Media ou production Book introuvable");
 
-  const mime = (row.mime_type as string) || "";
+  const mime = row ? (row.mime_type as string) || "" : book?.file_type === "image" ? "image/jpeg" : book?.file_type || "";
   if (!mime.startsWith("image/")) {
     throw new Error(`Ce media n'est pas une image (${mime || "type inconnu"})`);
   }
 
-  const fileUrl = row.file_url as string;
+  const fileUrl = (row?.file_url || book?.file_url || book?.thumbnail_url) as string;
+  if (!fileUrl) throw new Error("Fichier image absent");
 
   const storage = fileUrl.match(/\/storage\/v1\/(?:object\/(?:public\/|authenticated\/|sign\/)?|render\/image\/(?:public|authenticated|sign)\/)\b([^/]+)\/([^?]+)/);
   let bytes: Uint8Array;
   let mimeType = mime;
   if (storage) {
-    const prepared = await prepareStorageMediaImage(supabase.storage.from(storage[1]), decodeURIComponent(storage[2]), mime, fullResolution, crop);
+    let prepared;
+    try {
+      prepared = await prepareStorageMediaImage(supabase.storage.from(storage[1]), decodeURIComponent(storage[2]), mime, fullResolution, crop);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (!book?.thumbnail_url || book.thumbnail_url === fileUrl || !/limite de transformation|\(404\)/.test(message)) throw error;
+      const thumbnail = book.thumbnail_url.match(/\/storage\/v1\/object\/(?:public\/|authenticated\/|sign\/)?([^/]+)\/([^?]+)/);
+      prepared = await prepareStorageMediaImage(supabase.storage.from(thumbnail?.[1] || "book-productions"),
+        decodeURIComponent(thumbnail?.[2] || book.thumbnail_url), mime, fullResolution, crop);
+    }
+    return { data: bytesToBase64(prepared.bytes), mimeType: prepared.mimeType };
+  } else if (book && !/^https?:\/\//.test(fileUrl)) {
+    const prepared = await prepareStorageMediaImage(supabase.storage.from("book-productions"), fileUrl, mime, fullResolution, crop);
     return { data: bytesToBase64(prepared.bytes), mimeType: prepared.mimeType };
   } else {
     const r = await fetch(fileUrl, { signal: AbortSignal.timeout(30000) });

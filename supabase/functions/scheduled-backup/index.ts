@@ -34,6 +34,7 @@ const TABLES_TO_BACKUP = [
   "ai_brand_settings", "api_keys", "api_request_logs", "app_settings",
   "attendance_signatures", "audit_runs", "balance_sheets", "billing_plans",
   "book_albums", "book_analytics_events", "book_productions", "book_profiles", "book_share_links",
+  "book_analysis_control", "book_analysis_jobs",
   "bpf_reports", "breakeven_scenarios", "cashflow_forecast",
   "chatbot_conversations", "chatbot_knowledge_base",
   "checklist_template_items", "checklist_templates",
