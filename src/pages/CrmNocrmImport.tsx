@@ -256,12 +256,12 @@ export default function CrmNocrmImport() {
             <CardHeader><CardTitle className="text-base">Historique des exécutions</CardTitle></CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Mode</TableHead><TableHead>Statut</TableHead><TableHead>Lots</TableHead><TableHead>Créées</TableHead><TableHead>Fusionnées</TableHead><TableHead>Ignorées</TableHead><TableHead>Erreurs</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Mode</TableHead><TableHead>Statut</TableHead><TableHead>Lots</TableHead><TableHead>Créées</TableHead><TableHead>Fusionnées</TableHead><TableHead>Ignorées</TableHead><TableHead>Erreurs</TableHead><TableHead>Vérification</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {runs.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell>{DATE(r.started_at)}</TableCell><TableCell>{MODE_LABEL[r.mode]}</TableCell><TableCell>{STATUS_LABEL[r.status]}</TableCell>
-                      <TableCell>{r.batches_done}</TableCell><TableCell>{r.created_count}</TableCell><TableCell>{r.merged_count}</TableCell><TableCell>{r.skipped_count}</TableCell><TableCell>{r.errors?.length ?? 0}</TableCell>
+                      <TableCell>{r.batches_done}</TableCell><TableCell>{r.created_count}</TableCell><TableCell>{r.merged_count}</TableCell><TableCell>{r.skipped_count}</TableCell><TableCell>{r.errors?.length ?? 0}</TableCell><TableCell>{r.mode === "simulation" ? (r.status === "done" ? "Lecture complète" : "—") : r.reconciliation ? (r.reconciliation.ok ? "Conforme" : "Écart") : "Non vérifié"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
