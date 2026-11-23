@@ -148,6 +148,7 @@ interface RawEvaluationRow {
 function extractEvaluationData(ev: RawEvaluationRow): EvaluationData {
   return {
     id: ev.id,
+    site_comment_published_at: (ev.site_comment_published_at as string | null) ?? null,
     first_name: (ev.first_name as string | null) ?? null,
     last_name: (ev.last_name as string | null) ?? null,
     company: (ev.company as string | null) ?? null,

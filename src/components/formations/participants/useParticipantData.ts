@@ -40,7 +40,8 @@ export function useParticipantData(
           freins_application, rythme, equilibre_theorie_pratique,
           amelioration_suggeree, conditions_info_satisfaisantes,
           formation_adaptee_public, qualification_intervenant_adequate,
-          appreciations_prises_en_compte, consent_publication, remarques_libres
+          appreciations_prises_en_compte, consent_publication, remarques_libres,
+          site_comment_published_at
         `)
         .eq("training_id", trainingId);
 

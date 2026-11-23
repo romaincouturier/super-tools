@@ -70,14 +70,16 @@ const EvaluationDetailDialog = ({
 }: EvaluationDetailDialogProps) => {
   const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
-  const [publishedAt, setPublishedAt] = useState<string | null>(null);
+  const [publication, setPublication] = useState<{ evaluationId: string; publishedAt: string } | null>(null);
   const [marking, setMarking] = useState(false);
   if (!evaluation) return null;
-  const sitePublishedAt = publishedAt ?? evaluation.site_comment_published_at ?? null;
+  const sitePublishedAt = evaluation.site_comment_published_at
+    ?? (publication?.evaluationId === evaluation.id ? publication.publishedAt : null);
   const markPublished = async () => {
     setMarking(true);
     try {
-      setPublishedAt(await markSiteCommentPublished(evaluation.id));
+      const publishedAt = await markSiteCommentPublished(evaluation.id);
+      setPublication({ evaluationId: evaluation.id, publishedAt });
       toast({ title: "Commentaire marqué comme publié" });
     } catch (e) {
       toastError(toast, "Impossible de marquer le commentaire", { cause: e });
@@ -246,13 +248,15 @@ const EvaluationDetailDialog = ({
               </div>
             </div>
 
-            {/* Témoignage */}
-            {evaluation.message_recommandation && (
+            {/* Témoignage et publication */}
+            {(evaluation.message_recommandation || evaluation.consent_publication !== null) && (
               <div>
                 <h3 className="font-semibold mb-2">Témoignage</h3>
-                <blockquote className="border-l-4 border-primary pl-4 italic text-muted-foreground">
-                  "{evaluation.message_recommandation}"
-                </blockquote>
+                {evaluation.message_recommandation && (
+                  <blockquote className="border-l-4 border-primary pl-4 italic text-muted-foreground">
+                    "{evaluation.message_recommandation}"
+                  </blockquote>
+                )}
                 {evaluation.consent_publication !== null && (
                   <p className="text-xs mt-2 text-muted-foreground">
                     {evaluation.consent_publication
@@ -263,10 +267,10 @@ const EvaluationDetailDialog = ({
                 {evaluation.consent_publication && (
                   <div className="mt-3">
                     {sitePublishedAt ? (
-                      <Badge variant="outline"><Check className="h-3 w-3 mr-1" />Commentaire publié sur le site le {new Date(sitePublishedAt).toLocaleDateString("fr-FR")}</Badge>
+                      <Badge variant="outline"><Check className="h-3 w-3 mr-1" />Publié sur le site le {new Date(sitePublishedAt).toLocaleDateString("fr-FR")}</Badge>
                     ) : (
-                      <Button size="sm" variant="outline" disabled={marking} onClick={markPublished}>
-                        <Check className="h-4 w-4 mr-1" />Commentaire publié sur le site
+                      <Button size="sm" variant="outline" disabled={marking} onClick={markPublished} aria-label="Publié sur le site">
+                        <Check className="h-4 w-4 mr-1" />Publié sur le site
                       </Button>
                     )}
                   </div>

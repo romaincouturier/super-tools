@@ -208,6 +208,13 @@ describe("buildEvaluationMaps", () => {
     expect(evalInfo.fullData).not.toBeNull();
   });
 
+  it("conserves la date de publication dans le détail d'une fiche formation", () => {
+    const { evaluationMap } = buildEvaluationMaps([
+      makeRow({ site_comment_published_at: "2026-11-23T08:00:00Z" }),
+    ]);
+    expect(evaluationMap.get("p-1")!.fullData?.site_comment_published_at).toBe("2026-11-23T08:00:00Z");
+  });
+
   it("sets fullData to null for non-submitted evaluations", () => {
     const { certificateMap, evaluationMap } = buildEvaluationMaps([
       makeRow({ etat: "envoye" }),

@@ -57,6 +57,7 @@ interface Evaluation {
   qualification_intervenant_adequate: boolean | null;
   appreciations_prises_en_compte: string | null;
   consent_publication: boolean | null;
+  site_comment_published_at: string | null;
   remarques_libres: string | null;
   etat: string;
   date_soumission: string | null;

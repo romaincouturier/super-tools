@@ -1,10 +1,16 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { fireEvent, render, screen, cleanup, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import EvaluationDetailDialog, { type EvaluationData } from "./EvaluationDetailDialog";
 
-afterEach(cleanup);
+const h = vi.hoisted(() => ({ markPublished: vi.fn() }));
+vi.mock("@/services/evaluationSiteComment", () => ({ markSiteCommentPublished: h.markPublished }));
+
+afterEach(() => {
+  cleanup();
+  h.markPublished.mockReset();
+});
 
 // ── Mocks for radix/ui components ────────────────────────────────────────────
 
@@ -381,15 +387,70 @@ describe("EvaluationDetailDialog", () => {
     expect(screen.queryByText("Remarques libres")).not.toBeInTheDocument();
   });
 
-  it("hides testimonial section when message_recommandation is absent", () => {
+  it("hides testimonial section when message and publication consent are absent", () => {
     render(
       <EvaluationDetailDialog
         open={true}
         onOpenChange={vi.fn()}
-        evaluation={makeEvaluation({ message_recommandation: null })}
+        evaluation={makeEvaluation({ message_recommandation: null, consent_publication: null })}
       />,
     );
     expect(screen.queryByText("Témoignage")).not.toBeInTheDocument();
+  });
+
+  it("propose « Publié sur le site » même sans verbatim", () => {
+    render(
+      <EvaluationDetailDialog
+        open={true}
+        onOpenChange={vi.fn()}
+        evaluation={makeEvaluation({ message_recommandation: null, consent_publication: true })}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Publié sur le site" })).toBeInTheDocument();
+  });
+
+  it("marque l'avis choisi et affiche la date enregistrée", async () => {
+    h.markPublished.mockResolvedValue("2026-11-23T08:00:00Z");
+    render(
+      <EvaluationDetailDialog
+        open={true}
+        onOpenChange={vi.fn()}
+        evaluation={makeEvaluation()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Publié sur le site" }));
+    await waitFor(() => expect(h.markPublished).toHaveBeenCalledWith("eval-1"));
+    expect(await screen.findByText(/Publié sur le site le 23\/11\/2026/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Publié sur le site" })).not.toBeInTheDocument();
+  });
+
+  it("ne reporte pas l'état publié sur l'avis suivant", async () => {
+    h.markPublished.mockResolvedValue("2026-11-23T08:00:00Z");
+    const { rerender } = render(
+      <EvaluationDetailDialog open={true} onOpenChange={vi.fn()} evaluation={makeEvaluation()} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Publié sur le site" }));
+    await screen.findByText(/Publié sur le site le 23\/11\/2026/);
+
+    rerender(
+      <EvaluationDetailDialog
+        open={true}
+        onOpenChange={vi.fn()}
+        evaluation={makeEvaluation({ id: "eval-2", message_recommandation: "Autre avis" })}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Publié sur le site" })).toBeInTheDocument();
+  });
+
+  it("ne propose pas de publier un avis sans consentement", () => {
+    render(
+      <EvaluationDetailDialog
+        open={true}
+        onOpenChange={vi.fn()}
+        evaluation={makeEvaluation({ consent_publication: false })}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Publié sur le site" })).not.toBeInTheDocument();
   });
 
   it("handles freins_application display", () => {

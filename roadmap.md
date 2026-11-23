@@ -1,5 +1,9 @@
 # Roadmap
 
+## Publication des avis participants (2026-11-23)
+- [x] Bouton « Publié sur le site » pour tous les avis publiables, y compris sans verbatim ; identité connectée obligatoire, date relue, état isolé par avis et date conservée dans la fiche formation. Droits existants : Emmanuelle par modules, Romain staff.
+- [x] Génération déjà filtrée sur les avis non publiés ; trigger existant testé sur six alertes ouvertes de Romain/Emmanuelle à trois dates, clôture automatique sans toucher un autre avis. 86 tests ciblés, 3388 tests complets, typecheck, 103 règles et build OK ; clic navigateur Romain vérifié avec écriture interceptée, aucun avis réel modifié ni email. Front à publier.
+
 ## Dictée des commentaires communauté staff (2026-11-19)
 - [x] Micro réservé à la session staff dans les commentaires de modération, dictée ajoutée au brouillon sans remplacer la saisie, envoi manuel bloqué pendant enregistrement/transcription ; aucun changement de leçon, droits ou email.
 - [x] Neuf tests et 103 règles réussis, compilation automatique OK ; vraie transcription AssemblyAI depuis un audio test dans une communauté avec la session staff, texte ajouté au brouillon, aucun commentaire ni email envoyé. Micro et absence de débordement vérifiés sur ordinateur/mobile ; exclusion apprenant testée. Front à publier ; AGENTS.md plein, règle structurelle non ajoutée pour préserver les règles existantes.
