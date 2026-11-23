@@ -1,4 +1,5 @@
 # Architecture
+- MCP media previews use short-lived Storage transforms before decoding; crops decode only header-verified images bounded to 1600² pixels, and local original fallback requires both small bytes and bounded dimensions, because compressed size alone cannot protect Edge memory. No auth, RLS or public access changes are permitted for this path.
 - Rental creation paths share an awaited generation/send workflow; reuse originals and sent signatures, preserve active rentals on webhook replay, and record failures, because missing PDFs must never silently block or duplicate contracts.
 - Attendance notifications share a read-only trainer resolver (linked ID, unique legacy name, default when unassigned); explicit or ambiguous trainers never fall back to another recipient, because missing links must not silently suppress or misdirect emails.
 - Tender digests filter each notice before exclusions; daily source health uses Paris business-day import age, because rejecting one notice must not hide the whole feed.

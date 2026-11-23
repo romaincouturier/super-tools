@@ -1264,7 +1264,7 @@ const MCP_TOOLS = [
   {
     name: "read_media_image",
     description:
-      "Return a gallery or book image, including private storage. Pass a media UUID. By default the whole image is reduced to at most 1600 pixels on its longest side without cropping. Optional crop selects a region of the original before reduction, useful for small text and characters on large boards. Sources up to 15 MiB; returned images limited to 5 MiB. No original is modified.",
+      "Return a gallery or book image, including private storage. Pass a media UUID. Storage reduces images server-side to at most 1600 pixels before any local decoding. Optional crop selects percentages of that reduced image. Large Storage originals are not downloaded or decoded for previews. Returned images limited to 5 MiB. No original is modified.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1273,7 +1273,7 @@ const MCP_TOOLS = [
         full_resolution: {
           type: "boolean",
           description:
-            "Keep original pixel dimensions (of the crop if supplied). Large originals may be JPEG-encoded; if the result exceeds 5 MiB, request a smaller crop.",
+            "Without crop, return the untouched original only if it fits within 5 MiB; otherwise disable full_resolution. With crop, Storage first bounds the whole image to 1600 px, so the crop is not original pixel resolution.",
         },
       },
       required: ["media_id"],

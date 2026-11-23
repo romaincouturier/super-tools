@@ -1,6 +1,6 @@
 import { getSupabaseClient } from "./mod.ts";
 import { extractDocument, type ExtractedPart } from "./document-extract.ts";
-import { prepareMediaImage, validateImageCrop } from "./media-image.ts";
+import { prepareMediaImage, prepareStorageMediaImage, validateImageCrop } from "./media-image.ts";
 
 /**
  * Lecture du contenu réel d'une mission : dossier agrégé, pages, documents,
@@ -309,7 +309,8 @@ export async function readMediaImage(
   let bytes: Uint8Array;
   let mimeType = mime;
   if (storage) {
-    bytes = await downloadFromBucket(supabase, storage[1], decodeURIComponent(storage[2]));
+    const prepared = await prepareStorageMediaImage(supabase.storage.from(storage[1]), decodeURIComponent(storage[2]), mime, fullResolution, crop);
+    return { data: bytesToBase64(prepared.bytes), mimeType: prepared.mimeType };
   } else {
     const r = await fetch(fileUrl);
     if (!r.ok) throw new Error(`Téléchargement impossible (${r.status})`);

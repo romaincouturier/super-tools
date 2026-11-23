@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { cropPixels, validateImageCrop, prepareMediaImage, IMAGE_INPUT_MAX_BYTES } from "./media-image.ts";
 
+function jpeg(width = 1600, height = 800) {
+  return new Uint8Array([255, 216, 255, 192, 0, 8, 8, height >> 8, height & 255, width >> 8, width & 255, 0]);
+}
+
 const crop = vi.fn();
 const resize = vi.fn();
 const encodeJPEG = vi.fn(async () => new Uint8Array([1, 2, 3]));
@@ -18,13 +22,13 @@ describe("zones de planches", () => {
   it("accepte la totalité de la planche", () => expect(validateImageCrop({ x: 0, y: 0, width: 100, height: 100 })).toEqual({ x: 0, y: 0, width: 100, height: 100 }));
   it("réduit sans perdre les proportions à 1600 pixels", async () => {
     resize.mockClear();
-    const result = await prepareMediaImage(new Uint8Array([7]), "image/jpeg", false);
+    const result = await prepareMediaImage(jpeg(), "image/jpeg", false);
     expect(resize).toHaveBeenCalledWith(1600, 800);
     expect(result).toEqual({ bytes: new Uint8Array([1, 2, 3]), mimeType: "image/jpeg" });
   });
   it("recadre depuis l’original sans réduire en pleine résolution", async () => {
     crop.mockClear(); resize.mockClear();
-    const result = await prepareMediaImage(new Uint8Array([7]), "image/jpeg", true, { x: 25, y: 10, width: 50, height: 40 });
+    const result = await prepareMediaImage(jpeg(), "image/jpeg", true, { x: 25, y: 10, width: 50, height: 40 });
     expect(crop).toHaveBeenCalledWith(1000, 200, 2000, 800);
     expect(resize).not.toHaveBeenCalled();
     expect(result.bytes).toEqual(new Uint8Array([1, 2, 3]));
@@ -33,8 +37,8 @@ describe("zones de planches", () => {
     const bytes = new Uint8Array([9, 8]);
     expect(await prepareMediaImage(bytes, "image/png", true)).toEqual({ bytes, mimeType: "image/png" });
   });
-  it("accepte une source de 15 Mo et refuse au-delà", async () => {
-    expect((await prepareMediaImage(new Uint8Array(15 * 1024 * 1024), "image/jpeg", true)).bytes).toEqual(new Uint8Array([1, 2, 3]));
+  it("refuse de décoder un original de 15 Mo localement", async () => {
+    await expect(prepareMediaImage(new Uint8Array(15 * 1024 * 1024), "image/jpeg", true)).rejects.toThrow("Décodage local refusé");
     expect(IMAGE_INPUT_MAX_BYTES).toBe(15 * 1024 * 1024);
     await expect(prepareMediaImage(new Uint8Array(15 * 1024 * 1024 + 1), "image/jpeg", false)).rejects.toThrow("15 Mo");
   });

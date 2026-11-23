@@ -1,5 +1,11 @@
 # Roadmap
 
+## Lecture des grandes planches MCP (2026-11-23)
+- [x] Réduction Storage signée 60 s, 1600×1600 contain qualité 80 avant décodage ; crop sur version réduite aux dimensions JPEG/PNG vérifiées, fallback local limité à 512 Kio et 1600² pixels. full_resolution sans crop conserve l’original seulement jusqu’à 5 Mio ; crop ne garantit plus la résolution originale. Droits, originaux, services et emails inchangés ; mcp-server et agent-chat déployés, manifeste parallèle 24 outils extrait, 41 tests et 103 règles OK, build OK.
+- [x] Transformations réelles authentifiées Romain : c7a63837 (963 Ko) → HTTP 200, JPEG 66 951 octets / 1600×698 ; 35f19225 (3,5 Mo) → HTTP 200, JPEG 189 130 octets / 1600×1108. Ce ne sont pas des appels MCP ; crop validé seulement par tests simulés.
+- [ ] Média 90636e9b (15,8 Mo) : Storage renvoie HTTP 400 « The source image resolution is too large to process ». Besoin d’une copie réduite privée préparée hors Edge ; aucun original décodé, copié ni modifié. Aperçu book existant non décodable dans le navigateur, non utilisé comme contournement.
+- [ ] Six appels MCP hébergés non validés : tentatives réelles sans/avec crop refusées 401, connexion OAuth historique indisponible depuis ces outils ; session app Romain ne vaut pas session MCP. Connexion autorisée du serveur historique nécessaire, aucun secret récupéré ni droit contourné. Republier l’app pour la révision globale ; serveur historique déployé séparément.
+
 ## Publication des avis participants (2026-11-23)
 - [x] Bouton « Publié sur le site » pour tous les avis publiables, y compris sans verbatim ; identité connectée obligatoire, date relue, état isolé par avis et date conservée dans la fiche formation. Droits existants : Emmanuelle par modules, Romain staff.
 - [x] Génération déjà filtrée sur les avis non publiés ; trigger existant testé sur six alertes ouvertes de Romain/Emmanuelle à trois dates, clôture automatique sans toucher un autre avis. 86 tests ciblés, 3388 tests complets, typecheck, 103 règles et build OK ; clic navigateur Romain vérifié avec écriture interceptée, aucun avis réel modifié ni email. Front à publier.
