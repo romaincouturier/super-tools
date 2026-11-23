@@ -28,7 +28,7 @@ Système d'information de SuperTilt, organisme de formation : formations et LMS,
 - Typecheck : `npm run typecheck`, jamais `npx tsc --noEmit` : `tsconfig.json` est un fichier solution et cette commande compile zéro fichier.
 - Avant de pousser, lancer ce que la CI lance : `npm run typecheck`, `bash scripts/check-rules.sh`, `npm test`.
 - `npm test` couvre aussi `supabase/functions/_shared/**/*.test.ts` et `supabase/tests/**/*.test.ts`, pas seulement `src/`.
-- npm uniquement (CI : `npm ci`, Node 20).
+- npm uniquement (CI : `npm ci`, Node 22).
 
 ## Conventions qui diffèrent des défauts
 
