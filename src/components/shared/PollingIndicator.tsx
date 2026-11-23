@@ -74,6 +74,9 @@ export function PollingIndicator({ source, label = "Polling", functionName, forc
       toast({ title: "Polling déclenché", description: summary });
       await qc.invalidateQueries({ queryKey: ["polling-cursor", source] });
       await qc.invalidateQueries({ queryKey: ["transcripts"] });
+      await qc.invalidateQueries({ queryKey: ["transcripts-page"] });
+      await qc.invalidateQueries({ queryKey: ["transcripts-counts"] });
+      await qc.invalidateQueries({ queryKey: ["transcript"] });
       await qc.invalidateQueries({ queryKey: ["testimonials"] });
     } catch (err) {
       let message = err instanceof Error ? err.message : "Échec du polling";

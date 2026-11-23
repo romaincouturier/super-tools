@@ -93,7 +93,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
         existing &&
         (existing.status === "ready" ||
           existing.status === "trashed" ||
-          (existing.status === "processing" && existing.assemblyai_id))
+          existing.status === "error" ||
+          existing.status === "processing")
       ) {
         return true;
       }
@@ -102,7 +103,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (!transcriptId) {
         const { data: inserted, error } = await (admin as any)
           .from("transcripts")
-          .insert({ source: "google_drive", external_id: fileId, title: fileName, status: "processing" })
+          .insert({ source: "google_drive", external_id: fileId, title: fileName, status: "processing", metadata: { submission_stage: "queued" } })
           .select("id")
           .single();
         if (error || !inserted) {
@@ -118,11 +119,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }
 
 
-      fetch(`${SUPABASE_URL}/functions/v1/submit-drive-transcript`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/submit-drive-transcript`, {
         method: "POST",
         headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({ transcript_id: transcriptId, drive_file_id: fileId }),
-      }).catch((e) => console.warn("[poll-drive-testimonials] submit-drive-transcript failed", e));
+      });
+      if (!response.ok) {
+        await admin.from("transcripts").update({ status: "error", error_message: `Soumission Drive HTTP ${response.status}` }).eq("id", transcriptId);
+        return false;
+      }
       return true;
     };
 

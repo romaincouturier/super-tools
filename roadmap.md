@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Priorité Savencia et reprises Drive (2026-11-23)
+- [x] Revue complémentaire : bouton Forcer actualise aussi la liste paginée, les compteurs et le détail ; les enregistrements redirigés depuis le dossier témoignages utilisent la file persistée et ne réinitialisent plus les traitements/erreurs. Le pipeline distinct des véritables témoignages reste hors du périmètre et présente encore des limites de reprise.
 - [x] Savencia du 23/11 18:34 retrouvée dans Drive et soumise seule avec journal de réparation, sans notification ni génération de contenu.
 - [x] Savencia prête : 17 025 caractères, durée 1 067 s contre 1 066,887 s attendues, texte relu dans l’écran avec la session de Romain.
 - [x] Morceaux de dix minutes avec reprise au temps exact, extraction sérialisée par instance et file persistée, lease optimiste, finalisation par webhook ciblé ; fichiers récents prioritaires, timer Sentry désactivé. Quatre fonctions déployées, 103 règles et 3 460 tests complets réussis, puis trois tests webhook supplémentaires réussis ; droits, crons, fichiers et leçons inchangés.
