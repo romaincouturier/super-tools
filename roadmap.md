@@ -1,16 +1,25 @@
 # Roadmap
 
+## Reprise des demandes après ajout de crédits (2026-11-24)
+- [x] Convention Cegid : envoi unique confirmé à 10:26:57 UTC, aucune répétition.
+- [x] Transcriptions prioritaires : Savencia du 23/11 et EDHEC Transition Apply prêtes ; aucun enregistrement Drive encore en traitement au contrôle, deux erreurs restent à examiner.
+- [x] Contrôle existant des 50 fiches NoCRM exécuté : conforme, 50 fiches, 37 gagnées, 51 422 € source, 78 notes, 188 activités, aucun écart ; verdict relu dans l’écran de Romain, sans import ni email.
+- [x] Deux erreurs Drive examinées : fichier composite Savencia/PictoChallenge/Servier interrompu trois fois sans job, journaux historiques indisponibles ; live du 10/11 avec cinq morceaux terminés (3 000 secondes), dernier morceau de 67,895 secondes en échec, reprise existante refusée car l’identifiant du job reste renseigné. Aucun morceau effacé ni relance aveugle.
+- [ ] Fichier composite du 12/11 : cause de l’interruption à établir, journaux du traitement indisponibles.
+- [ ] Live du 10/11 : reprise des 67,895 dernières secondes bloquée par la garde existante ; nécessite une validation du statut terminal du job avant de permettre la reprise.
+
 ## Priorité Savencia et reprises Drive (2026-11-23)
 - [x] Revue complémentaire : bouton Forcer actualise aussi la liste paginée, les compteurs et le détail ; les enregistrements redirigés depuis le dossier témoignages utilisent la file persistée et ne réinitialisent plus les traitements/erreurs. Le pipeline distinct des véritables témoignages reste hors du périmètre et présente encore des limites de reprise.
 - [x] Savencia du 23/11 18:34 retrouvée dans Drive et soumise seule avec journal de réparation, sans notification ni génération de contenu.
 - [x] Savencia prête : 17 025 caractères, durée 1 067 s contre 1 066,887 s attendues, texte relu dans l’écran avec la session de Romain.
 - [x] Morceaux de dix minutes avec reprise au temps exact, extraction sérialisée par instance et file persistée, lease optimiste, finalisation par webhook ciblé ; fichiers récents prioritaires, timer Sentry désactivé. Quatre fonctions déployées, 103 règles et 3 460 tests complets réussis, puis trois tests webhook supplémentaires réussis ; droits, crons, fichiers et leçons inchangés.
 - [x] Dix-huit blocages existants et deux nouveaux enregistrements du jour relancés avec journal nominatif ; morceaux terminés conservés, aucune notification ni génération de contenu. Dernier bilan : Savencia et cinq autres prêts, quinze encore en traitement/file, aucun statut erreur ni nouvelle saturation observée après sérialisation.
-- [ ] Fin des quinze traitements : dépend des réponses AssemblyAI et de la file serveur ; résultat complet non encore disponible à la fin de cette intervention.
+- [x] Contrôle complémentaire du 24/11 : aucun Drive encore en traitement, 121 prêts et deux erreurs ; les deux reprises restantes et leurs blocages sont recensés ci-dessus.
 
 ## Import noCRM lisible (2026-11-23)
 - [x] Verdict de simulation, comparaison spec/fichier expliquée, anomalies regroupées, rôle des trois boutons, contrôle fiche par fiche de l'import test (fonction déployée).
-- [ ] Écran à publier ; bouton « Vérifier les 50 fiches test » à cliquer par Romain.
+- [x] Contrôle des 50 fiches exécuté le 24/11 avec la session de Romain et verdict « Conforme » relu dans l’aperçu ; aucun import complet lancé.
+- [ ] Écran à publier.
 
 ## Locations : contrat et préparation du colis (2026-11-23)
 - [x] Bandeaux de statut sur la carte, tâches quotidiennes (attente / colis à préparer) auto-closes, mail interne à la signature vers le réglage `rental_shipping_notify_email` (Emmanuelle), tests et 103 règles OK, fonctions déployées.
