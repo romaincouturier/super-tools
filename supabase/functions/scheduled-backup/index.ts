@@ -1,6 +1,3 @@
-  // Blob composite : aucune copie supplémentaire du fichier en mémoire.
-  const bodyParts = new Blob([metaPart, blob, endPart]);
-
 /**
  * Scheduled Backup
  *
@@ -226,12 +223,8 @@ async function uploadBlobToGoogleDrive(
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`,
   );
   const endPart = new TextEncoder().encode(`\r\n--${boundary}--`);
-  const blobBytes = new Uint8Array(await blob.arrayBuffer());
-
-  const bodyParts = new Uint8Array(metaPart.length + blobBytes.length + endPart.length);
-  bodyParts.set(metaPart, 0);
-  bodyParts.set(blobBytes, metaPart.length);
-  bodyParts.set(endPart, metaPart.length + blobBytes.length);
+  // Blob composite : aucune copie supplémentaire du fichier en mémoire.
+  const bodyParts = new Blob([metaPart, blob, endPart]);
 
   const response = await fetch(
     "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
