@@ -142,8 +142,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
       results.checked++;
       let result = await pollAssemblyAIJob(row.assemblyai_id, ASSEMBLYAI_API_KEY);
       if (result === null) continue; // still in progress
-      if (result === "error") {
-        await (admin as any).from("transcripts").update({ status: "error", error_message: "AssemblyAI transcription failed (cause et identifiant du job dans Sentry)" }).eq("id", row.id);
+      if ("error" in result) {
+        await (admin as any).from("transcripts").update({ status: "error", error_message: result.error, assemblyai_id: null }).eq("id", row.id);
+        if (row.metadata?.repair_log_id) {
+          await admin.from("transcript_repair_logs").update({ status: "error", error_message: result.error }).eq("id", row.metadata.repair_log_id);
+        }
         results.errors++;
         continue;
       }

@@ -1,5 +1,11 @@
 # Roadmap
 
+## ST-2026-0274 — langue des transcriptions Drive (2026-11-24)
+- [x] Live du 10/11 identifié : cinq morceaux terminés, sixième de 67,895 secondes en erreur de confiance de langue (allemand détecté à 0,0373).
+- [x] Français par défaut sur tous les parcours AssemblyAI encore en détection automatique ; erreurs explicites, jobs terminés détachés et témoignages en erreur exclus des relances automatiques. Reprise manuelle d’une erreur sans job actif possible immédiatement.
+- [x] Sept fonctions déployées ; 3 477 tests, 103 règles et compilation OK. Reprise réelle réussie sans génération ni notification : 6/6 morceaux, 3 068 secondes, 31 632 caractères, statut prêt.
+- [x] Ticket résolu avec note vérifiée ; aucun email, cron, droit ou autre enregistrement modifié.
+
 ## Progression audit Qualiopi (2026-11-24)
 - [x] Contrôles documentés (oui ou non) séparés des corrections ouvertes ; focus limité à deux contrôles encore à documenter, places libérées complétées, verdicts et expiration des preuves inchangés.
 - [x] Écran et bilan quotidien alignés, run-qualiopi-audit déployée ; 38 tests ciblés, 103 règles et compilation OK. Avec Romain et les preuves existantes : focus 4/8, corrections 18/1, lien vers l’indicateur 1 et affichage mobile vérifiés ; aucune écriture de données, aucun email ni changement de planification. Impact sécurité : aucun changement d’authentification, de droits ou de RLS.
@@ -11,7 +17,7 @@
 - [x] Contrôle existant des 50 fiches NoCRM exécuté : conforme, 50 fiches, 37 gagnées, 51 422 € source, 78 notes, 188 activités, aucun écart ; verdict relu dans l’écran de Romain, sans import ni email.
 - [x] Deux erreurs Drive examinées : fichier composite Savencia/PictoChallenge/Servier interrompu trois fois sans job, journaux historiques indisponibles ; live du 10/11 avec cinq morceaux terminés (3 000 secondes), dernier morceau de 67,895 secondes en échec, reprise existante refusée car l’identifiant du job reste renseigné. Aucun morceau effacé ni relance aveugle.
 - [ ] Fichier composite du 12/11 : cause de l’interruption à établir, journaux du traitement indisponibles.
-- [ ] Live du 10/11 : reprise des 67,895 dernières secondes bloquée par la garde existante ; nécessite une validation du statut terminal du job avant de permettre la reprise.
+- [x] Live du 10/11 : garde de reprise corrigée pour les erreurs terminales sans job actif ; dernier morceau de 67,895 secondes retranscrit en français et transcription complète prête (ST-2026-0274).
 
 ## Priorité Savencia et reprises Drive (2026-11-23)
 - [x] Revue complémentaire : bouton Forcer actualise aussi la liste paginée, les compteurs et le détail ; les enregistrements redirigés depuis le dossier témoignages utilisent la file persistée et ne réinitialisent plus les traitements/erreurs. Le pipeline distinct des véritables témoignages reste hors du périmètre et présente encore des limites de reprise.

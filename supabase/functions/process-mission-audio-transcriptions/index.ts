@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import { logAssemblyAiUsage } from "../_shared/api-usage.ts";
+import { ASSEMBLYAI_DEFAULT_LANGUAGE } from "../_shared/assemblyai-language.ts";
 
 type MissionDocument = {
   id: string;
@@ -117,9 +118,7 @@ async function submitAssemblyJob(apiKey: string, audioUrl: string): Promise<stri
     },
     body: JSON.stringify({
       audio_url: audioUrl,
-      // Auto-detect spoken language instead of forcing French.
-      language_detection: true,
-      language_confidence_threshold: 0.5,
+      ...ASSEMBLYAI_DEFAULT_LANGUAGE,
       punctuate: true,
       format_text: true,
       speaker_labels: true,

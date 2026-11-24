@@ -12,6 +12,7 @@ describe("Drive Meet transcription", () => {
     const row = { status: "processing", assemblyai_id: null, updated_at: "2026-11-23T17:00:00Z" };
     expect(canResumeDrive(row, now)).toBe(true);
     expect(canResumeDrive({ ...row, status: "error" }, now)).toBe(true);
+    expect(canResumeDrive({ ...row, status: "error", updated_at: "2026-11-23T18:09:00Z" }, now)).toBe(true);
     expect(canResumeDrive({ ...row, assemblyai_id: "active" }, now)).toBe(false);
     expect(canResumeDrive({ ...row, status: "ready" }, now)).toBe(false);
     expect(canResumeDrive({ ...row, status: "trashed" }, now)).toBe(false);

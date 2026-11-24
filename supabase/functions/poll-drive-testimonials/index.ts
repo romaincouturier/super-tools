@@ -190,8 +190,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
       const result = await pollAssemblyAIJob(jobId, ASSEMBLYAI_API_KEY);
       if (result === null) continue;
-      if (result === "error") {
-        await (admin as any).from("testimonials").update({ metadata: {} }).eq("id", row.id);
+      if ("error" in result) {
+        await (admin as any).from("testimonials").update({
+          metadata: { ...(row.metadata ?? {}), assemblyai_id: null, assemblyai_error: result.error },
+        }).eq("id", row.id);
         results.errors++;
         continue;
       }
@@ -231,6 +233,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .select("id")
       .is("raw_transcript", null)
       .is("metadata->>assemblyai_id", null)
+      .is("metadata->>assemblyai_error", null)
       .not("drive_file_id", "is", null)
       .neq("status", "rejected")
       .limit(5);

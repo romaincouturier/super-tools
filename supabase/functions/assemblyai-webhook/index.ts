@@ -137,12 +137,15 @@ async function finalizeTranscript(
     // Shouldn't happen since webhook fires on terminal state, but be safe
     return jsonResponse({ ok: true, pending: true });
   }
-  if (result === "error") {
+  if ("error" in result) {
     await admin.from("transcripts").update({
       status: "error",
-      error_message: "AssemblyAI transcription failed",
+      error_message: result.error,
       assemblyai_id: null,
     }).eq("id", row.id);
+    if (row.metadata?.repair_log_id) {
+      await admin.from("transcript_repair_logs").update({ status: "error", error_message: result.error }).eq("id", row.metadata.repair_log_id);
+    }
     return jsonResponse({ ok: true, finalized: "error" });
   }
 
@@ -278,8 +281,10 @@ async function finalizeTestimonial(
   if (result === null) {
     return jsonResponse({ ok: true, pending: true });
   }
-  if (result === "error") {
-    await admin.from("testimonials").update({ metadata: {} }).eq("id", row.id);
+  if ("error" in result) {
+    await admin.from("testimonials").update({
+      metadata: { ...(row.metadata ?? {}), assemblyai_id: null, assemblyai_error: result.error },
+    }).eq("id", row.id);
     return jsonResponse({ ok: true, finalized: "error" });
   }
 

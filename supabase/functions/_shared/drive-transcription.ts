@@ -7,7 +7,9 @@ export const MAX_SILENT_DISPATCHES = 3;
 export const ASSEMBLY_MAX_SECONDS = 10 * 60 * 60;
 
 export function canResumeDrive(row: { status: string; assemblyai_id?: string | null; updated_at: string } | null | undefined, now = Date.now()): boolean {
-  return !!row && ["processing", "error"].includes(row.status) && !row.assemblyai_id && now - Date.parse(row.updated_at) > 10 * 60 * 1000;
+  if (!row || row.assemblyai_id) return false;
+  if (row.status === "error") return true;
+  return row.status === "processing" && now - Date.parse(row.updated_at) > 10 * 60 * 1000;
 }
 
 export function newestDriveFirst<T extends { createdTime?: string }>(files: T[]): T[] {

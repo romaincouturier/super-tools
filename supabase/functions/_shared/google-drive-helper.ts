@@ -7,6 +7,7 @@ import { logAnthropicUsage, logAssemblyAiUsage } from "./api-usage.ts";
 import { CLAUDE_DEFAULT } from "./claude-models.ts";
 import { reportEdgeError } from "./sentry.ts";
 import { refreshGoogleAccessToken } from "./google-oauth.ts";
+import { ASSEMBLYAI_DEFAULT_LANGUAGE, formatAssemblyAIError, isAssemblyAILanguageConfidenceError } from "./assemblyai-language.ts";
 
 export interface DriveFile {
   id: string;
@@ -202,8 +203,7 @@ export async function submitAssemblyAIJob(
 ): Promise<string> {
   const payload: Record<string, unknown> = {
     audio_url: uploadUrl,
-    language_detection: true,
-    language_confidence_threshold: 0.5,
+    ...ASSEMBLYAI_DEFAULT_LANGUAGE,
     punctuate: true,
     format_text: true,
     speaker_labels: true,
@@ -227,7 +227,7 @@ export async function submitAssemblyAIJob(
 export async function pollAssemblyAIJob(
   jobId: string,
   apiKey: string,
-): Promise<{ text: string; duration: number } | null | "error"> {
+): Promise<{ text: string; duration: number } | { error: string } | null> {
   const res = await fetch(`https://api.assemblyai.com/v2/transcript/${jobId}`, {
     headers: { Authorization: apiKey },
   });
@@ -259,7 +259,10 @@ export async function pollAssemblyAIJob(
     return { text, duration };
   }
   if (result.status === "error") {
-    await reportEdgeError(new Error(String(result.error ?? "AssemblyAI transcription failed")), { fn: "drive-transcription", job_id: jobId });
+    const providerError = String(result.error ?? "AssemblyAI transcription failed");
+    if (!isAssemblyAILanguageConfidenceError(providerError)) {
+      await reportEdgeError(new Error(providerError), { fn: "drive-transcription", job_id: jobId });
+    }
     await logAssemblyAiUsage({
       origin: "google-drive-helper",
       operation: "poll-transcript",
@@ -267,9 +270,9 @@ export async function pollAssemblyAIJob(
       audioSeconds: Math.round(result.audio_duration ?? 0),
       trigger: "cron",
       status: "error",
-      errorMessage: String(result.error ?? "transcription error"),
+      errorMessage: providerError,
     });
-    return "error";
+    return { error: formatAssemblyAIError(providerError) };
   }
   return null; // still queued/processing
 }
