@@ -25,7 +25,7 @@ import { mergeEvidenceAnswers } from '../_shared/audit-evidence.ts';
  * sa date initiale, et ferme les écarts corrigés ainsi que les doublons.
  */
 
-const VERSION = "run-qualiopi-audit@2026-11-16.1";
+const VERSION = "run-qualiopi-audit@2026-11-24.1";
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -112,11 +112,11 @@ serve(async (req) => {
     const summaryChanged = JSON.stringify(summary) !== JSON.stringify(lastSentSummary);
     const changesSinceEmail = auditChanges(issues, sentRead.data?.findings ?? []);
     let emailSent = false;
-    const changed = changesSinceEmail.changed || summaryChanged || !sentRead.data;
+    const changed = changesSinceEmail.changed || summaryChanged || !sentRead.data || JSON.stringify(model.focus) !== JSON.stringify(sentRead.data.facts?.auditFocus ?? []);
     if (shouldSendAuditSummary(changed, sentRead.data?.summary_email_sent_at)) {
       const rendered = await renderCatalogEmail(supabase, 'qualiopi_audit_focus', {
-        vars: { focus_title: model.focus.length ? `indicateurs ${model.focus.join(' et ')}` : 'aucun indicateur à corriger' },
-        blocks: { actions_list: renderAuditActions(model.actions), global_footer: `<p>Reste ${model.remaining} indicateur${model.remaining > 1 ? 's' : ''} à traiter${model.remaining ? ', prochain focus demain' : ''} · <a href="https://academy.supertilt.fr/audit-blanc">Audit blanc</a></p>`, signature: await getSigniticSignature() },
+        vars: { focus_title: model.focus.length ? `indicateurs ${model.focus.join(' et ')}` : 'contrôles documentés' },
+        blocks: { actions_list: `${model.actions.length ? renderAuditActions(model.actions) : '<p>Aucun contrôle restant à documenter.</p>'}${model.corrections.length ? `<h2>Corrections ouvertes</h2>${renderAuditActions(model.corrections)}` : ''}`, global_footer: `<p>${model.remaining} indicateur${model.remaining > 1 ? 's' : ''} à documenter · ${model.correctionsRemaining} indicateur${model.correctionsRemaining > 1 ? 's' : ''} documenté${model.correctionsRemaining > 1 ? 's' : ''} avec corrections ouvertes · <a href="https://academy.supertilt.fr/audit-blanc">Audit blanc</a></p>`, signature: await getSigniticSignature() },
       });
       const sent = await sendEmail({ to: recipientEmail, bcc: (await getBccList()).filter(e => e !== recipientEmail), subject: rendered.subject, html: `<div style="text-align:left">${rendered.html}</div>`, _emailType: 'qualiopi_audit_summary', idempotencyKey: `qualiopi-audit-${run.id}` });
       const saved = await supabase.from('audit_runs').update({ summary_email_sent_at: sent.success ? new Date().toISOString() : null, summary_email_error: sent.error ?? null }).eq('id', run.id);

@@ -93,7 +93,7 @@ export function auditEmailModel(facts: AuditFacts, answers: Record<string, Answe
       ...base,
       problem: effective[manual[0].id] === 'non' ? 'Une réponse manuelle indique un attendu non respecté.' : 'Les preuves disponibles ne permettent pas de vérifier ce point sans ton complément.',
       recommendation: manual.map(q => `Réponds dans l’audit : ${q.label}${q.hint ? ` Preuve : ${q.hint}` : ''}`).join(' '),
-      href: `/audit-blanc?indicator=${finding.number}`, minutes: manual.length * 5, tasks: manual.map(q => ({ problem: 'Preuve à confirmer dans cet audit.', recommendation: `Confirme avec une preuve : ${q.label}`, href: `/audit-blanc?indicator=${finding.number}`, items: [] })),
+      href: `/audit-blanc?indicator=${finding.number}`, minutes: manual.length * 5, tasks: manual.map(q => ({ problem: effective[q.id] === 'non' ? 'Contrôle documenté : attendu non respecté.' : 'Preuve à confirmer dans cet audit.', recommendation: effective[q.id] === 'non' ? `Corrige le point suivant, puis conserve une nouvelle preuve : ${q.label}` : `Confirme avec une preuve : ${q.label}`, href: `/audit-blanc?indicator=${finding.number}`, items: [] })),
     });
     return failed;
   }).sort((a, b) => a.priority - b.priority || a.indicator - b.indicator);
@@ -115,14 +115,17 @@ export function auditEmailModel(facts: AuditFacts, answers: Record<string, Answe
 
 export function selectAuditFocus(actions: AuditAction[], previous: number[] = []): number[] {
   const unresolved = previous.filter((n, i) => previous.indexOf(n) === i && actions.some(a => a.indicator === n));
-  if (unresolved.length) return unresolved.slice(0, 2);
-  return [...actions].sort((a, b) => a.priority - b.priority || a.indicator - b.indicator).slice(0, 2).map(a => a.indicator);
+  const next = [...actions].sort((a, b) => a.priority - b.priority || a.indicator - b.indicator).map(a => a.indicator);
+  return [...new Set([...unresolved, ...next])].slice(0, 2);
 }
 
 export function auditFocusModel(facts: AuditFacts, answers: Record<string, AnswerValue> = {}, previous: number[] = []) {
   const model = auditEmailModel(facts, answers);
-  const focus = selectAuditFocus(model.actions, previous);
-  return { ...model, focus, actions: focus.flatMap(n => model.actions.filter(a => a.indicator === n)), remaining: model.actions.length };
+  const pending = new Set(model.summary.findings.filter(f => f.pending.length > 0 || f.blocked.length > 0).map(f => f.number));
+  const controls = model.actions.filter(a => pending.has(a.indicator));
+  const corrections = model.actions.filter(a => !pending.has(a.indicator));
+  const focus = selectAuditFocus(controls, previous);
+  return { ...model, focus, actions: focus.flatMap(n => controls.filter(a => a.indicator === n)), corrections, remaining: controls.length, correctionsRemaining: corrections.length };
 }
 
 export function renderAuditActions(actions: AuditAction[]) {

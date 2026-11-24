@@ -109,7 +109,8 @@ export default function AuditBlanc() {
     [plans, facts, answers],
   );
   const summary = useMemo(() => summarize(findings), [findings]);
-  const focus = useMemo(() => facts ? auditFocusModel(facts, answers, facts.auditFocus ?? []).actions : [], [facts, answers]);
+  const focusModel = useMemo(() => facts ? auditFocusModel(facts, answers, facts.auditFocus ?? []) : null, [facts, answers]);
+  const focus = focusModel?.actions ?? [];
   const actions = useMemo(() => facts ? auditEmailModel(facts, answers).actions : [], [facts, answers]);
 
   useEffect(() => {
@@ -231,8 +232,20 @@ export default function AuditBlanc() {
                   ))}
                   <Button asChild variant="outline" size="sm"><Link to={`/audit-blanc?indicator=${action.indicator}#indicator-${action.indicator}`}>Compléter cet indicateur<ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
                 </article>
-              )) : <p className="text-sm">Aucun indicateur à corriger sur ce passage.</p>}
+              )) : <p className="text-sm">Aucun contrôle restant à documenter sur ce passage.</p>}
             </section>
+            {Boolean(focusModel?.corrections.length) && (
+              <section className="space-y-4 border-b border-border pb-6" aria-label="Corrections ouvertes">
+                <h2 className="text-xl font-semibold">Corrections ouvertes</h2>
+                {focusModel?.corrections.map(action => (
+                  <article key={action.indicator} className="border-l-2 border-destructive pl-4 space-y-2">
+                    <h3 className="font-semibold">Indicateur {action.indicator} — {action.label}</h3>
+                    {action.tasks?.map((task, index) => <p key={index} className="text-sm">{task.recommendation}</p>)}
+                    <Button asChild variant="outline" size="sm"><Link to={`/audit-blanc?indicator=${action.indicator}#indicator-${action.indicator}`}>Revoir les corrections<ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
+                  </article>
+                ))}
+              </section>
+            )}
             {/* Synthèse */}
             <Card>
               <CardHeader className="pb-3">

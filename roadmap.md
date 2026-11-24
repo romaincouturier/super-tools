@@ -1,5 +1,10 @@
 # Roadmap
 
+## Progression audit Qualiopi (2026-11-24)
+- [x] Contrôles documentés (oui ou non) séparés des corrections ouvertes ; focus limité à deux contrôles encore à documenter, places libérées complétées, verdicts et expiration des preuves inchangés.
+- [x] Écran et bilan quotidien alignés, run-qualiopi-audit déployée ; 38 tests ciblés, 103 règles et compilation OK. Avec Romain et les preuves existantes : focus 4/8, corrections 18/1, lien vers l’indicateur 1 et affichage mobile vérifiés ; aucune écriture de données, aucun email ni changement de planification. Impact sécurité : aucun changement d’authentification, de droits ou de RLS.
+- [ ] Écran à publier ; prochain bilan planifié non observé, tâche externe Claude non modifiée depuis cette session.
+
 ## Reprise des demandes après ajout de crédits (2026-11-24)
 - [x] Convention Cegid : envoi unique confirmé à 10:26:57 UTC, aucune répétition.
 - [x] Transcriptions prioritaires : Savencia du 23/11 et EDHEC Transition Apply prêtes ; aucun enregistrement Drive encore en traitement au contrôle, deux erreurs restent à examiner.
