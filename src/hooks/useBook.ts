@@ -761,7 +761,7 @@ export function useBookProductionViewStats(albumId: string) {
       const allProductions: BookProduction[] = rawProductions.map((p, i) => ({
         ...p,
         file_url: signedFiles[i] ?? p.file_url,
-        thumbnail_url: signedThumbs[i],
+        thumbnail_url: signedThumbs[i] ?? (p.file_type === "image" ? storageThumbnailUrl(p.file_url, 600) : null),
       }));
 
       if (!links || links.length === 0) {
