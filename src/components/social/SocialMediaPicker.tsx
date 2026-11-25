@@ -1,4 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+
+const PAGE_SIZE = 60;
 import { Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -22,7 +25,7 @@ export function mediaDisplayName(item: Pick<MediaItem, "file_name">, isDemoMode:
 /** Vignette dont le texte alternatif suit aussi le masque démo. */
 export function SocialMediaThumb({ item }: { item: MediaItem }) {
   const { isDemoMode } = useDemoMode();
-  return <MediaThumb item={{ ...item, file_name: mediaDisplayName(item, isDemoMode) }} />;
+  return <MediaThumb item={{ ...item, file_name: mediaDisplayName(item, isDemoMode) }} thumbnail />;
 }
 
 /** Choix d'une image de la Médiathèque existante, sans aucun envoi de fichier. */
@@ -30,6 +33,8 @@ export default function SocialMediaPicker({ open, onOpenChange, onSelect }: Soci
   const { data: media = [], isLoading, isError } = useMediaLibrary({ enabled: open });
   const { isDemoMode } = useDemoMode();
   const [search, setSearch] = useState("");
+  const [visible, setVisible] = useState(PAGE_SIZE);
+  useEffect(() => setVisible(PAGE_SIZE), [search, open]);
 
   const items = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -72,7 +77,7 @@ export default function SocialMediaPicker({ open, onOpenChange, onSelect }: Soci
             <p className="py-12 text-center text-sm text-muted-foreground">Aucune image dans la Médiathèque.</p>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-              {items.map((m) => {
+              {items.slice(0, visible).map((m) => {
                 const name = mediaDisplayName(m, isDemoMode);
                 return (
                   <button
@@ -90,6 +95,13 @@ export default function SocialMediaPicker({ open, onOpenChange, onSelect }: Soci
                   </button>
                 );
               })}
+            </div>
+          )}
+          {!isLoading && !isError && items.length > visible && (
+            <div className="py-3 text-center">
+              <Button variant="outline" size="sm" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
+                Afficher plus ({visible} sur {items.length})
+              </Button>
             </div>
           )}
         </div>

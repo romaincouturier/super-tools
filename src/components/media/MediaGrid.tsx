@@ -161,7 +161,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
           onClick={() => onOpenLightbox(item)}
         >
           {item.file_type === "image" ? (
-            <MediaThumb item={item} />
+            <MediaThumb item={item} thumbnail />
           ) : (
             <div className="w-full h-full relative bg-muted">
               <MediaVideoThumb item={item} />
