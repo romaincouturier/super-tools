@@ -40,7 +40,13 @@ async function signProductionUrls(supabase: ReturnType<typeof createClient>, pro
       // light thumbnail is in book-productions and must still be signed,
       // otherwise the grid falls back to the multi-MB original.
       if (!path) {
-        if (!thumbnailPath) return production;
+        if (!thumbnailPath) {
+          // Pas encore de vignette : version réduite servie par le stockage public, jamais l'original en grille.
+          const m = String(production.file_url).match(/\/storage\/v1\/object\/public\/([^/]+)\/([^?]+)/);
+          if (!isImage || !m) return production;
+          const origin = String(production.file_url).split("/storage/v1/")[0];
+          return { ...production, thumbnail_url: `${origin}/storage/v1/render/image/public/${m[1]}/${m[2]}?width=600&quality=70&resize=contain` };
+        }
         const { data } = await supabase.storage.from("book-productions").createSignedUrl(thumbnailPath, 60 * 60);
         return { ...production, thumbnail_url: data?.signedUrl ?? null };
       }

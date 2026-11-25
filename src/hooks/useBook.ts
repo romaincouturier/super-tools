@@ -1,3 +1,4 @@
+import { storageThumbnailUrl } from "@/lib/storageUrl";
 import {
   useQuery,
   useMutation,
@@ -338,7 +339,7 @@ export function useBookProductions(albumId: string) {
       return rows.map((r, i) => ({
         ...r,
         file_url: signedFiles[i] ?? r.file_url,
-        thumbnail_url: signedThumbs[i] ?? transformedThumbs[i] ?? null,
+        thumbnail_url: signedThumbs[i] ?? transformedThumbs[i] ?? (r.file_type === "image" ? storageThumbnailUrl(r.file_url, 600) : null),
       }));
     },
     enabled: !!albumId,
