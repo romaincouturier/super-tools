@@ -1405,6 +1405,23 @@ Règles :
       console.error("Error updating scheduled email:", updateError);
     }
 
+    // Le recueil des besoins réutilise le questionnaire créé à l'inscription :
+    // son statut et celui du participant doivent refléter l'envoi réel.
+    if (scheduledEmail.email_type === "needs_survey" && participant && training) {
+      const sentAt = new Date().toISOString();
+      await supabase
+        .from("questionnaire_besoins")
+        .update({ etat: "envoye", date_envoi: sentAt })
+        .eq("participant_id", participant.id)
+        .eq("training_id", training.id)
+        .eq("etat", "non_envoye");
+      await supabase
+        .from("training_participants")
+        .update({ needs_survey_status: "envoye", needs_survey_sent_at: sentAt })
+        .eq("id", participant.id)
+        .in("needs_survey_status", ["non_envoye", "programme", "manuel"]);
+    }
+
     if (coldFollowUp) {
       if (coldFollowUp.reminderType && isColdEvaluationEligible(training.end_date)) {
         const { data: delaySetting } = await supabase

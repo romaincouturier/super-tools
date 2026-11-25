@@ -113,6 +113,12 @@ serve(async (req) => {
     if (existingQuestionnaire) {
       token = existingQuestionnaire.token;
       console.log("Using existing questionnaire with token:", token);
+      await supabase
+        .from("questionnaire_besoins")
+        .update({ etat: "envoye", date_envoi: new Date().toISOString() })
+        .eq("participant_id", participantId)
+        .eq("training_id", trainingId)
+        .eq("etat", "non_envoye");
     } else {
       token = crypto.randomUUID();
       console.log("Creating new questionnaire with token:", token);
