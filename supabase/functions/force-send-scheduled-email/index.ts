@@ -19,6 +19,7 @@ import { isEvaluationSubmitted, isNeedsSurveySubmitted } from "../_shared/remind
 import { isColdEvaluationEligible, isColdEvaluationType, MISSING_SPONSOR_EMAIL_MESSAGE, resolveSponsorRecipient } from "../_shared/cold-evaluation.ts";
 import { renderLiveRecordingNotice } from "../_shared/live-recording-notice.ts";
 import { addWorkingDays, fetchWorkingDays } from "../_shared/working-days.ts";
+import { scheduleNeedsSurveyReminders } from "../_shared/needs-survey-reminders.ts";
 import { fetchAccessVenues, resolveTrainingAccess, includeAccessInstructions, accessInstructionsHtml } from "../_shared/training-access.ts";
 import { includeTrainingCommunity } from "../_shared/training-community.ts";
 
@@ -1420,6 +1421,11 @@ Règles :
         .update({ needs_survey_status: "envoye", needs_survey_sent_at: sentAt })
         .eq("id", participant.id)
         .in("needs_survey_status", ["non_envoye", "programme", "manuel"]);
+      await scheduleNeedsSurveyReminders(supabase, {
+        trainingId: training.id,
+        participantId: participant.id,
+        sessionStart,
+      });
     }
 
     if (coldFollowUp) {

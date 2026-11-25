@@ -1,3 +1,4 @@
+import { scheduleNeedsSurveyReminders } from "../_shared/needs-survey-reminders.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import {
   handleCorsPreflightIfNeeded,
@@ -259,6 +260,8 @@ serve(async (req) => {
       email_subject: prepared.subject,
       email_content: prepared.html,
     });
+
+    await scheduleNeedsSurveyReminders(supabase, { trainingId, participantId, sessionStart });
 
     return createJsonResponse({ success: true, messageId: result.id });
   } catch (error: unknown) {
