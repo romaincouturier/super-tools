@@ -131,3 +131,12 @@ export async function openResolvedUrl(resolved: string) {
     openInNewTab(resolved);
   }
 }
+
+/** Vignette réduite servie par le stockage (buckets publics uniquement), sinon null. */
+export function storageThumbnailUrl(url: string, width = 320): string | null {
+  const info = parseStorageUrl(url);
+  if (!info || PRIVATE_BUCKETS.has(info.bucket)) return null;
+  const origin = url.split("/storage/v1/")[0];
+  const path = info.path.split("/").map(encodeURIComponent).join("/");
+  return `${origin}/storage/v1/render/image/public/${info.bucket}/${path}?width=${width}&height=${width}&resize=cover&quality=70`;
+}

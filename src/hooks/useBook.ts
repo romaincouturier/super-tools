@@ -481,7 +481,6 @@ interface MediaPickerItem {
 
 export function useAddMediaToAlbum() {
   const queryClient = useQueryClient();
-  const analysis = useEdgeFunction('analyze-book-productions', { silentOnError: true });
   return useMutation({
     mutationFn: async ({
       albumId,
@@ -529,7 +528,10 @@ export function useAddMediaToAlbum() {
       queryClient.invalidateQueries({ queryKey: ["book-productions", variables.albumId] });
       queryClient.invalidateQueries({ queryKey: ["book-albums"] });
       queryClient.invalidateQueries({ queryKey: ["book-analysis", variables.albumId] });
-      if (data?.some(p => p.file_type === 'image')) void analysis.invoke();
+      // Vignette d'abord (les originaux trop grands ne passent pas la transformation), puis analyse.
+      if (data?.some(p => p.file_type === 'image')) {
+        void queryClient.invalidateQueries({ queryKey: ["book-thumbnail-backfill", variables.albumId] });
+      }
     },
     onError: (err: Error) => {
       toastError(toast, err, { title: "Erreur ajout depuis la médiathèque" });
@@ -850,6 +852,7 @@ const backfillRunning = new Set<string>();
 export function useBackfillBookThumbnails(albumId: string) {
   const queryClient = useQueryClient();
   const setThumbnail = useEdgeFunction<{ thumbnail_url: string }>("book-set-thumbnail", { silentOnError: true });
+  const analysis = useEdgeFunction('analyze-book-productions', { silentOnError: true });
   return useQuery({
     queryKey: ["book-thumbnail-backfill", albumId],
     enabled: !!albumId,
@@ -878,7 +881,10 @@ export function useBackfillBookThumbnails(albumId: string) {
             const form = new FormData();
             form.append("thumbnail", thumb);
             form.append("productionId", row.id);
-            if (await setThumbnail.invoke(form)) done++;
+            if (await setThumbnail.invoke(form)) {
+              done++;
+              await analysis.invoke({ production_id: row.id });
+            }
           } catch (e) {
             console.warn("[book-thumbnail-backfill]", row.id, e);
           }

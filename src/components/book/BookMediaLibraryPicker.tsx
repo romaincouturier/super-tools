@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
+const PAGE_SIZE = 60;
 import { Check, ImageIcon, Play, Search } from 'lucide-react';
 import {
   Dialog,
@@ -29,6 +31,7 @@ export default function BookMediaLibraryPicker({ open, onOpenChange, albumId }: 
   const { isDemoMode } = useDemoMode();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [visible, setVisible] = useState(PAGE_SIZE);
 
   const items = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -41,6 +44,8 @@ export default function BookMediaLibraryPicker({ open, onOpenChange, albumId }: 
         (m.tags || []).some((t) => t.toLowerCase().includes(q))
       );
   }, [media, search]);
+
+  useEffect(() => setVisible(PAGE_SIZE), [search, open]);
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -105,7 +110,7 @@ export default function BookMediaLibraryPicker({ open, onOpenChange, albumId }: 
             </div>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-              {items.map((m) => {
+              {items.slice(0, visible).map((m) => {
                 const isSelected = selected.has(m.id);
                 return (
                   <button
@@ -122,7 +127,7 @@ export default function BookMediaLibraryPicker({ open, onOpenChange, albumId }: 
                         <Play className="absolute inset-0 m-auto w-8 h-8 text-white/90 drop-shadow pointer-events-none" />
                       </div>
                     ) : (
-                      <MediaThumb item={m} />
+                      <MediaThumb item={m} thumbnail />
                     )}
                     {isSelected && (
                       <div className="absolute top-1 right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
@@ -139,6 +144,13 @@ export default function BookMediaLibraryPicker({ open, onOpenChange, albumId }: 
                   </button>
                 );
               })}
+            </div>
+          )}
+          {items.length > visible && (
+            <div className="py-3 text-center">
+              <Button variant="outline" size="sm" onClick={() => setVisible((v) => v + PAGE_SIZE)}>
+                Afficher plus ({visible} sur {items.length})
+              </Button>
             </div>
           )}
         </div>

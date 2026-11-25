@@ -9,7 +9,7 @@ import MediaTagEditor from "./MediaTagEditor";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskFileName, maskText } from "@/lib/demoMask";
 import { useResolvedStorageUrl } from "@/hooks/useResolvedStorageUrl";
-import { resolveStorageUrl } from "@/lib/storageUrl";
+import { resolveStorageUrl, storageThumbnailUrl } from "@/lib/storageUrl";
 
 const sourceIcon = (sourceType: string) => {
   switch (sourceType) {
@@ -30,11 +30,15 @@ const sourceIconLarge = (sourceType: string) => {
 };
 
 /** Vignette image : résout les URLs des buckets privés en URL signée. */
-export const MediaThumb = ({ item }: { item: MediaItem }) => {
+export const MediaThumb = ({ item, thumbnail = false }: { item: MediaItem; thumbnail?: boolean }) => {
   const src = useResolvedStorageUrl(item.file_url);
+  const small = thumbnail ? storageThumbnailUrl(item.file_url) : null;
+  const [useOriginal, setUseOriginal] = useState(false);
   return (
     <img
-      src={src ?? undefined}
+      src={(small && !useOriginal ? small : src) ?? undefined}
+      onError={() => { if (small && !useOriginal) setUseOriginal(true); }}
+      decoding="async"
       alt={item.file_name}
       className="w-full h-full object-cover will-change-transform"
       loading="lazy"
