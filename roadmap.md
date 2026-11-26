@@ -1,11 +1,11 @@
 # Roadmap
 
 ## Renforcement de l’audit blanc V10 (2026-11-26)
-- [ ] Indicateur 19 : contrôler les activités réelles à distance et le référent pédagogique au-delà de huit intervenants, sans modifier les leçons.
-- [ ] Indicateurs 12, 23 et 32 : compléter les preuves VSS, le dépôt des comptes et la revue annuelle des risques.
-- [ ] Ajouter une préparation du jour d’audit distincte des verdicts, avec identité, mandats, participants et documents.
-- [ ] Distinguer les preuves MCP de leur validation humaine et appliquer une échéance annuelle aux pièces stables.
-- [ ] Tester les règles, vérifier l’écran connecté, déployer l’audit serveur et publier le MCP sans déclencher d’email.
+- [x] Indicateur 19 : activités réelles à distance et référent pédagogique au-delà de huit intervenants ; inactivité affichée à examiner sans non-conformité automatique, aucune leçon modifiée.
+- [x] Indicateurs 12, 23 et 32 : preuves VSS, dépôt annuel des comptes et revue annuelle des risques complétés.
+- [x] Préparation du jour d’audit distincte des verdicts : identité, mandats, participants, documents et transition.
+- [x] Preuves MCP soumises à validation humaine ; contrôles vivants à 45 jours et pièces annuelles à 365 jours.
+- [x] 306 fichiers de tests, compilation et 103 règles OK ; écran connecté vérifié avec 42/779 inscriptions actives et 737 à examiner, fonction serveur déployée, publication front/MCP demandée. Aucun email déclenché ni cron modifié ; prochain bilan planifié non observé.
 
 ## ST-2026-0274 — langue des transcriptions Drive (2026-11-24)
 - [x] Live du 10/11 identifié : cinq morceaux terminés, sixième de 67,895 secondes en erreur de confiance de langue (allemand détecté à 0,0373).
