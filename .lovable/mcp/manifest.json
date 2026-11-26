@@ -1207,7 +1207,7 @@
       {
         "name": "list_audit_questions",
         "title": "Lister les questions manuelles de l'audit blanc",
-        "description": "Questions manuelles de l'audit blanc Qualiopi avec leur dernière preuve (réponse, date, source, statut valide/périmée/à confirmer).",
+        "description": "Questions manuelles de l'audit blanc Qualiopi avec leur dernière preuve (réponse, date, source, statut valide/périmée/à confirmer/validation humaine requise). Indicateur 0 : préparation du jour d’audit, hors score.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,
@@ -1218,8 +1218,9 @@
           "properties": {
             "indicator": {
               "type": "integer",
-              "minimum": 1,
-              "maximum": 32
+              "minimum": 0,
+              "maximum": 32,
+              "description": "0 = préparation du jour d’audit, hors score"
             }
           },
           "additionalProperties": false,
@@ -1230,7 +1231,7 @@
       {
         "name": "record_audit_evidence",
         "title": "Enregistrer une preuve d'audit blanc",
-        "description": "Ajoute une réponse oui/non avec sa preuve à une question manuelle de l'audit blanc. Historique conservé, jamais d'écrasement ni de suppression.",
+        "description": "Ajoute une réponse oui/non avec sa preuve à une question manuelle de l'audit blanc. La collecte MCP reste à valider par un humain ; historique conservé, jamais d'écrasement ni de suppression.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": false,
