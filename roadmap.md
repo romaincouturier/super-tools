@@ -1,5 +1,9 @@
 # Roadmap
 
+## Analyse du cockpit formateur Digiforma (2026-11-26)
+- [x] Récupérer la transcription de la vidéo https://youtu.be/E-HjQiyLBiI.
+- [x] Comparaison statique avec les écrans existants ; proposition livrée en cinq lots : mes sessions/actions, dossier individuel, accompagnement, conduite de séance, espace administratif. Lots 1/2 recommandés en premier ; aucune implémentation, donnée métier, leçon, planification ou email modifié.
+
 ## Renforcement de l’audit blanc V10 (2026-11-26)
 - [x] Indicateur 19 : activités réelles à distance et référent pédagogique au-delà de huit intervenants ; inactivité affichée à examiner sans non-conformité automatique, aucune leçon modifiée.
 - [x] Indicateurs 12, 23 et 32 : preuves VSS, dépôt annuel des comptes et revue annuelle des risques complétés.
