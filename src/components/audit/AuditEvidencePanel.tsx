@@ -27,19 +27,37 @@ function detailsText(d: AuditEvidence["evidence_details"]) {
   return JSON.stringify(d, null, 2);
 }
 
-export function AuditEvidencePanel({ history }: { history: AuditEvidence[] }) {
+const STATUS_LABEL = {
+  valide: "Validée par un humain",
+  perimee: "Périmée, à reconfirmer",
+  a_confirmer: "À confirmer",
+  a_valider_humain: "MCP : validation humaine requise",
+} as const;
+
+export function AuditEvidencePanel({ history, onValidate, validating = false }: {
+  history: AuditEvidence[];
+  onValidate?: (evidence: AuditEvidence) => void;
+  validating?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const latest = history[0];
   if (!latest) return null;
   const status = evidenceStatus(latest);
   return (
     <div className="rounded-md bg-muted/40 p-2 space-y-1">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <p className="text-xs font-medium">Dernière preuve</p>
-        <Badge variant={status === "valide" ? "secondary" : "outline"}>{status === "valide" ? "Valide" : "Périmée, à reconfirmer"}</Badge>
+        <Badge variant={status === "valide" ? "secondary" : "outline"}>{STATUS_LABEL[status]}</Badge>
       </div>
       <EvidenceBody e={latest} />
-      <Button size="sm" variant="link" className="h-auto p-0 text-xs" onClick={() => setOpen(true)}>Voir le détail</Button>
+      <div className="flex flex-wrap gap-3">
+        <Button size="sm" variant="link" className="h-auto p-0 text-xs" onClick={() => setOpen(true)}>Voir le détail</Button>
+        {status === "a_valider_humain" && onValidate && (
+          <Button size="sm" variant="link" className="h-auto p-0 text-xs" disabled={validating} onClick={() => onValidate(latest)}>
+            {validating ? "Validation…" : "Valider cette preuve"}
+          </Button>
+        )}
+      </div>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="w-full max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Preuves de la question {latest.question_id}</DialogTitle></DialogHeader>

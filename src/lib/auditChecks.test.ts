@@ -28,9 +28,13 @@ const PERFECT: AuditFacts = {
   reglementInterieurPublished: true,
   vhdProcedureActive: true,
   vhdProcedurePublished: true,
+  vhdReferentDesignated: true,
   elearningCourses: 3,
   elearningCoursesWithMandatoryLessons: 3,
-  distanceThresholdConfigured: false,
+  elearningEnrollmentsToVerify: 4,
+  elearningEnrollmentsWithActivity: 4,
+  formationsOverPedagogicalThreshold: 1,
+  formationsWithPedagogicalReferent: 1,
   trainers: 1,
   trainersWithCompetences: 1,
   trainersWithDocuments: 1,
@@ -155,6 +159,14 @@ describe("evaluateIndicator", () => {
 });
 
 describe("contrôles réels par indicateur", () => {
+  it("distingue les inscriptions inactives à examiner d'une absence totale de suivi", () => {
+    const partial = evaluateIndicator(planFor(19), { ...PERFECT, elearningEnrollmentsToVerify: 779, elearningEnrollmentsWithActivity: 42 }, allYes(19));
+    expect(partial.checks.find(c => c.id === "19.effectivite")?.status).toBe("ok");
+    expect(partial.checks.find(c => c.id === "19.effectivite")?.detail).toContain("737 à examiner");
+    const none = evaluateIndicator(planFor(19), { ...PERFECT, elearningEnrollmentsToVerify: 779, elearningEnrollmentsWithActivity: 0 }, allYes(19));
+    expect(none.checks.find(c => c.id === "19.effectivite")?.status).toBe("ko");
+  });
+
   it("détecte un registre des risques vide", () => {
     const f = evaluateIndicator(planFor(32), { ...PERFECT, qualityRisks: 0 }, allYes(32));
     expect(f.verdict).toBe("majeure");
@@ -298,6 +310,42 @@ describe("buildFacts", () => {
     expect(buildFacts({ ...RAW, referentName: "Romain", referentEmail: null }).handicapReferentDesignated).toBe(false);
     expect(buildFacts({ ...RAW, referentName: " ", referentEmail: "r@x.fr" }).handicapReferentDesignated).toBe(false);
     expect(buildFacts({ ...RAW, referentName: "Romain", referentEmail: "r@x.fr" }).handicapReferentDesignated).toBe(true);
+  });
+
+  it("retient les activités réelles sans accepter une tentative de quiz échouée", () => {
+    const facts = buildFacts({
+      ...RAW,
+      lmsEnrollments: ['a', 'b', 'c', 'd', 'e'].map(learner_email => ({ course_id: 'c1', learner_email })),
+      lmsModules: [{ id: 'm1', course_id: 'c1' }],
+      lmsLessons: [{ id: 'l1', module_id: 'm1', is_mandatory: true }],
+      lmsProgress: [{ course_id: 'c1', learner_email: 'a', status: 'completed' }],
+      lmsQuizzes: [{ id: 'q1', course_id: 'c1' }],
+      lmsQuizAttempts: [
+        { quiz_id: 'q1', learner_email: 'b', passed: true },
+        { quiz_id: 'q1', learner_email: 'e', passed: false },
+      ],
+      lmsWorkDeposits: [{ course_id: 'c1', learner_email: 'c', file_url: 'prive/travail.pdf' }],
+      lmsAssignmentSubmissions: [{ lesson_id: 'l1', learner_email: 'd' }],
+    });
+    expect(facts.elearningEnrollmentsToVerify).toBe(5);
+    expect(facts.elearningEnrollmentsWithActivity).toBe(4);
+  });
+
+  it("exige un référent pédagogique uniquement au-delà de huit intervenants", () => {
+    const training = { id: 't', objectives: [], program_file_url: null, supports_lms_course_id: null, trainer_id: 'r0', pedagogical_referent_name: null, pedagogical_referent_designated_at: null };
+    const links = Array.from({ length: 8 }, (_, i) => ({ training_id: 't', trainer_id: `r${i + 1}` }));
+    const atEight = buildFacts({ ...RAW, sampleTrainings: [training], trainingTrainerLinks: links.slice(0, 7) });
+    expect(atEight.formationsOverPedagogicalThreshold).toBe(0);
+    const atNine = buildFacts({ ...RAW, sampleTrainings: [training], trainingTrainerLinks: links });
+    expect(atNine.formationsOverPedagogicalThreshold).toBe(1);
+    expect(atNine.formationsWithPedagogicalReferent).toBe(0);
+    const designated = buildFacts({ ...RAW, sampleTrainings: [{ ...training, pedagogical_referent_name: 'Romain', pedagogical_referent_designated_at: '2026-11-26' }], trainingTrainerLinks: links });
+    expect(designated.formationsWithPedagogicalReferent).toBe(1);
+  });
+
+  it("exige un nom et un contact pour le référent chargé des signalements", () => {
+    expect(buildFacts({ ...RAW, vhdReferentName: 'Romain', vhdReferentEmail: null }).vhdReferentDesignated).toBe(false);
+    expect(buildFacts({ ...RAW, vhdReferentName: 'Romain', vhdReferentEmail: 'r@x.fr' }).vhdReferentDesignated).toBe(true);
   });
 
   it("ne compte un risque élevé sans mesure que s'il est encore ouvert", () => {

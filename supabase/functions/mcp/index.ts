@@ -1056,8 +1056,9 @@ var AUDIT_INDICATORS = [
     scopeNote: "Cet indicateur s'applique aux formations d'une dur\xE9e sup\xE9rieure \xE0 2 jours.",
     evidence: [
       "Proc\xE9dure de gestion des abandons et de relance",
+      "Information, d\xE9finitions et sanctions dans le r\xE8glement int\xE9rieur et les documents d\u2019accueil",
       "Proc\xE9dure de pr\xE9vention et de traitement des violences sexistes et sexuelles port\xE9e \xE0 la connaissance des apprenants",
-      "R\xE9f\xE9rent charg\xE9 du traitement des signalements, tra\xE7abilit\xE9 des signalements et des suites"
+      "R\xE9f\xE9rent charg\xE9 du traitement des signalements, \xE9coute, accompagnement, tra\xE7abilit\xE9 des suites et personnes ressources form\xE9es"
     ]
   },
   {
@@ -1088,10 +1089,12 @@ var AUDIT_INDICATORS = [
     label: "Ressources p\xE9dagogiques et effectivit\xE9 du suivi \xE0 distance",
     expected: "D\xE9montrer que les ressources p\xE9dagogiques sont coh\xE9rentes, disponibles, et que des dispositions permettent aux b\xE9n\xE9ficiaires de se les approprier. V\xE9rifier l'effectivit\xE9 du suivi des modules \xE0 distance.",
     gradation: gradationOf(19),
-    scopeNote: "Le r\xE9f\xE9rent p\xE9dagogique n'est exig\xE9 qu'au-del\xE0 d'un nombre d'intervenants fix\xE9 par arr\xEAt\xE9, non paru \xE0 ce jour.",
+    scopeNote: "Au-del\xE0 de huit intervenants par formation, un r\xE9f\xE9rent p\xE9dagogique assure leur coordination (arr\xEAt\xE9 du 28 octobre 2026).",
     evidence: [
       "Supports de cours, ressources documentaires, modalit\xE9s d'acc\xE8s",
-      "Suivi de l'assiduit\xE9 et de la progression \xE0 distance : relances en cas d'inactivit\xE9, alertes de d\xE9crochage"
+      "Le\xE7ons termin\xE9es, quiz r\xE9ussis, travaux ou livrables : une connexion ou un replay seul ne prouve pas l'effectivit\xE9",
+      "Suivi de l'assiduit\xE9 et de la progression \xE0 distance : relances en cas d'inactivit\xE9, alertes de d\xE9crochage",
+      "D\xE9signation dat\xE9e du r\xE9f\xE9rent p\xE9dagogique au-del\xE0 de huit intervenants"
     ]
   },
   {
@@ -1127,7 +1130,8 @@ var AUDIT_INDICATORS = [
     evidence: [
       "Abonnements, adh\xE9sions, participation \xE0 des salons et conf\xE9rences",
       "Actualisation des supports d'information et de contractualisation",
-      "Consultation et diffusion de la documentation institutionnelle"
+      "Consultation et diffusion de la documentation institutionnelle",
+      "R\xE9c\xE9piss\xE9 du d\xE9p\xF4t des derniers comptes annuels ou preuve sur l\u2019Annuaire des entreprises, si applicable"
     ]
   },
   {
@@ -1161,6 +1165,7 @@ var AUDIT_INDICATORS = [
     evidence: [
       "Liste des partenaires du handicap : Agefiph, Fiphfp, Cap emploi, MDPH",
       "Comp\xE9tences et connaissances actualis\xE9es du r\xE9f\xE9rent handicap",
+      "Trace d\u2019un recours concret : partenaire contact\xE9, orientation ou mesure mise en \u0153uvre",
       "Recours \xE0 la Ressource Handicap Formation"
     ]
   },
@@ -1206,7 +1211,8 @@ var AUDIT_INDICATORS = [
     evidence: [
       "Identification des causes d'abandon ou d'insatisfaction, plans d'action",
       "Tableau de suivi des mesures d'am\xE9lioration issues des r\xE9clamations, al\xE9as et difficult\xE9s",
-      "Analyse des risques sur la qualit\xE9 des formations d\xE9livr\xE9es",
+      "Analyse des risques sur la qualit\xE9 des formations d\xE9livr\xE9es et mesures pr\xE9ventives",
+      "Revue structur\xE9e et dat\xE9e des risques, au moins annuelle",
       "Organisation de l'audit interne"
     ]
   }
@@ -1398,9 +1404,35 @@ var PLANS = {
         id: "12.diffusion",
         label: "Proc\xE9dure port\xE9e \xE0 la connaissance des apprenants",
         run: (f) => f.vhdProcedurePublished ? ok("Publi\xE9e sur la page de session") : ko("Non diffus\xE9e")
+      },
+      {
+        id: "12.referent",
+        label: "R\xE9f\xE9rent charg\xE9 des signalements identifi\xE9 et joignable",
+        run: (f) => f.vhdReferentDesignated === void 0 ? { status: "unknown", detail: "Contr\xF4le absent de ce passage historique" } : f.vhdReferentDesignated ? ok("Nom et contact renseign\xE9s") : ko("R\xE9f\xE9rent ou contact manquant"),
+        fix: { label: "Renseigner le r\xE9f\xE9rent", href: "/signalements" }
       }
     ],
     questions: [
+      {
+        id: "12.information",
+        label: "Le r\xE8glement int\xE9rieur et l\u2019accueil d\xE9finissent-ils les violences, le harc\xE8lement et les discriminations ?",
+        hint: "Montrer la version diffus\xE9e et les d\xE9finitions reprises des textes, sans inventer de cat\xE9gories."
+      },
+      {
+        id: "12.accompagnement",
+        label: "Une personne peut-elle signaler les faits, \xEAtre \xE9cout\xE9e et \xEAtre accompagn\xE9e ?",
+        hint: "Canal de signalement, interlocuteur, confidentialit\xE9, premi\xE8re mesure et accompagnement."
+      },
+      {
+        id: "12.sanctions",
+        label: "Les sanctions applicables \xE0 un auteur pr\xE9sum\xE9 sont-elles formalis\xE9es et connues ?",
+        hint: "R\xE8glement int\xE9rieur, proc\xE9dure contradictoire et sanctions pr\xE9vues par les textes applicables."
+      },
+      {
+        id: "12.ressources",
+        label: "Les personnes ressources charg\xE9es de la pr\xE9vention et du traitement sont-elles form\xE9es ?",
+        hint: "D\xE9signation, formation suivie, date et comp\xE9tences r\xE9ellement mobilisables."
+      },
       {
         id: "12.abandons",
         label: "Des mesures de pr\xE9vention des ruptures de parcours sont-elles mises en \u0153uvre ?",
@@ -1440,12 +1472,36 @@ var PLANS = {
           "parcours",
           "Aucun parcours \xE0 distance"
         )
+      },
+      {
+        id: "19.effectivite",
+        label: "Inscriptions \xE0 v\xE9rifier avec le\xE7on termin\xE9e, quiz r\xE9ussi ou travail d\xE9pos\xE9",
+        run: (f) => {
+          const total = f.elearningEnrollmentsToVerify;
+          const done = f.elearningEnrollmentsWithActivity;
+          if (total === void 0 || done === void 0) return { status: "unknown", detail: "Contr\xF4le absent de ce passage historique" };
+          if (total === 0) return { status: "unknown", detail: "Aucune inscription depuis plus de 21 jours" };
+          if (done === 0) return ko(`Aucune activit\xE9 r\xE9elle d\xE9tect\xE9e sur ${total} inscriptions`);
+          return ok(`${done}/${total} inscriptions avec activit\xE9 r\xE9elle ; ${total - done} \xE0 examiner, sans non-conformit\xE9 d\xE9duite de leur seule inactivit\xE9`);
+        },
+        fix: { label: "V\xE9rifier le suivi \xE0 distance", href: "/lms" }
+      },
+      {
+        id: "19.referent",
+        label: "Formations de plus de huit intervenants avec r\xE9f\xE9rent p\xE9dagogique d\xE9sign\xE9",
+        run: (f) => f.formationsOverPedagogicalThreshold === void 0 || f.formationsWithPedagogicalReferent === void 0 ? { status: "unknown", detail: "Contr\xF4le absent de ce passage historique" } : ratio(f.formationsWithPedagogicalReferent, f.formationsOverPedagogicalThreshold, "formations", "Aucune formation de l\u2019\xE9chantillon au-del\xE0 de huit intervenants"),
+        fix: { label: "Ouvrir les formations", href: "/formations" }
       }
     ],
     questions: [
       {
         id: "19.ressources",
         label: "Les ressources p\xE9dagogiques sont-elles disponibles et appropriables ?"
+      },
+      {
+        id: "19.activites",
+        label: "Les classes virtuelles et replays sont-ils compl\xE9t\xE9s par des activit\xE9s ou livrables qui prouvent la participation ?",
+        hint: "Quiz, cas pratiques, travaux intersessions ou production individuelle : une connexion ou un replay seul ne suffit pas."
       }
     ]
   },
@@ -1509,6 +1565,11 @@ var PLANS = {
       {
         id: "23.legale",
         label: "La veille couvre-t-elle le champ l\xE9gal et r\xE9glementaire de la formation ?"
+      },
+      {
+        id: "23.comptes",
+        label: "Le d\xE9p\xF4t des derniers comptes annuels est-il prouv\xE9 lorsque cette obligation s\u2019applique ?",
+        hint: "R\xE9c\xE9piss\xE9 de d\xE9p\xF4t ou Annuaire des entreprises, avec date. Ne pas joindre les comptes eux-m\xEAmes ; confidentialit\xE9 et d\xE9p\xF4t sont distincts."
       }
     ]
   },
@@ -1560,7 +1621,8 @@ var PLANS = {
     questions: [
       {
         id: "26.recours",
-        label: "Les modalit\xE9s de recours \xE0 ce r\xE9seau sont-elles connues des personnels ?"
+        label: "Les modalit\xE9s de recours \xE0 ce r\xE9seau sont-elles connues des personnels ?",
+        hint: "Montrer si possible un recours concret : partenaire contact\xE9, orientation r\xE9alis\xE9e ou mesure mise en \u0153uvre, pas seulement un annuaire."
       }
     ]
   },
@@ -1659,10 +1721,42 @@ var PLANS = {
       {
         id: "32.origine",
         label: "Les actions d'am\xE9lioration sont-elles reli\xE9es aux appr\xE9ciations et r\xE9clamations ?"
+      },
+      {
+        id: "32.revue",
+        label: "Une revue structur\xE9e et dat\xE9e des risques et actions pr\xE9ventives est-elle r\xE9alis\xE9e chaque ann\xE9e ?",
+        hint: "Compte rendu, SWOT ou revue mensuelle conserv\xE9e : risques revus, d\xE9cisions et mesures pr\xE9ventives, pas seulement des actions correctives."
       }
     ]
   }
 };
+var AUDIT_DAY_QUESTIONS = [
+  {
+    id: "0.identite",
+    label: "Le dirigeant et les salari\xE9s participants peuvent-ils justifier de leur identit\xE9 et de leur qualit\xE9 ?",
+    hint: "Pr\xE9parer les justificatifs choisis par SuperTilt ; l\u2019auditeur ne demande pas n\xE9cessairement une pi\xE8ce d\u2019identit\xE9."
+  },
+  {
+    id: "0.mandats",
+    label: "Les salari\xE9s non dirigeants disposent-ils d\u2019un mandat explicite pour participer ?",
+    hint: "Mandat dat\xE9 et nominatif pour chaque salari\xE9 permanent concern\xE9."
+  },
+  {
+    id: "0.participants",
+    label: "Le dirigeant ou les salari\xE9s mandat\xE9s sont-ils pr\xEAts \xE0 r\xE9pondre sans se faire remplacer par un consultant ?",
+    hint: "Le consultant peut rassurer et pr\xE9parer ; le repr\xE9sentant de SuperTilt porte les r\xE9ponses pendant l\u2019audit."
+  },
+  {
+    id: "0.documents",
+    label: "Les justificatifs administratifs sont-ils accessibles le jour de l\u2019audit ?",
+    hint: "D\xE9p\xF4t des comptes, d\xE9claration d\u2019activit\xE9, mandats et pi\xE8ces demand\xE9es par le certificateur."
+  },
+  {
+    id: "0.transition",
+    label: "Pour un audit avant le 31 d\xE9cembre 2026, le r\xE9f\xE9rentiel applicable a-t-il \xE9t\xE9 confirm\xE9 avec le certificateur ?",
+    hint: "Les conditions transitoires V9 d\xE9pendent de la situation et de la date de programmation ; sans objet apr\xE8s cette fen\xEAtre."
+  }
+];
 function auditPlan() {
   return APPLICABLE_INDICATORS.map((indicator) => ({
     indicator,
@@ -1673,16 +1767,25 @@ function auditPlan() {
 
 // supabase/functions/_shared/audit-evidence.ts
 var AUDIT_EVIDENCE_MAX_AGE_DAYS = 45;
+var AUDIT_ANNUAL_EVIDENCE_MAX_AGE_DAYS = 365;
 var DAY_MS = 864e5;
+var ANNUAL_QUESTIONS = /* @__PURE__ */ new Set(["23.comptes", "12.information", "12.sanctions", "12.ressources", "32.revue"]);
 function auditQuestionCatalog() {
-  return auditPlan().flatMap((p) => p.questions.map((q) => ({ question_id: q.id, indicator: p.indicator.number, label: q.label, hint: q.hint ?? null })));
+  return [
+    ...auditPlan().flatMap((p) => p.questions.map((q) => ({ question_id: q.id, indicator: p.indicator.number, label: q.label, hint: q.hint ?? null }))),
+    ...AUDIT_DAY_QUESTIONS.map((q) => ({ question_id: q.id, indicator: 0, label: q.label, hint: q.hint ?? null }))
+  ];
 }
 function evidenceAgeDays(row, now = /* @__PURE__ */ new Date()) {
   return Math.floor((now.getTime() - new Date(row.checked_at).getTime()) / DAY_MS);
 }
+function evidenceMaxAgeDays(questionId) {
+  return ANNUAL_QUESTIONS.has(questionId) || questionId.startsWith("0.") && questionId !== "0.transition" ? AUDIT_ANNUAL_EVIDENCE_MAX_AGE_DAYS : AUDIT_EVIDENCE_MAX_AGE_DAYS;
+}
 function evidenceStatus(row, now = /* @__PURE__ */ new Date()) {
   if (!row) return "a_confirmer";
-  return evidenceAgeDays(row, now) < AUDIT_EVIDENCE_MAX_AGE_DAYS ? "valide" : "perimee";
+  if (evidenceAgeDays(row, now) >= evidenceMaxAgeDays(row.question_id)) return "perimee";
+  return row.source_type === "agent" ? "a_valider_humain" : "valide";
 }
 function latestEvidence(rows) {
   const latest = /* @__PURE__ */ new Map();
@@ -1697,8 +1800,8 @@ function latestEvidence(rows) {
 var list_audit_questions_default = defineTool23({
   name: "list_audit_questions",
   title: "Lister les questions manuelles de l'audit blanc",
-  description: "Questions manuelles de l'audit blanc Qualiopi avec leur derni\xE8re preuve (r\xE9ponse, date, source, statut valide/p\xE9rim\xE9e/\xE0 confirmer).",
-  inputSchema: { indicator: z26.number().int().min(1).max(32).optional() },
+  description: "Questions manuelles de l'audit blanc Qualiopi avec leur derni\xE8re preuve (r\xE9ponse, date, source, statut valide/p\xE9rim\xE9e/\xE0 confirmer/validation humaine requise). Indicateur 0 : pr\xE9paration du jour d\u2019audit, hors score.",
+  inputSchema: { indicator: z26.number().int().min(0).max(32).optional().describe("0 = pr\xE9paration du jour d\u2019audit, hors score") },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ indicator }, ctx) => {
     const db = await auditClient(ctx);
@@ -1730,7 +1833,7 @@ var recordAuditEvidenceInput = {
 var record_audit_evidence_default = defineTool24({
   name: "record_audit_evidence",
   title: "Enregistrer une preuve d'audit blanc",
-  description: "Ajoute une r\xE9ponse oui/non avec sa preuve \xE0 une question manuelle de l'audit blanc. Historique conserv\xE9, jamais d'\xE9crasement ni de suppression.",
+  description: "Ajoute une r\xE9ponse oui/non avec sa preuve \xE0 une question manuelle de l'audit blanc. La collecte MCP reste \xE0 valider par un humain ; historique conserv\xE9, jamais d'\xE9crasement ni de suppression.",
   inputSchema: recordAuditEvidenceInput,
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   handler: async (input, ctx) => {
@@ -1796,7 +1899,7 @@ var search_book_productions_default = defineTool25({
 
 // src/lib/mcp/index.ts
 var ref = "yewffntzgrdgztrwtava";
-var mcp_default = defineMcp({ name: "supertools", title: "SuperTools", version: "1.0.0", auth: auth.oauth.issuer({ issuer: `https://${ref}.supabase.co/auth/v1`, acceptedAudiences: "authenticated" }), instructions: "Extensions r\xE9serv\xE9es au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille, couvertures et attestations de bonne ex\xE9cution (cr\xE9ation, modification, liste, lien de signature, PDF sign\xE9), sessions live des formations (liste, mise \xE0 jour, replay), catalogue jeux et devis dropshipping, archives entreprise (archive_email_attachments, upload_company_document, list_company_documents, read_company_document). Les archives sont r\xE9serv\xE9es aux administrateurs, strictement additives, sans email ni suppression. list_games retrouve les jeux, prix, stocks, frais de port et poids. create_game_quote renvoie par d\xE9faut un preview sans \xE9criture ; confirm=true est obligatoire pour cr\xE9er le brouillon, apr\xE8s accord explicite. Le devis jeux n\u2019envoie jamais d\u2019email ou de Slack, ne cr\xE9e pas de commande pay\xE9e et ne d\xE9cr\xE9mente pas le stock. Aucun outil de suppression ni envoi d\u2019email hors rappels live reprogramm\xE9s comme dans l\u2019application. Ne jamais modifier les le\xE7ons. Confirmer allow_multiple avec l\u2019utilisateur. Audit blanc Qualiopi : list_audit_questions lit les questions manuelles et leur derni\xE8re preuve ; record_audit_evidence ajoute une r\xE9ponse oui/non avec preuve (valide 45 jours, historique conserv\xE9, sans suppression). Book : search_book_productions recherche les visuels par titre, tags et description, uniquement dans les productions accessibles au compte connect\xE9. Les outils historiques restent sur leur connecteur existant.", tools: [upload_company_document_default, archive_email_attachments_default, list_company_documents_default, read_company_document_default, list_lms_modules_default, create_lms_module_default, update_lms_module_default, assign_transcript_default, list_unassigned_transcripts_default, list_watch_sources_default, propose_watch_source_default, update_watch_source_default, update_lms_course_default, create_execution_attestation_default, update_execution_attestation_default, list_execution_attestations_default, get_execution_attestation_link_default, get_execution_attestation_pdf_default, list_live_meetings_default, update_live_meeting_default, list_games_default, create_game_quote_default, list_audit_questions_default, record_audit_evidence_default, search_book_productions_default] });
+var mcp_default = defineMcp({ name: "supertools", title: "SuperTools", version: "1.0.0", auth: auth.oauth.issuer({ issuer: `https://${ref}.supabase.co/auth/v1`, acceptedAudiences: "authenticated" }), instructions: "Extensions r\xE9serv\xE9es au personnel : modules LMS, rattachement de transcripts aux formations, sources de veille, couvertures et attestations de bonne ex\xE9cution (cr\xE9ation, modification, liste, lien de signature, PDF sign\xE9), sessions live des formations (liste, mise \xE0 jour, replay), catalogue jeux et devis dropshipping, archives entreprise (archive_email_attachments, upload_company_document, list_company_documents, read_company_document). Les archives sont r\xE9serv\xE9es aux administrateurs, strictement additives, sans email ni suppression. list_games retrouve les jeux, prix, stocks, frais de port et poids. create_game_quote renvoie par d\xE9faut un preview sans \xE9criture ; confirm=true est obligatoire pour cr\xE9er le brouillon, apr\xE8s accord explicite. Le devis jeux n\u2019envoie jamais d\u2019email ou de Slack, ne cr\xE9e pas de commande pay\xE9e et ne d\xE9cr\xE9mente pas le stock. Aucun outil de suppression ni envoi d\u2019email hors rappels live reprogramm\xE9s comme dans l\u2019application. Ne jamais modifier les le\xE7ons. Confirmer allow_multiple avec l\u2019utilisateur. Audit blanc Qualiopi : list_audit_questions lit les questions manuelles et leur derni\xE8re preuve ; record_audit_evidence ajoute une r\xE9ponse oui/non avec preuve, soumise ensuite \xE0 validation humaine (45 jours pour les contr\xF4les vivants, un an pour les pi\xE8ces annuelles, historique conserv\xE9, sans suppression). Book : search_book_productions recherche les visuels par titre, tags et description, uniquement dans les productions accessibles au compte connect\xE9. Les outils historiques restent sur leur connecteur existant.", tools: [upload_company_document_default, archive_email_attachments_default, list_company_documents_default, read_company_document_default, list_lms_modules_default, create_lms_module_default, update_lms_module_default, assign_transcript_default, list_unassigned_transcripts_default, list_watch_sources_default, propose_watch_source_default, update_watch_source_default, update_lms_course_default, create_execution_attestation_default, update_execution_attestation_default, list_execution_attestations_default, get_execution_attestation_link_default, get_execution_attestation_pdf_default, list_live_meetings_default, update_live_meeting_default, list_games_default, create_game_quote_default, list_audit_questions_default, record_audit_evidence_default, search_book_productions_default] });
 
 // lovable-mcp-supabase-entry.ts
 import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@3.4.0/stacks/supabase";

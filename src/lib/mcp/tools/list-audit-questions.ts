@@ -6,8 +6,8 @@ import { auditQuestionCatalog, evidenceAgeDays, evidenceStatus, latestEvidence }
 export default defineTool({
   name: 'list_audit_questions',
   title: "Lister les questions manuelles de l'audit blanc",
-  description: "Questions manuelles de l'audit blanc Qualiopi avec leur dernière preuve (réponse, date, source, statut valide/périmée/à confirmer).",
-  inputSchema: { indicator: z.number().int().min(1).max(32).optional() },
+  description: "Questions manuelles de l'audit blanc Qualiopi avec leur dernière preuve (réponse, date, source, statut valide/périmée/à confirmer/validation humaine requise). Indicateur 0 : préparation du jour d’audit, hors score.",
+  inputSchema: { indicator: z.number().int().min(0).max(32).optional().describe('0 = préparation du jour d’audit, hors score') },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ indicator }, ctx) => {
     const db = await auditClient(ctx);

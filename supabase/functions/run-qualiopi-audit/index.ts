@@ -25,7 +25,7 @@ import { mergeEvidenceAnswers } from '../_shared/audit-evidence.ts';
  * sa date initiale, et ferme les écarts corrigés ainsi que les doublons.
  */
 
-const VERSION = "run-qualiopi-audit@2026-11-24.1";
+const VERSION = "run-qualiopi-audit@2026-11-26.1";
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -63,9 +63,9 @@ serve(async (req) => {
       .order('started_at', { ascending: false }).limit(1).maybeSingle();
     if (answersRead.error) throw answersRead.error;
     const sameSample = JSON.stringify([...(answersRead.data?.sample_training_ids ?? [])].sort()) === JSON.stringify([...sampleIds].sort());
-    // Les preuves datées (écran ou agent MCP) ne dépendent pas de l'échantillon :
-    // valides moins de 45 jours, elles fixent la réponse ; au-delà, la question redevient à confirmer.
-    const evidenceRead = await supabase.from('audit_question_evidence').select('question_id, answer, checked_at, recorded_at')
+    // Seules les preuves validées par un humain fixent une réponse. Les pièces
+    // annuelles et les contrôles vivants ont des durées de validité distinctes.
+    const evidenceRead = await supabase.from('audit_question_evidence').select('question_id, answer, checked_at, recorded_at, source_type')
       .order('recorded_at', { ascending: false }).limit(1000);
     if (evidenceRead.error) throw evidenceRead.error;
     const answers = mergeEvidenceAnswers(sameSample ? answersRead.data?.answers ?? {} : {}, evidenceRead.data ?? []);

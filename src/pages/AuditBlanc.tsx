@@ -16,12 +16,15 @@ import { useAuditFacts, type AuditSample } from "@/hooks/useAuditFacts";
 import { useAuditRuns } from "@/hooks/useAuditRuns";
 import { useAuditEvidence } from "@/hooks/useAuditEvidence";
 import { AuditEvidencePanel } from "@/components/audit/AuditEvidencePanel";
+import { AuditDayPreparation } from "@/components/audit/AuditDayPreparation";
+import type { AuditEvidence } from "@/services/auditEvidence";
 import { evidenceStatus, latestEvidence, mergeEvidenceAnswers } from "../../supabase/functions/_shared/audit-evidence";
 import {
   auditPlan,
   evaluateIndicator,
   summarize,
   automaticAnswers,
+  AUDIT_DAY_QUESTIONS,
   type AnswerValue,
   type AuditFacts,
   type Verdict,
@@ -79,6 +82,7 @@ export default function AuditBlanc() {
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [validatingEvidence, setValidatingEvidence] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
@@ -139,6 +143,28 @@ export default function AuditBlanc() {
   const answer = (id: string, value: AnswerValue) =>
     setAnswers((a) => ({ ...a, [id]: a[id] === value ? null : value }));
 
+  const validateEvidence = async (item: AuditEvidence) => {
+    if (!user) return;
+    setValidatingEvidence(true);
+    try {
+      await recordHuman([{
+        question_id: item.question_id,
+        indicator: item.indicator,
+        answer: item.answer,
+        summary: item.evidence_summary,
+        sourceLabel: user.email ?? "Validation humaine",
+        evidenceUrls: item.evidence_urls,
+        evidenceDetails: { validates_evidence_id: item.id, original: item.evidence_details },
+      }], user.id);
+      setAnswers(current => ({ ...current, [item.question_id]: item.answer }));
+      toast({ title: "Preuve validée", description: "La réponse humaine est enregistrée dans l’historique." });
+    } catch (error) {
+      toastError(toast, error instanceof Error ? error.message : "Validation impossible");
+    } finally {
+      setValidatingEvidence(false);
+    }
+  };
+
   const evidenceByQuestion = useMemo(() => {
     const map = new Map<string, typeof evidence>();
     for (const e of evidence) map.set(e.question_id, [...(map.get(e.question_id) ?? []), e]);
@@ -151,11 +177,15 @@ export default function AuditBlanc() {
     // Une réponse humaine devient une preuve datée, sauf si elle confirme déjà la dernière preuve valide.
     const auto = automaticAnswers(facts);
     const latest = latestEvidence(evidence);
-    const humanRows = plans.flatMap((p) => p.questions
+    const manualQuestions = [
+      ...plans.flatMap(p => p.questions.map(q => ({ ...q, indicator: p.indicator.number }))),
+      ...AUDIT_DAY_QUESTIONS.map(q => ({ ...q, indicator: 0 })),
+    ];
+    const humanRows = manualQuestions
       .filter((q) => (answers[q.id] === "oui" || answers[q.id] === "non") && !(q.id in auto))
       .filter((q) => { const l = latest.get(q.id); return !l || evidenceStatus(l) !== "valide" || l.answer !== answers[q.id]; })
-      .map((q) => ({ question_id: q.id, indicator: p.indicator.number, answer: answers[q.id] as "oui" | "non",
-        summary: notes.trim() || "Réponse confirmée dans l'audit blanc.", sourceLabel: user?.email ?? "Saisie humaine" })));
+      .map((q) => ({ question_id: q.id, indicator: q.indicator, answer: answers[q.id] as "oui" | "non",
+        summary: notes.trim() || "Réponse confirmée dans l'audit blanc.", sourceLabel: user?.email ?? "Saisie humaine" }));
     if (user && humanRows.length > 0) {
       try { await recordHuman(humanRows, user.id); }
       catch (error) { toastError(toast, error instanceof Error ? error.message : "Enregistrement des preuves impossible"); }
@@ -383,7 +413,7 @@ export default function AuditBlanc() {
                                     {q.hint && (
                                       <p className="text-xs text-muted-foreground">{q.hint}</p>
                                     )}
-                                    <AuditEvidencePanel history={evidenceByQuestion.get(q.id) ?? []} />
+                                    <AuditEvidencePanel history={evidenceByQuestion.get(q.id) ?? []} onValidate={validateEvidence} validating={validatingEvidence} />
                                     <div className="flex gap-2">
                                       <Button
                                         size="sm"
@@ -425,6 +455,14 @@ export default function AuditBlanc() {
                 </CardContent>
               </Card>
             ))}
+
+            <AuditDayPreparation
+              answers={answers}
+              evidenceByQuestion={evidenceByQuestion}
+              onAnswer={answer}
+              onValidate={validateEvidence}
+              validating={validatingEvidence}
+            />
 
             {/* Clôture */}
             <Card>

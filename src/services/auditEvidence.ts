@@ -32,6 +32,9 @@ export interface HumanEvidenceInput {
   answer: "oui" | "non";
   summary: string;
   sourceLabel: string;
+  evidenceUrls?: string[];
+  evidenceDetails?: Json;
+  checkedAt?: string;
 }
 
 export async function recordHumanEvidence(rows: HumanEvidenceInput[], userId: string) {
@@ -42,7 +45,9 @@ export async function recordHumanEvidence(rows: HumanEvidenceInput[], userId: st
     indicator: r.indicator,
     answer: r.answer,
     evidence_summary: r.summary,
-    checked_at: now,
+    evidence_urls: r.evidenceUrls ?? [],
+    evidence_details: r.evidenceDetails ?? null,
+    checked_at: r.checkedAt ?? now,
     source_type: "human",
     source_label: r.sourceLabel,
     recorded_by: userId,

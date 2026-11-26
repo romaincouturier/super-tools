@@ -24,9 +24,11 @@ describe('Collecte audit', () => {
   });
   it('utilise les convocations journalisées et des lectures paginées pour les preuves', async () => {
     const db = database();
-    await collectAuditFacts(db);
+    await collectAuditFacts(db, new Date('2026-11-15T00:00:00Z'));
     expect(db.calls).toContainEqual(['sent_emails_log', 'in', 'email_type', ['welcome', 'scheduled_welcome', 'needs_survey', 'scheduled_needs_survey']]);
     expect(db.calls).toContainEqual(['lms_lessons', 'range', 0, 499]);
+    expect(db.calls).toContainEqual(['lms_enrollments', 'lt', 'enrolled_at', '2026-10-25T00:00:00.000Z']);
+    expect(db.calls).toContainEqual(['lms_quiz_attempts', 'eq', 'passed', true]);
     expect(db.calls.some(c => ['insert', 'update', 'delete', 'upsert'].includes(c[1]))).toBe(false);
   });
   it('refuse de produire des défauts à partir d’une lecture échouée', async () => {

@@ -9,10 +9,8 @@ import { usePedagogicalReferent } from "@/hooks/usePedagogicalReferent";
 /**
  * Référent pédagogique de la session (indicateur 19).
  *
- * Le décret le rend obligatoire « au-delà d'un nombre d'intervenants par
- * formation, fixé par arrêté ». L'arrêté n'étant pas paru, le seuil vit dans
- * les réglages et reste vide : la désignation est possible, jamais imposée.
- * Le jour où le seuil est publié, il suffit de le renseigner.
+ * Le décret le rend obligatoire au-delà du seuil fixé par arrêté. Celui-ci
+ * est désormais publié : huit intervenants par formation.
  */
 
 interface Props {
@@ -48,7 +46,7 @@ export default function PedagogicalReferent({ trainingId, trainerName }: Props) 
           {trainerName ? ` (${trainerName})` : ""}, qui peut être l'un d'eux.
           {threshold
             ? ` Obligatoire au-delà de ${threshold} intervenants.`
-            : " Le seuil qui le rend obligatoire est fixé par un arrêté non paru : la désignation reste facultative."}
+            : " Obligatoire au-delà de huit intervenants."}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

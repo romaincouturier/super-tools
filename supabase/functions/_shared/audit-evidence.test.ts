@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { evidenceStatus, isKnownAuditQuestion, latestEvidence, mergeEvidenceAnswers } from './audit-evidence';
+import { auditQuestionCatalog, evidenceStatus, isKnownAuditQuestion, latestEvidence, mergeEvidenceAnswers } from './audit-evidence';
 import { auditEmailModel } from './qualiopi-summary';
-import { buildFacts, type RawAuditData } from './qualiopi-checks';
+import { auditPlan, buildFacts, type RawAuditData } from './qualiopi-checks';
 
 const now = new Date('2026-11-19T12:00:00Z');
 const daysAgo = (d: number) => new Date(now.getTime() - d * 86_400_000).toISOString();
@@ -23,6 +23,24 @@ describe('Preuves audit blanc', () => {
   it('ignore une question inconnue', () => {
     expect(isKnownAuditQuestion('1.inconnue')).toBe(false);
     expect(mergeEvidenceAnswers({}, [row('1.inconnue', 'oui', 1)], now)).toEqual({});
+  });
+  it('conserve une preuve annuelle 364 jours et la fait expirer à 365 jours', () => {
+    expect(evidenceStatus(row('23.comptes', 'oui', 364), now)).toBe('valide');
+    expect(evidenceStatus(row('23.comptes', 'oui', 365), now)).toBe('perimee');
+  });
+  it('ne laisse pas une preuve MCP confirmer seule une réponse', () => {
+    const agent = { ...row('1.publie', 'oui', 2), source_type: 'agent' };
+    expect(evidenceStatus(agent, now)).toBe('a_valider_humain');
+    expect(mergeEvidenceAnswers({ '1.publie': 'oui' }, [agent], now)).toEqual({});
+  });
+  it('accepte la même preuve après validation humaine', () => {
+    const agent = { ...row('1.publie', 'oui', 2), source_type: 'agent' };
+    const human = { ...row('1.publie', 'oui', 1), source_type: 'human' };
+    expect(mergeEvidenceAnswers({}, [agent, human], now)['1.publie']).toBe('oui');
+  });
+  it('expose la préparation du jour d’audit hors des 22 indicateurs', () => {
+    expect(auditQuestionCatalog().some(q => q.question_id === '0.identite' && q.indicator === 0)).toBe(true);
+    expect(auditQuestionCatalog().filter(q => q.indicator > 0)).toHaveLength(auditPlan().flatMap(p => p.questions).length);
   });
 });
 

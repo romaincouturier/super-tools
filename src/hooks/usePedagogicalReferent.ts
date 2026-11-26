@@ -4,10 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { todayAsISO } from "@/lib/dateFormatters";
 
-/**
- * Référent pédagogique d'une session et seuil qui le rend obligatoire
- * (indicateur 19).
- */
+/** Référent pédagogique d'une session (indicateur 19). */
 
 export interface PedagogicalReferentState {
   name: string;
@@ -16,10 +13,11 @@ export interface PedagogicalReferentState {
 }
 
 const EMPTY: PedagogicalReferentState = { name: "", email: "", designatedAt: null };
+export const PEDAGOGICAL_REFERENT_THRESHOLD = 8;
 
 export function usePedagogicalReferent(trainingId: string) {
   const [referent, setReferent] = useState<PedagogicalReferentState>(EMPTY);
-  const [threshold, setThreshold] = useState("");
+  const [threshold, setThreshold] = useState(String(PEDAGOGICAL_REFERENT_THRESHOLD));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
@@ -47,7 +45,7 @@ export function usePedagogicalReferent(trainingId: string) {
           designatedAt: training.data.pedagogical_referent_designated_at,
         });
       }
-      setThreshold(setting.data?.setting_value?.trim() || "");
+      setThreshold(setting.data?.setting_value?.trim() || String(PEDAGOGICAL_REFERENT_THRESHOLD));
       setLoading(false);
     };
     load();

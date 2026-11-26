@@ -60,10 +60,15 @@ export interface AuditFacts {
   /** Indicateur 12 */
   vhdProcedureActive: boolean;
   vhdProcedurePublished: boolean;
+  vhdReferentDesignated?: boolean;
   /** Indicateur 19 */
   elearningCourses: number;
   elearningCoursesWithMandatoryLessons: number;
-  distanceThresholdConfigured: boolean;
+  /** Inscriptions anciennes de 21 jours, avec une activité réelle détectée. */
+  elearningEnrollmentsToVerify?: number;
+  elearningEnrollmentsWithActivity?: number;
+  formationsOverPedagogicalThreshold?: number;
+  formationsWithPedagogicalReferent?: number;
   /** Indicateurs 21 et 22 */
   trainers: number;
   trainersWithCompetences: number;
@@ -332,8 +337,36 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
             ? ok("Publiée sur la page de session")
             : ko("Non diffusée"),
       },
+      {
+        id: "12.referent",
+        label: "Référent chargé des signalements identifié et joignable",
+        run: (f) => f.vhdReferentDesignated === undefined
+          ? { status: "unknown", detail: "Contrôle absent de ce passage historique" }
+          : f.vhdReferentDesignated ? ok("Nom et contact renseignés") : ko("Référent ou contact manquant"),
+        fix: { label: "Renseigner le référent", href: "/signalements" },
+      },
     ],
     questions: [
+      {
+        id: "12.information",
+        label: "Le règlement intérieur et l’accueil définissent-ils les violences, le harcèlement et les discriminations ?",
+        hint: "Montrer la version diffusée et les définitions reprises des textes, sans inventer de catégories.",
+      },
+      {
+        id: "12.accompagnement",
+        label: "Une personne peut-elle signaler les faits, être écoutée et être accompagnée ?",
+        hint: "Canal de signalement, interlocuteur, confidentialité, première mesure et accompagnement.",
+      },
+      {
+        id: "12.sanctions",
+        label: "Les sanctions applicables à un auteur présumé sont-elles formalisées et connues ?",
+        hint: "Règlement intérieur, procédure contradictoire et sanctions prévues par les textes applicables.",
+      },
+      {
+        id: "12.ressources",
+        label: "Les personnes ressources chargées de la prévention et du traitement sont-elles formées ?",
+        hint: "Désignation, formation suivie, date et compétences réellement mobilisables.",
+      },
       {
         id: "12.abandons",
         label: "Des mesures de prévention des ruptures de parcours sont-elles mises en œuvre ?",
@@ -375,11 +408,37 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
             "Aucun parcours à distance",
           ),
       },
+      {
+        id: "19.effectivite",
+        label: "Inscriptions à vérifier avec leçon terminée, quiz réussi ou travail déposé",
+        run: (f) => {
+          const total = f.elearningEnrollmentsToVerify;
+          const done = f.elearningEnrollmentsWithActivity;
+          if (total === undefined || done === undefined) return { status: "unknown", detail: "Contrôle absent de ce passage historique" };
+          if (total === 0) return { status: "unknown", detail: "Aucune inscription depuis plus de 21 jours" };
+          if (done === 0) return ko(`Aucune activité réelle détectée sur ${total} inscriptions`);
+          return ok(`${done}/${total} inscriptions avec activité réelle ; ${total - done} à examiner, sans non-conformité déduite de leur seule inactivité`);
+        },
+        fix: { label: "Vérifier le suivi à distance", href: "/lms" },
+      },
+      {
+        id: "19.referent",
+        label: "Formations de plus de huit intervenants avec référent pédagogique désigné",
+        run: (f) => f.formationsOverPedagogicalThreshold === undefined || f.formationsWithPedagogicalReferent === undefined
+          ? { status: "unknown", detail: "Contrôle absent de ce passage historique" }
+          : ratio(f.formationsWithPedagogicalReferent, f.formationsOverPedagogicalThreshold, "formations", "Aucune formation de l’échantillon au-delà de huit intervenants"),
+        fix: { label: "Ouvrir les formations", href: "/formations" },
+      },
     ],
     questions: [
       {
         id: "19.ressources",
         label: "Les ressources pédagogiques sont-elles disponibles et appropriables ?",
+      },
+      {
+        id: "19.activites",
+        label: "Les classes virtuelles et replays sont-ils complétés par des activités ou livrables qui prouvent la participation ?",
+        hint: "Quiz, cas pratiques, travaux intersessions ou production individuelle : une connexion ou un replay seul ne suffit pas.",
       },
     ],
   },
@@ -450,6 +509,11 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "23.legale",
         label: "La veille couvre-t-elle le champ légal et réglementaire de la formation ?",
       },
+      {
+        id: "23.comptes",
+        label: "Le dépôt des derniers comptes annuels est-il prouvé lorsque cette obligation s’applique ?",
+        hint: "Récépissé de dépôt ou Annuaire des entreprises, avec date. Ne pas joindre les comptes eux-mêmes ; confidentialité et dépôt sont distincts.",
+      },
     ],
   },
   24: {
@@ -511,6 +575,7 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
       {
         id: "26.recours",
         label: "Les modalités de recours à ce réseau sont-elles connues des personnels ?",
+        hint: "Montrer si possible un recours concret : partenaire contacté, orientation réalisée ou mesure mise en œuvre, pas seulement un annuaire.",
       },
     ],
   },
@@ -626,9 +691,43 @@ const PLANS: Record<number, Omit<IndicatorPlan, "indicator">> = {
         id: "32.origine",
         label: "Les actions d'amélioration sont-elles reliées aux appréciations et réclamations ?",
       },
+      {
+        id: "32.revue",
+        label: "Une revue structurée et datée des risques et actions préventives est-elle réalisée chaque année ?",
+        hint: "Compte rendu, SWOT ou revue mensuelle conservée : risques revus, décisions et mesures préventives, pas seulement des actions correctives.",
+      },
     ],
   },
 };
+
+/** Préparation administrative du jour d’audit : hors verdict des 22 indicateurs. */
+export const AUDIT_DAY_QUESTIONS: AuditQuestionDef[] = [
+  {
+    id: "0.identite",
+    label: "Le dirigeant et les salariés participants peuvent-ils justifier de leur identité et de leur qualité ?",
+    hint: "Préparer les justificatifs choisis par SuperTilt ; l’auditeur ne demande pas nécessairement une pièce d’identité.",
+  },
+  {
+    id: "0.mandats",
+    label: "Les salariés non dirigeants disposent-ils d’un mandat explicite pour participer ?",
+    hint: "Mandat daté et nominatif pour chaque salarié permanent concerné.",
+  },
+  {
+    id: "0.participants",
+    label: "Le dirigeant ou les salariés mandatés sont-ils prêts à répondre sans se faire remplacer par un consultant ?",
+    hint: "Le consultant peut rassurer et préparer ; le représentant de SuperTilt porte les réponses pendant l’audit.",
+  },
+  {
+    id: "0.documents",
+    label: "Les justificatifs administratifs sont-ils accessibles le jour de l’audit ?",
+    hint: "Dépôt des comptes, déclaration d’activité, mandats et pièces demandées par le certificateur.",
+  },
+  {
+    id: "0.transition",
+    label: "Pour un audit avant le 31 décembre 2026, le référentiel applicable a-t-il été confirmé avec le certificateur ?",
+    hint: "Les conditions transitoires V9 dépendent de la situation et de la date de programmation ; sans objet après cette fenêtre.",
+  },
+];
 
 export function auditPlan(): IndicatorPlan[] {
   return APPLICABLE_INDICATORS.map((indicator) => ({
@@ -795,6 +894,8 @@ export interface RawAuditData {
     program_file_url: string | null;
     supports_lms_course_id: string | null;
     trainer_id: string | null;
+    pedagogical_referent_name?: string | null;
+    pedagogical_referent_designated_at?: string | null;
   }>;
   activeFormations: Array<{
     id?: string;
@@ -811,10 +912,20 @@ export interface RawAuditData {
   adequacy: Array<{ training_id: string }>;
   reglementUrl: string | null;
   activeVhdProcedures: number;
+  vhdReferentName?: string | null;
+  vhdReferentEmail?: string | null;
   /** Modules des parcours, pour rattacher chaque leçon à son cours. */
   lmsModules: Array<{ id: string; course_id: string }>;
-  lmsLessons: Array<{ module_id: string | null; is_mandatory: boolean | null }>;
+  lmsLessons: Array<{ id?: string; module_id: string | null; is_mandatory: boolean | null }>;
   lmsCourseIds: string[];
+  /** Inscriptions assez anciennes pour exiger une activité, filtrées par le collecteur. */
+  lmsEnrollments?: Array<{ course_id: string; learner_email: string }>;
+  lmsProgress?: Array<{ course_id: string; learner_email: string; status: string | null }>;
+  lmsQuizzes?: Array<{ id: string; course_id: string }>;
+  lmsQuizAttempts?: Array<{ quiz_id: string; learner_email: string; passed: boolean | null }>;
+  lmsWorkDeposits?: Array<{ course_id: string; learner_email: string; file_url: string | null }>;
+  lmsAssignmentSubmissions?: Array<{ lesson_id: string; learner_email: string }>;
+  trainingTrainerLinks?: Array<{ training_id: string; trainer_id: string | null }>;
   trainers: Array<{ first_name?: string; last_name?: string; id: string; competences: string[] | null; formations_suivies: unknown; cv_url?: string | null }>;
   trainerDocumentOwners: string[];
   watchItemsLastYear: number;
@@ -873,6 +984,40 @@ export function buildFacts(raw: RawAuditData): AuditFacts {
   const withAdequacy = new Set(raw.adequacy.map((a) => a.training_id));
   const docOwners = new Set(raw.trainerDocumentOwners);
 
+  const enrollmentKey = (courseId: string, email: string) => `${courseId}:${email.trim().toLowerCase()}`;
+  const activities = new Set<string>();
+  for (const p of raw.lmsProgress ?? []) {
+    if (p.status === 'completed') activities.add(enrollmentKey(p.course_id, p.learner_email));
+  }
+  const quizCourses = new Map((raw.lmsQuizzes ?? []).map(q => [q.id, q.course_id]));
+  for (const a of raw.lmsQuizAttempts ?? []) {
+    const courseId = quizCourses.get(a.quiz_id);
+    if (courseId && a.passed === true) activities.add(enrollmentKey(courseId, a.learner_email));
+  }
+  for (const d of raw.lmsWorkDeposits ?? []) {
+    if (filled(d.file_url)) activities.add(enrollmentKey(d.course_id, d.learner_email));
+  }
+  const courseOfModule = new Map(raw.lmsModules.map(m => [m.id, m.course_id]));
+  const courseOfLesson = new Map(raw.lmsLessons.filter(l => l.id).map(l => [l.id as string, l.module_id ? courseOfModule.get(l.module_id) : undefined]));
+  for (const s of raw.lmsAssignmentSubmissions ?? []) {
+    const courseId = courseOfLesson.get(s.lesson_id);
+    if (courseId) activities.add(enrollmentKey(courseId, s.learner_email));
+  }
+  const enrollments = new Set((raw.lmsEnrollments ?? []).map(e => enrollmentKey(e.course_id, e.learner_email)));
+  const enrollmentsWithActivity = [...enrollments].filter(key => activities.has(key)).length;
+
+  const trainerIdsByTraining = new Map<string, Set<string>>();
+  for (const t of raw.sampleTrainings) {
+    const ids = new Set<string>();
+    if (t.trainer_id) ids.add(t.trainer_id);
+    trainerIdsByTraining.set(t.id, ids);
+  }
+  for (const link of raw.trainingTrainerLinks ?? []) {
+    if (link.trainer_id) trainerIdsByTraining.get(link.training_id)?.add(link.trainer_id);
+  }
+  const overThreshold = raw.sampleTrainings.filter(t => (trainerIdsByTraining.get(t.id)?.size ?? 0) > 8);
+  const withPedagogicalReferent = overThreshold.filter(t => filled(t.pedagogical_referent_name) && filled(t.pedagogical_referent_designated_at)).length;
+
   const affectedItems: Record<string, AuditAffectedItem[]> = {};
   const add = (check: string, label: string, href: string, missing: string) => {
     (affectedItems[check] ??= []).push({ label, href, missing });
@@ -890,6 +1035,7 @@ export function buildFacts(raw: RawAuditData): AuditFacts {
       ['11.evaluation', withEvaluation.has(t.id), 'Aucune évaluation de fin reçue.'],
       ['18.intervenant', !!t.trainer_id, 'Aucun formateur rattaché.'],
       ['21.adequation', withAdequacy.has(t.id), 'Adéquation formateur/session sans validation datée et nominative.'],
+      ['19.referent', (trainerIdsByTraining.get(t.id)?.size ?? 0) <= 8 || (filled(t.pedagogical_referent_name) && filled(t.pedagogical_referent_designated_at)), 'Plus de huit intervenants recensés, sans référent pédagogique nominativement désigné et daté.'],
       ['30.beneficiaires', withEvaluation.has(t.id), 'Aucune appréciation de fin reçue.'],
     ];
     for (const [check, covered, missing] of checks) if (!covered) add(check, label, href, missing);
@@ -945,9 +1091,13 @@ export function buildFacts(raw: RawAuditData): AuditFacts {
     reglementInterieurPublished: filled(raw.reglementUrl),
     vhdProcedureActive: raw.activeVhdProcedures > 0,
     vhdProcedurePublished: raw.activeVhdProcedures > 0,
+    vhdReferentDesignated: filled(raw.vhdReferentName) && filled(raw.vhdReferentEmail),
     elearningCourses: raw.lmsCourseIds.length,
     elearningCoursesWithMandatoryLessons: coursesWithMandatoryLessons(raw),
-    distanceThresholdConfigured: false,
+    elearningEnrollmentsToVerify: enrollments.size,
+    elearningEnrollmentsWithActivity: enrollmentsWithActivity,
+    formationsOverPedagogicalThreshold: overThreshold.length,
+    formationsWithPedagogicalReferent: withPedagogicalReferent,
     trainers: raw.trainers.length,
     trainersWithCompetences: raw.trainers.filter((t) => (t.competences ?? []).length > 0).length,
     trainersWithDocuments: raw.trainers.filter((t) => docOwners.has(t.id) || filled(t.cv_url)).length,

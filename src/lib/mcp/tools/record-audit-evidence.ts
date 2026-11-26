@@ -16,7 +16,7 @@ export const recordAuditEvidenceInput = {
 export default defineTool({
   name: 'record_audit_evidence',
   title: "Enregistrer une preuve d'audit blanc",
-  description: "Ajoute une réponse oui/non avec sa preuve à une question manuelle de l'audit blanc. Historique conservé, jamais d'écrasement ni de suppression.",
+  description: "Ajoute une réponse oui/non avec sa preuve à une question manuelle de l'audit blanc. La collecte MCP reste à valider par un humain ; historique conservé, jamais d'écrasement ni de suppression.",
   inputSchema: recordAuditEvidenceInput,
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   handler: async (input, ctx) => {

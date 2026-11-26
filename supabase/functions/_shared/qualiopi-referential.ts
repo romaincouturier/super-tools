@@ -206,8 +206,9 @@ export const AUDIT_INDICATORS: AuditIndicator[] = [
     scopeNote: "Cet indicateur s'applique aux formations d'une durée supérieure à 2 jours.",
     evidence: [
       "Procédure de gestion des abandons et de relance",
+      "Information, définitions et sanctions dans le règlement intérieur et les documents d’accueil",
       "Procédure de prévention et de traitement des violences sexistes et sexuelles portée à la connaissance des apprenants",
-      "Référent chargé du traitement des signalements, traçabilité des signalements et des suites",
+      "Référent chargé du traitement des signalements, écoute, accompagnement, traçabilité des suites et personnes ressources formées",
     ],
   },
   {
@@ -242,10 +243,12 @@ export const AUDIT_INDICATORS: AuditIndicator[] = [
       "Démontrer que les ressources pédagogiques sont cohérentes, disponibles, et que des dispositions permettent aux bénéficiaires de se les approprier. Vérifier l'effectivité du suivi des modules à distance.",
     gradation: gradationOf(19),
     scopeNote:
-      "Le référent pédagogique n'est exigé qu'au-delà d'un nombre d'intervenants fixé par arrêté, non paru à ce jour.",
+      "Au-delà de huit intervenants par formation, un référent pédagogique assure leur coordination (arrêté du 28 octobre 2026).",
     evidence: [
       "Supports de cours, ressources documentaires, modalités d'accès",
+      "Leçons terminées, quiz réussis, travaux ou livrables : une connexion ou un replay seul ne prouve pas l'effectivité",
       "Suivi de l'assiduité et de la progression à distance : relances en cas d'inactivité, alertes de décrochage",
+      "Désignation datée du référent pédagogique au-delà de huit intervenants",
     ],
   },
   {
@@ -285,6 +288,7 @@ export const AUDIT_INDICATORS: AuditIndicator[] = [
       "Abonnements, adhésions, participation à des salons et conférences",
       "Actualisation des supports d'information et de contractualisation",
       "Consultation et diffusion de la documentation institutionnelle",
+      "Récépissé du dépôt des derniers comptes annuels ou preuve sur l’Annuaire des entreprises, si applicable",
     ],
   },
   {
@@ -321,6 +325,7 @@ export const AUDIT_INDICATORS: AuditIndicator[] = [
     evidence: [
       "Liste des partenaires du handicap : Agefiph, Fiphfp, Cap emploi, MDPH",
       "Compétences et connaissances actualisées du référent handicap",
+      "Trace d’un recours concret : partenaire contacté, orientation ou mesure mise en œuvre",
       "Recours à la Ressource Handicap Formation",
     ],
   },
@@ -368,7 +373,8 @@ export const AUDIT_INDICATORS: AuditIndicator[] = [
     evidence: [
       "Identification des causes d'abandon ou d'insatisfaction, plans d'action",
       "Tableau de suivi des mesures d'amélioration issues des réclamations, aléas et difficultés",
-      "Analyse des risques sur la qualité des formations délivrées",
+      "Analyse des risques sur la qualité des formations délivrées et mesures préventives",
+      "Revue structurée et datée des risques, au moins annuelle",
       "Organisation de l'audit interne",
     ],
   },
