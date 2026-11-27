@@ -16307,6 +16307,10 @@ export type Database = {
         | "pictodico"
         | "time_tracker"
         | "wc_inbox"
+        | "risques"
+        | "audit"
+        | "ideas"
+        | "signalements"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -16477,6 +16481,10 @@ export const Constants = {
         "pictodico",
         "time_tracker",
         "wc_inbox",
+        "risques",
+        "audit",
+        "ideas",
+        "signalements",
       ],
       notification_type: [
         "review_requested",

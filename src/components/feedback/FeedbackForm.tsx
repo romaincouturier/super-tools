@@ -84,23 +84,24 @@ export function FeedbackForm({ prefillDescription, pageUrlOverride, onSubmitted 
     }
 
     try {
-      const analysis = await analyzeTicket.mutateAsync(description.trim());
-
-      await createTicket.mutateAsync({
-        type: analysis.type,
-        title: analysis.title,
+      const ticket = await createTicket.mutateAsync({
+        type: "bug",
+        title: description.trim().slice(0, 80),
         description: description.trim(),
-        priority: analysis.priority,
+        priority: "medium",
         page_url: ticketUrl || null,
-        ai_analysis: analysis,
+        analyze: true,
         files: files.length > 0 ? files : undefined,
       });
+      const analysis = ticket.ai_analysis;
 
       setSubmitted(true);
       onSubmitted?.();
       toast({
         title: "Ticket créé",
-        description: `L'IA a classifié votre demande comme ${analysis.type === "bug" ? "un bug" : "une évolution"}.`,
+        description: analysis
+          ? `L'IA a classifié votre demande comme ${analysis.type === "bug" ? "un bug" : "une évolution"}.`
+          : "Votre demande a bien été enregistrée.",
       });
     } catch (err) {
       toastError(toast, "Impossible d'envoyer votre retour. Réessayez.", { cause: err });

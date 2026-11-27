@@ -156,10 +156,12 @@ export async function createSupportTicket(
     ai_analysis?: TicketAiAnalysis | null;
     /** Email du déclarant, à passer pour les apprenants (pas de session auth staff). */
     submitted_by_email?: string | null;
+    /** Analyse IA facultative faite après l'enregistrement : son échec ne bloque jamais le ticket. */
+    analyze?: boolean;
   }
 ): Promise<SupportTicket> {
   const { data: { user } } = await supabase.auth.getUser();
-  const { files, ai_analysis, submitted_by_email, ...ticketInput } = input;
+  const { files, ai_analysis, submitted_by_email, analyze, ...ticketInput } = input;
   const result = await db()
     .from("support_tickets")
     .insert({
@@ -197,6 +199,18 @@ export async function createSupportTicket(
     if (firstImageUrl) {
       await db().from("support_tickets").update({ screenshot_url: firstImageUrl }).eq("id", data.id);
       data.screenshot_url = firstImageUrl;
+    }
+  }
+
+  if (analyze) {
+    try {
+      const analysis = await analyzeTicket(data.description);
+      const patch = { type: analysis.type, title: analysis.title, priority: analysis.priority, ai_analysis: analysis };
+      throwIfError(await db().from("support_tickets").update(patch).eq("id", data.id));
+      Object.assign(data, patch);
+    } catch (err) {
+      // Ticket conservé sans analyse : relançable depuis la fiche (« Relancer l'analyse »).
+      console.warn("[createSupportTicket] analyse IA indisponible, ticket enregistré sans analyse:", err);
     }
   }
 

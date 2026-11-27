@@ -575,6 +575,13 @@
       "when": 1795775266679,
       "tag": "0081_elementor_webhook_inbox",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1795786213025,
+      "tag": "0082_add_missing_app_modules",
+      "breakpoints": true
     }
   ]
 }

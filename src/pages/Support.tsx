@@ -156,23 +156,21 @@ const Support = () => {
   const handleCreate = async () => {
     if (!newDescription.trim()) return;
     try {
-      // Step 1: AI analysis
-      const analysis = await analyzeTicket.mutateAsync(newDescription.trim());
-
-      // Step 2: Create ticket with AI-generated fields
-      await createTicket.mutateAsync({
-        type: analysis.type,
-        title: analysis.title,
+      // Ticket enregistré d'abord ; l'analyse IA est un enrichissement facultatif.
+      const ticket = await createTicket.mutateAsync({
+        type: "bug",
+        title: newDescription.trim().slice(0, 80),
         description: newDescription.trim(),
-        priority: analysis.priority,
+        priority: "medium",
         page_url: null,
-        ai_analysis: analysis,
+        analyze: true,
         files: newFiles.length > 0 ? newFiles : undefined,
       });
+      const analysis = ticket.ai_analysis;
       setCreateOpen(false);
       setNewDescription("");
       setNewFiles([]);
-      toast({ title: "Ticket créé", description: `L'IA a classifié votre demande comme ${analysis.type === "bug" ? "un bug" : "une évolution"}.` });
+      toast({ title: "Ticket créé", description: analysis ? `L'IA a classifié votre demande comme ${analysis.type === "bug" ? "un bug" : "une évolution"}.` : "Ticket enregistré sans analyse IA (à relancer depuis la fiche)." });
     } catch {
       toastError(toast, "Impossible de créer le ticket.");
     }
