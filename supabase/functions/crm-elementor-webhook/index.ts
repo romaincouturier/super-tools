@@ -420,70 +420,13 @@ async function notifySlack(supabase: any, card: { title: string; company?: strin
   }
 }
 
-// ─── Main handler ───────────────────────────────────────────────────────
-
-serve(async (req) => {
-  const preflight = handleCorsPreflightIfNeeded(req);
-  if (preflight) return preflight;
-
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  if (!ELEMENTOR_WEBHOOK_TOKEN) {
-    console.error("ELEMENTOR_WEBHOOK_TOKEN not configured");
-    return new Response(JSON.stringify({ error: "Webhook not configured" }), {
-      status: 503,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const url = new URL(req.url);
-  const providedToken = url.searchParams.get("token") || req.headers.get("x-webhook-token");
-  if (!(await timingSafeEqualSecret(providedToken, ELEMENTOR_WEBHOOK_TOKEN))) {
-    console.error("Invalid webhook token");
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
+async function processSubmission(submission: NormalizedSubmission, receivedAt: string): Promise<void> {
   try {
-    // ─── Parse payload ───
-    const contentType = (req.headers.get("content-type") || "").toLowerCase();
-    let submission: NormalizedSubmission;
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("CRM backend not configured");
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    if (contentType.includes("application/json")) {
-      submission = normalizeFromJson(await req.json());
-    } else if (contentType.includes("application/x-www-form-urlencoded")) {
-      submission = normalizeFromForm(new URLSearchParams(await req.text()));
-    } else if (contentType.includes("multipart/form-data")) {
-      submission = normalizeFromForm(await req.formData());
-    } else {
-      const text = await req.text();
-      try {
-        submission = normalizeFromJson(JSON.parse(text));
-      } catch {
-        submission = normalizeFromForm(new URLSearchParams(text));
-      }
-    }
-
-    // Fallbacks from HTTP headers when Elementor doesn't pass them in the body
-    const headerUA = req.headers.get("user-agent") || undefined;
-    const headerIP = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || undefined;
-    const headerReferer = req.headers.get("referer") || req.headers.get("referrer") || undefined;
-    if (!submission.user_agent && headerUA) submission.user_agent = headerUA;
-    if (!submission.remote_ip && headerIP) submission.remote_ip = headerIP;
-    if (!submission.referrer && headerReferer) submission.referrer = headerReferer;
-
-    const receivedAt = new Date().toISOString();
     const sourceMetadata = {
       received_at: receivedAt,
       page_url: submission.page_url ?? null,
@@ -495,15 +438,6 @@ serve(async (req) => {
       form_id: submission.form_id ?? null,
       channel: "elementor_webhook",
     };
-
-    console.log("Elementor submission:", { form: submission.form_name, fields: submission.fields.length });
-
-    if (submission.fields.length === 0) {
-      return new Response(JSON.stringify({ error: "No form fields found in payload" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     // ─── Field detection (fallback) ───
     const detectedEmail = normalizeEmail(detectField(submission, [/email|courriel|mail/]));
@@ -549,10 +483,7 @@ serve(async (req) => {
           new_value: "Soumission de formulaire en doublon fusionnée dans cette opportunité",
         });
         console.log("Duplicate submission merged into card:", dup.id);
-        return new Response(
-          JSON.stringify({ success: true, duplicate: true, card_id: dup.id }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+        return;
       }
     }
 
@@ -616,10 +547,7 @@ serve(async (req) => {
 
     const targetColumn = columns?.find((c: any) => c.name === "Entrant") || columns?.[0];
     if (!targetColumn) {
-      return new Response(JSON.stringify({ error: "No CRM column available" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      throw new Error("No CRM column available");
     }
 
     const { data: existingCards } = await supabase
@@ -666,10 +594,7 @@ serve(async (req) => {
 
     if (cardError) {
       console.error("Error creating CRM card:", cardError);
-      return new Response(JSON.stringify({ error: "Failed to create CRM card", details: cardError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      throw new Error(`Failed to create CRM card: ${cardError.message}`);
     }
 
     console.log("CRM card created:", newCard.id);
@@ -690,7 +615,7 @@ serve(async (req) => {
     }
 
     // ─── Slack ───
-    postCrmOpportunityToSlack(supabase, {
+    await postCrmOpportunityToSlack(supabase, {
       title: extraction.title,
       message: rawInput,
       company: extraction.company,
@@ -701,23 +626,88 @@ serve(async (req) => {
       source_label: `Formulaire site web — ${submission.form_name || "Elementor"}`,
     });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        card_id: newCard.id,
-        title: extraction.title,
-        column: targetColumn.name,
-        estimated_value: valueEstimate.value,
-        tags_assigned: extraction.suggested_tag_ids.length,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
   } catch (err) {
     console.error("Elementor webhook unexpected error:", err);
     await reportEdgeError(err, { fn: "crm-elementor-webhook" });
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return new Response(JSON.stringify({ error: "Internal error", details: message }), {
-      status: 500,
+  }
+}
+
+// ─── Main handler ───────────────────────────────────────────────────────
+
+serve(async (req) => {
+  const preflight = handleCorsPreflightIfNeeded(req);
+  if (preflight) return preflight;
+
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (!ELEMENTOR_WEBHOOK_TOKEN) {
+    console.error("ELEMENTOR_WEBHOOK_TOKEN not configured");
+    return new Response(JSON.stringify({ error: "Webhook not configured" }), {
+      status: 503,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const url = new URL(req.url);
+  const providedToken = url.searchParams.get("token") || req.headers.get("x-webhook-token");
+  if (!(await timingSafeEqualSecret(providedToken, ELEMENTOR_WEBHOOK_TOKEN))) {
+    console.error("Invalid webhook token");
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  try {
+    // ─── Parse payload ───
+    const contentType = (req.headers.get("content-type") || "").toLowerCase();
+    let submission: NormalizedSubmission;
+
+    if (contentType.includes("application/json")) {
+      submission = normalizeFromJson(await req.json());
+    } else if (contentType.includes("application/x-www-form-urlencoded")) {
+      submission = normalizeFromForm(new URLSearchParams(await req.text()));
+    } else if (contentType.includes("multipart/form-data")) {
+      submission = normalizeFromForm(await req.formData());
+    } else {
+      const text = await req.text();
+      try {
+        submission = normalizeFromJson(JSON.parse(text));
+      } catch {
+        submission = normalizeFromForm(new URLSearchParams(text));
+      }
+    }
+
+    // Fallbacks from HTTP headers when Elementor doesn't pass them in the body
+    const headerUA = req.headers.get("user-agent") || undefined;
+    const headerIP = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || undefined;
+    const headerReferer = req.headers.get("referer") || req.headers.get("referrer") || undefined;
+    if (!submission.user_agent && headerUA) submission.user_agent = headerUA;
+    if (!submission.remote_ip && headerIP) submission.remote_ip = headerIP;
+    if (!submission.referrer && headerReferer) submission.referrer = headerReferer;
+
+    if (submission.fields.length === 0) {
+      return new Response(JSON.stringify({ error: "No form fields found in payload" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("Elementor submission:", { form: submission.form_name, fields: submission.fields.length });
+    EdgeRuntime.waitUntil(processSubmission(submission, new Date().toISOString()));
+    return new Response(JSON.stringify({ success: true, queued: true }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("Elementor webhook invalid payload:", err);
+    return new Response(JSON.stringify({ error: "Invalid payload" }), {
+      status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
