@@ -14,7 +14,7 @@ import { estimateOpportunityValue, loadOpportunityValueData, parseValueSignals, 
  * Mirrors the manual "Nouvelle opportunité" flow:
  *  1. AI extraction (rich prompt: tags + suggested_next_action, same as crm-extract-opportunity)
  *  2. Value estimation from CRM history (averaged WON deals)
- *  3. Acquisition source detection (existing email -> "nouvelle_mission", else "site_web")
+ *  3. Acquisition source: "site_web"
  *  4. Card insert in "Entrant" column (or first non-archived) with description_html + emoji
  *  5. Suggested tags assignment via crm_card_tags
  *  6. Slack notification
@@ -368,23 +368,6 @@ async function estimateValue(supabase: any, extraction: ExtractionResult): Promi
   }
 }
 
-// ─── Acquisition source detection (mirrors NewOpportunityDialog) ────────
-
-async function detectAcquisitionSource(
-  supabase: any,
-  email: string | null,
-): Promise<"site_web" | "nouvelle_mission"> {
-  if (email) {
-    const { data: existingCards } = await supabase
-      .from("crm_cards")
-      .select("id")
-      .eq("email", email)
-      .limit(1);
-    if (existingCards && existingCards.length > 0) return "nouvelle_mission";
-  }
-  return "site_web";
-}
-
 // ─── Slack notification (best-effort) ───────────────────────────────────
 
 async function notifySlack(supabase: any, card: { title: string; company?: string | null; first_name?: string | null; last_name?: string | null; email?: string | null; form_name?: string }) {
@@ -420,13 +403,16 @@ async function notifySlack(supabase: any, card: { title: string; company?: strin
   }
 }
 
-async function processSubmission(submission: NormalizedSubmission, receivedAt: string): Promise<void> {
-  try {
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("CRM backend not configured");
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+async function completeSubmission(supabase: any, inboxId: string, cardId: string): Promise<void> {
+  const { error } = await supabase.from("elementor_webhook_inbox").update({
+    status: "processed", card_id: cardId, processed_at: new Date().toISOString(), error_message: null,
+  }).eq("id", inboxId);
+  if (error) throw new Error(`Failed to mark Elementor submission processed: ${error.message}`);
+}
 
+async function processSubmission(supabase: any, inboxId: string, submission: NormalizedSubmission, receivedAt: string): Promise<void> {
+  let cardId: string | null = null;
+  try {
     const sourceMetadata = {
       received_at: receivedAt,
       page_url: submission.page_url ?? null,
@@ -466,23 +452,27 @@ async function processSubmission(submission: NormalizedSubmission, receivedAt: s
 
       const dup = recentCards?.[0];
       if (dup) {
+        cardId = dup.id;
         const alreadySeen = (dup.raw_input ?? "").includes(rawInput.trim());
         if (!alreadySeen) {
-          await supabase
+          const { error: mergeError } = await supabase
             .from("crm_cards")
             .update({
               description_html: `${dup.description_html ?? ""}<p><em>Nouvelle soumission du formulaire :</em></p>${buildDescriptionHtml(rawInput)}`,
               raw_input: `${dup.raw_input ?? ""}\n\n--- Nouvelle soumission ---\n${rawInput}`,
             })
             .eq("id", dup.id);
+          if (mergeError) throw new Error(`Failed to merge Elementor submission: ${mergeError.message}`);
         }
-        await supabase.from("crm_activity_log").insert({
+        const { error: activityError } = await supabase.from("crm_activity_log").insert({
           card_id: dup.id,
           action_type: "comment_added",
           actor_email: "system@elementor",
           new_value: "Soumission de formulaire en doublon fusionnée dans cette opportunité",
         });
+        if (activityError) throw new Error(`Failed to log Elementor submission: ${activityError.message}`);
         console.log("Duplicate submission merged into card:", dup.id);
+        await completeSubmission(supabase, inboxId, dup.id);
         return;
       }
     }
@@ -532,11 +522,8 @@ async function processSubmission(submission: NormalizedSubmission, receivedAt: s
     extraction.last_name = extraction.last_name || detectedLastName;
     extraction.company = extraction.company || detectedCompany || extractCompanyFromEmail(extraction.email);
 
-    // ─── Value estimation + acquisition source ───
-    const [valueEstimate, acquisitionSource] = await Promise.all([
-      estimateValue(supabase, extraction),
-      detectAcquisitionSource(supabase, extraction.email),
-    ]);
+    // ─── Value estimation ───
+    const valueEstimate = await estimateValue(supabase, extraction);
 
     // ─── Pick column: "Entrant" first, else first non-archived ───
     const { data: columns } = await supabase
@@ -585,7 +572,7 @@ async function processSubmission(submission: NormalizedSubmission, receivedAt: s
         service_type: extraction.service_type || null,
         brief_questions: extraction.brief_questions as unknown,
         raw_input: rawInput,
-        acquisition_source: acquisitionSource,
+        acquisition_source: "site_web",
         emoji: pickRandomEmoji(),
         source_metadata: { ...sourceMetadata, value_estimation: valueEstimate },
       })
@@ -597,15 +584,17 @@ async function processSubmission(submission: NormalizedSubmission, receivedAt: s
       throw new Error(`Failed to create CRM card: ${cardError.message}`);
     }
 
+    cardId = newCard.id;
     console.log("CRM card created:", newCard.id);
 
     // ─── Activity log ───
-    await supabase.from("crm_activity_log").insert({
+    const { error: activityError } = await supabase.from("crm_activity_log").insert({
       card_id: newCard.id,
       action_type: "card_created",
       actor_email: "system@elementor",
       new_value: extraction.title,
     });
+    if (activityError) throw new Error(`Failed to log Elementor submission: ${activityError.message}`);
 
     // ─── Persist suggested tags ───
     if (extraction.suggested_tag_ids.length > 0) {
@@ -625,10 +614,19 @@ async function processSubmission(submission: NormalizedSubmission, receivedAt: s
       service_type: extraction.service_type,
       source_label: `Formulaire site web — ${submission.form_name || "Elementor"}`,
     });
-
+    await completeSubmission(supabase, inboxId, newCard.id);
   } catch (err) {
-    console.error("Elementor webhook unexpected error:", err);
-    await reportEdgeError(err, { fn: "crm-elementor-webhook" });
+    console.error("Elementor webhook processing failed:", { inbox_id: inboxId, card_id: cardId, error: err });
+    try {
+      const { error } = await supabase.from("elementor_webhook_inbox").update({
+        status: "error", card_id: cardId,
+        error_message: err instanceof Error ? err.message : String(err),
+      }).eq("id", inboxId);
+      if (error) console.error("Failed to record Elementor processing error:", { inbox_id: inboxId, error });
+    } catch (recordError) {
+      console.error("Failed to record Elementor processing error:", { inbox_id: inboxId, error: recordError });
+    }
+    await reportEdgeError(err, { fn: "crm-elementor-webhook", inbox_id: inboxId });
   }
 }
 
@@ -663,10 +661,13 @@ serve(async (req) => {
     });
   }
 
+  const receivedAt = new Date().toISOString();
+  const contentType = (req.headers.get("content-type") || "").toLowerCase();
+  let submission: NormalizedSubmission;
+  let rawPayload: string;
   try {
     // ─── Parse payload ───
-    const contentType = (req.headers.get("content-type") || "").toLowerCase();
-    let submission: NormalizedSubmission;
+    rawPayload = await req.clone().text();
 
     if (contentType.includes("application/json")) {
       submission = normalizeFromJson(await req.json());
@@ -698,16 +699,36 @@ serve(async (req) => {
       });
     }
 
-    console.log("Elementor submission:", { form: submission.form_name, fields: submission.fields.length });
-    EdgeRuntime.waitUntil(processSubmission(submission, new Date().toISOString()));
-    return new Response(JSON.stringify({ success: true, queued: true }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (err) {
     console.error("Elementor webhook invalid payload:", err);
     return new Response(JSON.stringify({ error: "Invalid payload" }), {
       status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  try {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("CRM backend not configured");
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { data: queued, error } = await supabase.from("elementor_webhook_inbox").insert({
+      received_at: receivedAt,
+      submission: { raw_payload: rawPayload, content_type: contentType, normalized: submission },
+    }).select("id").single();
+    if (error || !queued) throw new Error(`Failed to persist Elementor submission: ${error?.message || "no inbox record"}`);
+
+    console.log("Elementor submission queued:", { inbox_id: queued.id, form: submission.form_name, fields: submission.fields.length });
+    EdgeRuntime.waitUntil(processSubmission(supabase, queued.id, submission, receivedAt));
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("Elementor webhook receipt failed:", err);
+    await reportEdgeError(err, { fn: "crm-elementor-webhook", stage: "receipt" });
+    return new Response(JSON.stringify({ error: "Unable to save submission" }), {
+      status: 503,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

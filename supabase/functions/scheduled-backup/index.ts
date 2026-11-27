@@ -28,6 +28,7 @@ import { isInternalOrAdmin } from "../_shared/cron-auth.ts";
 // ─── Tables to backup ───────────────────────────────────────────────────────
 
 const TABLES_TO_BACKUP = [
+  "elementor_webhook_inbox",
   "audit_question_evidence",
   "activity_logs", "admin_documents",
   "agent_conversations", "agent_feedback", "agent_query_audit_log", "agent_schema_registry",

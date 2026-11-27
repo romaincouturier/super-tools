@@ -1,4 +1,5 @@
 # Architecture
+- Elementor acknowledges only after persisting the raw request in a private inbox; its existing CRM pipeline and Slack run under waitUntil, and terminal errors retain the payload and card ID, because a fast response alone cannot prevent lost requests.
 - Book enrichment uses a persistent per-production queue, a leased three-item worker and snapshot-checked field updates; provider failures pause the queue, because enrichment must preserve manual edits and never replay an unknown inference outcome.
 - MCP media previews use short-lived Storage transforms before decoding; crops decode only header-verified images bounded to 1600² pixels, local original fallback requires both small bytes and bounded dimensions, and all image downloads have streamed byte limits and a timeout, because compressed size alone cannot protect Edge memory. No auth, RLS or public access changes are permitted for this path.
 - Rental creation paths share an awaited generation/send workflow; reuse originals and sent signatures, preserve active rentals on webhook replay, and record failures, because missing PDFs must never silently block or duplicate contracts.

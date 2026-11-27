@@ -3480,6 +3480,36 @@ export type Database = {
           },
         ]
       }
+      elementor_webhook_inbox: {
+        Row: {
+          card_id: string | null
+          error_message: string | null
+          id: string
+          processed_at: string | null
+          received_at: string
+          status: string
+          submission: Json
+        }
+        Insert: {
+          card_id?: string | null
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          received_at?: string
+          status?: string
+          submission: Json
+        }
+        Update: {
+          card_id?: string | null
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          received_at?: string
+          status?: string
+          submission?: Json
+        }
+        Relationships: []
+      }
       email_snippets: {
         Row: {
           category: string | null

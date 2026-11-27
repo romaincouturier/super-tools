@@ -1,5 +1,11 @@
 # Roadmap
 
+## Réception durable Elementor (2026-11-27)
+- [x] Formulaire brut conservé avant l’accusé `{"ok":true}` ; traitement CRM/Slack sous waitUntil, erreur et identifiant de fiche conservés dans une file privée. Table incluse dans les deux sauvegardes, sans lancement ni changement de cron.
+- [x] Webhook, formats JSON/URL-encoded/multipart/repli, anti-doublon, estimations, journal, tags, Slack, signalement Sentry et sondes OPTIONS/UI de présence relus ; 28 tests et 103 règles OK, compilation automatique OK. Source site_web fixée pour les nouvelles fiches, y compris contacts connus ; aucune ancienne fiche réécrite.
+- [x] Déploiement et trois appels réels avec token : HTTP 200 {ok:true}, 1 429,9 ms puis 313,5 et 349,9 ms. Une nouvelle fiche test 77146b11 créée, trois payloads traités et conservés ; les répétitions identiques rejoignent la même fiche selon l’anti-doublon existant. Ancienne fiche test LOST inchangée, aucun email envoyé par la fonction.
+- [ ] Confirmation visuelle du succès Elementor/admin-ajax : site public refusé HTTP 403 depuis le sandbox. Le premier appel dépasse aussi la cible d’une seconde ; les suivants sont inférieurs à 350 ms, aucune garantie de latence totale à froid. Recontrôle du formulaire WordPress à faire depuis un accès autorisé.
+
 ## Analyse du cockpit formateur Digiforma (2026-11-26)
 - [x] Récupérer la transcription de la vidéo https://youtu.be/E-HjQiyLBiI.
 - [x] Comparaison statique avec les écrans existants ; proposition livrée en cinq lots : mes sessions/actions, dossier individuel, accompagnement, conduite de séance, espace administratif. Lots 1/2 recommandés en premier ; aucune implémentation, donnée métier, leçon, planification ou email modifié.
