@@ -1,0 +1,2 @@
+ALTER TABLE public.audit_question_evidence DROP CONSTRAINT audit_question_evidence_indicator_check;
+ALTER TABLE public.audit_question_evidence ADD CONSTRAINT audit_question_evidence_indicator_check CHECK (indicator >= 0 AND indicator <= 32);

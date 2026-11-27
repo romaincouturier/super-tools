@@ -561,6 +561,13 @@
       "when": 1795429971621,
       "tag": "0079_book_analysis_audit_recipient",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1795763344961,
+      "tag": "0080_allow_audit_day_evidence",
+      "breakpoints": true
     }
   ]
 }
