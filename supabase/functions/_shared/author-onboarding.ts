@@ -249,3 +249,26 @@ export function reminderDue(reminderCount: number, emailSentAt: string | null, n
   if (step === undefined || !emailSentAt) return false;
   return now - new Date(emailSentAt).getTime() >= step * 86_400_000;
 }
+
+// ── Entrées des actions staff « invite » / « send_invitation » (UI et MCP) ──
+export type InviteInput = { email: string; first: string; last: string; gameName: string; rate: number };
+export function parseInviteInput(body: Record<string, unknown>): InviteInput | { error: string } {
+  const email = String(body.email || "").trim().toLowerCase();
+  const first = String(body.first_name || "").trim().slice(0, 100);
+  const last = String(body.last_name || "").trim().slice(0, 100);
+  const gameName = String(body.game_name || "").trim().slice(0, 150);
+  const rate = Number(body.commission_rate ?? 0.15);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !first || !last) return { error: "Email, prénom et nom requis" };
+  if (!(rate >= 0 && rate <= 1)) return { error: "Commission invalide" };
+  return { email, first, last, gameName, rate };
+}
+
+export function invitationLinkToken(link: string): string | null {
+  const t = link.split("/proposer-mon-jeu/")[1];
+  if (!t) return null;
+  try { return decodeURIComponent(t); } catch { return null; }
+}
+
+export function sendInvitationContentError(subject: string, content: string): string | null {
+  return !subject || !content.includes("{{invitation_button}}") ? "Objet et bouton d'invitation requis" : null;
+}

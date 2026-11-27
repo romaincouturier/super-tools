@@ -119,3 +119,24 @@ describe("author onboarding", () => {
     expect(reminderDue(2, d(30), now)).toBe(false);
   });
 });
+
+import { parseInviteInput, invitationLinkToken, sendInvitationContentError } from "./author-onboarding.ts";
+
+describe("entrées invite_game_author / send_author_invitation", () => {
+  it("normalise l'email et applique 15 % par défaut", () => {
+    expect(parseInviteInput({ email: " Ed@Ex.FR ", first_name: "Édouard", last_name: "Vuillemin" }))
+      .toEqual({ email: "ed@ex.fr", first: "Édouard", last: "Vuillemin", gameName: "", rate: 0.15 });
+  });
+  it("refuse email invalide, nom manquant et commission hors 0-1", () => {
+    expect(parseInviteInput({ email: "x", first_name: "a", last_name: "b" })).toEqual({ error: "Email, prénom et nom requis" });
+    expect(parseInviteInput({ email: "a@b.fr", first_name: "a" })).toEqual({ error: "Email, prénom et nom requis" });
+    expect(parseInviteInput({ email: "a@b.fr", first_name: "a", last_name: "b", commission_rate: 1.5 })).toEqual({ error: "Commission invalide" });
+    expect(parseInviteInput({ email: "a@b.fr", first_name: "a", last_name: "b", commission_rate: -0.1 })).toEqual({ error: "Commission invalide" });
+  });
+  it("extrait le jeton du lien et exige le bouton d'invitation", () => {
+    expect(invitationLinkToken("https://academy.supertilt.fr/proposer-mon-jeu/ab%2Dc")).toBe("ab-c");
+    expect(invitationLinkToken("https://academy.supertilt.fr/autre")).toBeNull();
+    expect(sendInvitationContentError("Objet", "Bonjour")).toBe("Objet et bouton d'invitation requis");
+    expect(sendInvitationContentError("Objet", "Clique {{invitation_button}}")).toBeNull();
+  });
+});

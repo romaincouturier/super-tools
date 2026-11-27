@@ -80,6 +80,7 @@ import {
   type ExtractedPart,
 } from "../_shared/mission-tools.ts";
 import { updateOrderItem, ORDER_KANBAN_STATUSES } from "../_shared/order-tools.ts";
+import { inviteGameAuthor, sendAuthorInvitation, InvitationError } from "../_shared/author-invitation.ts";
 import { logTrainingFeedback, FEEDBACK_SOURCES, FEEDBACK_AUTHOR_ROLES, type FeedbackInput } from "../_shared/feedback-tools.ts";
 import { updateEvent } from "../_shared/event-update-tool.ts";
 import { createProjectAction, listProjectBoard, updateProjectAction } from "../_shared/project-board-tools.ts";
@@ -383,6 +384,8 @@ Le serveur est principalement en lecture seule. Les écritures sont ADDITIVES ou
 - save_mission_activity : ajoute une activité au journal d'une mission (description + date obligatoires, durée en heures/jours/demi-journées, montant facturable facultatif). Une durée de 0 correspond à une action programmée sans temps consommé. Écriture additive.
 - update_mission_activity : corrige une activité existante à partir de son id (listé par get_mission_dossier). Seuls les champs transmis sont modifiés ; aucune activité ne peut être supprimée ni déplacée vers une autre mission.
 - update_event : modifie un événement (summary_notes = note de synthèse, notes, description, statut, date, horaires, lieu, liens). Seuls les champs transmis changent ; renvoie l'avant/après.
+- invite_game_author : prépare l'invitation d'un auteur de jeu en dropshipping (auteur réutilisé si l'email existe, jeu inactif, lien /proposer-mon-jeu/ valable 30 jours). N'envoie AUCUN email ; renvoie le lien et le brouillon d'invitation à faire relire.
+- send_author_invitation : ENVOIE RÉELLEMENT l'email d'invitation à l'auteur. N'appeler qu'après validation explicite de l'utilisateur sur le brouillon.
 - update_order_item : annote une ligne de commande de jeux (notes, kanban_status, remise en main propre, date d'expédition confirmée). Seuls les champs transmis changent ; renvoie l'avant/après.
 - update_mission : modifie titre, statut, dates de début/fin, montant initial, contact client, ou l'indicateur « Facture à émettre » (invoice_to_issue + texte et montant optionnels, distinct de la prochaine action) d'une mission. Seuls les champs transmis changent ; renvoie l'avant/après.
 - save_watch_item : dépose un contenu dans le module Veille (un contenu par appel : lien de la source, résumé dans body, angle dans comment, 2 à 5 tags). Écriture additive, doublons refusés : même URL déjà présente ou contenu sémantiquement quasi identique, l'appel ne crée rien et rend l'élément existant.
@@ -672,6 +675,37 @@ const MCP_TOOLS = [
         private_group_url: { type: ["string", "null"] },
       },
       required: ["event_id"],
+    },
+  },
+  {
+    name: "invite_game_author",
+    description:
+      "Prepare a dropshipping invitation for a game author, exactly like the 'Inviter un auteur' screen. Reuses the existing author when the email is already in game_authors (no duplicate), creates the game as inactive, creates the invitation (hashed token, 30-day expiry) on behalf of the MCP user. Sends NO email. Returns invitation_id, author_id, game_id, the public link /proposer-mon-jeu/<token> and the invitation draft (to, subject, content) to show the user for review. Requires admin or dropshipping module access.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        email: { type: "string", description: "Author email" },
+        first_name: { type: "string", description: "Author first name" },
+        last_name: { type: "string", description: "Author last name" },
+        game_name: { type: "string", description: "Game name (optional)" },
+        commission_rate: { type: "number", minimum: 0, maximum: 1, description: "Commission rate between 0 and 1 (default 0.15)" },
+      },
+      required: ["email", "first_name", "last_name"],
+    },
+  },
+  {
+    name: "send_author_invitation",
+    description:
+      "ACTUALLY SENDS the invitation email to the game author (Resend, Signitic signature, BCC), marks the invitation as sent and logs it. Only call this after the user has explicitly approved the draft and asked to send it. Pass the invitation_id and the exact link returned by invite_game_author; subject/content default to the invitation draft and content must contain {{invitation_button}}. Requires admin or dropshipping module access.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        invitation_id: { type: "string", description: "UUID returned by invite_game_author" },
+        link: { type: "string", description: "Public link returned by invite_game_author" },
+        subject: { type: "string", description: "Email subject (optional, default = draft)" },
+        content: { type: "string", description: "Email body (optional, default = draft); must contain {{invitation_button}}" },
+      },
+      required: ["invitation_id", "link"],
     },
   },
   {
@@ -2189,6 +2223,25 @@ async function callTool(
         return textResult(await updateEvent(supabase, (event_id as string) || "", fields, log));
       } catch (e) {
         return textResult(`Update error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "invite_game_author":
+    case "send_author_invitation": {
+      try {
+        const userId = await getAllowedUserId(supabase);
+        if (!userId) return textResult("Accès refusé : utilisateur MCP introuvable", true);
+        const [{ data: admin }, { data: mod }] = await Promise.all([
+          supabase.rpc("is_admin", { _user_id: userId }),
+          supabase.rpc("has_module_access", { _user_id: userId, _module: "dropshipping" }),
+        ]);
+        if (!admin && !mod) return textResult("Accès refusé : droits admin ou module dropshipping requis", true);
+        const result = name === "invite_game_author"
+          ? await inviteGameAuthor(supabase, args, userId)
+          : await sendAuthorInvitation(supabase, args, userId, true);
+        return textResult(JSON.stringify(result, null, 2));
+      } catch (e) {
+        if (e instanceof InvitationError) return textResult(e.message, true);
+        return textResult(`Invitation error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "update_order_item": {

@@ -24,6 +24,7 @@ import {
   INVITATION_DAYS, OTP_TTL_MS, sanitizeForm, missingForSubmit, fileKindAllowed, formatCommission,
   buildContractPayload, distributorContractImage, otpSendRefusal, otpCheckRefusal, frDateParis, authorPostalAddress, invitationGameTitle, invitationGameName, authorSirenError, type FormData as AuthorForm,
 } from "../_shared/author-onboarding.ts";
+import { inviteGameAuthor, sendAuthorInvitation, InvitationError, invitationDraft, randomToken, appBase, publicLink } from "../_shared/author-invitation.ts";
 
 const BUCKET = "author-onboarding";
 const TEMPLATE_ID = "A3FFB90C-6622-41AA-821F-0FB37F685403";
@@ -32,14 +33,6 @@ const PRODUCT_SHEET_EMAIL = "emmanuelle@supertilt.fr";
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const fail = (error: string, status = 400) => json({ error }, status);
-
-function randomToken(): string {
-  const b = new Uint8Array(32);
-  crypto.getRandomValues(b);
-  return btoa(String.fromCharCode(...b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-const appBase = async () => ((await getAppUrls()).app_url || "https://academy.supertilt.fr").replace(/\/+$/, "");
-const publicLink = (base: string, token: string) => `${base}/proposer-mon-jeu/${encodeURIComponent(token)}`;
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
@@ -320,38 +313,18 @@ serve(async (req) => {
     if (!staff) return fail("Accès refusé", 403);
     const base = await appBase();
 
-    if (action === "invite") {
-      const email = String(body.email || "").trim().toLowerCase();
-      const first = String(body.first_name || "").trim().slice(0, 100);
-      const last = String(body.last_name || "").trim().slice(0, 100);
-      const gameName = String(body.game_name || "").trim().slice(0, 150);
-      const rate = Number(body.commission_rate ?? 0.15);
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !first || !last) return fail("Email, prénom et nom requis");
-      if (!(rate >= 0 && rate <= 1)) return fail("Commission invalide");
-
-      const { data: existing } = await db.from("game_authors").select("id").ilike("email", email).limit(1);
-      let authorId = existing?.[0]?.id as string | undefined;
-      if (authorId) {
-        await db.from("game_authors").update({ first_name: first, last_name: last, onboarding_status: "invited" }).eq("id", authorId);
-      } else {
-        const { data: a, error } = await db.from("game_authors").insert({
-          name: `${first} ${last}`, first_name: first, last_name: last, email, royalty_rate: rate, onboarding_status: "invited",
-        }).select("id").single();
-        if (error) throw error;
-        authorId = a.id;
+    if (action === "invite" || action === "send_invitation") {
+      try {
+        if (action === "invite") {
+          const r = await inviteGameAuthor(db, body, staff.id);
+          return json({ invitation_id: r.invitation_id, link: r.link, ...r.draft });
+        }
+        await sendAuthorInvitation(db, body, staff.id);
+        return json({ sent: true });
+      } catch (e) {
+        if (e instanceof InvitationError) return fail(e.message, e.status);
+        throw e;
       }
-      const { data: g, error: gErr } = await db.from("games").insert({
-        title: invitationGameTitle(gameName, first, last), author_id: authorId, status: "inactive", onboarding_status: "invited", commission_type: "percentage", commission_rate: rate,
-      }).select("id").single();
-      if (gErr) throw gErr;
-      const token = randomToken();
-      const { data: inv, error: iErr } = await db.from("author_onboarding_invitations").insert({
-        token_hash: await generateHash(token), author_id: authorId, game_id: g.id, commission_rate: rate,
-        recipient_email: email, invited_by: staff.id,
-        expires_at: new Date(Date.now() + INVITATION_DAYS * 86_400_000).toISOString(),
-      }).select("id").single();
-      if (iErr) throw iErr;
-      return json({ invitation_id: inv.id, link: publicLink(base, token), ...(await invitationDraft(db, inv.id, publicLink(base, token))) });
     }
 
     if (action === "new_link") {
@@ -361,24 +334,6 @@ serve(async (req) => {
       const expires = new Date(Date.now() + INVITATION_DAYS * 86_400_000).toISOString();
       await db.from("author_onboarding_invitations").update({ token_hash: await generateHash(token), expires_at: expires, revoked_at: null }).eq("id", inv.id);
       return json({ link: publicLink(base, token), ...(await invitationDraft(db, inv.id, publicLink(base, token))) });
-    }
-
-    if (action === "send_invitation") {
-      const { data: inv } = await db.from("author_onboarding_invitations").select("*").eq("id", String(body.invitation_id || "")).maybeSingle();
-      if (!inv) return fail("Invitation introuvable", 404);
-      const link = String(body.link || "");
-      const token = link.split("/proposer-mon-jeu/")[1];
-      if (!token || (await generateHash(decodeURIComponent(token))) !== inv.token_hash) return fail("Lien d'invitation périmé : générez-en un nouveau");
-      const subject = String(body.subject || "").slice(0, 300);
-      const content = String(body.content || "").slice(0, 20000);
-      if (!subject || !content.includes("{{invitation_button}}")) return fail("Objet et bouton d'invitation requis");
-      const r = renderEmailText(subject, content, {}, { invitation_button: ctaButton("Remplir le formulaire", escapeEmailValue(link)) });
-      const [sig, bcc] = await Promise.all([getSigniticSignature(), getBccSettings(db)]);
-      const sent = await sendEmail({ to: inv.recipient_email, bcc, subject: r.subject, html: r.html + sig, _emailType: "author_invitation" } as Db);
-      if (!sent.success) return fail(`Envoi impossible : ${sent.error ?? "erreur inconnue"}`, 502);
-      await db.from("author_onboarding_invitations").update({ invitation_sent_at: new Date().toISOString() }).eq("id", inv.id);
-      await db.from("activity_logs").insert({ action_type: "author_invitation_sent", recipient_email: inv.recipient_email, user_id: staff.id, details: { invitation_id: inv.id } } as Db);
-      return json({ sent: true });
     }
 
     if (action === "reopen") {
@@ -428,23 +383,6 @@ serve(async (req) => {
     return fail(e instanceof Error ? e.message : "Erreur inconnue", 500);
   }
 });
-
-async function invitationDraft(db: Db, invitationId: string, link: string) {
-  const { data: inv } = await db.from("author_onboarding_invitations").select("*, game_authors(first_name), games(title)").eq("id", invitationId).single();
-  const d = EDITABLE_EMAIL_DEFAULTS.author_invitation;
-  const tpl = await loadEditableTemplate(db, "author_invitation", false).catch(() => null);
-  const gameName = invitationGameName(inv.games?.title ?? "");
-  const vars: Record<string, string> = {
-    first_name: inv.game_authors?.first_name ?? "",
-    game_name: gameName,
-    game_mention: gameName ? `« ${gameName} »` : "ton jeu",
-    commission: formatCommission(Number(inv.commission_rate)),
-    expires_at: frDateParis(new Date(inv.expires_at)),
-  };
-  const fill = (s: string) => s.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars ? vars[k] : m));
-  const oldDefault = tpl?.html_content.includes("il vous suffit de remplir ce formulaire");
-  return { subject: fill(!oldDefault && tpl ? tpl.subject : d.subject.tu), content: fill(!oldDefault && tpl ? tpl.html_content : d.content.tu), link, to: inv.recipient_email };
-}
 
 async function recopyToRecords(db: Db, inv: Db, f: AuthorForm, files: Db[]) {
   const rep = [f.legal_rep_first_name, f.legal_rep_last_name].filter(Boolean).join(" ");
